@@ -2,6 +2,10 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-08 (v53) - Resolved Backend Import Error & Cleaned Audit Logger Hook in Admin Router
+- **Summary:** Fixed backend startup `ImportError` on Render cloud instances where `admin.py` attempted to import `audit_logger` as an instance instead of `log_security_event` from `backend.app.core.audit_logger`. Updated `toggle_iot_ingestion` endpoint to call `log_security_event(...)` directly with structured details and client IP payload. Tested and validated clean Python module imports across all 11 backend routers with 0 errors.
+- **Files modified**: `backend/app/routers/admin.py`, `changes_happening.md`
+
 ## 2026-09-08 (v52) - Mobile Camera Access Fix with Environment Constraints & Native 4K Camera Fallback
 - **Summary:** Resolved mobile WebRTC camera access issues (`Camera access denied or unavailable`) across Android Chrome and iOS Safari. Replaced restrictive pre-permission `deviceId` exact match constraints with progressive mobile `facingMode: { ideal: 'environment' }` queries. Added automatic graceful fallback to the device's native high-resolution camera (`<input type="file" accept="image/*" capture="environment" />`) with a dedicated 1-tap **"Take Photo (Native)"** action button, ensuring 100% camera compatibility on every mobile device regardless of browser WebRTC permission restrictions.
 - **Files modified**: `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`

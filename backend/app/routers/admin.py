@@ -6,7 +6,7 @@ from bson import ObjectId
 from backend.app.db.mongodb import get_database
 from backend.app.core.security import require_role
 from backend.app.core.rate_limiter import rate_limit, ADMIN_LIMIT
-from backend.app.core.audit_logger import audit_logger
+from backend.app.core.audit_logger import log_security_event
 from backend.app.models.schemas import UserResponse
 
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
@@ -388,15 +388,15 @@ async def toggle_iot_ingestion(
     )
     
     # Audit log
-    await audit_logger.log_security_event(
-        db=db,
+    log_security_event(
         event_type="IOT_INGESTION_TOGGLED",
-        severity="INFO" if req_body.enabled else "WARNING",
-        action="ENABLED_IOT_INGESTION" if req_body.enabled else "DISABLED_IOT_INGESTION",
-        actor_id=str(current_user.get("id") or current_user.get("_id", "")),
-        actor_email=current_user.get("email", "admin"),
-        ip_address=request.client.host if request.client else "unknown",
-        details={"enabled": req_body.enabled}
+        details={
+            "enabled": req_body.enabled,
+            "action": "ENABLED_IOT_INGESTION" if req_body.enabled else "DISABLED_IOT_INGESTION",
+            "actor_email": current_user.get("email", "admin")
+        },
+        level="INFO" if req_body.enabled else "WARNING",
+        client_ip=request.client.host if request.client else "127.0.0.1"
     )
     
     return {
