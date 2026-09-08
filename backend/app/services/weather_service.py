@@ -195,3 +195,69 @@ class WeatherService:
             logger.error(f"WeatherService error: {str(e)}")
             # Guaranteed fallback so backend never crashes
             return WeatherService.get_mock_weather(lat, lon)
+
+    @staticmethod
+    async def get_weather_for_query(query: str, farm_profile: Optional[dict] = None) -> Optional[dict]:
+        """
+        Dynamically extracts location from chat query or farm profile, geocodes it,
+        and retrieves live OpenWeatherMap data.
+        """
+        import re
+        api_key = settings.OPENWEATHER_API_KEY
+        if not api_key:
+            return None
+
+        # Extract location keyword from query (e.g., 'weather in Pasupugallu', 'climate at Guntur')
+        target_loc = None
+        match = re.search(r'\b(?:in|at|for|near|around)\s+([A-Za-z0-9\s,\-]+)', query, re.IGNORECASE)
+        if match:
+            target_loc = match.group(1).strip().rstrip('?.,!')
+        elif farm_profile and farm_profile.get("location"):
+            target_loc = farm_profile.get("location")
+
+        lat, lon = None, None
+        display_name = target_loc or "Your Farm"
+
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            if target_loc:
+                try:
+                    geo_url = f"https://nominatim.openstreetmap.org/search?q={target_loc}&format=json&limit=1"
+                    geo_res = await client.get(geo_url, headers={"User-Agent": "AgriShield/1.0"})
+                    if geo_res.status_code == 200 and geo_res.json():
+                        first_match = geo_res.json()[0]
+                        lat = float(first_match["lat"])
+                        lon = float(first_match["lon"])
+                        display_name = first_match.get("display_name", target_loc).split(",")[0]
+                except Exception as ge:
+                    logger.warning(f"Geocoding failed for {target_loc}: {ge}")
+
+            if lat is None and farm_profile:
+                lat = farm_profile.get("latitude")
+                lon = farm_profile.get("longitude")
+                if lat and lon:
+                    display_name = farm_profile.get("farm_name") or target_loc or "Your Farm"
+
+            if lat is not None and lon is not None:
+                try:
+                    w_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
+                    w_res = await client.get(w_url)
+                    if w_res.status_code == 200:
+                        d = w_res.json()
+                        main = d.get("main", {})
+                        weather_info = d.get("weather", [{}])[0]
+                        wind = d.get("wind", {})
+                        city_name = d.get("name") or display_name
+                        return {
+                            "location": f"{city_name} (near {display_name})",
+                            "temperature": f"{round(main.get('temp', 28.0), 1)}°C (feels like {round(main.get('feels_like', 29.0), 1)}°C)",
+                            "humidity": f"{main.get('humidity', 60)}%",
+                            "condition": weather_info.get("main", "Clear"),
+                            "description": weather_info.get("description", "clear sky").capitalize(),
+                            "wind_speed": f"{wind.get('speed', 2.0)} m/s",
+                            "pressure": f"{main.get('pressure', 1010)} hPa",
+                            "source": "OpenWeatherMap Live Satellite Data"
+                        }
+                except Exception as we:
+                    logger.warning(f"OpenWeather request failed for {display_name}: {we}")
+
+        return None

@@ -711,6 +711,10 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                                 context_str += f"      * Organic Tx: {scan.get('organic_treatment')[:120]}...\n"
                             if scan.get('chemical_treatment') and scan.get('chemical_treatment') != "None":
                                 context_str += f"      * Chemical Tx: {scan.get('chemical_treatment')[:120]}...\n"
+                    elif k == "live_openweather_report" and isinstance(v, dict):
+                        context_str += "\n- Real-Time Live OpenWeatherMap Satellite Data:\n"
+                        for wk, wv in v.items():
+                            context_str += f"  * {wk.replace('_', ' ').title()}: {wv}\n"
                     else:
                         context_str += f"- {k}: {v}\n"
                     if k.lower() == "language" and v:

@@ -239,6 +239,16 @@ async def chat_with_farming_assistant(
                     "logs": logs_list[:8]
                 }
 
+        # Fetch live real-world weather from OpenWeatherMap if query is weather-related
+        if any(w in lower_msg for w in ["weather", "temperature", "temp", "rain", "forecast", "climate", "humidity", "వాతావరణం", "मौसम", "வானிலை"]):
+            try:
+                from backend.app.services.weather_service import WeatherService
+                live_w = await WeatherService.get_weather_for_query(sanitized_message, active_farm)
+                if live_w:
+                    chat_context["live_openweather_report"] = live_w
+            except Exception as we:
+                logger.warning(f"Error fetching live OpenWeather data: {we}")
+
         reply = await nvidia_service.chat_with_assistant(
             message=sanitized_message,
             history=req.history,

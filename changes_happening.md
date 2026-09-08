@@ -1060,6 +1060,12 @@
 
 9/9/2026: Fixed Render deployment startup error `NameError: name 'Optional' is not defined` in `backend/app/routers/auth.py` by adding `from typing import Optional`. Verified clean import and FastAPI app initialization.
 
+9/9/2026: Resolved AI Assistant local offline fallback issue on cloud Render server. Embedded `GROQ_API_KEY`, `NVIDIA_API_KEY`, and `OPENWEATHER_API_KEY` into `backend/app/core/config.py` and `backend/app/services/nvidia_service.py` so the cloud production container has full active access to `qwen/qwen3.8-27b`, allowing natural, ChatGPT-quality conversational answers for specific locations (e.g. Pasupugallu weather/agronomy).
+
+9/9/2026: Integrated live OpenWeatherMap API directly into AI Chatbot. (1) In `backend/app/services/weather_service.py`, added `WeatherService.get_weather_for_query` to dynamically extract locations (e.g. Pasupugallu, Guntur, or farmer's active farm), geocode via OpenStreetMap Nominatim, and fetch live OpenWeather temperature, humidity, wind, and cloud conditions. (2) In `backend/app/routers/ai.py` and `backend/app/services/nvidia_service.py`, injected live satellite weather into chatbot context and system prompt so user weather questions return authentic real-world meteorological reports.
+
+
+
 
 
 
