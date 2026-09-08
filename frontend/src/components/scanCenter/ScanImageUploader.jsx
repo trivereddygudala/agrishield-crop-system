@@ -606,55 +606,60 @@ const ScanImageUploader = ({
             className="w-full h-full object-contain max-h-[520px] relative z-10"
           />
           
-          {/* Real-time Pre-Scan Guidance Tag Banner */}
-          {lastCapturedMeta && lastCapturedMeta.detectedCrop && (
-            <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/90 text-white font-black text-xs backdrop-blur-md shadow-lg border border-emerald-400">
-                <Focus className="w-3.5 h-3.5" />
-                <span>Leaf Ratio: {lastCapturedMeta.leafRatio}%</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 text-emerald-400 font-black text-xs backdrop-blur-md shadow-lg border border-white/10">
-                <Sprout className="w-3.5 h-3.5" />
-                <span>AI Pre-Selected: {lastCapturedMeta.detectedCrop} ({lastCapturedMeta.confidence}%)</span>
-              </span>
+          {/* Unified Sleek Top Bar (No clumsy overlapping badges) */}
+          <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2 z-20 pointer-events-auto">
+            {/* Left: Clean status pill */}
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white shadow-xl max-w-[65%] truncate">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              {lastCapturedMeta?.detectedCrop ? (
+                <span className="text-xs font-black truncate text-white">
+                  {lastCapturedMeta.detectedCrop} <span className="text-emerald-400 font-normal">({lastCapturedMeta.confidence}%)</span>
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-white/90">Leaf Photo Ready</span>
+              )}
             </div>
-          )}
 
-          {/* Overlay controls */}
-          <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
-            {liveResult?.gradcam_base64 && (
+            {/* Right: Clean action icon buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              {liveResult?.gradcam_base64 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setShowGradcam(!showGradcam); }}
+                  className={`h-9 px-3 text-xs font-bold rounded-full backdrop-blur-md transition-all border shadow-lg flex items-center gap-1.5 ${
+                    showGradcam 
+                      ? 'bg-rose-500 text-white border-rose-400 hover:bg-rose-600' 
+                      : 'bg-black/80 text-emerald-400 border-white/15 hover:bg-black/90'
+                  }`}
+                  title="Toggle Heatmap"
+                >
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-extrabold">{showGradcam ? 'Hide Heatmap' : 'Heatmap'}</span>
+                </button>
+              )}
               <button
-                onClick={(e) => { e.preventDefault(); setShowGradcam(!showGradcam); }}
-                className={`px-3.5 py-2 text-xs font-black rounded-xl backdrop-blur-md transition-colors border shadow-lg flex items-center gap-2 ${
-                  showGradcam 
-                    ? 'bg-rose-500/90 text-white border-rose-400 hover:bg-rose-600' 
-                    : 'bg-slate-900/80 text-emerald-400 border-white/10 hover:bg-slate-800'
-                }`}
-                title="Toggle AI GradCAM Heatmap"
+                type="button"
+                onClick={() => { setShowGradcam(false); setLastCapturedMeta(null); onClear(); }}
+                className="w-9 h-9 rounded-full bg-black/80 hover:bg-rose-600 text-white/80 hover:text-white backdrop-blur-md transition-all border border-white/15 flex items-center justify-center shadow-lg active:scale-95 cursor-pointer"
+                title="Remove Image"
               >
-                <Cpu className="w-3.5 h-3.5" />
-                {showGradcam ? 'Hide Heatmap' : 'View AI Heatmap'}
+                <X className="w-4 h-4" />
               </button>
-            )}
-            <button
-              onClick={() => { setShowGradcam(false); setLastCapturedMeta(null); onClear(); }}
-              className="p-2 rounded-xl bg-slate-900/80 hover:bg-rose-600 text-white backdrop-blur-md transition-colors border border-white/10"
-              title="Remove Image"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            </div>
           </div>
 
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between p-3 rounded-2xl bg-slate-900/90 backdrop-blur-md text-white border border-white/10 text-xs z-20">
+          {/* Bottom Photo Info Bar */}
+          <div className="absolute bottom-3 inset-x-3 flex items-center justify-between px-4 py-2.5 rounded-2xl bg-black/80 backdrop-blur-md text-white border border-white/15 text-xs z-20 shadow-xl">
             <div className="flex items-center gap-2 truncate pr-2">
-              <ImageIcon className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="truncate font-bold text-white/80">{selectedFile?.name || 'Selected Crop Photo'}</span>
+              <ImageIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate font-semibold text-white/90 text-[11px]">{selectedFile?.name || 'Selected Crop Photo'}</span>
             </div>
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-emerald-400 hover:text-emerald-300 font-extrabold shrink-0 underline"
+              className="text-emerald-400 hover:text-emerald-300 font-extrabold text-xs shrink-0 active:scale-95 transition-transform"
             >
-              Change
+              Change Photo
             </button>
           </div>
         </div>
@@ -702,7 +707,7 @@ const ScanImageUploader = ({
               <span>Target Crop Category</span>
               {selectedCropFilter && (
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wide">
-                  Auto-Locked: {selectedCropFilter}
+                  Detected: {selectedCropFilter}
                 </span>
               )}
             </span>

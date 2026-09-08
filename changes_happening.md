@@ -1099,6 +1099,12 @@
 - Added `@model_validator(mode='before')` in `UserBase` schema to seamlessly bridge `full_name` and `name`.
 - Added fallback normalization in `get_current_user` to ensure `name` is always populated before serializing responses.
 
+9/9/2026: Redesigned Leaf Image Preview Header (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):
+- Eliminated clumsy overlapping badges on mobile screens: Removed colliding `Leaf Ratio: 82%`, `View AI Heatmap`, `AI Pre-Selected`, and `X` button from floating independently over the leaf.
+- Replaced with a unified, sleek top bar: Clean status pill on left (`Chilli (99.9%)`) and compact icon buttons on right (`Heatmap` toggle + circular `X` button).
+- Uncluttered the leaf photo review view so the full crop and disease pathology is completely visible.
+
+
 
 
 
