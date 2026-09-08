@@ -23,11 +23,20 @@ class ErrorBoundary extends React.Component {
   }
 
   handleRetry = () => {
+    const isChunkError = this.state.error?.message?.includes('dynamically imported module') ||
+                         this.state.error?.message?.includes('Loading chunk');
+    if (isChunkError) {
+      window.location.reload();
+      return;
+    }
     this.setState({ hasError: false, error: null, errorInfo: null });
   };
 
   render() {
     if (this.state.hasError) {
+      const isChunkError = this.state.error?.message?.includes('dynamically imported module') ||
+                           this.state.error?.message?.includes('Loading chunk');
+
       return (
         <div className="min-h-[60vh] flex items-center justify-center p-6" role="alert">
           <div className="max-w-md w-full text-center space-y-5">
@@ -37,10 +46,12 @@ class ErrorBoundary extends React.Component {
 
             <div className="space-y-2">
               <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                Something went wrong
+                {isChunkError ? 'New App Version Available' : 'Something went wrong'}
               </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                An unexpected error occurred while rendering this page. Your data is safe — try refreshing or go back to the dashboard.
+                {isChunkError 
+                  ? 'A new build of AgriShield was deployed to the cloud. Click Refresh below to load the latest version.'
+                  : 'An unexpected error occurred while rendering this page. Your data is safe — try refreshing or go back to the dashboard.'}
               </p>
             </div>
 
@@ -57,8 +68,12 @@ class ErrorBoundary extends React.Component {
             )}
 
             <div className="flex items-center justify-center gap-3 pt-2">
-              <Button variant="primary" onClick={this.handleRetry} leftIcon={<RefreshCw className="w-4 h-4" />}>
-                Try Again
+              <Button 
+                variant="primary" 
+                onClick={isChunkError ? () => window.location.reload() : this.handleRetry} 
+                leftIcon={<RefreshCw className="w-4 h-4" />}
+              >
+                {isChunkError ? 'Refresh & Update App' : 'Try Again'}
               </Button>
               <Button variant="outline" onClick={() => window.location.href = '/dashboard'} leftIcon={<Home className="w-4 h-4" />}>
                 Go to Dashboard

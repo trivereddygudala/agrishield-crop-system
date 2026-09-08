@@ -1086,6 +1086,11 @@
 - Embedded a central optical targeting reticle with dynamic neon corner brackets, scanning laser sweep, live leaf ratio meter, and framing guidance toast.
 - Added a native-style circular shutter capture button, cancel button, and camera flip control at the bottom.
 
+9/9/2026: Resolved `TypeError: Failed to fetch dynamically imported module` on Vercel deployment updates (`frontend/src/utils/lazyWithRetry.js`, `frontend/src/App.jsx`, `frontend/src/components/ErrorBoundary.jsx`):
+- Created `lazyWithRetry` wrapper for React lazy imports that automatically catches stale Vite chunk hash 404s after new Vercel deployments and triggers an automatic clean reload to fetch latest assets.
+- Enhanced `ErrorBoundary` to detect dynamic import errors, display a user-friendly "New App Version Available" notice, and provide a direct "Refresh & Update App" button.
+
+
 
 
 

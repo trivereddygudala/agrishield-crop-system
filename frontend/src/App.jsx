@@ -32,11 +32,13 @@ import ServerErrorPage from './pages/ServerErrorPage';
 import NodeControlPage from './pages/NodeControlPage';
 import MorePage from './pages/MorePage';
 
-// Pages — lazily loaded (heavy pages)
-const AdminPage = lazy(() => import('./pages/AdminPage'));
-const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'));
-const HistoryPage = lazy(() => import('./pages/HistoryPage'));
-const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+import { lazyWithRetry } from './utils/lazyWithRetry';
+
+// Pages — lazily loaded (with auto-recovery on new deployment chunk hash mismatch)
+const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'));
+const AIAssistantPage = lazyWithRetry(() => import('./pages/AIAssistantPage'));
+const HistoryPage = lazyWithRetry(() => import('./pages/HistoryPage'));
+const AnalyticsPage = lazyWithRetry(() => import('./pages/AnalyticsPage'));
 
 // Layout wrapper for internal dashboard views
 const DashboardLayout = () => {
