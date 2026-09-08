@@ -70,6 +70,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
     
     return user
 
+async def get_optional_current_user(token: Optional[str] = Depends(oauth2_scheme), db = Depends(get_database)) -> Optional[dict]:
+    """Retrieve current user if valid session exists, otherwise return None without throwing 401."""
+    if not token:
+        return None
+    try:
+        return await get_current_user(token, db)
+    except Exception:
+        return None
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(AUTH_LIMIT, 60))])
 async def register(request: Request, user_data: UserRegister, db = Depends(get_database)):
     """Register a new user (farmer) with simplified password policy."""

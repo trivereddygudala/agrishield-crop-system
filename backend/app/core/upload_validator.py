@@ -156,21 +156,18 @@ async def validate_image_upload(file: UploadFile) -> tuple[bytes, str]:
             detail=f"Image decoding failed (OpenCV): {str(e)}"
         )
 
-    # 8. Leaf Foliage Validation (Input Validation)
-    # Convert to HSV to detect green pixels effectively
-    hsv = cv2.cvtColor(img_np, cv2.COLOR_BGR2HSV)
-    lower_green = np.array([25, 40, 40])
-    upper_green = np.array([95, 255, 255])
-    mask = cv2.inRange(hsv, lower_green, upper_green)
-    green_ratio = cv2.countNonZero(mask) / (img_np.shape[0] * img_np.shape[1])
-    
-    if green_ratio < 0.05:
+    # 8. Leaf Foliage & Dimension Validation (Input Validation)
+    # Ensure image has sufficient resolution for CNN feature extraction (at least 64x64)
+    height, width = img_np.shape[:2]
+    if height < 64 or width < 64:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Validation Failed: Image does not appear to contain a leaf. Please upload a clear picture of a crop leaf."
+            detail="Image resolution is too low. Please upload a clear photo of at least 64x64 pixels."
         )
 
-    # 9. Automatic Picture Quality Enhancement
-    # Disabled: Applying CLAHE and sharpening modifies raw pixel values, causing out-of-distribution
-    # shifts and severe prediction mismatch (dropping accuracy on standard datasets). We return original bytes.
+    # Note: Rigid green-pixel ratio thresholds are intentionally avoided here because
+    # critical crop diseases cause brown blight, necrotic lesions, yellow chlorosis,
+    # or white powdery mildew, or may be photographed against soil, tables, or screens.
+    # The AI EfficientNetV2 model classifies all pathology variations natively.
+
     return content, safe_filename

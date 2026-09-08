@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status,
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from backend.app.db.mongodb import get_database
-from backend.app.routers.auth import get_current_user
+from backend.app.routers.auth import get_current_user, get_optional_current_user
 from backend.app.models.schemas import (
     PredictionResponse, 
     PredictionHistoryResponse, 
@@ -296,7 +296,7 @@ from backend.app.core.rate_limiter import rate_limit, PREDICT_LIMIT
 @router.post("/upload", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(PREDICT_LIMIT, 60))])
 async def upload_image(
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)
+    current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
     """Upload crop leaf image with enterprise magic-byte, PIL, and OpenCV validation."""
     content_bytes, safe_filename = await validate_image_upload(file)
@@ -565,7 +565,7 @@ async def identify_plant_endpoint(
 @router.post("/predict", response_model=PredictionResponse)
 async def predict_legacy_alias(
     req: PredictRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: Optional[dict] = Depends(get_optional_current_user),
     db = Depends(get_database)
 ):
     return await predict_pytorch_endpoint(req, current_user, db)
@@ -573,7 +573,7 @@ async def predict_legacy_alias(
 @router.post("/predict-pytorch", response_model=PredictionResponse)
 async def predict_pytorch_endpoint(
     req: PredictRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: Optional[dict] = Depends(get_optional_current_user),
     db = Depends(get_database)
 ):
     """
@@ -692,7 +692,8 @@ async def predict_pytorch_endpoint(
     try:
         from backend.app.services.nvidia_service import nvidia_service
         from backend.app.services.farm_profile_service import FarmProfileService
-        active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+        user_id_val = str(current_user["id"]) if current_user else "demo_user"
+        active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
         llama_advice = await nvidia_service.generate_farming_advice(
             crop_name=prediction_result["crop_name"],
             disease_name=prediction_result["disease_name"],
@@ -937,7 +938,7 @@ async def predict_pytorch_endpoint(
     try:
         from backend.app.services.nvidia_service import nvidia_service
         from backend.app.services.farm_profile_service import FarmProfileService
-        active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+        active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
         irrigation = active_farm.get("irrigation_method", "Drip") if active_farm else "Drip"
         
         prescription_calendar = await nvidia_service.generate_prescription_calendar(
@@ -953,7 +954,7 @@ async def predict_pytorch_endpoint(
     financial_metrics = None
     try:
         from backend.app.services.farm_profile_service import FarmProfileService
-        active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+        active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
         
         land_size = float(active_farm.get("land_size", 2.0)) if active_farm else 2.0
         
@@ -1010,7 +1011,7 @@ async def predict_pytorch_endpoint(
 
     now = datetime.now(timezone.utc)
     prediction_record = {
-        "user_id": str(current_user["id"]),
+        "user_id": user_id_val,
         "image_path": req.image_path,
         "crop_name": prediction_result["crop_name"],
         "disease_name": prediction_result["disease_name"],

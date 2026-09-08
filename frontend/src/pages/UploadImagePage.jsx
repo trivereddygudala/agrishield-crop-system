@@ -209,8 +209,15 @@ const UploadImagePage = () => {
     } catch (err) {
       console.warn("Backend error during scan:", err);
       let newError = "Failed to connect to AI scanner or image rejected.";
-      if (err.response && err.response.data && err.response.data.detail) {
-        newError = err.response.data.detail;
+      if (err.response && err.response.data) {
+        const detail = err.response.data.detail || err.response.data.message;
+        if (typeof detail === 'string') {
+          newError = detail;
+        } else if (Array.isArray(detail)) {
+          newError = detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+        }
+      } else if (err.message) {
+        newError = err.message;
       }
       scanStore.setState({
         errorMsg: newError,

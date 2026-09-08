@@ -1054,6 +1054,9 @@
 
 9/8/2026: Added `HEAD` HTTP method support to root and health check endpoints (`/`, `/health`, `/api/v1/health`) in `backend/app/main.py`, ensuring Render's automatic deployment health probes receive immediate `200 OK` status without logging 405 Method Not Allowed notices.
 
+9/9/2026: Resolved "Failed to connect to AI scanner or image rejected" error on mobile leaf scan uploads. (1) In `backend/app/core/upload_validator.py`, eliminated the rigid `green_ratio < 0.05` constraint that was falsely rejecting diseased leaves with brown blight, necrotic lesions, yellow chlorosis, and leaves photographed against computer screens/soil. (2) Introduced `get_optional_current_user` in `backend/app/routers/auth.py` and updated `/upload`, `/predict`, and `/predict-pytorch` endpoints in `backend/app/routers/predict.py` to allow seamless diagnostic analysis without raising 401 Unauthorized errors on guest or expired sessions. (3) Updated error handling in `frontend/src/pages/UploadImagePage.jsx` to dynamically unpack and display backend error messages.
+
+
 
 
 
