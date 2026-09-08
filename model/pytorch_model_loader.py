@@ -42,6 +42,13 @@ class PyTorchModelLoader:
         else:
             self.device = torch.device(device)
             
+        # Cap PyTorch CPU threads to 1 to prevent 100% CPU spikes on shared cloud containers
+        torch.set_num_threads(1)
+        try:
+            torch.set_num_interop_threads(1)
+        except Exception:
+            pass
+
         # Preprocessing transform
         self.transform = transforms.Compose([
             transforms.Resize(self.image_size),
@@ -68,6 +75,8 @@ class PyTorchModelLoader:
                     try:
                         sess_opts = ort.SessionOptions()
                         sess_opts.intra_op_num_threads = 1
+                        sess_opts.inter_op_num_threads = 1
+                        sess_opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
                         sess_opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
                         self.ort_session = ort.InferenceSession(c_path, sess_opts, providers=['CPUExecutionProvider'])
                         self.onnx_path = c_path
@@ -75,14 +84,17 @@ class PyTorchModelLoader:
                     except Exception as ort_err:
                         self.ort_session = None
         
-        # 2. PyTorch Model (for Grad-CAM and fallback)
-        self.model_path = model_path or os.path.join(PipelineConfig.BASE_DIR, "trained pytorch", "best_model.pth")
-        if not os.path.exists(self.model_path):
-            self.model_path = os.path.join(saved_dir, "best_model_fp16.pth")
+        # 2. PyTorch Model (only loaded if ONNX is NOT active, saving ~400MB RAM to stay under 512MB Free Tier limit)
+        if self.ort_session is not None:
+            self.model = None
+            self.model_path = None
+        else:
+            self.model_path = model_path or os.path.join(PipelineConfig.BASE_DIR, "trained pytorch", "best_model.pth")
             if not os.path.exists(self.model_path):
-                self.model_path = os.path.join(saved_dir, "best_model.pth")
-            
-        self.model = self._load_model()
+                self.model_path = os.path.join(saved_dir, "best_model_fp16.pth")
+                if not os.path.exists(self.model_path):
+                    self.model_path = os.path.join(saved_dir, "best_model.pth")
+            self.model = self._load_model()
 
     def _load_classes(self) -> List[str]:
         if not os.path.exists(self.classes_path):
