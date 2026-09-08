@@ -211,8 +211,13 @@ async def check_ota_update(device_id: str, current_version: str):
 @router.get("/status")
 async def get_all_devices():
     """Retrieve status of all registered devices for the frontend dashboard."""
-    cursor = db_instance.db["devices"].find({}, {"_id": 0}).sort("last_seen", -1)
-    devices = await cursor.to_list(length=100)
+    if not hasattr(db_instance, "db") or db_instance.db is None:
+        return []
+    try:
+        cursor = db_instance.db["devices"].find({}, {"_id": 0}).sort("last_seen", -1)
+        devices = await cursor.to_list(length=100)
+    except Exception:
+        return []
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     for dev in devices:
         last_seen = dev.get("last_seen")

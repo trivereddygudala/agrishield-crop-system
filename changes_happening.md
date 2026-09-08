@@ -1168,7 +1168,9 @@
 5. Medical-Grade Plant Health Prescription Slip with Verification QR Code (`frontend/src/components/scanCenter/PrescriptionSlipModal.jsx`):
    - Formats clean digital agronomy prescription with unique Rx ID, AI confidence, biological remedy, and chemical active ingredient dilution.
    - Embeds authentic scannable QR Code via `qrcode.react` for verification by local fertilizer retail shops.
-   - Includes printable slip layout and modal trigger in `DiseaseDiagnosisResults.jsx`.
+- Fixed `devices/status` Startup Race Condition (`backend/app/routers/devices.py`):
+  - Added safe null-check `if not hasattr(db_instance, "db") or db_instance.db is None: return []` in `get_all_devices()`.
+  - Prevents transient `TypeError: 'NoneType' object is not subscriptable` 500 error during initial server cold-start before MongoDB connection completes.
 
 
 
