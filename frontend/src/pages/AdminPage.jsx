@@ -108,6 +108,36 @@ export default function AdminPage() {
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'farmer', preferred_language: 'en', farm_location: '' });
 
+  // IoT Ingestion Master Switch State
+  const [iotIngestionEnabled, setIotIngestionEnabled] = useState(false);
+  const [togglingIngestion, setTogglingIngestion] = useState(false);
+
+  const fetchIoTIngestionStatus = async () => {
+    try {
+      const res = await API.get('/api/admin/iot-ingestion/status');
+      setIotIngestionEnabled(Boolean(res.data?.enabled));
+    } catch (e) {
+      console.warn('Could not fetch IoT ingestion status:', e);
+    }
+  };
+
+  const handleToggleIoTIngestion = async () => {
+    setTogglingIngestion(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const nextState = !iotIngestionEnabled;
+      const res = await API.post('/api/admin/iot-ingestion/toggle', { enabled: nextState });
+      setIotIngestionEnabled(Boolean(res.data?.enabled));
+      setSuccessMsg(res.data?.message || `IoT ingestion is now ${nextState ? 'ENABLED' : 'PAUSED'}.`);
+      fetchAuditLogs();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to toggle IoT ingestion setting.');
+    } finally {
+      setTogglingIngestion(false);
+    }
+  };
+
   const handleBroadcastSubmit = async (e) => {
     e.preventDefault();
     setIsBroadcasting(true);
@@ -357,6 +387,7 @@ export default function AdminPage() {
     fetchIotNodes();
     fetchAuditLogs();
     fetchFirmwareData();
+    fetchIoTIngestionStatus();
     
     const iotInterval = setInterval(fetchIotNodes, 10000);
     const auditInterval = setInterval(fetchAuditLogs, 15000);
@@ -1115,6 +1146,61 @@ export default function AdminPage() {
 
         return (
           <div className="space-y-6">
+            {/* Master IoT Ingestion Control Banner */}
+            <div className={`p-5 sm:p-6 rounded-3xl border transition-all duration-300 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+              iotIngestionEnabled
+                ? 'bg-gradient-to-r from-emerald-950/40 via-slate-900 to-emerald-950/30 border-emerald-500/40 text-white'
+                : 'bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 border-amber-500/40 text-white'
+            }`}>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${iotIngestionEnabled ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+                  <span className={`text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                    iotIngestionEnabled
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  }`}>
+                    {iotIngestionEnabled ? '● Telemetry Ingestion LIVE' : '⏸ Telemetry Ingestion PAUSED'}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-100 flex items-center gap-2">
+                  <span>IoT Field Sensor Telemetry Master Gate</span>
+                </h3>
+                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                  {iotIngestionEnabled 
+                    ? 'The backend is actively receiving, validating, and saving real-time sensor packets from ESP32 nodes into MongoDB Atlas.' 
+                    : 'IoT data transmission is currently stopped. Incoming ESP32 packets are blocked to protect database storage until you turn this on.'}
+                </p>
+              </div>
+
+              <button
+                onClick={handleToggleIoTIngestion}
+                disabled={togglingIngestion}
+                className={`self-start md:self-center px-5 py-3 rounded-2xl font-black text-xs shadow-lg transition-all cursor-pointer shrink-0 flex items-center gap-2 btn-spring ${
+                  iotIngestionEnabled
+                    ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 hover:shadow-amber-500/25'
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white hover:shadow-emerald-500/25'
+                }`}
+              >
+                {togglingIngestion ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Updating Gateway...</span>
+                  </>
+                ) : iotIngestionEnabled ? (
+                  <>
+                    <X className="w-4 h-4" />
+                    <span>Turn OFF / Pause Ingestion</span>
+                  </>
+                ) : (
+                  <>
+                    <Cpu className="w-4 h-4" />
+                    <span>Turn ON / Enable Ingestion</span>
+                  </>
+                )}
+              </button>
+            </div>
+
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <div>

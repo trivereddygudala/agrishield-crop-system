@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from typing import List, Optional
+from datetime import datetime, timezone
+from pydantic import BaseModel
 from bson import ObjectId
 from backend.app.db.mongodb import get_database
 from backend.app.core.security import require_role
 from backend.app.core.rate_limiter import rate_limit, ADMIN_LIMIT
+from backend.app.core.audit_logger import audit_logger
 from backend.app.models.schemas import UserResponse
 
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
@@ -352,5 +355,53 @@ async def get_user_geography(db=Depends(get_database)):
         "located_users": len(all_users) - unlocated_count,
         "unlocated_users": unlocated_count,
         "locations": location_data,
+    }
+
+
+class IoTIngestionToggleRequest(BaseModel):
+    enabled: bool
+
+@router.get("/iot-ingestion/status", dependencies=[Depends(require_role("admin"))])
+async def get_iot_ingestion_status(db = Depends(get_database)):
+    """Get whether IoT hardware telemetry ingestion is enabled or paused."""
+    setting = await db["system_settings"].find_one({"key": "iot_telemetry_ingestion"})
+    enabled = bool(setting.get("enabled", False)) if setting else False
+    return {"enabled": enabled, "status": "active" if enabled else "paused"}
+
+@router.post("/iot-ingestion/toggle", dependencies=[Depends(require_role("admin"))])
+async def toggle_iot_ingestion(
+    request: Request,
+    req_body: IoTIngestionToggleRequest,
+    current_user: dict = Depends(require_role("admin")),
+    db = Depends(get_database)
+):
+    """Enable or disable IoT telemetry ingestion system-wide."""
+    await db["system_settings"].update_one(
+        {"key": "iot_telemetry_ingestion"},
+        {"$set": {
+            "key": "iot_telemetry_ingestion",
+            "enabled": req_body.enabled,
+            "updated_by": current_user.get("email"),
+            "updated_at": datetime.now(timezone.utc)
+        }},
+        upsert=True
+    )
+    
+    # Audit log
+    await audit_logger.log_security_event(
+        db=db,
+        event_type="IOT_INGESTION_TOGGLED",
+        severity="INFO" if req_body.enabled else "WARNING",
+        action="ENABLED_IOT_INGESTION" if req_body.enabled else "DISABLED_IOT_INGESTION",
+        actor_id=str(current_user.get("id") or current_user.get("_id", "")),
+        actor_email=current_user.get("email", "admin"),
+        ip_address=request.client.host if request.client else "unknown",
+        details={"enabled": req_body.enabled}
+    )
+    
+    return {
+        "status": "success",
+        "enabled": req_body.enabled,
+        "message": f"IoT telemetry ingestion is now {'ENABLED' if req_body.enabled else 'PAUSED'}."
     }
 

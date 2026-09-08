@@ -2,6 +2,10 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-08 (v51) - Admin IoT Telemetry Ingestion Master Gate Switch (Default: Paused/Off)
+- **Summary:** Implemented a centralized **IoT Telemetry Ingestion Master Gate** in both the backend and Admin Portal. By default, incoming IoT sensor data transmission is **PAUSED / DISABLED**, preventing unnecessary database writes and protecting MongoDB Atlas cloud storage limits. Created a dedicated Admin Master Switch on the **IoT Hardware Fleet** page (`/admin?tab=iot`) allowing administrators to dynamically toggle IoT telemetry ingestion ON or OFF on demand with real-time audit logging (`IOT_INGESTION_TOGGLED`). Both `/api/iot/telemetry` and `/api/iot/telemetry/bulk` reject/pause sensor payloads when the gate is turned off.
+- **Files modified**: `backend/app/routers/iot.py`, `backend/app/routers/admin.py`, `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`
+
 ## 2026-09-08 (v50) - Instant Port Binding & Lazy AI Inference Loading for Cloud Container Deployments (Render / Vercel)
 - **Summary:** Optimized backend startup lifecycle and PyTorch model loading for cloud serverless and container platforms (Render, Railway). Converted synchronous database handshakes and background notification schedulers in FastAPI `lifespan` into non-blocking asynchronous background tasks (`asyncio.create_task`), enabling Uvicorn to bind port `$PORT` (10000) within 10 milliseconds of container launch and eliminating cloud health checker timeouts. Implemented lazy-loading for heavy PyTorch and ONNX inference pipelines in `predict.py`, reducing application import overhead by >75% (from 17.0s down to <2.5s). Added dedicated `backend/run.py` launcher to guarantee dynamic port detection from cloud environment variables.
 - **Files modified**: `backend/app/main.py`, `backend/app/routers/predict.py`, `backend/run.py`, `render.yaml`, `changes_happening.md`

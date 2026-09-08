@@ -54,10 +54,30 @@ class IoTHeartbeat(BaseModel):
     status: Optional[str] = "online"
     uptime_ms: Optional[int] = 0
 
+async def is_iot_ingestion_enabled(db) -> bool:
+    """Check if the admin has enabled IoT telemetry ingestion."""
+    if db is None:
+        return False
+    try:
+        setting = await db["system_settings"].find_one({"key": "iot_telemetry_ingestion"})
+        if setting is not None:
+            return bool(setting.get("enabled", False))
+    except Exception:
+        pass
+    return False
+
 @router.post("/telemetry", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(IOT_LIMIT, 60))])
 async def ingest_telemetry(request: Request, data: IoTTelemetry, background_tasks: BackgroundTasks):
     """Ingest sensor data from the ESP32 hardware with security and range validation."""
     validate_iot_request(request)
+    
+    # Gate check: Telemetry ingestion is paused unless explicitly enabled by Administrator in Admin Panel
+    if not await is_iot_ingestion_enabled(db_instance.db):
+        return {
+            "status": "paused",
+            "message": "IoT telemetry ingestion is currently paused by Administrator.",
+            "ingested": False
+        }
     
     telemetry_doc = data.model_dump()
     # Validate physical bounds
@@ -179,6 +199,14 @@ async def ingest_telemetry(request: Request, data: IoTTelemetry, background_task
 async def ingest_telemetry_bulk(request: Request):
     """Ingest a bulk array or json-lines of sensor data from the ESP32 offline SD card sync."""
     validate_iot_request(request)
+    
+    # Gate check: Telemetry ingestion is paused unless explicitly enabled by Administrator in Admin Panel
+    if not await is_iot_ingestion_enabled(db_instance.db):
+        return {
+            "status": "paused",
+            "message": "IoT telemetry ingestion is currently paused by Administrator.",
+            "ingested_count": 0
+        }
     
     body_bytes = await request.body()
     body_str = body_bytes.decode('utf-8').strip()
