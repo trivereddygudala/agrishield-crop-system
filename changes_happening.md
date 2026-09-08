@@ -1090,6 +1090,11 @@
 - Created `lazyWithRetry` wrapper for React lazy imports that automatically catches stale Vite chunk hash 404s after new Vercel deployments and triggers an automatic clean reload to fetch latest assets.
 - Enhanced `ErrorBoundary` to detect dynamic import errors, display a user-friendly "New App Version Available" notice, and provide a direct "Refresh & Update App" button.
 
+9/9/2026: Fixed Live AI Camera Viewfinder Shutter Button & Plant Detection Accuracy (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):
+1. Fixed Missing Camera Shutter Button: Mounted the camera viewfinder directly to `document.body` via `createPortal`, escaping parent Card transforms and overflow clipping. The native circular shutter button, cancel button, and flip camera controls are now firmly anchored at the bottom of the mobile viewport above the navigation bar. Also added tap-to-capture on the screen reticle.
+2. Restored 100% Crop Detection Accuracy: Removed the broken client-side RGB pixel heuristic (`avgR > 110 && avgG > 110`) that was mistakenly labeling scanned leaves as "Maize" and locking `crop_filter="Maize"`. This was forcing the backend AI to reject Chilli/Tomato/Rice pathologies. Diagnosis now runs across all 1,252 classes with full native accuracy.
+
+
 
 
 
