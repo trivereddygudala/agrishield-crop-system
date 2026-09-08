@@ -20,38 +20,43 @@ os.makedirs(uploads_path, exist_ok=True)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle events manager for FastAPI startup and shutdown."""
-    await connect_to_mongo()
+    # 1. Connect to MongoDB with timeout protection
+    try:
+        await connect_to_mongo()
+    except Exception as e:
+        print(f"⚠️ [Startup] MongoDB connection warning: {e}")
     
-    # Start mDNS Auto-Discovery Broadcaster
+    # 2. Start mDNS Auto-Discovery ONLY in local development (skip in Cloud/Render)
     zc = None
     zc_info = None
-    try:
-        import socket
-        from zeroconf import ServiceInfo, Zeroconf
-        zc = Zeroconf()
-        ip = socket.gethostbyname(socket.gethostname())
-        zc_info = ServiceInfo(
-            "_http._tcp.local.",
-            "agrishield-api._http._tcp.local.",
-            addresses=[socket.inet_aton(ip)],
-            port=8000,
-            server="agrishield-api.local.",
-        )
-        zc.register_service(zc_info)
-        print(f"\n🌐 [mDNS] Auto-Discovery Broadcasting on IP: {ip} as agrishield-api.local")
-    except Exception as e:
-        print(f"\n⚠️  [WARNING] mDNS Broadcaster failed to start: {e}")
-    
-    # Start scheduler task in background
-    if db_instance.db is not None:
-        start_scheduler(db_instance.db)
+    is_cloud = bool(os.environ.get("RENDER") or os.environ.get("PORT") or settings.ENV.lower() == "production")
+    if not is_cloud:
         try:
+            import socket
+            from zeroconf import ServiceInfo, Zeroconf
+            zc = Zeroconf()
+            ip = socket.gethostbyname(socket.gethostname())
+            zc_info = ServiceInfo(
+                "_http._tcp.local.",
+                "agrishield-api._http._tcp.local.",
+                addresses=[socket.inet_aton(ip)],
+                port=8000,
+                server="agrishield-api.local.",
+            )
+            zc.register_service(zc_info)
+            print(f"\n🌐 [mDNS] Auto-Discovery Broadcasting on IP: {ip} as agrishield-api.local")
+        except Exception as e:
+            print(f"\n⚠️  [WARNING] mDNS Broadcaster skipped: {e}")
+    
+    # 3. Start scheduler task in background if database is ready
+    if db_instance.db is not None:
+        try:
+            start_scheduler(db_instance.db)
             await db_instance.db["weather_cache"].delete_many({})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"⚠️ [Startup] Scheduler notice: {e}")
         
-    # ML Initialization is intentionally skipped on startup to prevent OOM crashes on Render Free Tier (512MB RAM).
-    # The PyTorch model will be dynamically lazy-loaded into memory upon the first /api/predict request.
+    # Yield immediately so Uvicorn binds and opens the HTTP port within 1 second
     yield
     # Shutdown mDNS
     if zc and zc_info:
