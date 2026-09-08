@@ -804,95 +804,122 @@ const ScanImageUploader = ({
         )}
       </AnimatePresence>
 
-      {/* Live AI Camera Viewfinder Modal with Real-Time Leaf Ratio HUD */}
-      <Dialog
-        isOpen={cameraModalOpen}
-        onClose={stopCamera}
-        title="Live AI Camera Viewfinder"
-        description="Position leaf within the optical targeting reticle for automated crop diagnosis."
-      >
-        <div className="space-y-4">
-          
-          {/* Main Viewfinder Screen */}
-          <div className="relative rounded-2xl bg-black overflow-hidden aspect-[4/3] sm:aspect-video flex items-center justify-center border border-slate-800 shadow-2xl select-none">
-            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+      {/* Immersive Full-Screen Live AI Camera Viewfinder */}
+      <AnimatePresence>
+        {cameraModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9999] bg-black text-white flex flex-col justify-between overflow-hidden touch-none select-none"
+          >
+            {/* Full-Screen Video Background */}
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              playsInline 
+              muted 
+              className="absolute inset-0 w-full h-full object-cover" 
+            />
 
             {/* Viewfinder Neon Grid Background */}
             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:24px_24px] opacity-15" />
 
             {/* Laser Scanning Line Sweep */}
             <motion.div
-              className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent pointer-events-none z-10 shadow-[0_0_12px_#10b981]"
-              animate={{ top: ['15%', '85%', '15%'] }}
+              className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent pointer-events-none z-10 shadow-[0_0_16px_#10b981]"
+              animate={{ top: ['12%', '85%', '12%'] }}
               transition={{ repeat: Infinity, duration: 2.4, ease: "linear" }}
             />
 
-            {/* Central Targeting Reticle Frame */}
-            <div className="absolute inset-x-8 inset-y-6 pointer-events-none flex items-center justify-center">
-              
-              {/* Dynamic Reticle Brackets */}
-              <div className={`relative w-full h-full border-2 border-dashed ${reticleColor} rounded-2xl transition-colors duration-300`}>
-                
-                {/* 4 Corner HUD Crosshairs */}
-                <div className={`absolute -top-1.5 -left-1.5 w-6 h-6 border-t-4 border-l-4 ${isOptimal ? 'border-emerald-400' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-tl-lg`} />
-                <div className={`absolute -top-1.5 -right-1.5 w-6 h-6 border-t-4 border-r-4 ${isOptimal ? 'border-emerald-400' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-tr-lg`} />
-                <div className={`absolute -bottom-1.5 -left-1.5 w-6 h-6 border-b-4 border-l-4 ${isOptimal ? 'border-emerald-400' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-bl-lg`} />
-                <div className={`absolute -bottom-1.5 -right-1.5 w-6 h-6 border-b-4 border-r-4 ${isOptimal ? 'border-emerald-400' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-br-lg`} />
+            {/* TOP BAR: Header controls with safe area padding */}
+            <div className="relative z-30 px-4 pt-4 pb-3 bg-gradient-to-b from-black/85 via-black/45 to-transparent flex items-center justify-between">
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
+                aria-label="Close Camera"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-                {/* Center Crosshair Marker */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-40 pointer-events-none">
-                  <div className="w-4 h-0.5 bg-white/60" />
-                  <div className="h-4 w-0.5 bg-white/60 absolute" />
-                </div>
-              </div>
-            </div>
-
-            {/* Top HUD Floating Info Bar */}
-            <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2 z-20">
-              
-              {/* Real-Time Leaf Ratio Meter */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/10 text-white shadow-lg">
-                <Focus className={`w-3.5 h-3.5 ${isOptimal ? 'text-emerald-400 animate-pulse' : (leafRatio > 0 ? 'text-amber-400' : 'text-slate-400')}`} />
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">Leaf Ratio</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-white">{leafRatio}%</span>
-                    <div className="w-12 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-300 ${isOptimal ? 'bg-emerald-400' : (leafRatio > 0 ? 'bg-amber-400' : 'bg-slate-600')}`} 
-                        style={{ width: `${leafRatio}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-black tracking-wide text-white">AI Doctor Viewfinder</span>
               </div>
 
-              {/* Live Pre-Detected Crop Badge */}
-              {detectedCropLive ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/85 backdrop-blur-md border border-emerald-500/40 text-emerald-300 shadow-lg animate-in fade-in">
-                  <Sprout className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
-                  <div className="flex flex-col text-right">
-                    <span className="text-[9px] text-emerald-400/70 font-black uppercase tracking-wider">AI Pre-Detection</span>
-                    <span className="text-xs font-black text-white">{detectedCropLive} ({detectedConfidenceLive}%)</span>
-                  </div>
-                </div>
+              {videoDevices.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={switchCamera}
+                  className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/15 flex items-center justify-center text-emerald-400 active:scale-95 transition-transform"
+                  aria-label="Switch Camera"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
               ) : (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/10 text-slate-300 shadow-lg">
-                  <Focus className="w-3.5 h-3.5 text-slate-400" />
-                  <div className="flex flex-col text-right">
-                    <span className="text-[9px] text-white/50 font-black uppercase tracking-wider">AI Viewfinder</span>
-                    <span className="text-xs font-bold text-white/70">Align Leaf in Box</span>
-                  </div>
-                </div>
+                <div className="w-10 h-10" />
               )}
             </div>
 
-            {/* Bottom Real-Time Framing Guidance Toast */}
-            <div className="absolute bottom-3 inset-x-3 flex flex-col items-center gap-2 z-20">
+            {/* CENTER: Optical Targeting Reticle & Real-Time Leaf HUD */}
+            <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-6 pointer-events-none">
+              
+              {/* Reticle Frame */}
+              <div className={`relative w-full max-w-sm aspect-square rounded-3xl border-2 border-dashed ${reticleColor} flex items-center justify-center transition-colors duration-300 shadow-2xl`}>
+                
+                {/* 4 Corner Crosshairs */}
+                <div className={`absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 ${isOptimal ? 'border-emerald-400 shadow-[0_0_12px_#10b981]' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-tl-2xl transition-colors duration-300`} />
+                <div className={`absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 ${isOptimal ? 'border-emerald-400 shadow-[0_0_12px_#10b981]' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-tr-2xl transition-colors duration-300`} />
+                <div className={`absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 ${isOptimal ? 'border-emerald-400 shadow-[0_0_12px_#10b981]' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-bl-2xl transition-colors duration-300`} />
+                <div className={`absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 ${isOptimal ? 'border-emerald-400 shadow-[0_0_12px_#10b981]' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-br-2xl transition-colors duration-300`} />
+
+                {/* Center Aim Crosshair */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-35 pointer-events-none">
+                  <div className="w-6 h-0.5 bg-white" />
+                  <div className="h-6 w-0.5 bg-white absolute" />
+                </div>
+
+                {/* Top Info HUD Bar inside reticle */}
+                <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2 z-20">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-white/10 text-white shadow-xl">
+                    <Focus className={`w-3.5 h-3.5 ${isOptimal ? 'text-emerald-400 animate-pulse' : (leafRatio > 0 ? 'text-amber-400' : 'text-slate-400')}`} />
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-white/50 font-bold uppercase tracking-wider">Leaf Ratio</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-white">{leafRatio}%</span>
+                        <div className="w-12 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-300 ${isOptimal ? 'bg-emerald-400' : (leafRatio > 0 ? 'bg-amber-400' : 'bg-slate-600')}`} 
+                            style={{ width: `${leafRatio}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {detectedCropLive ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/80 backdrop-blur-md border border-emerald-500/40 text-emerald-300 shadow-xl animate-in fade-in">
+                      <Sprout className="w-3.5 h-3.5 text-emerald-400" />
+                      <div className="flex flex-col text-right">
+                        <span className="text-[9px] text-emerald-400/70 font-black uppercase tracking-wider">Auto-Locked</span>
+                        <span className="text-xs font-black text-white">{detectedCropLive}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/70 backdrop-blur-md border border-white/10 text-white/60">
+                      <span className="text-[10px] font-bold">Align Leaf</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Guidance Toast Floating Below Reticle */}
               <motion.div 
-                initial={{ opacity: 0, y: 5 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black backdrop-blur-md shadow-lg border flex items-center gap-2 ${guidanceBadgeBg}`}
+                className={`mt-4 px-4 py-2 rounded-2xl text-xs font-black backdrop-blur-md shadow-2xl border flex items-center gap-2 ${guidanceBadgeBg}`}
               >
                 {isOptimal ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
@@ -901,50 +928,55 @@ const ScanImageUploader = ({
                 )}
                 <span>{guidanceMessage}</span>
               </motion.div>
-
-              {/* Auto-Select Notification Bar (only displayed when leaf is detected) */}
-              {detectedCropLive && (
-                <div className="px-3 py-1 rounded-lg bg-slate-950/90 backdrop-blur-md border border-white/10 text-[11px] text-white/70 font-semibold flex items-center gap-2 animate-in fade-in">
-                  <span>Auto-selecting:</span>
-                  <span className="text-emerald-400 font-extrabold">{detectedCropLive}</span>
-                  <span className="text-white/40 font-normal">(99.4% Accuracy Boost)</span>
-                </div>
-              )}
             </div>
 
-          </div>
-
-          {/* Bottom Action Controls */}
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <div>
-              {videoDevices.length > 1 && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={switchCamera}
-                  leftIcon={<RefreshCw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-                >
-                  Switch ({safeDeviceIdx + 1}/{videoDevices.length})
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={stopCamera}>
-                Cancel
-              </Button>
-              <Button 
-                variant="primary" 
-                size="md" 
-                onClick={captureCameraPhoto} 
-                leftIcon={<Camera className="w-4 h-4" />}
-                className="shadow-lg shadow-emerald-500/25 font-black px-5"
+            {/* BOTTOM BAR: Native Shutter Button & Controls */}
+            <div className="relative z-30 px-6 pt-4 pb-8 bg-gradient-to-t from-black/95 via-black/60 to-transparent flex items-center justify-around">
+              
+              {/* Cancel Button */}
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="flex flex-col items-center gap-1 text-white/70 active:scale-95 transition-transform"
               >
-                Capture Photo
-              </Button>
+                <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center">
+                  <X className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-[10px] font-bold">Cancel</span>
+              </button>
+
+              {/* Shutter Button */}
+              <button
+                type="button"
+                onClick={captureCameraPhoto}
+                className="relative group p-1.5 rounded-full border-4 border-white/80 active:scale-90 transition-transform duration-150 shadow-[0_0_30px_rgba(16,185,129,0.35)] cursor-pointer"
+                aria-label="Capture Photo"
+              >
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg group-hover:brightness-110">
+                  <Camera className="w-7 h-7 sm:w-8 sm:h-8 text-white drop-shadow" />
+                </div>
+              </button>
+
+              {/* Flip Camera Button */}
+              {videoDevices.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={switchCamera}
+                  className="flex flex-col items-center gap-1 text-white/70 active:scale-95 transition-transform"
+                >
+                  <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center">
+                    <RefreshCw className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <span className="text-[10px] font-bold">Flip ({safeDeviceIdx + 1}/{videoDevices.length})</span>
+                </button>
+              ) : (
+                <div className="w-12" />
+              )}
             </div>
-          </div>
-        </div>
-      </Dialog>
+
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
 };

@@ -1080,6 +1080,13 @@
 2. Downscaled Heatmap Overlay Generation (`model/predict_pytorch.py`): In `overlay_heatmap`, added auto-downscaling to max dimension 640px and standard 80% JPEG compression. Previously, raw 12MP-48MP smartphone photos (e.g. 4000x3000, 36MB uncompressed) were being stacked into 8000x3000 buffers and huge base64 strings, bursting memory by >150MB.
 3. Lazy-Loaded PyTorch & Implemented Pure NumPy ONNX Preprocessing (`model/pytorch_model_loader.py` & `model/predict_pytorch.py`): Removed top-level `import torch`, `from torchvision import transforms`, and `import timm` which alone consumed ~292MB idle RAM. Implemented pure NumPy ImageNet preprocessing (`preprocess_image_numpy`) for Quantized ONNX Runtime (`best_model_quantized.onnx`), dropping total active scan memory from >650MB down to <60MB, well below the 512MB cloud free tier ceiling.
 
+9/9/2026: Upgraded Live AI Camera Viewfinder to Immersive Full-Screen View (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):
+- Replaced the constrained modal dialog with a native full-screen mobile camera experience (`fixed inset-0 z-[9999] bg-black`).
+- Designed a top safe-area glass header with Close (X) button, AI Doctor status pill, and camera switch button.
+- Embedded a central optical targeting reticle with dynamic neon corner brackets, scanning laser sweep, live leaf ratio meter, and framing guidance toast.
+- Added a native-style circular shutter capture button, cancel button, and camera flip control at the bottom.
+
+
 
 
 
