@@ -38,7 +38,12 @@ class Settings(BaseSettings):
 
     # Database
     MONGODB_URI: str = "mongodb://localhost:27017"
+    MONGO_URI: str = ""
     DATABASE_NAME: str = "agrishield_db"
+
+    @property
+    def mongo_connection_url(self) -> str:
+        return self.MONGO_URI or self.MONGODB_URI
 
     # Groq Cloud AI Provider Settings (Primary Fast Inference)
     GROQ_API_KEY: str = ""

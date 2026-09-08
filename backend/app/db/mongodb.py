@@ -19,7 +19,7 @@ async def connect_to_mongo():
         logger.info("Database is already mocked. Skipping connection to MongoDB.")
         return
     logger.info("Connecting to MongoDB...")
-    db_instance.client = AsyncIOMotorClient(settings.MONGODB_URI)
+    db_instance.client = AsyncIOMotorClient(settings.mongo_connection_url)
     db_instance.db = db_instance.client[settings.DATABASE_NAME]
     
     # Simple check to confirm connection is successful
