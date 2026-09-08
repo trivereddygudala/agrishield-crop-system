@@ -2,6 +2,10 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-08 (v49) - Cloud Production Deployment across GitHub, Render, MongoDB Atlas & Vercel
+- **Summary:** Successfully migrated and deployed the entire AgriShield full-stack application to the cloud. Hosted the FastAPI & PyTorch backend on Render with automated environment variable linking and dynamic fallback connection to MongoDB Atlas (`agrishield_db`). Deployed the React Vite Single Page Application on Vercel with clean client-side routing (`frontend/vercel.json`). Migrated all 13 database collections (users, leaf scan predictions, real-time IoT fleet telemetry, daily security audit logs, farm profiles, and alert rules) into MongoDB Atlas. Cleaned bulky sample datasets to optimize storage to <3.5 MB out of 512 MB (99.3% free headroom). Synchronized and verified password hashes for instant login.
+- **Files modified**: `backend/app/core/config.py`, `backend/app/db/mongodb.py`, `frontend/vercel.json`, `render.yaml`, `changes_happening.md`
+
 ## 2026-09-08 (v48) - Day-by-Day Security Audit Log Console with Full Calendar Dates, Exact IST Timestamps & Daily Inspection Filters
 - **Summary:** Upgraded the Security Audit Logs module (`/admin?tab=logs`) into an enterprise-grade, day-by-day compliance console. Every security log entry now displays its full calendar date (e.g., `08 Sep 2026`), exact 12-hour AM/PM time with seconds in Indian Standard Time (`06:28:45 PM IST`), relative elapsed time (`(12m ago)`), and structured event payload. Added quick Day-Filter chips (`All Days`, `Today`, `Yesterday`, `Past 7 Days`), a direct HTML5 Calendar Date Picker (`<input type="date" />`) to inspect any specific date on demand, grouped day view headers, live text search, severity filters (`ALL`, `INFO`, `WARNING`, `CRITICAL`), and a 1-click CSV Export tool for daily compliance archiving. Integrated backend audit log dispatch across all admin operations (role updates, profile edits, password resets, account deletion, user creation, broadcast dispatch, OTA firmware sync).
 - **Key Enhancements:**

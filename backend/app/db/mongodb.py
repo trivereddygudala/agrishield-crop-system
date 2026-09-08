@@ -2,6 +2,12 @@ import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from backend.app.core.config import settings
 
+try:
+    import certifi
+    ca_file = certifi.where()
+except Exception:
+    ca_file = None
+
 logger = logging.getLogger(__name__)
 
 class Database:
@@ -9,6 +15,16 @@ class Database:
     db = None
 
 db_instance = Database()
+
+def get_client_kwargs():
+    url = settings.mongo_connection_url
+    kwargs = {
+        "serverSelectionTimeoutMS": 5000,
+        "connectTimeoutMS": 5000
+    }
+    if ca_file and ("mongodb+srv" in url or "ssl=true" in url.lower() or "tls=true" in url.lower()):
+        kwargs["tlsCAFile"] = ca_file
+    return kwargs
 
 async def connect_to_mongo():
     """Create MongoDB database connection client."""
@@ -19,7 +35,7 @@ async def connect_to_mongo():
         logger.info("Database is already mocked. Skipping connection to MongoDB.")
         return
     logger.info("Connecting to MongoDB...")
-    db_instance.client = AsyncIOMotorClient(settings.mongo_connection_url)
+    db_instance.client = AsyncIOMotorClient(settings.mongo_connection_url, **get_client_kwargs())
     db_instance.db = db_instance.client[settings.DATABASE_NAME]
     
     # Simple check to confirm connection is successful
@@ -146,8 +162,7 @@ def get_database():
             logger.info("db_instance is None in get_database, initializing client...")
             db_instance.client = AsyncIOMotorClient(
                 settings.mongo_connection_url,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000
+                **get_client_kwargs()
             )
             db_instance.db = db_instance.client[settings.DATABASE_NAME]
         except Exception as e:
