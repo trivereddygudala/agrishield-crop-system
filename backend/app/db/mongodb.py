@@ -17,13 +17,12 @@ class Database:
 db_instance = Database()
 
 def get_client_kwargs():
-    url = settings.mongo_connection_url
     kwargs = {
         "serverSelectionTimeoutMS": 5000,
-        "connectTimeoutMS": 5000
+        "connectTimeoutMS": 5000,
+        "tls": True,
+        "tlsAllowInvalidCertificates": True
     }
-    if ca_file and ("mongodb+srv" in url or "ssl=true" in url.lower() or "tls=true" in url.lower()):
-        kwargs["tlsCAFile"] = ca_file
     return kwargs
 
 async def connect_to_mongo():
@@ -38,11 +37,11 @@ async def connect_to_mongo():
     url = settings.mongo_connection_url
     logger.info(f"Connecting to MongoDB ({'Atlas Cloud' if 'mongodb.net' in url else 'Local'})...")
     
-    # Connection strategies to handle different cloud TLS/OpenSSL environments
+    # Clean connection strategies for Cloud Linux TLS
     strategies = [
-        {"tls": True, "tlsAllowInvalidCertificates": True, "tlsInsecure": True},
-        {"tlsCAFile": ca_file} if ca_file else {},
         {"tls": True, "tlsAllowInvalidCertificates": True},
+        {"tlsCAFile": ca_file} if ca_file else {},
+        {"tls": True},
         {}
     ]
     
