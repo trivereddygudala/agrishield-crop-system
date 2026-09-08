@@ -880,31 +880,40 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         </div>
       </div>
 
-      {/* Floating Live Alert Toast Notification */}
+      {/* Floating Live Alert Toast Notification (Responsive for mobile & desktop) */}
       <AnimatePresence>
         {liveAlert && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-md"
+            className="fixed bottom-22 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm z-[9999] bg-white/95 dark:bg-slate-900/95 border border-emerald-500/30 dark:border-emerald-500/30 rounded-2xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-xl"
           >
-            <div className="flex-shrink-0 p-2 bg-emerald-50 dark:bg-emerald-950 rounded-xl text-emerald-600 dark:text-emerald-400">
-              <BellRing size={18} className="animate-bounce" />
+            <div className="flex-shrink-0 p-2.5 bg-emerald-100 dark:bg-emerald-950/80 rounded-xl text-emerald-600 dark:text-emerald-400">
+              <BellRing size={20} className="animate-bounce" />
             </div>
-            <div className="flex-grow min-w-0">
-              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">{liveAlert.title}</h4>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">{liveAlert.message}</p>
+            <div className="flex-grow min-w-0 pr-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">AI Diagnosis Alert</span>
+              </div>
+              <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 leading-snug">{liveAlert.title}</h4>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{liveAlert.message}</p>
               <Link 
                 to={liveAlert.action_url || "/notifications"} 
                 onClick={() => setLiveAlert(null)}
-                className="inline-block text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline mt-2"
+                className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 hover:underline mt-2"
               >
-                View Details &rarr;
+                <span>View Full Details</span>
+                <span>&rarr;</span>
               </Link>
             </div>
-            <button onClick={() => setLiveAlert(null)} className="text-slate-400 hover:text-slate-600 p-1">
-              <X size={14} />
+            <button 
+              onClick={() => setLiveAlert(null)} 
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+              aria-label="Dismiss notification"
+            >
+              <X size={16} />
             </button>
           </motion.div>
         )}

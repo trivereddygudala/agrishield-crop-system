@@ -37,7 +37,7 @@ const ToastItem = ({ toast, onDismiss }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -12, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-      className={`flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm max-w-sm w-full pointer-events-auto ${STYLES[toast.type]}`}
+      className={`flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-md w-full sm:max-w-sm pointer-events-auto ${STYLES[toast.type]}`}
       role="status"
     >
       <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${ICON_STYLES[toast.type]}`} />
@@ -127,7 +127,7 @@ export const ToastProvider = ({ children }) => {
       {children}
       {/* Toast Container */}
       <div
-        className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
+        className="fixed top-4 inset-x-4 sm:inset-x-auto sm:right-4 sm:w-auto sm:max-w-sm z-[99999] flex flex-col gap-2 pointer-events-none items-center sm:items-end"
         aria-live="polite"
       >
         <AnimatePresence mode="popLayout">

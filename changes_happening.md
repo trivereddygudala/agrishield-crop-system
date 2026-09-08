@@ -1104,6 +1104,12 @@
 - Replaced with a unified, sleek top bar: Clean status pill on left (`Chilli (99.9%)`) and compact icon buttons on right (`Heatmap` toggle + circular `X` button).
 - Uncluttered the leaf photo review view so the full crop and disease pathology is completely visible.
 
+9/9/2026: Fixed Live Alert Notification Popup Clipping on Mobile (`frontend/src/components/AppLayout.jsx`, `frontend/src/components/ui/toast.jsx`):
+- Fixed issue where the post-scan diagnosis notification popup only showed ~30% on mobile screens: Previously, the notification was fixed at `bottom-6 right-6` with `max-w-sm w-full`, causing it to overflow off-screen and hide behind the 64px mobile bottom navigation bar.
+- Updated to `bottom-22 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm z-[9999]`: Positioned comfortably above the mobile bottom bar with 16px margins on both sides, making 100% of the disease alert, action links, and dismiss controls clearly visible and interactive.
+- Updated generic `ToastProvider` container with `inset-x-4` on mobile so all toast alerts are fully responsive.
+
+
 
 
 
