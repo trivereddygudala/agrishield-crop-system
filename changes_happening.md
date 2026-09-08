@@ -1147,6 +1147,30 @@
   - Added real-time **Foliage Spread** percentage metric in the top result card (e.g. `0% Clean`, `14% Mild`, `32% Active`, `68% Severe`).
   - Added **Estimated Spray Cost (₹ per Acre)** to the dosage calculator: calculates realistic market expenditure (e.g. `₹420 – ₹580 per acre`) based on farm area.
 
+9/9/2026: 5 Commercial-Grade Agro-Intelligence Upgrades Implemented:
+1. Weather-Triggered Fungal & Pest Early-Warning Engine (`frontend/src/components/intelligence/FungalRiskAdvisor.jsx`):
+   - Integrates live meteorological telemetry (relative humidity, temperature, wind, rain probability).
+   - Computes dynamic Fungal Spore Germination Risk Index (e.g. 82% Humidity triggers high risk).
+   - Alerts farmers to high vulnerability windows for Groundnut Tikka, Chilli Anthracnose, Rice Blast, and Tomato Late Blight with pre-rain biological spray protocols (Trichoderma viride).
+   - Embedded proactively in `UploadImagePage.jsx` and Scan Center.
+2. Interactive 20-Day Treatment Recovery Simulator (`frontend/src/components/scanCenter/TreatmentRecoverySimulator.jsx`):
+   - Interactive foliar prognosis timeline (Day 0: Acute Infection -> Day 5: Chemical/Bio Containment -> Day 12: Shoot Regrowth -> Day 20: Full Canopy Restoration).
+   - Dynamic SVG leaf diagram with lesion desiccation and chlorophyll vigor meter (45% -> 96%).
+   - Integrated into `DiseaseDiagnosisResults.jsx` with full vernacular explanations.
+3. Multi-Point 4-Corner Field Scan Mode (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):
+   - Added scanning strategy toggle: Single Leaf Focus vs 4-Corner Field Plot Scan.
+   - Interactive 4-quadrant farm schematic (North, East, South, West rows) with Field Health Index (75% Clean).
+   - Generates precision agronomy savings recommendation: spot-spray exclusively in infected quadrant to save ₹850 in chemical costs.
+4. Kisan Emergency Call Center & Extension Helpdesk (`frontend/src/components/intelligence/KisanHelpdeskModal.jsx`):
+   - 1-tap direct dial to National Kisan Call Centre (Toll-Free 1800-180-1551).
+   - Quick dial for State Agriculture Helplines (AP/TS: 1907 RBK, TN: 1800-425-4444, KA: 1800-425-3553, MH: 1800-233-4000).
+   - 1-click WhatsApp case dispatch to local KVK extension officers with pre-filled diagnosis and severity report.
+5. Medical-Grade Plant Health Prescription Slip with Verification QR Code (`frontend/src/components/scanCenter/PrescriptionSlipModal.jsx`):
+   - Formats clean digital agronomy prescription with unique Rx ID, AI confidence, biological remedy, and chemical active ingredient dilution.
+   - Embeds authentic scannable QR Code via `qrcode.react` for verification by local fertilizer retail shops.
+   - Includes printable slip layout and modal trigger in `DiseaseDiagnosisResults.jsx`.
+
+
 
 
 

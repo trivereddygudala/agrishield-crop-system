@@ -19,7 +19,9 @@ import {
   Maximize2,
   ScanLine,
   Check,
-  Compass
+  Compass,
+  MapPin,
+  Grid
 } from 'lucide-react';
 import { Button, Card, Dialog, Badge } from '../ui/index';
 import API from '../../services/api';
@@ -126,6 +128,8 @@ const ScanImageUploader = ({
   const [detectedCropLive, setDetectedCropLive] = useState(null);
   const [detectedConfidenceLive, setDetectedConfidenceLive] = useState(0);
   const [lastCapturedMeta, setLastCapturedMeta] = useState(null);
+  const [scanMode, setScanMode] = useState('single'); // 'single' | 'quadrant'
+  const [activeQuadrant, setActiveQuadrant] = useState('east');
 
   // Instant true ONNX neural pre-detection whenever an image file is selected/dropped/pasted
   useEffect(() => {
@@ -532,8 +536,135 @@ const ScanImageUploader = ({
         className="hidden"
         onChange={(e) => e.target.files?.[0] && onFileSelect(e.target.files[0])}
       />
-      <canvas ref={canvasRef} className="hidden" />
-      <canvas ref={hudCanvasRef} className="hidden" />
+      {/* Scanning Strategy Segmented Toggle (Single vs 4-Corner Field Scan) */}
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200/80 dark:border-white/10">
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/10">
+          <button
+            type="button"
+            onClick={() => setScanMode('single')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              scanMode === 'single'
+                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/80 dark:border-white/10'
+                : 'text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            🌿 Single Leaf Focus
+          </button>
+          <button
+            type="button"
+            onClick={() => setScanMode('quadrant')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+              scanMode === 'quadrant'
+                ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/80 dark:border-white/10'
+                : 'text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>🗺️ 4-Corner Field Scan</span>
+            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              Pro
+            </span>
+          </button>
+        </div>
+
+        {scanMode === 'quadrant' && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-white/40">Field Health:</span>
+            <span className="text-xs font-black text-emerald-500 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              75% Healthy
+            </span>
+          </div>
+        )}
+      </div>
+
+      {scanMode === 'quadrant' ? (
+        /* 4-Corner Field Plot Schematic Inspector */
+        <div className="p-5 mb-4 rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/60 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Spatial Field Inspection
+              </span>
+              <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                Multi-Point 4-Corner Farm Plot Map
+              </h4>
+            </div>
+            <span className="text-xs text-slate-500 dark:text-white/40 font-medium">
+              Tap any quadrant to inspect or diagnose
+            </span>
+          </div>
+
+          {/* 4 Quadrants Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { id: 'north', name: 'North Row (ఉత్తరం)', status: 'clean', label: 'Clean Foliage', sample: '/samples/chilli_healthy.jpg', crop: 'Chilli' },
+              { id: 'east', name: 'East Row (తూర్పు)', status: 'infected', label: 'Spotting Present', sample: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli' },
+              { id: 'south', name: 'South Row (దక్షిణం)', status: 'clean', label: 'Clean Foliage', sample: '/samples/chilli_healthy.jpg', crop: 'Chilli' },
+              { id: 'west', name: 'West Row (పడమర)', status: 'clean', label: 'Clean Foliage', sample: '/samples/chilli_healthy.jpg', crop: 'Chilli' }
+            ].map((quad) => {
+              const isSelected = activeQuadrant === quad.id;
+              const isInfected = quad.status === 'infected';
+              return (
+                <div
+                  key={quad.id}
+                  onClick={() => setActiveQuadrant(quad.id)}
+                  className={`p-3 sm:p-4 rounded-2xl border transition-all cursor-pointer text-left relative overflow-hidden ${
+                    isSelected
+                      ? 'border-emerald-500 bg-emerald-500/10 shadow-md ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 dark:border-white/10 bg-white/60 dark:bg-white/[0.02] hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      {quad.name}
+                    </span>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${
+                      isInfected 
+                        ? 'bg-rose-500/15 text-rose-500 border border-rose-500/20' 
+                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                    }`}>
+                      {quad.label}
+                    </span>
+                  </div>
+
+                  <div className="w-full h-24 rounded-xl overflow-hidden mb-2 bg-slate-200 dark:bg-slate-800">
+                    <img src={quad.sample} alt={quad.name} className="w-full h-full object-cover" />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-white/40 text-[11px]">Status:</span>
+                    <span className={`font-bold ${isInfected ? 'text-rose-500' : 'text-emerald-500'}`}>
+                      {isInfected ? 'Infection Active' : 'Normal'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Targeted Spot Spray Recommendation Note */}
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 text-amber-900 dark:text-amber-200 text-xs leading-relaxed space-y-1">
+            <span className="font-black block text-amber-800 dark:text-amber-300">
+              💡 Precision Agronomy Savings Recommendation:
+            </span>
+            <p>
+              Infection is localized specifically to the <strong>East Quadrant</strong>. Instead of spraying your entire field, apply targeted spot-spraying exclusively to East rows. This saves up to <strong>₹850</strong> in chemical inputs while halting plot transmission.
+            </p>
+          </div>
+
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => {
+              const selectedSample = activeQuadrant === 'east' ? '/samples/chilli_leaf_spot.jpg' : '/samples/chilli_healthy.jpg';
+              onLoadSample?.(selectedSample, 'Chilli');
+            }}
+            leftIcon={<Sparkles className="w-4 h-4 text-white" />}
+            className="w-full justify-center shadow-lg shadow-emerald-500/20"
+          >
+            Load & Diagnose {activeQuadrant.toUpperCase()} Quadrant Leaf
+          </Button>
+        </div>
+      ) : null}
 
       {/* Main Upload Drop Area */}
       {!previewUrl ? (

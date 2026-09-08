@@ -2,17 +2,22 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
-  Bug, Stethoscope, Calculator, CloudSun, Volume2, Globe, Download, Save, Check, RefreshCw, AlertTriangle, ShieldCheck, Share2, Calendar, TrendingUp, Landmark
+  Bug, Stethoscope, Calculator, CloudSun, Volume2, Globe, Download, Save, Check, RefreshCw, AlertTriangle, ShieldCheck, Share2, Calendar, TrendingUp, Landmark, Phone, FileText
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress, Input, Select } from '../ui/index';
 import { translateCrop, translateDisease } from '../../utils/diseaseAdvisoryData';
+import TreatmentRecoverySimulator from './TreatmentRecoverySimulator';
+import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
+import PrescriptionSlipModal from './PrescriptionSlipModal';
 
 const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
   const { t, i18n } = useTranslation();
   const [lang, setLang] = useState('en');
   const [isPlaying, setIsPlaying] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [showHelpdeskModal, setShowHelpdeskModal] = useState(false);
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
 
   // Spray Calculator states
   const [fieldArea, setFieldArea] = useState(1.0);
@@ -192,6 +197,26 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
               View History
             </Button>
 
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setShowPrescriptionModal(true)}
+              leftIcon={<FileText className="w-4 h-4 text-emerald-300" />}
+              className="bg-emerald-700/70 hover:bg-emerald-600 text-white font-bold border-emerald-400/40 shadow-sm"
+            >
+              Rx Slip (QR)
+            </Button>
+
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setShowHelpdeskModal(true)}
+              leftIcon={<Phone className="w-4 h-4 text-amber-300" />}
+              className="bg-amber-600/70 hover:bg-amber-500 text-white font-bold border-amber-400/40 shadow-sm"
+            >
+              Kisan Helpline
+            </Button>
+
             {onDownloadPDF && (
               <Button
                 variant="sky"
@@ -206,6 +231,12 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
           </div>
         </div>
       </Card>
+
+      {/* 20-Day Interactive Treatment Recovery Simulator */}
+      <TreatmentRecoverySimulator
+        cropName={localizedCrop}
+        diseaseName={localizedDisease}
+      />
 
       {/* Accordion Treatment Sections */}
       <CollapsibleSection
@@ -370,6 +401,21 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
           </ul>
         </div>
       </CollapsibleSection>
+
+      {/* Kisan Helpdesk Emergency Modal */}
+      <KisanHelpdeskModal
+        isOpen={showHelpdeskModal}
+        onClose={() => setShowHelpdeskModal(false)}
+        cropName={localizedCrop}
+        diseaseName={localizedDisease}
+      />
+
+      {/* Official Agronomist Prescription Slip Modal with QR */}
+      <PrescriptionSlipModal
+        isOpen={showPrescriptionModal}
+        onClose={() => setShowPrescriptionModal(false)}
+        liveResult={liveResult}
+      />
     </div>
   );
 };

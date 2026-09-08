@@ -10,6 +10,7 @@ import PlantIdResults from '../components/scanCenter/PlantIdResults';
 import DiseaseDiagnosisResults from '../components/scanCenter/DiseaseDiagnosisResults';
 import AgrochemicalResults from '../components/scanCenter/AgrochemicalResults';
 import CropAdvisorPanel from '../components/CropAdvisorPanel';
+import FungalRiskAdvisor from '../components/intelligence/FungalRiskAdvisor';
 import { Badge } from '../components/ui/index';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -288,6 +289,9 @@ const UploadImagePage = () => {
           </p>
         </div>
   
+        {/* Weather-Triggered Fungal Outbreak Early-Warning Advisory */}
+        <FungalRiskAdvisor compact={false} />
+
         {/* Primary 3 Navigation Tabs */}
         <ScanCenterTabs
           activeTab={activeTab}
