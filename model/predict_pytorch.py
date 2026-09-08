@@ -173,43 +173,38 @@ def calibrate_probabilities(probs, temperature=1.25):
     return exp_logits / np.sum(exp_logits, axis=-1, keepdims=True)
 
 def generate_pytorch_heatmap(loader, image_path, class_idx) -> np.ndarray:
-    """Generates visual heatmap gradient features using PyTorch feature maps."""
+    """Generates visual heatmap gradient features using zero-grad forward feature maps."""
     try:
-        model = loader.model
-        tensor = loader.preprocess_image(image_path)
-        tensor.requires_grad = True
-        
-        # Hook gradients on feature map
-        features = []
-        def hook_fn(module, input, output):
-            features.append(output)
+        if loader.model is not None:
+            model = loader.model
+            tensor = loader.preprocess_image(image_path)
             
-        # Register hook onconv_head or forward_features
-        if hasattr(model, 'conv_head'):
-            handle = model.conv_head.register_forward_hook(hook_fn)
-        elif hasattr(model, 'blocks'):
-            handle = model.blocks[-1].register_forward_hook(hook_fn)
-        else:
+            features = []
+            def hook_fn(module, input, output):
+                features.append(output)
+                
             handle = None
-            
-        output = model(tensor)
-        score = output[0, class_idx]
-        model.zero_grad()
-        score.backward()
-        
-        if handle:
-            handle.remove()
-            
-        if features:
-            activation = features[0].detach().cpu().numpy()[0]
-            heatmap = np.mean(activation, axis=0)
-            heatmap = np.maximum(heatmap, 0.0)
-            max_val = np.max(heatmap)
-            if max_val > 0:
-                heatmap /= max_val
-            return heatmap
+            if hasattr(model, 'conv_head'):
+                handle = model.conv_head.register_forward_hook(hook_fn)
+            elif hasattr(model, 'blocks') and len(model.blocks) > 0:
+                handle = model.blocks[-1].register_forward_hook(hook_fn)
+                
+            with torch.inference_mode():
+                _ = model(tensor)
+                
+            if handle:
+                handle.remove()
+                
+            if features:
+                activation = features[0].cpu().numpy()[0]
+                heatmap = np.mean(activation, axis=0)
+                heatmap = np.maximum(heatmap, 0.0)
+                max_val = np.max(heatmap)
+                if max_val > 0:
+                    heatmap /= max_val
+                return heatmap
     except Exception as e:
-        print(f"[WARNING] PyTorch Grad-CAM computation fallback: {e}")
+        print(f"[WARNING] Feature activation heatmap fallback: {e}")
         
     # Standard Gaussian visual heatmap fallback
     h, w = 224, 224
@@ -464,7 +459,7 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     # 0b. Validate if input image actually contains plant/crop foliage
     
     loader, classes = load_resources()
-    py_res = loader.predict_image(image_path, top_k=5)
+    py_res = loader.predict_image(image_path, top_k=5, use_tta=False)
     probs = py_res["all_probabilities"]
     
     probs = calibrate_probabilities(probs, temperature=PipelineConfig.CALIBRATION_TEMPERATURE)
@@ -597,6 +592,11 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
 
     # Load diagnostic details
     diag = get_diagnostics_for_disease(disease_name, prediction_status)
+    try:
+        import gc
+        gc.collect()
+    except Exception:
+        pass
 
     return {
         "crop_name": crop_name,

@@ -1070,6 +1070,11 @@
 3. Fixed multipart/form-data boundary missing: In `frontend/src/services/api.js`, stripped manual `Content-Type` header when sending `FormData` so browser automatically generates `boundary=...`, preventing Uvicorn from hanging on upload.
 4. Optimized `/api/upload` endpoint in `backend/app/routers/predict.py`: Replaced heavy Grad-CAM pipeline during pre-classification with direct single-view `loader.predict_image(..., use_tta=False)`, reducing pre-detection latency from 15s to <30ms.
 
+9/9/2026: Resolved Render free tier Out of Memory (`used over 512MB`) and mobile `Network Error`:
+1. Replaced memory-heavy `score.backward()` backprop pass in `generate_pytorch_heatmap` with a zero-grad forward feature activation hook wrapped in `torch.inference_mode()`. This eliminates the 350MB+ autograd backprop computational graph that caused Linux OOM killer to terminate the container.
+2. Disabled 4-view Test-Time Augmentation (TTA) batching in `predict_crop_disease` (`use_tta=False`), cutting tensor memory by 75%.
+3. Added explicit `gc.collect()` at the end of inference to immediately free all intermediate image buffers back to the OS.
+
 
 
 
