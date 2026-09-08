@@ -139,21 +139,25 @@ export const WebSocketProvider = ({ children }) => {
         reconnectAttemptRef.current = 0;
         setLastMessageTime(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
 
-        // Setup ping/heartbeat interval every 25 seconds
+        // Setup ping/heartbeat interval every 30 seconds
         pingIntervalRef.current = setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
             try {
+              if (pongTimeoutRef.current) {
+                clearTimeout(pongTimeoutRef.current);
+                pongTimeoutRef.current = null;
+              }
               socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
-              // Timeout detection: if no pong received within 15 seconds, terminate connection
+              // Timeout detection: if no pong received within 35 seconds, terminate connection
               pongTimeoutRef.current = setTimeout(() => {
                 console.warn('WebSocket heartbeat timeout detected. Closing dead connection.');
                 socket.close(4000, 'Heartbeat timeout');
-              }, 15000);
+              }, 35000);
             } catch (err) {
               console.error('Failed to send heartbeat ping:', err);
             }
           }
-        }, 25000);
+        }, 30000);
       };
 
       socket.onmessage = (event) => {

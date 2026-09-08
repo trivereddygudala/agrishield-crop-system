@@ -26,15 +26,16 @@ router = APIRouter(tags=["Notifications"])
 # --- WebSocket Live Connections Manager ---
 class WebSocketManager:
     def __init__(self):
-        # Maps user_id strings to list of active WebSockets
+        # Maps user_id strings to list of active WebSockets (supports unlimited multi-device logins)
         self.active_connections: Dict[str, List[WebSocket]] = {}
 
     async def connect(self, user_id: str, websocket: WebSocket):
         await websocket.accept()
         if user_id not in self.active_connections:
             self.active_connections[user_id] = []
-        self.active_connections[user_id].append(websocket)
-        logger.info(f"WebSocket client connected for user: {user_id}")
+        if websocket not in self.active_connections[user_id]:
+            self.active_connections[user_id].append(websocket)
+        logger.info(f"WebSocket device connected for user: {user_id} (Total active devices: {len(self.active_connections[user_id])})")
 
     def disconnect(self, user_id: str, websocket: WebSocket):
         if user_id in self.active_connections:
@@ -42,26 +43,32 @@ class WebSocketManager:
                 self.active_connections[user_id].remove(websocket)
             if not self.active_connections[user_id]:
                 del self.active_connections[user_id]
-        logger.info(f"WebSocket client disconnected for user: {user_id}")
+        logger.info(f"WebSocket device disconnected for user: {user_id}")
 
     async def broadcast_to_user(self, user_id: str, message: dict):
         if user_id in self.active_connections:
             encoded_message = jsonable_encoder(message)
-            for connection in self.active_connections[user_id]:
+            dead_sockets = []
+            for connection in list(self.active_connections[user_id]):
                 try:
                     await connection.send_json(encoded_message)
-                except Exception as e:
-                    logger.error(f"WebSocket push message failed: {e}")
+                except Exception:
+                    dead_sockets.append(connection)
+            for dead in dead_sockets:
+                self.disconnect(user_id, dead)
 
     async def broadcast_all(self, message: dict):
-        """Broadcast real-time telemetry or event to all active WebSocket clients."""
+        """Broadcast real-time telemetry or event to all active WebSocket clients across all devices."""
         encoded_message = jsonable_encoder(message)
         for user_id, connections in list(self.active_connections.items()):
+            dead_sockets = []
             for connection in list(connections):
                 try:
                     await connection.send_json(encoded_message)
-                except Exception as e:
-                    logger.error(f"WebSocket broadcast_all push message failed: {e}")
+                except Exception:
+                    dead_sockets.append(connection)
+            for dead in dead_sockets:
+                self.disconnect(user_id, dead)
 
 ws_manager = WebSocketManager()
 # Register ws manager callback on NotificationService
@@ -73,7 +80,7 @@ NotificationService.register_websocket_manager(ws_manager)
 @router.websocket("/api/notifications/ws/{user_id}")
 @router.websocket("/api/v1/notifications/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
-    """WebSocket connection handler for real-time dashboard notifications."""
+    """WebSocket connection handler for real-time multi-device dashboard notifications."""
     token = websocket.query_params.get("token")
     if not token:
         await websocket.close(code=4001, reason="Missing authentication token")
@@ -90,10 +97,15 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
     await ws_manager.connect(user_id, websocket)
     try:
         while True:
-            # Echo ping message to maintain handshake alive
+            # Echo ping message to maintain handshake alive across all devices
             data = await websocket.receive_text()
-            await websocket.send_json({"status": "ping_ack"})
-    except WebSocketDisconnect:
+            try:
+                await websocket.send_json({"status": "ping_ack", "type": "pong"})
+            except Exception:
+                break
+    except Exception:
+        pass
+    finally:
         ws_manager.disconnect(user_id, websocket)
 
 # --- Notifications History ---

@@ -2,6 +2,10 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-08 (v54) - Multi-Device Concurrent WebSocket Connection Support & Automatic Stale Socket Cleanup
+- **Summary:** Upgraded `WebSocketManager` in `backend/app/routers/notifications.py` to seamlessly support simultaneous multi-device logins (e.g., Desktop, Laptop, and Mobile running concurrently on the same account). Eliminated race conditions where new device connections dropped existing sockets. Wrapped websocket lifecycles in strict `try...finally` blocks to guarantee immediate garbage collection of stale sockets upon mobile sleep or tab switches. Enhanced client-side heartbeat timeouts in `frontend/src/context/WebSocketContext.jsx` from 15s to 35s to prevent false disconnect alerts during network transitions.
+- **Files modified**: `backend/app/routers/notifications.py`, `frontend/src/context/WebSocketContext.jsx`, `changes_happening.md`
+
 ## 2026-09-08 (v53) - Resolved Backend Import Error & Cleaned Audit Logger Hook in Admin Router
 - **Summary:** Fixed backend startup `ImportError` on Render cloud instances where `admin.py` attempted to import `audit_logger` as an instance instead of `log_security_event` from `backend.app.core.audit_logger`. Updated `toggle_iot_ingestion` endpoint to call `log_security_event(...)` directly with structured details and client IP payload. Tested and validated clean Python module imports across all 11 backend routers with 0 errors.
 - **Files modified**: `backend/app/routers/admin.py`, `changes_happening.md`
