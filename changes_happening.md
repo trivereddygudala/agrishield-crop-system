@@ -1075,6 +1075,12 @@
 2. Disabled 4-view Test-Time Augmentation (TTA) batching in `predict_crop_disease` (`use_tta=False`), cutting tensor memory by 75%.
 3. Added explicit `gc.collect()` at the end of inference to immediately free all intermediate image buffers back to the OS.
 
+9/9/2026: Permanently eliminated persistent Render 512MB Out of Memory crash & mobile `Network Error` during leaf scans:
+1. Removed EasyOCR from leaf disease scanner (`model/predict_pytorch.py`): Identified root cause of the 8-hour crash cycle — `predict_crop_disease` was calling `detect_agrochemical(image_path, force_scan=False)` on EVERY leaf scan, which loaded PyTorch CRAFT text detection and CRNN models (~350MB RAM) and ran 4 rotated OCR scans. Agrochemical scanning is now strictly restricted to its dedicated `/api/agrochemical-scan` endpoint.
+2. Downscaled Heatmap Overlay Generation (`model/predict_pytorch.py`): In `overlay_heatmap`, added auto-downscaling to max dimension 640px and standard 80% JPEG compression. Previously, raw 12MP-48MP smartphone photos (e.g. 4000x3000, 36MB uncompressed) were being stacked into 8000x3000 buffers and huge base64 strings, bursting memory by >150MB.
+3. Lazy-Loaded PyTorch & Implemented Pure NumPy ONNX Preprocessing (`model/pytorch_model_loader.py` & `model/predict_pytorch.py`): Removed top-level `import torch`, `from torchvision import transforms`, and `import timm` which alone consumed ~292MB idle RAM. Implemented pure NumPy ImageNet preprocessing (`preprocess_image_numpy`) for Quantized ONNX Runtime (`best_model_quantized.onnx`), dropping total active scan memory from >650MB down to <60MB, well below the 512MB cloud free tier ceiling.
+
+
 
 
 

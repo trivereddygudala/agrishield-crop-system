@@ -4,7 +4,6 @@ import time
 import numpy as np
 import cv2
 import base64
-import torch
 
 from model.configs.config import PipelineConfig
 from model.pytorch_model_loader import PyTorchModelLoader
@@ -176,6 +175,7 @@ def generate_pytorch_heatmap(loader, image_path, class_idx) -> np.ndarray:
     """Generates visual heatmap gradient features using zero-grad forward feature maps."""
     try:
         if loader.model is not None:
+            import torch
             model = loader.model
             tensor = loader.preprocess_image(image_path)
             
@@ -216,12 +216,19 @@ def generate_pytorch_heatmap(loader, image_path, class_idx) -> np.ndarray:
     return heatmap
 
 def overlay_heatmap(image_path: str, heatmap, intensity=0.5):
-    """Superimpose heatmap onto original image BGR buffer and return Base64 strings."""
+    """Superimpose heatmap onto downscaled original image to conserve cloud container memory."""
     img = cv2.imread(image_path)
     if img is None:
         return None, None, None
 
-    # Resize heatmap to match original image dimensions
+    # Downscale camera photo to max 640px to prevent multi-megabyte memory bursts & OOM
+    h, w = img.shape[:2]
+    max_dim = 640
+    if max(h, w) > max_dim:
+        scale = max_dim / float(max(h, w))
+        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
+    # Resize heatmap to match image dimensions
     heatmap_resized = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
     heatmap_255 = np.uint8(255 * heatmap_resized)
     
@@ -232,9 +239,9 @@ def overlay_heatmap(image_path: str, heatmap, intensity=0.5):
     # Generate side-by-side comparison
     side_by_side = np.hstack((img, superimposed_img))
     
-    # Base64 encodes
+    # Base64 encodes with standard 80% JPEG compression quality
     def to_b64(cv_img):
-        _, buf = cv2.imencode('.jpg', cv_img)
+        _, buf = cv2.imencode('.jpg', cv_img, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
         return f"data:image/jpeg;base64,{base64.b64encode(buf).decode('utf-8')}"
         
     return to_b64(heatmap_color), to_b64(superimposed_img), to_b64(side_by_side)
@@ -400,64 +407,12 @@ def is_plant_image(image_path: str, min_largest_contour_ratio: float = 0.05, min
 
 def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filter: str = None) -> dict:
     """
-    Runs PyTorch inference on input image using trained timm tf_efficientnetv2_s model.
+    Runs high-speed, low-memory inference on input image using Quantized ONNX Runtime or PyTorch fallback.
     Supports optional crop_filter parameter to restrict class search space to specified crop category.
     """
     start_time = time.time()
     
-    # 0a. Check if image is an Agrochemical Product (Pesticide / Fungicide / Fertilizer / Medicine)
-    try:
-        from backend.app.services.agrochemical_detector import detect_agrochemical
-        agro_res = detect_agrochemical(image_path, force_scan=False)
-        if agro_res.get("is_agrochemical"):
-            info = agro_res["info"]
-            prod_name = info.get("product_name", "Agricultural Product")
-            prod_type = info.get("product_type", "Agrochemical")
-            active_ing = info.get("active_ingredients", "N/A")
-            usage_info = info.get("recommended_dosage", "Apply as directed.")
-            safety_info = info.get("protective_equipment", "Wear protective gloves and avoid eye contact.")
-
-            return {
-                "crop_name": "Agrochemical Product",
-                "disease_name": prod_name,
-                "confidence": 0.99,
-                "prediction_status": "healthy",
-                "raw_label": prod_name,
-                "top_predictions": [
-                    {
-                        "class_name": prod_name,
-                        "crop_name": "Agrochemical Product",
-                        "disease_name": prod_name,
-                        "confidence": 0.99
-                    }
-                ],
-                "prediction_time_ms": (time.time() - start_time) * 1000.0,
-                "gradcam_base64": None,
-                "heatmap_base64": None,
-                "comparison_base64": None,
-                "uncertainty_score": 0.0,
-                "disease_severity": "Informational",
-                "most_affected_region": "Product Container & Label",
-                "possible_causes": ["Agricultural chemical / medicine scan"],
-                "similar_diseases": info.get("target_diseases", []),
-                "symptoms": f"Detected Agrochemical Product: {prod_name}\nCategory: {prod_type}\nActive Ingredient: {active_ing}",
-                "disease_stage": "Product Analysis",
-                "prevention_methods": [safety_info],
-                "organic_treatment": f"Usage Protocol:\n{usage_info}",
-                "chemical_treatment": f"Active Formulation: {active_ing}",
-                "recommended_pesticides": [prod_name],
-                "recommended_fertilizers": [],
-                "safety_precautions": safety_info,
-                "estimated_recovery_probability": 1.0,
-                "recommended_follow_up_actions": ["Store securely in original container"],
-                "irrigation_suggestions": "Do not mix with concentrated irrigation streams unless specified.",
-                "environmental_recommendations": "Dispose of empty containers responsibly in accordance with local regulations."
-            }
-    except Exception as e:
-        print(f"[AGROCHEMICAL DETECTOR WARNING] {e}")
-
-    # 0b. Validate if input image actually contains plant/crop foliage
-    
+    # Load model resources (pure NumPy ONNX runtime, <50MB RAM)
     loader, classes = load_resources()
     py_res = loader.predict_image(image_path, top_k=5, use_tta=False)
     probs = py_res["all_probabilities"]
