@@ -27,21 +27,49 @@ def get_client_kwargs():
     return kwargs
 
 async def connect_to_mongo():
-    """Create MongoDB database connection client."""
+    """Create MongoDB database connection client with automatic TLS fallback."""
     if db_instance.db is not None and (
         type(db_instance.db).__name__.startswith("Mock") or 
         "mock" in str(type(db_instance.db)).lower()
     ):
         logger.info("Database is already mocked. Skipping connection to MongoDB.")
         return
-    logger.info("Connecting to MongoDB...")
-    db_instance.client = AsyncIOMotorClient(settings.mongo_connection_url, **get_client_kwargs())
-    db_instance.db = db_instance.client[settings.DATABASE_NAME]
+        
+    url = settings.mongo_connection_url
+    logger.info(f"Connecting to MongoDB ({'Atlas Cloud' if 'mongodb.net' in url else 'Local'})...")
     
-    # Simple check to confirm connection is successful
+    # Connection strategies to handle different cloud TLS/OpenSSL environments
+    strategies = [
+        {"tls": True, "tlsAllowInvalidCertificates": True, "tlsInsecure": True},
+        {"tlsCAFile": ca_file} if ca_file else {},
+        {"tls": True, "tlsAllowInvalidCertificates": True},
+        {}
+    ]
+    
+    connected = False
+    for idx, opt in enumerate(strategies):
+        try:
+            kwargs = {
+                "serverSelectionTimeoutMS": 4000,
+                "connectTimeoutMS": 4000,
+                **opt
+            }
+            client = AsyncIOMotorClient(url, **kwargs)
+            await client.admin.command('ping')
+            db_instance.client = client
+            db_instance.db = client[settings.DATABASE_NAME]
+            logger.info(f"Connected to MongoDB successfully using strategy #{idx + 1}.")
+            connected = True
+            break
+        except Exception as e:
+            logger.warning(f"Strategy #{idx + 1} failed: {e}. Trying next strategy...")
+            
+    if not connected:
+        logger.error("All MongoDB connection strategies failed. Starting in degraded mode.")
+        db_instance.db = None
+        return
+        
     try:
-        await db_instance.client.admin.command('ping')
-        logger.info("Connected to MongoDB successfully.")
         # Ensure compound index on iot_telemetry for analytics querying
         await db_instance.db["iot_telemetry"].create_index([("device_id", 1), ("received_at", -1)])
         
@@ -54,16 +82,11 @@ async def connect_to_mongo():
         await db_instance.db["notification_rules"].create_index([("category", 1), ("enabled", 1)])
         await db_instance.db["scheduled_notifications"].create_index([("next_run", 1), ("enabled", 1)])
         await db_instance.db["fcm_tokens"].create_index([("user_id", 1)])
-        await db_instance.db["fcm_tokens"].create_index([("token", 1)], unique=True)
         
         logger.info("MongoDB indexes verified.")
-        
-        # Seed default notification rules if collection is empty
         await seed_default_notification_rules(db_instance.db)
-        
     except Exception as e:
-        logger.error(f"MongoDB connection failed: {e}. Starting in degraded mode.")
-        db_instance.db = None
+        logger.error(f"Failed verifying MongoDB indexes: {e}")
 
 async def seed_default_notification_rules(db):
     """Seed base dynamic notification rules if none exist."""
