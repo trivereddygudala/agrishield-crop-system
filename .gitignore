@@ -64,10 +64,13 @@ Thumbs.db
 *.swo
 
 # Large Training Checkpoints & Duplicate Weight Copies
-*.pth
 *.tfevents*
 model/logs/
-model/saved_models/
+model/saved_models/*
+!model/saved_models/best_model_quantized.onnx
+!model/saved_models/best_model_fp16.pth
+!model/saved_models/.gitkeep
+model/saved_models/best_model.pth
 model/**/checkpoints/
 model/trained pytorch/
 model_training/

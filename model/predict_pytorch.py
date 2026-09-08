@@ -21,13 +21,23 @@ def load_resources():
     if _loader is None:
         if not os.path.exists(PipelineConfig.CLASSES_PATH):
             raise FileNotFoundError(f"Classes list not found at: {PipelineConfig.CLASSES_PATH}")
-        if not os.path.exists(PipelineConfig.BEST_MODEL_PATH):
-            raise FileNotFoundError(f"Trained model not found at {PipelineConfig.BEST_MODEL_PATH}. Inference cannot proceed.")
             
-        logger.info(f"Loading best PyTorch model from: {PipelineConfig.BEST_MODEL_PATH}")
+        saved_dir = PipelineConfig.SAVED_MODELS_DIR
+        candidate_paths = [
+            os.path.join(saved_dir, "best_model_quantized.onnx"),
+            os.path.join(saved_dir, "best_model_fp16.pth"),
+            os.path.join(saved_dir, "best_model.pth"),
+            PipelineConfig.BEST_MODEL_PATH
+        ]
+        
+        chosen_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+        if chosen_path is None:
+            raise FileNotFoundError(f"Trained model not found in {saved_dir}. Inference cannot proceed.")
+            
+        logger.info(f"Loading model from: {chosen_path}")
         try:
             _loader = PyTorchModelLoader(
-                model_path=PipelineConfig.BEST_MODEL_PATH,
+                model_path=chosen_path,
                 classes_path=PipelineConfig.CLASSES_PATH
             )
             _classes = _loader.classes

@@ -78,7 +78,9 @@ class PyTorchModelLoader:
         # 2. PyTorch Model (for Grad-CAM and fallback)
         self.model_path = model_path or os.path.join(PipelineConfig.BASE_DIR, "trained pytorch", "best_model.pth")
         if not os.path.exists(self.model_path):
-            self.model_path = os.path.join(saved_dir, "best_model.pth")
+            self.model_path = os.path.join(saved_dir, "best_model_fp16.pth")
+            if not os.path.exists(self.model_path):
+                self.model_path = os.path.join(saved_dir, "best_model.pth")
             
         self.model = self._load_model()
 
