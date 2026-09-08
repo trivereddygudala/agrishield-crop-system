@@ -1056,6 +1056,9 @@
 
 9/9/2026: Resolved "Failed to connect to AI scanner or image rejected" error on mobile leaf scan uploads. (1) In `backend/app/core/upload_validator.py`, eliminated the rigid `green_ratio < 0.05` constraint that was falsely rejecting diseased leaves with brown blight, necrotic lesions, yellow chlorosis, and leaves photographed against computer screens/soil. (2) Introduced `get_optional_current_user` in `backend/app/routers/auth.py` and updated `/upload`, `/predict`, and `/predict-pytorch` endpoints in `backend/app/routers/predict.py` to allow seamless diagnostic analysis without raising 401 Unauthorized errors on guest or expired sessions. (3) Updated error handling in `frontend/src/pages/UploadImagePage.jsx` to dynamically unpack and display backend error messages.
 
+9/9/2026: Resolved AI Chatbot answering unrelated responses in Farmer and Admin portals. (1) In `backend/app/services/nvidia_service.py`, removed the aggressive `is_deterministic` regex intercept that was hijacking user prompts containing common words (e.g. 'time', 'date', 'price', 'rate', 'weather', 'scan') and routing them to static canned cards instead of the LLM. (2) Configured `qwen/qwen3.8-27b` as primary model for Groq Cloud with increased 25s timeout, enabling dynamic, intelligent, ChatGPT-style answers tailored to the user's role (Enterprise Admin AI vs AI Agronomist).
+
+
 
 
 

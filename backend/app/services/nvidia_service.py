@@ -91,12 +91,12 @@ class NVIDIAService:
         # 1. Groq Cloud Configuration (Primary Fast Engine)
         self.groq_api_key = getattr(settings, "GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
         self.groq_base_url = getattr(settings, "GROQ_API_BASE_URL", "https://api.groq.com/openai/v1") or os.getenv("GROQ_API_BASE_URL", "https://api.groq.com/openai/v1")
-        self.groq_model = getattr(settings, "GROQ_MODEL_NAME", "llama-3.3-70b-versatile") or os.getenv("GROQ_MODEL_NAME", "llama-3.3-70b-versatile")
+        self.groq_model = getattr(settings, "GROQ_MODEL_NAME", "qwen/qwen3.8-27b") or os.getenv("GROQ_MODEL_NAME", "qwen/qwen3.8-27b")
 
         # 2. NVIDIA NIM Configuration (Secondary High-Reliability Fallback)
         self.nvidia_api_key = getattr(settings, "NVIDIA_API_KEY", "") or os.getenv("NVIDIA_API_KEY", "")
         self.nvidia_base_url = getattr(settings, "NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1") or os.getenv("NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1")
-        self.nvidia_model = getattr(settings, "NVIDIA_MODEL_NAME", "meta/llama-3.1-8b-instruct") or os.getenv("NVIDIA_MODEL_NAME", "meta/llama-3.1-8b-instruct")
+        self.nvidia_model = getattr(settings, "NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731") or os.getenv("NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731")
 
         # Compatibility properties
         self.api_key = self.groq_api_key or self.nvidia_api_key
@@ -671,19 +671,6 @@ Do not include any conversational text or markdown blocks. Only output the raw J
             logger.info("AI Service running in local intelligence mode.")
             return self._generate_local_agronomic_response(message, context)
 
-        # Fast-path for deterministic live agronomic queries (Time, Weather, Telemetry, Schemes, Mandi Prices, Disease Scans)
-        msg_lower = message.lower().strip()
-        is_deterministic = any([
-            any(w in msg_lower for w in ["time", "clock", "date", "samayam", "neram", "సమయం", "తేదీ", "समय"]),
-            any(w in msg_lower for w in ["weather", "climate", "vatavarnam", "vaatavaranam", "వాతావరణం", "mausam", "मौसम", "forecast", "rain"]),
-            any(w in msg_lower for w in ["price", "rate", "mandi", "bhav", "dhara", "వరి", "ధర", "भाव", "দাম", "விலை", "ಬೆಲೆ"]),
-            any(w in msg_lower for w in ["scheme", "subsidy", "pm-kisan", "pmfby", "kcc", "pathakam", "pathakalu", "యोजना", "పథకాలు", "योजना"]),
-            any(w in msg_lower for w in ["telemetry", "sensor", "soil moisture", "nela tema", "తేమ", "నమి", "battery", "gpio"]),
-            any(w in msg_lower for w in ["scan", "scans", "detection", "detections", "diagnos", "prediction", "predictions", "disease detection", "crop disease", "leaf", "స్కాన్", "వ్యాధి", "రోగం", "బీమారీ", "बीमारी", "रोग", "கண்டறிதல்"])
-        ])
-        if is_deterministic:
-            return self._generate_local_agronomic_response(message, context)
-
         try:
             # IoT Simulation Intercept
             iot_mode = os.getenv("IOT_MODE", "simulation")
@@ -778,7 +765,7 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                     
             messages.append({"role": "user", "content": message})
 
-            content, provider = await self._execute_completion(messages, temperature=0.3, max_tokens=1024, timeout=8.0)
+            content, provider = await self._execute_completion(messages, temperature=0.3, max_tokens=1024, timeout=25.0)
             if content:
                 return content
             else:
