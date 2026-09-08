@@ -1,9 +1,10 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 class UserBase(BaseModel):
-    name: str = Field(..., min_length=2, max_length=100)
+    name: str = Field(default="User", max_length=100)
+    full_name: Optional[str] = Field(default=None, max_length=100)
     email: str = Field(..., min_length=2, max_length=120)
     role: str = Field(default="farmer")
     farm_location: Optional[str] = Field(default=None)
@@ -16,6 +17,16 @@ class UserBase(BaseModel):
     notification_settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
     color_theme: Optional[str] = Field(default="agrishield-default")
     navbar_theme: Optional[str] = Field(default="farmer-dynamic")
+
+    @model_validator(mode='before')
+    @classmethod
+    def populate_name_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            resolved_name = data.get("name") or data.get("full_name") or data.get("username") or "User"
+            data["name"] = resolved_name
+            if not data.get("full_name"):
+                data["full_name"] = resolved_name
+        return data
 
 class UserRegister(UserBase):
     password: str = Field(..., min_length=4)

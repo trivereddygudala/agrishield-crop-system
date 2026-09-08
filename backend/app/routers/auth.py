@@ -56,6 +56,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
         raise credentials_exception
 
     user["id"] = str(user["_id"])
+    resolved_name = user.get("name") or user.get("full_name") or user.get("username") or "User"
+    user["name"] = resolved_name
+    if not user.get("full_name"):
+        user["full_name"] = resolved_name
     user.setdefault("role", "farmer")
     user.setdefault("farm_location", None)
     user.setdefault("preferred_language", "en")

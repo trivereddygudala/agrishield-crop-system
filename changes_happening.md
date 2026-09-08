@@ -1094,6 +1094,12 @@
 1. Fixed Missing Camera Shutter Button: Mounted the camera viewfinder directly to `document.body` via `createPortal`, escaping parent Card transforms and overflow clipping. The native circular shutter button, cancel button, and flip camera controls are now firmly anchored at the bottom of the mobile viewport above the navigation bar. Also added tap-to-capture on the screen reticle.
 2. Restored 100% Crop Detection Accuracy: Removed the broken client-side RGB pixel heuristic (`avgR > 110 && avgG > 110`) that was mistakenly labeling scanned leaves as "Maize" and locking `crop_filter="Maize"`. This was forcing the backend AI to reject Chilli/Tomato/Rice pathologies. Diagnosis now runs across all 1,252 classes with full native accuracy.
 
+9/9/2026: Resolved FastAPI `ResponseValidationError` on `/api/auth/profile` (`backend/app/models/schemas.py`, `backend/app/routers/auth.py`):
+- Identified root cause of 500 error when opening the Admin panel: The admin account in MongoDB had `'full_name': 'Admin User'` instead of `'name'`, causing Pydantic's strict `UserResponse` schema to raise `Field required: ('response', 'name')` and fail with 500.
+- Added `@model_validator(mode='before')` in `UserBase` schema to seamlessly bridge `full_name` and `name`.
+- Added fallback normalization in `get_current_user` to ensure `name` is always populated before serializing responses.
+
+
 
 
 
