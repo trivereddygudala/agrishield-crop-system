@@ -1058,6 +1058,9 @@
 
 9/9/2026: Resolved AI Chatbot answering unrelated responses in Farmer and Admin portals. (1) In `backend/app/services/nvidia_service.py`, removed the aggressive `is_deterministic` regex intercept that was hijacking user prompts containing common words (e.g. 'time', 'date', 'price', 'rate', 'weather', 'scan') and routing them to static canned cards instead of the LLM. (2) Configured `qwen/qwen3.8-27b` as primary model for Groq Cloud with increased 25s timeout, enabling dynamic, intelligent, ChatGPT-style answers tailored to the user's role (Enterprise Admin AI vs AI Agronomist).
 
+9/9/2026: Fixed Render deployment startup error `NameError: name 'Optional' is not defined` in `backend/app/routers/auth.py` by adding `from typing import Optional`. Verified clean import and FastAPI app initialization.
+
+
 
 
 
