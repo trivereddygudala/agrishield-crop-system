@@ -17,14 +17,27 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 uploads_path = os.path.join(BACKEND_DIR, "uploads")
 os.makedirs(uploads_path, exist_ok=True)
 
+async def init_background_services():
+    """Asynchronous background worker to initialize MongoDB and Scheduler without delaying port binding."""
+    try:
+        await connect_to_mongo()
+        if db_instance.db is not None:
+            start_scheduler(db_instance.db)
+            try:
+                await db_instance.db["weather_cache"].delete_many({})
+            except Exception:
+                pass
+            print("🚀 [Startup] MongoDB & Background Scheduler initialized successfully.")
+    except Exception as e:
+        print(f"⚠️ [Startup] MongoDB / Scheduler initialization notice: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle events manager for FastAPI startup and shutdown."""
-    # 1. Connect to MongoDB with timeout protection
-    try:
-        await connect_to_mongo()
-    except Exception as e:
-        print(f"⚠️ [Startup] MongoDB connection warning: {e}")
+    import asyncio
+    
+    # 1. Spawn DB connection & scheduler in background task
+    bg_task = asyncio.create_task(init_background_services())
     
     # 2. Start mDNS Auto-Discovery ONLY in local development (skip in Cloud/Render)
     zc = None
@@ -47,17 +60,10 @@ async def lifespan(app: FastAPI):
             print(f"\n🌐 [mDNS] Auto-Discovery Broadcasting on IP: {ip} as agrishield-api.local")
         except Exception as e:
             print(f"\n⚠️  [WARNING] mDNS Broadcaster skipped: {e}")
-    
-    # 3. Start scheduler task in background if database is ready
-    if db_instance.db is not None:
-        try:
-            start_scheduler(db_instance.db)
-            await db_instance.db["weather_cache"].delete_many({})
-        except Exception as e:
-            print(f"⚠️ [Startup] Scheduler notice: {e}")
         
-    # Yield immediately so Uvicorn binds and opens the HTTP port within 1 second
+    # Yield immediately so Uvicorn binds and opens the HTTP port within 10 milliseconds
     yield
+    
     # Shutdown mDNS
     if zc and zc_info:
         try:

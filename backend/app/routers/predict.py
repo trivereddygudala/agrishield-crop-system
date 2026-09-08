@@ -22,8 +22,10 @@ from backend.app.models.schemas import (
 from backend.app.services.notification_service import NotificationService
 from backend.app.models.notification import NotificationCreate
 
-# get_model_health_status is lazy loaded inside the endpoint
-from model.predict_pytorch import predict_crop_disease
+# Lazy load PyTorch model so server boots and binds port in under 1 second
+def predict_crop_disease(*args, **kwargs):
+    from model.predict_pytorch import predict_crop_disease as _real_predict
+    return _real_predict(*args, **kwargs)
 
 def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
     if not crop_name:
