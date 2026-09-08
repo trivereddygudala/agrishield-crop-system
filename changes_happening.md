@@ -1052,5 +1052,8 @@
 
 9/8/2026: Fixed Render 100% Memory & CPU Spike (OOM crashing on 512MB Free Tier). (1) Optimized `PyTorchModelLoader` in `model/pytorch_model_loader.py`: if ONNX Runtime (`best_model_quantized.onnx`, ~22.6MB) is active, skipped initializing heavy PyTorch/timm model instances in RAM, saving >400MB memory (bringing total server footprint from >550MB down to <90MB). (2) Set strict single-threading limits (`torch.set_num_threads(1)`, `OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`) in `backend/run.py` and `PyTorchModelLoader` to prevent multi-core CPU thrashing on shared cloud containers.
 
+9/8/2026: Added `HEAD` HTTP method support to root and health check endpoints (`/`, `/health`, `/api/v1/health`) in `backend/app/main.py`, ensuring Render's automatic deployment health probes receive immediate `200 OK` status without logging 405 Method Not Allowed notices.
+
+
 
 

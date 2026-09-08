@@ -153,9 +153,9 @@ for router_module in [auth.router, predict.router, ai.router, farm_profiles.rout
 
 app.include_router(v1_router)
 
-@app.get("/")
-@app.get("/health")
-@app.get("/api/v1/health")
+@app.api_route("/", methods=["GET", "HEAD"])
+@app.api_route("/health", methods=["GET", "HEAD"])
+@app.api_route("/api/v1/health", methods=["GET", "HEAD"])
 async def root():
     """Welcome and health test endpoint for API and hardware nodes."""
     return {
