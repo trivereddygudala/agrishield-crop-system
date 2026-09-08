@@ -37,13 +37,19 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "*"
 
     # Database
-    MONGODB_URI: str = "mongodb://localhost:27017"
+    MONGODB_URI: str = ""
     MONGO_URI: str = ""
     DATABASE_NAME: str = "agrishield_db"
 
     @property
     def mongo_connection_url(self) -> str:
-        return os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI") or self.MONGO_URI or self.MONGODB_URI
+        env_uri = os.environ.get("MONGODB_URI") or os.environ.get("MONGO_URI") or self.MONGODB_URI or self.MONGO_URI
+        if env_uri and "mongodb" in env_uri and "localhost" not in env_uri:
+            return env_uri
+        # If in cloud environment or localhost unreachable, connect directly to configured Atlas cluster
+        if os.environ.get("RENDER") or os.environ.get("PORT") or self.ENV == "production":
+            return env_uri or "mongodb+srv://trivereddygudala_db_user:65lzhEkdcOgMITc5@agrishield-db.cn2tf7s.mongodb.net/?appName=agrishield-db"
+        return env_uri or "mongodb://localhost:27017"
 
     # Groq Cloud AI Provider Settings (Primary Fast Inference)
     GROQ_API_KEY: str = ""
