@@ -18,6 +18,10 @@ const API = axios.create({
 // Request interceptor to add JWT authorization token dynamically
 API.interceptors.request.use(
   (config) => {
+    // When sending FormData (e.g. image uploads), delete Content-Type so browser sets multipart boundary automatically
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
     const token = storage.getItem('token');
     if (token) {

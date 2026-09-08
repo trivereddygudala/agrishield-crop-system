@@ -151,9 +151,7 @@ const ScanImageUploader = ({
       try {
         const formData = new FormData();
         formData.append('file', selectedFile);
-        const uploadRes = await API.post('/api/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const uploadRes = await API.post('/api/upload', formData);
 
         if (!isMounted) return;
 

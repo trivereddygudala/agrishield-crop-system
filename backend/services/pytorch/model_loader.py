@@ -17,8 +17,11 @@ def load_pytorch_model(weights_path: str = None, num_classes: int = 1226, archit
 
     device = get_device()
 
-    # Load weights
-    checkpoint = torch.load(weights_path, map_location=device)
+    # Load weights with PyTorch 2.6+ compatibility
+    try:
+        checkpoint = torch.load(weights_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(weights_path, map_location=device)
     if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
         raw_state_dict = checkpoint["state_dict"]
     elif isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:

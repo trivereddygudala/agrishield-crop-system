@@ -104,13 +104,24 @@ class PyTorchModelLoader:
         return classes
 
     def _load_model(self) -> Optional[nn.Module]:
-        if not os.path.exists(self.model_path):
-            if self.ort_session:
-                return None
-            raise FileNotFoundError(f"PyTorch model file not found at: {self.model_path}")
+        if not self.model_path or self.model_path.endswith(".onnx") or not os.path.exists(self.model_path):
+            saved_dir = PipelineConfig.SAVED_MODELS_DIR
+            pth_candidates = [
+                os.path.join(saved_dir, "best_model_fp16.pth"),
+                os.path.join(saved_dir, "best_model.pth"),
+                PipelineConfig.BEST_MODEL_PATH
+            ]
+            self.model_path = next((p for p in pth_candidates if os.path.exists(p)), None)
+            if not self.model_path:
+                if self.ort_session:
+                    return None
+                raise FileNotFoundError("PyTorch model file not found in saved_models directory.")
             
         try:
-            checkpoint = torch.load(self.model_path, map_location=self.device)
+            try:
+                checkpoint = torch.load(self.model_path, map_location=self.device, weights_only=False)
+            except TypeError:
+                checkpoint = torch.load(self.model_path, map_location=self.device)
             if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
                 raw_state_dict = checkpoint["model_state_dict"]
             else:

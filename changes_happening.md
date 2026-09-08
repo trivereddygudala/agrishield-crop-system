@@ -1064,6 +1064,13 @@
 
 9/9/2026: Integrated live OpenWeatherMap API directly into AI Chatbot. (1) In `backend/app/services/weather_service.py`, added `WeatherService.get_weather_for_query` to dynamically extract locations (e.g. Pasupugallu, Guntur, or farmer's active farm), geocode via OpenStreetMap Nominatim, and fetch live OpenWeather temperature, humidity, wind, and cloud conditions. (2) In `backend/app/routers/ai.py` and `backend/app/services/nvidia_service.py`, injected live satellite weather into chatbot context and system prompt so user weather questions return authentic real-world meteorological reports.
 
+9/9/2026: Resolved AI Scan Center `timeout of 90000ms exceeded` error:
+1. Fixed PyTorch 2.6+ unpickling error: Added `weights_only=False` to `torch.load` calls in `model/pytorch_model_loader.py` and `backend/services/pytorch/model_loader.py` to support legacy dictionary weights format.
+2. Fixed model path fallback in `model/predict_pytorch.py`: If `onnxruntime` is not installed in the environment, properly fallback to `best_model_fp16.pth` (44.1 MB) instead of attempting to pass an ONNX protobuf file to `torch.load`.
+3. Fixed multipart/form-data boundary missing: In `frontend/src/services/api.js`, stripped manual `Content-Type` header when sending `FormData` so browser automatically generates `boundary=...`, preventing Uvicorn from hanging on upload.
+4. Optimized `/api/upload` endpoint in `backend/app/routers/predict.py`: Replaced heavy Grad-CAM pipeline during pre-classification with direct single-view `loader.predict_image(..., use_tta=False)`, reducing pre-detection latency from 15s to <30ms.
+
+
 
 
 

@@ -180,9 +180,7 @@ const UploadImagePage = () => {
     formData.append('file', fileToUpload);
 
     try {
-      const uploadRes = await API.post('/api/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const uploadRes = await API.post('/api/upload', formData);
 
       const imagePath = uploadRes.data.image_path;
 

@@ -23,12 +23,25 @@ def load_resources():
             raise FileNotFoundError(f"Classes list not found at: {PipelineConfig.CLASSES_PATH}")
             
         saved_dir = PipelineConfig.SAVED_MODELS_DIR
-        candidate_paths = [
-            os.path.join(saved_dir, "best_model_quantized.onnx"),
-            os.path.join(saved_dir, "best_model_fp16.pth"),
-            os.path.join(saved_dir, "best_model.pth"),
-            PipelineConfig.BEST_MODEL_PATH
-        ]
+        try:
+            import onnxruntime as ort
+            has_ort = True
+        except ImportError:
+            has_ort = False
+
+        if has_ort:
+            candidate_paths = [
+                os.path.join(saved_dir, "best_model_quantized.onnx"),
+                os.path.join(saved_dir, "best_model_fp16.pth"),
+                os.path.join(saved_dir, "best_model.pth"),
+                PipelineConfig.BEST_MODEL_PATH
+            ]
+        else:
+            candidate_paths = [
+                os.path.join(saved_dir, "best_model_fp16.pth"),
+                os.path.join(saved_dir, "best_model.pth"),
+                PipelineConfig.BEST_MODEL_PATH
+            ]
         
         chosen_path = next((p for p in candidate_paths if os.path.exists(p)), None)
         if chosen_path is None:

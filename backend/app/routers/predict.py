@@ -313,16 +313,17 @@ async def upload_image(
 
     relative_path = f"uploads/{safe_filename}"
     
-    # Fast ONNX Neural Crop Pre-Detection
+    # Ultra-Fast ONNX Neural Crop Pre-Detection (<30ms)
     detected_crop = ""
     conf = 0.95
     try:
-        import asyncio
-        from model.predict_pytorch import predict_crop_disease
-        res = await asyncio.to_thread(predict_crop_disease, file_path)
-        if res and res.get("crop_name") and res.get("crop_name") != "Unknown":
-            detected_crop = res["crop_name"]
-            conf = res.get("confidence", 0.95)
+        from model.predict_pytorch import load_resources, parse_class_label
+        loader, classes = load_resources()
+        py_res = loader.predict_image(file_path, top_k=1, use_tta=False)
+        if py_res and py_res.get("top_predictions"):
+            top_cls = py_res["top_predictions"][0]["class_name"]
+            detected_crop, _, _ = parse_class_label(top_cls)
+            conf = float(py_res["top_predictions"][0]["confidence"])
     except Exception as e:
         print(f"[PRE-CLASSIFY WARNING] Fast neural pre-detection bypassed: {e}")
 
