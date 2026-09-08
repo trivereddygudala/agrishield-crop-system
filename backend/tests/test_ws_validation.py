@@ -27,6 +27,7 @@ app.dependency_overrides[get_database] = override_get_database
 
 @pytest.fixture(autouse=True)
 def clean_db():
+    app.dependency_overrides[get_database] = override_get_database
     db_instance.db = database_for_testing
     asyncio.run(database_for_testing.users.delete_many({}))
     asyncio.run(database_for_testing.devices.delete_many({}))

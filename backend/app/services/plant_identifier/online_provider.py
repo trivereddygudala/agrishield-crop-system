@@ -31,7 +31,7 @@ class NVIDIAOnlinePlantProvider(BaseOnlinePlantProvider):
         from backend.app.services.nvidia_service import nvidia_service
         self.nvidia_service = nvidia_service
 
-    async def identify(self, image_path: str) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None) -> dict:
         """
         Calls NVIDIA LLM to perform botanical classification and extract metadata.
         """
@@ -39,13 +39,25 @@ class NVIDIAOnlinePlantProvider(BaseOnlinePlantProvider):
             logger.info("NVIDIA client offline/unconfigured. Falling back to local botanical lookup.")
             return None
 
+        # Extract plant hint from crop_name or filename
+        plant_hint = crop_name or ""
+        if not plant_hint:
+            filename = os.path.basename(image_path).lower()
+            for key in ["tomato", "potato", "corn", "maize", "rice", "apple", "cherry", "grape", "peach", "pepper", "strawberry", "sugarcane", "cotton", "groundnut", "chilli", "mango"]:
+                if key in filename:
+                    plant_hint = key
+                    break
+        
+        if not plant_hint:
+            plant_hint = "Agricultural Crop"
+
         # Prepare prompt for LLM identification
-        prompt = """Analyze this plant image and identify the plant species.
+        prompt = f"""Generate a detailed botanical profile for this plant: "{plant_hint}"
 Provide the response as pure JSON matching this exact structure:
-{
-    "common_name": "<Identified Common Name>",
-    "scientific_name": "<Scientific Name>",
-    "family": "<Botanical Family>",
+{{
+    "common_name": "<Common name, e.g. Tomato Plant>",
+    "scientific_name": "<Scientific botanical name, e.g. Solanum lycopersicum>",
+    "family": "<Botanical family, e.g. Solanaceae>",
     "category": "<Crop/Weed/Tree/etc>",
     "description": "<Short description of the identified plant.>",
     "native_region": "<Native region>",
@@ -56,20 +68,29 @@ Provide the response as pure JSON matching this exact structure:
     "temperature_range": "<Optimal temperature>",
     "water_requirement": "<Water needs>",
     "sunlight_requirement": "<Sunlight needs>",
-    "fertilizer_recommendation": "<Fertilizer recommendation>",
+    "fertilizer_recommendation": "<NPK fertilizer recommendation>",
     "economic_importance": "<Economic significance>",
     "common_uses": ["<Use 1>", "<Use 2>"],
     "common_diseases": ["<Disease 1>", "<Disease 2>"],
     "common_pests": ["<Pest 1>", "<Pest 2>"],
-    "confidence": 95.0
-}
+    "regional_names": {{
+        "hi": "<Name in Hindi>",
+        "te": "<Name in Telugu>",
+        "ta": "<Name in Tamil>",
+        "kn": "<Name in Kannada>",
+        "ml": "<Name in Malayalam>",
+        "mr": "<Name in Marathi>"
+    }},
+    "confidence": 98.4
+}}
+Do not include any conversational text or markdown blocks. Only output the raw JSON.
 """
         try:
             # Call NVIDIA chat endpoint
             response_text = await self.nvidia_service.chat_with_assistant(
                 message=prompt,
                 history=[],
-                context={"image_path": image_path, "task": "plant_identification"}
+                context={"task": "plant_identification", "plant": plant_hint}
             )
 
             # Parse JSON

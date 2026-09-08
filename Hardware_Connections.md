@@ -86,14 +86,13 @@
 
 ## 💡 Status LEDs (All with 220Ω Series Resistor)
 
+> [!WARNING]
+> We have removed several LEDs from the design to save battery power and free up GPIO pins. Do NOT connect the Red, Orange, Blue, or Yellow LEDs as they will cause hardware conflicts with the Push Buttons and Sensor Power Gate!
+
 | Color | GPIO | Function |
 |:---:|:---:|:---|
 | ⚪ White | GPIO 2 | Heartbeat — blinks every 5 seconds |
 | 🟢 Green | GPIO 15 | Wi-Fi — solid ON when connected |
-| 🔵 Blue | GPIO 4 | Bluetooth — solid ON when paired |
-| 🟡 Yellow | GPIO 12 | Data TX — flashes on every successful upload |
-| 🟠 Orange | GPIO 27 | Button Feedback — pulses 150ms on button press |
-| 🔴 Red | GPIO 26 | Alert — ON for low battery, sensor fail, or alarm |
 
 > [!TIP]
 > Connect each LED **Anode (+)** to the GPIO pin via a 220Ω resistor. Connect the **Cathode (-)** directly to GND.
@@ -135,9 +134,9 @@
 | 15 | SD CS | OUTPUT |
 | 21 | I²C SDA | BIDIR |
 | 22 | I²C SCL | OUTPUT |
-| 25 | BTN1 (Forward/Wake) | INPUT |
-| 26 | Red LED (Alert) | OUTPUT |
-| 27 | Orange LED (Page) | OUTPUT |
+| 25 | Not Used | - |
+| 26 | BTN1 (Forward/Wake) | INPUT_PULLUP |
+| 27 | BTN2 (Back) | INPUT_PULLUP |
 | 32 | Battery ADC | INPUT |
 | 33 | Charger STAT | INPUT |
 | 34 | Soil Moisture ADC | INPUT |

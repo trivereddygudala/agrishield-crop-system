@@ -29,24 +29,13 @@ except ImportError:
 
 def validate_password_strength(password: str) -> tuple[bool, str]:
     """
-    Validates password strength against enterprise policy:
-    - Minimum 12 characters
-    - At least one uppercase letter
-    - At least one lowercase letter
-    - At least one digit
-    - At least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
+    Simplified password policy for farmer ease-of-use:
+    - Minimum 4 characters
+    - No mandatory uppercase, numbers, or special symbols
     """
-    if len(password) < 12:
-        return False, "Password must be at least 12 characters long."
-    if not re.search(r"[A-Z]", password):
-        return False, "Password must contain at least one uppercase letter."
-    if not re.search(r"[a-z]", password):
-        return False, "Password must contain at least one lowercase letter."
-    if not re.search(r"\d", password):
-        return False, "Password must contain at least one number."
-    if not re.search(r"[!@#$%^&*()_+\-=\[\]{}|;:,.<>?/\\]", password):
-        return False, "Password must contain at least one special character."
-    return True, "Password meets security requirements."
+    if not password or len(password) < 4:
+        return False, "Password must be at least 4 characters long."
+    return True, "Password meets requirements."
 
 
 def hash_password(password: str) -> str:

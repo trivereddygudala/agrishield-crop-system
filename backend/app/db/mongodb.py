@@ -12,6 +12,12 @@ db_instance = Database()
 
 async def connect_to_mongo():
     """Create MongoDB database connection client."""
+    if db_instance.db is not None and (
+        type(db_instance.db).__name__.startswith("Mock") or 
+        "mock" in str(type(db_instance.db)).lower()
+    ):
+        logger.info("Database is already mocked. Skipping connection to MongoDB.")
+        return
     logger.info("Connecting to MongoDB...")
     db_instance.client = AsyncIOMotorClient(settings.MONGODB_URI)
     db_instance.db = db_instance.client[settings.DATABASE_NAME]

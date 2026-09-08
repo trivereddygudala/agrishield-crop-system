@@ -44,12 +44,12 @@ class ErrorBoundary extends React.Component {
               </p>
             </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {this.state.error && (
               <details className="text-left p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <summary className="text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
-                  Error Details (Dev Only)
+                  Error Details (Click to Expand)
                 </summary>
-                <pre className="mt-2 text-[10px] text-rose-600 dark:text-rose-400 overflow-x-auto whitespace-pre-wrap break-words">
+                <pre className="mt-2 text-[10px] text-rose-600 dark:text-rose-400 overflow-x-auto whitespace-pre-wrap break-words font-mono">
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>

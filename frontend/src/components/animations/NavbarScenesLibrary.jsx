@@ -274,7 +274,7 @@ export const SonicWave = () => (
 // CATEGORY: Role-Based Welcome Scenes (101-103)
 // ==========================================
 
-export const WelcomeFarmer = () => {
+export const WelcomeFarmer = ({ isCompact = false }) => {
   const [time, setTime] = React.useState(new Date());
   React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
   const h = time.getHours();
@@ -283,26 +283,30 @@ export const WelcomeFarmer = () => {
     <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 overflow-hidden flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.15),transparent_60%)]" />
       <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-300/20 rounded-full blur-xl anim-orb-1" />
-      <div className="flex items-center gap-3 z-10">
-        <svg className="w-7 h-7 text-white/90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center gap-2 md:gap-3 z-10">
+        <svg className="w-6 h-6 md:w-7 md:h-7 text-white/90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2a4 4 0 0 0-4 4c0 2 4 3 4 3s4-1 4-3a4 4 0 0 0-4-4z" />
           <path d="M12 9c-4 0-8 2-8 6v1h16v-1c0-4-4-6-8-6z" />
           <path d="M6 18v2h12v-2" />
         </svg>
         <div className="flex flex-col leading-none">
-          <span className="text-[10px] text-white/70 font-medium tracking-widest uppercase">{greeting}</span>
-          <span className="text-sm font-extrabold text-white tracking-wide">WELCOME, FARMER</span>
+          <span className="text-[9px] md:text-[10px] text-white/70 font-medium tracking-widest uppercase">{greeting}</span>
+          <span className="text-xs md:text-sm font-extrabold text-white tracking-wide">
+            {isCompact ? 'FARMER' : 'WELCOME, FARMER'}
+          </span>
         </div>
-        <div className="ml-3 pl-3 border-l border-white/30 flex flex-col leading-none">
-          <span className="text-[10px] text-white/70 font-medium tracking-wider uppercase">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-          <span className="text-sm font-bold text-white tabular-nums tracking-wider">{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
-        </div>
+        {!isCompact && (
+          <div className="ml-3 pl-3 border-l border-white/30 flex flex-col leading-none">
+            <span className="text-[10px] text-white/70 font-medium tracking-wider uppercase">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+            <span className="text-sm font-bold text-white tabular-nums tracking-wider">{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export const WelcomeAdmin = () => {
+export const WelcomeAdmin = ({ isCompact = false }) => {
   const [time, setTime] = React.useState(new Date());
   React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
   const h = time.getHours();
@@ -311,26 +315,30 @@ export const WelcomeAdmin = () => {
     <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 via-violet-600 to-purple-600 overflow-hidden flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(255,255,255,0.1),transparent_60%)]" />
       <div className="absolute bottom-0 left-0 w-20 h-20 bg-fuchsia-400/20 rounded-full blur-xl anim-orb-2" />
-      <div className="flex items-center gap-3 z-10">
-        <svg className="w-7 h-7 text-white/90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center gap-2 md:gap-3 z-10">
+        <svg className="w-6 h-6 md:w-7 md:h-7 text-white/90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 15l-2 5h4l-2-5z" />
           <path d="M5 7h14l-1.5 4H6.5L5 7z" />
           <circle cx="12" cy="4" r="2" />
         </svg>
         <div className="flex flex-col leading-none">
-          <span className="text-[10px] text-white/70 font-medium tracking-widest uppercase">{greeting}</span>
-          <span className="text-sm font-extrabold text-white tracking-wide">WELCOME, ADMIN</span>
+          <span className="text-[9px] md:text-[10px] text-white/70 font-medium tracking-widest uppercase">{greeting}</span>
+          <span className="text-xs md:text-sm font-extrabold text-white tracking-wide">
+            {isCompact ? 'ADMIN' : 'WELCOME, ADMIN'}
+          </span>
         </div>
-        <div className="ml-3 pl-3 border-l border-white/30 flex flex-col leading-none">
-          <span className="text-[10px] text-white/70 font-medium tracking-wider uppercase">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-          <span className="text-sm font-bold text-white tabular-nums tracking-wider">{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
-        </div>
+        {!isCompact && (
+          <div className="ml-3 pl-3 border-l border-white/30 flex flex-col leading-none">
+            <span className="text-[10px] text-white/70 font-medium tracking-wider uppercase">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+            <span className="text-sm font-bold text-white tabular-nums tracking-wider">{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export const WelcomeTester = () => {
+export const WelcomeTester = ({ isCompact = false }) => {
   const [time, setTime] = React.useState(new Date());
   React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
   const h = time.getHours();
@@ -339,18 +347,22 @@ export const WelcomeTester = () => {
     <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-sky-500 to-blue-500 overflow-hidden flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.12),transparent_60%)]" />
       <div className="absolute top-0 left-1/2 w-16 h-16 bg-cyan-300/20 rounded-full blur-xl anim-orb-3" />
-      <div className="flex items-center gap-3 z-10">
-        <svg className="w-7 h-7 text-white/90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center gap-2 md:gap-3 z-10">
+        <svg className="w-6 h-6 md:w-7 md:h-7 text-white/90 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
         </svg>
         <div className="flex flex-col leading-none">
-          <span className="text-[10px] text-white/70 font-medium tracking-widest uppercase">{greeting}</span>
-          <span className="text-sm font-extrabold text-white tracking-wide">WELCOME, TESTER</span>
+          <span className="text-[9px] md:text-[10px] text-white/70 font-medium tracking-widest uppercase">{greeting}</span>
+          <span className="text-xs md:text-sm font-extrabold text-white tracking-wide">
+            {isCompact ? 'TESTER' : 'WELCOME, TESTER'}
+          </span>
         </div>
-        <div className="ml-3 pl-3 border-l border-white/30 flex flex-col leading-none">
-          <span className="text-[10px] text-white/70 font-medium tracking-wider uppercase">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-          <span className="text-sm font-bold text-white tabular-nums tracking-wider">{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
-        </div>
+        {!isCompact && (
+          <div className="ml-3 pl-3 border-l border-white/30 flex flex-col leading-none">
+            <span className="text-[10px] text-white/70 font-medium tracking-wider uppercase">{time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+            <span className="text-sm font-bold text-white tabular-nums tracking-wider">{time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</span>
+          </div>
+        )}
       </div>
     </div>
   );

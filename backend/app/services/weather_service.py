@@ -82,6 +82,11 @@ class WeatherService:
                     if last_updated:
                         if last_updated.tzinfo is None:
                             last_updated = last_updated.replace(tzinfo=timezone.utc)
+                        
+                        # Just a basic coordinate check (exact match for now since ESP32 doesn't have GPS)
+                        if abs(cached_lat - lat) < 0.05 and abs(cached_lon - lon) < 0.05:
+                            coords_match = True
+
                         if coords_match and (datetime.now(timezone.utc) - last_updated < timedelta(minutes=30)):
                             logger.info(f"Serving weather forecast from cache for device: {device_id} (lat: {lat}, lon: {lon})")
                             return cached_doc["weather_data"]

@@ -53,6 +53,16 @@ class WebSocketManager:
                 except Exception as e:
                     logger.error(f"WebSocket push message failed: {e}")
 
+    async def broadcast_all(self, message: dict):
+        """Broadcast real-time telemetry or event to all active WebSocket clients."""
+        encoded_message = jsonable_encoder(message)
+        for user_id, connections in list(self.active_connections.items()):
+            for connection in list(connections):
+                try:
+                    await connection.send_json(encoded_message)
+                except Exception as e:
+                    logger.error(f"WebSocket broadcast_all push message failed: {e}")
+
 ws_manager = WebSocketManager()
 # Register ws manager callback on NotificationService
 NotificationService.register_websocket_manager(ws_manager)

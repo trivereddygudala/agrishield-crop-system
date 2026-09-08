@@ -215,15 +215,15 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
       {/* 5. Compare Alternative Products */}
       <CollapsibleSection title={t('agrochemical.compare_alternatives')} icon={ArrowLeftRight} badge={t('agrochemical.alternatives')} defaultOpen={false}>
         <div className="space-y-2 text-xs">
-          <p className="text-slate-500 mb-2">Alternative registered crop protection formulas:</p>
-          <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
+          <p className="text-slate-600 dark:text-slate-400 font-medium mb-2">Alternative registered crop protection formulas:</p>
+          <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
             {info.alternatives.map((alt, idx) => (
-              <div key={idx} className="p-3 flex items-center justify-between hover:bg-slate-50">
+              <div key={idx} className="p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
                 <div>
-                  <p className="font-bold text-slate-800">{alt.name}</p>
-                  <p className="text-[10px] text-slate-500">{alt.category}</p>
+                  <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{alt.name}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{alt.category}</p>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <span className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
                   {alt.safety}
                 </span>
               </div>

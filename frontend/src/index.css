@@ -519,13 +519,107 @@
   }
 
   body {
-    @apply antialiased bg-slate-50 text-slate-900 dark:bg-[#050911] dark:text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-700 transition-colors duration-200;
+    @apply antialiased bg-slate-100 text-slate-900 dark:bg-[#050911] dark:text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-700 transition-colors duration-200;
     font-family: var(--font-sans);
+    font-size: 16px; /* Strictly enforce minimum 16px body font globally */
+  }
+
+  /* Localized script priority overrides when active language changes */
+  html[lang="te"] body {
+    font-family: 'Noto Sans Telugu', var(--font-sans) !important;
+  }
+  html[lang="hi"] body {
+    font-family: 'Noto Sans Devanagari', var(--font-sans) !important;
+  }
+  html[lang="ta"] body {
+    font-family: 'Noto Sans Tamil', var(--font-sans) !important;
+  }
+  html[lang="kn"] body {
+    font-family: 'Noto Sans Kannada', var(--font-sans) !important;
+  }
+  html[lang="ml"] body {
+    font-family: 'Noto Sans Malayalam', var(--font-sans) !important;
   }
   
   /* Farmer Mode increases base rem size globally */
   .farmer-mode {
     font-size: 115%;
+  }
+
+  /* ══ Field Mode — High-Contrast Outdoor Sunlight Theme ══ */
+  /* Pure white background, deep black text, max contrast for direct sunlight */
+  .field-mode {
+    font-size: 120%;
+    --field-bg: #ffffff;
+    --field-text: #000000;
+    --field-accent: #14532d;
+    --field-warn: #92400e;
+    --field-danger: #7f1d1d;
+  }
+
+  .field-mode body,
+  .field-mode .dark body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Force app layout to white background in field mode */
+  .field-mode #root,
+  .field-mode .dark #root {
+    background: #f9fafb !important;
+  }
+
+  /* Override dark glassmorphism cards to white with strong borders */
+  .field-mode .dark .glass,
+  .field-mode .dark .glass-card {
+    background: #ffffff !important;
+    border: 2px solid #1f2937 !important;
+    color: #000000 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* Override text colours */
+  .field-mode .dark .text-white,
+  .field-mode .dark .text-white\/40,
+  .field-mode .dark .text-white\/30,
+  .field-mode .dark .text-slate-100 {
+    color: #111827 !important;
+  }
+
+  /* Force navbar to solid white */
+  .field-mode header {
+    background: #ffffff !important;
+    border-bottom: 2px solid #d1d5db !important;
+  }
+
+  /* Minimum touch targets for field mode: 56px */
+  .field-mode button:not(.no-touch-target),
+  .field-mode a:not(.no-touch-target) {
+    min-height: 56px !important;
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+  }
+
+  /* KPI numbers pop with very bold dark ink */
+  .field-mode .text-2xl,
+  .field-mode .text-3xl,
+  .field-mode .text-4xl {
+    color: #000000 !important;
+    font-weight: 900 !important;
+    text-shadow: none !important;
+  }
+
+  /* Health indicators: strong border + background contrast */
+  .field-mode .bg-emerald-500\/10 { background: #dcfce7 !important; border-color: #16a34a !important; }
+  .field-mode .bg-amber-500\/10  { background: #fef3c7 !important; border-color: #d97706 !important; }
+  .field-mode .bg-rose-500\/10   { background: #fee2e2 !important; border-color: #dc2626 !important; }
+  .field-mode .bg-sky-500\/10    { background: #e0f2fe !important; border-color: #0284c7 !important; }
+
+  /* Field mode: visible sidebar */
+  .field-mode aside,
+  .field-mode .dark aside {
+    background: #f1f5f9 !important;
+    border-right: 2px solid #cbd5e1 !important;
   }
 
   /* Custom Focus Ring Styles for Accessibility */
@@ -560,21 +654,23 @@
 @layer utilities {
   /* Premium Glassmorphism Classes for Light & Dark */
   .glass {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.55);
+    box-shadow: 0 2px 12px -2px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.07);
   }
 
   .dark .glass {
     background: rgba(11, 19, 32, 0.85);
     border: 1px solid rgba(30, 41, 59, 0.8);
+    box-shadow: none;
   }
 
   .glass-card {
     background: #ffffff;
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 1px 1px rgba(16, 185, 129, 0.04);
+    border: 1px solid rgba(100, 116, 139, 0.35);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(16, 185, 129, 0.06);
   }
 
   .dark .glass-card {
@@ -616,9 +712,64 @@
     background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(11, 19, 32, 0.95) 100%);
   }
 
+  .bg-gradient-indigo-card {
+    background: linear-gradient(135deg, rgba(238, 242, 255, 0.9) 0%, rgba(255, 255, 255, 1) 100%);
+  }
+
+  .dark .bg-gradient-indigo-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(11, 19, 32, 0.95) 100%);
+  }
+
+  .bg-gradient-purple-card {
+    background: linear-gradient(135deg, rgba(250, 245, 255, 0.9) 0%, rgba(255, 255, 255, 1) 100%);
+  }
+
+  .dark .bg-gradient-purple-card {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(11, 19, 32, 0.95) 100%);
+  }
+
+  /* Card Color Top Accent Borders — light mode uses full-opacity, vivid colors */
+  .card-accent-emerald {
+    border-top: 3px solid #059669;
+  }
+  .card-accent-sky {
+    border-top: 3px solid #0284c7;
+  }
+  .card-accent-amber {
+    border-top: 3px solid #d97706;
+  }
+  .card-accent-rose {
+    border-top: 3px solid #e11d48;
+  }
+  .card-accent-indigo {
+    border-top: 3px solid #4f46e5;
+  }
+  .card-accent-purple {
+    border-top: 3px solid #9333ea;
+  }
+
+  /* Crisp Input Styling for High Sunlight Readability */
+  .input-crisp {
+    @apply bg-white dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 transition-all rounded-xl;
+  }
+
+  /* Zebra Table Striping for Easy Scanning */
+  .table-row-zebra:nth-child(even) {
+    background-color: rgba(248, 250, 252, 0.7);
+  }
+  .dark .table-row-zebra:nth-child(even) {
+    background-color: rgba(15, 23, 42, 0.4);
+  }
+
   /* Gradient Text Helper */
   .text-gradient-emerald {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 dark:from-emerald-400 dark:via-teal-300 dark:to-emerald-200;
+  }
+  .text-gradient-amber {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-amber-600 via-orange-500 to-amber-700 dark:from-amber-400 dark:via-orange-300 dark:to-amber-200;
+  }
+  .text-gradient-sky {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-sky-600 via-cyan-600 to-blue-700 dark:from-sky-400 dark:via-cyan-300 dark:to-blue-200;
   }
 }
 
@@ -988,3 +1139,84 @@
 @keyframes anim-heat-shimmer { 0%, 100% { transform: translateY(0) scaleY(1); opacity: 0.4; } 50% { transform: translateY(-4px) scaleY(1.3); opacity: 0.8; } }
 @keyframes anim-nova-burst { 0% { transform: rotate(0deg) translateX(0px); opacity: 1; } 100% { transform: rotate(360deg) translateX(30px); opacity: 0; } }
 @keyframes anim-nova-ring { 0% { transform: scale(0.5); opacity: 0.8; } 100% { transform: scale(2); opacity: 0; } }
+
+/* ══ Mobile UI Optimization — Design Tokens from Mobile Design Review ══ */
+@media (max-width: 640px) {
+
+  /* Sensor card base style — LIGHT MODE */
+  .sensor-card-mobile {
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Metric chips (temp, humidity, soil, etc.) — LIGHT MODE */
+  .metric-chip-mobile {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+
+  /* Sleep badge — Night mode — LIGHT MODE (deeper indigo for contrast on white) */
+  .sleep-badge-night {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: #4f46e5;
+  }
+
+  /* Sleep badge — Day mode — LIGHT MODE (deeper emerald for contrast on white) */
+  .sleep-badge-day {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #059669;
+  }
+
+  /* WCAG + Apple HIG: 44px minimum touch targets */
+  button:not(.no-touch-target),
+  a:not(.no-touch-target),
+  select:not(.no-touch-target) {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Smooth momentum scrolling for mobile card containers */
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent text overflow on narrow screens */
+  .mobile-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ══ Mobile tokens — DARK MODE overrides ══ */
+@media (max-width: 640px) {
+  /* Sensor card — dark mode glassmorphism */
+  .dark .sensor-card-mobile {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Sleep badge — Night mode — DARK MODE */
+  .dark .sleep-badge-night {
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+  }
+
+  /* Sleep badge — Day mode — DARK MODE */
+  .dark .sleep-badge-day {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #6ee7b7;
+  }
+}

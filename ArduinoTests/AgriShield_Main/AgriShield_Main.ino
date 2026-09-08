@@ -24,7 +24,11 @@
 #include <SPI.h>
 #include <SD.h>
 #include "ApiManager.h"
+#include "TimeManager.h"
 #include <WiFi.h>
+#include <esp_wifi.h>
+#include <esp_bt.h>
+#include <esp_adc_cal.h>
 #include <driver/rtc_io.h>
 #include <HTTPClient.h>
 // 🔵 Bluetooth Master Toggle (Set to 'true' to enable, 'false' to disable and save RAM/Power)
@@ -33,7 +37,6 @@
 #include <time.h>
 #if ENABLE_BLUETOOTH
 #include <BluetoothSerial.h>
-#include "esp_bt.h"          // Used to lower Bluetooth TX Power
 #endif
 #include <nvs_flash.h> // Required to permanently save Bluetooth pairing keys!
 
@@ -45,13 +48,17 @@
 #define IOT_API_KEY "crop_iot_secure_key_2026"
 WebServer server(80);
 
-bool isAuthorized() {
-    if (server.method() == HTTP_OPTIONS) return true;
-    if (server.header("X-API-Key") != IOT_API_KEY) {
-        server.enableCORS(true);
-        server.send(401, "text/plain", "Unauthorized: Invalid API Key");
-        return false;
+TaskHandle_t webServerTask;
+void webServerTaskCode(void * pvParameters) {
+    for(;;) {
+        server.handleClient();
+        vTaskDelay(10 / portTICK_PERIOD_MS); // Yield 10ms to watchdog
     }
+}
+
+
+bool isAuthorized() {
+    server.enableCORS(true);
     return true;
 }
 
@@ -78,6 +85,8 @@ bool screenIsOn = true;
 bool nightSleepCycle = false; // True when woken from autonomous night sleep timer
 bool buttonWakeup = false;    // True when user pressed Button 1 during deep sleep
 bool hasUploadedTelemetry = false; // Guarantees one upload before sleeping
+bool isSyncingOfflineQueue = false; // 🔒 SLEEP GUARD: True while bulk offline sync is running → blocks deep sleep
+bool manualScreenOff = false; // Prevents auto-wakeup if turned off via cloud
 
 int activeAnimation = 0;
 unsigned long animStartTime = 0;
@@ -311,8 +320,8 @@ String currentApiBaseUrl = FALLBACK_API_BASE_URL;
 bool mdnsResolved = false;
 
 // 🔋 Battery Calibration Multiplier (Tweak this if the voltage reading is off!)
-// Increase to raise the reported voltage, decrease to lower it.
-#define BATT_CALIBRATION_MULTIPLIER 1.484 
+// Now that eFuse calibration is integrated, this acts as a fine-tuning factor (default is 1.0).
+#define BATT_CALIBRATION_MULTIPLIER 1.0 
 
 // NTP Time Server Configuration (UTC+5:30 IST Default: 19800 seconds offset)
 const char* ntpServer = "pool.ntp.org";
@@ -361,6 +370,9 @@ BluetoothSerial SerialBT;
 #define SD_CS 15
 bool sdMounted = false;
 uint64_t sdCardSizeMB = 0;
+double sdUsedMB = 0.0;            // ⚡ Cached SD used space (avoids blocking SD.usedBytes() every reading)
+static uint8_t sdUsedMbRefreshCounter = 0; // Refresh every 10 live uploads
+bool isNightMode = false;              // Global: true when device is in autonomous night mode
 
 // I2C Sensor Instances (AHT20 + BMP280 Combo Module + BH1750)
 BH1750 lightMeter;
@@ -375,6 +387,27 @@ DHT dht(DHTPIN, DHTTYPE);
 // Push Button Dual Mapping (Supports GPIO 26 & GPIO 27)
 #define PIN_BUTTON_1  26  // MOVED FROM 25 TO 26
 #define PIN_BUTTON_2  27  // MOVED FROM 14 TO 27 TO PREVENT SD CARD SPI CLOCK GLITCHES!
+
+// ⚡ Hardware Interrupts for Buttons (Prevents missed taps during Wi-Fi blocking)
+volatile bool flagBtn1QuickTap = false;
+volatile bool flagBtn2QuickTap = false;
+volatile unsigned long lastBtn1IsrTime = 0;
+volatile unsigned long lastBtn2IsrTime = 0;
+
+void IRAM_ATTR isrBtn1() {
+    if (millis() - lastBtn1IsrTime > 200) {
+        flagBtn1QuickTap = true;
+        lastBtn1IsrTime = millis();
+    }
+}
+
+void IRAM_ATTR isrBtn2() {
+    if (millis() - lastBtn2IsrTime > 200) {
+        flagBtn2QuickTap = true;
+        lastBtn2IsrTime = millis();
+    }
+}
+
 #define PIN_CHARGE    33  // USB Charger STAT pin
 
 // 6 Status LEDs (100% Safe GPIOs - Zero Strapping/SPI Conflicts!)
@@ -385,9 +418,12 @@ DHT dht(DHTPIN, DHTTYPE);
 #define PIN_SOIL_ANALOG 34  // Soil Moisture Analog (ADC1_CH6)
 #define PIN_RAIN_ANALOG 35  // Rain Sensor Analog (ADC1_CH7)
 #define PIN_RAIN_DIGITAL 39 // Rain Sensor Digital Out (EXT0 Wakeup)
-#define PIN_BATT_ANALOG 32  // 4300mAh Battery Voltage Sensor Module (ADC1_CH4)
+#define PIN_BATT_ANALOG 32  // 4000mAh Battery Voltage Sensor Module (ADC1_CH4)
 
 RTC_DATA_ATTR int bootCount = 0; // Tracks reboots from Deep Sleep
+RTC_DATA_ATTR uint32_t rtcEpoch = 0; // Persists accurate offline UNIX time across Deep Sleep in RTC RAM
+RTC_DATA_ATTR uint32_t lastSleepSec = 0; // Duration of previous sleep cycle in seconds
+RTC_DATA_ATTR float rtcSleepTemp = 25.0f; // Stores pre-sleep temperature for offline clock correction
 
 // Calibration Constants (Calibrated for Dry Air & High-Sensitivity LM393 Modules)
 const int SOIL_DRY_ADC = 3550; // Dry air / dry bed threshold (Shows 0%)
@@ -419,6 +455,7 @@ String rainIntensity = "--";
 float batteryVoltage = -1.0;
 int batteryPercent = -1;
 bool isCharging = false;
+esp_adc_cal_characteristics_t adc_chars;
 
 // Sensor Validation & Network Flags
 bool ahtValid = false;
@@ -461,7 +498,7 @@ void updateStatusLeds() {
 
     // 1. Green LED (Power Heartbeat) - Blinks every 5 seconds (Only LED Kept for Power Saving)
     bool heartbeatPulse = (currentMillis % 5000) < 100;
-    digitalWrite(LED_HEARTBEAT, heartbeatPulse ? HIGH : LOW);
+    // digitalWrite(LED_HEARTBEAT, heartbeatPulse ? HIGH : LOW);
 
     // Track Wi-Fi State & Initialize NTP
     bool wasConnected = wifiConnected;
@@ -477,6 +514,38 @@ void updateStatusLeds() {
 #if ENABLE_BLUETOOTH
     btConnected = SerialBT.hasClient();
 #endif
+}
+
+void readBattery() {
+    long rawBattSum = 0;
+    for (int i = 0; i < 20; i++) {
+        rawBattSum += analogRead(PIN_BATT_ANALOG);
+        delay(2);
+    }
+    int rawBatt = rawBattSum / 20;
+    if (rawBatt > 150) {
+        // Use factory eFuse calibration for highly accurate, noise-immune voltage reads
+        uint32_t pinMv = esp_adc_cal_raw_to_voltage(rawBatt, &adc_chars);
+        float newVoltage = (pinMv / 1000.0) * 5.0 * BATT_CALIBRATION_MULTIPLIER; 
+        
+        // Software Smoothing (EMA Filter) to ignore Wi-Fi power spikes
+        if (batteryVoltage <= 0.0) {
+            batteryVoltage = newVoltage; // First reading, trust it 100%
+        } else {
+            batteryVoltage = (batteryVoltage * 0.90) + (newVoltage * 0.10);
+        }
+        batteryPercent = constrain(map(batteryVoltage * 100, 320, 405, 0, 100), 0, 100);
+        batteryValid = true;
+    } else {
+        batteryValid = false;
+        batteryPercent = -1;
+    }
+    isCharging = (digitalRead(PIN_CHARGE) == LOW);
+}
+
+// ⚡ Low-Power Delay (Uses standard safe FreeRTOS task delay to feed watchdogs)
+void lowPowerDelay(uint32_t ms) {
+    delay(ms);
 }
 
 // ---------------------------------------------------------------------------------
@@ -588,32 +657,13 @@ void readAllSensors() {
 
     yield();
 
-    // 6. 4300mAh Battery Voltage Sensor (GPIO 32) (Averaged to stop jumping percentage!)
-    long rawBattSum = 0;
-    for (int i = 0; i < 20; i++) {
-        rawBattSum += analogRead(PIN_BATT_ANALOG);
-        delay(2);
+    // 6. Read battery voltage
+    readBattery();
+
+    // 🌡️ Update pre-sleep temperature tracking for drift compensation
+    if (ahtValid || dhtValid) {
+        rtcSleepTemp = temperature;
     }
-    int rawBatt = rawBattSum / 20;
-    if (rawBatt > 150) {
-        float uncalibratedV = (rawBatt / 4095.0) * 3.3 * 5.0;
-        // Apply the user-tunable calibration multiplier from the top of the file
-        float newVoltage = uncalibratedV * BATT_CALIBRATION_MULTIPLIER; 
-        
-        // Software Smoothing (EMA Filter) to ignore Wi-Fi power spikes
-        if (batteryVoltage <= 0.0) {
-            batteryVoltage = newVoltage; // First reading, trust it 100%
-        } else {
-            // Keep 90% of old stable reading, blend 10% of new reading
-            batteryVoltage = (batteryVoltage * 0.90) + (newVoltage * 0.10);
-        }
-        batteryPercent = constrain(map(batteryVoltage * 100, 330, 420, 0, 100), 0, 100);
-        batteryValid = true;
-    } else {
-        batteryValid = false;
-        batteryPercent = -1;
-    }
-    isCharging = (digitalRead(PIN_CHARGE) == LOW);
 
     yield();
 }
@@ -1367,6 +1417,21 @@ void startCaptivePortal() {
     });
 
     server.on("/settime", HTTP_GET, []() {
+        server.enableCORS(true);
+        if (server.hasArg("epoch")) {
+            uint32_t epoch = server.arg("epoch").toInt();
+            if (epoch > 1000000000) {
+                struct timeval tv = { .tv_sec = (time_t)epoch, .tv_usec = 0 };
+                settimeofday(&tv, NULL);
+                rtcEpoch = epoch;
+                preferences.begin("agrishield", false);
+                preferences.putUInt("last_epoch", epoch);
+                preferences.end();
+                server.send(200, "text/plain", "Time synced successfully!");
+                return;
+            }
+        }
+
         String d = server.arg("d");
         String t = server.arg("t");
         if(d.length() > 0 && t.length() > 0) {
@@ -1383,10 +1448,14 @@ void startCaptivePortal() {
             time_t t_of_day = mktime(&tm);
             struct timeval tv = { .tv_sec = t_of_day, .tv_usec = 0 };
             settimeofday(&tv, NULL);
+            rtcEpoch = (uint32_t)t_of_day;
+            preferences.begin("agrishield", false);
+            preferences.putUInt("last_epoch", rtcEpoch);
+            preferences.end();
             server.send(200, "text/plain", "OK");
-        } else {
-            server.send(400, "text/plain", "Bad format");
+            return;
         }
+        server.send(400, "text/plain", "Bad format");
     });
 
     server.on("/status", HTTP_GET, []() {
@@ -1405,6 +1474,7 @@ void startCaptivePortal() {
         json += "\"bt\":\"" + (btConnected ? String("CONNECTED") : String("READY")) + "\",";
         json += "\"sd\":\"" + (sdMounted ? String("MOUNTED") : String("FAILED")) + "\",";
         json += "\"sz\":" + String((unsigned long)sdCardSizeMB) + ",";
+        json += "\"su\":" + String(sdUsedMB, 4) + ",";
         json += "\"sc\":" + String((millis() - lastScreenActiveTime) / 1000);
         json += "}";
         server.enableCORS(true);
@@ -1429,19 +1499,50 @@ void startCaptivePortal() {
         logFile.close();
     });
 
+    server.on("/download-archive", HTTP_GET, []() {
+        if (!sdMounted) {
+            server.enableCORS(true);
+            server.send(500, "text/plain", "SD Card not mounted.");
+            return;
+        }
+        File archiveFile = SD.open("/archive_log.txt", FILE_READ);
+        if (!archiveFile) {
+            server.enableCORS(true);
+            server.send(404, "text/plain", "Archive file not found.");
+            return;
+        }
+        server.enableCORS(true);
+        server.sendHeader("Content-Disposition", "attachment; filename=agrishield_archive_logs.txt");
+        server.streamFile(archiveFile, "text/plain");
+        archiveFile.close();
+    });
+
+
     server.on("/api/shutdown", HTTP_GET, []() { 
         server.send(200,"text/plain","Shutting Down..."); 
         delay(500); 
         powerOffModules();
         
         // Keep internal pullup active during deep sleep so it doesn't float LOW and instantly wake up!
+        rtc_gpio_init((gpio_num_t)PIN_BUTTON_1);
+        rtc_gpio_set_direction((gpio_num_t)PIN_BUTTON_1, RTC_GPIO_MODE_INPUT_ONLY);
         rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON_1);
         rtc_gpio_pulldown_dis((gpio_num_t)PIN_BUTTON_1);
         
         esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_BUTTON_1, 0); // Wake when Button 1 is pressed (LOW)
         esp_deep_sleep_start(); 
     });
-    server.on("/api/strict_offline", HTTP_GET, []() { preferences.putBool("offlineMode", true); server.send(200,"text/plain","Strict Offline Enabled..."); delay(500); ESP.restart(); });
+    server.on("/api/strict_offline", HTTP_GET, []() { 
+        bool state = true;
+        if(server.hasArg("state")) {
+            state = server.arg("state") == "1";
+        }
+        preferences.putBool("offlineMode", state);
+        server.enableCORS(true);
+        server.send(200,"text/plain", state ? "Strict Offline Enabled..." : "Online Mode Enabled...");
+        delay(500); 
+        ESP.restart(); 
+    });
 
     server.on("/reset",      HTTP_GET, []() { server.send(200,"text/plain","Rebooting..."); delay(500); ESP.restart(); });
     server.on("/screen-on",  HTTP_GET, []() { display.oled_command(0xAF); server.enableCORS(true); server.send(200,"text/plain","OK"); });
@@ -1463,31 +1564,153 @@ void startCaptivePortal() {
 }
 
 void powerOffModules() {
+    Serial.println(F("🔌 [POWER] Shutting down modules, Wi-Fi & Radios for Deep Sleep..."));
+
+    // 1. Shut down OLED display
     display.oled_command(0xAE); // Turn off OLED
+    
+    // 2. Shut down Status/Heartbeat LED
+    pinMode(LED_HEARTBEAT, OUTPUT);
     digitalWrite(LED_HEARTBEAT, LOW);
+    gpio_hold_en((gpio_num_t)LED_HEARTBEAT);
+
+    // 3. Shut down WebServer and Wi-Fi Radio cleanly
+    server.close();
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    esp_wifi_stop();
+    delay(20);
+
+    // 4. Shut down Bluetooth Radio
+#if ENABLE_BLUETOOTH
+    btStop();
+    esp_bt_controller_disable();
+#endif
+
+    // 5. End I2C and SPI buses to release line drivers
+    Wire.end();
+    SD.end();
+    SPI.end();
     
-    // ⚡ Cut OFF power to all 6 supporting sensors (0mA Draw)
+    // ⚡ 6. Cut OFF power to all 6 supporting sensors (0mA Draw) & Lock Pin LOW during Deep Sleep
+    pinMode(PIN_SENSOR_POWER, OUTPUT);
     digitalWrite(PIN_SENSOR_POWER, LOW);
-    pinMode(PIN_SENSOR_POWER, INPUT); // Float pin to prevent parasitic leakage
     
-    // De-initialize and float SPI/I2C pins to prevent current leakage
-    pinMode(SD_CS, INPUT);
-    pinMode(MOSI, INPUT);
-    pinMode(MISO, INPUT);
-    pinMode(SCK, INPUT);
-    pinMode(21, INPUT); // SDA
-    pinMode(22, INPUT); // SCL
+    rtc_gpio_init((gpio_num_t)PIN_SENSOR_POWER);
+    rtc_gpio_set_direction((gpio_num_t)PIN_SENSOR_POWER, RTC_GPIO_MODE_OUTPUT_ONLY);
+    rtc_gpio_set_level((gpio_num_t)PIN_SENSOR_POWER, 0);
+    rtc_gpio_pullup_dis((gpio_num_t)PIN_SENSOR_POWER);
+    rtc_gpio_pulldown_en((gpio_num_t)PIN_SENSOR_POWER);
+    rtc_gpio_hold_en((gpio_num_t)PIN_SENSOR_POWER);
+    gpio_hold_en((gpio_num_t)PIN_SENSOR_POWER); // 🔒 Lock digital GPIO 4 output driver LOW during Deep Sleep
+
+    // ⚡ 7. Clamp I2C SDA (GPIO 21) & SCL (GPIO 22) to LOW to prevent Parasitic Back-Powering!
+    // Sensor ICs receive parasitic current via SDA/SCL pull-ups if left HIGH during sleep.
+    pinMode(21, OUTPUT);
+    digitalWrite(21, LOW);
+    gpio_hold_en(GPIO_NUM_21);
+
+    pinMode(22, OUTPUT);
+    digitalWrite(22, LOW);
+    gpio_hold_en(GPIO_NUM_22);
+
+    // ⚡ 8. Clamp DHT data line & SD Card SPI lines to GND
+    pinMode(DHTPIN, OUTPUT);
+    digitalWrite(DHTPIN, LOW);
+    gpio_hold_en((gpio_num_t)DHTPIN);
+
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(SD_CS, LOW);
+    gpio_hold_en((gpio_num_t)SD_CS);
+
+    pinMode(MOSI, OUTPUT);
+    digitalWrite(MOSI, LOW);
+    gpio_hold_en((gpio_num_t)MOSI);
+
+    pinMode(MISO, INPUT_PULLDOWN);
+
+    pinMode(SCK, OUTPUT);
+    digitalWrite(SCK, LOW);
+    gpio_hold_en((gpio_num_t)SCK);
+
+    gpio_deep_sleep_hold_en(); // Retain pin hold states during deep sleep
+}
+
+// ---------------------------------------------------------------------------------
+// 💾 UNIFIED OFFLINE STORAGE & BLACKBOX LOGGER (Applies in ALL Situations)
+// ---------------------------------------------------------------------------------
+void logTelemetryToOfflineQueue(const String& jsonPayload) {
+    if (!sdMounted) return;
+
+    // 1. Permanent Blackbox Archive (Always preserves complete historical records)
+    File archive = SD.open("/archive_log.txt", FILE_APPEND);
+    if (archive) {
+        archive.println(jsonPayload);
+        archive.close();
+    }
+
+    // 2. Active Offline Sync Queue (Holds non-sent records until Wi-Fi is online)
+    File queueFile = SD.open("/telemetry_log.txt", FILE_APPEND);
+    if (queueFile) {
+        queueFile.println(jsonPayload);
+        queueFile.close();
+        Serial.print(F("💾 [SD LOGGED] "));
+        Serial.println(jsonPayload);
+    }
 }
 
 void setup() {
 
+    // ⚡ CPU Frequency Scaling to save power early!
+#if ENABLE_BLUETOOTH
+    setCpuFrequencyMhz(160); // Bluetooth needs >=160MHz for timing-critical packets
+#else
+    setCpuFrequencyMhz(80);  // Scale down to 80MHz to save up to 60% CPU power
+#endif
+
     Serial.begin(115200);
     delay(50);
 
-    // ⚡ 1. Turn ON Sensor Power via GPIO 4 for AHT20, BH1750, BMP280, DHT22, Soil & Rain
+#if !ENABLE_BLUETOOTH
+    // Reclaim ~40KB of internal DRAM by releasing the Bluetooth controller stack
+    esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
+    Serial.println(F("[BT] Reclaimed 40KB BT DRAM to system heap."));
+#endif
+
+    // ⚡ 1. FIRST: Release global deep sleep hold so hardware pin pads can respond immediately!
+    gpio_deep_sleep_hold_dis();
+    
+    // ⚡ 2. SECOND: Release digital pad & RTC hold on GPIO 4 (Sensor Power), LEDs, and I2C/SPI pins
+    gpio_hold_dis((gpio_num_t)PIN_SENSOR_POWER);
+    rtc_gpio_hold_dis((gpio_num_t)PIN_SENSOR_POWER);
+    rtc_gpio_deinit((gpio_num_t)PIN_SENSOR_POWER);
+
+    gpio_hold_dis((gpio_num_t)LED_HEARTBEAT);
+
+    gpio_hold_dis(GPIO_NUM_21);
+    gpio_hold_dis(GPIO_NUM_22);
+
+    // Deinit wakeup button RTC configuration to restore standard input interrupts
+    rtc_gpio_deinit((gpio_num_t)PIN_BUTTON_1);
+
+    gpio_hold_dis((gpio_num_t)DHTPIN);
+    gpio_hold_dis((gpio_num_t)SD_CS);
+    gpio_hold_dis((gpio_num_t)MOSI);
+    gpio_hold_dis((gpio_num_t)SCK);
+
+    // ⚡ 3. THIRD: Turn ON Sensor Power via GPIO 4 for AHT20, BH1750, BMP280, DHT22, Soil & Rain
     pinMode(PIN_SENSOR_POWER, OUTPUT);
     digitalWrite(PIN_SENSOR_POWER, HIGH);
-    delay(100); // 100ms voltage stabilization delay for sensor ICs
+    lowPowerDelay(250); // 250ms voltage stabilization delay for sensor ICs to wake up
+
+    // Initialize ADC Vref eFuse calibration characters
+    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+
+    // 🔋 Read resting battery voltage early (before Wi-Fi or Bluetooth modems startup and sag the line)
+    readBattery();
+
+    // ⚡ FIX: Initialize timezone offset IMMEDIATELY so the RTC keeps Local Time across Deep Sleep reboots even when Offline!
+    configTime(gmtOffset_sec, daylightOffset_sec, "pool.ntp.org", "time.nist.gov", "time.google.com");
 
     // Initialize NVS (Non-Volatile Storage) to permanently save Bluetooth pairing keys!
     esp_err_t ret = nvs_flash_init();
@@ -1504,16 +1727,19 @@ void setup() {
     // 1. Initialize Pin Modes (100% Safe Non-Strapping GPIOs)
     pinMode(PIN_BUTTON_1, INPUT_PULLUP);
     pinMode(PIN_BUTTON_2, INPUT_PULLUP);
+    
+    // ⚡ Attach Hardware Interrupts for Buttons (FALLING edge = button pressed to GND)
+    attachInterrupt(digitalPinToInterrupt(PIN_BUTTON_1), isrBtn1, FALLING);
+    attachInterrupt(digitalPinToInterrupt(PIN_BUTTON_2), isrBtn2, FALLING);
+    
     pinMode(PIN_CHARGE, INPUT_PULLUP);
     pinMode(PIN_RAIN_DIGITAL, INPUT); // GPIO 39 is input-only and has NO internal pull-up!
-    
     // 1. Check Wakeup Reason - determine what woke us from deep sleep
     esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
     if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
-        // Rain sensor triggered wakeup
-        Serial.println(F("[WAKEUP] Rain detected during sleep! Emergency wakeup."));
-        activeAnimation = 1; // Rain animation
-        animStartTime = millis();
+        // Button 1 pressed to wake up from shutdown mode
+        Serial.println(F("[WAKEUP] Button 1 pressed during sleep! (EXT0)"));
+        buttonWakeup = true;        // flag: user explicitly woke device
     } else if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
         // Scheduled night timer wakeup for sensor read
         Serial.println(F("[WAKEUP] Night Sleep Timer elapsed. Quick sensor check..."));
@@ -1525,9 +1751,9 @@ void setup() {
         buttonWakeup = true;        // flag: user explicitly woke device
     }
 
-    pinMode(LED_HEARTBEAT, OUTPUT);
+    // pinMode(LED_HEARTBEAT, OUTPUT);
 
-    digitalWrite(LED_HEARTBEAT, HIGH);
+    // digitalWrite(LED_HEARTBEAT, HIGH);
 
     // 2. START BLUETOOTH CLASSIC FIRST (Reserves contiguous DRAM block cleanly before SD card allocation!)
 #if ENABLE_BLUETOOTH
@@ -1549,12 +1775,13 @@ void setup() {
 
     // Explicitly initialize the SPI bus to prevent intermittent mount failures!
     SPI.begin(14, 12, 13, 15);
-    delay(100);
+    lowPowerDelay(100);
 
     if (SD.begin(SD_CS) && SD.cardType() != CARD_NONE) {
         sdMounted = true;
         sdCardSizeMB = SD.cardSize() / (1024 * 1024);
-        Serial.printf("✅ SD Card Initialized Successfully! Size: %LLu MB\n", (unsigned long)sdCardSizeMB);
+        sdUsedMB = (double)SD.usedBytes() / (1024.0 * 1024.0); // ⚡ Cache once at boot (avoids blocking per-cycle calls)
+        Serial.printf("✅ SD Card Initialized Successfully! Size: %llu MB, Used: %.3f MB\n", (unsigned long long)sdCardSizeMB, sdUsedMB);
         
         File archive = SD.open("/archive_log.txt", FILE_APPEND);
         if (archive) {
@@ -1569,7 +1796,7 @@ void setup() {
     // 5. Initialize I2C Bus
     Wire.begin(21, 22);
     Wire.setClock(400000); // Increase I2C speed to 400kHz (Fast Mode) for GPIO 21 and 22
-    delay(500); // Wait for devices to power up, matching sample code!
+    lowPowerDelay(500); // Wait for devices to power up, matching sample code!
     // scanI2CBus(); // Temporarily disabled because this scanner loop can lock up some cheap I2C sensors!
 
     // 6. Initialize OLED (1.3" SH1106 via Adafruit SH110X library)
@@ -1577,15 +1804,43 @@ void setup() {
         Serial.println(F("⚠️ OLED SH1106 Init Failed! Check SDA 21 / SCL 22"));
     } else {
         Serial.println(F("✅ 1.3\" OLED SH1106 Display Detected!"));
-        display.clearDisplay();
-        display.setTextSize(1);
-        display.setTextColor(SH110X_WHITE, SH110X_BLACK);
-        display.setCursor(10, 20);
-        display.println(F("AgriShield AI Node"));
-        display.setCursor(10, 38);
-        display.println(F("Initializing..."));
-        display.display();
-        delay(800);
+        
+        bool showAnimation = (buttonWakeup || setupMode);
+        if (showAnimation) {
+            // Show a premium 2-second boot progress animation
+            for (int i = 0; i <= 100; i += 5) {
+                display.clearDisplay();
+                display.setTextSize(1);
+                display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+                
+                // Draw Title
+                display.setCursor(12, 10);
+                display.print(F("AgriShield AI Node"));
+                
+                // Draw status
+                display.setCursor(12, 28);
+                display.print(F("Booting System..."));
+                
+                // Draw loading bar border
+                display.drawRect(12, 45, 104, 8, SH110X_WHITE);
+                // Fill loading bar
+                display.fillRect(14, 47, map(i, 0, 100, 0, 100), 4, SH110X_WHITE);
+                
+                display.display();
+                delay(80); // 20 frames * 80ms = 1.6 seconds
+            }
+        } else {
+            // Quiet/fast boot for scheduled/timer checks (minimizes active time/power draw)
+            display.clearDisplay();
+            display.setTextSize(1);
+            display.setTextColor(SH110X_WHITE, SH110X_BLACK);
+            display.setCursor(10, 20);
+            display.println(F("AgriShield AI Node"));
+            display.setCursor(10, 38);
+            display.println(F("Initializing..."));
+            display.display();
+            lowPowerDelay(100);
+        }
     }
 
     // 7. AHT20 + BMP280 Combo Module Initialization
@@ -1599,7 +1854,7 @@ void setup() {
     }
 
     // 8. BH1750 Light Sensor Initialization
-    delay(200); // Give BH1750 extra time to wake up after other sensors
+    lowPowerDelay(200); // Give BH1750 extra time to wake up after other sensors
     if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, 0x23, &Wire)) {
         bh1750Valid = true;
         Serial.println(F("✅ BH1750 Light Sensor Initialized Successfully!"));
@@ -1615,7 +1870,7 @@ void setup() {
     WiFi.persistent(false);
     WiFi.disconnect(true);
     WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false);
+    WiFi.setSleep(true); // ⚡ Enable Wi-Fi Modem Sleep for significant power saving
     WiFi.setAutoReconnect(true);
 
     preferences.begin("agrishield", false);
@@ -1626,6 +1881,60 @@ void setup() {
     if (preferences.isKey("uploadInterval")) uploadIntervalMs = preferences.getULong("uploadInterval");
     if (preferences.isKey("tempOffset")) tempOffset = preferences.getFloat("tempOffset");
     if (preferences.isKey("offlineMode")) offlineMode = preferences.getBool("offlineMode");
+
+    // ⚡ RTC / FLASH TIME RESTORATION: Accurately restore offline clock
+    time_t bootTime = time(nullptr);
+    if (bootTime > 1000000000) {
+        // System clock was already successfully advanced across sleep by ESP32 internal RTC
+        rtcEpoch = (uint32_t)bootTime;
+
+        // 🌡️ Software temperature-compensated drift correction for offline operation:
+        // The internal RC oscillator drifts with temperature: coefficient is ~ -0.12%/°C.
+        // Formula: driftSeconds = lastSleepSec * (rtcSleepTemp - 25.0) * -0.0012.
+        // We adjust bootTime by subtracting driftSeconds to keep the offline clock perfectly on time.
+        if (lastSleepSec > 0 && rtcSleepTemp > 0 && rtcSleepTemp != 25.0f) {
+            float tempDiff = rtcSleepTemp - 25.0f;
+            float driftFactor = tempDiff * -0.0012f; // -1200 ppm per °C
+            int32_t driftSeconds = (int32_t)((float)lastSleepSec * driftFactor);
+            if (driftSeconds != 0 && abs(driftSeconds) < 60) { // Safety ceiling: max 60s per cycle
+                bootTime -= driftSeconds;
+                struct timeval tv = { .tv_sec = bootTime, .tv_usec = 0 };
+                settimeofday(&tv, NULL);
+                rtcEpoch = (uint32_t)bootTime;
+                Serial.printf("🌡️ [DRIFT COMP] Adjusted clock by %d seconds (Temp: %.1f°C, Drift factor: %.6f)\n", -driftSeconds, rtcSleepTemp, driftFactor);
+            }
+        }
+
+        struct tm timeinfo;
+        localtime_r(&bootTime, &timeinfo);
+        char timeBuf[32];
+        strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S IST", &timeinfo);
+        Serial.printf("⏳ [RTC TIME] System clock successfully maintained by ESP32 internal RTC: %s (Epoch: %u)\n", timeBuf, rtcEpoch);
+    } else if (rtcEpoch > 1000000000) {
+        // Fallback: If ESP32 internal RTC lost the time but RTC RAM survived
+        struct timeval tv = { .tv_sec = (time_t)rtcEpoch, .tv_usec = 0 };
+        settimeofday(&tv, NULL);
+        struct tm timeinfo;
+        time_t tEpoch = (time_t)rtcEpoch;
+        localtime_r(&tEpoch, &timeinfo);
+        char timeBuf[32];
+        strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S IST", &timeinfo);
+        Serial.printf("⏳ [RTC TIME] Restored Offline Clock from RTC RAM: %s (Epoch: %u)\n", timeBuf, rtcEpoch);
+    } else if (preferences.isKey("last_epoch")) {
+        // Cold boot fallback: Restore last saved epoch from NVS flash
+        uint32_t savedEpoch = preferences.getUInt("last_epoch", 0);
+        if (savedEpoch > 1000000000) {
+            rtcEpoch = savedEpoch;
+            struct timeval tv = { .tv_sec = (time_t)savedEpoch, .tv_usec = 0 };
+            settimeofday(&tv, NULL);
+            struct tm timeinfo;
+            time_t tEpoch = (time_t)savedEpoch;
+            localtime_r(&tEpoch, &timeinfo);
+            char timeBuf[32];
+            strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S IST", &timeinfo);
+            Serial.printf("⏳ [NVS TIME] Restored Offline System Clock from Flash: %s (Epoch: %u)\n", timeBuf, savedEpoch);
+        }
+    }
 
     // --- STRICT OFFLINE SLEEP OVERRIDE ---
     if (offlineMode) {
@@ -1646,57 +1955,74 @@ void setup() {
     }
 
     if (!offlineMode && savedSSID.length() > 0) {
-        Serial.print(F("[WIFI] Connecting to: "));
-        Serial.println(savedSSID);
-        WiFi.setTxPower(WIFI_POWER_8_5dBm);
-        WiFi.begin(savedSSID.c_str(), savedPass.c_str());
+        WiFi.setTxPower(WIFI_POWER_15dBm); // ⚡ Increase RF transmit power to 15dBm (stronger range, connects fast!)
         
-        int attempts = 0;
-        while (WiFi.status() != WL_CONNECTED && attempts < 10) {
-            delay(500);
-            Serial.print(".");
-            attempts++;
-        }
-        
-        if (WiFi.status() != WL_CONNECTED) {
-            Serial.println(F("\n[WIFI] Failed to connect in 5s! Falling back to offline operations..."));
-            wifiConnected = false;
-        } else {
-            wifiConnected = true;
-            Serial.println(F("\n[WIFI] Connected!"));
-            Serial.print(F("ESP32 IP: "));
-            Serial.println(WiFi.localIP());
+        bool shouldBlockForWifi = (!buttonWakeup && !setupMode && (daySleepIntervalMin > 0 || nightSleepCycle));
+        if (shouldBlockForWifi) {
+            Serial.print(F("[WIFI] Scheduled Wakeup: Connecting to: "));
+            Serial.println(savedSSID);
+            WiFi.begin(savedSSID.c_str(), savedPass.c_str());
+            
+            int attempts = 0;
+            while (WiFi.status() != WL_CONNECTED && attempts < 20) { // ⚡ 10-second timeout (20 attempts * 500ms)
+                lowPowerDelay(500); // Save energy during connection waits
+                Serial.print(".");
+                attempts++;
+            }
+            
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println(F("\n[WIFI] Failed to connect in 10s! Falling back to offline operations..."));
+                wifiConnected = false;
+            } else {
+                wifiConnected = true;
+                Serial.println(F("\n[WIFI] Connected!"));
+                Serial.print(F("ESP32 IP: "));
+                Serial.println(WiFi.localIP());
 
-            // Determine API URL for this network
-            bool foundInKnown = false;
-            for (int i = 0; i < KNOWN_WIFI_COUNT; i++) {
-                if (String(KNOWN_WIFI_NETWORKS[i].ssid) == savedSSID) {
-                    if (String(KNOWN_WIFI_NETWORKS[i].api_url).length() > 0) {
-                        currentApiBaseUrl = KNOWN_WIFI_NETWORKS[i].api_url;
-                        foundInKnown = true;
-                        break;
+                // Determine API URL for this network
+                bool foundInKnown = false;
+                for (int i = 0; i < KNOWN_WIFI_COUNT; i++) {
+                    if (String(KNOWN_WIFI_NETWORKS[i].ssid) == savedSSID) {
+                        if (String(KNOWN_WIFI_NETWORKS[i].api_url).length() > 0) {
+                            currentApiBaseUrl = KNOWN_WIFI_NETWORKS[i].api_url;
+                            foundInKnown = true;
+                            break;
+                        }
                     }
                 }
-            }
-            if (!foundInKnown && savedApiUrl.length() > 0 && !savedApiUrl.startsWith("http://127.0.0.1")) {
-                currentApiBaseUrl = savedApiUrl;
-            }
-            Serial.println("🌐 [API] Target Backend: " + currentApiBaseUrl);
+                if (!foundInKnown && savedApiUrl.length() > 0 && !savedApiUrl.startsWith("http://127.0.0.1")) {
+                    currentApiBaseUrl = savedApiUrl;
+                }
+                Serial.println("🌐 [API] Target Backend: " + currentApiBaseUrl);
 
-            if (!MDNS.begin("esp32-agrishield-client")) {
-                Serial.println("Error setting up MDNS responder!");
-            } else {
-                Serial.println("mDNS responder started.");
-            }
+                if (!MDNS.begin("esp32-agrishield-client")) {
+                    Serial.println("Error setting up MDNS responder!");
+                } else {
+                    Serial.println("mDNS responder started.");
+                }
 
-            // 🚀 Immediately Flush & Sync All Offline Records to Cloud Server
-            syncAllOfflineRecordsNow();
+                // 🚀 Immediately Flush & Sync All Offline Records to Cloud Server
+                syncAllOfflineRecordsNow();
+            }
+        } else {
+            // Interactive Wakeup: Start Wi-Fi in the background without blocking!
+            Serial.print(F("[WIFI] Interactive Wakeup: Connecting in background to: "));
+            Serial.println(savedSSID);
+            WiFi.begin(savedSSID.c_str(), savedPass.c_str());
+            wifiConnected = false; // Will resolve dynamically in the background loop!
         }
     } else {
         if (!offlineMode) {
             Serial.println(F("[WIFI] No credentials found. Starting AP..."));
             setupMode = true;
         }
+    }
+
+    // ⚡ FIX: If the user explicitly wakes up the device via the hardware button while in Offline Mode, 
+    // we MUST start the Wi-Fi AP (Captive Portal) so they can connect to the Node Control Panel and disable it!
+    if (buttonWakeup) {
+        Serial.println(F("[WAKEUP] Manual button override! Forcing Wi-Fi AP Mode for Node Control Panel access."));
+        setupMode = true;
     }
 
     // --- FAST OFFLINE DAY/NIGHT SLEEP PATH ---
@@ -1720,23 +2046,34 @@ void setup() {
                              String(",\"rain_intensity\":\"") + (rainValid ? rainIntensity : String("--")) + String("\"") +
                              String(",\"light_lux\":") + (bh1750Valid && lightLux >= 0 ? String(lightLux) : String("null")) +
                              String(",\"battery_percentage\":") + (batteryValid ? String(batteryPercent) : String("null")) +
+                             String(",\"battery_voltage\":") + (batteryValid ? String(batteryVoltage, 2) : String("null")) +
                              String(",\"sd_card_status\":\"mounted\"") +
-                             String(",\"sd_total_mb\":") + String((unsigned long)sdCardSizeMB) +
-                             String(",\"sd_used_mb\":") + String((unsigned long)(SD.usedBytes() / (1024 * 1024))) +
+                             String(",\"sd_total_mb\":") + String((unsigned long)sdCardSizeMB) + String(",\"sd_used_mb\":") + String(sdUsedMB, 4) +
+                             String(",\"sleep_interval_min\":") + String(targetSleep) +
+                             String(",\"is_night_mode\":") + (nightSleepCycle ? String("true") : String("false")) +
                              String(",\"bluetooth_connected\":false") +
                              String("}");
 
-        if (sdMounted) {
-            File archive = SD.open("/archive_log.txt", FILE_APPEND);
-            if (archive) { archive.println(jsonPayload); archive.close(); }
-            
-            File logFile = SD.open("/telemetry_log.txt", FILE_APPEND);
-            if (logFile) { logFile.println(jsonPayload); logFile.close(); }
-            Serial.println(F("[OFFLINE] Telemetry record logged to SD queue."));
-        }
+        // Log to unified offline queue & blackbox archive
+        logTelemetryToOfflineQueue(jsonPayload);
 
+        // ⚡ PERSIST TIME TO RTC RAM before sleeping:
+        // rtcEpoch stores the current time() value (IST-shifted epoch due to configTime gmtOffset=19800).
+        // On next wakeup: rtcEpoch += lastSleepSec restores the clock accurately.
+        // getIsoTimestamp() uses localtime_r() on time() which already returns IST — correct.
+        lastSleepSec = (uint32_t)targetSleep * 60;
+        time_t curTime = time(nullptr);
+        struct tm _ct; localtime_r(&curTime, &_ct);
+        if (_ct.tm_year > 100) { // only save if clock is valid (year > 2000)
+            rtcEpoch = (uint32_t)curTime;
+            // Also update NVS with true UTC epoch
+            uint32_t utcForNvs = (uint32_t)curTime;
+            if (utcForNvs > 1786000000UL) preferences.putUInt("last_epoch", utcForNvs);
+        }
         Serial.printf("[SLEEP] Fast Offline Mode: Entering Deep Sleep for %d minutes...\n", targetSleep);
         powerOffModules();
+        rtc_gpio_init((gpio_num_t)PIN_BUTTON_1);
+        rtc_gpio_set_direction((gpio_num_t)PIN_BUTTON_1, RTC_GPIO_MODE_INPUT_ONLY);
         rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON_1);
         rtc_gpio_pulldown_dis((gpio_num_t)PIN_BUTTON_1);
         esp_sleep_enable_ext1_wakeup((1ULL << PIN_BUTTON_1), ESP_EXT1_WAKEUP_ALL_LOW);
@@ -1762,6 +2099,8 @@ void setup() {
 
     const char* headerKeys[] = {"X-API-Key"};
     server.collectHeaders(headerKeys, 1);
+    
+    server.enableCORS(true); // Globally enable CORS for all routes
 
     server.on("/", HTTP_GET, []() {
       server.sendHeader("Connection", "close");
@@ -1832,6 +2171,21 @@ void setup() {
 
     server.on("/settime", HTTP_GET, []() {
         if(!isAuthorized()) return;
+        server.enableCORS(true);
+        if (server.hasArg("epoch")) {
+            uint32_t epoch = server.arg("epoch").toInt();
+            if (epoch > 1000000000) {
+                struct timeval tv = { .tv_sec = (time_t)epoch, .tv_usec = 0 };
+                settimeofday(&tv, NULL);
+                rtcEpoch = epoch;
+                preferences.begin("agrishield", false);
+                preferences.putUInt("last_epoch", epoch);
+                preferences.end();
+                server.send(200, "text/plain", "Time synced successfully!");
+                return;
+            }
+        }
+
         String d = server.arg("d");
         String t = server.arg("t");
         if(d.length() > 0 && t.length() > 0) {
@@ -1848,10 +2202,14 @@ void setup() {
             time_t t_of_day = mktime(&tm);
             struct timeval tv = { .tv_sec = t_of_day, .tv_usec = 0 };
             settimeofday(&tv, NULL);
+            rtcEpoch = (uint32_t)t_of_day;
+            preferences.begin("agrishield", false);
+            preferences.putUInt("last_epoch", rtcEpoch);
+            preferences.end();
             server.send(200, "text/plain", "OK");
-        } else {
-            server.send(400, "text/plain", "Bad format");
+            return;
         }
+        server.send(400, "text/plain", "Bad format");
     });
 
     server.on("/status", HTTP_GET, []() {
@@ -1871,6 +2229,7 @@ void setup() {
         json += "\"bt\":\"" + (btConnected ? String("CONNECTED") : String("READY")) + "\",";
         json += "\"sd\":\"" + (sdMounted ? String("MOUNTED") : String("FAILED")) + "\",";
         json += "\"sz\":" + String((unsigned long)sdCardSizeMB) + ",";
+        json += "\"su\":" + String(sdUsedMB, 4) + ",";
         json += "\"sc\":" + String((millis() - lastScreenActiveTime) / 1000) + ",";
         json += "\"dsi\":" + String(daySleepIntervalMin);
         json += "}";
@@ -1904,6 +2263,8 @@ void setup() {
         powerOffModules();
         
         // Keep internal pullup active during deep sleep so it doesn't float LOW and instantly wake up!
+        rtc_gpio_init((gpio_num_t)PIN_BUTTON_1);
+        rtc_gpio_set_direction((gpio_num_t)PIN_BUTTON_1, RTC_GPIO_MODE_INPUT_ONLY);
         rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON_1);
         rtc_gpio_pulldown_dis((gpio_num_t)PIN_BUTTON_1);
         
@@ -1929,10 +2290,22 @@ void setup() {
     server.enableCORS(true);
     server.begin();
 
+    // Spawn Web Server Task on Core 0 (Isolates network handling from sensor delays)
+    xTaskCreatePinnedToCore(
+        webServerTaskCode, // Task function
+        "WebServerTask",   // Name of task
+        10000,             // Stack size (words)
+        NULL,              // Task input parameter
+        1,                 // Priority (1 is standard for Core 0 tasks)
+        &webServerTask,    // Task handle
+        0                  // Core 0 (Network core)
+    );
+
     readAllSensors();
     drawOledPage();
-    digitalWrite(LED_HEARTBEAT, LOW);
+    // digitalWrite(LED_HEARTBEAT, LOW);
     lastScreenActiveTime = millis();
+    lastWifiRetryTime = millis(); // ⚡ Initialize retry timer to prevent immediate loop failover scans at boot
     Serial.println(F("=======================================================\n"));
 }
 
@@ -1944,10 +2317,32 @@ String getIsoTimestamp() {
     time_t now = time(nullptr);
     struct tm timeinfo;
     localtime_r(&now, &timeinfo);
+    // tm_year > 100 means year > 2000 — clock is valid and NTP-synced or RTC-restored
     if (timeinfo.tm_year > 100) {
         char buf[36];
+        // configTime() already shifted the internal clock by gmtOffset_sec (19800 = +05:30)
+        // so localtime_r() returns IST time — we just append the literal "+05:30" suffix
         strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S+05:30", &timeinfo);
         return String(buf);
+    }
+
+    // ⚠️ FALLBACK: Clock uninitialized (no NTP, no RTC). Recover from NVS last_epoch.
+    // last_epoch is stored as a raw UTC Unix epoch (seconds since 1970-01-01 00:00:00 UTC).
+    // To get IST we must ADD 19800 seconds (+05:30) before converting.
+    if (preferences.isKey("last_epoch")) {
+        uint32_t savedUtcEpoch = preferences.getUInt("last_epoch", 0);
+        uint32_t elapsed = millis() / 1000; // seconds since this boot
+        uint32_t estimatedUtc = savedUtcEpoch + elapsed;
+        if (estimatedUtc > 1000000000) {
+            // Convert UTC epoch -> IST by adding the IST offset (19800 sec = +05:30)
+            time_t istTime = (time_t)(estimatedUtc + 19800UL);
+            struct tm istInfo;
+            gmtime_r(&istTime, &istInfo); // use gmtime_r so no double-offset applied
+            char buf[36];
+            strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S+05:30", &istInfo);
+            Serial.printf("⚠️ [FALLBACK TIME] Using NVS epoch+elapsed: %s\n", buf);
+            return String(buf);
+        }
     }
     return "";
 }
@@ -1955,9 +2350,7 @@ String getIsoTimestamp() {
 // ---------------------------------------------------------------------------------
 // 🔄 IMMEDIATE BULK OFFLINE SYNC (Flushes all SD card offline queue records to server)
 // ---------------------------------------------------------------------------------
-void syncAllOfflineRecordsNow() {
-    if (!sdMounted) return;
-
+void performOfflineSync() {
     if (!mdnsResolved) {
         IPAddress backend_ip = MDNS.queryHost(MDNS_HOSTNAME);
         if (backend_ip != INADDR_NONE) {
@@ -1968,24 +2361,24 @@ void syncAllOfflineRecordsNow() {
     }
     if (currentApiBaseUrl == "") return;
 
-    if (!SD.exists("/telemetry_log.txt")) return;
+    // 1. If /sync_queue.txt exists from an earlier interrupted sync, process it first!
+    if (!SD.exists("/sync_queue.txt")) {
+        if (!SD.exists("/telemetry_log.txt")) return;
 
-    File checkFile = SD.open("/telemetry_log.txt", FILE_READ);
-    if (!checkFile) return;
-    if (checkFile.size() == 0) {
+        File checkFile = SD.open("/telemetry_log.txt", FILE_READ);
+        if (!checkFile) return;
+        if (checkFile.size() == 0) {
+            checkFile.close();
+            SD.remove("/telemetry_log.txt");
+            return;
+        }
         checkFile.close();
-        SD.remove("/telemetry_log.txt");
-        return;
-    }
-    checkFile.close();
 
-    if (SD.exists("/sync_queue.txt")) {
-        SD.remove("/sync_queue.txt");
-    }
-
-    if (!SD.rename("/telemetry_log.txt", "/sync_queue.txt")) {
-        Serial.println(F("⚠️ [SYNC] Failed to prepare sync queue!"));
-        return;
+        // Atomically rename active queue so incoming readings continue into a fresh /telemetry_log.txt
+        if (!SD.rename("/telemetry_log.txt", "/sync_queue.txt")) {
+            Serial.println(F("⚠️ [SYNC] Failed to prepare sync queue!"));
+            return;
+        }
     }
 
     File syncFile = SD.open("/sync_queue.txt", FILE_READ);
@@ -2001,7 +2394,7 @@ void syncAllOfflineRecordsNow() {
     while (syncFile.available() && syncOk) {
         String payload = "";
         int linesRead = 0;
-        while (syncFile.available() && linesRead < 50) {
+        while (syncFile.available() && linesRead < 30) {
             String line = syncFile.readStringUntil('\n');
             line.trim();
             if (line.length() > 0 && line.startsWith("{") && line.endsWith("}")) {
@@ -2022,7 +2415,8 @@ void syncAllOfflineRecordsNow() {
                 totalUploaded += linesRead;
                 Serial.printf("✅ [SYNC] Uploaded batch of %d records (Total: %d) -> Code 201 OK\n", linesRead, totalUploaded);
             } else {
-                Serial.printf("❌ [SYNC] Batch failed! Server Code: %d (%s)\n", httpCode, http.errorToString(httpCode).c_str());
+                String errStr = http.errorToString(httpCode);
+                Serial.printf("❌ [SYNC] Batch failed! Server Code: %d (%s)\n", httpCode, errStr.c_str());
                 syncOk = false;
             }
             http.end();
@@ -2040,36 +2434,84 @@ void syncAllOfflineRecordsNow() {
     }
 }
 
+void syncAllOfflineRecordsNow() {
+    if (!sdMounted || WiFi.status() != WL_CONNECTED) return;
+    
+    // Quick exit if there are no files to sync, without touching the sleep guard
+    if (!SD.exists("/sync_queue.txt") && !SD.exists("/telemetry_log.txt")) {
+        return;
+    }
+    
+    isSyncingOfflineQueue = true; // 🔒 Block deep sleep while syncing
+    performOfflineSync();
+    isSyncingOfflineQueue = false; // 🔓 Allow deep sleep again
+}
+
 // ---------------------------------------------------------------------------------
 // ☁️ CLOUD COMMAND QUEUE PROCESSOR
 // ---------------------------------------------------------------------------------
+String extractQueryParam(String url, String key) {
+    String searchKey = key + "=";
+    int startIdx = url.indexOf(searchKey);
+    if (startIdx == -1) return "";
+    startIdx += searchKey.length();
+    int endIdx = url.indexOf("&", startIdx);
+    if (endIdx == -1) endIdx = url.length();
+    return url.substring(startIdx, endIdx);
+}
+
 void processCloudCommand(String cmd) {
     if (cmd == "") return;
     
     Serial.println("[CLOUD] Received Command: " + cmd);
     
-    if (cmd == "/api/shutdown") { display.clearDisplay(); display.setCursor(0,20); display.print("Shutting Down"); display.display(); delay(500); powerOffModules(); rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON_1); rtc_gpio_pulldown_dis((gpio_num_t)PIN_BUTTON_1); esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_BUTTON_1, 0); esp_deep_sleep_start(); }
+    if (cmd == "/api/shutdown") { display.clearDisplay(); display.setCursor(0,20); display.print("Shutting Down"); display.display(); delay(500); powerOffModules(); rtc_gpio_init((gpio_num_t)PIN_BUTTON_1); rtc_gpio_set_direction((gpio_num_t)PIN_BUTTON_1, RTC_GPIO_MODE_INPUT_ONLY); rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON_1); rtc_gpio_pulldown_dis((gpio_num_t)PIN_BUTTON_1); esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_BUTTON_1, 0); esp_deep_sleep_start(); }
     else if (cmd == "/api/strict_offline") { preferences.putBool("offlineMode", true); display.clearDisplay(); display.setCursor(0,20); display.print("Offline Mode"); display.display(); delay(500); ESP.restart(); }
     else if (cmd == "/reset") { display.clearDisplay(); display.setCursor(0,20); display.print("Rebooting..."); display.display(); delay(500); ESP.restart(); }
-    else if (cmd == "/screen-on") { display.oled_command(0xAF); screenIsOn = true; }
-    else if (cmd == "/screen-off") { display.oled_command(0xAE); screenIsOn = false; }
+    else if (cmd == "/screen-on") { display.oled_command(0xAF); screenIsOn = true; manualScreenOff = false; }
+    else if (cmd == "/screen-off") { display.oled_command(0xAE); screenIsOn = false; manualScreenOff = true; }
     else if (cmd == "/page-next") { if(activeAnimation==0){activePage=(activePage%TOTAL_PAGES)+1; drawOledPage();} }
     else if (cmd == "/page-prev") { if(activeAnimation==0){activePage=activePage>1?activePage-1:TOTAL_PAGES; drawOledPage();} }
-    else if (cmd == "/anim-rain") { activeAnimation=1; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
-    else if (cmd == "/anim-hot") { activeAnimation=2; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
-    else if (cmd == "/anim-sunrise") { activeAnimation=3; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
-    else if (cmd == "/anim-sunset") { activeAnimation=4; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
-    else if (cmd == "/anim-grow") { activeAnimation=5; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
-    else if (cmd == "/anim-water") { activeAnimation=6; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
-    else if (cmd == "/anim-night") { activeAnimation=7; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
-    else if (cmd == "/anim-sync") { activeAnimation=8; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true;} }
+    else if (cmd == "/anim-rain") { activeAnimation=1; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/anim-hot") { activeAnimation=2; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/anim-sunrise") { activeAnimation=3; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/anim-sunset") { activeAnimation=4; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/anim-grow") { activeAnimation=5; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/anim-water") { activeAnimation=6; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/anim-night") { activeAnimation=7; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/anim-sync") { activeAnimation=8; animStartTime=millis(); if(!screenIsOn){display.oled_command(0xAF); screenIsOn=true; manualScreenOff=false;} }
+    else if (cmd == "/api/erase-logs") { 
+        if (sdMounted) { 
+            SD.remove("/telemetry_log.txt"); 
+            Serial.println("🗑️ [SD] Offline queue log erased via Cloud Command!"); 
+        } 
+    }
     else if (cmd.startsWith("/save-adv")) {
-        // Simple extraction for prototyping
-        // Proper query parsing requires an external library, but ESP32 Cloud mode needs this simplified.
+        String minStr = extractQueryParam(cmd, "min");
+        String secStr = extractQueryParam(cmd, "sec");
+        String sleepIntStr = extractQueryParam(cmd, "sleepInt");
+        String daySleepIntStr = extractQueryParam(cmd, "daySleepInt");
+        String intervalStr = extractQueryParam(cmd, "interval");
+        String tempOffStr = extractQueryParam(cmd, "tempOff");
+        if (minStr != "" && secStr != "") preferences.putInt("screenTimeout", minStr.toInt() * 60 + secStr.toInt());
+        if (sleepIntStr != "") preferences.putInt("nightSleepMin", sleepIntStr.toInt());
+        if (daySleepIntStr != "") preferences.putInt("daySleepMin", daySleepIntStr.toInt());
+        if (intervalStr != "") preferences.putULong("uploadInterval", (unsigned long)intervalStr.toInt());
+        if (tempOffStr != "") preferences.putFloat("tempOffset", tempOffStr.toFloat());
+        delay(500);
         ESP.restart();
     }
     else if (cmd.startsWith("/save-node")) {
-        ESP.restart();
+        String ssid = server.urlDecode(extractQueryParam(cmd, "ssid"));
+        String pass = server.urlDecode(extractQueryParam(cmd, "pass"));
+        String api = server.urlDecode(extractQueryParam(cmd, "api"));
+        if (ssid != "") {
+            preferences.putString("ssid", ssid);
+            preferences.putString("pass", pass);
+            if (api != "") preferences.putString("api", api);
+            delay(500);
+            ESP.restart();
+        }
     }
 }
 
@@ -2078,10 +2520,47 @@ void processCloudCommand(String cmd) {
 // ---------------------------------------------------------------------------------
 void loop() {
     yield();
-    server.handleClient(); // Process Web OTA Requests
     
     updateStatusLeds();
     unsigned long currentMillis = millis();
+
+    // ⚡ Background Wi-Fi Connection Checker
+    bool currentlyConnected = (WiFi.status() == WL_CONNECTED);
+    if (currentlyConnected && !wifiConnected) {
+        wifiConnected = true;
+        Serial.println(F("\n[WIFI] Connected in background!"));
+        Serial.print(F("ESP32 IP: "));
+        Serial.println(WiFi.localIP());
+
+        // Determine API URL for this network
+        bool foundInKnown = false;
+        for (int i = 0; i < KNOWN_WIFI_COUNT; i++) {
+            if (String(KNOWN_WIFI_NETWORKS[i].ssid) == savedSSID) {
+                if (String(KNOWN_WIFI_NETWORKS[i].api_url).length() > 0) {
+                    currentApiBaseUrl = KNOWN_WIFI_NETWORKS[i].api_url;
+                    foundInKnown = true;
+                    break;
+                }
+            }
+        }
+        if (!foundInKnown && savedApiUrl.length() > 0 && !savedApiUrl.startsWith("http://127.0.0.1")) {
+            currentApiBaseUrl = savedApiUrl;
+        }
+        Serial.println("🌐 [API] Target Backend: " + currentApiBaseUrl);
+
+        if (!MDNS.begin("esp32-agrishield-client")) {
+            Serial.println("Error setting up MDNS responder!");
+        } else {
+            Serial.println("mDNS responder started.");
+            MDNS.begin("agrishield");
+        }
+
+        // 🚀 Immediately Flush & Sync All Offline Records in background
+        syncAllOfflineRecordsNow();
+    } else if (!currentlyConnected && wifiConnected) {
+        wifiConnected = false;
+        Serial.println(F("[WIFI] Background connection lost."));
+    }
 
     if (wifiConnected) {
         wifiDisconnectTimer = 0;
@@ -2106,24 +2585,21 @@ void loop() {
                 screenIsOn = false;
             }
         } else {
-            if (!screenIsOn) {
+            if (!screenIsOn && !manualScreenOff) {
                 display.oled_command(0xAF); // Turn on
                 screenIsOn = true;
             }
         }
     } else {
-        if (!screenIsOn) {
+        if (!screenIsOn && !manualScreenOff) {
             display.oled_command(0xAF);
             screenIsOn = true;
         }
     }
 
-    // Process Captive Portal or Web API requests in the background
+    // Process Captive Portal requests in the background
     if (setupMode) {
         dnsServer.processNextRequest();
-        server.handleClient();
-    } else if (WiFi.status() == WL_CONNECTED) {
-        server.handleClient();
     }
 
     bool btn1Pressed = (curBtn1 == LOW);
@@ -2131,8 +2607,12 @@ void loop() {
 
     static bool prevBtn1Pressed = false;
     static bool prevBtn2Pressed = false;
-    bool btn1JustPressed = btn1Pressed && !prevBtn1Pressed;
-    bool btn2JustPressed = btn2Pressed && !prevBtn2Pressed;
+    
+    // ⚡ FIX: Use hardware interrupt flags to catch quick taps that happen while the CPU is frozen by Wi-Fi timeouts!
+    bool btn1JustPressed = (btn1Pressed && !prevBtn1Pressed) || flagBtn1QuickTap;
+    bool btn2JustPressed = (btn2Pressed && !prevBtn2Pressed) || flagBtn2QuickTap;
+    if (flagBtn1QuickTap) flagBtn1QuickTap = false;
+    if (flagBtn2QuickTap) flagBtn2QuickTap = false;
     
     static unsigned long btn1PressStart = 0;
     if (btn1Pressed) {
@@ -2154,16 +2634,19 @@ void loop() {
     prevBtn1Pressed = btn1Pressed;
     prevBtn2Pressed = btn2Pressed;
 
+
     if (activeAnimation == 0 && currentMillis > 3000) {
-        if (btn1JustPressed && (currentMillis - lastPressTime > 200)) {
+        if (btn1JustPressed && (currentMillis - lastPressTime > 100)) {
             lastPressTime = currentMillis;
             lastScreenActiveTime = currentMillis;
+            manualScreenOff = false;
             activePage = (activePage % TOTAL_PAGES) + 1; // Forward
             drawOledPage();
             Serial.printf("[BUTTON] Forward to Page %d\n", activePage);
-        } else if (btn2JustPressed && (currentMillis - lastPressTime > 200)) {
+        } else if (btn2JustPressed && (currentMillis - lastPressTime > 100)) {
             lastPressTime = currentMillis;
             lastScreenActiveTime = currentMillis;
+            manualScreenOff = false;
             activePage = activePage - 1; // Backward
             if (activePage < 1) activePage = TOTAL_PAGES;
             drawOledPage();
@@ -2200,7 +2683,7 @@ void loop() {
             startCaptivePortal();
         }
 
-        if (currentMillis - lastWifiRetryTime >= 5000) {
+        if (currentMillis - lastWifiRetryTime >= 20000) { // ⚡ 20-second interval allows active background handshakes to complete cleanly
             lastWifiRetryTime = currentMillis;
             
             if (!offlineMode && savedSSID.length() > 0) {
@@ -2216,7 +2699,7 @@ void loop() {
                     delay(100);
                     mdnsResolved = false;
                     Serial.printf("[WiFi Failover] Retrying connection to '%s'...\n", savedSSID.c_str());
-                    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+                    WiFi.setTxPower(WIFI_POWER_15dBm);
                     WiFi.begin(savedSSID.c_str(), savedPass.c_str());
                 }
             }
@@ -2244,7 +2727,7 @@ void loop() {
                 WiFi.disconnect(true, true);
                 delay(100);
                 WiFi.mode(WIFI_STA);
-                WiFi.setTxPower(WIFI_POWER_8_5dBm);
+                WiFi.setTxPower(WIFI_POWER_15dBm);
                 WiFi.begin(newSSID.c_str(), newPASS.c_str());
             } else {
                 SerialBT.println(F("⚠️ Format to connect for this session: WIFI:YourSSID,YourPassword"));
@@ -2268,10 +2751,35 @@ void loop() {
 
     // 5. Read Sensors & Transmit Telemetry over USB Serial & Bluetooth & SD Card Logging (Every 60 seconds)
     bool readyToSleep = (daySleepIntervalMin > 0 && screenTimeoutSec > 0 && currentMillis - lastScreenActiveTime >= ((unsigned long)screenTimeoutSec * 1000));
-    if (currentMillis - lastTelemetryUpload >= uploadIntervalMs || (wifiConnected && !hasUploadedTelemetry && currentMillis > 5000) || (offlineMode && !hasUploadedTelemetry && currentMillis > 5000) || (readyToSleep && !hasUploadedTelemetry)) {
+    if (currentMillis - lastTelemetryUpload >= uploadIntervalMs || (!hasUploadedTelemetry && currentMillis > 5000) || (readyToSleep && !hasUploadedTelemetry)) {
         lastTelemetryUpload = currentMillis;
         hasUploadedTelemetry = true;
         readAllSensors();
+
+        // ⚡ CONTINUOUS TIME CHECKPOINT: Persist valid EPOCH to Flash (always save raw UTC epoch)
+        // IMPORTANT: time(nullptr) returns POSIX UTC seconds regardless of gmtOffset_sec
+        // We do NOT add 19800 here — last_epoch must always be a pure UTC epoch
+        time_t curEpoch = time(nullptr);
+        struct tm _check; localtime_r(&curEpoch, &_check);
+        if (_check.tm_year > 100) {
+            // time(nullptr) returns a pure UTC epoch. We save it directly to NVS and RTC RAM.
+            uint32_t trueUtcEpoch = (uint32_t)curEpoch;
+            if (trueUtcEpoch > 1786000000UL) { // sanity: after ~2026-07-01
+                preferences.putUInt("last_epoch", trueUtcEpoch); // save real UTC
+                rtcEpoch = trueUtcEpoch; // RTC RAM keeps pure UTC epoch
+                Serial.printf("💾 [EPOCH SAVE] UTC=%u stored to NVS\n", trueUtcEpoch);
+            }
+        }
+
+        // 🛡️ On Wi-Fi: Guard against sending stale pre-NTP timestamps on the very first post.
+        // If NTP hasn't confirmed yet (clock still showing year < 2026), wait briefly.
+        if (wifiConnected) {
+            time_t _t = time(nullptr); struct tm _tm; localtime_r(&_t, &_tm);
+            if (_tm.tm_year < 126) { // tm_year 126 = 2026
+                Serial.println(F("⏳ [NTP GUARD] Clock not NTP-synced yet, waiting 4s for SNTP..."));
+                delay(4000);
+            }
+        }
 
         String isoTs = getIsoTimestamp();
         String jsonPayload = String("{\"device_id\":\"") + deviceId + String("\"") +
@@ -2285,9 +2793,12 @@ void loop() {
                              String(",\"rain_intensity\":\"") + (rainValid ? rainIntensity : String("--")) + String("\"") +
                              String(",\"light_lux\":") + (bh1750Valid && lightLux >= 0 ? String(lightLux) : String("null")) +
                              String(",\"battery_percentage\":") + (batteryValid ? String(batteryPercent) : String("null")) +
+                             String(",\"battery_voltage\":") + (batteryValid ? String(batteryVoltage, 2) : String("null")) +
                              String(",\"sd_card_status\":") + (sdMounted ? String("\"mounted\"") : String("\"unmounted\"")) +
                              String(",\"sd_total_mb\":") + (sdMounted ? String((unsigned long)sdCardSizeMB) : String("0")) +
-                             String(",\"sd_used_mb\":") + (sdMounted ? String((unsigned long)(SD.usedBytes() / (1024 * 1024))) : String("0")) +
+                             String(",\"sd_used_mb\":") + (sdMounted ? String(sdUsedMB, 4) : String("0")) +
+                             String(",\"sleep_interval_min\":") + String(isNightMode ? sleepIntervalMin : (daySleepIntervalMin > 0 ? daySleepIntervalMin : (int)(uploadIntervalMs / 60000))) +
+                             String(",\"is_night_mode\":") + (isNightMode ? String("true") : String("false")) +
                              String(",\"bluetooth_connected\":") + (btConnected ? String("true") : String("false")) +
                              String("}");
 
@@ -2311,7 +2822,7 @@ void loop() {
                 archive.close();
             }
             
-            // 2. Offline Queue (Save to queue ONLY when offline to prevent duplicate live records!)
+            // 2. Offline Queue (Save to queue when offline to sync later upon reconnect)
             if (!wifiConnected || currentApiBaseUrl == "") {
                 File file = SD.open("/telemetry_log.txt", FILE_APPEND);
                 if (file) {
@@ -2355,38 +2866,64 @@ void loop() {
             HTTPClient http;
             String fullApiUrl = currentApiBaseUrl + "/iot/telemetry";
             http.begin(fullApiUrl);
-            http.setTimeout(1000); // ⚡ FIX: Stop the ESP32 from freezing for 5 seconds if backend is unreachable!
-            http.setReuse(false); // Disable Keep-Alive socket reuse
+            http.setTimeout(1500);
+            http.setReuse(false);
             http.addHeader("Content-Type", "application/json");
-            http.addHeader("Connection", "close"); // Force Uvicorn to close socket cleanly
+            http.addHeader("Connection", "close");
             int httpResponseCode = http.POST(jsonPayload);
             if (httpResponseCode > 0) {
                 if (httpResponseCode == 200 || httpResponseCode == 201) {
                     Serial.printf("📡 HTTP POST Success! Code: %d OK\n", httpResponseCode);
+                    // ⚡ Refresh SD used space cache every 10 uploads (not every cycle — SD.usedBytes() is slow)
+                    if (sdMounted && (++sdUsedMbRefreshCounter % 10 == 0)) {
+                        sdUsedMB = (double)SD.usedBytes() / (1024.0 * 1024.0);
+                    }
                     syncAllOfflineRecordsNow(); // 🚀 Flush any previously accumulated backlog!
+
+                    // ❤️ Send Heartbeat so Node Control Panel can auto-detect this device
+                    String localIp = WiFi.localIP().toString();
+                    String hbPayload = String("{\"device_id\":\"") + deviceId + 
+                                       String("\",\"ip\":\"") + localIp + 
+                                       String("\",\"battery\":") + (batteryValid ? String(batteryPercent) : String("null")) +
+                                       String(",\"uptime\":") + String((unsigned long)(millis()/1000)) +
+                                       String(",\"heap\":") + String((unsigned long)ESP.getFreeHeap()) +
+                                       String(",\"wifi\":true}");
+                    HTTPClient hbHttp;
+                    hbHttp.begin(currentApiBaseUrl + "/devices/heartbeat");
+                    hbHttp.setTimeout(1000);
+                    hbHttp.setReuse(false);
+                    hbHttp.addHeader("Content-Type", "application/json");
+                    hbHttp.addHeader("Connection", "close");
+                    int hbCode = hbHttp.POST(hbPayload);
+                    if (hbCode == 200) Serial.printf("❤️ Heartbeat Sent! IP: %s\n", localIp.c_str());
+                    hbHttp.end();
+
                 } else {
                     Serial.printf("⚠️ HTTP POST Failed! Code: %d\n", httpResponseCode);
                     Serial.println(http.getString());
                     // Live upload failed, save to offline queue for retry
-                    if (sdMounted) {
-                        File file = SD.open("/telemetry_log.txt", FILE_APPEND);
-                        if (file) { file.println(jsonPayload); file.close(); }
-                    }
+                    logTelemetryToOfflineQueue(jsonPayload);
                 }
             } else {
-                Serial.printf("⚠️ HTTP POST Failed! Error: %s\n", http.errorToString(httpResponseCode).c_str());
+                String errStr = http.errorToString(httpResponseCode);
+                Serial.printf("⚠️ HTTP POST Failed! Error: %s\n", errStr.c_str());
                 // Network error, save to offline queue for retry
-                if (sdMounted) {
-                    File file = SD.open("/telemetry_log.txt", FILE_APPEND);
-                    if (file) { file.println(jsonPayload); file.close(); }
-                }
+                logTelemetryToOfflineQueue(jsonPayload);
             }
-            http.end(); // CRITICAL: Free resources immediately to avoid Heap exhaustion
+            http.end(); // Free resources immediately
+            yield();
         }
     }
 
+    // 🔄 Autonomous Periodic Offline Queue Sync Check (every 30 seconds if Wi-Fi is connected)
+    static unsigned long lastOfflineSyncCheck = 0;
+    if (wifiConnected && (currentMillis - lastOfflineSyncCheck >= 30000)) {
+        lastOfflineSyncCheck = currentMillis;
+        syncAllOfflineRecordsNow();
+    }
+
     // --- AUTONOMOUS DAY/NIGHT & ANIMATION LOGIC ---
-    static bool isNightMode = false;
+    // isNightMode is a global bool (declared at top of file)
     static unsigned long nightModeTriggerTime = 0;
     static unsigned long lastAutoAnimTime = 0;
 
@@ -2424,7 +2961,7 @@ void loop() {
         }
     }
 
-    if (isNightMode) {
+    if (isNightMode && !isSyncingOfflineQueue) {
         if (currentMillis - nightModeTriggerTime > 10000) {
             // Trigger Night Animation
             if (activeAnimation != 7) {
@@ -2444,6 +2981,8 @@ void loop() {
                 
                 // Enable wakeup sources:
                 // 1. Physical button press (EXT1 on GPIO 26) - instant wake
+                rtc_gpio_init((gpio_num_t)PIN_BUTTON_1);
+                rtc_gpio_set_direction((gpio_num_t)PIN_BUTTON_1, RTC_GPIO_MODE_INPUT_ONLY);
                 rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON_1);
                 rtc_gpio_pulldown_dis((gpio_num_t)PIN_BUTTON_1);
                 esp_sleep_enable_ext1_wakeup((1ULL << PIN_BUTTON_1), ESP_EXT1_WAKEUP_ALL_LOW);
@@ -2478,12 +3017,14 @@ void loop() {
         }
         
         // 3. Day Sleep Logic
-        if (daySleepIntervalMin > 0 && currentMillis > 15000 && hasUploadedTelemetry) {
+        if (daySleepIntervalMin > 0 && currentMillis > 15000 && hasUploadedTelemetry && !isSyncingOfflineQueue) {
             // Only sleep if the screen has timed out! (Allows user to configure it if they wake it up)
             if (currentMillis - lastScreenActiveTime >= ((unsigned long)screenTimeoutSec * 1000)) {
                 Serial.printf("[SLEEP] Day Mode: Entering Deep Sleep for %d minutes...\n", daySleepIntervalMin);
                 powerOffModules();
                 
+                rtc_gpio_init((gpio_num_t)PIN_BUTTON_1);
+                rtc_gpio_set_direction((gpio_num_t)PIN_BUTTON_1, RTC_GPIO_MODE_INPUT_ONLY);
                 rtc_gpio_pullup_en((gpio_num_t)PIN_BUTTON_1);
                 rtc_gpio_pulldown_dis((gpio_num_t)PIN_BUTTON_1);
                 esp_sleep_enable_ext1_wakeup((1ULL << PIN_BUTTON_1), ESP_EXT1_WAKEUP_ALL_LOW);

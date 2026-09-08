@@ -22,6 +22,7 @@ def anyio_backend():
 
 @pytest.fixture(autouse=True)
 async def clean_database():
+    app.dependency_overrides[get_database] = override_get_database
     # Clean database before and after each test
     await database_for_testing.users.delete_many({})
     await database_for_testing.predictions.delete_many({})

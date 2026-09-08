@@ -12,6 +12,7 @@ static unsigned long _yellowOffTime = 0;
 static unsigned long _pageLedOffTime = 0;
 
 void LedManager::init() {
+    /*
     pinMode(LED_WHITE_PIN, OUTPUT);
     pinMode(LED_GREEN_PIN, OUTPUT);
     pinMode(LED_BLUE_PIN, OUTPUT);
@@ -25,24 +26,27 @@ void LedManager::init() {
     digitalWrite(LED_YELLOW_PIN, LOW);
     digitalWrite(LED_PAGE_PIN, LOW);
     digitalWrite(LED_RED_PIN, LOW);
+    */
 
-    Logger::info("LedManager Initialized (White:GPIO2, Green:GPIO15, Blue:GPIO4, Yellow:GPIO12, Page:GPIO27, RED:GPIO26).");
+    // Allow PWM hardware time to settle
+    delay(10);
+    Logger::info("LedManager Initialized (White:GPIO2, Green:GPIO17, Blue:GPIO5, Yellow:GPIO18, Page:GPIO19, RED:GPIO25).");
 }
 
-void LedManager::setWhite(bool on)  { digitalWrite(LED_WHITE_PIN, on ? HIGH : LOW); }
-void LedManager::setGreen(bool on)  { digitalWrite(LED_GREEN_PIN, on ? HIGH : LOW); }
-void LedManager::setBlue(bool on)   { digitalWrite(LED_BLUE_PIN, on ? HIGH : LOW); }
-void LedManager::setYellow(bool on) { digitalWrite(LED_YELLOW_PIN, on ? HIGH : LOW); }
-void LedManager::setPage(bool on)   { digitalWrite(LED_PAGE_PIN, on ? HIGH : LOW); }
-void LedManager::setRed(bool on)    { digitalWrite(LED_RED_PIN, on ? HIGH : LOW); }
+void LedManager::setWhite(bool on)  { /* digitalWrite(LED_WHITE_PIN, on ? HIGH : LOW); */ }
+void LedManager::setGreen(bool on)  { /* digitalWrite(LED_GREEN_PIN, on ? HIGH : LOW); */ }
+void LedManager::setBlue(bool on)   { /* digitalWrite(LED_BLUE_PIN, on ? HIGH : LOW); */ }
+void LedManager::setYellow(bool on) { /* digitalWrite(LED_YELLOW_PIN, on ? HIGH : LOW); */ }
+void LedManager::setPage(bool on)   { /* digitalWrite(LED_PAGE_PIN, on ? HIGH : LOW); */ }
+void LedManager::setRed(bool on)    { /* digitalWrite(LED_RED_PIN, on ? HIGH : LOW); */ }
 
 void LedManager::pulseYellow(uint32_t durationMs) {
-    digitalWrite(LED_YELLOW_PIN, HIGH);
+    // digitalWrite(LED_YELLOW_PIN, HIGH);
     _yellowOffTime = millis() + durationMs;
 }
 
 void LedManager::pulsePageLed(uint32_t durationMs) {
-    digitalWrite(LED_PAGE_PIN, HIGH);
+    // digitalWrite(LED_PAGE_PIN, HIGH);
     _pageLedOffTime = millis() + durationMs;
 }
 
@@ -79,26 +83,26 @@ void LedManager::update() {
     // 1. LED1: White LED - Power Supply Heartbeat (Blinks for 200ms every 5 seconds)
     if (now - _lastHeartbeat >= 5000) {
         _lastHeartbeat = now;
-        digitalWrite(LED_WHITE_PIN, HIGH);
+        // digitalWrite(LED_WHITE_PIN, HIGH);
     } else if (now - _lastHeartbeat >= 200) {
-        digitalWrite(LED_WHITE_PIN, LOW);
+        // digitalWrite(LED_WHITE_PIN, LOW);
     }
 
     // 2. LED2: Green LED - Wi-Fi Status (50% Dimmed Brightness = PWM 128)
-    analogWrite(LED_GREEN_PIN, net.wifiConnected ? 128 : 0);
+    // analogWrite(LED_GREEN_PIN, net.wifiConnected ? 128 : 0);
 
     // 3. LED3: Blue LED - Bluetooth Status (50% Dimmed Brightness = PWM 128)
-    analogWrite(LED_BLUE_PIN, net.bleConnected ? 128 : 0);
+    // analogWrite(LED_BLUE_PIN, net.bleConnected ? 128 : 0);
 
     // 4. LED4: Yellow LED - Data Transmit Pulse Auto Turn-OFF
     if (_yellowOffTime > 0 && now >= _yellowOffTime) {
-        digitalWrite(LED_YELLOW_PIN, LOW);
+        // digitalWrite(LED_YELLOW_PIN, LOW);
         _yellowOffTime = 0;
     }
 
     // 5. LED5: Page Switch LED Auto Turn-OFF
     if (_pageLedOffTime > 0 && now >= _pageLedOffTime) {
-        digitalWrite(LED_PAGE_PIN, LOW);
+        // digitalWrite(LED_PAGE_PIN, LOW);
         _pageLedOffTime = 0;
     }
 
@@ -108,12 +112,12 @@ void LedManager::update() {
     bool criticalAlarm = (sens.soilValid && sens.soilMoisture < 15.0) || (sens.temperatureValid && (sens.temperature > 42.0 || sens.temperature < 2.0));
 
     if (criticalAlarm) {
-        digitalWrite(LED_RED_PIN, HIGH); // Solid RED ON for critical field emergency
+        // digitalWrite(LED_RED_PIN, HIGH); // Solid RED ON for critical field emergency
     } else if (lowBattery || sensorFault) {
         bool blinkState = (now / 200) % 2 == 0;
-        digitalWrite(LED_RED_PIN, blinkState ? HIGH : LOW); // Blink RED LED (200ms ON / 200ms OFF)
+        // digitalWrite(LED_RED_PIN, blinkState ? HIGH : LOW); // Blink RED LED (200ms ON / 200ms OFF)
     } else {
-        digitalWrite(LED_RED_PIN, LOW); // System Normal
+        // digitalWrite(LED_RED_PIN, LOW); // System Normal
     }
 }
 

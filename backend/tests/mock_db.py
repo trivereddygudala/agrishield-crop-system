@@ -40,14 +40,20 @@ class MockCollection:
         return cursor.data[0] if cursor.data else None
 
     async def insert_one(self, record):
-        if "_id" not in record:
-            record["_id"] = ObjectId()
-        self.records.append(record)
+        import copy
+        record_copy = copy.deepcopy(record)
+        if "_id" not in record_copy:
+            inserted_id = ObjectId()
+            record_copy["_id"] = inserted_id
+            record["_id"] = inserted_id
+        else:
+            inserted_id = record_copy["_id"]
+        self.records.append(record_copy)
         
         class InsertResult:
             def __init__(self, inserted_id):
                 self.inserted_id = inserted_id
-        return InsertResult(record["_id"])
+        return InsertResult(inserted_id)
 
     async def update_one(self, query, update_dict, upsert=False, **kwargs):
         rec = await self.find_one(query)

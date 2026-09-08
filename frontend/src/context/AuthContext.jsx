@@ -159,8 +159,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfileLocal = (updatedUser) => {
+    setUser(updatedUser);
+    
+    if (updatedUser.preferred_language) {
+      i18n.changeLanguage(updatedUser.preferred_language);
+    }
+    
+    if (updatedUser.farmer_mode !== undefined) {
+      if (updatedUser.farmer_mode) {
+        document.body.classList.add('farmer-mode');
+      } else {
+        document.body.classList.remove('farmer-mode');
+      }
+    }
+
+    if (localStorage.getItem('token')) {
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } else {
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile, updateProfileLocal }}>
       {children}
     </AuthContext.Provider>
   );

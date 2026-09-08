@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: agrishield-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: agrishield_db
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false

@@ -66,6 +66,8 @@ async def get_user_by_id(user_id: str, db = Depends(get_database)):
     user["_id"] = str(user["_id"])
     return user
 
+from backend.app.core.audit_logger import log_security_event
+
 @router.put("/users/{user_id}/role", dependencies=[Depends(require_role("admin"))])
 async def update_user_role(user_id: str, new_role: str = Query(..., pattern="^(admin|farmer|researcher|tester|guest)$"), db = Depends(get_database)):
     """Strict Admin Endpoint: Change role of any registered user."""
@@ -80,6 +82,7 @@ async def update_user_role(user_id: str, new_role: str = Query(..., pattern="^(a
     if result.matched_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    log_security_event("USER_ROLE_UPDATED", {"user_id": user_id, "new_role": new_role}, level="INFO")
     return {"message": f"Successfully updated user {user_id} role to '{new_role}'."}
 
 from pydantic import BaseModel
@@ -120,6 +123,7 @@ async def edit_user_details(user_id: str, edit_data: UserEditRequest, db = Depen
     if result.matched_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    log_security_event("USER_PROFILE_EDITED", {"user_id": user_id, "updated_fields": list(update_fields.keys())}, level="INFO")
     return {"message": "User details updated successfully."}
 
 @router.delete("/users/{target_user_id}", dependencies=[Depends(require_role("admin"))])
@@ -137,11 +141,12 @@ async def delete_user(target_user_id: str, db = Depends(get_database)):
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
         
+    log_security_event("USER_ACCOUNT_DELETED", {"deleted_user_id": target_user_id}, level="WARNING")
     return {"status": "success", "message": f"User {target_user_id} and associated data deleted"}
 
 @router.get("/audit-logs", dependencies=[Depends(require_role("admin"))])
 async def get_audit_logs(
-    limit: int = Query(50, ge=1, le=500),
+    limit: int = Query(500, ge=1, le=2000),
     db = Depends(get_database)
 ):
     """Retrieve security audit logs from the database for the Admin Control Panel."""
@@ -150,6 +155,8 @@ async def get_audit_logs(
     for log in logs:
         if "_id" in log:
             log["_id"] = str(log["_id"])
+        if "timestamp" in log and hasattr(log["timestamp"], "isoformat"):
+            log["timestamp"] = log["timestamp"].isoformat()
     return logs
 
 from backend.app.core.security import hash_password, validate_password_strength
@@ -178,6 +185,7 @@ async def reset_user_password(user_id: str, payload: AdminPasswordResetRequest, 
     if result.matched_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    log_security_event("ADMIN_PASSWORD_RESET", {"target_user_id": user_id}, level="WARNING")
     return {"message": "User password successfully reset."}
 
 from datetime import datetime, timezone
@@ -224,6 +232,8 @@ async def admin_create_new_user(payload: AdminCreateUserRequest, db = Depends(ge
     insert_result = await db.users.insert_one(new_user_doc)
     new_id = str(insert_result.inserted_id)
 
+    log_security_event("ADMIN_USER_CREATED", {"created_user_id": new_id, "email": email_clean, "role": payload.role}, level="INFO")
+
     return {
         "message": f"Successfully created new {payload.role.upper()} account for {email_clean}.",
         "user": {
@@ -269,6 +279,7 @@ async def broadcast_system_notification(payload: AdminBroadcastRequest, db = Dep
         )
         count += 1
         
+    log_security_event("GLOBAL_BROADCAST_DISPATCHED", {"title": payload.title, "priority": payload.priority, "recipients_count": count}, level="INFO")
     return {"status": "success", "message": f"Successfully broadcasted to {count} users."}
 
 

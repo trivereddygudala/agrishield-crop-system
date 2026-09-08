@@ -7,14 +7,21 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
-import { Card, Button, Input, Select, Switch, Badge } from '../components/ui/index';
+import { Card, Button, Input, Select, Switch, Badge, Skeleton } from '../components/ui/index';
 import API from '../services/api';
 import { INDIA_STATES, getDistricts, getMandals, getVillages } from '../data/indiaLocations';
+import { useTranslation } from 'react-i18next';
+import { translateCrop } from '../utils/diseaseAdvisoryData';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
-  const { activeFarm, farms, archivedFarms, createFarm, updateFarm: saveFarmEdit, deleteFarm, unarchiveFarm } = useFarm();
+  const { t, i18n } = useTranslation();
+  const { 
+    activeFarm, farms, archivedFarms, createFarm, 
+    updateFarm: saveFarmEdit, deleteFarm, unarchiveFarm,
+    loading: contextLoading 
+  } = useFarm();
   
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -61,7 +68,8 @@ const FarmPage = () => {
     battery: true,
     deviceOffline: true,
     irrigation: true,
-    recommendation: true
+    recommendation: true,
+    sms: true
   });
 
   useEffect(() => {
@@ -158,10 +166,10 @@ const FarmPage = () => {
         await createFarm(payload);
       }
 
-      setToastMsg('Farm & Agronomic details saved successfully!');
+      setToastMsg(t('farm_page.saved_success', 'Farm & Agronomic details saved successfully!'));
     } catch (err) {
       console.error("Save farm error:", err);
-      let msg = 'Failed to save farm details.';
+      let msg = t('farm_page.save_failed', 'Failed to save farm details.');
       if (typeof err.response?.data?.detail === 'string') {
         msg = err.response.data.detail;
       } else if (Array.isArray(err.response?.data?.detail)) {
@@ -176,12 +184,37 @@ const FarmPage = () => {
   };
 
   const TABS = [
-    { id: 'info', label: 'Farm Information & Location', icon: MapPin },
-    { id: 'crop', label: 'Crop Management', icon: Droplets },
-    { id: 'iot', label: 'IoT Hardware Nodes', icon: Cpu },
-    { id: 'alerts', label: 'Alert Preferences', icon: Bell },
-    { id: 'archived', label: 'Archived Sectors', icon: Archive }
+    { id: 'info', label: t('farm_page.tabs.info', 'Farm Information & Location'), icon: MapPin },
+    { id: 'crop', label: t('farm_page.tabs.crop', 'Crop Management'), icon: Droplets },
+    { id: 'iot', label: t('farm_page.tabs.iot', 'IoT Hardware Nodes'), icon: Cpu },
+    { id: 'alerts', label: t('farm_page.tabs.alerts', 'Alert Preferences'), icon: Bell },
+    { id: 'archived', label: t('farm_page.tabs.archived', 'Archived Sectors'), icon: Archive }
   ];
+
+  if (contextLoading && farms.length === 0) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto w-full pb-16">
+        <div className="flex flex-col gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
+          <Skeleton className="h-10 w-64 rounded-xl animate-pulse" />
+          <Skeleton className="h-4.5 w-96 rounded-xl mt-2 animate-pulse" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-10 w-36 rounded-xl animate-pulse" />)}
+        </div>
+        <Card className="p-6 border border-slate-200 dark:border-slate-800">
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-48 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Skeleton className="h-12 rounded-xl animate-pulse" />
+              <Skeleton className="h-12 rounded-xl animate-pulse" />
+              <Skeleton className="h-12 rounded-xl animate-pulse" />
+              <Skeleton className="h-12 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -195,11 +228,11 @@ const FarmPage = () => {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              My Farm & Operations
+              {t('farm_page.title', 'My Farm & Operations')}
             </h1>
             <div className="mt-1">
               <Badge variant="healthy">
-                {activeFarm ? activeFarm.farm_name : 'Default Farm Sector'}
+                {activeFarm ? activeFarm.farm_name : t('farm_page.default_farm', 'Default Farm Sector')}
               </Badge>
             </div>
           </div>
@@ -209,21 +242,21 @@ const FarmPage = () => {
               variant="outline"
               onClick={async () => {
                 try {
-                  await createFarm({ farm_name: `New Farm Sector ${farms.length + 1}` });
+                  await createFarm({ farm_name: `${t('farm_page.new_farm_prefix', 'New Farm Sector')} ${farms.length + 1}` });
                 } catch (e) { console.error(e); }
               }} 
               isLoading={loading} 
               className="w-full sm:w-auto border-dashed border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
             >
-              + Add New Field
+              {t('farm_page.add_field', '+ Add New Field')}
             </Button>
             <Button onClick={handleSaveFarm} isLoading={loading} leftIcon={<Save className="w-4 h-4" />} className="w-full sm:w-auto">
-              Save All Changes
+              {t('farm_page.save_changes', 'Save All Changes')}
             </Button>
           </div>
         </div>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          Configure your farm sector coordinates, crop growth stages, paired ESP32 IoT hardware nodes, and operational notification rules.
+          {t('farm_page.subtitle', 'Configure your farm sector coordinates, crop growth stages, paired ESP32 IoT hardware nodes, and operational notification rules.')}
         </p>
       </div>
 
@@ -242,7 +275,7 @@ const FarmPage = () => {
       )}
 
       {/* Tabs Navigation Bar — horizontally scrollable on mobile */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -272,15 +305,19 @@ const FarmPage = () => {
                 <Sprout className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Farm Sector & GPS Coordinates</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Set registered farm sector details and precise latitude/longitude coordinates.</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {t('farm_page.info.heading', 'Farm Sector & GPS Coordinates')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('farm_page.info.subheading', 'Set registered farm sector details and precise latitude/longitude coordinates.')}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Farm Sector Name"
-                placeholder="e.g. Green Acre Tomato Sector"
+                label={t('farm_page.info.sector_name', 'Farm Sector Name')}
+                placeholder={t('farm_page.info.sector_placeholder', 'e.g. Green Acre Tomato Sector')}
                 value={farmName}
                 onChange={(e) => setFarmName(e.target.value)}
                 required
@@ -288,20 +325,20 @@ const FarmPage = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <Input
-                  label="Total Farm Area"
+                  label={t('farm_page.info.total_area', 'Total Farm Area')}
                   type="number"
                   placeholder="e.g. 2.5"
                   value={farmSize}
                   onChange={(e) => setFarmSize(e.target.value)}
                 />
                 <Select
-                  label="Area Unit"
+                  label={t('farm_page.info.area_unit', 'Area Unit')}
                   value={farmUnit}
                   onChange={(e) => setFarmUnit(e.target.value)}
                   options={[
-                    { value: 'acres', label: 'Acres' },
-                    { value: 'hectares', label: 'Hectares' },
-                    { value: 'cents', label: 'Cents' }
+                    { value: 'acres', label: t('farm_page.info.units.acres', 'Acres') },
+                    { value: 'hectares', label: t('farm_page.info.units.hectares', 'Hectares') },
+                    { value: 'cents', label: t('farm_page.info.units.cents', 'Cents') }
                   ]}
                 />
               </div>
@@ -311,21 +348,29 @@ const FarmPage = () => {
             <div className="rounded-2xl border border-emerald-200/80 dark:border-emerald-800/40 bg-emerald-50/60 dark:bg-emerald-950/20 p-4 space-y-4">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider">Farm Location (India)</span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-500 ml-1">— Helps match government schemes for your area</span>
+                <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider">
+                  {t('farm_page.info.india_location', 'Farm Location (India)')}
+                </span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-500 ml-1">
+                  {t('farm_page.info.govt_schemes_hint', '— Helps match government schemes for your area')}
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* State */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">State / UT <span className="text-rose-500">*</span></label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {t('farm_page.info.state', 'State / UT')} <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={state}
                     onChange={(e) => { setState(e.target.value); setDistrict(''); setMandal(''); }}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                     required
                   >
-                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">-- Select State / UT --</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">
+                      {t('farm_page.info.select_state', '-- Select State / UT --')}
+                    </option>
                     {INDIA_STATES.map(s => (
                       <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={s} value={s}>{s}</option>
                     ))}
@@ -334,7 +379,9 @@ const FarmPage = () => {
 
                 {/* District */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">District <span className="text-rose-500">*</span></label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {t('farm_page.info.district', 'District')} <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={district}
                     onChange={(e) => { setDistrict(e.target.value); setMandal(''); }}
@@ -342,7 +389,9 @@ const FarmPage = () => {
                     disabled={!state}
                     required
                   >
-                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">{state ? '-- Select District --' : '-- Select State first --'}</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">
+                      {state ? t('farm_page.info.select_district', '-- Select District --') : t('farm_page.info.select_state_first', '-- Select State first --')}
+                    </option>
                     {availableDistricts.map(d => (
                       <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={d} value={d}>{d}</option>
                     ))}
@@ -351,14 +400,18 @@ const FarmPage = () => {
 
                 {/* Mandal / Taluka */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Mandal / Taluka</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {t('farm_page.info.mandal', 'Mandal / Taluka')}
+                  </label>
                   <select
                     value={mandal}
                     onChange={(e) => { setMandal(e.target.value); setVillage(''); setCustomVillage(false); }}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-50"
                     disabled={!district}
                   >
-                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">{district ? '-- Select Mandal --' : '-- Select District first --'}</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">
+                      {district ? t('farm_page.info.select_mandal', '-- Select Mandal --') : t('farm_page.info.select_district_first', '-- Select District first --')}
+                    </option>
                     {availableMandals.map(m => (
                       <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={m} value={m}>{m}</option>
                     ))}
@@ -367,7 +420,9 @@ const FarmPage = () => {
 
                 {/* Village / Town — Always Dropdown */}
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Village / Town</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {t('farm_page.info.village', 'Village / Town')}
+                  </label>
                   <select
                     value={village}
                     onChange={(e) => setVillage(e.target.value)}
@@ -376,10 +431,10 @@ const FarmPage = () => {
                   >
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">
                       {!mandal 
-                        ? '-- Select Mandal first --' 
+                        ? t('farm_page.info.select_mandal_first', '-- Select Mandal first --') 
                         : availableVillages.length > 0 
-                          ? '-- Select Village --' 
-                          : '-- Select Village / Sector --'}
+                          ? t('farm_page.info.select_village', '-- Select Village --') 
+                          : t('farm_page.info.select_village_sector', '-- Select Village / Sector --')}
                     </option>
                     {availableVillages.map(v => (
                       <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={v} value={v}>{v}</option>
@@ -401,7 +456,9 @@ const FarmPage = () => {
               {/* Live Summary Badge */}
               {(state || district || mandal || village) && (
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Selected:</span>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {t('farm_page.info.selected', 'Selected:')}
+                  </span>
                   {village && <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[11px] font-semibold rounded-full">{village}</span>}
                   {mandal && <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-[11px] font-semibold rounded-full">{mandal}</span>}
                   {district && <span className="px-2 py-0.5 bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 text-[11px] font-semibold rounded-full">{district}</span>}
@@ -415,7 +472,9 @@ const FarmPage = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">GPS Location Coordinates</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                    {t('farm_page.info.gps_title', 'GPS Location Coordinates')}
+                  </span>
                 </div>
                 <Button 
                   type="button" 
@@ -425,19 +484,19 @@ const FarmPage = () => {
                   isLoading={geoLoading}
                   leftIcon={<Navigation className="w-3.5 h-3.5" />}
                 >
-                  Auto-Detect Live GPS
+                  {t('farm_page.info.auto_gps', 'Auto-Detect Live GPS')}
                 </Button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label="Latitude (°N)"
+                  label={t('farm_page.info.latitude', 'Latitude (°N)')}
                   placeholder="e.g. 16.5062"
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                 />
                 <Input
-                  label="Longitude (°E)"
+                  label={t('farm_page.info.longitude', 'Longitude (°E)')}
                   placeholder="e.g. 80.6480"
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
@@ -447,25 +506,25 @@ const FarmPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
-                label="Irrigation Method"
+                label={t('farm_page.info.irrigation_method', 'Irrigation Method')}
                 value={irrigationMethod}
                 onChange={(e) => setIrrigationMethod(e.target.value)}
                 options={[
-                  { value: 'Drip', label: 'Drip Irrigation' },
-                  { value: 'Sprinkler', label: 'Sprinkler System' },
-                  { value: 'Flood', label: 'Flood / Furrow' },
-                  { value: 'Manual', label: 'Manual Watering' }
+                  { value: 'Drip', label: t('farm_page.info.irrigation.drip', 'Drip Irrigation') },
+                  { value: 'Sprinkler', label: t('farm_page.info.irrigation.sprinkler', 'Sprinkler System') },
+                  { value: 'Flood', label: t('farm_page.info.irrigation.flood', 'Flood / Furrow') },
+                  { value: 'Manual', label: t('farm_page.info.irrigation.manual', 'Manual Watering') }
                 ]}
               />
               <Select
-                label="Water Source"
+                label={t('farm_page.info.water_source', 'Water Source')}
                 value={waterSource}
                 onChange={(e) => setWaterSource(e.target.value)}
                 options={[
-                  { value: 'Borewell', label: 'Borewell' },
-                  { value: 'Canal', label: 'Canal' },
-                  { value: 'Rain Water', label: 'Rain Water Tank' },
-                  { value: 'River', label: 'River / Reservoir' }
+                  { value: 'Borewell', label: t('farm_page.info.water.borewell', 'Borewell') },
+                  { value: 'Canal', label: t('farm_page.info.water.canal', 'Canal') },
+                  { value: 'Rain Water', label: t('farm_page.info.water.rain', 'Rain Water Tank') },
+                  { value: 'River', label: t('farm_page.info.water.river', 'River / Reservoir') }
                 ]}
               />
             </div>
@@ -473,14 +532,18 @@ const FarmPage = () => {
             <div className="pt-6 border-t border-rose-200/50 dark:border-rose-900/30 mt-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50">
                 <div>
-                  <h3 className="text-sm font-bold text-rose-700 dark:text-rose-400">Archive Sector</h3>
-                  <p className="text-xs text-rose-600/70 dark:text-rose-400/70 mt-0.5">Archive this farm sector to hide it from your dashboard while securely storing its historical telemetry data for future reference.</p>
+                  <h3 className="text-sm font-bold text-rose-700 dark:text-rose-400">
+                    {t('farm_page.info.archive_title', 'Archive Sector')}
+                  </h3>
+                  <p className="text-xs text-rose-600/70 dark:text-rose-400/70 mt-0.5">
+                    {t('farm_page.info.archive_desc', 'Archive this farm sector to hide it from your dashboard while securely storing its historical telemetry data for future reference.')}
+                  </p>
                 </div>
                 <Button 
                   type="button"
                   variant="outline"
                   onClick={async () => {
-                    if (window.confirm("Are you sure you want to archive this farm? It will be hidden from your dashboard but its history will be preserved.")) {
+                    if (window.confirm(t('farm_page.confirm_archive', 'Are you sure you want to archive this farm? It will be hidden from your dashboard but its history will be preserved.'))) {
                       try {
                         await deleteFarm(activeFarm.id);
                         navigate('/');
@@ -489,7 +552,7 @@ const FarmPage = () => {
                   }}
                   className="w-full sm:w-auto border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50"
                 >
-                  Archive Farm Sector
+                  {t('farm_page.info.archive_btn', 'Archive Farm Sector')}
                 </Button>
               </div>
             </div>
@@ -504,60 +567,64 @@ const FarmPage = () => {
                 <Droplets className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Crop Cultivation & Lifecycle</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Specify active crop type, variety, and growth stage for AI agronomic recommendations.</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {t('farm_page.crop.heading', 'Crop Cultivation & Lifecycle')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('farm_page.crop.subheading', 'Specify active crop type, variety, and growth stage for AI agronomic recommendations.')}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
-                label="Primary Crop"
+                label={t('farm_page.crop.primary_crop', 'Primary Crop')}
                 value={cropName}
                 onChange={(e) => setCropName(e.target.value)}
                 options={[
-                  { value: 'Tomato', label: '🍅 Tomato (Solanum lycopersicum)' },
-                  { value: 'Potato', label: '🥔 Potato (Solanum tuberosum)' },
-                  { value: 'Corn', label: '🌽 Maize / Corn (Zea mays)' },
-                  { value: 'Rice', label: '🌾 Paddy / Rice (Oryza sativa)' },
-                  { value: 'Wheat', label: '🌾 Wheat (Triticum aestivum)' },
-                  { value: 'Cotton', label: '🧶 Cotton (Gossypium)' },
-                  { value: 'Chilli', label: '🌶️ Chilli Pepper (Capsicum annum)' },
-                  { value: 'Sugarcane', label: '🎋 Sugarcane (Saccharum officinarum)' },
-                  { value: 'Soybean', label: '🫘 Soybean / Pulses (Glycine max)' },
-                  { value: 'Onion', label: '🧅 Onion (Allium cepa)' },
-                  { value: 'Grape', label: '🍇 Grape (Vitis vinifera)' },
-                  { value: 'Apple', label: '🍎 Apple (Malus domestica)' },
-                  { value: 'Mango', label: '🥭 Mango (Mangifera indica)' },
-                  { value: 'Banana', label: '🍌 Banana (Musa acuminata)' },
-                  { value: 'Citrus', label: '🍊 Citrus / Orange (Citrus sinensis)' },
-                  { value: 'Strawberry', label: '🍓 Strawberry (Fragaria × ananassa)' },
-                  { value: 'Peach', label: '🍑 Peach (Prunus persica)' },
-                  { value: 'Cucumber', label: '🥒 Cucumber / Squash (Cucumis sativus)' }
+                  { value: 'Tomato', label: `🍅 ${translateCrop('Tomato', i18n.language)} (Solanum lycopersicum)` },
+                  { value: 'Potato', label: `🥔 ${translateCrop('Potato', i18n.language)} (Solanum tuberosum)` },
+                  { value: 'Corn', label: `🌽 ${translateCrop('Corn', i18n.language)} (Zea mays)` },
+                  { value: 'Rice', label: `🌾 ${translateCrop('Rice', i18n.language)} (Oryza sativa)` },
+                  { value: 'Wheat', label: `🌾 ${translateCrop('Wheat', i18n.language)} (Triticum aestivum)` },
+                  { value: 'Cotton', label: `🧶 ${translateCrop('Cotton', i18n.language)} (Gossypium)` },
+                  { value: 'Chilli', label: `🌶️ ${translateCrop('Chilli', i18n.language)} (Capsicum annum)` },
+                  { value: 'Sugarcane', label: `🎋 ${translateCrop('Sugarcane', i18n.language)} (Saccharum officinarum)` },
+                  { value: 'Soybean', label: `🫘 ${translateCrop('Soybean', i18n.language)} (Glycine max)` },
+                  { value: 'Onion', label: `🧅 ${translateCrop('Onion', i18n.language)} (Allium cepa)` },
+                  { value: 'Grape', label: `🍇 ${translateCrop('Grape', i18n.language)} (Vitis vinifera)` },
+                  { value: 'Apple', label: `🍎 ${translateCrop('Apple', i18n.language)} (Malus domestica)` },
+                  { value: 'Mango', label: `🥭 ${translateCrop('Mango', i18n.language)} (Mangifera indica)` },
+                  { value: 'Banana', label: `🍌 ${translateCrop('Banana', i18n.language)} (Musa acuminata)` },
+                  { value: 'Citrus', label: `🍊 ${translateCrop('Citrus', i18n.language)} (Citrus sinensis)` },
+                  { value: 'Strawberry', label: `🍓 ${translateCrop('Strawberry', i18n.language)} (Fragaria × ananassa)` },
+                  { value: 'Peach', label: `🍑 ${translateCrop('Peach', i18n.language)} (Prunus persica)` },
+                  { value: 'Cucumber', label: `🥒 ${translateCrop('Cucumber', i18n.language)} (Cucumis sativus)` }
                 ]}
               />
 
               <Input
-                label="Crop Variety / Hybrid"
-                placeholder="e.g. Arka Rakshak / Hybrid 88"
+                label={t('farm_page.crop.variety', 'Crop Variety / Hybrid')}
+                placeholder={t('farm_page.crop.variety_placeholder', 'e.g. Arka Rakshak / Hybrid 88')}
                 value={cropVariety}
                 onChange={(e) => setCropVariety(e.target.value)}
               />
 
               <Select
-                label="Current Growth Stage"
+                label={t('farm_page.crop.growth_stage', 'Current Growth Stage')}
                 value={growthStage}
                 onChange={(e) => setGrowthStage(e.target.value)}
                 options={[
-                  { value: 'Nursery', label: 'Nursery / Seedling' },
-                  { value: 'Vegetative', label: 'Vegetative Growth' },
-                  { value: 'Flowering', label: 'Flowering & Budding' },
-                  { value: 'Fruiting', label: 'Fruiting & Maturation' },
-                  { value: 'Harvesting', label: 'Harvesting Phase' }
+                  { value: 'Nursery', label: t('farm_page.crop.stages.nursery', 'Nursery / Seedling') },
+                  { value: 'Vegetative', label: t('farm_page.crop.stages.vegetative', 'Vegetative Growth') },
+                  { value: 'Flowering', label: t('farm_page.crop.stages.flowering', 'Flowering & Budding') },
+                  { value: 'Fruiting', label: t('farm_page.crop.stages.fruiting', 'Fruiting & Maturation') },
+                  { value: 'Harvesting', label: t('farm_page.crop.stages.harvesting', 'Harvesting Phase') }
                 ]}
               />
 
               <Input
-                label="Planting / Sowing Date"
+                label={t('farm_page.crop.planting_date', 'Planting / Sowing Date')}
                 type="date"
                 value={plantingDate}
                 onChange={(e) => setPlantingDate(e.target.value)}
@@ -574,20 +641,28 @@ const FarmPage = () => {
                 <Cpu className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Paired ESP32 Field Node</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Link your physical AgriShield ESP32 hardware unit to stream live sensor telemetry.</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {t('farm_page.iot.heading', 'Paired ESP32 Field Node')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('farm_page.iot.subheading', 'Link your physical AgriShield ESP32 hardware unit to stream live sensor telemetry.')}
+                </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">ESP32 Device Node ID</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  {t('farm_page.iot.node_id', 'ESP32 Device Node ID')}
+                </label>
                 <select
                   value={deviceId}
                   onChange={(e) => setDeviceId(e.target.value)}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 >
-                  <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">-- Select a Paired Device --</option>
+                  <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="">
+                    {t('farm_page.iot.select_device', '-- Select a Paired Device --')}
+                  </option>
                   {availableDevices.map(dev => (
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={dev.device_id} value={dev.device_id}>
                       {dev.device_id} ({dev.status})
@@ -597,7 +672,7 @@ const FarmPage = () => {
               </div>
 
               <Input
-                label="Firmware Version"
+                label={t('farm_page.iot.firmware', 'Firmware Version')}
                 value={firmwareVersion}
                 disabled
               />
@@ -607,14 +682,16 @@ const FarmPage = () => {
               <div className="flex items-center gap-3">
                 <Radio className={`w-5 h-5 ${deviceId ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
                 <div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Telemetry Transceiver Status</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                    {t('farm_page.iot.status_title', 'Telemetry Transceiver Status')}
+                  </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {deviceId ? `Node [${deviceId}] active & posting 10s JSON telemetry` : 'No hardware device linked'}
+                    {deviceId ? t('farm_page.iot.node_active', { id: deviceId, defaultValue: `Node [${deviceId}] active & posting 10s JSON telemetry` }) : t('farm_page.iot.node_unlinked', 'No hardware device linked')}
                   </span>
                 </div>
               </div>
               <Badge variant={deviceId ? 'healthy' : 'warning'}>
-                {deviceId ? 'Paired' : 'Unlinked'}
+                {deviceId ? t('farm_page.iot.paired', 'Paired') : t('farm_page.iot.unlinked', 'Unlinked')}
               </Badge>
             </div>
           </Card>
@@ -628,16 +705,24 @@ const FarmPage = () => {
                 <Bell className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Agronomic Alert Rules</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Configure automated notification alerts for disease outbreaks, low soil moisture, and hardware faults.</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {t('farm_page.alerts.heading', 'Agronomic Alert Rules')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('farm_page.alerts.subheading', 'Configure automated notification alerts for disease outbreaks, low soil moisture, and hardware faults.')}
+                </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Fungal & Disease Outbreak Warnings</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Notify when high humidity/temp triggers spore infection risk</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                    {t('farm_page.alerts.disease_title', 'Fungal & Disease Outbreak Warnings')}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('farm_page.alerts.disease_desc', 'Notify when high humidity/temp triggers spore infection risk')}
+                  </span>
                 </div>
                 <Switch 
                   checked={notifications.disease} 
@@ -647,8 +732,12 @@ const FarmPage = () => {
 
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Critical Soil Moisture & Irrigation Alerts</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Trigger warnings when soil moisture drops below 30% threshold</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                    {t('farm_page.alerts.moisture_title', 'Critical Soil Moisture & Irrigation Alerts')}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('farm_page.alerts.moisture_desc', 'Trigger warnings when soil moisture drops below 30% threshold')}
+                  </span>
                 </div>
                 <Switch 
                   checked={notifications.irrigation} 
@@ -658,8 +747,12 @@ const FarmPage = () => {
 
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Heavy Rainfall & Storm Advisories</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Alert before rain forecast so pesticide spraying can be delayed</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                    {t('farm_page.alerts.rain_title', 'Heavy Rainfall & Storm Advisories')}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('farm_page.alerts.rain_desc', 'Alert before rain forecast so pesticide spraying can be delayed')}
+                  </span>
                 </div>
                 <Switch 
                   checked={notifications.rain} 
@@ -669,12 +762,31 @@ const FarmPage = () => {
 
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Hardware Fault & Low Battery Alarms</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Receive instant push notification if ESP32 node goes offline or battery critical</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                    {t('farm_page.alerts.battery_title', 'Hardware Fault & Low Battery Alarms')}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('farm_page.alerts.battery_desc', 'Receive instant push notification if ESP32 node goes offline or battery critical')}
+                  </span>
                 </div>
                 <Switch 
                   checked={notifications.battery} 
                   onCheckedChange={(val) => setNotifications(prev => ({ ...prev, battery: val }))} 
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+                <div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                    {t('farm_page.alerts.sms_title', 'SMS Fallback Alerts')}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('farm_page.alerts.sms_desc', 'Send critical crop safety alarms directly via SMS fallback when internet is offline')}
+                  </span>
+                </div>
+                <Switch 
+                  checked={notifications.sms} 
+                  onCheckedChange={(val) => setNotifications(prev => ({ ...prev, sms: val }))} 
                 />
               </div>
             </div>
@@ -689,16 +801,24 @@ const FarmPage = () => {
                 <Archive className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Archived Sectors</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">View and restore past farm sectors and their historical telemetry.</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {t('farm_page.archived.heading', 'Archived Sectors')}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('farm_page.archived.subheading', 'View and restore past farm sectors and their historical telemetry.')}
+                </p>
               </div>
             </div>
 
             {archivedFarms.length === 0 ? (
               <div className="text-center py-12 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                 <Archive className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">No Archived Farms</h3>
-                <p className="text-xs text-slate-500 mt-1">You haven't archived any farm sectors yet.</p>
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  {t('farm_page.archived.empty_title', 'No Archived Farms')}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  {t('farm_page.archived.empty_desc', "You haven't archived any farm sectors yet.")}
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -707,7 +827,7 @@ const FarmPage = () => {
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{farm.farm_name}</h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {farm.crop_name} • {farm.farm_size} {farm.farm_unit} • {farm.village}
+                        {translateCrop(farm.crop_name, i18n.language)} • {farm.farm_size} {farm.farm_unit} • {farm.village}
                       </p>
                     </div>
                     <Button 
@@ -721,7 +841,7 @@ const FarmPage = () => {
                       }}
                       className="shrink-0 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
                     >
-                      Restore Sector
+                      {t('farm_page.archived.restore_btn', 'Restore Sector')}
                     </Button>
                   </div>
                 ))}
@@ -732,7 +852,7 @@ const FarmPage = () => {
 
         <div className="flex justify-end pt-2">
           <Button type="submit" isLoading={loading} size="lg" leftIcon={<Save className="w-5 h-5" />}>
-            Save All Changes
+            {t('farm_page.save_changes', 'Save All Changes')}
           </Button>
         </div>
       </form>

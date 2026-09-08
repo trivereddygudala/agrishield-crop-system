@@ -40,17 +40,27 @@ class Settings(BaseSettings):
     MONGODB_URI: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "agrishield_db"
 
-    # NVIDIA NIM API Settings
+    # Groq Cloud AI Provider Settings (Primary Fast Inference)
+    GROQ_API_KEY: str = ""
+    GROQ_API_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROQ_MODEL_NAME: str = "qwen/qwen3.8-27b"
+
+    # NVIDIA NIM API Settings (Secondary Fallback)
     NVIDIA_API_KEY: str = ""
     NVIDIA_API_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
-    NVIDIA_MODEL_NAME: str = "meta/llama-3.1-8b-instruct"
+    NVIDIA_MODEL_NAME: str = "deepseek-ai/deepseek-v4-flash-0731"
     OPENWEATHER_API_KEY: str = ""
+    DATAGOV_API_KEY: str = ""  # Free API Key from data.gov.in for live Agmarknet prices
 
     # Static/Upload folders
     UPLOAD_DIR: str = "uploads"
 
     model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
+        env_file=(
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), ".env"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),
+            ".env"
+        ),
         env_file_encoding="utf-8",
         extra="ignore"
     )

@@ -183,7 +183,7 @@ DHT dht(DHTPIN, DHTTYPE);
 // Analog Sensor Inputs (ADC1_CH4, ADC1_CH6, ADC1_CH7)
 #define PIN_SOIL_ANALOG 34  // Capacitive Soil Moisture (ADC1_CH6)
 #define PIN_RAIN_ANALOG 35  // Rain Sensor Analog (ADC1_CH7)
-#define PIN_BATT_ANALOG 32  // 4300mAh Battery Voltage Sensor Module (ADC1_CH4)
+#define PIN_BATT_ANALOG 32  // 4000mAh Battery Voltage Sensor Module (ADC1_CH4)
 
 // Calibration Constants
 const int SOIL_DRY_ADC = 3200;
@@ -449,7 +449,7 @@ void readAllSensors() {
         float calibratedV = uncalibratedV * (3.95 / 3.31);
         
         batteryVoltage = calibratedV;
-        batteryPercent = constrain(map(batteryVoltage * 100, 330, 420, 0, 100), 0, 100);
+        batteryPercent = constrain(map(batteryVoltage * 100, 320, 405, 0, 100), 0, 100);
         batteryValid = true;
     } else {
         batteryValid = false;

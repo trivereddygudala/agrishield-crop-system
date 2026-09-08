@@ -7,10 +7,12 @@
     "dev:backend": ".\\.venv\\Scripts\\python.exe -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000",
     "analyzer": ".\\.venv\\Scripts\\python.exe scripts/agrishield_analyzer.py",
     "dev:tunnel": "node scripts/tunnel_service.js",
-    "dev:offline": "npx concurrently -n \"FRONTEND,BACKEND,ANALYZER\" -c \"cyan,green,yellow\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\"",
-    "dev": "npx concurrently -n \"FRONTEND,BACKEND,ANALYZER,TUNNEL\" -c \"cyan,green,yellow,magenta\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\" \"npm run dev:tunnel\""
+    "dev:all": "npx concurrently -n \"FRONTEND,BACKEND,ANALYZER,TUNNEL\" -c \"cyan,green,yellow,magenta\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\" \"npm run dev:tunnel\"",
+    "dev": "npx concurrently -n \"FRONTEND,BACKEND,ANALYZER\" -c \"cyan,green,yellow\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\""
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "localtunnel": "^2.0.2",
+    "ngrok": "^5.0.0-beta.2"
   }
 }

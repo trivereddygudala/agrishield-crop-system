@@ -25,6 +25,7 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def clean_ota_db():
+    app.dependency_overrides[get_database] = override_get_database
     db_instance.db = database_for_testing
     asyncio.run(database_for_testing.firmware_releases.delete_many({}))
     asyncio.run(database_for_testing.ota_audit_logs.delete_many({}))

@@ -8,7 +8,17 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'framer-motion']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'framer-motion']
+    include: [
+      'react', 
+      'react-dom', 
+      'react-router-dom', 
+      'framer-motion', 
+      'lucide-react', 
+      'axios', 
+      'recharts', 
+      'i18next', 
+      'react-i18next'
+    ]
   },
   server: {
     port: 3000,

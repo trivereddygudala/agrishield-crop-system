@@ -373,11 +373,11 @@ const AnalyticsPage = () => {
           
           {/* Export Options & Actions Bar */}
           <div className="flex items-center justify-end gap-3">
-            <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-2 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900">
-              <Download size={14} /> Export CSV
+            <Button variant="sky" size="sm" onClick={handleExportCSV} leftIcon={<Download size={14} />} className="font-bold">
+              Export CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-2 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900">
-              <FileText size={14} /> Export PDF Report
+            <Button variant="indigo" size="sm" onClick={handleExportPDF} leftIcon={<FileText size={14} />} className="font-bold">
+              Export PDF Report
             </Button>
           </div>
 
@@ -385,39 +385,39 @@ const AnalyticsPage = () => {
           {summaryData && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Card 1: Avg Temp */}
-              <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between">
+              <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between card-accent-amber shadow-xs border-slate-200/90 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 block">Average Temp</span>
-                  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 block mt-1">
+                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">Average Temp</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-slate-100 block mt-1">
                     {summaryData?.avg_temp != null ? `${summaryData.avg_temp}°C` : 'N/A'}
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-2 block">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-2 block">
                     High: {summaryData?.max_temp != null ? `${summaryData.max_temp}°C` : 'N/A'} | Low: {summaryData?.min_temp != null ? `${summaryData.min_temp}°C` : 'N/A'}
                   </span>
                 </div>
-                <div className="bg-orange-50 dark:bg-orange-950/40 p-2 rounded-xl text-orange-500">
+                <div className="bg-amber-100 dark:bg-amber-950/60 p-2 rounded-xl text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                   <Thermometer size={18} />
                 </div>
               </Card>
 
               {/* Card 2: Avg Humidity */}
-              <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between">
+              <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between card-accent-sky shadow-xs border-slate-200/90 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 block">Avg Humidity</span>
-                  <span className="text-2xl font-black text-slate-800 dark:text-slate-100 block mt-1">
+                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">Avg Humidity</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-slate-100 block mt-1">
                     {summaryData?.avg_humidity != null ? `${summaryData.avg_humidity}%` : 'N/A'}
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-2 block">Relative Atmospheric</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-2 block">Relative Atmospheric</span>
                 </div>
-                <div className="bg-sky-50 dark:bg-sky-950/40 p-2 rounded-xl text-sky-500">
+                <div className="bg-sky-100 dark:bg-sky-950/60 p-2 rounded-xl text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800">
                   <Droplets size={18} />
                 </div>
               </Card>
 
               {/* Card 3: Avg Soil Moisture */}
-              <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between">
+              <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between card-accent-emerald shadow-xs border-slate-200/90 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 block">Avg Soil Moisture</span>
+                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">Avg Soil Moisture</span>
                   <span className="text-2xl font-black text-slate-800 dark:text-slate-100 block mt-1">
                     {summaryData?.avg_soil != null ? `${summaryData.avg_soil}%` : 'N/A'}
                   </span>

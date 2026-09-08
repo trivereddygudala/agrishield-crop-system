@@ -9,14 +9,14 @@ struct KnownWiFi {
     const char* api_url;
 };
 
-// Global Cloud Backend URL
-#define CLOUD_API_URL "https://agrishield-api-7i0o.onrender.com/api/v1"
+// Global Local Backend URL
+#define LOCAL_API_URL "http://10.87.104.146:8000/api/v1"
 
-// Add all your Wi-Fi networks here - they will all connect to the global cloud backend!
+// Add all your Wi-Fi networks here - they will all connect to the local backend!
 const KnownWiFi KNOWN_WIFI_NETWORKS[] = {
-    {"vivot4pro", "12345678900", CLOUD_API_URL},    // Mobile Phone Hotspot
-    {"unknown", "reddygariabbayi", CLOUD_API_URL},  // Laptop's Hotspot / Home Wi-Fi
-    {"", "", CLOUD_API_URL}                         // Farm Backup
+    {"vivot4pro", "12345678900", LOCAL_API_URL},    // Mobile Phone Hotspot
+    {"unknown", "reddygariabbayi", LOCAL_API_URL},  // Laptop's Hotspot / Home Wi-Fi
+    {"", "", LOCAL_API_URL}                         // Farm Backup
 };
 
 const int KNOWN_WIFI_COUNT = sizeof(KNOWN_WIFI_NETWORKS) / sizeof(KNOWN_WIFI_NETWORKS[0]);
@@ -27,7 +27,7 @@ const int KNOWN_WIFI_COUNT = sizeof(KNOWN_WIFI_NETWORKS) / sizeof(KNOWN_WIFI_NET
 
 // Backend URL
 #define MDNS_HOSTNAME "agrishield-api"
-#define FALLBACK_API_BASE_URL CLOUD_API_URL
+#define FALLBACK_API_BASE_URL LOCAL_API_URL
 #define DEVICE_ID "ESP32-NODE-ALPHA"
 
 // Display Language ("EN" = English, "HI" = Hindi, "TE" = Telugu, "TA" = Tamil)

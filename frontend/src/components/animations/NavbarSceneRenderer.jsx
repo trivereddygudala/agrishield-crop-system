@@ -11,8 +11,10 @@ import { NeuralNetwork, YieldChart, DataStream, RadarSweep, BiometricPulse, PieC
 import { AuroraBorealis, LiquidChrome, GlassmorphicOrbs, DeepSpace, AbyssalBlue, NeonEdge, CarbonFiber, VercelDark, HyperSpeed, SonicWave, QuantumFluct, NeonGrid, HoloCore, SynthWave, CyberFluid, PrismLight, TesseractSpin, DarkMatter, PlasmaFlow, NovaBurst } from './scenes/PremiumAbstract';
 import { WelcomeFarmer, WelcomeAdmin, WelcomeTester } from './NavbarScenesLibrary';
 
-const SceneWrapper = ({ children }) => (
-  <div className="relative h-14 w-64 md:w-80 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 border border-slate-200/50 dark:border-slate-700/50 hidden lg:block mx-4">
+const SceneWrapper = ({ children, isCompact = false }) => (
+  <div className={`relative h-14 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 border border-slate-200/50 dark:border-slate-700/50 hidden lg:block mx-4 transition-all duration-300 ${
+    isCompact ? 'w-40 xl:w-48' : 'w-64 md:w-80'
+  }`}>
     {children}
   </div>
 );
@@ -143,10 +145,10 @@ const SCENE_MAP = {
   'pa2-20': NovaBurst,
 };
 
-const NavbarSceneRenderer = ({ theme, noWrapper = false }) => {
+const NavbarSceneRenderer = ({ theme, noWrapper = false, isCompact = false }) => {
   const Scene = SCENE_MAP[theme] || AuroraBorealis;
-  if (noWrapper) return <Scene />;
-  return <SceneWrapper><Scene /></SceneWrapper>;
+  if (noWrapper) return <Scene isCompact={isCompact} />;
+  return <SceneWrapper isCompact={isCompact}><Scene isCompact={isCompact} /></SceneWrapper>;
 };
 
 export default NavbarSceneRenderer;

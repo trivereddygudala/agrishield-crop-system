@@ -4,11 +4,13 @@ import { Link } from 'react-router-dom';
 import {
   Bell, Search, Trash2, CheckCheck, Filter, RefreshCw,
   AlertTriangle, CloudRain, Droplets, BatteryWarning,
-  WifiOff, Activity, ChevronDown, X, BellOff, Download, Clock, Check
+  WifiOff, Activity, ChevronDown, ChevronLeft, ChevronRight, X, BellOff, Download, Clock, Check
 } from 'lucide-react';
 import { Card, Button, Input, Select, Badge, Dialog, EmptyState, Skeleton } from '../components/ui/index';
 import API from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useAuth } from '../context/AuthContext';
+import { timeAgo, formatDateTime } from '../utils/dateUtils';
 
 const PRIORITY_CONFIG = {
   Critical: { bg: 'bg-rose-50 dark:bg-rose-950/60', border: 'border-rose-200 dark:border-rose-800', badge: 'diseased', text: 'text-rose-700 dark:text-rose-300', label: 'Critical' },
@@ -30,16 +32,9 @@ const CATEGORY_ICONS = {
 const CATEGORIES = ['All', 'disease', 'weather', 'soil', 'battery', 'device', 'recommendation', 'system'];
 const PRIORITIES = ['All', 'Critical', 'High', 'Medium', 'Low'];
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-  if (isNaN(diff)) return 'Just now';
-  if (diff < 60)    return `${diff}s ago`;
-  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
 export default function NotificationsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
   const [notifications, setNotifications] = useState([]);
   const [total, setTotal]     = useState(0);
   const [page, setPage]       = useState(1);
@@ -49,6 +44,7 @@ export default function NotificationsPage() {
   const [category, setCategory] = useState('All');
   const [priority, setPriority] = useState('All');
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [limit, setLimit]           = useState(25);
   const [toastMsg, setToastMsg] = useState('');
 
   const [selectedTimeline, setSelectedTimeline] = useState(null);
@@ -58,7 +54,7 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async (p = 1) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: p, limit: 10 });
+      const params = new URLSearchParams({ page: p, limit: limit });
       if (category !== 'All') params.set('category', category);
       if (priority !== 'All') params.set('priority', priority);
       if (unreadOnly)         params.set('unread_only', 'true');
@@ -72,7 +68,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, priority, unreadOnly]);
+  }, [category, priority, unreadOnly, limit]);
 
   useEffect(() => { fetchNotifications(1); }, [fetchNotifications]);
 
@@ -173,7 +169,14 @@ export default function NotificationsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {isAdmin && (
+              <Link to="/admin?tab=broadcast">
+                <Button variant="primary" size="sm" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold shadow-md shadow-amber-500/20">
+                  📢 Dispatch Broadcast Alert
+                </Button>
+              </Link>
+            )}
             <Button variant="outline" size="sm" onClick={handleReadAll} leftIcon={<CheckCheck className="w-4 h-4 text-emerald-600" />} className="flex-1 sm:flex-none">
               Mark All Read
             </Button>
@@ -186,7 +189,7 @@ export default function NotificationsPage() {
 
       {/* Filters Bar */}
       <Card glass className="p-4 border-slate-200/80 dark:border-slate-800">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
           <Input
             placeholder="Search notification title or body..."
             value={search}
@@ -200,6 +203,14 @@ export default function NotificationsPage() {
 
           <Select value={priority} onChange={(e) => setPriority(e.target.value)} label="Priority">
             {PRIORITIES.map(p => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={p} value={p}>{p === 'All' ? 'All Priorities' : p}</option>)}
+          </Select>
+
+          <Select value={limit} onChange={(e) => setLimit(Number(e.target.value))} label="Show Limit">
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={10}>10 Items</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={25}>25 Items</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={50}>50 Items</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={100}>100 Items</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={1000}>Show All</option>
           </Select>
 
           <div className="flex items-center pt-5">
@@ -253,7 +264,7 @@ export default function NotificationsPage() {
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">{item.message}</p>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block pt-1">
-                          {(item.lifecycle?.created_at || item.created_at) ? new Date(item.lifecycle?.created_at || item.created_at).toLocaleString() : 'Unknown Date'} • {timeAgo(item.lifecycle?.created_at || item.created_at)}
+                          {(item.lifecycle?.created_at || item.created_at) ? formatDateTime(item.lifecycle?.created_at || item.created_at, { seconds: true }) : 'Unknown Date'} • {timeAgo(item.lifecycle?.created_at || item.created_at)}
                         </span>
                       </div>
                     </div>
@@ -273,6 +284,35 @@ export default function NotificationsPage() {
               );
             })}
           </AnimatePresence>
+
+          {/* Pagination Controls */}
+          {pages > 1 && (
+            <div className="flex items-center justify-between pt-5 mt-4 border-t border-slate-200/60 dark:border-slate-800/80">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fetchNotifications(Math.max(1, page - 1))} 
+                disabled={page === 1}
+                leftIcon={<ChevronLeft className="w-4 h-4" />}
+              >
+                Previous
+              </Button>
+              
+              <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400">
+                Page {page} of {pages}
+              </span>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fetchNotifications(Math.min(pages, page + 1))} 
+                disabled={page === pages}
+                rightIcon={<ChevronRight className="w-4 h-4" />}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </motion.div>

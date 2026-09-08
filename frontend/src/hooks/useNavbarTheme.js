@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export const useNavbarTheme = () => {
-  const [theme, setTheme] = useState(localStorage.getItem('navbarAnimation') || 'farmer-dynamic');
+  const { user } = useAuth();
+  
+  const [theme, setTheme] = useState(() => {
+    return user?.navbar_theme || localStorage.getItem('navbarAnimation') || 'farmer-dynamic';
+  });
+
+  // Keep state in sync with user profile changes (e.g. from websocket updates)
+  useEffect(() => {
+    if (user?.navbar_theme) {
+      setTheme(user.navbar_theme);
+    }
+  }, [user?.navbar_theme]);
 
   useEffect(() => {
     const handleThemeChange = (e) => {

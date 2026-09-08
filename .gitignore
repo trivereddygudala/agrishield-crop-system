@@ -76,3 +76,13 @@ model_training/
 ArduinoTests/**/build/
 *.bin
 *.elf
+
+# Backend Uploads & Runtime Logs
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/logs/*
+!backend/logs/.gitkeep
+
+# Scratch Scripts & Timestamps
+scratch/
+*.timestamp*

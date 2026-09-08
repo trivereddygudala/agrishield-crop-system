@@ -111,19 +111,19 @@ export const WebSocketProvider = ({ children }) => {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     
-    // Default to Render backend if VITE_API_URL is missing
-    let host = 'agrishield-api-7i0o.onrender.com';
+    // Default to Local backend if VITE_API_URL is missing
+    let host = '127.0.0.1:8000';
     
     if (import.meta.env.VITE_API_URL) {
       try {
         const urlObj = new URL(import.meta.env.VITE_API_URL);
         host = urlObj.host;
       } catch (e) {
-        console.warn('Could not parse VITE_API_URL host, using default Render host');
+        console.warn('Could not parse VITE_API_URL host, using default Local host');
       }
-    } else if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      // Local development fallback
-      host = `${window.location.hostname}:8000`;
+    } else if (typeof window !== 'undefined') {
+      // Local development fallback (routes through Vite proxy or LocalTunnel)
+      host = window.location.host;
     }
 
     const authToken = token || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
@@ -211,6 +211,34 @@ export const WebSocketProvider = ({ children }) => {
                 }
               }));
             }
+            notifySubscribers('telemetry', data);
+            notifySubscribers('telemetry_update', data);
+          }
+
+          // Handle Batch Offline Telemetry Sync (when ESP32 flushes SD queue to backend)
+          else if (data.type === 'telemetry_batch_synced') {
+            if (data.latest_telemetry) {
+              setLastTelemetry({
+                type: 'telemetry_update',
+                device_id: data.device_id,
+                telemetry: data.latest_telemetry,
+                data: data.latest_telemetry,
+                timestamp: data.timestamp
+              });
+              if (data.device_id) {
+                setDeviceStatusMap((prev) => ({
+                  ...prev,
+                  [data.device_id]: {
+                    ...prev[data.device_id],
+                    status: 'online',
+                    last_seen: data.timestamp || new Date().toISOString(),
+                    latest_telemetry: data.latest_telemetry
+                  }
+                }));
+              }
+            }
+            notifySubscribers('telemetry_batch_synced', data);
+            notifySubscribers('telemetry_update', data);
             notifySubscribers('telemetry', data);
           }
 

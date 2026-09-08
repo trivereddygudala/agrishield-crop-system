@@ -23,6 +23,259 @@ from backend.app.services.notification_service import NotificationService
 from backend.app.models.notification import NotificationCreate
 
 # get_model_health_status is lazy loaded inside the endpoint
+from model.predict_pytorch import predict_crop_disease
+
+def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
+    if not crop_name:
+        return ""
+    crop_lower = crop_name.lower().strip()
+    lang_lower = lang.lower().strip()[:2]
+    
+    crop_db = {
+        "corn": {
+            "te": "మొక్కజొన్న",
+            "hi": "मक्का",
+            "ta": "சோளம்",
+            "kn": "మెक्केజోళ",
+            "ml": "ചോളം",
+            "mr": "मका",
+            "gu": "మకాయ్",
+            "pa": "మక్కీ",
+            "ur": "مکئی"
+        },
+        "maize": {
+            "te": "మొక్కజొన్న",
+            "hi": "मक्का",
+            "ta": "சோளம்",
+            "kn": "మెक्केजोळ",
+            "ml": "చോളം",
+            "mr": "मका",
+            "gu": "మకాయ్",
+            "pa": "మక్కీ",
+            "ur": "مکئی"
+        },
+        "paddy": {
+            "te": "వరి పంట",
+            "hi": "धान",
+            "ta": "நெல்",
+            "kn": "ಭತ್ತ",
+            "ml": "നെല്ല്",
+            "mr": "भात",
+            "gu": "ડાંગર",
+            "pa": "ਝੋਨਾ",
+            "ur": "دھان"
+        },
+        "rice": {
+            "te": "వరి పంట",
+            "hi": "धान",
+            "ta": "நெல்",
+            "kn": "ಭತ್ತ",
+            "ml": "നെല്ല്",
+            "mr": "भात",
+            "gu": "ડાંગర్",
+            "pa": "ਝੋਨਾ",
+            "ur": "دھان"
+        },
+        "cotton": {
+            "te": "పత్తి",
+            "hi": "कपास",
+            "ta": "பруத்தி",
+            "kn": "హత్తి",
+            "ml": "పరుത്തി",
+            "mr": "कापूस",
+            "gu": "કપાસ",
+            "pa": "ਕਪਾਹ",
+            "ur": "کپاس"
+        },
+        "sugarcane": {
+            "te": "చెరకు",
+            "hi": "गन्ना",
+            "ta": "கரும்பு",
+            "kn": "కబ్బు",
+            "ml": "కరిമ്പ്",
+            "mr": "ऊस",
+            "gu": "શેરડી",
+            "pa": "ਗੰਨਾ",
+            "ur": "گنا"
+        },
+        "groundnut": {
+            "te": "వేరుశనగ",
+            "hi": "मूंगफली",
+            "ta": "நிலக்கடலை",
+            "kn": "కడలెకాయి",
+            "ml": "നിലക്കടല",
+            "mr": "भुईमूग",
+            "gu": "મગફળી",
+            "pa": "ਮੂੰਗਫਲੀ",
+            "ur": "مونگ پھلی"
+        },
+        "chilli": {
+            "te": "మిరప",
+            "hi": "मिर्च",
+            "ta": "மிளகாய்",
+            "kn": "మెణసినకాయి",
+            "ml": "മുളക്",
+            "mr": "मिरची",
+            "gu": "మరచు",
+            "pa": "ਮਿਰਚ",
+            "ur": "مرچ"
+        },
+        "mango": {
+            "te": "మామిడి",
+            "hi": "आम",
+            "ta": "மாம்பழம்",
+            "kn": "మావు",
+            "ml": "മാമ്പழം",
+            "mr": "आंबा",
+            "gu": "કેરી",
+            "pa": "ਅੰਬ",
+            "ur": "آمہ"
+        },
+        "tomato": {
+            "te": "టమోటా",
+            "hi": "टमाटर",
+            "ta": "தக்காளி",
+            "kn": "టొమెటొ",
+            "ml": "തക്കാളി",
+            "mr": "टोमॅटो",
+            "gu": "ટમેટા",
+            "pa": "ਟਮਾਟਰ",
+            "ur": "టమాటర్"
+        }
+    }
+    
+    for crop_key, langs in crop_db.items():
+        if crop_key in crop_lower:
+            return langs.get(lang_lower, crop_name)
+    return crop_name
+
+
+def get_farmer_disease_translation(disease_name: str, lang: str) -> str:
+    if not disease_name:
+        return ""
+    dis_lower = disease_name.lower().strip()
+    lang_lower = lang.lower().strip()[:2]
+    
+    disease_db = {
+        "yellow leaf curl": {
+            "te": "పసుపు ఆకు ముడుత తెగులు",
+            "hi": "पीला पत्ती मरोड़ रोग",
+            "ta": "மஞ்சள் இலை சுருள் நோய்",
+            "kn": "ಹಳದಿ ಎಲೆ ಮುದುಡು ರೋಗ",
+            "ml": "മഞ്ഞ ഇലച്ചുരുട്ടൽ രോഗം",
+            "mr": "पिवळा पर्णगुच्छ रोग"
+        },
+        "yellowleaf curl": {
+            "te": "పసుపు ఆకు ముడుత తెగులు",
+            "hi": "पीला पत्ती मरोड़ रोग",
+            "ta": "மஞ்சள் இலை சுருள் நோய்",
+            "kn": "ಹಳದಿ ಎಲೆ ಮುದುಡು ರೋಗ",
+            "ml": "മഞ്ഞ ഇലച്ചുരുട്ടൽ രോഗം",
+            "mr": "पिवळा पर्णगुच्छ रोग"
+        },
+        "leaf curl": {
+            "te": "ఆకు ముడుత తెగులు",
+            "hi": "पत्ती मरोड़ रोग",
+            "ta": "இலை சுருள் நோய்",
+            "kn": "ಎಲೆ ಮುದುಡು ರೋಗ",
+            "ml": "ഇലച്ചുരുട്ടൽ രോഗം",
+            "mr": "पर्णगुच्छ रोग"
+        },
+        "yellowish": {
+            "te": "ఆకులు పసుపుబారడం (క్లోరోసిస్)",
+            "hi": "पत्तियों का पीला पड़ना (क्लोरोसिस)",
+            "ta": "இலைகள் மஞ்சள் நிறமாதல்",
+            "kn": "ಎಲೆಗಳು ಹಳದಿಯಾಗುವುದು",
+            "ml": "ഇലകൾ മഞ്ഞളിക്കൽ",
+            "mr": "पाने पिवळी पडणे"
+        },
+        "yellow": {
+            "te": "ఆకులు పసుపుబారడం",
+            "hi": "पत्तियों का पीला पड़ना",
+            "ta": "இலைகள் மஞ்சள் நிறமாதல்",
+            "kn": "ಎಲೆಗಳು ಹಳದಿಯಾಗುವುದು",
+            "ml": "இലകൾ മഞ്ഞളിക്കൽ",
+            "mr": "पाने पिवळी पडणे"
+        },
+        "leaf blight": {
+            "te": "ఆకు మాడు తెగులు",
+            "hi": "पत्ती झुलसा रोग",
+            "ta": "இலை கருகல் நோய்",
+            "kn": "ಎಲೆ ಕರಗು ರೋಗ",
+            "ml": "ഇല കരിച്ചിൽ",
+            "mr": "पानावरील करपा"
+        },
+        "yellow rust": {
+            "te": "పసుపు తుప్పు తెగులు",
+            "hi": "पीला रतुआ",
+            "ta": "மஞ்சள் துரு நோய்",
+            "kn": "హళది తుక్కు రోగ",
+            "ml": "മഞ്ഞ തുരുമ്പ് രോഗ",
+            "mr": "पिवळा तांबेरा"
+        },
+        "brown spot": {
+            "te": "గోధుమ మచ్చ తెగులు",
+            "hi": "भूरा धब्बा रोग",
+            "ta": "பழுப்பு புள்ளி நோய்",
+            "kn": "కందు చుక్కే రోగ",
+            "ml": "തവിട്ടുപുള്ളി രോഗം",
+            "mr": "तपकिरी ठिपके"
+        },
+        "blast": {
+            "te": "అగ్గి తెగులు",
+            "hi": "झोंका रोग",
+            "ta": "குலை நோய்",
+            "kn": "బెంకి రోగ",
+            "ml": "കുമിൾ രോഗം",
+            "mr": "करपा रोग"
+        },
+        "canker": {
+            "te": "క్యాంకర్ తెగులు",
+            "hi": "कैंकर रोग",
+            "ta": "நெருப்புப்புண் நோய்",
+            "kn": "క్యాంకర్ రోగ",
+            "ml": "കാൻകർ രോഗം",
+            "mr": "खैऱ्या रोग"
+        },
+        "rust": {
+            "te": "తుప్పు తెగులు",
+            "hi": "रतुआ रोग",
+            "ta": "துரு நோய்",
+            "kn": "తుక్కు రోగ",
+            "ml": "തുരുമ്പ് രോഗം",
+            "mr": "तांबेरा"
+        },
+        "leaf spot": {
+            "te": "ఆకు మచ్చ తెగులు",
+            "hi": "पत्ती धब्बा रोग",
+            "ta": "இலை புள்ளி நோய்",
+            "kn": "ఎలే చుక్కే రోగ",
+            "ml": "ഇലപ്പുള്ളി രോഗം",
+            "mr": "पानावरील ठिपके"
+        },
+        "mosaic": {
+            "te": "మొజాయిక్ తెగులు",
+            "hi": "मोज़ेक रोग",
+            "ta": "மொசைக் நோய்",
+            "kn": "మొసాయిక్ రోగ",
+            "ml": "മൊസൈക് രോഗം",
+            "mr": "मोझॅक रोग"
+        },
+        "healthy": {
+            "te": "ఆరోగ్యకరమైనది",
+            "hi": "स्वस्थ फसल",
+            "ta": "ஆரோக்கியமானது",
+            "kn": "ఆరోగ్యకర",
+            "ml": "ആരോഗ്യമുള്ളത്",
+            "mr": "निरोगी"
+        }
+    }
+    
+    for dis_key, langs in disease_db.items():
+        if dis_key in dis_lower:
+            return langs.get(lang_lower, disease_name)
+    return disease_name
+
 
 router = APIRouter(prefix="/api", tags=["Predictions"])
 
@@ -57,7 +310,25 @@ async def upload_image(
         buffer.write(content_bytes)
 
     relative_path = f"uploads/{safe_filename}"
-    return {"image_path": relative_path}
+    
+    # Fast ONNX Neural Crop Pre-Detection
+    detected_crop = ""
+    conf = 0.95
+    try:
+        import asyncio
+        from model.predict_pytorch import predict_crop_disease
+        res = await asyncio.to_thread(predict_crop_disease, file_path)
+        if res and res.get("crop_name") and res.get("crop_name") != "Unknown":
+            detected_crop = res["crop_name"]
+            conf = res.get("confidence", 0.95)
+    except Exception as e:
+        print(f"[PRE-CLASSIFY WARNING] Fast neural pre-detection bypassed: {e}")
+
+    return {
+        "image_path": relative_path,
+        "detected_crop": detected_crop,
+        "confidence": round(conf * 100 if conf <= 1.0 else conf, 1)
+    }
 
 @router.post("/agrochemical-scan")
 async def agrochemical_scan_endpoint(
@@ -80,10 +351,47 @@ async def agrochemical_scan_endpoint(
         )
 
     try:
+        import asyncio
         from backend.app.services.agrochemical_detector import detect_agrochemical
-        agro_res = detect_agrochemical(full_image_path, force_scan=True)
+        agro_res = await asyncio.to_thread(detect_agrochemical, full_image_path, True)
         info = agro_res.get("info", {})
         extracted_text = agro_res.get("extracted_text", "")
+
+        from backend.app.services.nvidia_service import nvidia_service
+        if agro_res.get("matched_key") == "generic" and nvidia_service.client:
+            try:
+                llm_parsed = await nvidia_service.parse_agrochemical_ocr(extracted_text)
+                if llm_parsed:
+                    info = {
+                        "product_name": llm_parsed.get("productName", info.get("product_name")),
+                        "brand": llm_parsed.get("brand", info.get("brand")),
+                        "active_ingredients": llm_parsed.get("activeIngredient", info.get("active_ingredients")),
+                        "product_type": llm_parsed.get("category", info.get("product_type")),
+                        "formulation": llm_parsed.get("formulation", info.get("formulation")),
+                        "batch_number": llm_parsed.get("batchNumber", info.get("batch_number")),
+                        "mfg_date": llm_parsed.get("mfgDate", info.get("mfg_date")),
+                        "exp_date": llm_parsed.get("expDate", info.get("exp_date")),
+                        "net_qty": llm_parsed.get("netQuantity", info.get("net_qty")),
+                        "registration_number": llm_parsed.get("registrationNumber", info.get("registration_number")),
+                        "target_crops": [c.strip() for c in llm_parsed.get("targetCrops", "").split(",") if c.strip()],
+                        "target_diseases": [d.strip() for d in llm_parsed.get("targetDiseases", "").split(",") if d.strip()],
+                        "target_pests": [p.strip() for p in llm_parsed.get("targetPests", "").split(",") if p.strip()],
+                        "recommended_dosage": llm_parsed.get("dosage", info.get("recommended_dosage")),
+                        "mixing_ratio": llm_parsed.get("mixingRatio", info.get("mixing_ratio")),
+                        "spray_interval": llm_parsed.get("sprayInterval", info.get("spray_interval")),
+                        "reentry_interval": llm_parsed.get("reentryInterval", info.get("reentry_interval")),
+                        "preharvest_interval": llm_parsed.get("preharvestInterval", info.get("preharvest_interval")),
+                        "safety_category": llm_parsed.get("toxicityClass", info.get("safety_category")),
+                        "protective_equipment": llm_parsed.get("ppe", info.get("protective_equipment")),
+                        "storage_instructions": llm_parsed.get("storage", info.get("storage_instructions")),
+                        "disposal_instructions": llm_parsed.get("disposal", info.get("disposal_instructions")),
+                        "compatible_products": llm_parsed.get("compatibleProducts", []),
+                        "incompatible_products": llm_parsed.get("incompatibleProducts", [])
+                    }
+                    agro_res["confidence"] = 95.0
+            except Exception as ocr_err:
+                print(f"[NVIDIA OCR PARSER WARNING] LLM OCR parsing failed: {ocr_err}")
+
         now = datetime.now(timezone.utc)
 
         # Save scan to MongoDB predictions history
@@ -239,7 +547,7 @@ async def identify_plant_endpoint(
         result = await plant_identifier_service.identify_plant(full_image_path)
         if not result.get("success", False):
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=result.get("error", "This plant could not be confidently identified.")
             )
         return result
@@ -251,8 +559,8 @@ async def identify_plant_endpoint(
             detail=f"Plant identification error: {str(e)}"
         )
 
-# Backwards compatibility alias route
-@router.post("/predict")
+# Unify all prediction routes to predict_pytorch_endpoint
+@router.post("/predict", response_model=PredictionResponse)
 async def predict_legacy_alias(
     req: PredictRequest,
     current_user: dict = Depends(get_current_user),
@@ -260,7 +568,7 @@ async def predict_legacy_alias(
 ):
     return await predict_pytorch_endpoint(req, current_user, db)
 
-@router.post("/predict-pytorch")
+@router.post("/predict-pytorch", response_model=PredictionResponse)
 async def predict_pytorch_endpoint(
     req: PredictRequest,
     current_user: dict = Depends(get_current_user),
@@ -279,13 +587,22 @@ async def predict_pytorch_endpoint(
             detail="Specified image file does not exist on server."
         )
 
-    # Perform prediction using the real PyTorch pipeline
+    # Perform prediction using the real PyTorch pipeline inside a separate worker thread to prevent event loop blocking
     try:
-        from model.predict_pytorch import predict_crop_disease_pytorch
-        prediction_result = predict_crop_disease_pytorch(
+        import asyncio
+        import inspect
+        sig = inspect.signature(predict_crop_disease)
+        kwargs = {}
+        if "crop_filter" in sig.parameters:
+            kwargs["crop_filter"] = getattr(req, "crop_filter", None)
+        elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+            kwargs["crop_filter"] = getattr(req, "crop_filter", None)
+
+        prediction_result = await asyncio.to_thread(
+            predict_crop_disease,
             full_image_path, 
             req.explainer_type or "gradcam++",
-            crop_filter=getattr(req, "crop_filter", None)
+            **kwargs
         )
     except Exception as e:
         raise HTTPException(
@@ -296,9 +613,70 @@ async def predict_pytorch_endpoint(
     # Return OOD rejection with 422 so frontend can show the message clearly
     if prediction_result.get("raw_label") == "OOD":
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=prediction_result["disease_name"]
         )
+
+    # Check for low confidence threshold rejection
+    try:
+        from model.configs.config import PipelineConfig
+        threshold = getattr(PipelineConfig, "CONFIDENCE_REJECTION_THRESHOLD", 0.35)
+    except Exception:
+        threshold = 0.35
+
+    confidence = float(prediction_result.get("confidence", 0.0))
+    if confidence < threshold:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Low confidence ({confidence * 100:.1f}%) - Unsupported crop or unknown input. Please upload a supported crop leaf image."
+        )
+
+    # Refine borderline prediction using NVIDIA NIM LLM reasoning
+    confidence = float(prediction_result.get("confidence", 0.0))
+    if 0.55 <= confidence <= 0.88:
+        try:
+            from backend.app.services.nvidia_service import nvidia_service
+            from backend.app.services.farm_profile_service import FarmProfileService
+            
+            # Fetch active farm profile
+            active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+            
+            # Fetch latest telemetry context from MongoDB
+            latest_telemetry = {}
+            try:
+                telemetry_cursor = db["iot_telemetry"].find().sort([("received_at", -1), ("_id", -1)]).limit(1)
+                async for doc in telemetry_cursor:
+                    latest_telemetry = {k: v for k, v in doc.items() if k != "_id"}
+                    for tk, tv in list(latest_telemetry.items()):
+                        if isinstance(tv, datetime):
+                            latest_telemetry[tk] = tv.isoformat()
+                    break
+            except Exception:
+                pass
+
+            refinement = await nvidia_service.refine_prediction(
+                crop_name=prediction_result["crop_name"],
+                top_predictions=prediction_result.get("top_predictions", []),
+                sensor_data=latest_telemetry or {
+                    "temperature": 28.0,
+                    "humidity": 60.0,
+                    "soil_moisture": 50.0,
+                    "rain_sensor": 0
+                },
+                farm_profile=active_farm
+            )
+
+            if refinement and refinement.get("refined"):
+                print(f"[NVIDIA REFINEMENT SUCCESS] Refined to: {refinement['disease_name']} ({refinement['confidence']})")
+                prediction_result["crop_name"] = refinement["crop_name"]
+                prediction_result["disease_name"] = refinement["disease_name"]
+                prediction_result["confidence"] = refinement["confidence"]
+                if "top_predictions" in prediction_result and prediction_result["top_predictions"]:
+                    prediction_result["top_predictions"][0]["crop_name"] = refinement["crop_name"]
+                    prediction_result["top_predictions"][0]["disease_name"] = refinement["disease_name"]
+                    prediction_result["top_predictions"][0]["confidence"] = refinement["confidence"]
+        except Exception as ref_err:
+            print(f"[NVIDIA REFINEMENT WARNING] Refiner execution bypassed: {ref_err}")
 
     # Base diagnostic fields
     symptoms = prediction_result.get("symptoms", "None")
@@ -320,12 +698,31 @@ async def predict_pytorch_endpoint(
             farm_profile=active_farm
         )
         if llama_advice:
-            def force_str(val):
+            def force_str(val, depth=0):
+                if isinstance(val, str):
+                    val_stripped = val.strip()
+                    if (val_stripped.startswith("{") and val_stripped.endswith("}")) or (val_stripped.startswith("[") and val_stripped.endswith("]")):
+                        try:
+                            import ast
+                            val = ast.literal_eval(val_stripped)
+                        except Exception:
+                            try:
+                                import json
+                                val = json.loads(val_stripped)
+                            except Exception:
+                                pass
                 if isinstance(val, dict):
-                    return ", ".join(f"{k}: {v}" for k, v in val.items())
+                    lines = []
+                    for k, v in val.items():
+                        k_clean = str(k).replace("_", " ").title()
+                        if isinstance(v, (dict, list)):
+                            lines.append(f"{k_clean}: [{force_str(v, depth+1)}]")
+                        else:
+                            lines.append(f"{k_clean}: {v}")
+                    return "; ".join(lines) if depth > 0 else "\n".join(lines)
                 elif isinstance(val, list):
-                    return ", ".join(map(str, val))
-                return str(val) if val else "None"
+                    return ", ".join(force_str(x, depth+1) for x in val)
+                return str(val) if val is not None else "None"
                 
             if llama_advice.get("disease_explanation"):
                 symptoms = force_str(llama_advice["disease_explanation"])
@@ -345,47 +742,90 @@ async def predict_pytorch_endpoint(
     except Exception:
         pass
 
-    # Translate diagnostic text into user's preferred language
-    target_lang = (req.language or "en").lower()
+    # Translate diagnostic text into user's preferred language - fallback to profile language if not provided
+    user_pref_lang = current_user.get("preferred_language") or "en"
+    target_lang = (req.language or user_pref_lang).lower()
     if target_lang != "en":
+        translated_via_nvidia = False
         try:
-            from deep_translator import GoogleTranslator
-            translator = GoogleTranslator(source='auto', target=target_lang[:2])
-            
-            def safe_translate(text):
-                if not text or text == "None": return text
-                try:
-                    return translator.translate(text)
-                except Exception:
-                    return text
+            from backend.app.services.nvidia_service import nvidia_service
+            if nvidia_service.client:
+                fields_to_translate = {
+                    "crop_name": prediction_result["crop_name"],
+                    "disease_name": prediction_result["disease_name"],
+                    "symptoms": symptoms,
+                    "severity": severity,
+                    "organic_treatment": organic_treatment,
+                    "chemical_treatment": chemical_treatment,
+                    "prevention_methods": prevention_methods,
+                    "possible_causes": possible_causes,
+                    "safety_precautions": prediction_result.get("safety_precautions", "None")
+                }
+                
+                translated_fields = await nvidia_service.translate_diagnosis(fields_to_translate, target_lang)
+                if translated_fields:
+                    prediction_result["crop_name"] = get_farmer_crop_translation(translated_fields.get("crop_name", prediction_result["crop_name"]), target_lang)
+                    prediction_result["disease_name"] = get_farmer_disease_translation(translated_fields.get("disease_name", prediction_result["disease_name"]), target_lang)
+                    symptoms = translated_fields.get("symptoms", symptoms)
+                    severity = translated_fields.get("severity", severity)
+                    organic_treatment = translated_fields.get("organic_treatment", organic_treatment)
+                    chemical_treatment = translated_fields.get("chemical_treatment", chemical_treatment)
+                    prevention_methods = translated_fields.get("prevention_methods", prevention_methods)
+                    possible_causes = translated_fields.get("possible_causes", possible_causes)
+                    prediction_result["safety_precautions"] = translated_fields.get("safety_precautions", prediction_result.get("safety_precautions", "None"))
+                    translated_via_nvidia = True
+        except Exception as tx_err:
+            print("NVIDIA translation failed, falling back to deep_translator:", tx_err)
 
-            def translate_with_english_chemicals(text):
-                if not text or text == "None": return text
-                translated = safe_translate(text)
-                # List of common agrochemicals to preserve in English
-                chemicals = [
-                    "Mancozeb", "Chlorothalonil", "Copper", "Neem", "Azoxystrobin", 
-                    "Propiconazole", "Hexaconazole", "Validamycin", "Streptomycin", 
-                    "Tetracycline", "Carbendazim", "Captan", "Thiram", "Bordeaux", 
-                    "Sulfur", "Imidacloprid", "Thiamethoxam", "Spinosad", "Fungicide", "Pesticide", "Insecticide"
-                ]
-                found = [c for c in chemicals if c.lower() in text.lower()]
-                if found:
-                    translated += f" ({', '.join(found)})"
-                return translated
+        if not translated_via_nvidia:
+            try:
+                from deep_translator import GoogleTranslator
+                translator = GoogleTranslator(source='auto', target=target_lang[:2])
+                
+                def safe_translate(text):
+                    if not text or text == "None": return text
+                    try:
+                        return translator.translate(text)
+                    except Exception:
+                        return text
 
-            symptoms = safe_translate(symptoms)
-            organic_treatment = translate_with_english_chemicals(organic_treatment)
-            chemical_treatment = translate_with_english_chemicals(chemical_treatment)
-            prevention_methods = safe_translate(prevention_methods)
-            possible_causes = safe_translate(possible_causes)
-            # Fetch safety_precautions from dictionary and translate
-            safety_precautions = prediction_result.get("safety_precautions", "None")
-            safety_precautions = translate_with_english_chemicals(safety_precautions)
-            prediction_result["safety_precautions"] = safety_precautions
-        except Exception as ex:
-            print("Phase 4 deep-translator fallback failed:", ex)
-            pass
+                def translate_with_english_chemicals(text):
+                    if not text or text == "None": return text
+                    translated = safe_translate(text)
+                    chemicals = [
+                        "Mancozeb", "Chlorothalonil", "Copper", "Neem", "Azoxystrobin", 
+                        "Propiconazole", "Hexaconazole", "Validamycin", "Streptomycin", 
+                        "Tetracycline", "Carbendazim", "Captan", "Thiram", "Bordeaux", 
+                        "Sulfur", "Imidacloprid", "Thiamethoxam", "Spinosad", "Fungicide", "Pesticide", "Insecticide"
+                    ]
+                    found = [c for c in chemicals if c.lower() in text.lower()]
+                    if found:
+                        translated += f" ({', '.join(found)})"
+                    return translated
+
+                # Fallback translation for crop and disease names
+                prediction_result["crop_name"] = get_farmer_crop_translation(safe_translate(prediction_result.get("crop_name", "")), target_lang)
+                prediction_result["disease_name"] = get_farmer_disease_translation(safe_translate(prediction_result.get("disease_name", "")), target_lang)
+                symptoms = safe_translate(symptoms)
+                organic_treatment = translate_with_english_chemicals(organic_treatment)
+                chemical_treatment = translate_with_english_chemicals(chemical_treatment)
+                
+                if isinstance(prevention_methods, list):
+                    prevention_methods = [safe_translate(m) for m in prevention_methods]
+                else:
+                    prevention_methods = safe_translate(prevention_methods)
+
+                if isinstance(possible_causes, list):
+                    possible_causes = [safe_translate(c) for c in possible_causes]
+                else:
+                    possible_causes = safe_translate(possible_causes)
+
+                safety_precautions = prediction_result.get("safety_precautions", "None")
+                safety_precautions = translate_with_english_chemicals(safety_precautions)
+                prediction_result["safety_precautions"] = safety_precautions
+            except Exception as ex:
+                print("Phase 4 deep-translator fallback failed:", ex)
+                pass
 
     # --- PHASE 5: AI CROP ADVISOR INTEGRATION ---
     advisor_data = None
@@ -400,45 +840,171 @@ async def predict_pytorch_endpoint(
         )
         
         if target_lang != "en" and advisor_data:
+            translated_advisor_via_nvidia = False
             try:
-                from deep_translator import GoogleTranslator
-                
-                # Extract texts that need translation
-                organic_texts = advisor_data.get("treatment", {}).get("organic", [])
-                chemical_texts = advisor_data.get("treatment", {}).get("chemical", [])
-                prevention_texts = advisor_data.get("prevention", [])
-                tips_texts = advisor_data.get("tips", [])
-                
-                # Use robust Google Translate engine instead of LLM to avoid token truncation and hallucinations
-                translator = GoogleTranslator(source='auto', target=target_lang[:2]) # te, hi, ta, etc.
-                
-                def translate_array(arr):
-                    if not arr: return []
-                    translated = []
-                    for text in arr:
-                        if not text: continue
-                        try:
-                            translated.append(translator.translate(text))
-                        except Exception:
-                            translated.append(text)
-                    return translated
+                from backend.app.services.nvidia_service import nvidia_service
+                if nvidia_service.client:
+                    advisor_fields = {
+                        "organic_treatment": advisor_data.get("treatment", {}).get("organic", []),
+                        "chemical_treatment": advisor_data.get("treatment", {}).get("chemical", []),
+                        "prevention": advisor_data.get("prevention", []),
+                        "tips": advisor_data.get("tips", []),
+                        "severity_level": advisor_data.get("severity", {}).get("level", ""),
+                        "severity_description": advisor_data.get("severity", {}).get("description", ""),
+                        "spray_best_time": advisor_data.get("spray", {}).get("best_time", ""),
+                        "spray_wind_warning": advisor_data.get("spray", {}).get("wind_warning", "")
+                    }
+                    translated_advisor = await nvidia_service.translate_diagnosis(advisor_fields, target_lang)
+                    if translated_advisor:
+                        advisor_data["treatment"]["organic"] = translated_advisor.get("organic_treatment", advisor_data["treatment"]["organic"])
+                        advisor_data["treatment"]["chemical"] = translated_advisor.get("chemical_treatment", advisor_data["treatment"]["chemical"])
+                        advisor_data["prevention"] = translated_advisor.get("prevention", advisor_data["prevention"])
+                        advisor_data["tips"] = translated_advisor.get("tips", advisor_data["tips"])
+                        if "level" in advisor_data.get("severity", {}):
+                            advisor_data["severity"]["level"] = translated_advisor.get("severity_level", advisor_data["severity"]["level"])
+                        if "description" in advisor_data.get("severity", {}):
+                            advisor_data["severity"]["description"] = translated_advisor.get("severity_description", advisor_data["severity"]["description"])
+                        if "best_time" in advisor_data.get("spray", {}):
+                            advisor_data["spray"]["best_time"] = translated_advisor.get("spray_best_time", advisor_data["spray"]["best_time"])
+                        if "wind_warning" in advisor_data.get("spray", {}):
+                            advisor_data["spray"]["wind_warning"] = translated_advisor.get("spray_wind_warning", advisor_data["spray"]["wind_warning"])
+                        translated_advisor_via_nvidia = True
+            except Exception as tx_adv_err:
+                print("NVIDIA advisor translation failed, falling back to deep_translator:", tx_adv_err)
 
-                if organic_texts:
-                    advisor_data["treatment"]["organic"] = translate_array(organic_texts)
-                if chemical_texts:
-                    advisor_data["treatment"]["chemical"] = translate_array(chemical_texts)
-                if prevention_texts:
-                    advisor_data["prevention"] = translate_array(prevention_texts)
-                if tips_texts:
-                    advisor_data["tips"] = translate_array(tips_texts)
+            if not translated_advisor_via_nvidia:
+                try:
+                    from deep_translator import GoogleTranslator
                     
-            except Exception as ex:
-                print("Deep-translator fallback failed:", ex)
-                pass
-                
+                    organic_texts = advisor_data.get("treatment", {}).get("organic", [])
+                    chemical_texts = advisor_data.get("treatment", {}).get("chemical", [])
+                    prevention_texts = advisor_data.get("prevention", [])
+                    tips_texts = advisor_data.get("tips", [])
+                    
+                    translator = GoogleTranslator(source='auto', target=target_lang[:2])
+                    
+                    def translate_array(arr):
+                        if not arr: return []
+                        translated = []
+                        for text in arr:
+                            if not text: continue
+                            try:
+                                translated.append(translator.translate(text))
+                            except Exception:
+                                translated.append(text)
+                        return translated
+
+                    if organic_texts:
+                        advisor_data["treatment"]["organic"] = translate_array(organic_texts)
+                    if chemical_texts:
+                        advisor_data["treatment"]["chemical"] = translate_array(chemical_texts)
+                    if prevention_texts:
+                        advisor_data["prevention"] = translate_array(prevention_texts)
+                    if tips_texts:
+                        advisor_data["tips"] = translate_array(tips_texts)
+                        
+                    # Fallback translate severity and spray fields
+                    def translate_safe(text):
+                        if not text: return ""
+                        try:
+                            return translator.translate(text)
+                        except Exception:
+                            return text
+
+                    if "level" in advisor_data.get("severity", {}):
+                        advisor_data["severity"]["level"] = translate_safe(advisor_data["severity"]["level"])
+                    if "description" in advisor_data.get("severity", {}):
+                        advisor_data["severity"]["description"] = translate_safe(advisor_data["severity"]["description"])
+                    if "best_time" in advisor_data.get("spray", {}):
+                        advisor_data["spray"]["best_time"] = translate_safe(advisor_data["spray"]["best_time"])
+                    if "wind_warning" in advisor_data.get("spray", {}):
+                        advisor_data["spray"]["wind_warning"] = translate_safe(advisor_data["spray"]["wind_warning"])
+                except Exception as ex:
+                    print("Deep-translator fallback failed:", ex)
+                    pass
+            
+            # Map advisor crop name to farmer-friendly translation
+            if "crop" in advisor_data and "name" in advisor_data["crop"]:
+                advisor_data["crop"]["name"] = get_farmer_crop_translation(advisor_data["crop"]["name"], target_lang)
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Crop Advisor generation failed: {e}")
+
+    # Generate a customized 7-day spray and treatment schedule
+    prescription_calendar = []
+    try:
+        from backend.app.services.nvidia_service import nvidia_service
+        from backend.app.services.farm_profile_service import FarmProfileService
+        active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+        irrigation = active_farm.get("irrigation_method", "Drip") if active_farm else "Drip"
+        
+        prescription_calendar = await nvidia_service.generate_prescription_calendar(
+            crop_name=prediction_result["crop_name"],
+            disease_name=prediction_result["disease_name"],
+            severity=severity,
+            irrigation_method=irrigation
+        )
+    except Exception as cal_err:
+        print(f"[NVIDIA PRESCRIPTION WARNING] Failed to generate treatment calendar: {cal_err}")
+
+    # Financial matching and VAR Analysis
+    financial_metrics = None
+    try:
+        from backend.app.services.farm_profile_service import FarmProfileService
+        active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+        
+        land_size = float(active_farm.get("land_size", 2.0)) if active_farm else 2.0
+        
+        mandi_rate_map = {
+            "tomato": (2200, 150),
+            "rice": (2100, 25),
+            "paddy": (2100, 25),
+            "cotton": (7500, 10),
+            "wheat": (2275, 20),
+            "sugarcane": (340, 350),
+            "groundnut": (6300, 12),
+            "maize": (2090, 30),
+            "corn": (2090, 30),
+            "potato": (1600, 100),
+            "chilli": (18000, 15),
+            "chili": (18000, 15)
+        }
+        
+        crop_lower = prediction_result["crop_name"].lower()
+        matched_rate = None
+        for key, val in mandi_rate_map.items():
+            if key in crop_lower:
+                matched_rate = val
+                break
+        
+        if not matched_rate:
+            matched_rate = (2000, 20)
+            
+        price_per_qtl, yield_per_acre = matched_rate
+        total_yield_qtl = land_size * yield_per_acre
+        total_crop_value = total_yield_qtl * price_per_qtl
+        
+        severity_lower = severity.lower()
+        if "critical" in severity_lower or "emergency" in severity_lower:
+            loss_ratio = 0.60
+        elif "high" in severity_lower or "moderate" in severity_lower:
+            loss_ratio = 0.25
+        elif "low" in severity_lower or "early" in severity_lower:
+            loss_ratio = 0.10
+        else:
+            loss_ratio = 0.05
+            
+        val_at_risk = total_crop_value * loss_ratio
+        
+        financial_metrics = {
+            "mandi_price_qtl": price_per_qtl,
+            "estimated_yield_qtl": total_yield_qtl,
+            "total_crop_value_inr": total_crop_value,
+            "value_at_risk_inr": val_at_risk,
+            "acreage_used": land_size
+        }
+    except Exception as fin_err:
+        print(f"[NVIDIA FINANCIAL WARNING] Failed to compute economic impact: {fin_err}")
 
     now = datetime.now(timezone.utc)
     prediction_record = {
@@ -473,7 +1039,9 @@ async def predict_pytorch_endpoint(
         "recommended_follow_up_actions": prediction_result.get("recommended_follow_up_actions", []),
         "irrigation_suggestions": prediction_result.get("irrigation_suggestions", "None"),
         "environmental_recommendations": prediction_result.get("environmental_recommendations", "None"),
-        "advisor": advisor_data
+        "advisor": advisor_data,
+        "prescription_calendar": prescription_calendar,
+        "financial_metrics": financial_metrics
     }
 
     result = await db.predictions.insert_one(prediction_record)
@@ -504,201 +1072,52 @@ async def predict_pytorch_endpoint(
                     action_url="/result"
                 ))
         except Exception:
-            pass  # Never block the prediction response
+            pass
+
+        # --- Neighborhood Outbreak Alert Trigger ---
+        is_contagious = any(k in disease.lower() for k in ["blight", "blast", "rust", "canker", "smut", "rot"])
+        is_severe = severity.lower() in ["high", "critical", "emergency", "medium", "moderate"]
+        if is_contagious and is_severe:
+            try:
+                from backend.app.services.farm_profile_service import FarmProfileService
+                active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+                if active_farm and active_farm.get("district"):
+                    user_district = active_farm.get("district")
+                    user_village = active_farm.get("village", "N/A")
+                    
+                    # Query other farmers in the same district
+                    other_farms = db["farms"].find({
+                        "district": user_district,
+                        "user_id": {"$ne": str(current_user["id"])}
+                    })
+                    
+                    notified_users = set()
+                    async for farm_doc in other_farms:
+                        other_uid = farm_doc.get("user_id")
+                        if other_uid and other_uid not in notified_users:
+                            notified_users.add(other_uid)
+                            dup_outbreak = await NotificationService.check_duplicate(
+                                db, other_uid, "Disease",
+                                f"⚠️ Outbreak Alert in {user_district}", window_hours=4
+                            )
+                            if not dup_outbreak:
+                                await NotificationService.create_notification(db, NotificationCreate(
+                                    user_id=other_uid,
+                                    title=f"⚠️ Outbreak Alert: {crop} {disease}",
+                                    message=(
+                                        f"Alert: A severe case of {disease} on {crop} has been diagnosed in "
+                                        f"nearby {user_village} village. Inspect your fields immediately."
+                                    ),
+                                    category="Disease",
+                                    priority="High",
+                                    action_url="/notifications"
+                                ))
+                    if notified_users:
+                        print(f"[NVIDIA OUTBREAK ALERT] Broadcasted outbreak warning alerts to {len(notified_users)} nearby farmers in {user_district} district.")
+            except Exception as outbreak_err:
+                print(f"[NVIDIA OUTBREAK WARNING] Outbreak broadcast bypassed: {outbreak_err}")
 
     return prediction_record
-
-@router.post("/predict", response_model=PredictionResponse)
-async def predict_image(
-    req: PredictRequest,
-    current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
-):
-    """Run model prediction on a previously uploaded image."""
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    full_image_path = os.path.join(base_dir, req.image_path.replace("/", os.sep))
-
-    if not os.path.exists(full_image_path):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Specified image file does not exist on server."
-        )
-
-    # Perform prediction
-    try:
-        prediction_result = predict_crop_disease(
-            full_image_path, 
-            req.explainer_type,
-            crop_filter=getattr(req, "crop_filter", None)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Inference error: {str(e)}"
-        )
-
-    # Assert Out-of-Distribution rejection
-    if prediction_result.get("raw_label") == "OOD":
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=prediction_result["disease_name"]
-        )
-
-    # Assert confidence threshold: raise 422 if best prediction confidence < threshold
-    from model.configs.config import PipelineConfig
-    if prediction_result["confidence"] < PipelineConfig.CONFIDENCE_REJECTION_THRESHOLD:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Low confidence - Please upload another image."
-        )
-
-    # Save to MongoDB
-    now = datetime.now(timezone.utc)
-    
-    # 1. Base local diagnostic values
-    symptoms = prediction_result.get("symptoms", "None")
-    severity = prediction_result.get("disease_severity", "Unknown")
-    prevention_methods = prediction_result.get("prevention_methods", [])
-    organic_treatment = prediction_result.get("organic_treatment", "None")
-    chemical_treatment = prediction_result.get("chemical_treatment", "None")
-    possible_causes = prediction_result.get("possible_causes", [])
-
-    # 2. Enrich using NVIDIA Llama 3.1 LLM advisory plan if available
-    try:
-        from backend.app.services.nvidia_service import nvidia_service
-        from backend.app.services.farm_profile_service import FarmProfileService
-        active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
-        
-        llama_advice = await nvidia_service.generate_farming_advice(
-            crop_name=prediction_result["crop_name"],
-            disease_name=prediction_result["disease_name"],
-            confidence=prediction_result["confidence"],
-            farm_profile=active_farm
-        )
-        if llama_advice:
-            def force_str(val):
-                if isinstance(val, dict):
-                    return ", ".join(f"{k}: {v}" for k, v in val.items())
-                elif isinstance(val, list):
-                    return ", ".join(map(str, val))
-                return str(val) if val else "None"
-                
-            if llama_advice.get("disease_explanation"):
-                symptoms = force_str(llama_advice["disease_explanation"])
-            if llama_advice.get("severity"):
-                severity = force_str(llama_advice["severity"])
-            if llama_advice.get("organic_treatment"):
-                organic_treatment = force_str(llama_advice["organic_treatment"])
-            if llama_advice.get("chemical_treatment"):
-                chemical_treatment = force_str(llama_advice["chemical_treatment"])
-            
-            if llama_advice.get("prevention_methods"):
-                pm = llama_advice["prevention_methods"]
-                prevention_methods = pm if isinstance(pm, list) else [force_str(pm)]
-            if llama_advice.get("possible_causes"):
-                pc = llama_advice["possible_causes"]
-                possible_causes = pc if isinstance(pc, list) else [force_str(pc)]
-    except Exception:
-        # Fallback gracefully to local static diagnostics database if LLM is offline
-        pass
-
-    # 3. Translate diagnostic text fields into the user's preferred language
-    target_lang = (req.language or "en").lower()
-    if target_lang != "en":
-        try:
-            from backend.app.services.nvidia_service import nvidia_service
-            translated = await nvidia_service.translate_diagnosis(
-                fields={
-                    "symptoms": symptoms,
-                    "organic_treatment": organic_treatment,
-                    "chemical_treatment": chemical_treatment,
-                    "prevention_methods": prevention_methods,
-                    "possible_causes": possible_causes,
-                },
-                language=target_lang
-            )
-            if translated:
-                def force_str(val):
-                    if isinstance(val, dict):
-                        return ", ".join(f"{k}: {v}" for k, v in val.items())
-                    elif isinstance(val, list):
-                        return ", ".join(map(str, val))
-                    return str(val) if val else "None"
-                    
-                symptoms = force_str(translated.get("symptoms", symptoms))
-                organic_treatment = force_str(translated.get("organic_treatment", organic_treatment))
-                chemical_treatment = force_str(translated.get("chemical_treatment", chemical_treatment))
-                
-                pm = translated.get("prevention_methods", prevention_methods)
-                prevention_methods = pm if isinstance(pm, list) else [force_str(pm)]
-                pc = translated.get("possible_causes", possible_causes)
-                possible_causes = pc if isinstance(pc, list) else [force_str(pc)]
-        except Exception:
-            pass  # Fallback to English if translation fails
-
-    prediction_record = {
-        "user_id": str(current_user["id"]),
-        "image_path": req.image_path,
-        "crop_name": prediction_result["crop_name"],
-        "disease_name": prediction_result["disease_name"],
-        "confidence": float(prediction_result["confidence"]),
-        "prediction_date": now.strftime("%Y-%m-%d"),
-        "prediction_time": now.strftime("%H:%M:%S"),
-        "prediction_status": prediction_result["prediction_status"],
-        "created_at": now,
-        "top_predictions": prediction_result.get("top_predictions", []),
-        "prediction_time_ms": float(prediction_result.get("prediction_time_ms", 0.0)),
-        "gradcam_base64": prediction_result.get("gradcam_base64"),
-        "heatmap_base64": prediction_result.get("heatmap_base64"),
-        "comparison_base64": prediction_result.get("comparison_base64"),
-        "uncertainty_score": float(prediction_result.get("uncertainty_score", 0.0)),
-        "disease_severity": severity,
-        "most_affected_region": prediction_result.get("most_affected_region", "None"),
-        "possible_causes": possible_causes,
-        "similar_diseases": prediction_result.get("similar_diseases", []),
-        "symptoms": symptoms,
-        "disease_stage": prediction_result.get("disease_stage", "Early"),
-        "prevention_methods": prevention_methods,
-        "organic_treatment": organic_treatment,
-        "chemical_treatment": chemical_treatment,
-        "recommended_pesticides": prediction_result.get("recommended_pesticides", []),
-        "recommended_fertilizers": prediction_result.get("recommended_fertilizers", []),
-        "safety_precautions": prediction_result.get("safety_precautions", "None"),
-        "estimated_recovery_probability": float(prediction_result.get("estimated_recovery_probability", 1.0)),
-        "recommended_follow_up_actions": prediction_result.get("recommended_follow_up_actions", []),
-        "irrigation_suggestions": prediction_result.get("irrigation_suggestions", "None"),
-        "environmental_recommendations": prediction_result.get("environmental_recommendations", "None")
-    }
-
-    result = await db.predictions.insert_one(prediction_record)
-    prediction_record["id"] = str(result.inserted_id)
-    if "_id" in prediction_record:
-        del prediction_record["_id"]
-
-    # --- Disease Alert Notification ---
-    if prediction_result.get("prediction_status") == "diseased":
-        crop = prediction_result.get("crop_name", "Crop")
-        disease = prediction_result.get("disease_name", "Unknown disease")
-        confidence = round(float(prediction_result.get("confidence", 0)) * 100, 1)
-        try:
-            dup = await NotificationService.check_duplicate(
-                db, str(current_user["id"]), "Disease",
-                f"Disease Detected: {disease}", window_hours=2
-            )
-            if not dup:
-                await NotificationService.create_notification(db, NotificationCreate(
-                    user_id=str(current_user["id"]),
-                    title=f"Disease Detected: {disease}",
-                    message=(
-                        f"{disease} detected on {crop} with {confidence}% confidence. "
-                        "Immediate treatment is recommended. Check your AI scan results for details."
-                    ),
-                    category="Disease",
-                    priority="Critical",
-                    action_url="/result"
-                ))
-        except Exception:
-            pass  # Never block the prediction response
 
     return prediction_record
 
@@ -764,6 +1183,10 @@ async def get_history(
         elif "user_id" in rec and rec["user_id"] == str(current_user["id"]):
             rec["farmer_name"] = current_user.get("name") or current_user.get("full_name")
             rec["farmer_email"] = current_user.get("email")
+            
+        # Map legacy literal translations to high-fidelity agricultural terms
+        if rec.get("disease_name") == "పసుపు రంగు":
+            rec["disease_name"] = "ఆకులు పసుపుబారడం (క్లోరోసిస్)"
             
         # Ensure proper UTC ISO strings for frontend parsing
         if "created_at" in rec and isinstance(rec["created_at"], datetime):

@@ -6,11 +6,11 @@
 // All LEDs use 220Ω series resistors
 // ==========================================
 #define LED_WHITE_PIN   2   // GPIO 2  - White LED (Power ON / 5-Second Heartbeat Blink)
-#define LED_GREEN_PIN   15  // GPIO 15 - Green LED (Wi-Fi Connected Solid ON / OFF when Disconnected)
-#define LED_BLUE_PIN    4   // GPIO 4  - Blue LED (Bluetooth Connected Solid ON / OFF when Disconnected)
-#define LED_YELLOW_PIN  12  // GPIO 12 - Yellow LED (Frontend / Cloud Data Transmission Flash)
-#define LED_PAGE_PIN    27  // GPIO 27 - Page Switch Feedback LED (Pulses 150ms on Push Button press)
-#define LED_RED_PIN     26  // GPIO 26 - RED Alert Indicator LED (Low Battery <20%, Sensor Disconnect, Alarms)
+#define LED_GREEN_PIN   17  // GPIO 17 - Green LED (Wi-Fi Connected Solid ON / OFF when Disconnected)
+#define LED_BLUE_PIN    5   // GPIO 5  - Blue LED (Bluetooth Connected Solid ON / OFF when Disconnected)
+#define LED_YELLOW_PIN  18  // GPIO 18 - Yellow LED (Frontend / Cloud Data Transmission Flash)
+#define LED_PAGE_PIN    19  // GPIO 19 - Page Switch Feedback LED (Pulses 150ms on Push Button press)
+#define LED_RED_PIN     25  // GPIO 25 - RED Alert Indicator LED (Low Battery <20%, Sensor Disconnect, Alarms)
 
 // LED Status Patterns
 enum class LedPattern {

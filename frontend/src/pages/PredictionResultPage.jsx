@@ -1,10 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Leaf, ShieldAlert, ArrowLeft, Calendar, Clock, Share2, Check, Activity, Sprout, Download, Sparkles } from 'lucide-react';
+import { 
+  Leaf, 
+  ShieldAlert, 
+  ArrowLeft, 
+  Calendar, 
+  Clock, 
+  Share2, 
+  Check, 
+  Activity, 
+  Sprout, 
+  Download, 
+  Sparkles,
+  Printer,
+  MessageCircle,
+  Calculator
+} from 'lucide-react';
 import API from '../services/api';
 import { Card, Button, Badge, Progress, Skeleton } from '../components/ui/index';
 import { useFarm } from '../context/FarmContext';
+import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
+import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
+import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
 
 const ADVICE_DB = {
   "healthy": {
@@ -42,6 +61,7 @@ const ADVICE_DB = {
 };
 
 const PredictionResultPage = () => {
+  const { i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { activeFarm, profileCompleted } = useFarm();
@@ -65,7 +85,10 @@ const PredictionResultPage = () => {
 
     const runAIPrediction = async () => {
       try {
-        const res = await API.post('/api/predict', { image_path: imagePath });
+        const res = await API.post('/api/predict', { 
+          image_path: imagePath,
+          language: i18n.language || 'en'
+        });
         setResult(res.data);
 
         try {
@@ -73,6 +96,7 @@ const PredictionResultPage = () => {
             crop_name: res.data.crop_name,
             disease_name: res.data.disease_name,
             confidence: res.data.confidence,
+            language: i18n.language || 'en',
             farm_context: activeFarm ? {
               farm_name: activeFarm.farm_name,
               location: activeFarm.location,
@@ -127,6 +151,42 @@ const PredictionResultPage = () => {
   const confidencePercent = result?.confidence ? (result.confidence * 100).toFixed(1) : '98.5';
   const displayImgUrl = passedPreviewUrl || (imagePath ? `${backendBaseUrl}/${imagePath.replace(/\\/g, '/')}` : '');
 
+  const diseaseKb = getDiseaseDetails(result?.disease_name, i18n.language);
+  const localizedCrop = translateCrop(result?.crop_name, i18n.language);
+  const localizedDisease = translateDisease(result?.disease_name, i18n.language);
+
+  const handleWhatsAppShare = () => {
+    if (!result) return;
+    shareDiagnosticToWhatsApp({
+      cropName: localizedCrop || result.crop_name,
+      diseaseName: localizedDisease || result.disease_name,
+      confidence: confidencePercent,
+      severity: isHealthy ? 'Healthy' : 'Active Symptoms',
+      chemicals: diseaseKb.chemicals?.length > 0 ? diseaseKb.chemicals : (result.chemical_treatment ? [result.chemical_treatment] : []),
+      organic: diseaseKb.organic?.length > 0 ? diseaseKb.organic : (result.organic_treatment ? [result.organic_treatment] : []),
+      prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
+      acres: activeFarm?.total_area || 1.0,
+      farmLocation: activeFarm?.location || 'Pasupugallu Farm',
+      farmerName: activeFarm?.farm_name || 'AgriShield Farmer'
+    });
+  };
+
+  const handlePrintPrescription = () => {
+    if (!result) return;
+    printPrescriptionSlip({
+      cropName: localizedCrop || result.crop_name,
+      diseaseName: localizedDisease || result.disease_name,
+      confidence: confidencePercent,
+      severity: isHealthy ? 'Healthy' : 'Active Symptoms',
+      chemicals: diseaseKb.chemicals?.length > 0 ? diseaseKb.chemicals : (result.chemical_treatment ? [result.chemical_treatment] : []),
+      organic: diseaseKb.organic?.length > 0 ? diseaseKb.organic : (result.organic_treatment ? [result.organic_treatment] : []),
+      prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
+      acres: activeFarm?.total_area || 1.0,
+      farmLocation: activeFarm?.location || 'Pasupugallu Farm',
+      farmerName: activeFarm?.farm_name || 'AgriShield Farmer'
+    });
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -135,21 +195,45 @@ const PredictionResultPage = () => {
       className="space-y-6 max-w-4xl mx-auto w-full pb-12"
     >
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
         <Link to="/upload">
           <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
             Back to Scan Center
           </Button>
         </Link>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleShare}
-          leftIcon={copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
-        >
-          {copied ? 'Link Copied' : 'Share Result'}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* WhatsApp Share Button */}
+          <Button 
+            variant="solid" 
+            size="sm" 
+            onClick={handleWhatsAppShare}
+            className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-black shadow-md shadow-[#25D366]/20 border-0 active:scale-95"
+            leftIcon={<MessageCircle className="w-4 h-4 fill-white" />}
+          >
+            Send to WhatsApp
+          </Button>
+
+          {/* Download / Print Prescription PDF */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handlePrintPrescription}
+            className="font-extrabold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 active:scale-95"
+            leftIcon={<Printer className="w-4 h-4 text-emerald-500" />}
+          >
+            Prescription (PDF)
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleShare}
+            leftIcon={copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
+          >
+            {copied ? 'Link Copied' : 'Share'}
+          </Button>
+        </div>
       </div>
 
       {/* Main Prediction Summary Card */}
@@ -282,6 +366,18 @@ const PredictionResultPage = () => {
           </Card>
 
         </div>
+      )}
+
+      {/* Field Acreage Chemical Dosage & Spray Tank Calculator */}
+      {!isHealthy && result && !result.is_agrochemical && (
+        <AcreageDosageCalculator 
+          cropName={localizedCrop || result.crop_name}
+          diseaseName={localizedDisease || result.disease_name}
+          chemicalName={diseaseKb.chemicals?.[0]?.split('@')[0]?.trim() || result.chemical_treatment?.split('@')[0]?.trim() || "Mancozeb 75% WP"}
+          dosagePerLiter={2.5}
+          unit="g"
+          initialAcres={activeFarm?.total_area || 1.0}
+        />
       )}
 
       {/* Agrochemical Product Details */}

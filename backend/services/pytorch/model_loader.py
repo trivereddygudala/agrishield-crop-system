@@ -17,17 +17,34 @@ def load_pytorch_model(weights_path: str = None, num_classes: int = 1226, archit
 
     device = get_device()
 
-    # Recreate identical timm architecture
-    model = timm.create_model(architecture, pretrained=False, num_classes=num_classes)
-
     # Load weights
     checkpoint = torch.load(weights_path, map_location=device)
     if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
-        model.load_state_dict(checkpoint["state_dict"])
+        raw_state_dict = checkpoint["state_dict"]
+    elif isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+        raw_state_dict = checkpoint["model_state_dict"]
     elif isinstance(checkpoint, dict) and "model" in checkpoint:
-        model.load_state_dict(checkpoint["model"])
+        raw_state_dict = checkpoint["model"]
     else:
-        model.load_state_dict(checkpoint)
+        raw_state_dict = checkpoint
+
+    # Strip 'model.' module prefix if present from Lightning AI wrapper
+    state_dict = {
+        (k.replace("model.", "") if k.startswith("model.") else k): v
+        for k, v in raw_state_dict.items()
+    }
+
+    # Dynamically detect num_classes from weights
+    checkpoint_num_classes = num_classes
+    if "classifier.weight" in state_dict:
+        checkpoint_num_classes = state_dict["classifier.weight"].shape[0]
+    elif "head.fc.weight" in state_dict:
+        checkpoint_num_classes = state_dict["head.fc.weight"].shape[0]
+
+    # Recreate identical timm architecture
+    model = timm.create_model(architecture, pretrained=False, num_classes=checkpoint_num_classes)
+
+    model.load_state_dict(state_dict)
 
     model.to(device)
     model.eval()

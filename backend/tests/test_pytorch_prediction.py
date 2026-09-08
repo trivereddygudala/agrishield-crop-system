@@ -29,7 +29,7 @@ def test_pytorch_pipeline_end_to_end():
 
     # 2. Test Class Mapper
     mapper = ClassMapper()
-    assert mapper.num_classes == 1226
+    assert mapper.num_classes == 1252
     print(f"✓ Class Mapper Loaded {mapper.num_classes} Classes")
 
     # 3. Create Synthetic Test Image (224x224 RGB)

@@ -8,6 +8,7 @@ import API from '../services/api';
 const SDCardPage = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
+  const [nodeIp, setNodeIp] = useState('');
   const [sdData, setSdData] = useState({
     mounted: false,
     usedMb: 0,
@@ -23,19 +24,49 @@ const SDCardPage = () => {
       const res = await API.get('/api/v1/devices/status');
       const devices = res.data;
       if (devices && devices.length > 0) {
-        // Assume first active device for telemetry
-        const dev = devices[0];
+        // Pick the most recently seen device that has an IP
+        const withIp = devices.filter(d => d.ip);
+        const best = withIp.sort((a, b) =>
+          (a.seconds_since_seen ?? 999999) - (b.seconds_since_seen ?? 999999)
+        )[0];
+        
+        let ip = '';
+        if (best) {
+          ip = best.ip;
+          setNodeIp(best.ip);
+        }
+
+        const dev = best || devices[0];
         const telem = dev.latest_telemetry || dev.last_telemetry || {};
         const isOnline = dev.status === 'online';
-        const mounted = Boolean(isOnline && (telem.sd_card_status === "mounted" || telem.sd_mounted === 1));
-        const total = telem.sd_total_mb || (mounted ? 16384 : 0);
-        const used = telem.sd_used_mb || 0;
+        let mounted = Boolean(isOnline && (telem.sd_card_status === "mounted" || telem.sd_mounted === 1));
+        let total = telem.sd_total_mb || (mounted ? 7680 : 0);
+        let used = telem.sd_used_mb || 0;
+
+        // Try to fetch live metrics via local device proxy if online
+        if (ip && isOnline) {
+          try {
+            const proxyRes = await API.post('/api/v1/devices/proxy', {
+              ip,
+              endpoint: '/status',
+              method: 'GET'
+            });
+            const statusData = proxyRes.data;
+            if (statusData && statusData.sd) {
+              mounted = statusData.sd === 'MOUNTED';
+              total = statusData.sz || (mounted ? 7680 : 0);
+              used = statusData.su !== undefined ? statusData.su : 0;
+            }
+          } catch (proxyErr) {
+            console.warn("Failed to fetch live status via proxy, using telemetry cache:", proxyErr);
+          }
+        }
         
         setSdData({
           mounted,
           usedMb: used,
           totalMb: total,
-          freeMb: total - used,
+          freeMb: Math.max(0, total - used),
           status: mounted ? 'mounted' : 'unmounted'
         });
       }
@@ -162,15 +193,15 @@ const SDCardPage = () => {
           <h2 className="text-xl font-bold flex items-center gap-2">
             <FileText className="h-5 w-5 text-sky-500" /> File System Logs
           </h2>
-          <Button variant="outline" size="sm" disabled={!isMounted}>
+          <Button variant="danger" size="sm" disabled={!isMounted} leftIcon={<AlertTriangle className="w-3.5 h-3.5" />}>
             Format SD Card
           </Button>
         </div>
         
         {isMounted ? (
-          <div className="border rounded-xl overflow-hidden dark:border-slate-800">
+          <div className="border rounded-2xl overflow-hidden border-slate-200/90 dark:border-slate-800 shadow-xs">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 font-semibold border-b dark:border-slate-800">
+              <thead className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 font-extrabold border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3">Filename</th>
                   <th className="px-4 py-3">Size</th>
@@ -178,28 +209,54 @@ const SDCardPage = () => {
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800">
                 <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-4 py-3 font-medium flex items-center gap-2">
+                  <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-sky-500" /> telemetry_log.txt
                   </td>
-                  <td className="px-4 py-3 text-slate-500">{(sdData.usedMb * 1024).toFixed(0)} KB</td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">{(sdData.usedMb * 1024).toFixed(0)} KB</td>
                   <td className="px-4 py-3 text-slate-500 hidden md:table-cell">Just now</td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium text-xs flex items-center justify-end gap-1 ml-auto">
-                      <Download className="h-3 w-3" /> Download
+                    <button 
+                      onClick={() => {
+                        if (nodeIp) {
+                          window.open(`http://${nodeIp}/download-logs`, '_blank');
+                        } else {
+                          alert("ESP32 IP address not discovered yet. Please ensure the device is online on the local network.");
+                        }
+                      }}
+                      className={`font-bold text-xs inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
+                        nodeIp 
+                          ? 'bg-sky-500/10 hover:bg-sky-600 hover:text-white text-sky-600 dark:text-sky-400 border-sky-500/30 shadow-xs' 
+                          : 'text-slate-400 border-slate-200 dark:border-slate-800 cursor-not-allowed'
+                      }`}
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download Log
                     </button>
                   </td>
                 </tr>
                 <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                  <td className="px-4 py-3 font-medium flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-slate-400" /> system_error.log
+                  <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-emerald-500" /> archive_log.txt
                   </td>
-                  <td className="px-4 py-3 text-slate-500">2 KB</td>
-                  <td className="px-4 py-3 text-slate-500 hidden md:table-cell">2 days ago</td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">{(sdData.usedMb * 1024 > 0 ? (sdData.usedMb * 1024) + 142 : 142).toFixed(0)} KB</td>
+                  <td className="px-4 py-3 text-slate-500 hidden md:table-cell">10 mins ago</td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-medium text-xs flex items-center justify-end gap-1 ml-auto">
-                      <Download className="h-3 w-3" /> Download
+                    <button 
+                      onClick={() => {
+                        if (nodeIp) {
+                          window.open(`http://${nodeIp}/download-archive`, '_blank');
+                        } else {
+                          alert("ESP32 IP address not discovered yet. Please ensure the device is online on the local network.");
+                        }
+                      }}
+                      className={`font-bold text-xs inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
+                        nodeIp 
+                          ? 'bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-xs' 
+                          : 'text-slate-400 border-slate-200 dark:border-slate-800 cursor-not-allowed'
+                      }`}
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download Archive
                     </button>
                   </td>
                 </tr>

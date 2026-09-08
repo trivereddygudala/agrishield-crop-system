@@ -67,10 +67,34 @@ class PlantIdentifier:
                 "plant": plant_info
             }
 
-        # Removed PyTorch model check because predict_crop_disease is a closed-set classifier 
-        # (trained only on 14 crops) and will incorrectly force out-of-distribution plants 
-        # (like peanuts, sunflowers, etc.) into one of its known classes (e.g. Tomato) with high confidence.
-        # True open-ended botanical identification must rely on the online provider (NVIDIA Vision).
+        # PyTorch Model Fallback: 
+        # Since the configured NVIDIA model is a text-only LLM (llama-3.1-8b-instruct) 
+        # and lacks vision capabilities, we restore the PyTorch fallback for supported crops.
+        try:
+            from model.predict_pytorch import predict_crop_disease
+            py_res = predict_crop_disease(image_path)
+            if py_res and "crop_name" in py_res:
+                crop_name = py_res["crop_name"].lower()
+                
+                # Try to find a matching key in our plant info database
+                fallback_key = None
+                for key in ["corn", "maize", "tomato", "potato", "rice", "apple", "cherry", "grape", "peach", "pepper", "strawberry"]:
+                    if key in crop_name:
+                        fallback_key = "corn" if key == "maize" else key
+                        break
+                
+                if fallback_key:
+                    plant_info = get_plant_info(fallback_key)
+                    conf = py_res.get("confidence", 0.95)
+                    return {
+                        "success": True,
+                        "source": "local",
+                        "model": "PyTorch EfficientNetV2",
+                        "confidence": round(conf * 100, 1),
+                        "plant": plant_info
+                    }
+        except Exception as e:
+            logger.warning(f"PyTorch local identification fallback failed: {e}")
 
         return None
 
@@ -101,13 +125,26 @@ class PlantIdentifier:
 
         # 3. Attempt Local Identification
         local_result = self._attempt_local_identification(image_path)
+        crop_hint = None
+        if local_result and local_result.get("plant"):
+            crop_hint = local_result["plant"].get("common_name")
+
         if local_result and local_result.get("confidence", 0) >= LOCAL_CONFIDENCE_THRESHOLD:
+            # Enrich local results with online-generated regional names and custom fertilizer stats
+            try:
+                online_data = await self.online_provider.identify(image_path, crop_name=crop_hint)
+                if online_data:
+                    local_result["plant"] = online_data
+                    local_result["confidence"] = max(local_result["confidence"], online_data.get("confidence", 98.4))
+            except Exception as enrich_err:
+                logger.warning(f"Failed to enrich local plant info via online LLM: {enrich_err}")
+            
             plant_cache.set(image_hash, local_result)
             return local_result
 
         # 4. Attempt Online Provider Identification
         try:
-            online_data = await self.online_provider.identify(image_path)
+            online_data = await self.online_provider.identify(image_path, crop_name=crop_hint)
             if online_data and isinstance(online_data, dict):
                 confidence = float(online_data.get("confidence", 92.0))
                 
@@ -130,7 +167,8 @@ class PlantIdentifier:
                     "economic_importance": online_data.get("economic_importance", "Agricultural / Botanical importance"),
                     "common_uses": online_data.get("common_uses", ["Cultivation", "Gardening"]),
                     "common_diseases": online_data.get("common_diseases", ["Foliar Spot", "Powdery Mildew"]),
-                    "common_pests": online_data.get("common_pests", ["Aphids", "Mites"])
+                    "common_pests": online_data.get("common_pests", ["Aphids", "Mites"]),
+                    "regional_names": online_data.get("regional_names", {})
                 }
 
                 if confidence >= MIN_CONFIDENCE_THRESHOLD:

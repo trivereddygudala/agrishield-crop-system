@@ -1,21 +1,58 @@
 const { spawn } = require('child_process');
+const http = require('http');
 
-function startTunnel() {
-    console.log('\x1b[35m[TUNNEL]\x1b[0m Checking internet connection for remote tunnel...');
-    const tunnel = spawn('npx', ['-y', 'localtunnel', '--port', '3000', '--local-host', '127.0.0.1', '--subdomain', 'agrishield-dev'], {
-        shell: true,
-        stdio: 'inherit'
+const PORT = 3000;
+
+console.log('\x1b[35m[TUNNEL]\x1b[0m Starting tunnel service on port ' + PORT + ' (no fallback)...');
+
+// Spawn ngrok directly without cascading fallbacks
+const ngrok = spawn('npx', ['ngrok', 'http', PORT.toString()], { shell: true });
+
+// Check Ngrok local API for the public URL
+const checkInterval = setInterval(() => {
+    http.get('http://127.0.0.1:4040/api/tunnels', (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+            try {
+                const json = JSON.parse(data);
+                const publicTunnel = json.tunnels.find(t => t.proto === 'https');
+                if (publicTunnel) {
+                    clearInterval(checkInterval);
+                    console.log('');
+                    console.log('\x1b[32m╔════════════════════════════════════════════════════════╗\x1b[0m');
+                    console.log('\x1b[32m║          ⚡  AGRISHIELD NGROK TUNNEL ONLINE            ║\x1b[0m');
+                    console.log('\x1b[32m╚════════════════════════════════════════════════════════╝\x1b[0m');
+                    console.log(`\x1b[32m  🔗 Public URL : ${publicTunnel.public_url}\x1b[0m`);
+                    console.log(`\x1b[36m  💻 Local URL  : http://localhost:${PORT}\x1b[0m`);
+                    console.log('\x1b[32m══════════════════════════════════════════════════════════\x1b[0m');
+                    console.log('');
+                }
+            } catch (e) {}
+        });
+    }).on('error', () => {
+        // Ngrok starting up
     });
+}, 1000);
 
-    tunnel.on('close', (code) => {
-        console.log(`\x1b[33m[TUNNEL]\x1b[0m Tunnel offline (Code ${code}). Localhost (http://localhost:3000) is running normally. Retrying tunnel in 10s...`);
-        setTimeout(startTunnel, 10000);
-    });
+setTimeout(() => {
+    clearInterval(checkInterval);
+}, 15000);
 
-    tunnel.on('error', (err) => {
-        console.log(`\x1b[33m[TUNNEL]\x1b[0m Tunnel network unavailable: ${err.message}. Retrying in 10s...`);
-        setTimeout(startTunnel, 10000);
-    });
-}
+ngrok.stdout?.on('data', (data) => {
+    const msg = data.toString().trim();
+    if (msg) console.log(`\x1b[35m[TUNNEL]\x1b[0m ${msg}`);
+});
 
-startTunnel();
+ngrok.stderr?.on('data', (data) => {
+    const msg = data.toString().trim();
+    if (msg) console.log(`\x1b[33m[TUNNEL]\x1b[0m ${msg}`);
+});
+
+ngrok.on('error', (err) => {
+    console.error(`\x1b[31m[TUNNEL] Ngrok encountered error: ${err.message}\x1b[0m`);
+});
+
+ngrok.on('close', (code) => {
+    console.log(`\x1b[33m[TUNNEL] Ngrok closed (code ${code}).\x1b[0m`);
+});

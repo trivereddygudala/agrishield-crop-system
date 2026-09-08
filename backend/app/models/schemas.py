@@ -4,7 +4,7 @@ from datetime import datetime
 
 class UserBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
-    email: EmailStr
+    email: str = Field(..., min_length=2, max_length=120)
     role: str = Field(default="farmer")
     farm_location: Optional[str] = Field(default=None)
     preferred_language: Optional[str] = Field(default="en")
@@ -14,12 +14,14 @@ class UserBase(BaseModel):
     farm_profile_completed: Optional[bool] = Field(default=False)
     active_farm_id: Optional[str] = Field(default=None)
     notification_settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    color_theme: Optional[str] = Field(default="agrishield-default")
+    navbar_theme: Optional[str] = Field(default="farmer-dynamic")
 
 class UserRegister(UserBase):
-    password: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=4)
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str = Field(..., min_length=2, max_length=120)
     password: str
     remember_me: Optional[bool] = False
 
@@ -46,6 +48,8 @@ class ProfileUpdate(BaseModel):
     farm_profile_completed: Optional[bool] = None
     active_farm_id: Optional[str] = None
     notification_settings: Optional[Dict[str, Any]] = None
+    color_theme: Optional[str] = None
+    navbar_theme: Optional[str] = None
 
 # Prediction schemas
 class PredictionBase(BaseModel):
@@ -122,6 +126,7 @@ class FarmingAssistantRequest(BaseModel):
     crop_name: str
     disease_name: str
     confidence: float
+    language: Optional[str] = None
 
 class FarmingAssistantResponse(BaseModel):
     disease_explanation: str
@@ -141,6 +146,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: List[ChatMessage] = Field(default_factory=list)
+    language: Optional[str] = "en"
     context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional context like sensor data or recent predictions")
 
 class ChatResponse(BaseModel):

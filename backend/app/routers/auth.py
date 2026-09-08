@@ -1,4 +1,5 @@
 import asyncio
+import re
 from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -57,6 +58,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
     user.setdefault("role", "farmer")
     user.setdefault("farm_location", None)
     user.setdefault("preferred_language", "en")
+    user.setdefault("color_theme", "agrishield-default")
+    user.setdefault("navbar_theme", "farmer-dynamic")
     user.setdefault("crop_history", [])
     user.setdefault("farming_practices", "Conventional")
     user.setdefault("farm_profile_completed", False)
@@ -69,10 +72,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(AUTH_LIMIT, 60))])
 async def register(request: Request, user_data: UserRegister, db = Depends(get_database)):
-    """Register a new user (farmer) with password policy enforcement."""
+    """Register a new user (farmer) with simplified password policy."""
     client_ip = request.client.host if request.client else "127.0.0.1"
 
-    # Validate password strength
+    # Validate password strength (simplified: min 4 chars)
     is_valid, msg = validate_password_strength(user_data.password)
     if not is_valid:
         log_security_event("REGISTER_WEAK_PASSWORD", {"email": user_data.email, "reason": msg}, level="WARNING", client_ip=client_ip)
@@ -81,19 +84,31 @@ async def register(request: Request, user_data: UserRegister, db = Depends(get_d
             detail=f"Weak password: {msg}"
         )
 
-    # Check if email is already taken
-    existing_user = await db.users.find_one({"email": user_data.email.lower()})
+    # Normalize email / username: if no @ provided, map to username@agrishield.com
+    raw_email = user_data.email.strip().lower()
+    email_key = raw_email if "@" in raw_email else f"{raw_email}@agrishield.com"
+    username_key = user_data.name.strip()
+
+    # Check if email or username is already taken
+    existing_user = await db.users.find_one({
+        "$or": [
+            {"email": email_key},
+            {"email": raw_email},
+            {"name": {"$regex": f"^{re.escape(username_key)}$", "$options": "i"}}
+        ]
+    })
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A user with this email already exists"
+            detail="A user with this username or email already exists"
         )
 
     # Hash password and store password history
     hashed_pwd = hash_password(user_data.password)
     user_dict = {
-        "name": user_data.name,
-        "email": user_data.email.lower(),
+        "name": username_key,
+        "email": email_key,
+        "username": raw_email.split("@")[0] if "@" in raw_email else raw_email,
         "password_hash": hashed_pwd,
         "password_history": [hashed_pwd],
         "role": user_data.role or "farmer",
@@ -116,46 +131,56 @@ async def register(request: Request, user_data: UserRegister, db = Depends(get_d
 async def login(request: Request, credentials: UserLogin, db = Depends(get_database)):
     """Log in user with lockout tracking, progressive delay, and JWT access + refresh tokens."""
     client_ip = request.client.host if request.client else "127.0.0.1"
-    email_key = credentials.email.lower().strip()
+    login_key = credentials.email.lower().strip()
+    login_as_email = login_key if "@" in login_key else f"{login_key}@agrishield.com"
 
     # 1. Lockout Check
-    if is_account_locked(client_ip) or is_account_locked(email_key):
-        rem_sec = max(get_remaining_lockout_seconds(client_ip), get_remaining_lockout_seconds(email_key))
-        log_security_event("LOGIN_BLOCKED_LOCKOUT", {"email": email_key}, level="WARNING", client_ip=client_ip)
+    if is_account_locked(client_ip) or is_account_locked(login_key) or is_account_locked(login_as_email):
+        rem_sec = max(get_remaining_lockout_seconds(client_ip), get_remaining_lockout_seconds(login_key), get_remaining_lockout_seconds(login_as_email))
+        log_security_event("LOGIN_BLOCKED_LOCKOUT", {"email": login_key}, level="WARNING", client_ip=client_ip)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Account or IP locked out due to multiple failed login attempts. Try again in {rem_sec} seconds."
         )
 
-    user = await db.users.find_one({"email": email_key})
+    # Find user by exact email, derived email, username, or name
+    user = await db.users.find_one({
+        "$or": [
+            {"email": login_key},
+            {"email": login_as_email},
+            {"username": login_key},
+            {"name": {"$regex": f"^{re.escape(login_key)}$", "$options": "i"}}
+        ]
+    })
     if not user:
         attempts = record_failed_login(client_ip)
-        record_failed_login(email_key)
+        record_failed_login(login_key)
         delay = get_progressive_delay(attempts)
         if delay > 0:
             await asyncio.sleep(delay)
-        log_security_event("LOGIN_FAILED_USER_NOT_FOUND", {"email": email_key}, level="WARNING", client_ip=client_ip)
+        log_security_event("LOGIN_FAILED_USER_NOT_FOUND", {"email": login_key}, level="WARNING", client_ip=client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+            detail="Incorrect username, email, or password"
         )
 
     # 2. Constant-time Password Verification
     if not verify_password(credentials.password, user["password_hash"]):
         attempts = record_failed_login(client_ip)
-        record_failed_login(email_key)
+        record_failed_login(login_key)
         delay = get_progressive_delay(attempts)
         if delay > 0:
             await asyncio.sleep(delay)
-        log_security_event("LOGIN_FAILED_INVALID_PASSWORD", {"email": email_key}, level="WARNING", client_ip=client_ip)
+        log_security_event("LOGIN_FAILED_INVALID_PASSWORD", {"email": login_key}, level="WARNING", client_ip=client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
+            detail="Incorrect username, email, or password"
         )
 
     # Success: Reset failed attempts & lockouts
     record_successful_login(client_ip)
-    record_successful_login(email_key)
+    record_successful_login(login_key)
+    record_successful_login(login_as_email)
 
     user_role = user.get("role", "farmer")
     user_id_str = str(user["_id"])
@@ -168,6 +193,8 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
     user["_id"] = user_id_str
     user["name"] = str(user.get("name") or user.get("full_name") or "User")
     user.setdefault("role", user_role)
+    user.setdefault("color_theme", "agrishield-default")
+    user.setdefault("navbar_theme", "farmer-dynamic")
     active_fid = user.get("active_farm_id")
     user["active_farm_id"] = str(active_fid) if active_fid else None
     
@@ -285,6 +312,10 @@ async def update_profile(
         update_dict["active_farm_id"] = ObjectId(update_data.active_farm_id) if update_data.active_farm_id else None
     if update_data.notification_settings is not None:
         update_dict["notification_settings"] = update_data.notification_settings
+    if update_data.color_theme is not None:
+        update_dict["color_theme"] = update_data.color_theme
+    if update_data.navbar_theme is not None:
+        update_dict["navbar_theme"] = update_data.navbar_theme
 
     if not update_dict:
         return current_user
@@ -306,6 +337,8 @@ async def update_profile(
     updated_user.setdefault("role", "farmer")
     updated_user.setdefault("farm_location", None)
     updated_user.setdefault("preferred_language", "en")
+    updated_user.setdefault("color_theme", "agrishield-default")
+    updated_user.setdefault("navbar_theme", "farmer-dynamic")
     updated_user.setdefault("crop_history", [])
     updated_user.setdefault("farming_practices", "Conventional")
     updated_user.setdefault("farm_profile_completed", False)
@@ -313,5 +346,17 @@ async def update_profile(
     
     active_fid = updated_user.get("active_farm_id")
     updated_user["active_farm_id"] = str(active_fid) if active_fid else None
+
+    # Sync other active browser sessions for the same user in real-time
+    from backend.app.services.notification_service import active_websocket_manager
+    if active_websocket_manager:
+        try:
+            await active_websocket_manager.broadcast_to_user(
+                str(current_user["id"]),
+                {"type": "profile_updated", "user": updated_user}
+            )
+        except Exception as e:
+            # Silently ignore WS broadcast failures on closed channels
+            pass
     
     return updated_user

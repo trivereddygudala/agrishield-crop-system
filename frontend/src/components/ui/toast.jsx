@@ -90,6 +90,38 @@ export const ToastProvider = ({ children }) => {
     dismiss,
   };
 
+  // Monitor Network Connectivity (Offline-First Toast Banner)
+  React.useEffect(() => {
+    const handleOnline = () => {
+      toast.success(
+        "🌐 Online Mode",
+        "Your connection has been restored successfully!"
+      );
+    };
+
+    const handleOffline = () => {
+      toast.warning(
+        "⚠️ Offline Mode",
+        "Working from cache. Scans and predictions will be queued locally.",
+        { duration: 0 } // Permanent until offline status ends or user dismisses
+      );
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check on load
+    if (!navigator.onLine) {
+      // Small delay to allow react components to fully mount/bind context
+      setTimeout(handleOffline, 1000);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [addToast]);
+
   return (
     <ToastContext.Provider value={toast}>
       {children}

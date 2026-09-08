@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta, timezone
@@ -45,6 +45,8 @@ class IoTTelemetry(BaseModel):
     firmware_version: Optional[str] = "v2.0"
     device_status: Optional[str] = "online"
     sensor_health: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    sleep_interval_min: Optional[int] = None   # How many minutes the ESP32 sleeps between readings
+    is_night_mode: Optional[bool] = None        # True if recorded during autonomous night sleep cycle
 
 class IoTHeartbeat(BaseModel):
     device_id: str
@@ -53,18 +55,40 @@ class IoTHeartbeat(BaseModel):
     uptime_ms: Optional[int] = 0
 
 @router.post("/telemetry", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(IOT_LIMIT, 60))])
-async def ingest_telemetry(request: Request, data: IoTTelemetry):
+async def ingest_telemetry(request: Request, data: IoTTelemetry, background_tasks: BackgroundTasks):
     """Ingest sensor data from the ESP32 hardware with security and range validation."""
     validate_iot_request(request)
     
-    telemetry_doc = data.dict()
+    telemetry_doc = data.model_dump()
     # Validate physical bounds
     valid_bounds, bound_msg = validate_sensor_payload(telemetry_doc)
     if not valid_bounds:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=bound_msg)
 
     try:
-        telemetry_doc["received_at"] = datetime.now(timezone.utc)
+        now_utc = datetime.now(timezone.utc)
+        IST = timezone(timedelta(hours=5, minutes=30))
+        now_ist = now_utc.astimezone(IST)
+        telemetry_doc["received_at"] = now_utc
+
+        # Validate incoming timestamp from ESP32 to prevent clock drift / future timestamps
+        orig_ts = data.timestamp
+        is_valid_ts = False
+        if orig_ts and isinstance(orig_ts, str) and orig_ts.lower() != "null":
+            try:
+                clean_ts = orig_ts.replace("Z", "+00:00").strip()
+                if "+05:30" not in clean_ts and "+" not in clean_ts:
+                    clean_ts = clean_ts.replace(" ", "T") + "+05:30"
+                parsed_dt = datetime.fromisoformat(clean_ts)
+                time_diff = (parsed_dt.astimezone(timezone.utc) - now_utc).total_seconds()
+                if -604800 <= time_diff <= 900:  # Within past 7 days and not in the future
+                    telemetry_doc["timestamp"] = clean_ts
+                    is_valid_ts = True
+            except Exception:
+                is_valid_ts = False
+
+        if not is_valid_ts:
+            telemetry_doc["timestamp"] = now_ist.strftime("%Y-%m-%dT%H:%M:%S+05:30")
         
         # Map aliases to standard fields if provided by hardware
         if data.soil_percentage is not None:
@@ -83,17 +107,12 @@ async def ingest_telemetry(request: Request, data: IoTTelemetry):
         # Remove Mongo _id if injected during insertion before embedding into device doc
         telemetry_doc_clean = {k: v for k, v in telemetry_doc.items() if k != "_id"}
 
-        # Extract IP from the incoming request TCP socket
-        client_ip = request.client.host if request.client else None
-        
         update_fields = {
             "last_seen": datetime.now(timezone.utc), 
             "status": "online",
             "latest_telemetry": telemetry_doc_clean,
             "firmware_version": data.firmware_version
         }
-        if client_ip:
-            update_fields["ip"] = client_ip
 
         # Update device last_seen status
         await db_instance.db["devices"].update_one(
@@ -103,36 +122,42 @@ async def ingest_telemetry(request: Request, data: IoTTelemetry):
         )
 
         # --- Auto-Notification Engine & Real-time WebSocket Broadcast ---
-        # Look up which user owns this device
+        now_iso = datetime.now(timezone.utc).isoformat()
+        telemetry_payload = {
+            "type": "telemetry_update",
+            "device_id": data.device_id,
+            "status": "online",
+            "telemetry": telemetry_doc_clean,
+            "data": telemetry_doc_clean,
+            "timestamp": now_iso
+        }
+        status_payload = {
+            "type": "device_status_update",
+            "device_id": data.device_id,
+            "status": "online",
+            "timestamp": now_iso
+        }
+
+        # Broadcast to all connected WebSockets
+        try:
+            await ws_manager.broadcast_all(telemetry_payload)
+            await ws_manager.broadcast_all(status_payload)
+        except Exception:
+            pass
+
+        # Look up which user owns this device for notifications and alert evaluation
         device_doc = await db_instance.db["devices"].find_one({"device_id": data.device_id})
         owner_id = device_doc.get("user_id") if device_doc else None
         if owner_id:
             try:
-                await AlertEngine.evaluate_device_telemetry(
+                background_tasks.add_task(
+                    AlertEngine.evaluate_device_telemetry,
                     db_instance.db,
                     device_id=data.device_id,
                     telemetry=telemetry_doc
                 )
             except Exception as e:
                 pass  # Never block telemetry ingestion
-
-            try:
-                now_iso = datetime.now(timezone.utc).isoformat()
-                await ws_manager.broadcast_to_user(str(owner_id), {
-                    "type": "telemetry_update",
-                    "device_id": data.device_id,
-                    "status": "online",
-                    "telemetry": telemetry_doc_clean,
-                    "timestamp": now_iso
-                })
-                await ws_manager.broadcast_to_user(str(owner_id), {
-                    "type": "device_status_update",
-                    "device_id": data.device_id,
-                    "status": "online",
-                    "timestamp": now_iso
-                })
-            except Exception:
-                pass
 
         display_lang = "TE"
         if device_doc:
@@ -167,7 +192,7 @@ async def ingest_telemetry_bulk(request: Request):
             data_list = [IoTTelemetry(**item) for item in raw_list]
         except Exception:
             pass
-    else:
+    elif body_str:
         # Parse as JSON Lines
         import json
         for line in body_str.split("\n"):
@@ -180,23 +205,57 @@ async def ingest_telemetry_bulk(request: Request):
             except Exception:
                 continue
                 
+    final_payload = data_list if data_list else []
     docs_to_insert = []
     
-    for data in data_list:
-        telemetry_doc = data.dict()
+    if not final_payload:
+        return {"status": "success", "message": "No valid data to insert", "count": 0}
+    
+    total_items = len(final_payload)
+    now_utc = datetime.now(timezone.utc)
+    IST = timezone(timedelta(hours=5, minutes=30))
+
+    seen_timestamps = {}
+
+    for idx, data in enumerate(final_payload):
+        telemetry_doc = data.model_dump()
         valid_bounds, bound_msg = validate_sensor_payload(telemetry_doc)
         if not valid_bounds:
-            continue # Skip invalid offline data instead of crashing the whole batch
+            continue
             
         try:
-            # If the hardware provides a timestamp, use it. Otherwise, generate one.
-            if "timestamp" not in telemetry_doc or not telemetry_doc["timestamp"]:
-                telemetry_doc["timestamp"] = datetime.now(timezone.utc).isoformat() + "Z"
+            orig_ts = telemetry_doc.get("timestamp")
+            is_valid_ts = False
+            if orig_ts and isinstance(orig_ts, str) and orig_ts.lower() != "null":
+                try:
+                    clean_ts = orig_ts.replace("Z", "+00:00").strip()
+                    if "+05:30" not in clean_ts and "+" not in clean_ts:
+                        clean_ts = clean_ts.replace(" ", "T") + "+05:30"
+                    parsed_dt = datetime.fromisoformat(clean_ts)
+                    time_diff = (parsed_dt.astimezone(timezone.utc) - now_utc).total_seconds()
+                    if -604800 <= time_diff <= 900:
+                        # Prevent duplicate identical timestamps from frozen offline sleep clocks
+                        if clean_ts in seen_timestamps:
+                            seen_timestamps[clean_ts] += 1
+                            repeat_count = seen_timestamps[clean_ts]
+                            adjusted_dt = parsed_dt - timedelta(seconds=repeat_count * 60)
+                            clean_ts = adjusted_dt.astimezone(IST).strftime("%Y-%m-%dT%H:%M:%S+05:30")
+                            telemetry_doc["received_at"] = adjusted_dt.astimezone(timezone.utc)
+                        else:
+                            seen_timestamps[clean_ts] = 0
+                            telemetry_doc["received_at"] = parsed_dt.astimezone(timezone.utc)
+                            
+                        telemetry_doc["timestamp"] = clean_ts
+                        is_valid_ts = True
+                except Exception:
+                    is_valid_ts = False
+
+            if not is_valid_ts:
+                offset_sec = (total_items - 1 - idx) * 60
+                estimated_dt = now_utc - timedelta(seconds=offset_sec)
+                telemetry_doc["timestamp"] = estimated_dt.astimezone(IST).strftime("%Y-%m-%dT%H:%M:%S+05:30")
+                telemetry_doc["received_at"] = estimated_dt
                 
-            # Add received_at for DB TTL and sorting
-            telemetry_doc["received_at"] = datetime.now(timezone.utc)
-            
-            # Map aliases to standard fields
             if data.soil_percentage is not None:
                 telemetry_doc["soil_moisture"] = data.soil_percentage
             if data.light_lux is not None:
@@ -208,7 +267,7 @@ async def ingest_telemetry_bulk(request: Request):
                 telemetry_doc["wifi_rssi"] = data.signal
                 
             docs_to_insert.append(telemetry_doc)
-        except Exception as e:
+        except Exception:
             continue
             
     if not docs_to_insert:
@@ -216,7 +275,50 @@ async def ingest_telemetry_bulk(request: Request):
         
     try:
         await db_instance.db["iot_telemetry"].insert_many(docs_to_insert)
-        return {"status": "success", "message": f"Successfully ingested {len(docs_to_insert)} offline telemetry records"}
+        
+        # Pick the most recent document in the batch to update device status
+        latest_doc = docs_to_insert[-1]
+        latest_clean = {k: v for k, v in latest_doc.items() if k != "_id"}
+        target_device_id = latest_doc.get("device_id", "ESP32-NODE-ALPHA")
+
+        await db_instance.db["devices"].update_one(
+            {"device_id": target_device_id},
+            {"$set": {
+                "last_seen": datetime.now(timezone.utc),
+                "status": "online",
+                "latest_telemetry": latest_clean
+            }},
+            upsert=True
+        )
+
+        # Real-time WebSocket Broadcast to all connected frontend clients
+        now_iso = datetime.now(timezone.utc).isoformat()
+        sync_payload = {
+            "type": "telemetry_batch_synced",
+            "device_id": target_device_id,
+            "count": len(docs_to_insert),
+            "latest_telemetry": latest_clean,
+            "timestamp": now_iso
+        }
+        telemetry_update_payload = {
+            "type": "telemetry_update",
+            "device_id": target_device_id,
+            "status": "online",
+            "telemetry": latest_clean,
+            "data": latest_clean,
+            "timestamp": now_iso
+        }
+        try:
+            await ws_manager.broadcast_all(sync_payload)
+            await ws_manager.broadcast_all(telemetry_update_payload)
+        except Exception:
+            pass
+
+        return {
+            "status": "success", 
+            "message": f"Successfully ingested {len(docs_to_insert)} offline telemetry records",
+            "count": len(docs_to_insert)
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database bulk insertion failed: {str(e)}")
 
@@ -339,7 +441,7 @@ async def get_telemetry_history(
     try:
         if timeframe == "raw":
             filter_query = {"device_id": device_id} if device_id else {}
-            raw_docs = await db_instance.db["iot_telemetry"].find(filter_query).sort("_id", -1).to_list(length=limit)
+            raw_docs = await db_instance.db["iot_telemetry"].find(filter_query).sort([("received_at", -1), ("_id", -1)]).to_list(length=limit)
             
             # Fetch farmer names for devices
             device_owner_map = {}
@@ -407,10 +509,14 @@ async def get_telemetry_history(
                     continue
                 seen_keys.add(dedup_key)
 
+                rec_at_val = d.get("received_at")
+                rec_at_str = rec_at_val.isoformat() if isinstance(rec_at_val, datetime) else str(rec_at_val or ts_str)
+
                 rec = {
                     "id": str(d.get("_id", "")),
                     "device_id": dev_id,
                     "timestamp": ts_str,
+                    "received_at": rec_at_str,
                     "temperature": temp_val,
                     "humidity": hum_val,
                     "soil_moisture": round(float(d.get("soil_moisture") or d.get("soil_percentage") or 0.0), 2),

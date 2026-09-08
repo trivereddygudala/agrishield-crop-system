@@ -39,7 +39,7 @@ String ApiManager::performHttpRequest(String endpoint, String payload, String me
     if (fullUrl.startsWith("https://")) {
         WiFiClientSecure *client = new WiFiClientSecure;
         if(client) {
-            client->setInsecure(); // Skip certificate validation for Render cloud
+            client->setInsecure(); // Skip certificate validation
             http.begin(*client, fullUrl);
         } else {
             http.begin(fullUrl);
@@ -229,10 +229,23 @@ bool ApiManager::checkOTA() {
 }
 
 String ApiManager::pollCloudCommand() {
-    String endpoint = "/devices/poll-commands/AgriShield_01"; // Hardcoded device ID for simplicity in this prototype
-    uint16_t code;
+    String endpoint = "/devices/poll-commands/" + String(DEVICE_ID);
+    
     // Fast single-try request to avoid blocking the ESP32 main loop
-    String resp = performHttpRequest(endpoint, "", "GET", &code);
+    HTTPClient http;
+    String fullUrl = currentApiBaseUrl + endpoint;
+    http.begin(fullUrl);
+    http.setTimeout(500); // ⚡ FIX: 500ms MAX timeout so the physical push buttons don't freeze!
+    http.setReuse(false);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Connection", "close");
+    
+    int code = http.GET();
+    String resp = "";
+    if (code > 0) {
+        resp = http.getString();
+    }
+    http.end();
     
     if (code == 200 && resp.length() > 0) {
         // Simple JSON parsing just for the command string

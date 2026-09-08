@@ -6,7 +6,8 @@ import NavbarSceneRenderer from './animations/NavbarSceneRenderer';
 import { useNavbarTheme } from '../hooks/useNavbarTheme';
 import { 
   Leaf, 
-  Menu, 
+  Menu,
+  Camera, 
   X, 
   LayoutDashboard, 
   History, 
@@ -58,6 +59,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useHardwareMode } from '../hooks/useHardwareMode';
 import API from '../services/api';
 import Breadcrumbs from './Breadcrumbs';
 
@@ -75,7 +77,7 @@ import {
 const PRIORITY_COLORS = {
   Critical: { bg: 'bg-rose-100 dark:bg-rose-950/60', text: 'text-rose-700 dark:text-rose-300', dot: 'bg-rose-500', border: 'border-rose-200' },
   High:     { bg: 'bg-amber-100 dark:bg-amber-950/60', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500', border: 'border-amber-200' },
-  Medium:   { bg: 'bg-sky-100 dark:bg-sky-950/60', text: 'text-sky-700 dark:text-sky-300', dot: 'bg-sky-500', border: 'border-sky-200' },
+  Medium:   { bg: 'bg-orange-100 dark:bg-orange-950/60', text: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500', border: 'border-orange-200' },
   Low:      { bg: 'bg-emerald-100 dark:bg-emerald-950/60', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500', border: 'border-emerald-200' },
 };
 
@@ -96,14 +98,7 @@ const CATEGORY_ICONS = {
   System:     Activity,
 };
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
-  if (isNaN(diff)) return 'Just now';
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
+import { timeAgo, formatDateTime } from '../utils/dateUtils';
 
 // 1. Button (Delegates to standardized UI primitive)
 export const Button = ({ children, variant = 'primary', size = 'md', loading = false, disabled = false, className = '', ...props }) => (
@@ -207,7 +202,9 @@ export const Toast = ({ message, type = 'success', onClose, duration = 4000 }) =
 export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout } = useAuth();
   const { theme } = useNavbarTheme();
+  const { hardwareMode } = useHardwareMode();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const { activeFarm, farms, setActiveFarm, createFarm, profileCompleted } = useFarm();
   
@@ -223,6 +220,13 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Sync HTML lang attribute to activate regional fallback fonts in index.css
+  useEffect(() => {
+    const activeLang = i18n.language ? i18n.language.split('-')[0] : 'en';
+    document.documentElement.lang = activeLang;
+  }, [i18n.language]);
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
@@ -233,6 +237,17 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  const [showNavbarScene, setShowNavbarScene] = useState(() => {
+    const cached = localStorage.getItem('show_navbar_scene');
+    return cached === null ? true : cached === 'true';
+  });
+
+  const toggleNavbarScene = () => {
+    const nextVal = !showNavbarScene;
+    setShowNavbarScene(nextVal);
+    localStorage.setItem('show_navbar_scene', String(nextVal));
+  };
 
   // Notification bell state
   const [unreadCount, setUnreadCount] = useState(0);
@@ -260,7 +275,22 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     if (!user) return;
     try {
       const res = await API.get('/api/notifications/unread?limit=5');
-      setRecentAlerts(res.data || []);
+      let alertData = res.data || [];
+
+      const userRole = user?.role?.toLowerCase() || 'farmer';
+      const isHardwareSimEnabled = localStorage.getItem('sim_hardware_alarms') !== 'false';
+      if (userRole === 'tester' && isHardwareSimEnabled) {
+        const mockAlarm = {
+          notification_id: 'mock-sim-battery',
+          title: '🚨 ESP32 Battery Critical',
+          message: 'ESP32 field node battery dropped to 14%. Recharge solar/LiPo battery now to prevent telemetry dropout.',
+          created_at: new Date().toISOString(),
+          is_read: false
+        };
+        alertData = [mockAlarm, ...alertData.slice(0, 4)];
+      }
+
+      setRecentAlerts(alertData);
     } catch { /* silently ignore */ }
   }, [user]);
 
@@ -269,6 +299,22 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   // ESP32 Live Hardware Status
   const [nodeStatus, setNodeStatus] = useState({ online: false, rssi: null, bluetoothConnected: false, batteryPercent: null, batteryCharging: false });
+
+  const [hardwareSimActive, setHardwareSimActive] = useState(() => {
+    return localStorage.getItem('sim_hardware_alarms') !== 'false';
+  });
+
+  useEffect(() => {
+    const handleAlarmSimChange = (e) => {
+      setHardwareSimActive(e.detail);
+    };
+    window.addEventListener('simHardwareAlarmsChange', handleAlarmSimChange);
+    return () => window.removeEventListener('simHardwareAlarmsChange', handleAlarmSimChange);
+  }, []);
+
+  const displayedNodeStatus = (user?.role?.toLowerCase() === 'tester' && hardwareSimActive)
+    ? { online: false, rssi: null, bluetoothConnected: false, batteryPercent: 14, batteryCharging: false }
+    : nodeStatus;
 
   const fetchNodeStatus = useCallback(async () => {
     if (!user) return;
@@ -381,19 +427,19 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    window.location.href = '/';
   };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full h-16 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-[#050911]/95 backdrop-blur-xl transition-colors">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 w-full">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 w-full gap-4">
         
-        {/* Left Section: Mobile Menu, Brand, Breadcrumb */}
-        <div className="flex items-center gap-3">
+        {/* Left Section: Menu, Brand, Breadcrumb — Hamburger hidden on mobile layout */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button 
             type="button" 
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-800 transition-all"
+            className="hidden lg:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-800 transition-all"
             title="Toggle Menu"
             aria-label="Toggle Navigation Menu"
           >
@@ -404,24 +450,60 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             <div className="bg-emerald-600 text-white p-2 rounded-xl shadow-sm shadow-emerald-600/20 group-hover:scale-105 transition-transform">
               <Leaf className="h-5 w-5" />
             </div>
+            {/* Desktop Brand Title */}
             <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight hidden sm:inline text-lg">
               AgriShield <span className="text-emerald-600 dark:text-emerald-400 font-normal">AI</span>
             </span>
+            {/* Mobile Dynamic Animated Title */}
+            <span className="sm:hidden overflow-hidden h-7 relative flex items-center">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={location.pathname}
+                  initial={{ y: -15, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 15, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-base block"
+                >
+                  {(() => {
+                    const path = location.pathname;
+                    if (path === '/dashboard') return 'AgriShield';
+                    if (path === '/upload' || path === '/result') return 'AI Doctor';
+                    if (path === '/history') return 'History Logs';
+                    if (path === '/analytics') return 'Analytics';
+                    if (path === '/market') return 'Mandi Prices';
+                    if (path === '/farm') return 'My Farm';
+                    if (path === '/notifications') return 'Alerts';
+                    if (path === '/settings') return 'Settings';
+                    if (path === '/profile') return 'My Profile';
+                    if (path === '/devices') return 'Devices';
+                    if (path === '/node-control') return 'Node Control';
+                    if (path === '/sdcard') return 'SD Storage';
+                    if (path === '/assistant') return 'AI Assistant';
+                    if (path === '/crop-advisory') return 'Crop Advisory';
+                    if (path === '/more') return 'More';
+                    return 'AgriShield';
+                  })()}
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </Link>
-
+ 
           {/* Breadcrumb Hierarchy */}
           <div className="hidden md:block ml-4 pl-4 border-l border-slate-200 dark:border-slate-800">
             <Breadcrumbs />
           </div>
         </div>
-
+ 
         {/* Dynamic Animation Scene (Center) */}
-        <div className="hidden lg:flex flex-1 justify-center px-4">
-          <NavbarSceneRenderer theme={theme} />
-        </div>
-
+        {showNavbarScene && (
+          <div className="hidden lg:flex flex-1 min-w-0 justify-center px-4">
+            <NavbarSceneRenderer theme={theme} isCompact={location.pathname !== '/dashboard'} />
+          </div>
+        )}
+ 
         {/* Right Section: Actions, Theme, Notifications, User */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           {user && (
             <>
               {/* Active Farm Switcher Dropdown */}
@@ -479,65 +561,67 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 </div>
               )}
 
-              {/* ESP32 Hardware Status Bar: WiFi | Bluetooth | Battery */}
-              <div className="hidden lg:flex items-center gap-1 px-1 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
-                {/* WiFi Signal Indicator */}
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                  nodeStatus.online 
-                    ? 'text-emerald-600 dark:text-emerald-400' 
-                    : 'text-rose-500 dark:text-rose-400'
-                }`} title={nodeStatus.online ? `WiFi: ${nodeStatus.rssi || '?'} dBm` : 'WiFi Disconnected'}>
-                  {nodeStatus.online ? (
-                    <>
-                      <Wifi className="w-3.5 h-3.5" />
-                      <span>{nodeStatus.rssi !== null ? `${nodeStatus.rssi}` : ''}</span>
-                    </>
-                  ) : (
-                    <WifiOff className="w-3.5 h-3.5" />
-                  )}
+              {/* ESP32 Hardware Status Bar: WiFi | Bluetooth | Battery - Shown ONLY when Hardware Mode is ON */}
+              {hardwareMode && (
+                <div className="hidden lg:flex items-center gap-1 px-1 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
+                  {/* WiFi Signal Indicator */}
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                    displayedNodeStatus.online 
+                      ? 'text-emerald-600 dark:text-emerald-400' 
+                      : 'text-rose-500 dark:text-rose-400'
+                  }`} title={displayedNodeStatus.online ? `WiFi: ${displayedNodeStatus.rssi || '?'} dBm` : 'WiFi Disconnected'}>
+                    {displayedNodeStatus.online ? (
+                      <>
+                        <Wifi className="w-3.5 h-3.5" />
+                        <span>{displayedNodeStatus.rssi !== null ? `${displayedNodeStatus.rssi}` : ''}</span>
+                      </>
+                    ) : (
+                      <WifiOff className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+
+                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+                  {/* Bluetooth Status Indicator */}
+                  <div className={`flex items-center px-1.5 py-1 rounded-lg transition-colors ${
+                    displayedNodeStatus.bluetoothConnected 
+                      ? 'text-blue-500 dark:text-blue-400' 
+                      : 'text-slate-400 dark:text-slate-600'
+                  }`} title={displayedNodeStatus.bluetoothConnected ? 'Bluetooth Connected' : 'Bluetooth Idle'}>
+                    {displayedNodeStatus.bluetoothConnected ? (
+                      <Bluetooth className="w-3.5 h-3.5" />
+                    ) : (
+                      <BluetoothOff className="w-3.5 h-3.5" />
+                    )}
+                  </div>
+
+                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+                  {/* Battery Percentage Indicator */}
+                  {(() => {
+                    const pct = displayedNodeStatus.batteryPercent;
+                    const charging = displayedNodeStatus.batteryCharging;
+                    let BattIcon = Battery;
+                    let color = 'text-slate-400 dark:text-slate-500';
+                    if (charging) {
+                      BattIcon = BatteryCharging;
+                      color = 'text-amber-500 dark:text-amber-400';
+                    } else if (pct !== null) {
+                      if (pct >= 75) { BattIcon = BatteryFull; color = 'text-emerald-500 dark:text-emerald-400'; }
+                      else if (pct >= 40) { BattIcon = BatteryMedium; color = 'text-amber-500 dark:text-amber-400'; }
+                      else if (pct >= 10) { BattIcon = BatteryLow; color = 'text-orange-500 dark:text-orange-400'; }
+                      else { BattIcon = BatteryWarning; color = 'text-rose-500 dark:text-rose-400'; }
+                    }
+                    return (
+                      <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold ${color}`}
+                           title={pct !== null ? `Battery: ${pct}%${charging ? ' (Charging)' : ''}` : 'Battery N/A'}>
+                        <BattIcon className="w-4 h-4" />
+                        <span>{pct !== null ? `${pct}%` : '--'}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
-
-                <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
-
-                {/* Bluetooth Status Indicator */}
-                <div className={`flex items-center px-1.5 py-1 rounded-lg transition-colors ${
-                  nodeStatus.bluetoothConnected 
-                    ? 'text-blue-500 dark:text-blue-400' 
-                    : 'text-slate-400 dark:text-slate-600'
-                }`} title={nodeStatus.bluetoothConnected ? 'Bluetooth Connected' : 'Bluetooth Idle'}>
-                  {nodeStatus.bluetoothConnected ? (
-                    <Bluetooth className="w-3.5 h-3.5" />
-                  ) : (
-                    <BluetoothOff className="w-3.5 h-3.5" />
-                  )}
-                </div>
-
-                <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
-
-                {/* Battery Percentage Indicator */}
-                {(() => {
-                  const pct = nodeStatus.batteryPercent;
-                  const charging = nodeStatus.batteryCharging;
-                  let BattIcon = Battery;
-                  let color = 'text-slate-400 dark:text-slate-500';
-                  if (charging) {
-                    BattIcon = BatteryCharging;
-                    color = 'text-amber-500 dark:text-amber-400';
-                  } else if (pct !== null) {
-                    if (pct >= 75) { BattIcon = BatteryFull; color = 'text-emerald-500 dark:text-emerald-400'; }
-                    else if (pct >= 40) { BattIcon = BatteryMedium; color = 'text-amber-500 dark:text-amber-400'; }
-                    else if (pct >= 10) { BattIcon = BatteryLow; color = 'text-orange-500 dark:text-orange-400'; }
-                    else { BattIcon = BatteryWarning; color = 'text-rose-500 dark:text-rose-400'; }
-                  }
-                  return (
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold ${color}`}
-                         title={pct !== null ? `Battery: ${pct}%${charging ? ' (Charging)' : ''}` : 'Battery N/A'}>
-                      <BattIcon className="w-4 h-4" />
-                      <span>{pct !== null ? `${pct}%` : '--'}</span>
-                    </div>
-                  );
-                })()}
-              </div>
+              )}
 
               {/* Real-time WebSocket Status Indicator Badge */}
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-[11px] font-semibold transition-all">
@@ -580,14 +664,14 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 </Link>
               )}
 
-              {/* Live Time Display - Hidden on Mobile */}
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-xs font-bold text-slate-700 dark:text-slate-200 font-mono shadow-sm transition-all hover:border-emerald-500/30">
+              {/* Live Time Display - Hidden on smaller screens */}
+              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-xs font-bold text-slate-700 dark:text-slate-200 font-mono shadow-sm transition-all hover:border-emerald-500/30">
                 <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse shrink-0" />
                 <span className="tabular-nums tracking-wide">{currentTime || '--:--:--'}</span>
               </div>
 
-              {/* Global Language Selector - Hidden on Mobile */}
-              <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
+              {/* Global Language Selector - Hidden on smaller screens */}
+              <div className="hidden xl:flex items-center gap-1 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
                 <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <select
                   value={i18n.language ? i18n.language.split('-')[0] : 'en'}
@@ -613,6 +697,28 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   <option value="or" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ଓଡ଼ିଆ</option>
                 </select>
               </div>
+
+
+              {/* Visual Scene Canvas Toggle — Hidden on mobile layout */}
+              <button
+                type="button"
+                onClick={toggleNavbarScene}
+                className="hidden lg:flex p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative"
+                title={showNavbarScene ? "Hide Visual Scene Animations" : "Show Visual Scene Animations"}
+                aria-label="Toggle Visual Scene"
+              >
+                <Sparkles className={`w-4 h-4 transition-all duration-300 ${
+                  showNavbarScene 
+                    ? 'text-emerald-500 dark:text-emerald-400 animate-pulse' 
+                    : 'text-slate-400 dark:text-slate-600 scale-95 opacity-60'
+                }`} />
+                {showNavbarScene && (
+                  <span className="absolute top-1 right-1 flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                  </span>
+                )}
+              </button>
 
               {/* Theme Dark / Light Toggle */}
               <button
@@ -711,17 +817,19 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>User Profile</span>
+                      <span>{user?.role?.toLowerCase() === 'admin' ? 'Admin Profile & Security' : 'User Profile'}</span>
                     </Link>
 
-                    <Link
-                      to="/farm"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <Sprout className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>My Farm & Operations</span>
-                    </Link>
+                    {user?.role?.toLowerCase() !== 'admin' && (
+                      <Link
+                        to="/farm"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Sprout className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>My Farm & Operations</span>
+                      </Link>
+                    )}
 
                     <Link
                       to="/notifications"
@@ -730,6 +838,15 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                     >
                       <Bell className="w-3.5 h-3.5 text-slate-400" />
                       <span>Notification Inbox</span>
+                    </Link>
+
+                    <Link
+                      to="/settings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Settings</span>
                     </Link>
 
                     {(user?.role?.toLowerCase() === 'admin') && (
@@ -802,6 +919,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const currentPath = location.pathname;
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { hardwareMode } = useHardwareMode();
 
   // Keyboard shortcut Ctrl+B / Cmd+B to toggle sidebar
   useEffect(() => {
@@ -823,40 +941,29 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const navGroups = isAdmin ? [
     {
-      title: "Management & Security",
+      title: "Admin Dashboard & Operations",
       items: [
-        { key: "nav.admin_users", path: "/admin?tab=users", icon: User, label: "Registered Users" },
-        { key: "nav.admin_security", path: "/admin?tab=security", icon: ShieldCheck, label: "Security & Audit" },
-        { key: "nav.admin_iot", path: "/admin?tab=iot", icon: Cpu, label: "Hardware Registry" },
-        { key: "nav.admin_firmware", path: "/admin?tab=firmware", icon: UploadCloud, label: "Firmware & OTA" },
-        { key: "nav.admin_logs", path: "/admin?tab=logs", icon: FileText, label: "Security Audit Logs" },
-        { key: "nav.admin_geography", path: "/admin?tab=geography", icon: Globe, label: "User Geography" },
+        { key: "nav.admin_users", path: "/admin?tab=users", icon: Users, label: "Registered Users" },
         { key: "nav.admin_broadcast", path: "/admin?tab=broadcast", icon: Radio, label: "Global Broadcasts" },
-        { key: "nav.admin_settings", path: "/admin?tab=settings", icon: SettingsIcon, label: "System Configuration" },
+        { key: "nav.admin_geography", path: "/admin?tab=geography", icon: Globe, label: "Farmer Geography" },
+        { key: "nav.admin_iot", path: "/admin?tab=iot", icon: Cpu, label: "IoT Hardware Fleet" },
+        { key: "nav.admin_firmware", path: "/admin?tab=firmware", icon: UploadCloud, label: "Firmware OTA" },
+        { key: "nav.admin_logs", path: "/admin?tab=logs", icon: FileText, label: "Security Audit Logs" },
+        { key: "nav.admin_settings", path: "/admin?tab=settings", icon: Activity, label: "System Health & Specs" },
       ]
     },
     {
-      title: "Platform Monitoring",
+      title: "System Services",
       items: [
-        { key: "nav.devices", path: "/devices", icon: Cpu, label: "IoT Fleet Devices" },
-        { key: "nav.node_control", path: "/node-control", icon: Sliders, label: "Node Control Panel" },
-        { key: "nav.telemetry", path: "/analytics", icon: Activity, label: "Telemetry & Server Logs" },
-        { key: "nav.scan_history", path: "/history", icon: History, label: "Global Scan History" },
-        { key: "nav.reports", path: "/reports", icon: FileText, label: "System Audit Reports" },
+        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AgriShield Copilot" },
+        { key: "nav.notifications", path: "/notifications", icon: Bell, label: "Notification Center" },
       ]
     },
     {
-      title: "Intelligence & Assistance",
+      title: "Admin Account",
       items: [
-        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AI Assistant" },
-        { key: "nav.notifications", path: "/notifications", icon: Bell, label: "Notifications" },
-      ]
-    },
-    {
-      title: "Account Settings",
-      items: [
-        { key: "nav.profile", path: "/profile", icon: User, label: "Profile" },
-        { key: "nav.settings", path: "/settings", icon: SettingsIcon, label: "Settings" },
+        { key: "nav.profile", path: "/profile", icon: User, label: "Admin Profile" },
+        { key: "nav.settings", path: "/settings", icon: SettingsIcon, label: "System Settings" },
       ]
     }
   ] : isTester ? [
@@ -864,20 +971,26 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       title: "QA & Testing",
       items: [
         { key: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-        { key: "nav.scan_crop", path: "/upload", icon: Sparkles, label: "AI Scan Center" },
+        { key: "nav.scan_crop", path: "/upload", icon: Camera, label: "AI Scan Center" },
         { key: "nav.analytics", path: "/analytics", icon: Activity, label: "Telemetry & Logs" },
         { key: "nav.scan_history", path: "/history", icon: History, label: "Scan History" },
         { key: "nav.reports", path: "/reports", icon: FileText, label: "Reports" },
       ]
     },
-    {
+    ...(hardwareMode ? [{
       title: "Device & Monitoring",
       items: [
         { key: "nav.devices", path: "/devices", icon: Cpu, label: "IoT Devices" },
         { key: "nav.node_control", path: "/node-control", icon: Sliders, label: "Node Control Panel" },
+        { key: "nav.sd_card", path: "/sdcard", icon: HardDrive, label: "MicroSD Storage" },
         { key: "nav.notifications", path: "/notifications", icon: Bell, label: "Notifications" },
       ]
-    },
+    }] : [{
+      title: "Alerts & Notifications",
+      items: [
+        { key: "nav.notifications", path: "/notifications", icon: Bell, label: "Notifications" },
+      ]
+    }]),
     {
       title: "Intelligence & Assistance",
       items: [
@@ -893,39 +1006,35 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     }
   ] : [
     {
-      title: "Main Navigation",
+      title: "Main Menu",
       items: [
-        { key: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-        { key: "nav.farm", path: "/farm", icon: Sprout, label: "My Farm" },
-        { key: "nav.market", path: "/market", icon: TrendingUp, label: "Mandi & Crop Prices" },
-        { key: "nav.crop_advisory", path: "/crop-advisory", icon: Sprout, label: "Crop Advisory" },
-        { key: "nav.scan_crop", path: "/upload", icon: Sparkles, label: "AI Scan Center" },
-        { key: "nav.farm_analytics", path: "/farm-analytics", icon: BarChart2, label: "Farm Analytics" },
+        { key: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, label: "Home", color: "text-emerald-500" },
+        { key: "nav.scan_crop", path: "/upload", icon: Camera, label: "AI Crop Doctor", color: "text-teal-500" },
+        { key: "nav.farm", path: "/farm", icon: Sprout, label: "My Farm", color: "text-emerald-500" },
+        { key: "nav.market", path: "/market", icon: TrendingUp, label: "Mandi Prices", color: "text-amber-500" },
+      ]
+    },
+    ...(hardwareMode ? [{
+      title: "My Sensors",
+      items: [
+        { key: "nav.devices", path: "/devices", icon: Cpu, label: "View Sensors", color: "text-sky-500" },
+        { key: "nav.node_control", path: "/node-control", icon: Sliders, label: "Sensor Settings", color: "text-indigo-500" },
+        { key: "nav.sd_card", path: "/sdcard", icon: HardDrive, label: "MicroSD Storage", color: "text-purple-500" },
+      ]
+    }] : []),
+    {
+      title: "Data & Logs",
+      items: [
+        { key: "nav.scan_history", path: "/history", icon: History, label: "Scan History", color: "text-emerald-500" },
+        { key: "nav.telemetry", path: "/analytics", icon: Activity, label: "Telemetry Logs", color: "text-cyan-500" },
       ]
     },
     {
-      title: "Monitoring & Logs",
+      title: "Help & Settings",
       items: [
-        { key: "nav.scan_history", path: "/history", icon: History, label: "Scan History" },
-        { key: "nav.devices", path: "/devices", icon: Cpu, label: "IoT Devices" },
-        { key: "nav.node_control", path: "/node-control", icon: Sliders, label: "Node Control Panel" },
-        { key: "nav.sdcard", path: "/sdcard", icon: HardDrive, label: "SD Card Storage" },
-        { key: "nav.notifications", path: "/notifications", icon: Bell, label: "Notifications" },
-        { key: "nav.reports", path: "/reports", icon: FileText, label: "Reports" },
-      ]
-    },
-    {
-      title: "Intelligence & Assistance",
-      items: [
-        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AI Assistant" },
-        { key: "nav.telemetry", path: "/analytics", icon: Activity, label: "Telemetry Logs" },
-      ]
-    },
-    {
-      title: "Account Settings",
-      items: [
-        { key: "nav.profile", path: "/profile", icon: User, label: "Profile" },
-        { key: "nav.settings", path: "/settings", icon: SettingsIcon, label: "Settings" },
+        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "Ask AI Expert", color: "text-teal-500" },
+        { key: "nav.profile", path: "/profile", icon: User, label: "My Profile", color: "text-violet-500" },
+        { key: "nav.settings", path: "/settings", icon: SettingsIcon, label: "Settings", color: "text-slate-400" },
       ]
     }
   ];
@@ -945,13 +1054,13 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         )}
       </AnimatePresence>
 
-      <aside className={`fixed top-16 bottom-0 left-0 z-40 w-64 border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a0f1d] pt-2 transition-transform duration-300 flex flex-col justify-between ${
+      <aside className={`fixed top-16 bottom-0 left-0 z-40 w-64 border-r border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-[#0a0f1d]/95 backdrop-blur-xl pt-2 transition-transform duration-300 flex flex-col justify-between ${
         sidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
       }`}>
         <nav aria-label="Main Navigation" className="flex-1 px-3 py-4 overflow-y-auto space-y-6">
           {navGroups.map((group) => (
             <div key={group.title} className="space-y-1">
-              <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
+              <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
                 {group.title}
               </p>
               {group.items.map((item) => {
@@ -972,15 +1081,15 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     aria-label={t(item.key, item.label)}
                     className={`relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold min-h-[44px] transition-all duration-200 stagger-item ${
                       isActive 
-                        ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border dark:border-emerald-500/30 nav-active-bar' 
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 hover:translate-x-1'
+                        ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/25 border-l-4 border-l-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border dark:border-emerald-500/40 dark:border-l-4 dark:border-l-emerald-400' 
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white hover:translate-x-1'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className={`h-5 w-5 ${isActive ? 'text-white dark:text-emerald-400' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                      <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-white dark:text-emerald-300' : (item.color || 'text-slate-400')}`} />
                       <span>{t(item.key, item.label)}</span>
                     </div>
-                    {isActive && <ChevronRight className="h-4 w-4 text-white dark:text-emerald-400" />}
+                    {isActive && <ChevronRight className="h-4 w-4 text-white dark:text-emerald-300" />}
                   </Link>
                 );
               })}
@@ -1005,40 +1114,154 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   );
 };
 
-// 8.5 Mobile Bottom Navigation
+// 8.5 Mobile Bottom Navigation - Clean, Flush, Neatly Aligned Dock
 export const BottomNav = () => {
   const location = useLocation();
   const currentPath = location.pathname;
   const { t } = useTranslation();
-  
-  const bottomTabs = [
-    { key: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, label: "Home" },
-    { key: "nav.farm", path: "/farm", icon: Sprout, label: "Farm" },
-    { key: "nav.scan_crop", path: "/upload", icon: Sparkles, label: "Scan" },
-    { key: "nav.node_control", path: "/node-control", icon: Sliders, label: "Control" },
-    { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AI" },
+  const { user } = useAuth();
+  const { unreadCount } = useWebSocket() || {};
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+
+  // Admin tabs vs Farmer tabs
+  const adminTabs = [
+    {
+      key: 'dashboard',
+      label: 'Dashboard',
+      path: '/admin',
+      Icon: LayoutDashboard,
+      matchPaths: ['/admin'],
+    },
+    {
+      key: 'alerts',
+      label: 'Alerts',
+      path: '/notifications',
+      Icon: Bell,
+      matchPaths: ['/notifications'],
+      badge: unreadCount > 0 ? unreadCount : null,
+    },
+    {
+      key: 'assistant',
+      label: 'AI Copilot',
+      path: '/assistant',
+      Icon: Bot,
+      isCenter: true,
+      matchPaths: ['/assistant'],
+    },
+    {
+      key: 'settings',
+      label: 'Settings',
+      path: '/settings',
+      Icon: SettingsIcon,
+      matchPaths: ['/settings', '/more', '/profile'],
+    },
   ];
 
+  // Farmer tabs (5 tabs with Camera icon for leaf scan)
+  const farmerTabs = [
+    {
+      key: 'home',
+      label: t('nav.home_short', 'Home'),
+      path: '/dashboard',
+      Icon: LayoutDashboard,
+      matchPaths: ['/dashboard'],
+    },
+    {
+      key: 'field',
+      label: t('nav.field_short', 'Field'),
+      path: '/history',
+      Icon: Activity,
+      matchPaths: ['/history', '/analytics', '/farm', '/market', '/farm-analytics', '/reports'],
+    },
+    {
+      key: 'scan',
+      label: t('nav.scan_short', 'Scan'),
+      path: '/upload',
+      Icon: Camera,
+      isCenter: true,
+      matchPaths: ['/upload', '/result'],
+    },
+    {
+      key: 'alerts',
+      label: t('nav.alerts_short', 'Alerts'),
+      path: '/notifications',
+      Icon: Bell,
+      matchPaths: ['/notifications'],
+      badge: unreadCount > 0 ? unreadCount : null,
+    },
+    {
+      key: 'more',
+      label: t('nav.more_short', 'More'),
+      path: '/more',
+      Icon: SettingsIcon,
+      matchPaths: ['/more', '/settings', '/profile', '/admin', '/devices', '/node-control', '/sdcard', '/assistant', '/crop-advisory'],
+    },
+  ];
+
+  const bottomTabs = isAdmin ? adminTabs : farmerTabs;
+
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-[#050911]/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800 pb-safe">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav
+      aria-label="Mobile bottom navigation"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 select-none bg-white/95 dark:bg-[#070d19]/95 backdrop-blur-xl border-t border-slate-200/90 dark:border-slate-800/80 shadow-[0_-4px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_30px_rgba(0,0,0,0.6)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
         {bottomTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = currentPath === tab.path || (tab.path === '/upload' && currentPath === '/result');
+          const { Icon } = tab;
+          const isActive =
+            tab.matchPaths?.some((p) =>
+              p === currentPath || currentPath.startsWith(p + '/')
+            ) ?? currentPath === tab.path;
+
+          /* ── CENTER ACTION BUTTON (Camera for Farmer, Copilot for Admin) ── */
+          if (tab.isCenter) {
+            return (
+              <Link
+                key={tab.key}
+                to={tab.path}
+                aria-label={tab.label}
+                className="flex-1 flex flex-col items-center justify-center py-1 group active:scale-95 transition-transform"
+              >
+                <div className={`
+                  w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm
+                  ${isActive
+                    ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-emerald-500/40 scale-105 ring-2 ring-emerald-400/40'
+                    : 'bg-emerald-600 dark:bg-emerald-500 text-white hover:bg-emerald-500'}
+                `}>
+                  <Icon className="w-5 h-5 drop-shadow-xs" />
+                </div>
+                <span className={`text-[10px] font-bold tracking-tight mt-0.5 ${
+                  isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'
+                }`}>
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          }
+
+          /* ── BALANCED STANDARD TABS ── */
           return (
             <Link
               key={tab.key}
               to={tab.path}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
-                isActive 
-                  ? 'text-emerald-600 dark:text-emerald-400' 
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
+              aria-label={tab.label}
+              className={`
+                flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl transition-all duration-150 active:scale-95
+                ${isActive ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}
+              `}
             >
-              <div className={`p-1.5 rounded-xl transition-all ${isActive ? 'bg-emerald-50 dark:bg-emerald-900/30' : ''}`}>
-                <Icon className={`w-5 h-5 ${isActive ? 'animate-pulse' : ''}`} />
+              <div className="relative flex items-center justify-center">
+                <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-110 text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-400'}`} />
+                {tab.badge != null && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[15px] h-[15px] px-1 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 leading-none">
+                    {tab.badge > 99 ? '99+' : tab.badge}
+                  </span>
+                )}
               </div>
-              <span className={`text-[9px] font-semibold tracking-wide ${isActive ? 'font-bold' : ''}`}>
+              <span className={`text-[10px] tracking-tight mt-1 leading-none ${
+                isActive ? 'font-extrabold text-emerald-600 dark:text-emerald-400' : 'font-medium text-slate-500 dark:text-slate-400'
+              }`}>
                 {tab.label}
               </span>
             </Link>
@@ -1055,7 +1278,7 @@ export const Footer = () => {
   if (location.pathname === '/assistant') return null;
 
   return (
-    <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm py-6 mt-auto">
+    <footer className="hidden md:block border-t border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm py-6 mt-auto">
       <div className="mx-auto flex flex-col items-center justify-between gap-3 px-4 sm:flex-row sm:px-6 max-w-7xl">
         <p className="text-center text-xs text-slate-500 dark:text-slate-400 sm:text-left">
           &copy; {new Date().getFullYear()} AgriShield AI Platform. All rights reserved.

@@ -32,8 +32,6 @@ async def upload_firmware(
 ):
     """
     Secure Admin Endpoint: Upload a new OTA firmware release binary.
-    Validates file extension (.bin), maximum file size (4MB), and ESP32 magic byte (0xE9).
-    Computes SHA-256 checksum and records release metadata in MongoDB.
     """
     content = await file.read()
     validate_firmware_file(file.filename, content)
