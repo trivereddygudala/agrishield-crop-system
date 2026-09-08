@@ -549,7 +549,7 @@ const AIAssistantPage = () => {
   const userInitials = (user?.name || 'Farmer').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex h-full w-full bg-white dark:bg-[#0d0d0d] text-slate-900 dark:text-slate-100 overflow-hidden relative font-sans select-text">
+    <div className="flex h-full min-h-0 flex-1 w-full bg-white dark:bg-[#0d0d0d] text-slate-900 dark:text-slate-100 overflow-hidden relative font-sans select-text">
 
       {/* ── MOBILE BACKDROP FOR SIDEBAR ── */}
       <AnimatePresence>
@@ -715,7 +715,7 @@ const AIAssistantPage = () => {
       </div>
 
       {/* ── MAIN ACTIVE CHAT VIEW (Pictures 2 & 3) ── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full bg-white dark:bg-[#0d0d0d] relative">
+      <div className="flex-1 flex flex-col min-w-0 h-full min-h-0 bg-white dark:bg-[#0d0d0d] relative overflow-hidden">
 
         {/* ChatGPT Style Top Header */}
         <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-md border-b border-slate-100 dark:border-[#1e1e1e] shrink-0 z-10">
@@ -759,8 +759,8 @@ const AIAssistantPage = () => {
         <div 
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className="flex-1 h-full min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-4 sm:px-8 py-4 space-y-6 max-w-3xl w-full mx-auto"
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-8 py-4 space-y-6 max-w-3xl w-full mx-auto"
+          style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
         >
           {/* Empty Chat State with Suggestion Cards (Picture 3) */}
           {currentSession?.messages.length <= 1 && (
@@ -885,7 +885,7 @@ const AIAssistantPage = () => {
             </div>
           )}
 
-          <div ref={chatBottomRef} />
+          <div ref={chatBottomRef} className="h-8 shrink-0" />
         </div>
 
         {/* Floating Scroll to Bottom Button */}
@@ -896,7 +896,7 @@ const AIAssistantPage = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={scrollToBottom}
-              className="absolute bottom-40 lg:bottom-20 right-6 p-2 rounded-full bg-slate-800 text-white shadow-xl hover:bg-slate-700 z-20"
+              className="absolute bottom-44 lg:bottom-20 right-6 p-2 rounded-full bg-slate-800 text-white shadow-xl hover:bg-slate-700 z-20"
             >
               <ChevronDown className="w-4 h-4" />
             </motion.button>
@@ -904,7 +904,7 @@ const AIAssistantPage = () => {
         </AnimatePresence>
 
         {/* ── CHATGPT STYLE PILL SEARCH BAR (Pictures 2 & 3) ── */}
-        <div className="px-3 sm:px-6 pb-24 lg:pb-3 pt-1 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto">
+        <div className="px-3 sm:px-6 pb-20 lg:pb-3 pt-1 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto">
           
           {/* Quick Plus Attachments Modal */}
           <AnimatePresence>

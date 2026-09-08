@@ -273,8 +273,8 @@ async def update_profile(
 ):
     """Update profile information with password history enforcement."""
     update_dict = {}
-    if update_data.name is not None:
-        update_dict["name"] = update_data.name
+    if update_data.name is not None and update_data.name.strip():
+        update_dict["name"] = update_data.name.strip()
     
     if update_data.password is not None and update_data.password != "":
         # Enforce password policy
@@ -283,7 +283,9 @@ async def update_profile(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Weak password: {msg}")
 
         # Check password history (last 5 passwords)
-        user_doc = await db.users.find_one({"_id": ObjectId(current_user["id"])})
+        user_id_raw = str(current_user.get("id") or current_user.get("_id") or "")
+        user_query = {"$or": [{"_id": ObjectId(user_id_raw) if ObjectId.is_valid(user_id_raw) else user_id_raw}, {"email": current_user.get("email")}]}
+        user_doc = await db.users.find_one(user_query)
         history = user_doc.get("password_history", []) if user_doc else []
         
         for old_hash in history[-5:]:
@@ -302,6 +304,8 @@ async def update_profile(
         update_dict["farm_location"] = update_data.farm_location
     if update_data.preferred_language is not None:
         update_dict["preferred_language"] = update_data.preferred_language
+    if update_data.farmer_mode is not None:
+        update_dict["farmer_mode"] = update_data.farmer_mode
     if update_data.crop_history is not None:
         update_dict["crop_history"] = update_data.crop_history
     if update_data.farming_practices is not None:
@@ -309,7 +313,8 @@ async def update_profile(
     if update_data.farm_profile_completed is not None:
         update_dict["farm_profile_completed"] = update_data.farm_profile_completed
     if update_data.active_farm_id is not None:
-        update_dict["active_farm_id"] = ObjectId(update_data.active_farm_id) if update_data.active_farm_id else None
+        raw_fid = str(update_data.active_farm_id)
+        update_dict["active_farm_id"] = ObjectId(raw_fid) if ObjectId.is_valid(raw_fid) else raw_fid
     if update_data.notification_settings is not None:
         update_dict["notification_settings"] = update_data.notification_settings
     if update_data.color_theme is not None:
@@ -317,26 +322,36 @@ async def update_profile(
     if update_data.navbar_theme is not None:
         update_dict["navbar_theme"] = update_data.navbar_theme
 
+    user_id_raw = str(current_user.get("id") or current_user.get("_id") or "")
+    user_query = {"$or": [{"_id": ObjectId(user_id_raw) if ObjectId.is_valid(user_id_raw) else user_id_raw}, {"email": current_user.get("email")}]}
+
     if not update_dict:
         return current_user
 
     update_dict["updated_at"] = datetime.now(timezone.utc)
     await db.users.update_one(
-        {"_id": ObjectId(current_user["id"])},
+        user_query,
         {"$set": update_dict}
     )
 
     if "preferred_language" in update_dict:
-        await db.devices.update_many(
-            {"user_id": ObjectId(current_user["id"])},
-            {"$set": {"display_language": update_dict["preferred_language"]}}
-        )
+        try:
+            await db.devices.update_many(
+                {"$or": [{"user_id": ObjectId(user_id_raw) if ObjectId.is_valid(user_id_raw) else user_id_raw}, {"user_id": user_id_raw}]},
+                {"$set": {"display_language": update_dict["preferred_language"]}}
+            )
+        except Exception:
+            pass
 
-    updated_user = await db.users.find_one({"_id": ObjectId(current_user["id"])})
-    updated_user["id"] = str(updated_user["_id"])
+    updated_user = await db.users.find_one(user_query)
+    if not updated_user:
+        updated_user = current_user
+    
+    updated_user["id"] = str(updated_user.get("_id") or user_id_raw)
     updated_user.setdefault("role", "farmer")
     updated_user.setdefault("farm_location", None)
     updated_user.setdefault("preferred_language", "en")
+    updated_user.setdefault("farmer_mode", False)
     updated_user.setdefault("color_theme", "agrishield-default")
     updated_user.setdefault("navbar_theme", "farmer-dynamic")
     updated_user.setdefault("crop_history", [])
@@ -347,12 +362,21 @@ async def update_profile(
     active_fid = updated_user.get("active_farm_id")
     updated_user["active_farm_id"] = str(active_fid) if active_fid else None
 
+    created_at_val = updated_user.get("created_at")
+    if isinstance(created_at_val, str):
+        try:
+            updated_user["created_at"] = datetime.fromisoformat(created_at_val.replace('Z', '+00:00'))
+        except Exception:
+            updated_user["created_at"] = datetime.now(timezone.utc)
+    elif not isinstance(created_at_val, datetime):
+        updated_user["created_at"] = datetime.now(timezone.utc)
+
     # Sync other active browser sessions for the same user in real-time
     from backend.app.services.notification_service import active_websocket_manager
     if active_websocket_manager:
         try:
             await active_websocket_manager.broadcast_to_user(
-                str(current_user["id"]),
+                user_id_raw,
                 {"type": "profile_updated", "user": updated_user}
             )
         except Exception as e:

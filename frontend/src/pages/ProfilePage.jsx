@@ -263,11 +263,18 @@ const ProfilePage = () => {
       }
 
       await updateProfile(updatePayload);
+      if (preferredLanguage) {
+        i18n.changeLanguage(preferredLanguage);
+        localStorage.setItem('i18nextLng', preferredLanguage);
+      }
       setToastMsg('Profile details updated successfully.');
+      setErrorMsg('');
       setAdminPassword('');
       setAdminConfirmPassword('');
     } catch (err) {
-      setErrorMsg('Failed to update profile information.');
+      console.error("Profile update error:", err);
+      const detail = err?.response?.data?.detail;
+      setErrorMsg(typeof detail === 'string' ? detail : 'Failed to update profile information.');
     } finally {
       setLoading(false);
     }
@@ -500,9 +507,17 @@ const ProfilePage = () => {
                           onChange={(e) => setPreferredLanguage(e.target.value)}
                           options={[
                             { value: 'en', label: 'English' },
-                            { value: 'hi', label: 'Hindi (हिंदी)' },
                             { value: 'te', label: 'Telugu (తెలుగు)' },
-                            { value: 'ta', label: 'Tamil (தமிழ்)' }
+                            { value: 'hi', label: 'Hindi (हिंदी)' },
+                            { value: 'ta', label: 'Tamil (தமிழ்)' },
+                            { value: 'kn', label: 'Kannada (ಕನ್ನಡ)' },
+                            { value: 'ml', label: 'Malayalam (മലയാളം)' },
+                            { value: 'mr', label: 'Marathi (मराठी)' },
+                            { value: 'gu', label: 'Gujarati (ગુજરાતી)' },
+                            { value: 'pa', label: 'Punjabi (ਪੰਜਾਬੀ)' },
+                            { value: 'ur', label: 'Urdu (اردو)' },
+                            { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
+                            { value: 'as', label: 'Assamese (অসমীয়া)' }
                           ]}
                           className="text-xs font-bold text-slate-800 dark:text-white"
                         />
@@ -545,9 +560,17 @@ const ProfilePage = () => {
                           onChange={(e) => setPreferredLanguage(e.target.value)}
                           options={[
                             { value: 'en', label: 'English' },
-                            { value: 'hi', label: 'Hindi (हिंदी)' },
                             { value: 'te', label: 'Telugu (తెలుగు)' },
-                            { value: 'ta', label: 'Tamil (தமிழ்)' }
+                            { value: 'hi', label: 'Hindi (हिंदी)' },
+                            { value: 'ta', label: 'Tamil (தமிழ்)' },
+                            { value: 'kn', label: 'Kannada (ಕನ್ನಡ)' },
+                            { value: 'ml', label: 'Malayalam (മലയാളം)' },
+                            { value: 'mr', label: 'Marathi (मराठी)' },
+                            { value: 'gu', label: 'Gujarati (ગુજરાતી)' },
+                            { value: 'pa', label: 'Punjabi (ਪੰਜਾਬੀ)' },
+                            { value: 'ur', label: 'Urdu (اردو)' },
+                            { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
+                            { value: 'as', label: 'Assamese (অসমীয়া)' }
                           ]}
                           className="text-xs font-bold text-slate-800 dark:text-white"
                         />

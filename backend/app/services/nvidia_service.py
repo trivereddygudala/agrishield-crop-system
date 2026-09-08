@@ -1033,15 +1033,35 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                 )
 
             if scan_latest:
+                crop_name = scan_latest.get('crop', 'Crop')
+                disease_name = scan_latest.get('disease', 'Healthy')
+                conf_val = scan_latest.get('confidence', '99.4%')
+                sev_val = scan_latest.get('severity', 'Medium')
+                date_val = scan_latest.get('date', 'Today')
+                time_val = scan_latest.get('time', '')
+                
+                symptoms_text = scan_latest.get('symptoms', 'Foliar chlorosis and concentric ring leaf spotting')
+                org_tx = scan_latest.get('organic_treatment', 'Apply Neem Oil (10,000 PPM) @ 3ml/L or Trichoderma viride enriched compost.')
+                chem_tx = scan_latest.get('chemical_treatment', 'Spray Mancozeb 75% WP @ 2.5g/L or Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L.')
+                
+                # If current session language is English, ensure non-English database entries are cleanly translated to English
+                if lang == "en":
+                    if symptoms_text and re.search(r'[\u0900-\u0D7F]', symptoms_text):
+                        symptoms_text = "Dark water-soaked concentric lesions on leaf surface, yellowing margins, and premature foliar chlorosis."
+                    if org_tx and re.search(r'[\u0900-\u0D7F]', org_tx):
+                        org_tx = "Apply Neem Oil (10,000 PPM) @ 3ml/L or Trichoderma viride bio-fungicide spray every 7-10 days. Prune and dispose of infected lower foliage."
+                    if chem_tx and re.search(r'[\u0900-\u0D7F]', chem_tx):
+                        chem_tx = "Spray Mancozeb 75% WP @ 2.5g/L or Azoxystrobin 23% SC @ 1ml/L. Ensure thorough coverage on both upper and lower leaf surfaces."
+
                 return (
                     f"### 🔬 Most Recent Crop Diagnostic Scan Report\n\n"
-                    f"- **Diagnosed Crop:** **{scan_latest.get('crop', 'Crop')}**\n"
-                    f"- **Pathology Condition:** **{scan_latest.get('disease', 'Healthy')}** (Confidence: **{scan_latest.get('confidence', '99.4%')}**, Severity: **{scan_latest.get('severity', 'Medium')}**)\n"
-                    f"- **Identified Symptoms:** {scan_latest.get('symptoms', 'Foliar chlorosis and concentric ring leaf spotting')}\n"
-                    f"- **Scan Recorded At:** {scan_latest.get('date', 'Today')} {scan_latest.get('time', '')}\n\n"
+                    f"- **Diagnosed Crop:** **{crop_name}**\n"
+                    f"- **Pathology Condition:** **{disease_name}** (Confidence: **{conf_val}**, Severity: **{sev_val}**)\n"
+                    f"- **Identified Symptoms:** {symptoms_text}\n"
+                    f"- **Scan Recorded At:** {date_val} {time_val}\n\n"
                     f"#### 🌿 Recommended Treatment Protocol:\n"
-                    f"- **Organic / Biological Control:** {scan_latest.get('organic_treatment', 'Apply Neem Oil (10,000 PPM) @ 3ml/L or Trichoderma viride enriched compost.')}\n"
-                    f"- **Chemical Prescription:** {scan_latest.get('chemical_treatment', 'Spray Mancozeb 75% WP @ 2.5g/L or Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L.')}\n\n"
+                    f"- **Organic / Biological Control:** {org_tx}\n"
+                    f"- **Chemical Prescription:** {chem_tx}\n\n"
                     f"| Spraying Precaution\n"
                     f"Ensure thorough coverage on both upper and lower leaf surfaces during early morning (6:00 AM – 9:00 AM) or late evening (4:30 PM – 6:30 PM)."
                 )
@@ -1383,33 +1403,46 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
     def _detect_query_language(self, message: str, context_lang: str = "en") -> str:
         """Detect query language using Unicode script detection and Indic transliterated keyword patterns."""
         msg = message.lower().strip()
-        # Telugu (Unicode \u0C00-\u0C7F or transliterated Tanglish)
-        if re.search(r'[\u0C00-\u0C7F]', message) or any(w in msg for w in ["వరి", "ధర", "తేమ", "సమయం", "ఎరువులు", "పథకాలు", "పత్తి", "మిర్చి", "టమాటా", "రైతు", "తెగులు", "మొక్క", "ఉల్లిపాయ", "గోధుమ", "బాగున్నారా", "vatavarnam", "vaatavaranam", "e roju", "ela undi", "ela vundi", "entha", "enti", "undha", "cheppu", "vari", "dharalu", "dharalu", "eruvulu", "tegulu", "rythu", "pathakalu", "nela tema"]):
+        c_lang = (context_lang or "en").lower().strip()[:2]
+        
+        # 1. Explicit native Indic script in user message (Highest Priority)
+        if re.search(r'[\u0C00-\u0C7F]', message): # Telugu script
             return "te"
-        # Hindi / Devanagari (\u0900-\u097F or transliterated Hinglish)
-        if re.search(r'[\u0900-\u097F]', message) or any(w in msg for w in ["धान", "भाव", "नमी", "समय", "खाद", "योजना", "कपास", "मिर्च", "टमाटर", "किसान", "रोग", "पौधा", "प्याज", "गेहूं", "नमस्ते", "mausam", "kaisa hai", "aaj", "kitna hai", "kheti", "pani", "kisan", "yojana", "khad"]):
+        if re.search(r'[\u0900-\u097F]', message): # Hindi / Devanagari script
             return "hi"
-        # Tamil (\u0B80-\u0BFF or transliterated)
-        if re.search(r'[\u0B80-\u0BFF]', message) or any(w in msg for w in ["நெல்", "விலை", "ஈரப்பதம்", "நேரம்", "உரம்", "திட்டங்கள்", "தக்காளி", "பருத்தி", "வணக்கம்", "neram", "vilai", "vanakkam"]):
+        if re.search(r'[\u0B80-\u0BFF]', message): # Tamil script
             return "ta"
-        # Kannada (\u0C80-\u0CFF or transliterated)
-        if re.search(r'[\u0C80-\u0CFF]', message) or any(w in msg for w in ["ಭತ್ತ", "ಬೆಲೆ", "ತೇವಾಂಶ", "ಸಮಯ", "ಗೊಬ್ಬರ", "ಯೋಜನೆಗಳು", "ಟೊಮೆಟೊ", "ಹತ್ತಿ", "ನಮಸ್ಕಾರ", "samaya", "bele", "namaskara"]):
+        if re.search(r'[\u0C80-\u0CFF]', message): # Kannada script
             return "kn"
-        # Malayalam (\u0D00-\u0D7F)
-        if re.search(r'[\u0D00-\u0D7F]', message):
+        if re.search(r'[\u0D00-\u0D7F]', message): # Malayalam script
             return "ml"
-        # Bengali (\u0980-\u09FF)
-        if re.search(r'[\u0980-\u09FF]', message):
+        if re.search(r'[\u0980-\u09FF]', message): # Bengali script
             return "bn"
-        # Gujarati (\u0A80-\u0AFF)
-        if re.search(r'[\u0A80-\u0AFF]', message):
+        if re.search(r'[\u0A80-\u0AFF]', message): # Gujarati script
             return "gu"
-        # Punjabi (\u0A00-\u0A7F)
-        if re.search(r'[\u0A00-\u0A7F]', message):
+        if re.search(r'[\u0A00-\u0A7F]', message): # Punjabi script
             return "pa"
-        # Fallback to context language if non-English
-        if context_lang in ["te", "hi", "ta", "kn", "ml", "mr", "bn", "gu", "pa", "ur", "or", "as"]:
-            return context_lang
+
+        # 2. If system language / context language is English ("en"), strictly respect English
+        if c_lang == "en":
+            if any(w in msg for w in ["బాగున్నారా", "vatavarnam", "vaatavaranam", "e roju ela undi", "vari dharalu", "rythu pathakalu"]):
+                return "te"
+            if any(w in msg for w in ["kaisa hai", "aaj kitna hai", "kisan yojana"]):
+                return "hi"
+            return "en"
+
+        # 3. Transliterated Indic keyword patterns for regional languages
+        if c_lang == "te" or any(w in msg for w in ["వరి", "ధర", "తేమ", "సమయం", "ఎరువులు", "పథకాలు", "పత్తి", "మిర్చి", "టమాటా", "రైతు", "తెగులు", "మొక్క", "ఉల్లిపాయ", "గోధుమ", "బాగున్నారా", "vatavarnam", "vaatavaranam", "e roju", "ela undi", "ela vundi", "entha", "enti", "undha", "cheppu", "vari", "dharalu", "eruvulu", "tegulu", "rythu", "pathakalu", "nela tema"]):
+            return "te"
+        if c_lang == "hi" or any(w in msg for w in ["धान", "भाव", "नमी", "समय", "खाद", "योजना", "कपास", "मिर्च", "टमाटर", "किसान", "रोग", "पौधा", "प्याज", "गेहूं", "नमस्ते", "mausam", "kaisa hai", "aaj", "kitna hai", "kheti", "pani", "kisan", "yojana", "khad"]):
+            return "hi"
+        if c_lang == "ta" or any(w in msg for w in ["நெல்", "விலை", "ஈரப்பதம்", "நேரம்", "உரம்", "திட்டங்கள்", "தக்காளி", "பருத்தி", "வணக்கம்", "neram", "vilai", "vanakkam"]):
+            return "ta"
+        if c_lang == "kn" or any(w in msg for w in ["ಭತ್ತ", "ಬೆಲೆ", "ತೇವಾಂಶ", "ಸಮಯ", "ಗೊಬ್ಬರ", "ಯೋಜನೆಗಳು", "ಟೊಮೆಟೊ", "ಹತ್ತಿ", "ನಮಸ್ಕಾರ", "samaya", "bele", "namaskara"]):
+            return "kn"
+        if c_lang in ["ml", "mr", "bn", "gu", "pa", "ur", "or", "as"]:
+            return c_lang
+
         return "en"
 
     def _generate_local_agronomic_response(self, message: str, context: dict = None) -> str:

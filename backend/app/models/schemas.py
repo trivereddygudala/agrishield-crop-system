@@ -27,9 +27,9 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: str
-    created_at: datetime
+    created_at: Optional[Any] = Field(default_factory=lambda: datetime.now())
 
-    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True, arbitrary_types_allowed=True)
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -39,6 +39,7 @@ class TokenResponse(BaseModel):
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
+    email: Optional[str] = None
     password: Optional[str] = None
     farm_location: Optional[str] = None
     preferred_language: Optional[str] = None
@@ -50,6 +51,8 @@ class ProfileUpdate(BaseModel):
     notification_settings: Optional[Dict[str, Any]] = None
     color_theme: Optional[str] = None
     navbar_theme: Optional[str] = None
+
+    model_config = ConfigDict(extra="ignore")
 
 # Prediction schemas
 class PredictionBase(BaseModel):
