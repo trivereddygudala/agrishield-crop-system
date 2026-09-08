@@ -103,6 +103,7 @@ const ScanImageUploader = ({
 }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef(null);
+  const nativeCameraInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const hudCanvasRef = useRef(null);
@@ -420,37 +421,44 @@ const ScanImageUploader = ({
         stream.getTracks().forEach((track) => track.stop());
       }
 
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
-      setVideoDevices(videoInputDevices);
-      setCurrentDeviceIdx(deviceIndex);
+      let mediaStream = null;
 
-      let constraints = {
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-      };
-
-      if (videoInputDevices.length > 0 && videoInputDevices[deviceIndex]) {
-        constraints = {
-          video: { 
-            deviceId: { exact: videoInputDevices[deviceIndex].deviceId },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        };
+      // Strategy 1: Request back environment camera (ideal for mobile crop leaf scanning)
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+      } catch (e1) {
+        // Strategy 2: Fallback to standard video stream
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        } catch (e2) {
+          throw e2;
+        }
       }
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
+
+      // Enumerate available cameras after permission is active
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
+        setVideoDevices(videoInputDevices);
+        setCurrentDeviceIdx(deviceIndex);
+      } catch (enumErr) {
+        console.warn("Could not enumerate camera devices:", enumErr);
+      }
     } catch (err) {
-      console.error("Camera access failed:", err);
-      if (deviceIndex > 0) {
-        startCamera(0);
+      console.error("WebRTC camera stream failed or blocked:", err);
+      setCameraModalOpen(false);
+      // Auto Fallback: Open phone's native high-resolution camera
+      if (nativeCameraInputRef.current) {
+        nativeCameraInputRef.current.click();
       } else {
-        alert("Camera access denied or unavailable.");
-        setCameraModalOpen(false);
+        alert("Camera permission was not granted. Please use 'Select Photo' or 'Take Photo' to snap a picture!");
       }
     }
   };
@@ -555,6 +563,14 @@ const ScanImageUploader = ({
         className="hidden"
         onChange={(e) => e.target.files?.[0] && onFileSelect(e.target.files[0])}
       />
+      <input
+        ref={nativeCameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && onFileSelect(e.target.files[0])}
+      />
       <canvas ref={canvasRef} className="hidden" />
       <canvas ref={hudCanvasRef} className="hidden" />
 
@@ -593,6 +609,17 @@ const ScanImageUploader = ({
             >
               {t('uploader.select_photo', 'Select Photo')}
             </Button>
+            
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => nativeCameraInputRef.current?.click()}
+              leftIcon={<Camera className="w-4 h-4 text-sky-500" />}
+              className="border border-sky-300 dark:border-sky-800 bg-sky-50/60 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 hover:bg-sky-100"
+            >
+              <span>Take Photo (Native)</span>
+            </Button>
+
             <Button
               variant="gradient"
               size="md"

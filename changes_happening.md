@@ -2,6 +2,10 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-08 (v52) - Mobile Camera Access Fix with Environment Constraints & Native 4K Camera Fallback
+- **Summary:** Resolved mobile WebRTC camera access issues (`Camera access denied or unavailable`) across Android Chrome and iOS Safari. Replaced restrictive pre-permission `deviceId` exact match constraints with progressive mobile `facingMode: { ideal: 'environment' }` queries. Added automatic graceful fallback to the device's native high-resolution camera (`<input type="file" accept="image/*" capture="environment" />`) with a dedicated 1-tap **"Take Photo (Native)"** action button, ensuring 100% camera compatibility on every mobile device regardless of browser WebRTC permission restrictions.
+- **Files modified**: `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`
+
 ## 2026-09-08 (v51) - Admin IoT Telemetry Ingestion Master Gate Switch (Default: Paused/Off)
 - **Summary:** Implemented a centralized **IoT Telemetry Ingestion Master Gate** in both the backend and Admin Portal. By default, incoming IoT sensor data transmission is **PAUSED / DISABLED**, preventing unnecessary database writes and protecting MongoDB Atlas cloud storage limits. Created a dedicated Admin Master Switch on the **IoT Hardware Fleet** page (`/admin?tab=iot`) allowing administrators to dynamically toggle IoT telemetry ingestion ON or OFF on demand with real-time audit logging (`IOT_INGESTION_TOGGLED`). Both `/api/iot/telemetry` and `/api/iot/telemetry/bulk` reject/pause sensor payloads when the gate is turned off.
 - **Files modified**: `backend/app/routers/iot.py`, `backend/app/routers/admin.py`, `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`
