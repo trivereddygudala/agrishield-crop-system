@@ -140,5 +140,16 @@ async def close_mongo_connection():
         logger.info("MongoDB connection closed.")
 
 def get_database():
-    """Retrieve database instance."""
+    """Retrieve database instance, reconnecting synchronously if needed."""
+    if db_instance.db is None:
+        try:
+            logger.info("db_instance is None in get_database, initializing client...")
+            db_instance.client = AsyncIOMotorClient(
+                settings.mongo_connection_url,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000
+            )
+            db_instance.db = db_instance.client[settings.DATABASE_NAME]
+        except Exception as e:
+            logger.error(f"Failed on-demand MongoDB connection: {e}")
     return db_instance.db

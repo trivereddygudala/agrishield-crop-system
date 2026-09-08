@@ -43,7 +43,7 @@ class Settings(BaseSettings):
 
     @property
     def mongo_connection_url(self) -> str:
-        return self.MONGO_URI or self.MONGODB_URI
+        return os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI") or self.MONGO_URI or self.MONGODB_URI
 
     # Groq Cloud AI Provider Settings (Primary Fast Inference)
     GROQ_API_KEY: str = ""

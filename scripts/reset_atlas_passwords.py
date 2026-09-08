@@ -1,23 +1,25 @@
-import pymongo
-import sys
-sys.path.insert(0, r"c:\AI Crop Disease Detection System")
-from backend.app.core.security import hash_password
+import bcrypt
+from pymongo import MongoClient
 
-uri = "mongodb+srv://trivereddy2005_db_user:Trivendra_agrishield_2005@cluster0.viv9i7u.mongodb.net/agrishield_db?retryWrites=true&w=majority&appName=Cluster0"
-client = pymongo.MongoClient(uri)
-db = client["agrishield_db"]
+atlas_uri = 'mongodb+srv://trivereddygudala_db_user:65lzhEkdcOgMITc5@agrishield-db.cn2tf7s.mongodb.net/?appName=agrishield-db'
+client = MongoClient(atlas_uri)
+db = client['agrishield_db']
 
-# Reset locks and set standard passwords
-db["users"].update_many({}, {"$set": {"failed_login_attempts": 0, "account_locked_until": None}})
+def hash_pw(pw):
+    return bcrypt.hashpw(pw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-db["users"].update_one(
-    {"email": "farmer1@agrishield.com"}, 
-    {"$set": {"password_hash": hash_password("Farmer1@1234")}}
+admin_hash = hash_pw('Admin@123')
+farmer_hash = hash_pw('Farmer@123')
+
+res1 = db.users.update_one(
+    {'email': 'admin@agrishield.ai'},
+    {'$set': {'password': admin_hash, 'hashed_password': admin_hash, 'login_attempts': 0, 'locked_until': None}}
 )
 
-db["users"].update_one(
-    {"email": "admin@agrishield.ai"}, 
-    {"$set": {"password_hash": hash_password("Agrisheild@2027")}}
+res2 = db.users.update_one(
+    {'email': 'farmer1@agrishield.com'},
+    {'$set': {'password': farmer_hash, 'hashed_password': farmer_hash, 'login_attempts': 0, 'locked_until': None}}
 )
 
-print("✅ Password reset to 'Farmer1@1234' for farmer1@agrishield.com and 'Agrisheild@2027' for admin@agrishield.ai in Atlas Cloud!")
+print(f"Admin account updated ({res1.matched_count} found, {res1.modified_count} updated) -> Password: Admin@123")
+print(f"Farmer account updated ({res2.matched_count} found, {res2.modified_count} updated) -> Password: Farmer@123")
