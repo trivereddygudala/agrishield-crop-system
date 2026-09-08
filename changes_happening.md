@@ -1104,10 +1104,19 @@
 - Replaced with a unified, sleek top bar: Clean status pill on left (`Chilli (99.9%)`) and compact icon buttons on right (`Heatmap` toggle + circular `X` button).
 - Uncluttered the leaf photo review view so the full crop and disease pathology is completely visible.
 
-9/9/2026: Fixed Live Alert Notification Popup Clipping on Mobile (`frontend/src/components/AppLayout.jsx`, `frontend/src/components/ui/toast.jsx`):
-- Fixed issue where the post-scan diagnosis notification popup only showed ~30% on mobile screens: Previously, the notification was fixed at `bottom-6 right-6` with `max-w-sm w-full`, causing it to overflow off-screen and hide behind the 64px mobile bottom navigation bar.
-- Updated to `bottom-22 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm z-[9999]`: Positioned comfortably above the mobile bottom bar with 16px margins on both sides, making 100% of the disease alert, action links, and dismiss controls clearly visible and interactive.
-- Updated generic `ToastProvider` container with `inset-x-4` on mobile so all toast alerts are fully responsive.
+9/9/2026: Comprehensive Regional Native Language & Farmer Vocabulary Overhaul (`frontend/src/i18n/translations.js`):
+- Audited all 12 regional languages: Telugu (తెలుగు), Hindi (हिन्दी), Tamil (தமிழ்), Kannada (ಕನ್ನಡ), Malayalam (മലയാളം), Marathi (मराठी), Gujarati (ગુજરાતી), Punjabi (ਪੰਜਾਬੀ), Urdu (اردو), Odia (ଓଡ଼ିଆ), Assamese (অসমীয়া).
+- Fixed Critical Script Corruptions:
+  - Fixed Telugu Maize (`مొక్కజొన్న` -> `మొక్కజొన్న`) which previously had an Arabic letter 'م' prepended.
+  - Fixed Telugu Prevention (`निవారణ` -> `నివారణ`) which previously had a Devanagari 'नि' prepended.
+  - Removed Devanagari Hindi text mistakenly copied into Odia, Assamese, Punjabi, Tamil, and Kannada pages (profile, devices, market, farm, and assistant pages).
+  - Cleaned all trailing English parenthetical text like `(PPE)`, `(Safety Precautions)`, `(Prevention)`, `(Causes)`, `(Genus)`, `(Species)`.
+- Enriched with Authentic Native Agricultural Terms:
+  - Telugu: Rythu-centric terminology for crops (వరి, వేరుశనగ, మిరప, పత్తి, మొక్కజొన్న, చెరకు, టమాట), remedies (సేంద్రీయ / సహజ నివారణ, రసాయన మందుల పిచికారీ, ముందస్తు జాగ్రత్తలు), and farm overview.
+  - Hindi: Authentic Kisan terminology for KVK practices (धान, मूंगफली, मिर्च, जैविक व देसी उपचार, कीटनाशक व रासायनिक दवा, रोग से बचाव व रोकथाम).
+  - Tamil, Kannada, Malayalam, Gujarati, Punjabi, Urdu, Odia, Assamese: Completely translated into pure native scripts for all 18 sections with zero script-mixing.
+- Added Missing `uploader` Namespace across all languages: Ensured camera scan, photo selection, and AI analysis buttons now properly translate across every regional language.
+
 
 
 
