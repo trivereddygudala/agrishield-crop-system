@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress, Input, Select } from '../ui/index';
+import { translateCrop, translateDisease } from '../../utils/diseaseAdvisoryData';
 
 const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
   const { t, i18n } = useTranslation();
@@ -17,8 +18,12 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
   const [fieldArea, setFieldArea] = useState(1.0);
   const [waterPerAcre, setWaterPerAcre] = useState(200);
 
-  const diseaseName = liveResult?.disease_name || 'Tomato Early Blight (Alternaria solani)';
-  const cropName = liveResult?.crop_name || 'Tomato';
+  const rawDiseaseName = liveResult?.disease_name || 'Tomato Early Blight (Alternaria solani)';
+  const rawCropName = liveResult?.crop_name || 'Tomato';
+  
+  const localizedCrop = translateCrop(rawCropName, i18n.language) || rawCropName;
+  const localizedDisease = translateDisease(rawDiseaseName, i18n.language) || rawDiseaseName;
+
   const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
   const status = liveResult?.prediction_status || 'diseased';
 
@@ -38,14 +43,16 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
     }
 
     const currentLang = i18n.language || 'en';
-    let speechText = `Diagnosis for ${cropName}. The detected condition is ${diseaseName}. Recommended organic treatment: ${liveResult?.organic_treatment || 'Apply treatment as recommended.'}`;
+    let speechText = `Diagnosis for ${localizedCrop}. The detected condition is ${localizedDisease}. Recommended organic treatment: ${liveResult?.organic_treatment || 'Apply treatment as recommended.'}`;
     
     if (currentLang === 'hi') {
-      speechText = `${cropName} फसल के लिए निदान: पाया गया रोग ${diseaseName} है। अनुशंसित जैविक उपचार है: ${liveResult?.organic_treatment || 'दिए गए निर्देशों के अनुसार उपचार करें।'}`;
+      speechText = `${localizedCrop} फसल के लिए जांच रिपोर्ट: पाया गया रोग ${localizedDisease} है। अनुशंसित जैविक उपचार है: ${liveResult?.organic_treatment || 'दिए गए निर्देशों के अनुसार उपचार करें।'}`;
     } else if (currentLang === 'te') {
-      speechText = `${cropName} పంట నిర్ధారణ: గుర్తించబడిన తెగులు ${diseaseName}. సిఫార్సు చేయబడిన సేంద్రీయ నివారణ చర్య: ${liveResult?.organic_treatment || 'సిఫార్సు చేయబడిన విధంగా చికిత్స చేయండి.'}`;
+      speechText = `${localizedCrop} పంట నిర్ధారణ నివేదిక: గుర్తించబడిన సమస్య లేదా తెగులు ${localizedDisease}. సిఫార్సు చేయబడిన సేంద్రీయ నివారణ చర్య: ${liveResult?.organic_treatment || 'సిఫార్సు చేయబడిన విధంగా చికిత్స చేయండి.'}`;
     } else if (currentLang === 'ta') {
-      speechText = `${cropName} பயிர் நோய் கண்டறிதல்: கண்டறியப்பட்ட நோய் ${diseaseName}. பரிந்துரைக்கப்படும் இயற்கை தீர்வு: ${liveResult?.organic_treatment || 'பரிந்துரைக்கப்பட்டபடி சிகிச்சை செய்யவும்.'}`;
+      speechText = `${localizedCrop} பயிர் பரிசோதனை அறிக்கை: கண்டறியப்பட்ட நோய் ${localizedDisease}. பரிந்துரைக்கப்படும் இயற்கை தீர்வு: ${liveResult?.organic_treatment || 'பரிந்துரைக்கப்பட்டபடி சிகிச்சை செய்யவும்.'}`;
+    } else if (currentLang === 'kn') {
+      speechText = `${localizedCrop} ಬೆಳೆ ತಪಾಸಣಾ ವರದಿ: ಪತ್ತೆಯಾದ ರೋಗ ${localizedDisease}. ಶಿಫಾರಸು ಮಾಡಿದ ಸಾವಯವ ಚಿಕಿತ್ಸೆ: ${liveResult?.organic_treatment || 'ಸೂಚಿಸಿದಂತೆ ಚಿಕಿತ್ಸೆ ನೀಡಿ.'}`;
     }
 
     const utterance = new SpeechSynthesisUtterance(speechText);
@@ -53,7 +60,11 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
       'en': 'en-US',
       'hi': 'hi-IN',
       'te': 'te-IN',
-      'ta': 'ta-IN'
+      'ta': 'ta-IN',
+      'kn': 'kn-IN',
+      'ml': 'ml-IN',
+      'mr': 'mr-IN',
+      'gu': 'gu-IN'
     };
     utterance.lang = langMap[currentLang] || 'en-US';
     
@@ -65,7 +76,7 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
   };
 
   const handleShareWhatsApp = () => {
-    const text = `*AgriShield AI Crop Report*\n\n🌾 *Crop:* ${cropName}\n🩺 *Diagnosis:* ${diseaseName}\n🎯 *Confidence:* ${confidence}\n⚠️ *Severity:* ${liveResult?.severity || 'Moderate'}\n\n🍀 *Organic Treatment:*\n${liveResult?.organic_treatment || 'Apply treatment as directed.'}\n\n🧪 *Chemical Treatment:*\n${liveResult?.chemical_treatment || 'Apply as directed.'}\n\n_Generated via AgriShield AI Platform_`;
+    const text = `*AgriShield AI Crop Report*\n\n🌾 *Crop:* ${localizedCrop}\n🩺 *Diagnosis:* ${localizedDisease}\n🎯 *Confidence:* ${confidence}\n⚠️ *Severity:* ${liveResult?.severity || 'Moderate'}\n\n🍀 *Organic Treatment:*\n${liveResult?.organic_treatment || 'Apply treatment as directed.'}\n\n🧪 *Chemical Treatment:*\n${liveResult?.chemical_treatment || 'Apply as directed.'}\n\n_Generated via AgriShield AI Platform_`;
     const encodedText = encodeURIComponent(text);
     window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
   };
@@ -91,7 +102,7 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
                 {status.toUpperCase()}
               </Badge>
               <Badge variant="glass" className="px-3.5 py-1 text-xs font-bold text-white bg-white/20 border-white/30 backdrop-blur-md">
-                🌾 Crop: {cropName}
+                🌾 {t('results.target_crop', 'Crop')}: {localizedCrop}
               </Badge>
               <Badge variant="glow-purple" className="px-3.5 py-1 text-xs font-bold text-purple-200 border-purple-400/40 bg-purple-500/20">
                 ⚡ PyTorch EfficientNetV2
@@ -99,14 +110,20 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">
-              {diseaseName}
+              {localizedDisease}
             </h2>
+
+            {localizedDisease !== rawDiseaseName && (
+              <p className="text-xs sm:text-sm text-slate-300 font-medium tracking-wide">
+                {rawDiseaseName.replace(/___/g, ' - ').replace(/_/g, ' ')}
+              </p>
+            )}
 
             {/* High-Contrast Confidence Gauge */}
             <div className="pt-2 max-w-md">
               <Progress 
                 value={parseFloat(confidence)} 
-                label="Neural Prediction Confidence" 
+                label={t('results.confidence', 'Neural Prediction Confidence')} 
                 showValue 
                 labelClassName="text-slate-100 font-bold tracking-wide text-xs"
                 className="bg-slate-950/90 border border-white/20 h-3"

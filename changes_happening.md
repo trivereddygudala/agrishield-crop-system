@@ -1117,6 +1117,25 @@
   - Tamil, Kannada, Malayalam, Gujarati, Punjabi, Urdu, Odia, Assamese: Completely translated into pure native scripts for all 18 sections with zero script-mixing.
 - Added Missing `uploader` Namespace across all languages: Ensured camera scan, photo selection, and AI analysis buttons now properly translate across every regional language.
 
+9/9/2026: Authentic Vernacular Crop & Disease Name Localization for Indian Farmers (`frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/i18n/translations.js`):
+- Local Farmer Disease Names:
+  - Replaced literal, weird scientific transliterations with authentic common names used by real farmers across Telugu, Tamil, Kannada, Hindi, Odia, Malayalam, Marathi, Gujarati, Punjabi, Urdu, and Assamese.
+  - E.g., Groundnut Tikka Leaf Spot: `ఆకుమచ్చ తెగులు / తిక్క తెగులు` (TE), `पत्ती धब्बा रोग / टिक्का रोग` (HI), `திக்கா நோய்` (TA), `ತಿಕ್ಕಾ ರೋಗ` (KN), `पानावरील ठिपके / टिक्का रोग` (MR), `ପତ୍ର ଦାଗ / ଟିକା ରୋଗ` (OR).
+  - E.g., Chilli Dieback / Anthracnose: `కొమ్మ ఎండు తెగులు / కాయ కుళ్లు తెగులు` (TE), `डाईबैक / फल सड़न रोग` (HI), `கொடி கருகல் / பழ அழுகல்` (TA), `ಕೊಳೆ ರೋಗ / ತುದಿ ಒಣಗು ರೋಗ` (KN).
+  - E.g., Rice Blast: `అగ్గి తెగులు / మెడవిరుపు తెగులు` (TE), `झोंका रोग / ब्लास्ट` (HI), `குலை நோய்` (TA), `ಬೆಂಕಿ ರೋಗ` (KN).
+  - E.g., Chilli / Tomato Leaf Curl: `ఆకు ముడత తెగులు / బొబ్బర తెగులు` (TE), `पत्ती मरोड़ रोग (लीफ कर्ल)` (HI), `இலை சுருட்டு நோய்` (TA), `ಎಲೆ ಮುದುರು ರೋಗ` (KN), `चुरडा-मुरडा` (MR).
+  - E.g., Rice Bacterial Blight: `బాక్టీరియా ఎండాకు తెగులు` (TE), `जीवाणु झुलसा रोग` (HI), `பாக்டீரியா இலை கருகல்` (TA).
+  - E.g., Powdery Mildew: `బూడిద తెగులు` (TE), `चूर्णिल आसिता (सफेद फफूंद)` (HI), `சாம்பல் நோய்` (TA), `ಬೂದಿ ರೋಗ` (KN), `भुरी रोग` (MR).
+  - E.g., Whitefly: `తెల్ల దోమ (రసం పీల్చే పురుగు)` (TE), `सफेद मक्खी` (HI), `வெள்ளை ஈ` (TA), `ಬಿಳಿ ನೊಣ` (KN).
+- Complete 22-Crop Vernacular Dictionary:
+  - Fixed crop names in all 11 regional languages: e.g. Capsicum (`క్యాప్సికమ్ (బెంగళూరు మిరప)` / `குடைமிளகாய்` / `ದಪ್ಪ ಮೆಣಸಿನಕಾಯಿ`), Squash (`గుమ్మడికాయ` / `कद्दू` / `பூசணிக்காய்` / `ಕುಂಬಳಕಾಯಿ`), Banana (`అరటి` / `வாழை` / `ಬಾಳೆಹಣ್ಣು`), Groundnut (`వేరుశనగ (పల్లీ)` / `मूंगफली` / `வேர்க்கடலை` / `ಕಡಲೆಕಾಯಿ` / `भुईमूग`).
+- Wired Directly to UI & Text-to-Speech:
+  - Integrated `translateCrop` and `translateDisease` into `DiseaseDiagnosisResults.jsx`.
+  - Main diagnosis title now renders the localized common name prominently with secondary scientific name.
+  - Native Text-to-Speech (voice playback) now speaks the authentic regional disease and crop names instead of attempting to pronounce Latin scientific names.
+  - WhatsApp share and prescription slip now format with authentic farmer terminology.
+
+
 
 
 
