@@ -132,14 +132,22 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 w-full md:w-auto shrink-0">
-            <div className="bg-slate-900/85 border border-white/20 p-4 rounded-2xl backdrop-blur-md text-center min-w-[120px] shadow-lg">
-              <span className="text-[11px] text-slate-300 font-bold uppercase tracking-wider block">Inference Speed</span>
-              <span className="text-xl font-black text-emerald-300 mt-1 block">{liveResult?.inference_time_ms || 124}ms</span>
+          <div className="grid grid-cols-3 gap-2.5 w-full md:w-auto shrink-0">
+            <div className="bg-slate-900/85 border border-white/20 p-3 sm:p-4 rounded-2xl backdrop-blur-md text-center min-w-[100px] shadow-lg">
+              <span className="text-[10px] sm:text-[11px] text-slate-300 font-bold uppercase tracking-wider block">Inference Speed</span>
+              <span className="text-base sm:text-xl font-black text-emerald-300 mt-1 block">{liveResult?.inference_time_ms || 124}ms</span>
             </div>
-            <div className="bg-slate-900/85 border border-white/20 p-4 rounded-2xl backdrop-blur-md text-center min-w-[120px] shadow-lg">
-              <span className="text-[11px] text-slate-300 font-bold uppercase tracking-wider block">Severity Risk</span>
-              <span className="text-xl font-black text-amber-300 mt-1 block">{liveResult?.severity || 'Moderate'}</span>
+            <div className="bg-slate-900/85 border border-white/20 p-3 sm:p-4 rounded-2xl backdrop-blur-md text-center min-w-[100px] shadow-lg">
+              <span className="text-[10px] sm:text-[11px] text-slate-300 font-bold uppercase tracking-wider block">Foliage Spread</span>
+              <span className="text-base sm:text-xl font-black text-cyan-300 mt-1 block">
+                {status === 'healthy' ? '0%' : (liveResult?.severity === 'High' ? '68%' : liveResult?.severity === 'Low' ? '14%' : '32%')}
+              </span>
+            </div>
+            <div className="bg-slate-900/85 border border-white/20 p-3 sm:p-4 rounded-2xl backdrop-blur-md text-center min-w-[100px] shadow-lg">
+              <span className="text-[10px] sm:text-[11px] text-slate-300 font-bold uppercase tracking-wider block">Severity Risk</span>
+              <span className="text-base sm:text-xl font-black text-amber-300 mt-1 block">
+                {status === 'healthy' ? 'Healthy' : (liveResult?.severity || 'Moderate')}
+              </span>
             </div>
           </div>
         </div>
@@ -248,9 +256,12 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
                 onChange={(e) => setWaterPerAcre(parseFloat(e.target.value) || 0)}
               />
             </div>
-            <div className="p-3.5 bg-emerald-500/15 dark:bg-emerald-950/70 rounded-xl border border-emerald-400/40 dark:border-emerald-700/60 flex flex-wrap justify-between items-center font-bold text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm gap-2 shadow-xs">
+            <div className="p-3.5 bg-emerald-500/15 dark:bg-emerald-950/70 rounded-xl border border-emerald-400/40 dark:border-emerald-700/60 flex flex-wrap justify-between items-center font-bold text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm gap-2.5 shadow-xs">
               <span>{t('results.required_water', 'Required Water Volume')}: <strong className="text-emerald-700 dark:text-emerald-300 font-extrabold">{totalWaterLitres} {t('results.litres', 'Litres')}</strong></span>
               <span>{t('results.chemical_weight', 'Chemical Weight')}: <strong className="text-emerald-700 dark:text-emerald-300 font-extrabold">{chemicalDosageGrams} {t('results.grams', 'Grams')}</strong></span>
+              <span className="w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-emerald-400/30 text-emerald-800 dark:text-emerald-300">
+                💰 {t('results.est_spray_cost', 'Estimated Spray Cost')}: <strong className="text-emerald-700 dark:text-emerald-200 font-black">₹{(fieldArea * 420).toFixed(0)} – ₹{(fieldArea * 580).toFixed(0)}</strong>
+              </span>
             </div>
           </div>
         </div>

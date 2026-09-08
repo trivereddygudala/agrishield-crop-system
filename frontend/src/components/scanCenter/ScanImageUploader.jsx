@@ -508,7 +508,7 @@ const ScanImageUploader = ({
         <Button 
           variant="glass" 
           size="sm" 
-          onClick={onLoadSample} 
+          onClick={() => onLoadSample?.('/samples/chilli_leaf_spot.jpg', 'Chilli')} 
           leftIcon={<Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />}
           className="border border-slate-200 dark:border-white/10 shrink-0"
         >
@@ -537,62 +537,112 @@ const ScanImageUploader = ({
 
       {/* Main Upload Drop Area */}
       {!previewUrl ? (
-        <motion.div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          whileHover={{ scale: 1.005 }}
-          className={`relative flex flex-col items-center justify-center p-12 sm:p-16 text-center rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
-            dragActive
-              ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5'
-              : 'border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] hover:border-emerald-500/60 hover:bg-emerald-50/10 dark:hover:bg-emerald-500/[0.02]'
-          }`}
-        >
-          <div className="p-5 rounded-2xl bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 mb-5 shadow-sm border border-emerald-500/20">
-            <UploadCloud className="w-10 h-10" />
-          </div>
-          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
-            Drag & Drop image here or <span className="text-emerald-500 underline font-black">browse</span>
-          </h3>
-          <p className="hidden md:block text-xs sm:text-sm text-slate-400 dark:text-white/35 font-medium mt-1 mb-8">
-            Supports JPG, JPEG & PNG formats (Up to 10MB)
-          </p>
+        <div className="space-y-4">
+          <motion.div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            whileHover={{ scale: 1.005 }}
+            className={`relative flex flex-col items-center justify-center p-12 sm:p-16 text-center rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
+              dragActive
+                ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5'
+                : 'border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] hover:border-emerald-500/60 hover:bg-emerald-50/10 dark:hover:bg-emerald-500/[0.02]'
+            }`}
+          >
+            <div className="p-5 rounded-2xl bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 mb-5 shadow-sm border border-emerald-500/20">
+              <UploadCloud className="w-10 h-10" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white mb-1.5">
+              {t('uploader.drag_drop', 'Drag & drop your leaf image here, or browse')}
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 max-w-sm mb-6">
+              {t('uploader.supports', 'Supports JPG, PNG, WEBP with high-precision disease feature extraction')}
+            </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3" onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => fileInputRef.current?.click()}
-              leftIcon={<ImageIcon className="w-4 h-4 text-emerald-500" />}
-              className="border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5"
-            >
-              {t('uploader.select_photo', 'Select Photo')}
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => nativeCameraInputRef.current?.click()}
-              leftIcon={<Camera className="w-4 h-4 text-sky-500" />}
-              className="border border-sky-300 dark:border-sky-800 bg-sky-50/60 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 hover:bg-sky-100"
-            >
-              <span>Take Photo (Native)</span>
-            </Button>
+            {/* Upload Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-3" onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => fileInputRef.current?.click()}
+                leftIcon={<UploadCloud className="w-4 h-4" />}
+                className="shadow-md shadow-emerald-500/15"
+              >
+                {t('uploader.select_photo', 'Select Photo')}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => nativeCameraInputRef.current?.click()}
+                leftIcon={<Camera className="w-4 h-4 text-sky-500" />}
+                className="border border-sky-300 dark:border-sky-800 bg-sky-50/60 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 hover:bg-sky-100"
+              >
+                <span>Take Photo (Native)</span>
+              </Button>
 
-            <Button
-              variant="gradient"
-              size="md"
-              onClick={() => startCamera(0)}
-              leftIcon={<Camera className="w-4 h-4 text-white" />}
-              className="shadow-md shadow-emerald-500/10 flex items-center gap-2"
-            >
-              <span>{t('uploader.camera_capture', 'Live Camera Scan')}</span>
-              <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded bg-white/20">AI HUD</span>
-            </Button>
+              <Button
+                variant="gradient"
+                size="md"
+                onClick={() => startCamera(0)}
+                leftIcon={<Camera className="w-4 h-4 text-white" />}
+                className="shadow-md shadow-emerald-500/10 flex items-center gap-2"
+              >
+                <span>{t('uploader.camera_capture', 'Live Camera Scan')}</span>
+                <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded bg-white/20">AI HUD</span>
+              </Button>
+            </div>
+          </motion.div>
+
+          {/* Quick Demo Benchmark Samples */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                {t('uploader.benchmark_samples', 'Quick Test Benchmark Samples')}
+              </span>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-extrabold tracking-wide">
+                ⚡ 1-Click Live Test
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {[
+                { title: 'Chilli Leaf Spot', path: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli', icon: '🌶️', desc: 'మిరప ఆకుమచ్చ తెగులు' },
+                { title: 'Corn Blight', path: '/samples/corn_leaf_blight.jpg', crop: 'Maize', icon: '🌽', desc: 'మొక్కజొన్న మాడ తెగులు' },
+                { title: 'Apple Scab', path: '/samples/apple_scab.jpg', crop: 'Apple', icon: '🍎', desc: 'యాపిల్ గజ్జి తెగులు' },
+                { title: 'Healthy Foliage', path: '/samples/chilli_healthy.jpg', crop: 'Chilli', icon: '🌿', desc: 'ఆరోగ్యకరమైన పంట' }
+              ].map((sample, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => onLoadSample?.(sample.path, sample.crop)}
+                  className="group relative flex flex-col items-start p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.03] hover:border-emerald-500/50 hover:bg-emerald-500/[0.04] transition-all text-left shadow-xs hover:shadow-md cursor-pointer active:scale-98"
+                >
+                  <div className="w-full h-20 rounded-xl overflow-hidden mb-2 bg-slate-200 dark:bg-slate-800 relative">
+                    <img
+                      src={sample.path}
+                      alt={sample.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[10px] font-extrabold text-white shadow-xs">
+                      {sample.icon} {sample.crop}
+                    </span>
+                  </div>
+                  <span className="text-xs font-black text-slate-800 dark:text-white truncate w-full block">
+                    {sample.title}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-white/40 truncate w-full block mt-0.5 font-medium">
+                    {sample.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </motion.div>
+        </div>
       ) : (
         /* Image Selected / Preview Box */
         <div className="relative rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-900/90 dark:bg-black/95 overflow-hidden flex items-center justify-center min-h-[380px] max-h-[520px]">

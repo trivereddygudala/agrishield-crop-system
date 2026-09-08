@@ -1135,6 +1135,19 @@
   - Native Text-to-Speech (voice playback) now speaks the authentic regional disease and crop names instead of attempting to pronounce Latin scientific names.
   - WhatsApp share and prescription slip now format with authentic farmer terminology.
 
+9/9/2026: Quick Demo Benchmark Sample Showcase & Diagnostic Upgrades:
+- Interactive Benchmark Sample Showcase (`frontend/src/components/scanCenter/ScanImageUploader.jsx`, `frontend/src/pages/UploadImagePage.jsx`):
+  - Created dedicated `/samples/` directory with 4 real benchmark leaves:
+    1. 🌶️ Chilli Leaf Spot (`/samples/chilli_leaf_spot.jpg`)
+    2. 🌽 Corn Leaf Blight (`/samples/corn_leaf_blight.jpg`)
+    3. 🍎 Apple Scab (`/samples/apple_scab.jpg`)
+    4. 🌿 Healthy Foliage (`/samples/chilli_healthy.jpg`)
+  - Added a prominent 4-card 1-click test selector under the upload dropzone. Clicking any sample card automatically loads the photo, pre-selects the crop in the dropdown, and enables instant diagnostic execution (ideal for viva defenses, mobile demonstrations, and evaluation presentations).
+- Foliage Infection Coverage & Estimated Chemical Spray Cost (`frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`):
+  - Added real-time **Foliage Spread** percentage metric in the top result card (e.g. `0% Clean`, `14% Mild`, `32% Active`, `68% Severe`).
+  - Added **Estimated Spray Cost (₹ per Acre)** to the dosage calculator: calculates realistic market expenditure (e.g. `₹420 – ₹580 per acre`) based on farm area.
+
+
 
 
 

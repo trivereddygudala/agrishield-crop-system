@@ -91,22 +91,26 @@ const UploadImagePage = () => {
     });
   };
 
-  const loadSampleImage = async () => {
+  const loadSampleImage = async (samplePath = '/samples/chilli_leaf_spot.jpg', crop = 'Chilli') => {
     scanStore.setState({ errorMsg: '' });
     try {
-      const response = await fetch('/test_leaf.jpg');
+      const response = await fetch(samplePath);
       if (!response.ok) throw new Error();
       const blob = await response.blob();
-      const file = new File([blob], 'sample_crop_leaf.jpg', { type: 'image/jpeg' });
+      const fileName = samplePath.split('/').pop() || 'sample_crop_leaf.jpg';
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
       scanStore.setState({
         selectedFile: file,
         previewUrl: URL.createObjectURL(file),
-        hasScanned: false
+        selectedCropFilter: crop || '',
+        hasScanned: false,
+        liveResult: null
       });
     } catch {
       scanStore.setState({ errorMsg: 'Failed to load sample image.' });
     }
   };
+
 
   const compressImage = (file) => {
     return new Promise((resolve) => {
