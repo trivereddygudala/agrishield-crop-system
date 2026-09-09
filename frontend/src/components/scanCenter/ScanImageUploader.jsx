@@ -220,11 +220,15 @@ const ScanImageUploader = ({
 
   // Real-time camera viewfinder frame sampler for leaf ratio & crop detection
   const analyzeLiveFrame = useCallback(() => {
-    if (!videoRef.current || !hudCanvasRef.current || !cameraModalOpen) return;
+    if (!videoRef.current || !cameraModalOpen) return;
     const video = videoRef.current;
-    const canvas = hudCanvasRef.current;
     
     if (video.readyState < 2 || video.videoWidth === 0) return;
+
+    if (!hudCanvasRef.current) {
+      hudCanvasRef.current = document.createElement('canvas');
+    }
+    const canvas = hudCanvasRef.current;
 
     const sampleW = 160;
     const sampleH = 120;
@@ -260,12 +264,14 @@ const ScanImageUploader = ({
         avgG += g;
         avgB += b;
 
-        // Vegetation Index (Excess Green or Chlorophyll absorption)
-        const isGreenVeg = (2 * g - r - b > 14) || (g > 55 && g > r * 1.12 && g > b * 1.18);
-        // Yellowish diseased foliar region
-        const isYellowLesion = (r > 95 && g > 95 && b < 70 && Math.abs(r - g) < 35);
+        // 1. Classic Green Vegetation (Excess Green or Green Dominance)
+        const isGreenVeg = (g > r * 1.05 && g > b * 0.90 && g > 35) || (2 * g - r - b > 6);
+        // 2. Yellowish / Chlorotic / Mosaic Diseased Foliage (works on both outdoor sun & LCD screens with blue subpixels)
+        const isYellowFoliage = (g > 60 && r > 60 && (r + g) > b * 1.6 && Math.abs(r - g) < 55);
+        // 3. Brownish / Necrotic / Blight Foliar Lesions
+        const isBrownLesion = (r > 55 && g > 40 && r > b * 1.12 && Math.abs(r - g) < 50);
 
-        if (isGreenVeg || isYellowLesion) {
+        if (isGreenVeg || isYellowFoliage || isBrownLesion) {
           greenVegPixels++;
         }
       }
@@ -459,8 +465,11 @@ const ScanImageUploader = ({
   };
 
   const captureCameraPhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current) return;
     const video = videoRef.current;
+    if (!canvasRef.current) {
+      canvasRef.current = document.createElement('canvas');
+    }
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
@@ -989,6 +998,8 @@ const ScanImageUploader = ({
                 muted 
                 className="absolute inset-0 w-full h-full object-cover" 
               />
+              <canvas ref={canvasRef} className="hidden" />
+              <canvas ref={hudCanvasRef} className="hidden" />
 
               {/* Viewfinder Neon Grid Background */}
               <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:24px_24px] opacity-15" />

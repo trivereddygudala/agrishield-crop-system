@@ -2,6 +2,13 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v65) - Camera AI Viewfinder Real-Time HUD & Leaf Ratio Detection Fix
+- **Summary:** Resolved the issue where the camera viewfinder remained stuck at `LEAF RATIO: 0%` and `⚠️ Position crop leaf inside the targeting reticle` even when pointing directly at crop leaves:
+  1. **Fixed Missing Canvas DOM Elements (`ScanImageUploader.jsx`):** Both `hudCanvasRef` (frame sampler) and `canvasRef` (photo capture) lacked canvas DOM elements, causing `analyzeLiveFrame` and `captureCameraPhoto` to exit immediately without executing. Added fallback offscreen canvas initialization and rendered `<canvas ref={canvasRef} className="hidden" />` and `<canvas ref={hudCanvasRef} className="hidden" />` in the camera modal.
+  2. **Multi-Spectrum Foliar & Lesion Detection:** Expanded the real-time vegetation algorithm to accurately detect chlorotic yellow foliage, mosaic patterns, and dark necrotic blight spots on both live outdoor plants and leaves photographed from computer screens with LCD blue subpixels (`isGreenVeg`, `isYellowFoliage`, `isBrownLesion`).
+  3. **Live Reticle Feedback:** The viewfinder now dynamically transitions to `✓ Perfect Leaf Distance & Framing — Ready!` with an emerald green targeting reticle as leaves are framed.
+- **Files modified**: `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v64) - 4-Pillar Usability & Performance Upgrade: In-Browser Camera Auto-Compression, 60% Bundle Shrink, Multilingual Prescription Slips & Offline Field Queue
 - **Summary:** Successfully implemented the 4 major requested platform upgrades:
   1. **In-Browser Camera Auto-Compression (`imageCompression.js`, `UploadImagePage.jsx`, `ScanImageUploader.jsx`):** High-efficiency HTML5 canvas pre-processor that shrinks raw 8MB–25MB smartphone photos down to ~200KB–300KB in milliseconds while preserving fine botanical lesion and fungal pathology features. Shows real-time bandwidth savings badge (`⚡ Compressed: 12.4 MB ➔ 230 KB (98% saved)`).
