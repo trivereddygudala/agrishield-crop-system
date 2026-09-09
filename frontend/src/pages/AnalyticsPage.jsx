@@ -26,6 +26,7 @@ const AnalyticsPage = () => {
   const [summaryData, setSummaryData] = useState(null);
   const [notifAnalytics, setNotifAnalytics] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [viewMode, setViewMode] = useState('farmer'); // 'farmer' | 'detailed'
 
   // Chart Colors
   const colors = {
@@ -371,15 +372,140 @@ const AnalyticsPage = () => {
         /* Main Analytics Dashboard */
         <div className="space-y-6">
           
-          {/* Export Options & Actions Bar */}
-          <div className="flex items-center justify-end gap-3">
-            <Button variant="sky" size="sm" onClick={handleExportCSV} leftIcon={<Download size={14} />} className="font-bold">
-              Export CSV
-            </Button>
-            <Button variant="indigo" size="sm" onClick={handleExportPDF} leftIcon={<FileText size={14} />} className="font-bold">
-              Export PDF Report
-            </Button>
+          {/* Farmer View vs Detailed Technical Graphs Toggle & Export Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setViewMode('farmer')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  viewMode === 'farmer'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                <span>🌾 సాధారణ రైతు వ్యూ (Simple Farmer View)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('detailed')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  viewMode === 'detailed'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                <span>📊 డీప్ చార్ట్స్ వ్యూ (Detailed Graphs)</span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="sky" size="sm" onClick={handleExportCSV} leftIcon={<Download size={14} />} className="font-bold text-xs py-1.5 px-3">
+                Export CSV
+              </Button>
+              <Button variant="indigo" size="sm" onClick={handleExportPDF} leftIcon={<FileText size={14} />} className="font-bold text-xs py-1.5 px-3">
+                Export PDF
+              </Button>
+            </div>
           </div>
+
+          {/* Farmer-Friendly Verdict Strip */}
+          {summaryData && (
+            <div className="p-4 sm:p-5 rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/30 dark:from-emerald-950/20 dark:via-slate-900/40 dark:to-emerald-950/10 space-y-4">
+              <div className="flex items-center justify-between border-b border-emerald-500/15 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🌿</span>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                      పొలం ప్రస్తుత ఆరోగ్య తీర్పు (Field Health Verdict)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-white/45">
+                      రైతుకు అర్థమయ్యే సులభమైన స్థితి • Real-time actionable agronomic status
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-xs font-black">
+                  {summaryData.avg_soil >= 40 ? 'ఆప్టిమల్ (Optimal)' : 'శ్రద్ధ అవసరం (Attention)'}
+                </span>
+              </div>
+
+              {/* 4 Big Color-Coded Gauges */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* 1. Crop Health */}
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center text-2xl shrink-0">
+                    🌱
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">పంట పరిస్థితి (Crop)</span>
+                    <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                      {summaryData.avg_soil >= 35 ? 'బాగుంది (Healthy)' : 'నీటి ఎద్దడి (Moisture Stress)'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-white/40">ఆకుపచ్చగా ఎదుగుతోంది</p>
+                  </div>
+                </div>
+
+                {/* 2. Soil Moisture Water */}
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
+                    (summaryData.avg_soil || 0) >= 45 
+                      ? 'bg-blue-500/15 text-blue-600' 
+                      : (summaryData.avg_soil || 0) >= 30 
+                        ? 'bg-amber-500/15 text-amber-600' 
+                        : 'bg-rose-500/15 text-rose-600'
+                  }`}>
+                    💧
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">నేల తేమ (Soil Water)</span>
+                    <p className={`text-sm font-black ${
+                      (summaryData.avg_soil || 0) >= 45 
+                        ? 'text-blue-600 dark:text-blue-400' 
+                        : (summaryData.avg_soil || 0) >= 30 
+                          ? 'text-amber-600 dark:text-amber-400' 
+                          : 'text-rose-600 dark:text-rose-400'
+                    }`}>
+                      {summaryData.avg_soil != null ? `${summaryData.avg_soil}% ` : ''}
+                      {(summaryData.avg_soil || 0) >= 45 ? 'సరిపడా ఉంది' : (summaryData.avg_soil || 0) >= 30 ? 'తగ్గుతోంది' : 'తడి పెట్టండి!'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-white/40">
+                      {(summaryData.avg_soil || 0) >= 45 ? 'ఈరోజు నీరు అక్కర్లేదు' : '1-2 రోజుల్లో నీరు అవసరం'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Temperature & Heat */}
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center text-2xl shrink-0">
+                    ☀️
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">ఉష్ణోగ్రత & ఎండ (Heat)</span>
+                    <p className="text-sm font-black text-amber-600 dark:text-amber-400">
+                      {summaryData.avg_temp != null ? `${summaryData.avg_temp}°C ` : ''}అనుకూలం
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-white/40">సాధారణ పగటి ఉష్ణోగ్రత</p>
+                  </div>
+                </div>
+
+                {/* 4. Rain & Spray window */}
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-teal-500/15 text-teal-600 flex items-center justify-center text-2xl shrink-0">
+                    🌧️
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">వర్షం & పిచికారీ (Spray Window)</span>
+                    <p className="text-sm font-black text-teal-600 dark:text-teal-400">
+                      {summaryData.total_rain_events > 0 ? 'వర్షం ఉంది (Rain Detected)' : 'పిచికారీకి అనుకూలం (Safe)'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-white/40">
+                      {summaryData.total_rain_events > 0 ? 'మందు పిచికారీ వాయిదా వేయండి' : 'మందు కొట్టడానికి మంచి సమయం'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Row 1: Summary Statistics Cards */}
           {summaryData && (
@@ -466,140 +592,167 @@ const AnalyticsPage = () => {
             </div>
           )}
 
-          {/* Row 2: Visual Charts Grid */}
-          <div className="grid md:grid-cols-2 gap-6">
-            
-            {/* Chart 1: Temperature */}
-            <Card className="p-6 bg-white dark:bg-slate-950">
-              <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
-                <Thermometer size={16} className="text-orange-500" /> Temperature History
-              </h3>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorTempGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={colors.temp} stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor={colors.temp} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="°C" />
-                    <RechartsTooltip content={<CustomTooltip unit="°C" />} />
-                    <Area type="monotone" dataKey="temperature" name="Temp" stroke={colors.temp} strokeWidth={2.5} fillOpacity={1} fill="url(#colorTempGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+          {/* Row 2: Visual Charts Grid (Visible in Detailed Mode or via button) */}
+          {viewMode === 'detailed' ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              
+              {/* Chart 1: Temperature */}
+              <Card className="p-6 bg-white dark:bg-slate-950">
+                <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
+                  <Thermometer size={16} className="text-orange-500" /> Temperature History
+                </h3>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTempGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={colors.temp} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={colors.temp} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="°C" />
+                      <RechartsTooltip content={<CustomTooltip unit="°C" />} />
+                      <Area type="monotone" dataKey="temperature" name="Temp" stroke={colors.temp} strokeWidth={2.5} fillOpacity={1} fill="url(#colorTempGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            {/* Chart 2: Humidity */}
-            <Card className="p-6 bg-white dark:bg-slate-950">
-              <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
-                <Droplets size={16} className="text-sky-500" /> Humidity History
-              </h3>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorHumidGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={colors.humidity} stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor={colors.humidity} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="%" />
-                    <RechartsTooltip content={<CustomTooltip unit="%" />} />
-                    <Area type="monotone" dataKey="humidity" name="Humidity" stroke={colors.humidity} strokeWidth={2.5} fillOpacity={1} fill="url(#colorHumidGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+              {/* Chart 2: Humidity */}
+              <Card className="p-6 bg-white dark:bg-slate-950">
+                <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
+                  <Droplets size={16} className="text-sky-500" /> Humidity Trends
+                </h3>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorHumGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={colors.humidity} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={colors.humidity} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="%" />
+                      <RechartsTooltip content={<CustomTooltip unit="%" />} />
+                      <Area type="monotone" dataKey="humidity" name="Humidity" stroke={colors.humidity} strokeWidth={2.5} fillOpacity={1} fill="url(#colorHumGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            {/* Chart 3: Soil Moisture */}
-            <Card className="p-6 bg-white dark:bg-slate-950">
-              <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
-                <Droplets size={16} className="text-emerald-500" /> Soil Moisture History
-              </h3>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorSoilGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={colors.soil} stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor={colors.soil} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="%" />
-                    <RechartsTooltip content={<CustomTooltip unit="%" />} />
-                    <Area type="monotone" dataKey="soil_moisture" name="Soil Moisture" stroke={colors.soil} strokeWidth={2.5} fillOpacity={1} fill="url(#colorSoilGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+              {/* Chart 3: Soil Moisture */}
+              <Card className="p-6 bg-white dark:bg-slate-950">
+                <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
+                  <Droplets size={16} className="text-emerald-500" /> Soil Moisture History
+                </h3>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorSoilGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={colors.soil} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={colors.soil} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="%" />
+                      <RechartsTooltip content={<CustomTooltip unit="%" />} />
+                      <Area type="monotone" dataKey="soil_moisture" name="Soil Moisture" stroke={colors.soil} strokeWidth={2.5} fillOpacity={1} fill="url(#colorSoilGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            {/* Chart 4: Light Intensity */}
-            <Card className="p-6 bg-white dark:bg-slate-950">
-              <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
-                <Sun size={16} className="text-amber-500" /> Light Intensity History
-              </h3>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorLightGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={colors.light} stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor={colors.light} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit=" lx" />
-                    <RechartsTooltip content={<CustomTooltip unit=" lx" />} />
-                    <Area type="monotone" dataKey="light_intensity" name="Light" stroke={colors.light} strokeWidth={2.5} fillOpacity={1} fill="url(#colorLightGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+              {/* Chart 4: Light Intensity */}
+              <Card className="p-6 bg-white dark:bg-slate-950">
+                <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
+                  <Sun size={16} className="text-amber-500" /> Sunlight (Lux Intensity)
+                </h3>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorLightGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={colors.light} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={colors.light} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit=" lx" />
+                      <RechartsTooltip content={<CustomTooltip unit=" lx" />} />
+                      <Area type="monotone" dataKey="light_intensity" name="Sunlight" stroke={colors.light} strokeWidth={2.5} fillOpacity={1} fill="url(#colorLightGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            {/* Chart 5: Rain History */}
-            <Card className="p-6 bg-white dark:bg-slate-950">
-              <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
-                <CloudRain size={16} className="text-blue-500" /> Precipitation Logs
-              </h3>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                    <RechartsTooltip content={<CustomTooltip unit="" />} />
-                    <Bar dataKey="rain_sensor" name="Rain Detected" fill={colors.rain} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
+              {/* Chart 5: Rain History */}
+              <Card className="p-6 bg-white dark:bg-slate-950">
+                <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
+                  <CloudRain size={16} className="text-blue-500" /> Precipitation Logs
+                </h3>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                      <RechartsTooltip content={<CustomTooltip unit="" />} />
+                      <Bar dataKey="rain_sensor" name="Rain Detected" fill={colors.rain} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
 
-            {/* Chart 6: Battery Level */}
-            <Card className="p-6 bg-white dark:bg-slate-950">
-              <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
-                <Battery size={16} className="text-emerald-500" /> Battery Discharge Curve
-              </h3>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="%" />
-                    <RechartsTooltip content={<CustomTooltip unit="%" />} />
-                    <Line type="monotone" dataKey="battery_percentage" name="Battery" stroke={colors.battery} strokeWidth={2.5} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
+              {/* Chart 6: Battery Level */}
+              <Card className="p-6 bg-white dark:bg-slate-950">
+                <h3 className="font-display font-bold text-slate-800 dark:text-slate-200 text-sm mb-4 flex items-center gap-2">
+                  <Battery size={16} className="text-emerald-500" /> Battery Discharge Curve
+                </h3>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={historyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={formatDateTick} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="%" />
+                      <RechartsTooltip content={<CustomTooltip unit="%" />} />
+                      <Line type="monotone" dataKey="battery_percentage" name="Battery" stroke={colors.battery} strokeWidth={2.5} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+            </div>
+          ) : (
+            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl shrink-0">
+                  📈
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                    టెక్నికల్ చార్ట్‌లు దాచబడ్డాయి (Technical Graphs Hidden for Simplicity)
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    సాధారణ రైతు మోడ్‌లో చార్ట్‌లు క్లీన్‌గా ఉంచబడ్డాయి. పూర్తి సైంటిఫిక్ గ్రాఫ్‌లు చూడటానికి ఇక్కడ నొక్కండి.
+                  </p>
+                </div>
               </div>
-            </Card>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode('detailed')}
+                className="font-bold text-xs shrink-0 cursor-pointer"
+              >
+                📊 షో టెక్నికల్ గ్రాఫ్‌లు (Show Graphs)
+              </Button>
+            </div>
+          )}
 
             {/* SECTION: SMART NOTIFICATION PLATFORM HEALTH & ANALYTICS */}
             {notifAnalytics && (
@@ -696,8 +849,7 @@ const AnalyticsPage = () => {
             )}
 
           </div>
-        </div>
-      )}
+        )}
 
       {/* Toast Notification */}
       {toast.show && (

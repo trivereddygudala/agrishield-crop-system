@@ -220,6 +220,7 @@ const AIAssistantPage = () => {
   const { user } = useAuth();
   const { activeFarm } = useFarm();
   const { t, i18n } = useTranslation();
+  const isTe = i18n?.language === 'te';
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -259,15 +260,24 @@ const AIAssistantPage = () => {
       ]
     },
     farmer: {
-      title: t('assistant_page.title', "AgriShield Smart Agronomist AI"),
-      modelTag: t('assistant_page.tag', "Smart Agronomist Pro"),
+      title: isTe ? "వ్యవసాయ AI సహాయకుడు" : t('assistant_page.title', "AgriShield Smart Agronomist AI"),
+      modelTag: isTe ? "రైతు మిత్ర AI" : t('assistant_page.tag', "Smart Agronomist Pro"),
       badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300",
-      welcomeMsg: t('assistant_page.welcome', { name: user?.name || 'Farmer', defaultValue: `Hello **${user?.name || 'Farmer'}**! I am your **AgriShield Smart Agronomist AI**.\n\nI can help you diagnose crop diseases, calculate fertilizer dosages, optimize drip irrigation, and check daily market prices.` }),
-      suggestionCards: [
-        { icon: ImageIcon, title: "Diagnose crop leaf", prompt: "How do I prevent Tomato Early Blight — organic and chemical treatments?" },
-        { icon: Leaf, title: "Fertilizer dosage", prompt: "Calculate exact NPK fertilizer dosage for my crop growth stage." },
-        { icon: Globe, title: "Irrigation schedule", prompt: "What drip irrigation schedule is best for today's weather?" },
-        { icon: Sparkles, title: "Crop leaf yellowing", prompt: "Why are my crop leaves turning yellow at this growth stage?" }
+      welcomeMsg: isTe 
+        ? `నమస్కారం **${user?.name || 'రైతు సోదరులారా'}**! నేను మీ **అగ్రిషీల్డ్ స్మార్ట్ వ్యవసాయ AI సహాయకుడిని**.\n\nమీ పంటకు వచ్చే తెగుళ్ల గుర్తింపు, 16 లీటర్ల పంపుకి సరైన మందుల మోతాదు, నేల తేమ & నీటి తడులు, మరియు మార్కెట్ ధరల గురించి ఏ సందేహం ఉన్నా నన్ను అడగండి.`
+        : t('assistant_page.welcome', { name: user?.name || 'Farmer', defaultValue: `Hello **${user?.name || 'Farmer'}**! I am your **AgriShield Smart Agronomist AI**.\n\nI can help you diagnose crop diseases, calculate fertilizer dosages, optimize drip irrigation, and check daily market prices.` }),
+      suggestionCards: isTe ? [
+        { icon: Leaf, title: "🌿 ఆకుముడత & పురుగుల నివారణ మందులు", prompt: "మిరప, టమోటా, వరి పంటలకు ఆకుముడత మరియు పురుగుల నివారణకు సరైన మందులు తెలపండి." },
+        { icon: Droplets, title: "🧪 16 లీటర్ల పంపుకి మందు మోతాదు", prompt: "నా పంటకు 16 లీటర్ల స్ప్రే పంపులో ఏ మందు ఎంత మోతాదులో కలపాలి?" },
+        { icon: CloudRain, title: "🌦️ నేడు వర్షం వస్తుందా? పిచికారీ చేయవచ్చా?", prompt: "నేటి వాతావరణం మరియు వర్ష సూచన ప్రకారం పంటకు మందులు పిచికారీ చేయవచ్చా?" },
+        { icon: Sparkles, title: "🌾 ఎరువుల మోతాదు (యూరియా, DAP)", prompt: "ప్రస్తుత పంట ఎదుగుదల దశకు తగిన యూరియా, డీఏపీ, పొటాష్ ఎరువుల మోతాదు తెలపండి." },
+        { icon: Globe, title: "💰 నేటి మండి మార్కెట్ ధరలు", prompt: "నా జిల్లా / సమీప మార్కెట్ యార్డులో నేటి పంట ధరలు ఎలా ఉన్నాయి?" }
+      ] : [
+        { icon: ImageIcon, title: "Diagnose crop leaf disease", prompt: "How do I prevent Tomato Early Blight & Chilli leaf curl — organic and chemical treatments?" },
+        { icon: Droplets, title: "16L spray pump dosage", prompt: "Calculate exact pesticide & fertilizer dosage for one 16-litre spray pump." },
+        { icon: CloudRain, title: "Spraying weather & rain safety", prompt: "Based on today's weather and rain forecast, is it safe to spray pesticides today?" },
+        { icon: Sparkles, title: "Fertilizer dosage (NPK)", prompt: "Calculate exact NPK fertilizer dosage for my current crop growth stage." },
+        { icon: Globe, title: "Today's Mandi market rates", prompt: "What are today's wholesale Mandi prices for major agricultural crops in my region?" }
       ]
     }
   };
@@ -1018,8 +1028,12 @@ const AIAssistantPage = () => {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-sm">
                   <Sparkles className="w-6 h-6" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">How can I help you today?</h2>
-                <p className="text-xs text-slate-400 mt-1">Smart agronomy advice, crop pathology & precision farming</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {isTe ? "నమస్కారం! మీ పంటకు సంబంధించి ఏదైనా అడగండి" : "How can I help you today?"}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {isTe ? "తెగుళ్ల నివారణ, పిచికారీ మోతాదు, ఎరువుల లెక్క మరియు మార్కెట్ ధరలు" : "Smart agronomy advice, crop pathology & precision farming"}
+                </p>
               </div>
 
               {/* Action suggestion rows (like Picture 3) */}

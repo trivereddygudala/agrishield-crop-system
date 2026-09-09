@@ -17,6 +17,7 @@ const FarmPage = () => {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const isTe = i18n?.language === 'te';
   const { 
     activeFarm, farms, archivedFarms, createFarm, 
     updateFarm: saveFarmEdit, deleteFarm, unarchiveFarm,
@@ -323,24 +324,57 @@ const FarmPage = () => {
                 required
               />
 
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  label={t('farm_page.info.total_area', 'Total Farm Area')}
-                  type="number"
-                  placeholder="e.g. 2.5"
-                  value={farmSize}
-                  onChange={(e) => setFarmSize(e.target.value)}
-                />
-                <Select
-                  label={t('farm_page.info.area_unit', 'Area Unit')}
-                  value={farmUnit}
-                  onChange={(e) => setFarmUnit(e.target.value)}
-                  options={[
-                    { value: 'acres', label: t('farm_page.info.units.acres', 'Acres') },
-                    { value: 'hectares', label: t('farm_page.info.units.hectares', 'Hectares') },
-                    { value: 'cents', label: t('farm_page.info.units.cents', 'Cents') }
-                  ]}
-                />
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    label={t('farm_page.info.total_area', 'Total Farm Area')}
+                    type="number"
+                    placeholder="e.g. 2.5"
+                    value={farmSize}
+                    onChange={(e) => setFarmSize(e.target.value)}
+                  />
+                  <Select
+                    label={t('farm_page.info.area_unit', 'Area Unit')}
+                    value={farmUnit}
+                    onChange={(e) => setFarmUnit(e.target.value)}
+                    options={[
+                      { value: 'acres', label: t('farm_page.info.units.acres', 'Acres') },
+                      { value: 'hectares', label: t('farm_page.info.units.hectares', 'Hectares') },
+                      { value: 'cents', label: t('farm_page.info.units.cents', 'Cents') }
+                    ]}
+                  />
+                </div>
+
+                {/* Quick Plot Size Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-white/40">
+                    {isTe ? "త్వరిత ఎంపిక:" : "Quick select:"}
+                  </span>
+                  {[
+                    { val: '0.5', label: isTe ? '0.5 ఎకరం' : '0.5 Acre' },
+                    { val: '1.0', label: isTe ? '1 ఎకరం' : '1 Acre' },
+                    { val: '2.0', label: isTe ? '2 ఎకరాలు' : '2 Acres' },
+                    { val: '3.0', label: isTe ? '3 ఎకరాలు' : '3 Acres' },
+                    { val: '5.0', label: isTe ? '5 ఎకరాలు' : '5 Acres' },
+                    { val: '10.0', label: isTe ? '10 ఎకరాలు' : '10 Acres' }
+                  ].map((preset) => (
+                    <button
+                      key={preset.val}
+                      type="button"
+                      onClick={() => {
+                        setFarmSize(preset.val);
+                        setFarmUnit('acres');
+                      }}
+                      className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all ${
+                        String(farmSize) === preset.val && farmUnit === 'acres'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/10 hover:border-emerald-500 hover:text-emerald-600'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -468,27 +502,44 @@ const FarmPage = () => {
             </div>
 
             {/* GPS Coordinates Section */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                    {t('farm_page.info.gps_title', 'GPS Location Coordinates')}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-3">
+              {/* Prominent 1-Tap Geolocation Banner */}
+              <button 
+                type="button" 
+                onClick={handleFetchGeolocation}
+                disabled={geoLoading}
+                className="w-full p-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-md flex items-center justify-between transition-all transform active:scale-[0.99] group text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-white/20 rounded-xl">
+                    <Navigation className={`w-5 h-5 ${geoLoading ? 'animate-spin' : 'group-hover:translate-x-0.5 transition-transform'}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black">
+                      {isTe ? "📍 నా ప్రస్తుత పొలం స్థానాన్ని తీసుకోండి (1-Tap GPS)" : "📍 Capture My Current Field GPS"}
+                    </p>
+                    <p className="text-xs text-white/80">
+                      {isTe ? "మీ ఫోన్ లొకేషన్ ద్వారా మీ పొలం అక్షాంశం, రేఖాంశం ఆటోమేటిక్‌గా తీసుకుంటుంది" : "Automatically fetches GPS coordinates from your mobile / device location"}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs bg-white/25 px-3 py-1.5 rounded-lg font-bold shrink-0 hidden sm:inline">
+                  {geoLoading ? (isTe ? "తీసుకుంటోంది..." : "Locating...") : (isTe ? "ఇప్పుడే తీసుకోండి" : "Get GPS")}
+                </span>
+              </button>
+
+              {/* Status Confirmation if coordinates exist */}
+              {latitude && longitude ? (
+                <div className="flex items-center gap-2 p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>
+                    {isTe ? `లొకేషన్ సెట్ చేయబడింది: ${latitude}° N, ${longitude}° E` : `Field Coordinates: ${latitude}° N, ${longitude}° E`}
                   </span>
                 </div>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleFetchGeolocation}
-                  isLoading={geoLoading}
-                  leftIcon={<Navigation className="w-3.5 h-3.5" />}
-                >
-                  {t('farm_page.info.auto_gps', 'Auto-Detect Live GPS')}
-                </Button>
-              </div>
+              ) : null}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Coordinate Inputs for manual adjustments */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <Input
                   label={t('farm_page.info.latitude', 'Latitude (°N)')}
                   placeholder="e.g. 16.5062"

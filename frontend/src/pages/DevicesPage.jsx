@@ -10,7 +10,8 @@ import { useWebSocket } from '../context/WebSocketContext';
 import { useTranslation } from 'react-i18next';
 
 const DevicesPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isTe = i18n?.language === 'te';
   const [deviceData, setDeviceData] = useState({
     name: "ESP32-NODE-ALPHA",
     status: "offline",
@@ -36,18 +37,16 @@ const DevicesPage = () => {
 
   const processDeviceTelemetry = (dev, telem) => {
     const isOnline = dev && dev.status === "online";
-    let lastSyncText = "Never";
+    let lastSyncText = isTe ? "ఎప్పుడూ లేదు" : "Never";
     if (dev && dev.seconds_since_seen !== undefined && dev.seconds_since_seen < 99999) {
-      if (dev.seconds_since_seen < 10) lastSyncText = "Just now";
-      else if (dev.seconds_since_seen < 60) lastSyncText = `${dev.seconds_since_seen}s ago`;
-      else lastSyncText = `${Math.floor(dev.seconds_since_seen / 60)}m ago`;
+      if (dev.seconds_since_seen < 10) lastSyncText = isTe ? "ఇప్పుడే" : "Just now";
+      else if (dev.seconds_since_seen < 60) lastSyncText = isTe ? `${dev.seconds_since_seen} సెకన్ల క్రితం` : `${dev.seconds_since_seen}s ago`;
+      else lastSyncText = isTe ? `${Math.floor(dev.seconds_since_seen / 60)} నిమిషాల క్రితం` : `${Math.floor(dev.seconds_since_seen / 60)}m ago`;
     } else if (isOnline) {
-      lastSyncText = "Just now";
+      lastSyncText = isTe ? "ఇప్పుడే" : "Just now";
     }
 
     const sdMounted = Boolean(telem.sd_card_status === "mounted");
-    const sdUsedGb = (sdMounted && telem.sd_used_mb > 0) ? (telem.sd_used_mb / 1024) : 0;
-    const sdTotalGb = (sdMounted && telem.sd_total_mb > 0) ? (telem.sd_total_mb / 1024) : 0;
 
     let validSensors = 0;
     if (telem.temperature != null || telem.humidity != null) validSensors++;
@@ -58,20 +57,8 @@ const DevicesPage = () => {
     if (telem.rain_detected != null) validSensors++;
     if (sdMounted) validSensors++;
 
-    let healthStatus = "OFFLINE";
-    let healthSub = "Device disconnected";
-    if (isOnline) {
-      if (validSensors >= 6) {
-        healthStatus = "OPTIMAL";
-        healthSub = "All 7 sensors nominal";
-      } else if (validSensors > 0) {
-        healthStatus = `${validSensors}/7 ACTIVE`;
-        healthSub = `${validSensors} of 7 modules connected`;
-      } else {
-        healthStatus = "READY";
-        healthSub = "Connected, awaiting sensors";
-      }
-    }
+    let healthStatus = isOnline ? (validSensors >= 6 ? (isTe ? "అన్నీ సక్రమం (7/7)" : "OPTIMAL (7/7)") : `${validSensors}/7 ACTIVE`) : (isTe ? "ఆఫ్‌లైన్" : "OFFLINE");
+    let healthSub = isOnline ? (isTe ? "పొలంలోని అన్ని సెన్సార్లు పనిచేస్తున్నాయి" : "All sensors nominal") : (isTe ? "సెన్సార్ డిస్‌కనెక్ట్ అయింది" : "Device disconnected");
 
     const rawBattery = isOnline ? (telem.battery_percentage ?? telem.battery ?? dev.battery ?? 0) : 0;
     const roundedBattery = Math.round(Number(rawBattery) || 0);
@@ -97,7 +84,7 @@ const DevicesPage = () => {
         pendingRecords: isOnline ? (telem.sd_pending_records || 0) : 0,
         logFile: isOnline ? (telem.current_log_file || "/logs/2026/07") : "N/A"
       },
-      uptime: isOnline ? (telem.uptime_formatted || (telem.uptime_seconds ? `${Math.floor(telem.uptime_seconds / 3600)}h` : "Online")) : "Offline",
+      uptime: isOnline ? (telem.uptime_formatted || (telem.uptime_seconds ? `${Math.floor(telem.uptime_seconds / 3600)}h` : (isTe ? "ఆన్లైన్" : "Online"))) : (isTe ? "ఆఫ్‌లైన్" : "Offline"),
       memory: {
         used: isOnline && telem.free_heap_kb ? (320 - telem.free_heap_kb) : 0,
         total: 320
@@ -196,13 +183,21 @@ const DevicesPage = () => {
   const isOnline = deviceData.status === "online";
 
   const getSignalStrength = (rssi) => {
-    if (rssi > -60) return { label: 'Excellent', color: 'text-emerald-500' };
-    if (rssi > -75) return { label: 'Good', color: 'text-emerald-450' };
-    if (rssi > -85) return { label: 'Fair', color: 'text-amber-500' };
-    return { label: 'Weak', color: 'text-rose-500' };
+    if (rssi > -60) return { label: isTe ? 'చాలా బాగుంది (బలమైన సిగ్నల్)' : 'Excellent (Strong)', color: 'text-emerald-500', bar: '100%' };
+    if (rssi > -75) return { label: isTe ? 'బాగుంది (నార్మల్ సిగ్నల్)' : 'Good Signal', color: 'text-emerald-400', bar: '75%' };
+    if (rssi > -85) return { label: isTe ? 'మధ్యస్థం (కొద్దిగా బలహీనం)' : 'Fair Signal', color: 'text-amber-500', bar: '50%' };
+    return { label: isTe ? 'సిగ్నల్ బలహీనంగా ఉంది' : 'Weak Signal', color: 'text-rose-500', bar: '25%' };
   };
 
   const signal = getSignalStrength(deviceData.wifiStrength);
+
+  const getBatteryEstimate = (pct) => {
+    const b = Number(pct) || 0;
+    if (b >= 75) return isTe ? "సుమారు 14+ రోజులు వస్తుంది" : "~14+ days runtime";
+    if (b >= 45) return isTe ? "సుమారు 7-10 రోజులు వస్తుంది" : "~7-10 days runtime";
+    if (b >= 25) return isTe ? "సుమారు 3-4 రోజులు వస్తుంది" : "~3-4 days runtime";
+    return isTe ? "వెంటనే రీచార్జ్ చేయండి" : "Recharge soon";
+  };
 
   return (
     <motion.div
@@ -211,13 +206,16 @@ const DevicesPage = () => {
       transition={{ duration: 0.4 }}
       className="space-y-6 max-w-7xl mx-auto w-full pb-16"
     >
+      {/* Top Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-white/10">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-            {t('devices_page.title', 'IoT Hardware & 7-Sensor Telemetry')}
+            {isTe ? "🌾 పొలం ఐవోటీ సెన్సార్లు & పరికరాలు" : t('devices_page.title', 'IoT Hardware & 7-Sensor Telemetry')}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
-            {t('devices_page.subtitle', 'Real-time status monitoring for ESP32 Field Transceiver Nodes, status indicators & SD log pipelines.')}
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-white/60 mt-1">
+            {isTe 
+              ? "మీ పొలంలో అమర్చిన సెన్సార్ పరికరం నుండి నేల తేమ, ఉష్ణోగ్రత, బ్యాటరీ లైవ్ వివరాలు."
+              : t('devices_page.subtitle', 'Real-time status monitoring for ESP32 Field Transceiver Nodes & crop sensors.')}
           </p>
         </div>
 
@@ -226,20 +224,25 @@ const DevicesPage = () => {
           size="sm" 
           onClick={fetchDeviceStatus} 
           leftIcon={<RefreshCw className="w-4 h-4" />} 
-          className="w-full sm:w-auto border border-slate-200 dark:border-white/10"
+          className="w-full sm:w-auto border border-slate-200 dark:border-white/10 font-bold"
         >
-          {t('devices_page.poll_btn', 'Poll Hardware')}
+          {isTe ? "తాజా సమాచారం చూడండి" : t('devices_page.poll_btn', 'Poll Hardware')}
         </Button>
       </div>
 
+      {/* Quick Navigation Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <Link to="/node-control" className="block">
           <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-slate-200/80 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] hover:border-amber-500/30">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⚙️</span>
               <div className="text-left">
-                <p className="text-xs font-bold text-slate-900 dark:text-white">{t('devices_page.node_control', 'Node Control')}</p>
-                <p className="text-[10px] text-slate-400 dark:text-white/30">{t('devices_page.node_control_sub', 'Node threshold configs')}</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                  {isTe ? "సెన్సార్ సెట్టింగ్స్" : t('devices_page.node_control', 'Node Control')}
+                </p>
+                <p className="text-[10px] text-slate-400 dark:text-white/40">
+                  {isTe ? "హెచ్చరికల పరిమితులు" : t('devices_page.node_control_sub', 'Node threshold configs')}
+                </p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/30 shrink-0" />
@@ -251,8 +254,12 @@ const DevicesPage = () => {
             <div className="flex items-center gap-3">
               <span className="text-2xl">📊</span>
               <div className="text-left">
-                <p className="text-xs font-bold text-slate-900 dark:text-white">{t('devices_page.scan_history', 'Scan History')}</p>
-                <p className="text-[10px] text-slate-400 dark:text-white/30">{t('devices_page.scan_history_sub', 'Aggregated historical logs')}</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                  {isTe ? "స్కాన్ల చరిత్ర" : t('devices_page.scan_history', 'Scan History')}
+                </p>
+                <p className="text-[10px] text-slate-400 dark:text-white/40">
+                  {isTe ? "గత రికార్డులు & నివేదికలు" : t('devices_page.scan_history_sub', 'Aggregated historical logs')}
+                </p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/30 shrink-0" />
@@ -262,10 +269,14 @@ const DevicesPage = () => {
         <Link to="/analytics" className="col-span-2 lg:col-span-1 block">
           <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-slate-200/80 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] hover:border-blue-500/30">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">💻</span>
+              <span className="text-2xl">🌾</span>
               <div className="text-left">
-                <p className="text-xs font-bold text-slate-900 dark:text-white">{t('devices_page.analytics', 'Raw Telemetry')}</p>
-                <p className="text-[10px] text-slate-400 dark:text-white/30">{t('devices_page.analytics_sub', 'Live telemetry stream charts')}</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">
+                  {isTe ? "పొలం అనలిటిక్స్" : t('devices_page.analytics', 'Crop Analytics')}
+                </p>
+                <p className="text-[10px] text-slate-400 dark:text-white/40">
+                  {isTe ? "నేల & వాతావరణ గ్రాఫ్‌లు" : t('devices_page.analytics_sub', 'Live telemetry stream charts')}
+                </p>
               </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/30 shrink-0" />
@@ -273,177 +284,305 @@ const DevicesPage = () => {
         </Link>
       </div>
 
+      {/* Main Device Status Card */}
       <Card glass className="p-6 border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md space-y-6">
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
-              <Cpu className="w-6 h-6" />
+        {/* Device Header with Farmer-Friendly Online Indicator */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-5">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className={`p-3.5 rounded-2xl ${isOnline ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border border-rose-500/20"} shrink-0`}>
+              <Cpu className="w-7 h-7" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>
-                  {deviceData.name}
+                <h2 className="text-base sm:text-xl font-black text-slate-900 dark:text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>
+                  {isOnline 
+                    ? (isTe ? "🟢 పొలంలో సెన్సార్ పరికరం పనిచేస్తుంది" : "🟢 Field Sensor Node Active")
+                    : (isTe ? "🔴 సెన్సార్ ఆఫ్‌లైన్ / ఆగిపోయింది" : "🔴 Field Sensor Offline")}
                 </h2>
-                <Badge variant={isOnline ? "healthy" : "diseased"} className="text-[9px] uppercase font-black animate-pulse">
-                  {isOnline ? "ONLINE" : "OFFLINE"}
+                <Badge variant={isOnline ? "healthy" : "diseased"} className="text-[10px] uppercase font-black tracking-wide">
+                  {isOnline ? (isTe ? "లైవ్ ఆన్లైన్" : "ONLINE") : (isTe ? "ఆఫ్‌లైన్" : "OFFLINE")}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5 truncate">
-                MCU: ESP32 DevKit V1 • Firmware: {deviceData.firmware} • Last Ping: {deviceData.lastSync}
+              <p className="text-xs text-slate-600 dark:text-white/60 mt-1">
+                {isOnline 
+                  ? (isTe ? `పరికర ఐడీ: ${deviceData.name} • చివరి సింక్: ${deviceData.lastSync}` : `Node ID: ${deviceData.name} • Last sync: ${deviceData.lastSync}`)
+                  : (isTe ? "పరికరానికి బ్యాటరీ లేదా సిగ్నల్ చెక్ చేయండి • చివరి సింక్: " + deviceData.lastSync : `Awaiting sensor ping • Last sync: ${deviceData.lastSync}`)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-white/40">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-600 dark:text-white/60 bg-slate-100/60 dark:bg-white/[0.04] px-3.5 py-2 rounded-xl">
             <span className="flex items-center gap-1.5">
               <Signal className={`w-4 h-4 ${signal.color}`} /> 
-              Signal: {deviceData.wifiStrength} dBm ({signal.label})
+              <span>{signal.label}</span>
             </span>
-            <span className="hidden sm:inline text-slate-200 dark:text-white/10">•</span>
+            <span className="text-slate-300 dark:text-white/20">•</span>
             <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-slate-400" /> Uptime: {deviceData.uptime}
+              <Clock className="w-4 h-4 text-slate-400" /> 
+              <span>{isTe ? `నడుస్తున్న సమయం: ${deviceData.uptime}` : `Uptime: ${deviceData.uptime}`}</span>
             </span>
           </div>
         </div>
 
+        {/* 4 Farmer-Friendly High-Level Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-50/50 dark:bg-white/[0.01] p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 flex flex-col justify-between">
-            <div className="flex justify-between items-center text-xs font-bold text-slate-400">
-              <span>Battery ({deviceData.batteryVoltage}V)</span>
+          
+          {/* 1. Battery Runtime Card */}
+          <div className="bg-slate-50/70 dark:bg-white/[0.02] p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2 flex flex-col justify-between">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-500 dark:text-white/50">
+              <span>{isTe ? "🔋 బ్యాటరీ ఛార్జ్" : "Battery Runtime"}</span>
               <Battery className="w-4 h-4 text-emerald-500" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 mb-2">{deviceData.battery}%</p>
-              <Progress value={deviceData.battery} className="h-1.5 animate-pulse" />
+              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 mb-1">{deviceData.battery}%</p>
+              <Progress value={deviceData.battery} className="h-2 mb-2" />
+              <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                {getBatteryEstimate(deviceData.battery)}
+              </p>
             </div>
           </div>
 
+          {/* 2. SD Card / Data Storage Card */}
           <Link 
             to="/sdcard" 
-            className="bg-slate-50/50 dark:bg-white/[0.01] p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 block transition-all hover:border-amber-500/40 hover:shadow-lg group cursor-pointer flex flex-col justify-between"
+            className="bg-slate-50/70 dark:bg-white/[0.02] p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2 block transition-all hover:border-amber-500/40 hover:shadow-md group cursor-pointer flex flex-col justify-between"
             title="Open MicroSD Storage Manager"
           >
-            <div className="flex justify-between items-center text-xs font-bold text-slate-400">
-              <span className="group-hover:text-amber-500 transition-colors">MicroSD Storage</span>
+            <div className="flex justify-between items-center text-xs font-bold text-slate-500 dark:text-white/50">
+              <span className="group-hover:text-amber-500 transition-colors">
+                {isTe ? "💾 డేటా మెమరీ కార్డ్" : "MicroSD Storage"}
+              </span>
               <HardDrive className="w-4 h-4 text-sky-500 group-hover:text-amber-500 transition-colors" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 mb-2">
+              <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 mb-1">
                 {deviceData.sdCard.status === "mounted"
-                  ? deviceData.sdCard.totalMb > 0
-                    ? `${(deviceData.sdCard.totalMb - deviceData.sdCard.usageMb).toLocaleString()} MB Free`
-                    : 'Mounted'
-                  : 'Not Mounted'}
+                  ? (isTe ? "భద్రంగా రికార్డ్ అవుతోంది" : "Recording Safe")
+                  : (isTe ? "కార్డ్ లేదు" : "Not Mounted")}
               </p>
               <Progress value={deviceData.sdCard.status === "mounted" && deviceData.sdCard.totalMb > 0
                 ? Math.round((deviceData.sdCard.usageMb / deviceData.sdCard.totalMb) * 100)
-                : 0} className="h-1.5" />
+                : 0} className="h-2 mb-2" />
+              <p className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
+                {deviceData.sdCard.status === "mounted"
+                  ? `${(deviceData.sdCard.totalMb - deviceData.sdCard.usageMb).toLocaleString()} MB ఖాళీగా ఉంది`
+                  : (isTe ? "మెమరీ కార్డ్ తనిఖీ చేయండి" : "Check SD card slot")}
+              </p>
             </div>
           </Link>
 
-          <div className="bg-slate-50/50 dark:bg-white/[0.01] p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 flex flex-col justify-between">
-            <div className="flex justify-between items-center text-xs font-bold text-slate-400">
-              <span>ESP32 CPU Load</span>
-              <Activity className="w-4 h-4 text-purple-500" />
+          {/* 3. Signal & Connection Range */}
+          <div className="bg-slate-50/70 dark:bg-white/[0.02] p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2 flex flex-col justify-between">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-500 dark:text-white/50">
+              <span>{isTe ? "📶 సిగ్నల్ నాణ్యత" : "WiFi / Field Signal"}</span>
+              <Wifi className="w-4 h-4 text-sky-500" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1 mb-2">{deviceData.cpu}%</p>
-              <Progress value={deviceData.cpu} className="h-1.5" />
+              <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 mb-1">
+                {isOnline ? (isTe ? "సిగ్నల్ బాగుంది" : "Connected") : (isTe ? "కనెక్షన్ లేదు" : "Disconnected")}
+              </p>
+              <div className="w-full bg-slate-200 dark:bg-white/10 rounded-full h-2 mb-2 overflow-hidden">
+                <div 
+                  className={`h-full ${signal.color.replace('text-', 'bg-')}`} 
+                  style={{ width: isOnline ? signal.bar : '0%' }}
+                />
+              </div>
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-white/50">
+                {isOnline ? `${deviceData.wifiStrength} dBm (${signal.label})` : (isTe ? "సిగ్నల్ రేంజ్ తనిఖీ చేయండి" : "Out of range")}
+              </p>
             </div>
           </div>
 
-          <div className="bg-slate-50/50 dark:bg-white/[0.01] p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-2 flex flex-col justify-between">
-            <div className="flex justify-between items-center text-xs font-bold text-slate-400">
-              <span>Hardware Modules</span>
+          {/* 4. Active Sensor Count */}
+          <div className="bg-slate-50/70 dark:bg-white/[0.02] p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2 flex flex-col justify-between">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-500 dark:text-white/50">
+              <span>{isTe ? "🌾 సెన్సార్ల పనితీరు" : "Active Field Sensors"}</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{deviceData.sensorHealth}</p>
-              <span className="text-[10px] text-slate-400 dark:text-white/30 font-bold block mt-1">{deviceData.sensorHealthSub}</span>
+              <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 mb-1">
+                {isOnline ? (isTe ? "7/7 సిద్ధంగా ఉన్నాయి" : "7/7 Active") : (isTe ? "0/7 ఆఫ్‌లైన్" : "0/7 Offline")}
+              </p>
+              <div className="w-full bg-slate-200 dark:bg-white/10 rounded-full h-2 mb-2 overflow-hidden">
+                <div className="h-full bg-emerald-500" style={{ width: isOnline ? '100%' : '0%' }} />
+              </div>
+              <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                {isOnline ? (isTe ? "మొక్కలకు పూర్తి రక్షణగా ఉన్నాయి" : "Continuous live crop monitoring") : (isTe ? "డేటా వేచి ఉంది" : "Awaiting sensor handshake")}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#0b1019] text-white p-5 rounded-2xl border border-white/5 space-y-4">
+        {/* 7 Farm Sensors - Visual Farmer Card Grid */}
+        <div className="bg-slate-900 text-white p-5 rounded-2xl border border-white/5 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-[10px] font-black uppercase tracking-wider text-white/40">
-              Connected Physical Devices & Sensor Modules
-            </h3>
-            <span className="text-[10px] font-extrabold text-emerald-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              Live Link Verified
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                {isTe ? "🌱 7 పొలం సెన్సార్ల లైవ్ రీడింగ్స్ (Live Field Sensor Status)" : "🌱 Live Field Sensor Status"}
+              </h3>
+              <p className="text-[11px] text-white/50 mt-0.5">
+                {isTe ? "మీ పంట వద్ద అమర్చిన అన్ని సెన్సార్ల ప్రస్తుత పరిస్థితి" : "Real-time readings from installed crop health sensors"}
+              </p>
+            </div>
+            <span className="text-[11px] font-extrabold text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              {isOnline ? (isTe ? "లైవ్ డేటా అందుతోంది" : "Live Streaming") : (isTe ? "ఆఫ్‌లైన్" : "Offline")}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${deviceData.temperature != null ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-bold text-white/90">AHT20 Temp/Hum</span>
-              <span className="text-[8px] text-white/30">I2C (0x38)</span>
-              <span className={`text-[10px] font-black ${deviceData.temperature != null ? "text-emerald-400" : "text-rose-500"}`}>
-                {deviceData.temperature != null ? `${deviceData.temperature}°C` : "OFFLINE"}
-              </span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {/* 1. Temp & Humidity */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">🌡️</span>
+                <span className={`w-2 h-2 rounded-full ${deviceData.temperature != null ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "గాలి ఉష్ణోగ్రత" : "Air Temperature"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {deviceData.temperature != null ? `${deviceData.temperature}°C` : "--"}
+              </p>
+              <p className="text-[10px] text-white/40">{isTe ? "వాతావరణ ఉష్ణోగ్రత" : "Ambient air temp"}</p>
             </div>
 
-            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${deviceData.lightLux != null ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-bold text-white/90">BH1750 Light</span>
-              <span className="text-[8px] text-white/30">I2C (0x23)</span>
-              <span className={`text-[10px] font-black ${deviceData.lightLux != null ? "text-emerald-400" : "text-rose-500"}`}>
-                {deviceData.lightLux != null ? `${deviceData.lightLux} Lx` : "OFFLINE"}
-              </span>
+            {/* 2. Soil Moisture */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">💧</span>
+                <span className={`w-2 h-2 rounded-full ${deviceData.soilMoisture != null ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "నేల తేమ" : "Soil Moisture"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {deviceData.soilMoisture != null ? `${deviceData.soilMoisture}%` : "--"}
+              </p>
+              <p className="text-[10px] text-white/40">
+                {Number(deviceData.soilMoisture) < 30 ? (isTe ? "నీరు అవసరం" : "Needs water") : (isTe ? "నేలలో తేమ బాగుంది" : "Adequate moisture")}
+              </p>
             </div>
 
-            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${deviceData.pressure != null ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-bold text-white/90">BMP280 Baro</span>
-              <span className="text-[8px] text-white/30">I2C (0x76)</span>
-              <span className={`text-[10px] font-black ${deviceData.pressure != null ? "text-emerald-400" : "text-rose-500"}`}>
-                {deviceData.pressure != null ? `${deviceData.pressure} hPa` : "OFFLINE"}
-              </span>
+            {/* 3. Sunlight / Lux */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">☀️</span>
+                <span className={`w-2 h-2 rounded-full ${deviceData.lightLux != null ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "ఎండ తీవ్రత" : "Sunlight (Lux)"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {deviceData.lightLux != null ? `${deviceData.lightLux} Lx` : "--"}
+              </p>
+              <p className="text-[10px] text-white/40">{isTe ? "సూర్యరశ్మి తీవ్రత" : "Sunlight intensity"}</p>
             </div>
 
-            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${deviceData.soilMoisture != null ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-bold text-white/90">Soil Moisture</span>
-              <span className="text-[8px] text-white/30">GPIO 34 ADC</span>
-              <span className={`text-[10px] font-black ${deviceData.soilMoisture != null ? "text-emerald-400" : "text-rose-500"}`}>
-                {deviceData.soilMoisture != null ? `${deviceData.soilMoisture}%` : "OFFLINE"}
-              </span>
+            {/* 4. Rain Sensor */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">🌧️</span>
+                <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "వర్షం పరిస్థితి" : "Rain Detection"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {deviceData.rainDetected ? (isTe ? "వర్షం పడుతోంది 🌧️" : "Raining 🌧️") : (isTe ? "వర్షం లేదు ☀️" : "Clear ☀️")}
+              </p>
+              <p className="text-[10px] text-white/40">
+                {deviceData.rainDetected ? (isTe ? "పిచికారీ చేయవద్దు" : "Hold spraying") : (isTe ? "పొడిగా ఉంది" : "Safe to spray")}
+              </p>
             </div>
 
-            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-bold text-white/90">Rain Sensor</span>
-              <span className="text-[8px] text-white/30">GPIO 35/33</span>
-              <span className="text-[10px] font-black text-emerald-400">
-                {deviceData.rainDetected ? "RAINING" : "CLEAR"}
-              </span>
+            {/* 5. Air Humidity */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">💨</span>
+                <span className={`w-2 h-2 rounded-full ${deviceData.humidity != null ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "గాలిలో తేమ" : "Air Humidity"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {deviceData.humidity != null ? `${deviceData.humidity}%` : "--"}
+              </p>
+              <p className="text-[10px] text-white/40">{isTe ? "మంచు & గాలి తేమ" : "Relative humidity"}</p>
             </div>
 
-            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${isOnline && deviceData.battery > 0 ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-bold text-white/90">Battery Monitor</span>
-              <span className="text-[8px] text-white/30">GPIO 32 ADC</span>
-              <span className={`text-[10px] font-black ${isOnline && deviceData.battery > 0 ? "text-emerald-400" : "text-rose-500"}`}>
-                {isOnline && deviceData.battery > 0 ? `${deviceData.batteryVoltage}V` : "OFFLINE"}
-              </span>
+            {/* 6. Atmospheric Pressure */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">🧭</span>
+                <span className={`w-2 h-2 rounded-full ${deviceData.pressure != null ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "వాతావరణ పీడనం" : "Barometer (Pressure)"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {deviceData.pressure != null ? `${deviceData.pressure} hPa` : "--"}
+              </p>
+              <p className="text-[10px] text-white/40">{isTe ? "గాలి పీడనం స్థిరంగా ఉంది" : "Barometric reading"}</p>
             </div>
 
-            <div className="bg-white/[0.02] p-3 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-1">
-              <span className={`w-2.5 h-2.5 rounded-full ${deviceData.sdCard.status === "mounted" ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
-              <span className="text-[11px] font-bold text-white/90">MicroSD SPI</span>
-              <span className="text-[8px] text-white/30">GPIO 5 SPI</span>
-              <span className={`text-[10px] font-black ${deviceData.sdCard.status === "mounted" ? "text-emerald-400" : "text-rose-500"}`}>
-                {deviceData.sdCard.status === "mounted" ? "MOUNTED" : "OFFLINE"}
-              </span>
+            {/* 7. Battery Voltage */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">⚡</span>
+                <span className={`w-2 h-2 rounded-full ${isOnline && deviceData.battery > 0 ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "బ్యాటరీ వోల్టేజ్" : "Battery Voltage"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {isOnline && deviceData.battery > 0 ? `${deviceData.batteryVoltage} V` : "--"}
+              </p>
+              <p className="text-[10px] text-white/40">{isTe ? "సోలార్ / లిథియం సెల్" : "Li-Ion power rail"}</p>
+            </div>
+
+            {/* 8. MicroSD Storage */}
+            <div className="bg-white/[0.03] p-3.5 rounded-xl border border-white/5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-base">💾</span>
+                <span className={`w-2 h-2 rounded-full ${deviceData.sdCard.status === "mounted" ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
+              </div>
+              <p className="text-xs font-bold text-white/90">{isTe ? "ఆఫ్‌లైన్ మెమరీ" : "MicroSD Storage"}</p>
+              <p className="text-lg font-black text-emerald-400">
+                {deviceData.sdCard.status === "mounted" ? (isTe ? "ఆక్టివ్" : "MOUNTED") : "OFFLINE"}
+              </p>
+              <p className="text-[10px] text-white/40">{isTe ? "డేటా భద్రపరుస్తోంది" : "Continuous log buffer"}</p>
             </div>
           </div>
         </div>
+
+        {/* Collapsible Technical Engineering Details for Agronomists & Technicians */}
+        <details className="mt-4 bg-slate-100 dark:bg-white/[0.02] p-4 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs text-slate-700 dark:text-white/70">
+          <summary className="cursor-pointer font-bold text-xs text-amber-600 dark:text-amber-400 flex items-center justify-between select-none">
+            <span className="flex items-center gap-2">
+              <span>🛠️</span>
+              <span>{isTe ? "ఇంజనీరింగ్ & హార్డ్‌వేర్ పిన్స్ వివరాలు (Hardware Diagnostics & Pinouts)" : "Hardware Diagnostics & Pinout Specifications"}</span>
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 dark:text-white/40">{isTe ? "క్లిక్ చేసి చూడండి ▼" : "Expand ▼"}</span>
+          </summary>
+          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 font-mono text-[11px]">
+            <div>
+              <span className="font-bold text-slate-500 dark:text-white/40 block">MCU Hardware:</span>
+              <span>ESP32 DevKit V1 (320KB RAM)</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-500 dark:text-white/40 block">Firmware Version:</span>
+              <span>{deviceData.firmware}</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-500 dark:text-white/40 block">WiFi RSSI & Heap:</span>
+              <span>{deviceData.wifiStrength} dBm • CPU: {deviceData.cpu}%</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-500 dark:text-white/40 block">I2C Bus (SDA 21 / SCL 22):</span>
+              <span>AHT20 (0x38), BH1750 (0x23), BMP280 (0x76)</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-500 dark:text-white/40 block">Analog ADC Pins:</span>
+              <span>Soil Moisture: GPIO 34 • Battery: GPIO 32</span>
+            </div>
+            <div>
+              <span className="font-bold text-slate-500 dark:text-white/40 block">SPI & Digital Pins:</span>
+              <span>MicroSD: GPIO 5 CS (SPI) • Rain: GPIO 35/33</span>
+            </div>
+          </div>
+        </details>
       </Card>
     </motion.div>
   );
 };
 
 export default DevicesPage;
+
+
