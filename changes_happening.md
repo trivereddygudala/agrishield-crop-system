@@ -2,6 +2,16 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v84) - Strict Farmer Authentication Enforcement for All Crop Disease Scans
+- **Summary:** Enforced strict mandatory farmer authentication (Option 1) across all leaf scanning and diagnosis endpoints, eliminating legacy guest loopholes:
+  1. 🔐 **Mandatory JWT Authentication Across All Scan Endpoints (`predict.py`):**
+     - Replaced all legacy `get_optional_current_user` dependencies on `POST /api/upload`, `POST /api/predict`, `POST /api/predict-pytorch`, and `POST /api/predict-batch` with strict `current_user: dict = Depends(get_current_user)`.
+     - Removed unused `get_optional_current_user` import from `backend/app/routers/auth.py`.
+  2. 🚜 **100% Farmer-Linked Disease Records:**
+     - Any request made without an active JWT session is immediately blocked with `401 Unauthorized: Could not validate credentials`, cleanly redirecting farmers to Login/Register.
+     - Guarantees 100% of leaf diagnoses, treatment recommendations, prescription slips, and outbreak alerts are permanently linked to verified farmer accounts and specific farm sectors.
+- **Files modified**: `backend/app/routers/predict.py`, `changes_happening.md`
+
 ## 2026-09-09 (v83) - Production Deployment Audit, PyTorch Model Health Status & Anonymous Scan Guardrails
 - **Summary:** Conducted an end-to-end audit of the live deployment across Frontend (Vercel) and Backend (Render), resolving hidden backend runtime exceptions in the prediction and model status endpoints:
   1. 🛡️ **Guarded Unauthenticated / Guest Scans (`predict.py`):**

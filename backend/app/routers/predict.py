@@ -14,7 +14,7 @@ logger = logging.getLogger("predict")
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from backend.app.db.mongodb import get_database
-from backend.app.routers.auth import get_current_user, get_optional_current_user
+from backend.app.routers.auth import get_current_user
 from backend.app.models.schemas import (
     PredictionResponse, 
     PredictionHistoryResponse, 
@@ -304,7 +304,7 @@ from backend.app.core.rate_limiter import rate_limit, PREDICT_LIMIT
 @router.post("/upload", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(PREDICT_LIMIT, 60))])
 async def upload_image(
     file: UploadFile = File(...),
-    current_user: Optional[dict] = Depends(get_optional_current_user)
+    current_user: dict = Depends(get_current_user)
 ):
     """Upload crop leaf image with enterprise magic-byte, PIL, and OpenCV validation."""
     content_bytes, safe_filename = await validate_image_upload(file)
@@ -576,7 +576,7 @@ async def identify_plant_endpoint(
 @router.post("/predict", response_model=PredictionResponse)
 async def predict_legacy_alias(
     req: PredictRequest,
-    current_user: Optional[dict] = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     return await predict_pytorch_endpoint(req, current_user, db)
@@ -584,7 +584,7 @@ async def predict_legacy_alias(
 @router.post("/predict-pytorch", response_model=PredictionResponse)
 async def predict_pytorch_endpoint(
     req: PredictRequest,
-    current_user: Optional[dict] = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -1219,7 +1219,7 @@ async def predict_pytorch_endpoint(
 @router.post("/predict-batch")
 async def predict_batch_endpoint(
     req: PredictBatchRequest,
-    current_user: Optional[dict] = Depends(get_optional_current_user),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
