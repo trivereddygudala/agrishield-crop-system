@@ -2,6 +2,14 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v71) - Mobile Chat Box Slimming & Bottom Empty Gap Elimination
+- **Summary:** Resolved the issue where the search/input bar in the AI Assistant was excessively tall and had a massive ~120-140px blank empty white gap underneath on mobile devices:
+  1. **Dynamic Mobile Viewport Correction (`App.jsx`):** Updated the layout height for `/assistant` on mobile to `h-[calc(100dvh-8rem)] max-h-[calc(100dvh-8rem)]` (accounting for 4rem top navbar + 4rem mobile bottom navigation), while preserving `h-[calc(100dvh-4rem)]` on desktop (`lg:`). This guarantees the chat viewport ends exactly flush at the top border of the mobile `BottomNav`.
+  2. **Eliminated Bottom Whitespace Overhang (`AIAssistantPage.jsx`):** Removed the legacy `pb-20` (80px padding) on the bottom search bar wrapper. Set clean `pt-1 pb-1 lg:pb-2.5` padding, bringing the search bar and disclaimer directly above the mobile navigation bar without any awkward gap.
+  3. **Slimmed Chat Pill Input Box & Buttons (`AIAssistantPage.jsx`):** Reduced the chat pill input container from 54px down to 38px (`min-h-[38px]`, `p-1`), compact button padding (`p-1.5` with 14px icons), compact textarea (`py-1 leading-normal`), and streamlined the disclaimer text (`text-[9px] mt-0.5 mb-0`) to reclaim vertical screen estate for chat messages and treatment advice.
+  4. **Compact Kisan Action Chips:** Reduced chip padding to `px-2.5 py-1 text-[11px]` so chips occupy less vertical space above the search bar.
+- **Files modified**: `frontend/src/App.jsx`, `frontend/src/pages/AIAssistantPage.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v70) - Real-Time APMC Mandi Market Intelligence Integration & Anti-Hallucination Guardrail
 - **Summary:** Resolved the issue where asking the AI chatbot about market prices / Mandi rates resulted in an inappropriate software engineering refusal ("I don't have API keys, do web scraping on AP-AIMS 2.0, write Python/Flask code"):
   1. **Built-in Mandi Intelligence Context Injection (`market.py`, `ai.py`):** Added `get_mandi_intelligence_summary` helper in `backend/app/routers/market.py`. In `ai.py`, queries relating to market prices, Mandi rates, crop prices, or Mandi APIs automatically inject real-time APMC commodity pricing (Red Chilli in Guntur Mirchi Yard, Tomato in Madanapalle, Paddy in Vijayawada, Cotton in Adoni, Groundnut in Anantapur, etc.) directly into `chat_context["apmc_mandi_intelligence"]`.

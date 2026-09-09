@@ -1142,7 +1142,7 @@ const AIAssistantPage = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={scrollToBottom}
-              className="absolute bottom-44 lg:bottom-20 right-6 p-2 rounded-full bg-slate-800 text-white shadow-xl hover:bg-slate-700 z-20"
+              className="absolute bottom-20 right-4 sm:right-6 p-2 rounded-full bg-slate-800 text-white shadow-xl hover:bg-slate-700 z-20"
             >
               <ChevronDown className="w-4 h-4" />
             </motion.button>
@@ -1150,7 +1150,7 @@ const AIAssistantPage = () => {
         </AnimatePresence>
 
         {/* ── CHATGPT STYLE PILL SEARCH BAR (Pictures 2 & 3) ── */}
-        <div className="px-3 sm:px-6 pb-20 lg:pb-3 pt-1 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto">
+        <div className="px-2.5 sm:px-6 pt-1 pb-1 lg:pb-2.5 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto border-t border-slate-100/80 dark:border-[#1a1a1a]">
           
           {/* Hidden File & Camera Inputs for In-Chat Leaf Diagnosis */}
           <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelected} className="hidden" />
@@ -1163,7 +1163,7 @@ const AIAssistantPage = () => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute bottom-44 lg:bottom-24 left-4 sm:left-6 z-30 p-2 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#2e2e2e] shadow-2xl space-y-1 w-56"
+                className="absolute bottom-28 lg:bottom-24 left-3 sm:left-6 z-30 p-2 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#2e2e2e] shadow-2xl space-y-1 w-56"
               >
                 <button
                   onClick={() => { cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
@@ -1198,7 +1198,7 @@ const AIAssistantPage = () => {
           </AnimatePresence>
 
           {/* ── KISAN QUICK QUESTION CHIPS (1-TAP ACTION SHORTCUTS) ── */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-1 scrollbar-none no-scrollbar">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-1 scrollbar-none no-scrollbar">
             {kisanQuickChips.map((chip, idx) => {
               const activeLang = (i18n.language || 'en').split('-')[0];
               const label = chip.label[activeLang] || chip.label.en;
@@ -1208,9 +1208,9 @@ const AIAssistantPage = () => {
                   key={idx}
                   type="button"
                   onClick={() => handleSendMessage(chip.query)}
-                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-[#1a1a1a] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-[#2b2b2b] hover:border-emerald-400/50 text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all shadow-2xs active:scale-95 whitespace-nowrap"
+                  className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-[#1a1a1a] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-[#2b2b2b] hover:border-emerald-400/50 text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 text-[11px] font-bold flex items-center gap-1 shrink-0 transition-all shadow-2xs active:scale-95 whitespace-nowrap"
                 >
-                  <IconComp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <IconComp className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>{label}</span>
                 </button>
               );
@@ -1224,31 +1224,31 @@ const AIAssistantPage = () => {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 6 }}
-                className="mb-2.5 px-4 py-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-between shadow-lg backdrop-blur-md"
+                className="mb-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-between shadow-lg backdrop-blur-md"
               >
-                <div className="flex items-center gap-2.5">
-                  <span className="relative flex h-3 w-3">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
                   </span>
-                  <div className="flex items-center gap-1 px-1">
-                    <span className="w-1 h-3 bg-rose-500 rounded-full animate-bounce [animation-delay:0s]" />
-                    <span className="w-1 h-5 bg-rose-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                  <div className="flex items-center gap-0.5 px-0.5">
+                    <span className="w-1 h-2.5 bg-rose-500 rounded-full animate-bounce [animation-delay:0s]" />
+                    <span className="w-1 h-4 bg-rose-500 rounded-full animate-bounce [animation-delay:0.15s]" />
                     <span className="w-1 h-2 bg-rose-500 rounded-full animate-bounce [animation-delay:0.3s]" />
-                    <span className="w-1 h-4 bg-rose-500 rounded-full animate-bounce [animation-delay:0.45s]" />
+                    <span className="w-1 h-3.5 bg-rose-500 rounded-full animate-bounce [animation-delay:0.45s]" />
                   </div>
-                  <span className="truncate">
+                  <span className="truncate text-[11px]">
                     {(() => {
                       const langKey = (i18n.language || 'en').split('-')[0];
-                      const names = { te: 'తెలుగు (Telugu)', hi: 'हिन्दी (Hindi)', ta: 'தமிழ் (Tamil)', kn: 'ಕನ್ನಡ (Kannada)', ml: 'മലയാളം (Malayalam)', mr: 'मराठी (Marathi)', en: 'English' };
-                      return `Listening in ${names[langKey] || 'your language'}... Speak now`;
+                      const names = { te: 'తెలుగు', hi: 'हिन्दी', ta: 'தமிழ்', kn: 'ಕನ್ನಡ', ml: 'മലയാളം', mr: 'मराठी', en: 'English' };
+                      return `Listening in ${names[langKey] || 'voice'}... Speak now`;
                     })()}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={toggleSpeechRecognition}
-                  className="px-2.5 py-1 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 shadow-xs"
+                  className="px-2 py-0.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-black uppercase tracking-wider transition-colors shrink-0 shadow-xs"
                 >
                   Done
                 </button>
@@ -1263,62 +1263,62 @@ const AIAssistantPage = () => {
                 initial={{ opacity: 0, scale: 0.95, y: 6 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 6 }}
-                className="mb-2.5 p-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 flex items-center justify-between gap-3 shadow-sm"
+                className="mb-2 p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 flex items-center justify-between gap-2.5 shadow-sm"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <img src={attachedPhoto.preview} alt="Attached Leaf" className="w-12 h-12 rounded-xl object-cover border border-emerald-400 dark:border-emerald-600 shrink-0" />
+                <div className="flex items-center gap-2 min-w-0">
+                  <img src={attachedPhoto.preview} alt="Attached Leaf" className="w-10 h-10 rounded-lg object-cover border border-emerald-400 dark:border-emerald-600 shrink-0" />
                   <div className="min-w-0">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block truncate">
                       {attachedPhoto.file?.name || 'Crop Leaf Photo'}
                     </span>
                     <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-semibold block">
-                      ⚡ Ready for Diagnostic Advice ({Math.round((attachedPhoto.file?.size || 0) / 1024)} KB)
+                      ⚡ Ready for Diagnosis ({Math.round((attachedPhoto.file?.size || 0) / 1024)} KB)
                     </span>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setAttachedPhoto(null)}
-                  className="p-1.5 rounded-full text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1 rounded-full text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
                   title="Remove attached photo"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ChatGPT Pill Input Box */}
-          <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-slate-100 dark:bg-[#212121] border border-slate-200/80 dark:border-[#2a2a2a] shadow-inner focus-within:ring-2 focus-within:ring-emerald-500/50 transition-all">
+          {/* ChatGPT Pill Input Box - Compact & Sleek */}
+          <div className="flex items-center gap-1 p-1 rounded-full bg-slate-100 dark:bg-[#212121] border border-slate-200/80 dark:border-[#2a2a2a] shadow-inner focus-within:ring-2 focus-within:ring-emerald-500/50 transition-all min-h-[38px]">
             
             {/* Plus Button on Left */}
             <button
               type="button"
               onClick={() => setQuickMenuOpen(o => !o)}
-              className="p-2 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors"
+              className="p-1.5 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors shrink-0"
               title="Add attachment / Quick tools"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
             </button>
 
             {/* Direct Camera Shutter Button */}
             <button
               type="button"
               onClick={() => cameraInputRef.current?.click()}
-              className="p-2 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors"
+              className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors shrink-0"
               title="Snap photo with camera"
             >
-              <Camera className="w-4 h-4" />
+              <Camera className="w-3.5 h-3.5" />
             </button>
 
             {/* Direct Photo Gallery Picker */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors"
+              className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors shrink-0"
               title="Upload leaf photo"
             >
-              <Paperclip className="w-4 h-4" />
+              <Paperclip className="w-3.5 h-3.5" />
             </button>
 
             {/* Input Textarea */}
@@ -1328,7 +1328,7 @@ const AIAssistantPage = () => {
               onChange={e => {
                 setInputQuery(e.target.value);
                 e.target.style.height = 'auto';
-                e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
               }}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -1336,22 +1336,22 @@ const AIAssistantPage = () => {
                   handleSendMessage();
                 }
               }}
-              placeholder={attachedPhoto ? "Add a message or press send to diagnose..." : `Ask ${activeRoleConfig.title}...`}
-              className="flex-1 resize-none bg-transparent px-2 py-1.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none leading-relaxed max-h-[100px] overflow-y-auto"
+              placeholder={attachedPhoto ? "Add message or send..." : `Ask ${activeRoleConfig.title}...`}
+              className="flex-1 resize-none bg-transparent px-1.5 py-1 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none leading-normal max-h-[80px] overflow-y-auto"
             />
 
             {/* Voice Mic Button */}
             <button
               type="button"
               onClick={toggleSpeechRecognition}
-              className={`p-2 rounded-full transition-colors ${
+              className={`p-1.5 rounded-full transition-colors shrink-0 ${
                 isListening 
                   ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30' 
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#2e2e2e]'
               }`}
               title="Voice input (Speak in Telugu, Hindi, English)"
             >
-              <Mic className="w-4 h-4" />
+              <Mic className="w-3.5 h-3.5" />
             </button>
 
             {/* Send / Waveform Button */}
@@ -1359,19 +1359,19 @@ const AIAssistantPage = () => {
               type="button"
               onClick={() => handleSendMessage()}
               disabled={(!inputQuery.trim() && !attachedPhoto) || isTyping}
-              className={`p-2 rounded-full transition-all shadow-sm ${
+              className={`p-1.5 rounded-full transition-all shadow-sm shrink-0 ${
                 (inputQuery.trim() || attachedPhoto)
                   ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] scale-100 shadow-md shadow-blue-500/30 active:scale-90'
                   : 'bg-slate-300 dark:bg-[#333333] text-slate-500 dark:text-slate-400 cursor-not-allowed opacity-50'
               }`}
               title="Send message"
             >
-              <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+              <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           </div>
 
-          <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 mt-1 mb-0.5">
-            AgriShield AI may make mistakes. Verify important farming advice with local agricultural experts.
+          <p className="text-center text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 mb-0 leading-none">
+            AgriShield AI can make mistakes. Verify advice with local experts.
           </p>
         </div>
       </div>
