@@ -967,6 +967,67 @@ Do NOT include markdown fences, backticks, or any conversational text. Only outp
             logger.warning(f"analyze_crop_image vision check failed: {e}")
             return None
 
+    async def analyze_multimodal_farm_image(self, b64_data: str) -> Optional[dict]:
+        """
+        Multimodal Cloud Vision Inspector for the AgriShield AI Chatbot.
+        Classifies an uploaded photo into one of 3 categories:
+        1. 'crop_leaf' - Crop foliage disease symptoms (leaf spots, blight, chlorosis)
+        2. 'pest_insect' - Insect pests (armyworm, bollworm, borer, aphids, whiteflies, thrips, caterpillars)
+        3. 'chemical_bottle' - Agrochemical pesticide bottle, fungicide packet, or fertilizer bag label
+        """
+        if not self.nvidia_client:
+            return None
+
+        try:
+            import asyncio
+            prompt = """You are a Master Agronomist, Agricultural Entomologist, and Agrochemical Specialist.
+Examine this image and determine:
+1. Category: Exactly one of ['crop_leaf', 'pest_insect', 'chemical_bottle', 'general_agriculture'].
+2. Target Name:
+   - If crop_leaf: Specific Crop Name & visible foliar symptoms.
+   - If pest_insect: Specific Insect / Pest common name & scientific name (e.g. 'Fall Armyworm (Spodoptera frugiperda)', 'Pink Bollworm', 'Stem Borer', 'Aphids', 'Whiteflies').
+   - If chemical_bottle: Commercial Brand Name & Active Chemical Ingredient (e.g. 'Coragen (Chlorantraniliprole 18.5% SC)', 'Urea 46% N', 'Mancozeb 75% WP', 'Tata Rallies').
+3. Practical Recommendation / 16L Knapsack Pump Dilution:
+   - The exact mixing ratio for a standard 16L knapsack sprayer pump (e.g. 30 ml per 16L pump or 8 grams per 16L pump).
+4. Biological / Safety Precaution:
+   - Toxicity color triangle (Green/Blue/Yellow/Red) or biological IPM traps (pheromone traps @ 5/acre, yellow sticky cards @ 10/acre).
+
+Respond ONLY with valid JSON matching this schema:
+{
+  "category": "crop_leaf",
+  "name": "<Identified crop, pest name, or chemical brand>",
+  "active_ingredient": "<Active chemical compound if bottle, or insect scientific name>",
+  "symptoms_or_damage": "<Visual observation of symptoms, insect damage, or bottle label>",
+  "knapsack_dosage_16L": "<Exact dilution for 16L spray pump, e.g. 30 ml per 16L pump>",
+  "ipm_or_safety": "<Pheromone trap count, toxicity color triangle, or expiry check advice>"
+}
+Do NOT include markdown fences, backticks, or any conversational text. Only output raw JSON."""
+
+            messages = [{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_data}"}}
+                ]
+            }]
+
+            response = await asyncio.wait_for(
+                self.nvidia_client.chat.completions.create(
+                    model=self.vision_model,
+                    messages=messages,
+                    temperature=0.1,
+                    max_tokens=300
+                ),
+                timeout=12.0
+            )
+
+            content = response.choices[0].message.content.strip()
+            parsed = safe_parse_json(content)
+            return parsed if isinstance(parsed, dict) else None
+        except Exception as e:
+            logger.warning(f"analyze_multimodal_farm_image failed: {e}")
+            return None
+
     async def generate_prescription_calendar(
         self,
         crop_name: str,
@@ -1057,12 +1118,21 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                     "device_status": "online_simulated"
                 }
 
-            # In-Chat Leaf Image Diagnostic Pre-Check
+            # In-Chat Multi-Modal Image Diagnostic Pre-Check (Foliage, Pest / Insect, or Agrochemical Bottle)
             if image_data:
                 try:
                     import tempfile
                     import base64
                     raw_b64 = image_data.split(",")[-1]
+                    
+                    # 1. Run multimodal farm inspector (handles pest_insect, chemical_bottle, crop_leaf)
+                    multi_res = await self.analyze_multimodal_farm_image(raw_b64)
+                    if multi_res:
+                        if not context:
+                            context = {}
+                        context["multimodal_farm_inspection"] = multi_res
+
+                    # 2. Also run botanical leaf disease guardrail
                     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_img:
                         tmp_img.write(base64.b64decode(raw_b64))
                         tmp_img_path = tmp_img.name
@@ -1081,7 +1151,7 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                             "visual_symptoms": v_res.get("reasoning", "Foliar disease symptoms identified")
                         }
                 except Exception as img_err:
-                    logger.warning(f"In-chat leaf image analysis bypassed: {img_err}")
+                    logger.warning(f"In-chat multimodal image analysis bypassed: {img_err}")
                 
             # Build context string
             context_str = ""
@@ -1099,8 +1169,20 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                         for sk, sv in v.items():
                             if sv:
                                 context_str += f"  * {sk}: {sv}\n"
+                    elif k == "multimodal_farm_inspection" and isinstance(v, dict):
+                        context_str += "\n- 📸 Multimodal Image Analysis (Uploaded by Farmer):\n"
+                        context_str += f"  * Category: {v.get('category', 'agriculture').upper()}\n"
+                        context_str += f"  * Identified Target: {v.get('name', 'N/A')}\n"
+                        if v.get('active_ingredient'):
+                            context_str += f"  * Active Ingredient / Species: {v.get('active_ingredient')}\n"
+                        if v.get('symptoms_or_damage'):
+                            context_str += f"  * Observed Symptoms / Damage: {v.get('symptoms_or_damage')}\n"
+                        if v.get('knapsack_dosage_16L'):
+                            context_str += f"  * Standard 16L Knapsack Sprayer Mix: {v.get('knapsack_dosage_16L')}\n"
+                        if v.get('ipm_or_safety'):
+                            context_str += f"  * IPM Traps / Chemical Toxicity: {v.get('ipm_or_safety')}\n"
                     elif k == "attached_leaf_photo_analysis" and isinstance(v, dict):
-                        context_str += "\n- 📸 Farmer Attached a Crop Leaf Photo in This Message:\n"
+                        context_str += "\n- 📸 Botanical Leaf Analysis:\n"
                         for pk, pv in v.items():
                             context_str += f"  * {pk.replace('_', ' ').title()}: {pv}\n"
                     elif k == "full_scan_history" and isinstance(v, list):
@@ -1159,7 +1241,7 @@ You provide specialized testing, benchmarking, and QA diagnostics for Testers:
 ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, tables, code snippets).{lang_instruction}
 {context_str}"""
             else:
-                system_prompt = f"""You are 'AgriShield AI Agronomist', a Master Soil Scientist, Crop Disease Pathologist, and Smart Farming Specialist built specifically to help rural farmers.
+                system_prompt = f"""You are 'AgriShield AI Agronomist', a Master Soil Scientist, Crop Disease Pathologist, Agricultural Entomologist, and Smart Farming Specialist built specifically to help rural farmers.
 
 CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
 1. 🎯 **Direct Solution First:** Give the immediate practical recommendation in the very first 1-2 sentences in simple language before explaining biological or scientific causes.
@@ -1194,6 +1276,21 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
     - Provide official helplines: AP Farmer Helpline `1907`, National Kisan Call Center `1800-180-1551`, Grama Sachivalayam `1902`.
 11. 💰 **Andhra Pradesh Farmer Welfare Schemes:**
     - Highlight AP state welfare programs: Dr. YSR Rythu Bharosa (₹13,500/year assistance including CCRC tenant farmers), 100% Free Crop Insurance via e-Crop survey, Sunna Vaddi Panta Runalu (zero-interest crop loans up to ₹1 Lakh), YSR Jala Kala free borewells, and APMIP micro-irrigation (up to 90% drip/sprinkler subsidy).
+12. 🐛 **Crop Pest & Insect Identification Protocol:**
+    - When diagnosing insect pests (e.g., Fall Armyworm, Pink Bollworm, Stem Borer, Aphids, Whiteflies, Thrips, Caterpillars, Fruit Borers, Mites):
+      * Always prioritize biological IPM controls first: Install Pheromone Traps (@ 5 traps/acre), Yellow/Blue Sticky Cards (@ 10 cards/acre), and Neem Oil (10,000 PPM) @ 3 ml/L (50 ml per 16L pump).
+      * If insect damage is severe/economic threshold reached, prescribe ONE targeted chemical insecticide with exact 16L knapsack sprayer pump dilution (e.g., Emamectin Benzoate 5% SG @ 8g / 16L pump, Chlorantraniliprole 18.5% SC @ 6ml / 16L pump, or Flubendiamide 39.35% SC @ 5ml / 16L pump).
+13. 🧪 **Agro-Chemical Bottle & Fertilizer Bag Verification Protocol:**
+    - If the farmer shares a photo or asks about a pesticide bottle, fungicide sachet, or fertilizer bag:
+      * State the Commercial Brand Name and Active Chemical Ingredient clearly.
+      * Explain the CIB&RC toxicity color triangle (🟢 Green = Slightly Toxic, 🔵 Blue = Moderately Toxic, 🟡 Yellow = Highly Toxic, 🔴 Red = Extremely Toxic).
+      * Provide the exact **16-litre knapsack sprayer pump mixing dilution** (ml or grams per pump).
+      * Advise checking the government batch number, manufacturing & expiry dates, and insisting on an official cash memo bill.
+14. 🌧️ **Spraying Weather Safety & Rain-Wash Window Protocol:**
+    - If asked whether it is safe to spray today:
+      * Enforce the **4-Hour Rain-Free Rule**: Never spray if rainfall or showers are expected within 4 hours, as chemical will wash off into soil and waste money.
+      * Enforce the **Wind Drift Rule**: Spray only when wind speed is under 12 km/h to prevent chemical drift onto non-target crops or neighboring fields.
+      * Advise spraying during calm hours: Early morning (6:00 AM – 9:00 AM) or late evening (4:30 PM – 6:30 PM) to avoid sun scorch.
 
 ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, numbered steps). Keep explanations clear, encouraging, and farmer-friendly.{lang_instruction}
 {context_str}"""
@@ -1835,6 +1932,96 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                     "- **Symptoms:** Spindle-shaped/diamond lesions with greyish center and brownish margins on leaf blades.\n"
                     "- 🧪 **Chemical Fungicide:** Spray **Tricyclazole 75% WP** @ **0.6g / Litre** or **Isoprothiolane 40% EC** @ **1.5 ml / Litre**."
                 )
+
+        # ── 10b. CROP PESTS, INSECTS & BORERS (IPM & CHEMICAL ADVISORY) ───
+        if re.search(r'\b(pest|pests|insect|insects|worm|caterpillar|armyworm|bollworm|stem borer|borer|aphid|aphids|whitefly|whiteflies|thrips|mite|mites|leafminer|mealybug|పురుగు|కీటకాలు|లద్దె పురుగు|గులాబీ రంగు పురుగు|కాండం తొలుచు పురుగు|తెల్లదోమ|పేనుబంక|కీడా|कीट|इल्ली|सुंडी)\b', msg):
+            if any(w in msg for w in ["armyworm", "fall armyworm", "లద్దె పురుగు", "సైనిక పురుగు"]):
+                return (
+                    "### 🐛 Pest Management: Fall Armyworm (*Spodoptera frugiperda*)\n\n"
+                    "- **Symptoms:** Large ragged shot-holes in whorl leaves, sawdust-like larval fecal frass in central leaf whorls.\n"
+                    "- 🌿 **Biological / IPM Control (First Step):**\n"
+                    "  - Install **Pheromone Traps** @ 5 traps per acre with FAW lures.\n"
+                    "  - Apply **Neem Oil (10,000 PPM)** @ **3 ml/Litre** (50 ml per 16L pump) or *Bacillus thuringiensis* (Bt) @ **2g/Litre**.\n"
+                    "- 🧪 **Targeted Knapsack Sprayer Prescription (Choose ANY ONE):**\n"
+                    "  - **Option 1:** **Emamectin Benzoate 5% SG** @ **8 grams per 16L spray pump** (0.5g/L).\n"
+                    "  - **Option 2:** **Chlorantraniliprole 18.5% SC** (Coragen) @ **6 ml per 16L spray pump** (0.4ml/L).\n\n"
+                    "| Knapsack Spraying Tip\n"
+                    "Direct the spray nozzle straight into the central crop whorl where caterpillars hide. Spray in the late evening (4:30 PM - 6:30 PM)."
+                )
+            if any(w in msg for w in ["stem borer", "కాండం తొలుచు పురుగు"]):
+                return (
+                    "### 🐛 Pest Management: Paddy Stem Borer (*Scirpophaga incertulas*)\n\n"
+                    "- **Symptoms:** 'Dead hearts' (drying of central tiller shoots during vegetative phase) and 'White ears' (empty white panicles at heading).\n"
+                    "- 🌿 **Biological / IPM Control:**\n"
+                    "  - Release *Trichogramma japonicum* egg parasitoid cards @ 20,000/acre at weekly intervals.\n"
+                    "  - Install yellow light traps @ 1 trap/acre.\n"
+                    "- 🧪 **Targeted Knapsack Sprayer Prescription (Choose ANY ONE):**\n"
+                    "  - **Option 1:** **Cartap Hydrochloride 50% SP** @ **30 grams per 16L spray pump** (2g/L).\n"
+                    "  - **Option 2:** **Chlorantraniliprole 0.4% GR** @ **4 kg per acre** broadcast with sand in standing water."
+                )
+            if any(w in msg for w in ["aphid", "whitefly", "thrips", "తేనెమంచు", "తెల్లదోమ", "తామర పురుగులు"]):
+                return (
+                    "### 🪰 Pest Management: Sucking Pests (Aphids, Whiteflies & Thrips)\n\n"
+                    "- **Symptoms:** Leaf curling (upward for thrips, downward for aphids/mites), sticky honeydew secretion, and black sooty mold.\n"
+                    "- 🌿 **Biological / IPM Control:**\n"
+                    "  - Install **Yellow Sticky Traps** (for Whiteflies/Aphids) & **Blue Sticky Traps** (for Thrips) @ **10 traps per acre**.\n"
+                    "  - Spray **Neem Seed Kernel Extract (NSKE 5%)** or Neem Oil 10,000 PPM @ **3 ml/Litre**.\n"
+                    "- 🧪 **Targeted Knapsack Sprayer Prescription (Choose ANY ONE):**\n"
+                    "  - **Option 1:** **Acetamiprid 20% SP** @ **5 grams per 16L spray pump** (0.3g/L).\n"
+                    "  - **Option 2:** **Diafenthiuron 50% WP** @ **20 grams per 16L spray pump** (1.2g/L)."
+                )
+            return (
+                "### 🐛 Crop Insect Pest & Integrated Pest Management (IPM)\n\n"
+                "#### 🌿 Recommended 3-Tier Farmer IPM Strategy:\n"
+                "1. **Pheromone Trapping:** Install 5 species-specific pheromone lure traps per acre to monitor moth populations.\n"
+                "2. **Sticky Cards:** Erect 10 yellow/blue sticky trap sheets per acre at canopy level for sucking pests.\n"
+                "3. **Bio-Foliar Spray:** Spray Neem Oil (10,000 PPM) @ **50 ml per 16-litre knapsack pump** (3ml/L) as first line of defense.\n\n"
+                "#### 🧪 Chemical Control (For Severe Infestation):\n"
+                "- **Chewing Caterpillars / Borers:** Emamectin Benzoate 5% SG @ **8g per 16L pump**.\n"
+                "- **Sucking Vectors (Whiteflies/Thrips):** Acetamiprid 20% SP @ **5g per 16L pump**.\n\n"
+                "| Knapsack Safety Rule\n"
+                "Always use clean water and wear a cloth face mask when spraying insecticides."
+            )
+
+        # ── 10c. AGROCHEMICAL BOTTLE & FERTILIZER LABEL INSPECTION ─────────
+        if re.search(r'\b(bottle|packet|canister|bag|pesticide label|chemical label|label|cib|cib&rc|active ingredient|composition|expiry|counterfeit|duplicate medicine|సీసా|ప్యాకెట్|బాటిల్|లేబుల్|బోతల్)\b', msg):
+            return (
+                "### 🧪 Agrochemical Bottle & Fertilizer Label Verification\n\n"
+                "#### 📋 Critical Steps to Verify Agricultural Chemical Bottles:\n"
+                "1. **Read the Active Ingredient (a.i.):** Check the exact percentage behind the brand name (e.g., *Coragen* is Chlorantraniliprole 18.5% SC; *Ridomil MZ* is Metalaxyl 8% + Mancozeb 64% WP).\n"
+                "2. **Inspect CIB&RC Toxicity Triangle:**\n"
+                "   - 🟢 **Green (Slightly Toxic):** Caution label, safe with basic gloves.\n"
+                "   - 🔵 **Blue (Moderately Toxic):** Danger label, wear long sleeves and eye protection.\n"
+                "   - 🟡 **Yellow (Highly Toxic):** Poison label, strictly avoid inhalation.\n"
+                "   - 🔴 **Red (Extremely Toxic):** Skull & crossbones; use only with protective suit and respirator.\n"
+                "3. **Check Government Mandated Elements:**\n"
+                "   - CIB&RC Registration Number (CIR-XXXXX/Year)\n"
+                "   - Manufacturing Date & Expiry Date (Never buy expired chemical)\n"
+                "   - Hologram or tamper-proof neck seal\n"
+                "4. **Standard 16L Knapsack Pump Dilution Rule:**\n"
+                "   - Liquid Formulations (EC/SC): Usually **20 to 30 ml per 16L pump**.\n"
+                "   - Powder Formulations (WP/SP/SG): Usually **8 to 30 grams per 16L pump**.\n\n"
+                "| Counterfeit Warning\n"
+                "Always demand an official GST bill with the batch number printed. If you suspect fake or adulterated chemicals in Andhra Pradesh, immediately call the **Farmer Grievance Helpline at 1907**."
+            )
+
+        # ── 10d. FARM SPRAYING WEATHER & RAIN-WASH SAFETY WINDOW ───────────
+        if re.search(r'\b(spray today|can i spray|should i spray|spray weather|rain wash|spray window|safe to spray|foliar spray weather|ఈ రోజు స్ప్రే చేయవచ్చా|స్ప్రే సమయం|छिड़काव कर सकते हैं)\b', msg):
+            return (
+                "### 🚜 Field Spraying Weather & Safety Window Advisory\n\n"
+                "#### 🚦 Spraying Safety Status: 🟢 **SAFE TO SPRAY WINDOW (If skies remain clear)**\n\n"
+                "| Critical Weather Parameter | Safety Threshold | Today's Recommendation |\n"
+                "| :--- | :--- | :--- |\n"
+                "| **Rainfall Forecast (Next 4 Hours)** | **0% Rain Risk** | Delay spraying if rain probability is >40% to prevent chemical runoff. |\n"
+                "| **Wind Speed** | **< 12 km/h (Gentle Breeze)** | Spraying in high winds causes chemical drift onto non-target plants. |\n"
+                "| **Foliage Dew / Wetness** | **Completely Dry Leaves** | Never spray on dew-covered leaves as medicine rolls off. |\n"
+                "| **Ambient Temperature** | **20°C – 32°C** | High mid-day heat burns leaves and evaporates liquid. |\n\n"
+                "#### ⏰ Best Spraying Hours:\n"
+                "- **Morning Window:** **6:00 AM – 9:00 AM** (After early morning dew evaporates).\n"
+                "- **Evening Window:** **4:30 PM – 6:30 PM** (Gentle breeze and low sun intensity).\n\n"
+                "| 4-Hour Rain-Free Rule\n"
+                "Systemic fungicides require at least 2 to 4 hours of dry weather after spraying to penetrate the leaf cuticle. If it rains within 2 hours, 70% of the medicine is washed away."
+            )
 
         # ── 11. MARKET PRICES & MANDI RATES ────────────────────────────────
         if any(w in msg for w in ["market", "price", "rate", "mandi", "cost", "selling", "bhav", "kilo", "quintal", "rupee", "₹", "worth", "ధర", "ధరలు", "రేటు", "రేట్లు", "రేట్", "మార్కెట్", "మండి", "भाव", "दाम", "मंडी", "बाजार", "விலை", "சந்தை", "பங்கு", "ಬೆಲೆ", "ಮಾರುಕಟ್ಟೆ"]) or ("api" in msg and any(c in msg for c in ["market", "mandi", "price", "rate", "crop", "ధర", "రేటు", "మార్కెట్", "భావ"])):

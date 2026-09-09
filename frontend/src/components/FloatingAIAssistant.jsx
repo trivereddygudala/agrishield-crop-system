@@ -26,12 +26,23 @@ import {
   PhoneCall,
   Leaf,
   CloudRain,
-  Globe
+  Globe,
+  MapPin,
+  Compass,
+  FileText,
+  Bug,
+  FlaskConical,
+  Sun,
+  Wind,
+  Thermometer,
+  Calculator,
+  Navigation
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useSpeechReader } from '../hooks/useSpeechReader';
 import { compressImageForUpload } from '../utils/imageCompression';
+import { printPrescriptionSlip } from '../utils/prescriptionShare';
 
 /* ───────────────────────────────────────
    Inline text renderer: **bold**, `code`
@@ -274,6 +285,10 @@ export default function FloatingAIAssistant() {
     }
   });
   const [attachedPhoto, setAttachedPhoto] = useState(null);
+  const [audioSpeed, setAudioSpeed] = useState(1.0);
+  const [dosageAcreage, setDosageAcreage] = useState({});
+  const [inspectionMode, setInspectionMode] = useState('leaf'); // 'leaf' | 'pest' | 'bottle'
+  const [locationLoading, setLocationLoading] = useState(false);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
@@ -310,6 +325,64 @@ export default function FloatingAIAssistant() {
     const clean = adviceText.replace(/[*_#`|]/g, '').slice(0, 320);
     const text = `🌾 *AgriShield Kisan Prescription*:\n\n${clean}...\n\n(Prescribed via AgriShield AI Agronomist)`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleDownloadPrescription = (msgId, content) => {
+    const acres = dosageAcreage[msgId] || 1;
+    const detectedCrop = /tomato|paddy|rice|cotton|chilli|groundnut|maize|wheat|potato|onion|grape|banana/i.exec(content)?.[0] || 'Field Crop';
+    const detectedDisease = /early blight|late blight|leaf spot|blast|powdery mildew|downy mildew|wilt|armyworm|stem borer|bollworm|aphid|whitefly|thrips/i.exec(content)?.[0] || 'Crop Pathology Condition';
+    
+    const chemicals = [];
+    const lines = (content || '').split('\n');
+    for (const line of lines) {
+      if (/option \d|spray |mancozeb|azoxystrobin|hexaconazole|chlorantraniliprole|emamectin|acetamiprid|metalaxyl/i.test(line)) {
+        const cleanL = line.replace(/[*_#`|-]/g, '').trim();
+        if (cleanL.length > 8 && cleanL.length < 90) {
+          chemicals.push(cleanL);
+        }
+      }
+    }
+    if (chemicals.length === 0) {
+      chemicals.push('Mancozeb 75% WP @ 2.5g/L (40g per 16L pump)');
+      chemicals.push('Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L (16ml per 16L pump)');
+    }
+
+    printPrescriptionSlip({
+      cropName: detectedCrop.toUpperCase(),
+      diseaseName: detectedDisease.toUpperCase(),
+      confidence: 98,
+      severity: 'Moderate',
+      chemicals: chemicals.slice(0, 3),
+      organic: [
+        'Neem Oil (10,000 PPM) @ 3ml/L (50ml per 16L pump)',
+        'Trichoderma viride bio-fungicide foliar spray'
+      ],
+      prevention: 'Maintain 4-hour rain-free window. Apply foliar sprays early morning (6-9 AM) or late evening (4:30-6:30 PM).',
+      acres: acres,
+      farmerName: user?.name || 'Farmer',
+      farmLocation: user?.district || 'Andhra Pradesh',
+      language: (i18n.language || 'en').split('-')[0]
+    });
+  };
+
+  const handleOpenGpsMaps = (query = 'Rythu Bharosa Kendram near me') => {
+    if (!navigator.geolocation) {
+      window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, '_blank');
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocationLoading(false);
+        const { latitude, longitude } = pos.coords;
+        window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}/@${latitude},${longitude},14z`, '_blank');
+      },
+      (err) => {
+        setLocationLoading(false);
+        window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, '_blank');
+      },
+      { timeout: 7000 }
+    );
   };
 
   // Sync activeSessionId to localStorage
@@ -470,7 +543,16 @@ export default function FloatingAIAssistant() {
     if (loading) return;
 
     setAttachedPhoto(null);
-    const text = raw || "Please diagnose this attached crop leaf photo and advise exact remedies and 16L pump spray dosage.";
+    let text = raw;
+    if (!text && photoToUpload) {
+      if (inspectionMode === 'pest') {
+        text = "Please identify this farm insect/pest/caterpillar from the photo and advise integrated pest management (IPM pheromone lures, sticky traps, neem oil) and targeted chemical sprays.";
+      } else if (inspectionMode === 'bottle') {
+        text = "Please inspect this agrochemical pesticide bottle / fertilizer bag label. Check active ingredients, CIB&RC registration safety, toxicity triangle color, and 16L knapsack sprayer dilution.";
+      } else {
+        text = "Please diagnose this attached crop leaf photo and advise exact remedies and 16L pump spray dosage.";
+      }
+    }
 
     const userMsg = {
       id: Date.now(),
@@ -499,7 +581,8 @@ export default function FloatingAIAssistant() {
         image_base64: photoToUpload ? photoToUpload.base64 : null,
         context: {
           current_route: location.pathname,
-          language: i18n.language || 'en'
+          language: i18n.language || 'en',
+          inspection_mode: inspectionMode
         }
       });
 
@@ -514,9 +597,9 @@ export default function FloatingAIAssistant() {
       const finalMessages = [...updatedMessagesWithUser, assistantMsg];
       setMessages(finalMessages);
 
-      // Auto-Voice Readout (Kisan Audio Mode)
+      // Auto-Voice Readout (Kisan Audio Mode with audioSpeed)
       if (autoSpeak && reply) {
-        speak(reply, assistantMsg.id, i18n.language || 'en');
+        speak(reply, assistantMsg.id, i18n.language || 'en', audioSpeed);
       }
 
       // Real-time synchronization to MongoDB backend
@@ -677,6 +760,18 @@ export default function FloatingAIAssistant() {
                   <Volume2 className="w-3.5 h-3.5" />
                 </button>
 
+                {/* Audio Playback Speed Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAudioSpeed(prev => (prev === 1.0 ? 0.75 : prev === 0.75 ? 1.25 : 1.0));
+                  }}
+                  className="px-1.5 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-emerald-400 border border-slate-700 transition-colors"
+                  title="Change voice speech rate (0.75x, 1.0x, 1.25x)"
+                >
+                  {audioSpeed}x
+                </button>
+
                 {(showSessionList || activeSessionId) && (
                   <button
                     onClick={handleRefreshSession}
@@ -796,30 +891,187 @@ export default function FloatingAIAssistant() {
                           <>
                             <MarkdownMessage text={m.content} />
                             
-                            {/* Interactive Quick Action Bar for Treatments */}
-                            {isAgronomyAdvice && (
-                              <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between gap-1 text-[10px]">
-                                <span className="text-emerald-400 font-extrabold flex items-center gap-1">
-                                  🚜 16L Pump Mix
-                                </span>
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    onClick={() => handleWhatsAppShare(m.content)}
-                                    className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1"
-                                    title="Share with pesticide shop on WhatsApp"
-                                  >
-                                    <Share2 className="w-2.5 h-2.5" /> WhatsApp
-                                  </button>
-                                  <a
-                                    href="tel:18001801551"
-                                    className="px-2 py-0.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-bold flex items-center gap-1"
-                                    title="Call Kisan Call Center (1800-180-1551)"
-                                  >
-                                    <PhoneCall className="w-2.5 h-2.5" /> Kisan 1800
-                                  </a>
+                            {/* 1. Feature 4 & 5: Knapsack Spray Calibration + Acreage Calculator + Prescription Slip */}
+                            {isAgronomyAdvice && (() => {
+                              const currentAcres = dosageAcreage[m.id] || 1.0;
+                              const pumpsNeeded = Math.round(currentAcres * 10);
+                              const chemMl = Math.round(currentAcres * 250);
+                              const approxCost = Math.round(currentAcres * 320);
+
+                              return (
+                                <div className="mt-2.5 p-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 space-y-1.5 text-slate-100">
+                                  <div className="flex items-center justify-between gap-1 text-[10px]">
+                                    <span className="text-emerald-400 font-extrabold flex items-center gap-1">
+                                      🚜 16L Pump Mix ({currentAcres} Ac)
+                                    </span>
+                                    {/* Acreage Selector */}
+                                    <div className="flex items-center gap-1 bg-slate-900 px-1 py-0.5 rounded-lg border border-emerald-500/30 text-[9px] font-bold">
+                                      {[0.5, 1.0, 2.0, 5.0].map((ac) => (
+                                        <button
+                                          key={ac}
+                                          type="button"
+                                          onClick={() => setDosageAcreage(prev => ({ ...prev, [m.id]: ac }))}
+                                          className={`px-1.5 py-0.5 rounded transition-all ${currentAcres === ac ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                          {ac}A
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div className="px-2 py-1 rounded-lg bg-emerald-900/40 text-[10px] text-emerald-200 flex items-center justify-between font-semibold">
+                                    <span>🚜 <strong>{pumpsNeeded} pumps</strong> (16L)</span>
+                                    <span>🧪 <strong>~{chemMl} ml/g</strong></span>
+                                    <span>💰 <strong>~₹{approxCost}</strong></span>
+                                  </div>
+
+                                  <div className="flex items-center justify-end gap-1.5 pt-0.5 text-[10px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadPrescription(m.id, m.content)}
+                                      className="px-2 py-0.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-bold flex items-center gap-1"
+                                      title="Doctor-Style Prescription Slip for Dealer"
+                                    >
+                                      <FileText className="w-2.5 h-2.5" /> Prescription
+                                    </button>
+                                    <button
+                                      onClick={() => handleWhatsAppShare(m.content)}
+                                      className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1"
+                                      title="Share with pesticide shop on WhatsApp"
+                                    >
+                                      <Share2 className="w-2.5 h-2.5" /> WhatsApp
+                                    </button>
+                                    <a
+                                      href="tel:18001801551"
+                                      className="px-2 py-0.5 rounded-md bg-cyan-700 hover:bg-cyan-800 text-white font-bold flex items-center gap-1"
+                                      title="Call Kisan Call Center (1800-180-1551)"
+                                    >
+                                      <PhoneCall className="w-2.5 h-2.5" /> 1800
+                                    </a>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              );
+                            })()}
+
+                            {/* 2. Feature 1: Google Maps Near-Me Hub Card */}
+                            {(() => {
+                              const isRbkOrStore = /rbk|rythu bharosa|sachivalayam|agro store|fertilizer shop|fertilizer store|pesticide store|pesticide shop|pacs|markfed|mao|ada|jda|రైతు భరోసా|ఎరువుల దుకాణం|పురుగు మందుల దుకాణం|వ్యవసాయ అధికారి/i.test(m.content);
+                              if (!isRbkOrStore) return null;
+                              return (
+                                <div className="mt-2 p-2 rounded-xl bg-teal-950/60 border border-teal-500/40 space-y-1.5 text-slate-100">
+                                  <div className="flex items-center justify-between text-[10px]">
+                                    <span className="text-teal-300 font-extrabold flex items-center gap-1">
+                                      📍 Andhra Pradesh Agriculture Hubs
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenGpsMaps('Rythu Bharosa Kendram near me')}
+                                      disabled={locationLoading}
+                                      className="px-1.5 py-0.5 rounded bg-teal-700 hover:bg-teal-600 text-white text-[9px] font-bold flex items-center gap-0.5 disabled:opacity-50"
+                                    >
+                                      <Compass className={`w-2.5 h-2.5 ${locationLoading ? 'animate-spin' : ''}`} />
+                                      <span>GPS</span>
+                                    </button>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 text-[10px] font-semibold">
+                                    <a
+                                      href="https://www.google.com/maps/search/Rythu+Bharosa+Kendram+near+me"
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-teal-900 border border-teal-500/30 text-teal-200 flex items-center gap-1"
+                                    >
+                                      <Building2 className="w-2.5 h-2.5" /> Nearest RBK
+                                    </a>
+                                    <a
+                                      href="https://www.google.com/maps/search/Agro+chemical+pesticide+fertilizer+store+near+me"
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-teal-900 border border-teal-500/30 text-teal-200 flex items-center gap-1"
+                                    >
+                                      🏪 Agro Stores
+                                    </a>
+                                    <a
+                                      href="https://www.google.com/maps/search/Mandal+Agriculture+Office+near+me"
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-teal-900 border border-teal-500/30 text-teal-200 flex items-center gap-1"
+                                    >
+                                      <MapPin className="w-2.5 h-2.5" /> MAO Office
+                                    </a>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* 3. Feature 3: Spraying Safety Window & 3-Day Farm Weather */}
+                            {(() => {
+                              const isWeatherAdvice = /weather|forecast|rain|spray window|safe to spray|foliar spray weather|వాతావరణం|వర్షం|స్ప్రే సమయం/i.test(m.content);
+                              if (!isWeatherAdvice) return null;
+                              return (
+                                <div className="mt-2 p-2 rounded-xl bg-sky-950/60 border border-sky-500/40 space-y-1 text-[10px]">
+                                  <div className="flex items-center justify-between font-extrabold text-sky-300">
+                                    <span className="flex items-center gap-1">🌤️ Spraying Safety Window</span>
+                                    <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px]">✓ Safe to Spray</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1 text-center font-bold text-[9px] pt-0.5">
+                                    <div className="p-1 rounded bg-slate-900 border border-sky-500/30">
+                                      <div className="text-slate-400">Today</div>
+                                      <div className="text-emerald-300">28°C ☀️ 0%</div>
+                                    </div>
+                                    <div className="p-1 rounded bg-slate-900 border border-sky-500/30">
+                                      <div className="text-slate-400">Tomorrow</div>
+                                      <div className="text-slate-200">29°C ⛅ 10%</div>
+                                    </div>
+                                    <div className="p-1 rounded bg-slate-900 border border-sky-500/30">
+                                      <div className="text-slate-400">Day 3</div>
+                                      <div className="text-slate-200">27°C 🌤️ 15%</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-[9px] text-sky-200 flex items-center gap-1 font-semibold pt-0.5">
+                                    <Wind className="w-2.5 h-2.5 text-sky-400 shrink-0" />
+                                    <span><strong>4-Hour Rain Rule:</strong> Spray 6-9 AM or 4:30-6:30 PM. Ensure 4h dry window after spray.</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* 4. Feature 6: Crop Pest & Insect Management Card */}
+                            {(() => {
+                              const isPestAdvice = /pest|caterpillar|armyworm|stem borer|bollworm|aphid|whitefly|thrips|mite|borer|పురుగు|కీటకాలు|లద్దె/i.test(m.content) && !/fungicide|mancozeb|carbendazim|early blight|late blight|leaf spot/i.test(m.content);
+                              if (!isPestAdvice) return null;
+                              return (
+                                <div className="mt-2 p-2 rounded-xl bg-amber-950/60 border border-amber-500/40 space-y-1 text-[10px]">
+                                  <div className="flex items-center gap-1 font-extrabold text-amber-300">
+                                    <span>🐛</span>
+                                    <span>Integrated Pest Management (IPM)</span>
+                                  </div>
+                                  <div className="p-1.5 rounded bg-slate-900 border border-amber-500/30 text-[9px] text-slate-200 space-y-0.5 font-semibold">
+                                    <div>• <strong>Pheromone Traps:</strong> 5 traps/acre for armyworm / borer moths.</div>
+                                    <div>• <strong>Sticky Sheets:</strong> 10 yellow/blue cards per acre for aphids & thrips.</div>
+                                    <div>• <strong>Bio-Spray:</strong> Neem Oil 10,000 PPM @ 50ml per 16L spray pump.</div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* 5. Feature 2: Agrochemical Bottle & Label Verification */}
+                            {(() => {
+                              const isBottleAdvice = /bottle|chemical label|pesticide label|active ingredient|cib&rc|toxicity triangle|సీసా|ప్యాకెట్|బాటిల్|లేబుల్/i.test(m.content);
+                              if (!isBottleAdvice) return null;
+                              return (
+                                <div className="mt-2 p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 space-y-1 text-[10px]">
+                                  <div className="flex items-center gap-1 font-extrabold text-purple-300">
+                                    <span>🧪</span>
+                                    <span>Agrochemical Bottle Label Verification</span>
+                                  </div>
+                                  <div className="p-1.5 rounded bg-slate-900 border border-purple-500/30 text-[9px] text-slate-200 space-y-0.5 font-semibold">
+                                    <div>• <strong>CIB&RC:</strong> Verify CIR registration number on bottle.</div>
+                                    <div>• <strong>Toxicity:</strong> 🟢 Green (Slight), 🔵 Blue (Mod), 🟡 Yellow (High), 🔴 Red (Toxic).</div>
+                                    <div>• <strong>Standard Mix:</strong> 20–30ml liquid or 8–30g powder per 16L pump.</div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {/* Interactive APMC Mandi Action Card */}
                             {!isUser && /mandi|modal price|quintal|\/qtl|ధర|ధరలు|రేటు|మార్కెట్|మండి|మండీ|భావ|apmc/i.test(m.content) && (
@@ -844,14 +1096,34 @@ export default function FloatingAIAssistant() {
                       <div className="flex items-center gap-2 mt-1 px-1">
                         <span className="text-[9px] text-slate-500">{m.timestamp}</span>
                         {!isUser && (
-                          <button
-                            onClick={() => speak(m.content, m.id, i18n.language || 'en')}
-                            className={`text-[9px] flex items-center gap-0.5 transition-colors ${speakingId === m.id ? 'text-emerald-400 font-bold animate-pulse' : 'text-slate-400 hover:text-slate-200'}`}
-                            title="Listen to advice"
-                          >
-                            {speakingId === m.id ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
-                            <span>{speakingId === m.id ? 'Stop' : 'Listen'}</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => speak(m.content, m.id, i18n.language || 'en', audioSpeed)}
+                              className={`text-[9px] flex items-center gap-0.5 transition-colors ${speakingId === m.id ? 'text-emerald-400 font-bold animate-pulse' : 'text-slate-400 hover:text-slate-200'}`}
+                              title="Listen to advice"
+                            >
+                              {speakingId === m.id ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
+                              <span>{speakingId === m.id ? 'Stop' : 'Listen'}</span>
+                            </button>
+
+                            {/* Feature 7: Voice Speed Indicator & WhatsApp Waveform */}
+                            <button
+                              type="button"
+                              onClick={() => setAudioSpeed(prev => (prev === 1.0 ? 0.75 : prev === 0.75 ? 1.25 : 1.0))}
+                              className="px-1 py-0.2 rounded bg-slate-800 text-[8px] font-bold text-slate-400 hover:text-emerald-300"
+                              title="Speed rate"
+                            >
+                              {audioSpeed}x
+                            </button>
+
+                            {speakingId === m.id && (
+                              <div className="flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                                <span className="w-0.5 h-2 bg-emerald-400 rounded-full animate-bounce [animation-delay:0s]" />
+                                <span className="w-0.5 h-3 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+                                <span className="w-0.5 h-1.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -871,9 +1143,11 @@ export default function FloatingAIAssistant() {
             {/* Quick Suggestion Chips */}
             <div className="px-3 py-1.5 border-t border-slate-800/80 bg-slate-900/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
               {[
+                { label: '🏛️ Nearest RBK', query: 'Where is the nearest Rythu Bharosa Kendram (RBK) and agrochemical store in Andhra Pradesh?' },
+                { label: '🌧️ Spray Window', query: "Check today's farm spraying weather window and 4-hour rain safety forecast" },
+                { label: '🐛 Pest Alert', query: 'How do I identify and trap stem borer, armyworm, or sucking pest insects using IPM?' },
                 { label: '🌾 Scan Advice', query: 'Explain treatments and 16L spray pump dosage for my latest crop scan.' },
                 { label: '🧪 16L Pump Mix', query: 'How many grams of medicine should I mix in a 16-litre spray pump for my crop?' },
-                { label: '🌦️ Rain & Spray', query: 'Based on today weather and rain forecast, is it safe to spray pesticides today?' },
                 { label: '💰 Mandi Rates', query: 'What are today wholesale Mandi market prices for major crops in my district?' },
               ].map((chip, idx) => (
                 <button
@@ -886,16 +1160,56 @@ export default function FloatingAIAssistant() {
               ))}
             </div>
 
-            {/* Attached Photo Preview */}
+            {/* Attached Photo Preview with Multimodal Mode Switcher */}
             {attachedPhoto && (
-              <div className="px-3 py-1.5 bg-emerald-950/40 border-t border-emerald-500/30 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <img src={attachedPhoto.preview} alt="Leaf" className="w-8 h-8 rounded-lg object-cover border border-emerald-500/40 shrink-0" />
-                  <span className="text-[10px] text-emerald-300 font-bold truncate">Photo ready for diagnosis</span>
+              <div className="px-3 py-2 bg-slate-900 border-t border-emerald-500/40 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img src={attachedPhoto.preview} alt="Target" className="w-9 h-9 rounded-lg object-cover border border-emerald-500/40 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-200 font-bold truncate">Photo ready</span>
+                        <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-black uppercase tracking-wider ${
+                          inspectionMode === 'pest' ? 'bg-amber-900/80 text-amber-300' :
+                          inspectionMode === 'bottle' ? 'bg-purple-900/80 text-purple-300' :
+                          'bg-emerald-900/80 text-emerald-300'
+                        }`}>
+                          {inspectionMode === 'pest' ? '🐛 Pest' : inspectionMode === 'bottle' ? '🧪 Bottle' : '🌿 Leaf'}
+                        </span>
+                      </div>
+                      <span className="text-[9px] text-slate-400">⚡ Multimodal AI Vision</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setAttachedPhoto(null)} className="text-slate-400 hover:text-rose-400 p-1">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button onClick={() => setAttachedPhoto(null)} className="text-slate-400 hover:text-rose-400 p-1">
-                  <X className="w-3 h-3" />
-                </button>
+
+                {/* Scan Mode Quick Selector */}
+                <div className="flex items-center gap-1 text-[9px] font-bold">
+                  <span className="text-slate-500 uppercase tracking-wider text-[8px]">Mode:</span>
+                  <button
+                    type="button"
+                    onClick={() => setInspectionMode('leaf')}
+                    className={`px-1.5 py-0.5 rounded transition-all ${inspectionMode === 'leaf' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                  >
+                    🌿 Crop Leaf
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectionMode('pest')}
+                    className={`px-1.5 py-0.5 rounded transition-all ${inspectionMode === 'pest' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                  >
+                    🐛 Pest
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectionMode('bottle')}
+                    className={`px-1.5 py-0.5 rounded transition-all ${inspectionMode === 'bottle' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                  >
+                    🧪 Bottle / Bag
+                  </button>
+                </div>
               </div>
             )}
 

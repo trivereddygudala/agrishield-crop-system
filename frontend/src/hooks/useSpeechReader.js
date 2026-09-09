@@ -13,7 +13,7 @@ export const useSpeechReader = () => {
     };
   }, []);
 
-  const speak = useCallback((text, id = 'default', lang = 'en') => {
+  const speak = useCallback((text, id = 'default', lang = 'en', rate = 1.0) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       alert('Voice readout (Text-to-Speech) is not supported on this browser.');
       return;
@@ -52,7 +52,7 @@ export const useSpeechReader = () => {
     };
     const primaryLang = (lang || 'en').split('-')[0];
     utterance.lang = langMap[primaryLang] || 'en-IN';
-    utterance.rate = 0.95;
+    utterance.rate = rate || 1.0;
     utterance.pitch = 1.0;
 
     utterance.onend = () => {
