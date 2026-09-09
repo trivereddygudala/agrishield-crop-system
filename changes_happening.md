@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v75) - Offline Scan Sync Resolution & Interactive Mobile Swipe-to-Dismiss Gesture
+- **Summary:** Resolved the issue where tapping "Sync Now" in the offline banner would spin without executing any diagnosis or syncing to database, and made the notification banner fully swipable/dismissible on touch devices:
+  1. 🔄 **Resolved Offline Synchronization Execution Bug (`OfflineStatusBar.jsx`, `backend/app/routers/predict.py`):**
+     - **Root Cause:** When `/api/upload` succeeded, the frontend previously checked `if (uploadRes.data?.filepath)`. The backend returned `image_path` instead of `filepath`, causing the condition to evaluate to `undefined` (false). Consequently, the subsequent `API.post` inference request was completely bypassed, `removeOfflineScan` was never invoked, and the pending scan remained stranded in IndexedDB with 0 feedback.
+     - **Resolution:** Updated `OfflineStatusBar.jsx` to dynamically read `image_path || filepath || file_path`. Also updated the backend `/api/upload` endpoint in `predict.py` to return both `image_path` and `filepath` / `file_path` for complete dual-compatibility.
+     - Automatically routes `disease-diag` to `/api/predict`, `plant-id` to `/api/identify-plant`, and `agro-scan` to `/api/agrochemical-scan`.
+     - Dispatches `agrishield-sync-completed` event upon successful sync.
+  2. 📜 **Instant History Log Refresh (`HistoryPage.jsx`):**
+     - Added an event listener for `agrishield-sync-completed` in `HistoryPage.jsx`. When the farmer syncs offline scans, the history table and counter (e.g. 150 -> 151) immediately re-fetch and render the newly diagnosed crop record at the top of the list.
+  3. 👆 **Interactive Touch Drag & Swipe-to-Dismiss Gestures (`OfflineStatusBar.jsx`):**
+     - Resolved the user's issue ("notification is not moving when i try to slide").
+     - Added Framer Motion vertical touch dragging (`drag="y"`, `dragConstraints={{ top: 0, bottom: 0 }}`, `dragElastic={0.7}`) with swipe-away detection (`info.offset.y < -20` or `info.velocity.y < -200` or horizontal flick).
+     - Added visual drag-indicator pill bar at the top of the notification card for tactile mobile affordance.
+     - Added 1-tap **Close `X` Button** for immediate dismissal without sliding.
+     - Added **1-Tap Discard Queue Button** (`Trash2`) using new `clearAllOfflineScans()` in `offlineQueue.js` so farmers can instantly clear corrupted or unneeded test scans rather than being stuck.
+- **Files modified**: `backend/app/routers/predict.py`, `frontend/src/utils/offlineQueue.js`, `frontend/src/components/common/OfflineStatusBar.jsx`, `frontend/src/pages/HistoryPage.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v74) - Instant Multi-Leaf Field Plot Scan & Batch Health Severity Index (Field Agronomy Intelligence)
 - **Summary:** Fulfilled the user's request to audit candidate features 1, 2, 4, 5 (skipping 3). Identified that Feature 5 was missing (previous scan center only accepted a single image) and implemented end-to-end multi-leaf batch plot pathology analysis across backend and frontend:
   1. 🌿 **Batch Diagnostic Inference Endpoint (`backend/app/routers/predict.py`, `schemas.py`):**

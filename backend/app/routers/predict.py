@@ -330,6 +330,8 @@ async def upload_image(
 
     return {
         "image_path": relative_path,
+        "filepath": relative_path,
+        "file_path": relative_path,
         "detected_crop": detected_crop,
         "confidence": round(conf * 100 if conf <= 1.0 else conf, 1)
     }

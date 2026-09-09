@@ -205,6 +205,17 @@ const HistoryPage = () => {
     };
   }, [isOnline, fetchData, hardwareMode]);
 
+  // Auto-refresh logs when offline field scans are synchronized
+  useEffect(() => {
+    const handleSyncFinished = () => {
+      fetchData(true);
+    };
+    window.addEventListener('agrishield-sync-completed', handleSyncFinished);
+    return () => {
+      window.removeEventListener('agrishield-sync-completed', handleSyncFinished);
+    };
+  }, [fetchData]);
+
   // Real-time auto-refresh when ESP32 flushes its offline SD queue or live telemetry arrives
   useEffect(() => {
     if (!subscribe) return;

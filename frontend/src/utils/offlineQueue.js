@@ -120,6 +120,29 @@ export const removeOfflineScan = async (id) => {
 };
 
 /**
+ * Clear all offline scans from IndexedDB (e.g. discarding corrupted/unwanted scans)
+ */
+export const clearAllOfflineScans = async () => {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.clear();
+
+      req.onsuccess = () => {
+        window.dispatchEvent(new CustomEvent('agrishield-offline-scans-updated'));
+        resolve(true);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error('Failed to clear offline scans:', err);
+    return false;
+  }
+};
+
+/**
  * Convert Base64 back to File object for FormData submission
  */
 export const dataUrlToFile = (dataUrl, fileName = 'offline_scan.jpg') => {
