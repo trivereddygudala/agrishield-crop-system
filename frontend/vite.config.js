@@ -44,7 +44,6 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        ws: true,
       },
       '/uploads': {
         target: 'http://127.0.0.1:8000',
@@ -54,8 +53,31 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
-    cssCodeSplit: false,
+    cssCodeSplit: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 3000,
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('jspdf') || id.includes('jspdf-autotable') || id.includes('html2canvas') || id.includes('purify')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('recharts') || id.includes('react-simple-maps') || id.includes('d3')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('react-router-dom') || id.includes('react-dom') || id.includes('/react/')) {
+              return 'vendor-react';
+            }
+          }
+        }
+      }
+    }
   }
 })

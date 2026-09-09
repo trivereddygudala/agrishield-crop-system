@@ -102,7 +102,8 @@ const ScanImageUploader = ({
   errorMsg,
   liveResult,
   selectedCropFilter = '',
-  onCropFilterChange
+  onCropFilterChange,
+  compressionInfo = null
 }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef(null);
@@ -839,10 +840,16 @@ const ScanImageUploader = ({
           </div>
 
           {/* Bottom Photo Info Bar */}
-          <div className="absolute bottom-3 inset-x-3 flex items-center justify-between px-4 py-2.5 rounded-2xl bg-black/80 backdrop-blur-md text-white border border-white/15 text-xs z-20 shadow-xl">
-            <div className="flex items-center gap-2 truncate pr-2">
+          <div className="absolute bottom-3 inset-x-3 flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-black/85 backdrop-blur-md text-white border border-white/15 text-xs z-20 shadow-xl">
+            <div className="flex items-center gap-2 truncate min-w-0">
               <ImageIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span className="truncate font-semibold text-white/90 text-[11px]">{selectedFile?.name || 'Selected Crop Photo'}</span>
+              {compressionInfo?.wasCompressed && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                  <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                  <span>Compressed {(compressionInfo.originalSize / (1024*1024)).toFixed(1)}MB ➔ {(compressionInfo.compressedSize / 1024).toFixed(0)}KB ({compressionInfo.savingsPercent}% saved)</span>
+                </span>
+              )}
             </div>
             <button
               type="button"

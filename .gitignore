@@ -89,3 +89,6 @@ backend/logs/*
 # Scratch Scripts & Timestamps
 scratch/
 *.timestamp*
+TODAY_CHAT_HISTORY*.md
+check_steps.py
+

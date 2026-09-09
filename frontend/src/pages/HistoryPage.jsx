@@ -1235,7 +1235,8 @@ const HistoryPage = () => {
                         prevention: details.prevention || '',
                         acres: activeFarm?.total_area || 1.0,
                         farmLocation: activeFarm?.location || 'Pasupugallu Farm',
-                        farmerName: user?.name || activeFarm?.farm_name || 'AgriShield Farmer'
+                        farmerName: user?.name || activeFarm?.farm_name || 'AgriShield Farmer',
+                        language: i18n?.language || 'en'
                       });
                     }}
                     className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold shadow-md shadow-[#25D366]/20 border-0 active:scale-95"
@@ -1258,7 +1259,8 @@ const HistoryPage = () => {
                         prevention: details.prevention || '',
                         acres: activeFarm?.total_area || 1.0,
                         farmLocation: activeFarm?.location || 'Pasupugallu Farm',
-                        farmerName: user?.name || activeFarm?.farm_name || 'AgriShield Farmer'
+                        farmerName: user?.name || activeFarm?.farm_name || 'AgriShield Farmer',
+                        language: i18n?.language || 'en'
                       });
                     }}
                     className="font-extrabold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 active:scale-95"

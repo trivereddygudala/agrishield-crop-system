@@ -8,37 +8,37 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageSkeleton from './components/PageSkeleton';
 import { Sidebar, Navbar, BottomNav, Footer, Skeleton, ToastProvider } from './components/AppLayout';
+import OfflineStatusBar from './components/common/OfflineStatusBar';
+import { useColorTheme } from './hooks/useColorTheme';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// Pages — eagerly loaded (critical path)
+// Critical-path pages — loaded eagerly for instant first-paint
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import NotFoundPage from './pages/NotFoundPage';
-import FarmPage from './pages/FarmPage';
-import ProfilePage from './pages/ProfilePage';
-import SettingsPage from './pages/SettingsPage';
-
 import DashboardPage from './pages/DashboardPage';
 import UploadImagePage from './pages/UploadImagePage';
-import PredictionResultPage from './pages/PredictionResultPage';
-import DevicesPage from './pages/DevicesPage';
-import SDCardPage from './pages/SDCardPage';
-import NotificationsPage from './pages/NotificationsPage';
-import ReportsPage from './pages/ReportsPage';
-import FarmAnalyticsPage from './pages/FarmAnalyticsPage';
-import CropAdvisoryPage from './pages/CropAdvisoryPage';
-import MarketPricesPage from './pages/MarketPricesPage';
+import NotFoundPage from './pages/NotFoundPage';
 import ServerErrorPage from './pages/ServerErrorPage';
-import NodeControlPage from './pages/NodeControlPage';
-import MorePage from './pages/MorePage';
 
-import { lazyWithRetry } from './utils/lazyWithRetry';
-
-// Pages — lazily loaded (with auto-recovery on new deployment chunk hash mismatch)
+// Lazily loaded pages (with auto-recovery on new deployment chunk hash mismatch)
+const PredictionResultPage = lazyWithRetry(() => import('./pages/PredictionResultPage'));
+const HistoryPage = lazyWithRetry(() => import('./pages/HistoryPage'));
 const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'));
 const AIAssistantPage = lazyWithRetry(() => import('./pages/AIAssistantPage'));
-const HistoryPage = lazyWithRetry(() => import('./pages/HistoryPage'));
 const AnalyticsPage = lazyWithRetry(() => import('./pages/AnalyticsPage'));
+const FarmPage = lazyWithRetry(() => import('./pages/FarmPage'));
+const ProfilePage = lazyWithRetry(() => import('./pages/ProfilePage'));
+const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'));
+const DevicesPage = lazyWithRetry(() => import('./pages/DevicesPage'));
+const SDCardPage = lazyWithRetry(() => import('./pages/SDCardPage'));
+const NotificationsPage = lazyWithRetry(() => import('./pages/NotificationsPage'));
+const ReportsPage = lazyWithRetry(() => import('./pages/ReportsPage'));
+const FarmAnalyticsPage = lazyWithRetry(() => import('./pages/FarmAnalyticsPage'));
+const CropAdvisoryPage = lazyWithRetry(() => import('./pages/CropAdvisoryPage'));
+const MarketPricesPage = lazyWithRetry(() => import('./pages/MarketPricesPage'));
+const NodeControlPage = lazyWithRetry(() => import('./pages/NodeControlPage'));
+const MorePage = lazyWithRetry(() => import('./pages/MorePage'));
 
 // Layout wrapper for internal dashboard views
 const DashboardLayout = () => {
@@ -70,6 +70,9 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen pt-16 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+      {/* Top Floating Offline Status & Auto-Sync Bar */}
+      <OfflineStatusBar />
+
       {/* Top Navbar */}
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       
@@ -107,8 +110,6 @@ const DashboardLayout = () => {
   );
 };
 
-import { useColorTheme } from './hooks/useColorTheme';
-
 function ThemeInitializer({ children }) {
   useColorTheme(); // Initialize site-wide theme on html tag inside AuthProvider context
   return <>{children}</>;
@@ -128,7 +129,6 @@ function App() {
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
-
 
                   {/* Authenticated Dashboard Views */}
                   <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

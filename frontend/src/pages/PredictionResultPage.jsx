@@ -171,7 +171,8 @@ const PredictionResultPage = () => {
       prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
       acres: activeFarm?.total_area || 1.0,
       farmLocation: activeFarm?.location || 'Pasupugallu Farm',
-      farmerName: activeFarm?.farm_name || 'AgriShield Farmer'
+      farmerName: activeFarm?.farm_name || 'AgriShield Farmer',
+      language: i18n?.language || 'en'
     });
   };
 
@@ -187,7 +188,8 @@ const PredictionResultPage = () => {
       prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
       acres: activeFarm?.total_area || 1.0,
       farmLocation: activeFarm?.location || 'Pasupugallu Farm',
-      farmerName: activeFarm?.farm_name || 'AgriShield Farmer'
+      farmerName: activeFarm?.farm_name || 'AgriShield Farmer',
+      language: i18n?.language || 'en'
     });
   };
 
