@@ -17,10 +17,21 @@ import {
   Clock,
   Menu,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Volume2,
+  VolumeX,
+  Camera,
+  Paperclip,
+  Share2,
+  PhoneCall,
+  Leaf,
+  CloudRain,
+  Globe
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSpeechReader } from '../hooks/useSpeechReader';
+import { compressImageForUpload } from '../utils/imageCompression';
 
 /* ───────────────────────────────────────
    Inline text renderer: **bold**, `code`
@@ -254,6 +265,53 @@ export default function FloatingAIAssistant() {
     return localStorage.getItem('agrishield_floating_session_id') || null;
   });
 
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
+  const [autoSpeak, setAutoSpeak] = useState(() => {
+    try {
+      return localStorage.getItem('agrishield_kisan_autospeak') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [attachedPhoto, setAttachedPhoto] = useState(null);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  const handlePhotoSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const comp = await compressImageForUpload(file, { maxDimension: 1280, quality: 0.82 });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedPhoto({
+          file: comp.file,
+          preview: URL.createObjectURL(comp.file),
+          base64: reader.result
+        });
+      };
+      reader.readAsDataURL(comp.file);
+    } catch (err) {
+      console.warn("Compression failed, using original:", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedPhoto({
+          file,
+          preview: URL.createObjectURL(file),
+          base64: reader.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleWhatsAppShare = (adviceText) => {
+    const clean = adviceText.replace(/[*_#`|]/g, '').slice(0, 320);
+    const text = `🌾 *AgriShield Kisan Prescription*:\n\n${clean}...\n\n(Prescribed via AgriShield AI Agronomist)`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   // Sync activeSessionId to localStorage
   useEffect(() => {
     if (activeSessionId) {
@@ -406,13 +464,19 @@ export default function FloatingAIAssistant() {
   };
 
   const handleSend = async (textToSend) => {
-    const text = (textToSend || inputValue).trim();
-    if (!text || loading) return;
+    const raw = (textToSend || inputValue).trim();
+    const photoToUpload = attachedPhoto;
+    if (!raw && !photoToUpload) return;
+    if (loading) return;
+
+    setAttachedPhoto(null);
+    const text = raw || "Please diagnose this attached crop leaf photo and advise exact remedies and 16L pump spray dosage.";
 
     const userMsg = {
       id: Date.now(),
       role: 'user',
       content: text,
+      image: photoToUpload ? photoToUpload.preview : null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -432,6 +496,7 @@ export default function FloatingAIAssistant() {
         message: text,
         history: history,
         language: i18n.language || 'en',
+        image_base64: photoToUpload ? photoToUpload.base64 : null,
         context: {
           current_route: location.pathname,
           language: i18n.language || 'en'
@@ -448,6 +513,11 @@ export default function FloatingAIAssistant() {
 
       const finalMessages = [...updatedMessagesWithUser, assistantMsg];
       setMessages(finalMessages);
+
+      // Auto-Voice Readout (Kisan Audio Mode)
+      if (autoSpeak && reply) {
+        speak(reply, assistantMsg.id, i18n.language || 'en');
+      }
 
       // Real-time synchronization to MongoDB backend
       let currentId = activeSessionId;
@@ -587,6 +657,26 @@ export default function FloatingAIAssistant() {
               </div>
 
               <div className="flex items-center gap-1">
+                {/* Auto-Speak Toggle */}
+                <button
+                  onClick={() => {
+                    setAutoSpeak(prev => {
+                      const next = !prev;
+                      localStorage.setItem('agrishield_kisan_autospeak', String(next));
+                      if (!next && speakingId) stopSpeech();
+                      return next;
+                    });
+                  }}
+                  className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 ${
+                    autoSpeak
+                      ? 'bg-emerald-600 text-white shadow-xs animate-pulse'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title={autoSpeak ? "Auto-speak is ON (Answers read aloud)" : "Enable Kisan Voice (Read answers aloud)"}
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+
                 {(showSessionList || activeSessionId) && (
                   <button
                     onClick={handleRefreshSession}
@@ -679,11 +769,20 @@ export default function FloatingAIAssistant() {
               <div className="flex-1 min-h-0 p-3.5 overflow-y-auto overscroll-contain touch-pan-y space-y-3 scrollbar-thin scrollbar-thumb-slate-800">
                 {messages.map((m) => {
                   const isUser = m.role === 'user';
+                  const isAgronomyAdvice = !isUser && /spray|fungicide|pesticide|dosage|dose|neem|pump|litres|carbendazim|mancozeb|మందు|స్ప్రే|దవా|दवा/i.test(m.content);
+
                   return (
                     <div
                       key={m.id}
                       className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                     >
+                      {/* Attached Photo Thumbnail */}
+                      {isUser && m.image && (
+                        <div className="mb-1.5 rounded-xl overflow-hidden border border-emerald-500/40 shadow-sm max-w-[200px]">
+                          <img src={m.image} alt="Crop Leaf" className="w-full h-28 object-cover" />
+                        </div>
+                      )}
+
                       <div
                         className={`max-w-[88%] p-3 rounded-2xl text-xs leading-relaxed ${
                           isUser
@@ -694,10 +793,50 @@ export default function FloatingAIAssistant() {
                         {isUser ? (
                           <p className="whitespace-pre-wrap">{m.content}</p>
                         ) : (
-                          <MarkdownMessage text={m.content} />
+                          <>
+                            <MarkdownMessage text={m.content} />
+                            
+                            {/* Interactive Quick Action Bar for Treatments */}
+                            {isAgronomyAdvice && (
+                              <div className="mt-2.5 pt-2 border-t border-slate-700/60 flex items-center justify-between gap-1 text-[10px]">
+                                <span className="text-emerald-400 font-extrabold flex items-center gap-1">
+                                  🚜 16L Pump Mix
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => handleWhatsAppShare(m.content)}
+                                    className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1"
+                                    title="Share with pesticide shop on WhatsApp"
+                                  >
+                                    <Share2 className="w-2.5 h-2.5" /> WhatsApp
+                                  </button>
+                                  <a
+                                    href="tel:18001801551"
+                                    className="px-2 py-0.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-bold flex items-center gap-1"
+                                    title="Call Kisan Call Center (1800-180-1551)"
+                                  >
+                                    <PhoneCall className="w-2.5 h-2.5" /> Kisan 1800
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
-                      <span className="text-[9px] text-slate-500 mt-1 px-1">{m.timestamp}</span>
+
+                      <div className="flex items-center gap-2 mt-1 px-1">
+                        <span className="text-[9px] text-slate-500">{m.timestamp}</span>
+                        {!isUser && (
+                          <button
+                            onClick={() => speak(m.content, m.id, i18n.language || 'en')}
+                            className={`text-[9px] flex items-center gap-0.5 transition-colors ${speakingId === m.id ? 'text-emerald-400 font-bold animate-pulse' : 'text-slate-400 hover:text-slate-200'}`}
+                            title="Listen to advice"
+                          >
+                            {speakingId === m.id ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
+                            <span>{speakingId === m.id ? 'Stop' : 'Listen'}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -705,7 +844,7 @@ export default function FloatingAIAssistant() {
                 {loading && (
                   <div className="flex items-center gap-2 text-slate-400 text-xs py-2 px-3 bg-slate-800/50 rounded-xl w-fit border border-slate-700/50">
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                    <span>Thinking...</span>
+                    <span>Analyzing your request...</span>
                   </div>
                 )}
                 <div ref={messagesEndRef} />
@@ -715,33 +854,73 @@ export default function FloatingAIAssistant() {
             {/* Quick Suggestion Chips */}
             <div className="px-3 py-1.5 border-t border-slate-800/80 bg-slate-900/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
               {[
-                { label: '🌾 Mandi Rates', query: 'What are today tomato and paddy mandi rates?' },
-                { label: '💧 Soil Health', query: 'How is my soil moisture and temperature?' },
-                { label: '🏛️ Subsidies', query: 'What are active PM-KISAN and PMFBY schemes?' },
+                { label: '🌾 Scan Advice', query: 'Explain treatments and 16L spray pump dosage for my latest crop scan.' },
+                { label: '🧪 16L Pump Mix', query: 'How many grams of medicine should I mix in a 16-litre spray pump for my crop?' },
+                { label: '🌦️ Rain & Spray', query: 'Based on today weather and rain forecast, is it safe to spray pesticides today?' },
+                { label: '💰 Mandi Rates', query: 'What are today wholesale Mandi market prices for major crops in my district?' },
               ].map((chip, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSend(chip.query)}
-                  className="flex-none px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-950 text-slate-300 hover:text-emerald-300 border border-slate-700 hover:border-emerald-700 text-[10px] font-semibold transition-all"
+                  className="flex-none px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-950 text-slate-300 hover:text-emerald-300 border border-slate-700 hover:border-emerald-700 text-[10px] font-semibold transition-all whitespace-nowrap"
                 >
                   {chip.label}
                 </button>
               ))}
             </div>
 
+            {/* Attached Photo Preview */}
+            {attachedPhoto && (
+              <div className="px-3 py-1.5 bg-emerald-950/40 border-t border-emerald-500/30 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <img src={attachedPhoto.preview} alt="Leaf" className="w-8 h-8 rounded-lg object-cover border border-emerald-500/40 shrink-0" />
+                  <span className="text-[10px] text-emerald-300 font-bold truncate">Photo ready for diagnosis</span>
+                </div>
+                <button onClick={() => setAttachedPhoto(null)} className="text-slate-400 hover:text-rose-400 p-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+
             {/* Footer Input */}
             <div className="p-3 border-t border-slate-800 bg-slate-900/90">
-              <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 focus-within:border-emerald-500/50 rounded-xl px-3 py-2 transition-all">
+              <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelected} className="hidden" />
+              <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handlePhotoSelected} className="hidden" />
+
+              <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 focus-within:border-emerald-500/50 rounded-xl px-2.5 py-1.5 transition-all">
+                
+                {/* Camera Shutter */}
                 <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="p-1 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                  title="Snap leaf photo"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Photo Gallery Picker */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                  title="Attach leaf photo"
+                >
+                  <Paperclip className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Voice Mic Button */}
+                <button
+                  type="button"
                   onClick={toggleVoice}
-                  className={`p-1.5 rounded-full transition-colors ${
+                  className={`p-1 rounded-lg transition-colors ${
                     isListening
-                      ? 'bg-red-500/20 text-red-400 animate-pulse'
+                      ? 'bg-rose-500/20 text-rose-400 animate-pulse'
                       : 'text-slate-400 hover:text-emerald-400'
                   }`}
-                  title={isListening ? 'Stop Listening' : 'Voice Input'}
+                  title={isListening ? 'Stop Listening' : 'Voice Input (Telugu, Hindi, English)'}
                 >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
                 </button>
 
                 <input
@@ -749,16 +928,17 @@ export default function FloatingAIAssistant() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={isListening ? 'Listening...' : 'Ask AgriShield AI...'}
-                  className="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+                  placeholder={isListening ? 'Listening...' : attachedPhoto ? 'Press send to diagnose...' : 'Ask AgriShield AI...'}
+                  className="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-500 focus:outline-none min-w-0"
                   disabled={loading}
                 />
 
                 <button
+                  type="button"
                   onClick={() => handleSend()}
-                  disabled={!inputValue.trim() || loading}
-                  className={`p-1.5 rounded-full transition-all ${
-                    inputValue.trim() && !loading
+                  disabled={(!inputValue.trim() && !attachedPhoto) || loading}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    (inputValue.trim() || attachedPhoto) && !loading
                       ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30 hover:scale-105'
                       : 'text-slate-600 cursor-not-allowed'
                   }`}

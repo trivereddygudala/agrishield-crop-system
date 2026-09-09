@@ -168,6 +168,8 @@ class ChatRequest(BaseModel):
     history: List[ChatMessage] = Field(default_factory=list)
     language: Optional[str] = "en"
     context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional context like sensor data or recent predictions")
+    image_base64: Optional[str] = Field(default=None, description="Optional base64-encoded leaf photo for in-chat diagnosis")
+    image_url: Optional[str] = Field(default=None, description="Optional image URL or path for in-chat diagnosis")
 
 class ChatResponse(BaseModel):
     reply: str

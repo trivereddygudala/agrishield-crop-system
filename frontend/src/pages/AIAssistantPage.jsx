@@ -4,7 +4,8 @@ import {
   Send, Bot, User, Plus, MessageSquare, Trash2, Menu, Copy, Check, Sparkles, X,
   Search, Pin, Share2, ThumbsUp, ThumbsDown, Volume2, VolumeX, Mic, MicOff,
   ArrowUp, ChevronDown, MoreVertical, Image as ImageIcon, BookOpen, Cpu, 
-  ExternalLink, Edit3, Globe, Layers, CheckCircle2, ShieldCheck, Leaf, RefreshCw
+  ExternalLink, Edit3, Globe, Layers, CheckCircle2, ShieldCheck, Leaf, RefreshCw,
+  Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +13,7 @@ import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
 import { useSpeechReader } from '../hooks/useSpeechReader';
+import { compressImageForUpload } from '../utils/imageCompression';
 
 /* ───────────────────────────────────────
    Inline text renderer: **bold**, `code`
@@ -291,9 +293,115 @@ const AIAssistantPage = () => {
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
+  // Kisan Usability States: Auto-Voice Readout & In-Chat Photo Attachment
+  const [autoSpeak, setAutoSpeak] = useState(() => {
+    try {
+      return localStorage.getItem('agrishield_kisan_autospeak') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [attachedPhoto, setAttachedPhoto] = useState(null); // { file, preview, base64 }
+
   const chatContainerRef = useRef(null);
   const chatBottomRef = useRef(null);
   const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  // Regional 1-Tap Kisan Question Shortcuts
+  const kisanQuickChips = [
+    {
+      icon: Leaf,
+      label: {
+        en: "🌾 My Recent Scan Treatment",
+        te: "🌾 నా ఇటీవలి పంట స్కాన్ నివారణలు",
+        hi: "🌾 मेरी हालिया फसल का इलाज",
+        ta: "🌾 எனது பயிர் சிகிச்சை",
+        kn: "🌾 ನನ್ನ ಬೆಳೆ ಚಿಕಿತ್ಸೆ"
+      },
+      query: "Explain the recommended treatments and exact 16L spray pump dosages for my most recent crop disease scan."
+    },
+    {
+      icon: Droplets,
+      label: {
+        en: "🧪 16L Spray Pump Dosage",
+        te: "🧪 16 లీటర్ల పంపుకి మందు మోతాదు",
+        hi: "🧪 16L पंप में दवा की खुराक",
+        ta: "🧪 16L தெளிப்பான் மருந்தளவு",
+        kn: "🧪 16L ಪಂಪ್ ಔಷಧ ಪ್ರಮಾಣ"
+      },
+      query: "How many grams or ml of medicine should I mix in one 16-litre knapsack sprayer pump for my crop?"
+    },
+    {
+      icon: CloudRain,
+      label: {
+        en: "🌦️ Rain & Spray Safety",
+        te: "🌦️ వర్షం పడుతుందా? మందు కొట్టవచ్చా?",
+        hi: "🌦️ बारिश होगी? क्या आज छिड़काव करें?",
+        ta: "🌦️ மழை வருமா? மருந்து அடிக்கலாமா?",
+        kn: "🌦️ ಮಳೆ ಬರುತ್ತಾ? ಔಷಧಿ ಸಿಂಪಡಿಸಬಹುದೇ?"
+      },
+      query: "Based on today's weather and rain forecast, is it safe to spray pesticides today?"
+    },
+    {
+      icon: Globe,
+      label: {
+        en: "💰 Mandi Market Rates",
+        te: "💰 నేటి మండి మార్కెట్ ధరలు",
+        hi: "💰 आज के मंडी भाव",
+        ta: "💰 இன்றைய மண்டி விலை",
+        kn: "💰 ಇಂದಿನ ಮಂಡಿ ಮಾರುಕಟ್ಟೆ ದರಗಳು"
+      },
+      query: "What are today's wholesale Mandi prices for major agricultural crops in my region?"
+    },
+    {
+      icon: Sparkles,
+      label: {
+        en: "🌿 Organic Neem / Jeevamrutha",
+        te: "🌿 జీవామృతం / వేప కషాయం తయారీ",
+        hi: "🌿 जीवामृत / नीम अर्क विधि",
+        ta: "🌿 ஜீவாமிர்தம் தயாரிப்பு",
+        kn: "🌿 ಜೀವಾಮೃತ ತಯಾರಿಕೆ"
+      },
+      query: "How do I prepare organic bio-pesticide using Neem leaves/oil and Jeevamrutha at home?"
+    }
+  ];
+
+  const handlePhotoSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const comp = await compressImageForUpload(file, { maxDimension: 1280, quality: 0.82 });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedPhoto({
+          file: comp.file,
+          preview: URL.createObjectURL(comp.file),
+          base64: reader.result
+        });
+      };
+      reader.readAsDataURL(comp.file);
+    } catch (err) {
+      console.warn("Photo compression failed, using original:", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedPhoto({
+          file,
+          preview: URL.createObjectURL(file),
+          base64: reader.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleWhatsAppShare = (adviceText) => {
+    const clean = adviceText.replace(/[*_#`|]/g, '').slice(0, 320);
+    const text = `🌾 *AgriShield Kisan Prescription*:\n\n${clean}...\n\n(Generated via AgriShield AI Agronomist for local agro store purchase)`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   // Sync pinned sessions to localStorage
   useEffect(() => {
@@ -358,14 +466,24 @@ const AIAssistantPage = () => {
   };
 
   const handleSendMessage = async (queryText = inputQuery) => {
-    if (!queryText || !queryText.trim() || isTyping) return;
+    const rawText = (queryText || '').trim();
+    const photoToUpload = attachedPhoto;
+    if (!rawText && !photoToUpload) return;
+    if (isTyping) return;
 
+    setAttachedPhoto(null);
+    const effectiveText = rawText || (photoToUpload ? "Please diagnose this attached crop leaf photo and advise exact remedies and 16L pump spray dosage." : "");
     const currentMessages = sessions.find(s => s.id === activeSessionId)?.messages || [];
-    const userMessage = { id: Date.now(), role: 'user', content: queryText };
+    const userMessage = { 
+      id: Date.now(), 
+      role: 'user', 
+      content: effectiveText,
+      image: photoToUpload ? photoToUpload.preview : null
+    };
     const currentSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
     
     // Auto name the session after the first real user query
-    const newTitle = (currentSession.messages.length <= 1) ? queryText.slice(0, 30) : currentSession.title;
+    const newTitle = (currentSession.messages.length <= 1) ? effectiveText.slice(0, 30) : currentSession.title;
     const updatedMsgsWithUser = [...currentSession.messages, userMessage];
     
     setSessions(prev => prev.map(s => {
@@ -386,11 +504,12 @@ const AIAssistantPage = () => {
         .map(m => ({ role: m.role, content: m.content }));
 
       const res = await API.post('/api/ai/chat', {
-        message: queryText,
+        message: effectiveText,
         history: historyPayload,
         user_id: user?.id || 'demo_user',
         role: userRole,
         language: i18n.language || 'en',
+        image_base64: photoToUpload ? photoToUpload.base64 : null,
         context: {
           language: i18n.language || 'en',
           current_time_ampm: (() => {
@@ -407,14 +526,20 @@ const AIAssistantPage = () => {
         }
       });
 
+      const replyContent = res.data.response || res.data.reply || res.data.answer || "I have processed your request.";
       const assistantMessage = {
         id: Date.now() + 1,
         role: 'assistant',
-        content: res.data.response || res.data.reply || res.data.answer || "I have processed your system request."
+        content: replyContent
       };
       const finalMsgs = [...updatedMsgsWithUser, assistantMessage];
       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: finalMsgs } : s));
       
+      // Auto-Voice Readout (Kisan Audio Mode)
+      if (autoSpeak && replyContent) {
+        speak(replyContent, assistantMessage.id, i18n.language || 'en');
+      }
+
       await API.put(`/api/ai/chat/sessions/${activeSessionId}`, { messages: finalMsgs }).catch(console.warn);
     } catch (err) {
       console.error("AI Assistant chat error:", err);
@@ -737,7 +862,28 @@ const AIAssistantPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            {/* Kisan Auto-Voice Readout Mode Toggle */}
+            <button
+              onClick={() => {
+                setAutoSpeak(prev => {
+                  const next = !prev;
+                  localStorage.setItem('agrishield_kisan_autospeak', String(next));
+                  if (!next && speakingId) stopSpeech();
+                  return next;
+                });
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all shadow-xs ${
+                autoSpeak
+                  ? 'bg-emerald-600 text-white shadow-emerald-500/20 ring-2 ring-emerald-400/40'
+                  : 'bg-slate-100 dark:bg-[#1e1e1e] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#282828]'
+              }`}
+              title={autoSpeak ? "Auto-speak is ON (Answers read aloud automatically)" : "Enable Kisan Voice (Answers will be read aloud)"}
+            >
+              <Volume2 className={`w-3.5 h-3.5 ${autoSpeak ? 'animate-pulse text-white' : ''}`} />
+              <span className="text-[11px] font-extrabold">{autoSpeak ? "Voice: ON" : "Auto-Speak"}</span>
+            </button>
+
             <button 
               onClick={fetchSessions}
               disabled={isSyncing}
@@ -810,6 +956,16 @@ const AIAssistantPage = () => {
               >
                 <div className={`flex flex-col ${isUser ? 'items-end max-w-[85%] sm:max-w-[75%]' : 'items-start max-w-[100%] w-full'}`}>
                   
+                  {/* User Attached Photo Thumbnail */}
+                  {isUser && msg.image && (
+                    <div className="mb-2 rounded-2xl overflow-hidden border-2 border-emerald-500/50 shadow-md max-w-xs">
+                      <img src={msg.image} alt="Attached crop leaf" className="w-full h-auto max-h-56 object-cover" />
+                      <div className="bg-emerald-900/80 text-white text-[10px] font-bold px-2 py-0.5 text-center">
+                        🌿 Crop Leaf Photo Sent for Diagnosis
+                      </div>
+                    </div>
+                  )}
+
                   {/* Message Content Container */}
                   <div className={
                     isUser
@@ -819,7 +975,51 @@ const AIAssistantPage = () => {
                     {isUser ? (
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     ) : (
-                      <MarkdownMessage text={msg.content} />
+                      <>
+                        <MarkdownMessage text={msg.content} />
+
+                        {/* Interactive Farmer Action Card for Treatments */}
+                        {(() => {
+                          const isAgronomyAdvice = /spray|fungicide|pesticide|dosage|dose|neem|pump|litres|carbendazim|mancozeb|azoxystrobin|hexaconazole|మందు|స్ప్రే|దవా|दवा/i.test(msg.content);
+                          if (!isAgronomyAdvice) return null;
+                          return (
+                            <div className="mt-3.5 p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300/60 dark:border-emerald-700/50 flex flex-wrap items-center justify-between gap-2.5 shadow-xs w-full">
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                  🚜
+                                </span>
+                                <div>
+                                  <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wide block">
+                                    Knapsack Sprayer Calibration
+                                  </span>
+                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                    Standard 16-Litre Field Pump Mix
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleWhatsAppShare(msg.content)}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+                                  title="Send advice to pesticide/fertilizer shop on WhatsApp"
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                  <span>WhatsApp Dealer</span>
+                                </button>
+                                <a
+                                  href="tel:18001801551"
+                                  className="px-3 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+                                  title="Call Kisan Call Center (1800-180-1551 Free)"
+                                >
+                                  <PhoneCall className="w-3.5 h-3.5" />
+                                  <span>Kisan 1800 Helpline</span>
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </>
                     )}
                   </div>
 
@@ -921,6 +1121,10 @@ const AIAssistantPage = () => {
         {/* ── CHATGPT STYLE PILL SEARCH BAR (Pictures 2 & 3) ── */}
         <div className="px-3 sm:px-6 pb-20 lg:pb-3 pt-1 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto">
           
+          {/* Hidden File & Camera Inputs for In-Chat Leaf Diagnosis */}
+          <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelected} className="hidden" />
+          <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handlePhotoSelected} className="hidden" />
+
           {/* Quick Plus Attachments Modal */}
           <AnimatePresence>
             {quickMenuOpen && (
@@ -928,14 +1132,21 @@ const AIAssistantPage = () => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute bottom-40 lg:bottom-20 left-4 sm:left-6 z-30 p-2 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#2e2e2e] shadow-2xl space-y-1 w-56"
+                className="absolute bottom-44 lg:bottom-24 left-4 sm:left-6 z-30 p-2 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#2e2e2e] shadow-2xl space-y-1 w-56"
               >
                 <button
-                  onClick={() => { navigate('/scan'); setQuickMenuOpen(false); }}
+                  onClick={() => { cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
                 >
-                  <ImageIcon className="w-4 h-4 text-emerald-500" />
-                  <span>Scan Crop Photo</span>
+                  <Camera className="w-4 h-4 text-emerald-500" />
+                  <span>Take Leaf Photo</span>
+                </button>
+                <button
+                  onClick={() => { fileInputRef.current?.click(); setQuickMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <ImageIcon className="w-4 h-4 text-teal-500" />
+                  <span>Choose from Gallery</span>
                 </button>
                 <button
                   onClick={() => { handleSendMessage("Check current soil moisture & telemetry"); setQuickMenuOpen(false); }}
@@ -955,6 +1166,26 @@ const AIAssistantPage = () => {
             )}
           </AnimatePresence>
 
+          {/* ── KISAN QUICK QUESTION CHIPS (1-TAP ACTION SHORTCUTS) ── */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-1 scrollbar-none no-scrollbar">
+            {kisanQuickChips.map((chip, idx) => {
+              const activeLang = (i18n.language || 'en').split('-')[0];
+              const label = chip.label[activeLang] || chip.label.en;
+              const IconComp = chip.icon;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSendMessage(chip.query)}
+                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-[#1a1a1a] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-[#2b2b2b] hover:border-emerald-400/50 text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 text-xs font-bold flex items-center gap-1.5 shrink-0 transition-all shadow-2xs active:scale-95 whitespace-nowrap"
+                >
+                  <IconComp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Active Voice Listening Banner */}
           <AnimatePresence>
             {isListening && (
@@ -969,11 +1200,17 @@ const AIAssistantPage = () => {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500" />
                   </span>
+                  <div className="flex items-center gap-1 px-1">
+                    <span className="w-1 h-3 bg-rose-500 rounded-full animate-bounce [animation-delay:0s]" />
+                    <span className="w-1 h-5 bg-rose-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                    <span className="w-1 h-2 bg-rose-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+                    <span className="w-1 h-4 bg-rose-500 rounded-full animate-bounce [animation-delay:0.45s]" />
+                  </div>
                   <span className="truncate">
                     {(() => {
                       const langKey = (i18n.language || 'en').split('-')[0];
                       const names = { te: 'తెలుగు (Telugu)', hi: 'हिन्दी (Hindi)', ta: 'தமிழ் (Tamil)', kn: 'ಕನ್ನಡ (Kannada)', ml: 'മലയാളം (Malayalam)', mr: 'मराठी (Marathi)', en: 'English' };
-                      return `Listening in ${names[langKey] || 'your language'}... Speak your question`;
+                      return `Listening in ${names[langKey] || 'your language'}... Speak now`;
                     })()}
                   </span>
                 </div>
@@ -983,6 +1220,38 @@ const AIAssistantPage = () => {
                   className="px-2.5 py-1 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 shadow-xs"
                 >
                   Done
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Attached Leaf Photo Preview Thumbnail */}
+          <AnimatePresence>
+            {attachedPhoto && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 6 }}
+                className="mb-2.5 p-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 flex items-center justify-between gap-3 shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img src={attachedPhoto.preview} alt="Attached Leaf" className="w-12 h-12 rounded-xl object-cover border border-emerald-400 dark:border-emerald-600 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block truncate">
+                      {attachedPhoto.file?.name || 'Crop Leaf Photo'}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-semibold block">
+                      ⚡ Ready for Diagnostic Advice ({Math.round((attachedPhoto.file?.size || 0) / 1024)} KB)
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAttachedPhoto(null)}
+                  className="p-1.5 rounded-full text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                  title="Remove attached photo"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               </motion.div>
             )}
@@ -1001,6 +1270,26 @@ const AIAssistantPage = () => {
               <Plus className="w-4 h-4" />
             </button>
 
+            {/* Direct Camera Shutter Button */}
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="p-2 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors"
+              title="Snap photo with camera"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
+
+            {/* Direct Photo Gallery Picker */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors"
+              title="Upload leaf photo"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+
             {/* Input Textarea */}
             <textarea
               rows={1}
@@ -1016,7 +1305,7 @@ const AIAssistantPage = () => {
                   handleSendMessage();
                 }
               }}
-              placeholder={`Ask ${activeRoleConfig.title}...`}
+              placeholder={attachedPhoto ? "Add a message or press send to diagnose..." : `Ask ${activeRoleConfig.title}...`}
               className="flex-1 resize-none bg-transparent px-2 py-1.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none leading-relaxed max-h-[100px] overflow-y-auto"
             />
 
@@ -1026,10 +1315,10 @@ const AIAssistantPage = () => {
               onClick={toggleSpeechRecognition}
               className={`p-2 rounded-full transition-colors ${
                 isListening 
-                  ? 'bg-rose-500 text-white animate-pulse' 
+                  ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30' 
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#2e2e2e]'
               }`}
-              title="Voice input"
+              title="Voice input (Speak in Telugu, Hindi, English)"
             >
               <Mic className="w-4 h-4" />
             </button>
@@ -1038,10 +1327,10 @@ const AIAssistantPage = () => {
             <button
               type="button"
               onClick={() => handleSendMessage()}
-              disabled={!inputQuery.trim() || isTyping}
+              disabled={(!inputQuery.trim() && !attachedPhoto) || isTyping}
               className={`p-2 rounded-full transition-all shadow-sm ${
-                inputQuery.trim()
-                  ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] scale-100'
+                (inputQuery.trim() || attachedPhoto)
+                  ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] scale-100 shadow-md shadow-blue-500/30 active:scale-90'
                   : 'bg-slate-300 dark:bg-[#333333] text-slate-500 dark:text-slate-400 cursor-not-allowed opacity-50'
               }`}
               title="Send message"
@@ -1051,7 +1340,7 @@ const AIAssistantPage = () => {
           </div>
 
           <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 mt-1 mb-0.5">
-            AgriShield AI may make mistakes. Verify important farming advice with local experts.
+            AgriShield AI may make mistakes. Verify important farming advice with local agricultural experts.
           </p>
         </div>
       </div>

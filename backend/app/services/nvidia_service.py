@@ -1032,10 +1032,10 @@ Do not include any conversational text or markdown blocks. Only output the raw J
             {"day": 7, "title": "AgriShield Re-scan", "activity": "Re-scan the leaves using the AgriShield scanner to verify the health progression index."}
         ]
 
-    async def chat_with_assistant(self, message: str, history: list, context: dict = None) -> str:
+    async def chat_with_assistant(self, message: str, history: list, context: dict = None, image_data: Optional[str] = None) -> str:
         """
         Generic chat endpoint using AI LLMs (Groq primary -> NVIDIA fallback -> Local intelligence) for agricultural support.
-        Injects real-time context (sensor data, recent prediction, user role) as a system prompt.
+        Injects real-time context (sensor data, recent prediction, user role, attached leaf image) as a system prompt.
         """
         if not self._get_providers():
             logger.info("AI Service running in local intelligence mode.")
@@ -1056,6 +1056,32 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                     "battery_level": round(random.uniform(50.0, 100.0), 1),
                     "device_status": "online_simulated"
                 }
+
+            # In-Chat Leaf Image Diagnostic Pre-Check
+            if image_data:
+                try:
+                    import tempfile
+                    import base64
+                    raw_b64 = image_data.split(",")[-1]
+                    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_img:
+                        tmp_img.write(base64.b64decode(raw_b64))
+                        tmp_img_path = tmp_img.name
+                    v_res = await self.analyze_crop_image(tmp_img_path)
+                    try:
+                        os.unlink(tmp_img_path)
+                    except Exception:
+                        pass
+                    if v_res:
+                        if not context:
+                            context = {}
+                        context["attached_leaf_photo_analysis"] = {
+                            "crop": v_res.get("crop", "Agricultural Crop"),
+                            "is_valid_leaf": v_res.get("is_valid_leaf", True),
+                            "confidence": f"{v_res.get('confidence', 95.0)}%",
+                            "visual_symptoms": v_res.get("reasoning", "Foliar disease symptoms identified")
+                        }
+                except Exception as img_err:
+                    logger.warning(f"In-chat leaf image analysis bypassed: {img_err}")
                 
             # Build context string
             context_str = ""
@@ -1073,6 +1099,10 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                         for sk, sv in v.items():
                             if sv:
                                 context_str += f"  * {sk}: {sv}\n"
+                    elif k == "attached_leaf_photo_analysis" and isinstance(v, dict):
+                        context_str += "\n- 📸 Farmer Attached a Crop Leaf Photo in This Message:\n"
+                        for pk, pv in v.items():
+                            context_str += f"  * {pk.replace('_', ' ').title()}: {pv}\n"
                     elif k == "full_scan_history" and isinstance(v, list):
                         context_str += f"\n- User's Complete Crop Disease Scan History (Last {len(v)} Scans):\n"
                         for idx, scan in enumerate(v, 1):
@@ -1117,16 +1147,20 @@ You provide specialized testing, benchmarking, and QA diagnostics for Testers:
 ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, tables, code snippets).{lang_instruction}
 {context_str}"""
             else:
-                system_prompt = f"""You are 'AgriShield AI Agronomist', a Master Soil Scientist, Crop Disease Pathologist, and Smart Farming Specialist.
+                system_prompt = f"""You are 'AgriShield AI Agronomist', a Master Soil Scientist, Crop Disease Pathologist, and Smart Farming Specialist built specifically to help rural farmers.
 
-You provide expert, actionable, and farmer-friendly advice on ALL agricultural topics:
-1. 🌾 **Farm & Field Management:** Land preparation, crop rotation, intercropping, and yield optimization.
-2. 🪵 **Soil Health & Nutrition:** NPK fertilizer dosages, soil pH balance, organic compost, and micronutrients.
-3. 🌱 **Plant Care & Pathology:** Crop disease diagnosis, fungal/bacterial/viral treatment (organic & chemical), and pest control.
-4. 💧 **Irrigation & Water Science:** Drip/sprinkler watering schedules, soil moisture targets, and rain advisories.
-5. ⚡ **Smart IoT & Weather:** Real-time sensor telemetry interpretation and micro-climate advisories.
+CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
+1. 🎯 **Direct Solution First:** Give the immediate practical recommendation in the very first 1-2 sentences in simple language before explaining biological or scientific causes.
+2. 🚜 **Standard 16-Litre Knapsack Sprayer Dosage:** Whenever mentioning any liquid or powder agrochemical or bio-fertilizer, ALWAYS specify the EXACT amount to mix in one standard 16-litre knapsack pump (e.g., "Mix 30 ml (or 40 grams) per 16L spray pump").
+3. ⚠️ **Choose & Use Any One Rule:** Always remind the farmer: "Choose ANY ONE medicine from the list. DO NOT mix different fungicides/pesticides together in the tank."
+4. 📋 **Simple 3-Step Field Instructions:**
+   - 1. Medicine / Remedy to buy
+   - 2. Exact dilution per 16L pump
+   - 3. Best spray timing (early morning 6-9 AM or late evening 4-6 PM to avoid leaf scorch)
+5. 🌾 **Authentic Farmer Terms:** Use Indian agricultural terminology (e.g., Mandi, Kisan Kendra, Acre, Quintal, Knapsack Pump, Jeevamrutha, Neemastra).
+6. 📞 **Kisan Helpline Call:** For urgent agricultural emergencies, remind farmers they can dial the toll-free Kisan Call Center at 1800-180-1551.
 
-ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, numbered steps). Keep explanations clear and farmer-friendly.{lang_instruction}
+ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, numbered steps). Keep explanations clear, encouraging, and farmer-friendly.{lang_instruction}
 {context_str}"""
 
             messages = [{"role": "system", "content": system_prompt}]

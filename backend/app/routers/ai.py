@@ -249,10 +249,16 @@ async def chat_with_farming_assistant(
             except Exception as we:
                 logger.warning(f"Error fetching live OpenWeather data: {we}")
 
+        # Check for in-chat leaf photo analysis
+        image_to_analyze = getattr(req, "image_base64", None) or getattr(req, "image_url", None)
+        if image_to_analyze:
+            chat_context["has_attached_image"] = True
+
         reply = await nvidia_service.chat_with_assistant(
             message=sanitized_message,
             history=req.history,
-            context=chat_context
+            context=chat_context,
+            image_data=image_to_analyze
         )
         return ChatResponse(reply=reply)
     except Exception as e:

@@ -2,7 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
-## 2026-09-09 (v68) - Groq Cloud OTPM Rate-Limit Enforcement & Multimodal Vision Timeout Tuning
+## 2026-09-09 (v69) - Farmer-First AI Agronomist: Auto-Voice Readout, In-Chat Leaf Diagnostics, Multilingual Kisan Chips & WhatsApp Prescription
+- **Summary:** Upgraded the AI Agronomist Chatbot (both the full Assistant page and the floating widget) with high-accessibility, farmer-centric features for rural usability:
+  1. **Auto-Voice Readout Mode (Kisan Audio Mode):** Added a one-tap audio toggle in the chat header (`🎙️ Voice: ON / Auto-Speak`). When enabled, the assistant automatically reads aloud farming and chemical advice using the browser's native SpeechSynthesis API in the selected regional language without requiring the farmer to read small text. Individual message speech controls also allow selective replay and stop.
+  2. **In-Chat Leaf Photo Diagnostics (`AIAssistantPage.jsx`, `FloatingAIAssistant.jsx`, `nvidia_service.py`):** Farmers can snap a live leaf photo via their camera (`capture="environment"`) or upload directly inside the chat pill bar (`Camera` & `Paperclip` buttons). The client pre-compresses the image to ~200KB via canvas, transmits it via base64, and the backend performs instant multimodal lesion pathology diagnosis before answering in conversation.
+  3. **1-Tap Regional Kisan Action Chips:** Added quick action pills tailored to rural farming routines in Telugu, Hindi, and English (e.g., *16L pump mixing ratio*, *Chilli & Groundnut Mandi rates*, *Rain & spray weather window*, *Organic Neem/Jeevamrutha*, *Ask about recent scan*).
+  4. **Interactive Kisan Prescription Action Cards:** Under assistant diagnostic and chemical advice, renders a structured prescription summary card highlighting:
+     - Clear **16L Knapsack Sprayer Mixing Dosage** (e.g. 15-20g or ml per 16L tank).
+     - **1-Tap WhatsApp Share Button** pre-formatted to send medicine names and dosages to local fertilizer/agrochemical dealers.
+     - **1-Tap Kisan Call Center Dialer** directly connecting the farmer to the government toll-free helpline (`1800-180-1551`).
+  5. **Strict Farmer-First System Prompt Protocol (`nvidia_service.py`):** Enforces a direct answer in the first 2 sentences, single-medicine rule ("choose any one"), standard 16L pump ratios, and authentic terminology (Telugu: ఎకరా, మందులు; Hindi: एकड़, दवा).
+- **Files modified**: `backend/app/models/schemas.py`, `backend/app/routers/ai.py`, `backend/app/services/nvidia_service.py`, `frontend/src/pages/AIAssistantPage.jsx`, `frontend/src/components/FloatingAIAssistant.jsx`, `changes_happening.md`
+
 - **Summary:** Fixed the Groq Cloud HTTP 429 rate-limit error (`Limit 1000 OTPM, Requested 1252`) and tuned vision guardrail timeouts:
   1. **Groq Output Token Cap (`nvidia_service.py`):** Capped `call_tokens` to 700 for Groq Cloud on-demand tier (and reduced `generate_farming_advice` default `max_tokens` from 1500 to 650), keeping expected tokens safely below Groq's 1,000 output tokens/minute ceiling.
   2. **Extended Vision Guardrail Timeout:** Increased `analyze_crop_image` timeout to 12.0s to allow NVIDIA NIM `meta/llama-3.2-11b-vision-instruct` sufficient time to process base64 image requests over cold start or network latency.
