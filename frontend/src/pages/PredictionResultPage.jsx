@@ -16,7 +16,9 @@ import {
   Sparkles,
   Printer,
   MessageCircle,
-  Calculator
+  Calculator,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import API from '../services/api';
 import { Card, Button, Badge, Progress, Skeleton } from '../components/ui/index';
@@ -24,6 +26,7 @@ import { useFarm } from '../context/FarmContext';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
 import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
+import { useSpeechReader } from '../hooks/useSpeechReader';
 
 const ADVICE_DB = {
   "healthy": {
@@ -65,6 +68,7 @@ const PredictionResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activeFarm, profileCompleted } = useFarm();
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
   const [nvidiaAdvice, setNvidiaAdvice] = useState(null);
@@ -203,6 +207,24 @@ const PredictionResultPage = () => {
         </Link>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Voice Readout Button */}
+          {result && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const speechSummary = `${result.crop_name || 'Crop'}. ${result.disease_name || 'Diagnosis'}. ${result.organic_treatment ? `Organic treatment: ${result.organic_treatment}` : ''}. ${result.chemical_treatment ? `Chemical intervention: ${result.chemical_treatment}` : ''}`;
+                speak(speechSummary, 'pred_summary', i18n.language || 'en');
+              }}
+              className={`font-extrabold border-slate-300 dark:border-slate-700 active:scale-95 ${
+                speakingId === 'pred_summary' ? 'bg-emerald-600 text-white border-emerald-500 animate-pulse' : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              leftIcon={speakingId === 'pred_summary' ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-emerald-500" />}
+            >
+              {speakingId === 'pred_summary' ? 'Stop Voice' : 'Listen Voice'}
+            </Button>
+          )}
+
           {/* WhatsApp Share Button */}
           <Button 
             variant="solid" 
@@ -316,9 +338,27 @@ const PredictionResultPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
           
           <Card className="p-5 border-l-4 border-l-amber-500 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <ShieldAlert className="w-5 h-5 text-amber-500" />
-              <h3 className="font-bold text-slate-800 dark:text-slate-100">Symptoms & Causes</h3>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-500" />
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">Symptoms & Causes</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const causes = (result.possible_causes || nvidiaAdvice?.possible_causes || []).join('. ');
+                  const text = `Symptoms: ${result.symptoms || nvidiaAdvice?.disease_explanation || 'Not available'}. Possible causes: ${causes}`;
+                  speak(text, 'card_symptoms_page', i18n.language || 'en');
+                }}
+                className={`p-1.5 rounded-lg border transition-colors ${
+                  speakingId === 'card_symptoms_page'
+                    ? 'bg-amber-500 text-white border-amber-600 animate-pulse'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                }`}
+                title="Listen symptoms"
+              >
+                {speakingId === 'card_symptoms_page' ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
             </div>
             <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
               <p><strong>Symptoms:</strong> {result.symptoms || nvidiaAdvice?.disease_explanation || 'No details available.'}</p>
@@ -334,9 +374,26 @@ const PredictionResultPage = () => {
           </Card>
 
           <Card className="p-5 border-l-4 border-l-emerald-500 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <Sprout className="w-5 h-5 text-emerald-500" />
-              <h3 className="font-bold text-slate-800 dark:text-slate-100">Treatment Plan</h3>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sprout className="w-5 h-5 text-emerald-500" />
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">Treatment Plan</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const text = `Treatment Plan. Organic approach: ${result.organic_treatment || nvidiaAdvice?.organic_treatment || 'None'}. Chemical intervention: ${result.chemical_treatment || nvidiaAdvice?.chemical_treatment || 'None'}`;
+                  speak(text, 'card_treatment_page', i18n.language || 'en');
+                }}
+                className={`p-1.5 rounded-lg border transition-colors ${
+                  speakingId === 'card_treatment_page'
+                    ? 'bg-emerald-600 text-white border-emerald-700 animate-pulse'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                }`}
+                title="Listen treatment"
+              >
+                {speakingId === 'card_treatment_page' ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
             </div>
             <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
               <p><strong>Organic:</strong> {result.organic_treatment || nvidiaAdvice?.organic_treatment || 'None recommended.'}</p>
@@ -345,9 +402,27 @@ const PredictionResultPage = () => {
           </Card>
 
           <Card className="p-5 border-l-4 border-l-blue-500 shadow-sm md:col-span-2">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-5 h-5 text-blue-500" />
-              <h3 className="font-bold text-slate-800 dark:text-slate-100">Prevention & Precautions</h3>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-500" />
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">Prevention & Precautions</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const methods = (result.prevention_methods || nvidiaAdvice?.prevention_methods || fallbackAdvice.practices).join('. ');
+                  const text = `Prevention methods: ${methods}. ${nvidiaAdvice?.farmer_friendly_advice || ''}. ${result.safety_precautions || ''}`;
+                  speak(text, 'card_prevention_page', i18n.language || 'en');
+                }}
+                className={`p-1.5 rounded-lg border transition-colors ${
+                  speakingId === 'card_prevention_page'
+                    ? 'bg-blue-600 text-white border-blue-700 animate-pulse'
+                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                }`}
+                title="Listen prevention"
+              >
+                {speakingId === 'card_prevention_page' ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
             </div>
             <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
               <div>

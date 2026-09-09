@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sprout, BookOpen, Sun, FlaskConical } from 'lucide-react';
+import { Sprout, BookOpen, Sun, FlaskConical, Volume2, VolumeX } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
-import { Card } from '../ui/index';
+import { Card, Button } from '../ui/index';
+import { useSpeechReader } from '../../hooks/useSpeechReader';
 
 const PLANT_KNOWLEDGE_BASE = {
   onion: {
@@ -282,8 +283,11 @@ const getPlantDetails = (liveResult) => {
 };
 
 const PlantIdResults = ({ liveResult, data }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
   const info = data || getPlantDetails(liveResult);
+
+  const fullSpeciesSummary = `Identified Crop: ${info.commonName}. Botanical family: ${info.family}. Native origin: ${info.nativeRegion}. Growth habit: ${info.growthHabit}. Recommended fertilizer: ${info.fertilizer}.`;
 
   return (
     <div className="space-y-4">
@@ -300,9 +304,21 @@ const PlantIdResults = ({ liveResult, data }) => {
               </span>
             </div>
 
-            <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white leading-tight">
-              {info.commonName}
-            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white leading-tight">
+                {info.commonName}
+              </h2>
+              <Button
+                variant="glass"
+                size="sm"
+                onClick={() => speak(fullSpeciesSummary, 'plant_summary', i18n.language || 'en')}
+                leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'plant_summary' ? 'animate-bounce text-teal-300' : 'text-white'}`} />}
+                className="bg-teal-600/80 hover:bg-teal-500 text-white font-bold border-teal-400/40 shadow-sm"
+              >
+                {speakingId === 'plant_summary' ? 'Stop Voice' : 'Listen Summary'}
+              </Button>
+            </div>
+
             <p className="text-xs sm:text-sm text-slate-300 font-medium">
               {info.family} • Native to {info.nativeRegion}
             </p>
@@ -375,7 +391,17 @@ const PlantIdResults = ({ liveResult, data }) => {
       </Card>
 
       {/* 1. Plant Details */}
-      <CollapsibleSection title={t("results.plant_details", "Plant Details")} icon={Sprout} badge="Overview" defaultOpen={true}>
+      <CollapsibleSection 
+        title={t("results.plant_details", "Plant Details")} 
+        icon={Sprout} 
+        badge="Overview" 
+        defaultOpen={true}
+        onSpeak={() => {
+          const text = `Common Name: ${info.commonName}. Botanical Family: ${info.family}. Native Origin: ${info.nativeRegion}. Growth Habit: ${info.growthHabit}.`;
+          speak(text, 'plant_details', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'plant_details'}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
             <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t("results.common_name", "Common Name")}</span>
@@ -397,7 +423,17 @@ const PlantIdResults = ({ liveResult, data }) => {
       </CollapsibleSection>
 
       {/* 2. Scientific Information */}
-      <CollapsibleSection title={t("results.scientific_info", "Scientific Information")} icon={BookOpen} badge="Taxonomy" defaultOpen={true}>
+      <CollapsibleSection 
+        title={t("results.scientific_info", "Scientific Information")} 
+        icon={BookOpen} 
+        badge="Taxonomy" 
+        defaultOpen={true}
+        onSpeak={() => {
+          const text = `Botanical genus: ${info.genus}. Species: ${info.species}. Foliage morphology: ${info.leafType}.`;
+          speak(text, 'plant_scientific', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'plant_scientific'}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100/80 dark:border-emerald-900/50">
             <span className="text-emerald-700 dark:text-emerald-500 font-semibold uppercase text-[10px]">{t("results.genus", "Genus")}</span>
@@ -415,7 +451,17 @@ const PlantIdResults = ({ liveResult, data }) => {
       </CollapsibleSection>
 
       {/* 3. Growing Information */}
-      <CollapsibleSection title={t("results.growing_info", "Growing Information")} icon={Sun} badge="Agronomy" defaultOpen={false}>
+      <CollapsibleSection 
+        title={t("results.growing_info", "Growing Information")} 
+        icon={Sun} 
+        badge="Agronomy" 
+        defaultOpen={false}
+        onSpeak={() => {
+          const text = `Sunlight requirement: ${info.sunlight}. Optimal soil pH: ${info.soilpH}. Watering requirement: ${info.waterNeed}. Climate temperature: ${info.temperature}.`;
+          speak(text, 'plant_growing', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'plant_growing'}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="p-3.5 bg-amber-50/50 dark:bg-amber-950/30 rounded-xl border border-amber-100/80 dark:border-amber-900/50">
             <span className="text-amber-800 dark:text-amber-500 font-semibold uppercase text-[10px]">{t("results.sunlight", "Sunlight Requirement")}</span>
@@ -437,7 +483,17 @@ const PlantIdResults = ({ liveResult, data }) => {
       </CollapsibleSection>
 
       {/* 4. Fertilizer Recommendation */}
-      <CollapsibleSection title={t("results.fertilizer_rec", "Fertilizer Recommendation")} icon={FlaskConical} badge="Nutrition" defaultOpen={false}>
+      <CollapsibleSection 
+        title={t("results.fertilizer_rec", "Fertilizer Recommendation")} 
+        icon={FlaskConical} 
+        badge="Nutrition" 
+        defaultOpen={false}
+        onSpeak={() => {
+          const text = `Recommended fertilizer blend: ${info.fertilizer}. Essential micronutrients: ${info.micronutrients}.`;
+          speak(text, 'plant_fertilizer', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'plant_fertilizer'}
+      >
         <div className="space-y-3 text-xs">
           <div className="p-4 bg-primary-50/60 dark:bg-emerald-950/30 rounded-xl border border-primary-100 dark:border-emerald-900/50">
             <span className="text-primary-800 dark:text-emerald-500 font-bold uppercase text-[10px]">{t("results.npk_blend", "Recommended NPK Blend")}</span>

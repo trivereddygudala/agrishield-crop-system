@@ -330,6 +330,7 @@ const UploadImagePage = () => {
               <>
                 <DiseaseDiagnosisResults
                   liveResult={liveResult}
+                  previewUrl={previewUrl}
                   onDownloadPDF={handleDownloadPDF}
                   onSaveScan={() => navigate('/history')}
                 />

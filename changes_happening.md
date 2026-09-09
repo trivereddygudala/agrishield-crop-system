@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v60) - Full-Suite Multimodal Voice Readout Across Disease Diagnosis, Plant Identification & Agrochemical Scanner
+- **Summary:** Integrated comprehensive voice speech synthesis (`useSpeechReader` hook) across all scan result cards in Disease Diagnosis, Plant Identification, and Agrochemical Label Scanner. Upgraded `CollapsibleSection.jsx` to render prominent, high-contrast speaker buttons on card headers with pulse animations and stop-propagation click handling. Farmers can now tap individual speaker buttons on any card to hear clear spoken explanations in their native language:
+  1. **Disease Diagnosis (`DiseaseDiagnosisResults.jsx` & `PredictionResultPage.jsx`):** Listen Full Summary, Pathology Overview & Symptoms, Organic & Cultural Remedies, Chemical Fungicide Treatment & Backpack Tank Dosage, Crop Economic Impact & Mandi Price Match, 7-Day Treatment Calendar, Safety Precautions & PPE, Prevention & Future Mitigation, and Environmental Triggers & Causes.
+  2. **Plant Identification (`PlantIdResults.jsx`):** Listen Species Summary, Plant Details, Scientific Information, Growing Requirements (sunlight, soil pH, watering, climate temp), and Fertilizer Recommendations.
+  3. **Agrochemical Scanner (`AgrochemicalResults.jsx`):** Listen Product Summary, Product Details, Usage Instructions (dosages, spray intervals), Safety & PPE (toxicity rating, equipment), and Compare Alternatives.
+- **Files modified**: `frontend/src/components/scanCenter/CollapsibleSection.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `changes_happening.md`
+
+## 2026-09-09 (v59) - Voice-Assisted Farmer Readout Integration in Crop Advisor Panel
+- **Summary:** Integrated Web Speech synthesis (`useSpeechReader` hook) across the `CropAdvisorPanel` component (`frontend/src/components/CropAdvisorPanel.jsx`). Farmers can now listen to synthesized voice readings in their native or chosen language for Organic Treatments, Chemical Interventions, Optimal Spray Conditions (timing, wind speed, spray interval), Future Prevention protocols, and Expert Agronomist Tips by tapping individual audio buttons.
+- **Files modified**: `frontend/src/components/CropAdvisorPanel.jsx`, `changes_happening.md`
+
+## 2026-09-09 (v58) - Expanded Multilingual Disease Advisory Knowledge Base & Verification
+- **Summary:** Verified and synchronized disease advisory datasets (`diseaseAdvisoryData.js`) across English, Telugu, and Hindi for key regional crop pathologies (including Groundnut Tikka Leaf Spot, Chilli Anthracnose, Rice Blast, and Powdery Mildew). Ensured standard ICAR/TNAU cultural practices, biological controls, and chemical dosages are reliably mapped across all diagnostic components.
+- **Files modified**: `frontend/src/utils/diseaseAdvisoryData.js`, `changes_happening.md`
+
 ## 2026-09-09 (v57) - Resolved Render 512MB OOM Crashes, Implemented Lazy PyTorch Loading & NVIDIA Vision Guardrails
 - **Summary:** Fixed the persistent Render Free Tier container crash ("Ran out of memory burst over 512MB while running your code"). Traced root cause to module-level imports of `torch` and `timm` consuming ~300MB baseline RSS RAM plus GradCAM `score.backward()` autograd memory spikes. Refactored `model/predict_pytorch.py` and `model/pytorch_model_loader.py` with zero-grad `torch.inference_mode()` activation hooks, single-pass inference (`use_tta=False`), explicit `gc.collect()`, and lazy on-demand module imports. Integrated cloud-native botanical vision pre-check using `meta/llama-3.2-11b-vision-instruct` via `analyze_crop_image` in `backend/app/services/nvidia_service.py` to auto-detect agricultural crop species and reject non-plant images with 0 MB added server memory footprint.
 - **Files modified**: `model/predict_pytorch.py`, `model/pytorch_model_loader.py`, `backend/app/services/nvidia_service.py`, `backend/app/routers/predict.py`, `changes_happening.md`
@@ -1184,23 +1199,21 @@
   - Added safe null-check `if not hasattr(db_instance, "db") or db_instance.db is None: return []` in `get_all_devices()`.
   - Prevents transient `TypeError: 'NoneType' object is not subscriptable` 500 error during initial server cold-start before MongoDB connection completes.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+9/9/2026: Disease Diagnosis Results Voice Readout Audit & Practical Farmer Chemical Guidance:
+1. Complete Text-to-Speech (Voice Speaker) Audit:
+   - Verified active voice readout buttons (`speak()` with `Volume2` and `VolumeX` icons) on every single card in `DiseaseDiagnosisResults.jsx`:
+     - Card 1: Pathology Overview & Symptoms (voice readout active)
+     - Card 2: Organic & Cultural Remedies (voice readout active)
+     - Card 3: Chemical Fungicide Treatment & Dosage (voice readout active)
+     - Card 4: Crop Economic Impact & Mandi Price Match (voice readout active)
+     - Card 5: 7-Day Day-by-Day Prescriptive Treatment Calendar (voice readout active)
+     - Card 6: Safety Precautions & PPE (voice readout active)
+     - Card 7: Prevention & Future Mitigation (voice readout active)
+     - Card 8: Environmental Triggers & Causes (voice readout active)
+     - Top Summary Banner: Primary voice button reading full diagnosis, confidence %, severity, and immediate action.
+2. Practical Indian Market Agro-Chemical Guidance:
+   - Real commercial trade names displayed: Saaf (Carbendazim 12% + Mancozeb 63% WP), Dithane M-45 (Mancozeb 75% WP), Kavach (Chlorothalonil 75% WP).
+   - Practical backpack sprayer dosage table: 15L Knapsack Tank (37.5g chemical in 15L water) and 20L Battery Sprayer (50g chemical in 20L water) with standard 2.5g/L dilution.
+   - Farm Size & Acreage Spray Volume Calculator with chemical weight breakdown.
+3. Chat History Synchronization:
+   - Fully synced all conversations from 09:14 AM through 10:25 AM into `TODAY_CHAT_HISTORY_2026-09-09.md` (37 total messages recovered).

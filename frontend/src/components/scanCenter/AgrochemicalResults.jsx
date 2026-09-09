@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  FlaskConical, ClipboardList, ShieldAlert, Globe, Volume2, ArrowLeftRight, Check
+  FlaskConical, ClipboardList, ShieldAlert, Globe, Volume2, VolumeX, ArrowLeftRight, Check
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button } from '../ui/index';
+import { useSpeechReader } from '../../hooks/useSpeechReader';
 
 const DEFAULT_AGRO_DATA = {
   productName: "Luliconazole Lotion IP / Mancozeb 75% WP",
@@ -50,40 +51,9 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
   }
 
   const info = isDiseaseResult ? adaptedData : { ...DEFAULT_AGRO_DATA, ...data };
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
 
-  const handleVoicePlay = () => {
-    if (!('speechSynthesis' in window)) return;
-    if (isPlaying) {
-      window.speechSynthesis.cancel();
-      setIsPlaying(false);
-      return;
-    }
-    
-    let text = `Scanned Product: ${info.productName}. Category: ${info.category}. Dosage: ${info.dosage}. Safety: ${info.ppe === DEFAULT_AGRO_DATA.ppe ? t('agrochemical.ppe_desc') : info.ppe}`;
-    
-    if (i18n.language === 'hi') {
-      text = `स्कैन किया गया उत्पाद: ${info.productName}. श्रेणी: ${info.category}. खुराक: ${info.dosage}. सुरक्षा: ${info.ppe === DEFAULT_AGRO_DATA.ppe ? t('agrochemical.ppe_desc') : info.ppe}`;
-    } else if (i18n.language === 'te') {
-      text = `స్కాన్ చేయబడిన ఉత్పత్తి: ${info.productName}. వర్గం: ${info.category}. మోతాదు: ${info.dosage}. భద్రత: ${info.ppe === DEFAULT_AGRO_DATA.ppe ? t('agrochemical.ppe_desc') : info.ppe}`;
-    } else if (i18n.language === 'ta') {
-      text = `ஸ்கேன் செய்யப்பட்ட தயாரிப்பு: ${info.productName}. வகை: ${info.category}. அளவு: ${info.dosage}. பாதுகாப்பு: ${info.ppe === DEFAULT_AGRO_DATA.ppe ? t('agrochemical.ppe_desc') : info.ppe}`;
-    }
-
-    const utt = new SpeechSynthesisUtterance(text);
-    
-    const langMap = {
-      'en': 'en-US',
-      'hi': 'hi-IN',
-      'te': 'te-IN',
-      'ta': 'ta-IN'
-    };
-    utt.lang = langMap[i18n.language] || 'en-US';
-    
-    utt.onend = () => setIsPlaying(false);
-    setIsPlaying(true);
-    window.speechSynthesis.speak(utt);
-  };
+  const fullProductSummary = `Scanned Agrochemical Product: ${info.productName}. Category: ${info.category}. Active ingredient: ${info.activeIngredient}. Recommended dosage: ${info.dosage}. Safety instructions: ${info.ppe === DEFAULT_AGRO_DATA.ppe ? t('agrochemical.ppe_desc') : info.ppe}`;
 
   return (
     <div className="space-y-4">
@@ -98,9 +68,21 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
               </span>
             </div>
 
-            <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white leading-tight">
-              {info.productName}
-            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white leading-tight">
+                {info.productName}
+              </h2>
+              <Button
+                variant="glass"
+                size="sm"
+                onClick={() => speak(fullProductSummary, 'agro_summary', i18n.language || 'en')}
+                leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'agro_summary' ? 'animate-bounce text-indigo-300' : 'text-white'}`} />}
+                className="bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm"
+              >
+                {speakingId === 'agro_summary' ? 'Stop Voice' : 'Listen Summary'}
+              </Button>
+            </div>
+
             <p className="text-xs sm:text-sm text-slate-300 font-medium">
               {info.category} • Active: {info.activeIngredient}
             </p>
@@ -114,6 +96,7 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
               <div className="w-full bg-slate-800/80 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700">
                 <div 
                   className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-700 w-full" 
+                  style={{ width: '100%' }}
                 />
               </div>
             </div>
@@ -135,7 +118,17 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
       </Card>
 
       {/* 1. Product Details */}
-      <CollapsibleSection title="Product Details" icon={FlaskConical} badge="Chemical Info" defaultOpen={true}>
+      <CollapsibleSection 
+        title="Product Details" 
+        icon={FlaskConical} 
+        badge="Chemical Info" 
+        defaultOpen={true}
+        onSpeak={() => {
+          const text = `Product Name: ${info.productName}. Category: ${info.category}. Active Ingredient: ${info.activeIngredient}.`;
+          speak(text, 'agro_details', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'agro_details'}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
             <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t('agrochemical.brand_name')}</span>
@@ -153,7 +146,17 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
       </CollapsibleSection>
 
       {/* 2. Usage Instructions */}
-      <CollapsibleSection title={t('agrochemical.usage_instructions')} icon={ClipboardList} badge={t('agrochemical.protocol')} defaultOpen={true}>
+      <CollapsibleSection 
+        title={t('agrochemical.usage_instructions')} 
+        icon={ClipboardList} 
+        badge={t('agrochemical.protocol')} 
+        defaultOpen={true}
+        onSpeak={() => {
+          const text = `Usage Instructions. Recommended rate: ${info.dosage}. Target pathogens: ${info.targetDiseases}. Spray schedule: ${info.sprayInterval}.`;
+          speak(text, 'agro_usage', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'agro_usage'}
+      >
         <div className="space-y-3 text-xs">
           <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
             <span className="text-emerald-800 dark:text-emerald-500 font-bold uppercase text-[10px]">{t('agrochemical.recommended_rate')}</span>
@@ -171,7 +174,17 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
       </CollapsibleSection>
 
       {/* 3. Safety & PPE */}
-      <CollapsibleSection title={t('agrochemical.safety_guidelines')} icon={ShieldAlert} badge={t('agrochemical.safety')} defaultOpen={false}>
+      <CollapsibleSection 
+        title={t('agrochemical.safety_guidelines')} 
+        icon={ShieldAlert} 
+        badge={t('agrochemical.safety')} 
+        defaultOpen={false}
+        onSpeak={() => {
+          const text = `Safety Guidelines. Toxicity rating: ${info.toxicityClass}. Protective equipment: ${info.ppe}. Storage: ${info.storage}.`;
+          speak(text, 'agro_safety', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'agro_safety'}
+      >
         <div className="space-y-3 text-xs">
           <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900/50">
             <span className="text-amber-800 dark:text-amber-500 font-bold uppercase text-[10px]">{t('agrochemical.toxicity_rating')}</span>
@@ -191,9 +204,14 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
       {/* 4. Translation & Voice Readout */}
       <CollapsibleSection title={t('agrochemical.voice_readout')} icon={Volume2} badge={t('agrochemical.accessibility')} defaultOpen={false}>
         <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
-          <Button onClick={handleVoicePlay} variant="outline" size="sm">
-            <Volume2 className={`mr-2 h-4 w-4 ${isPlaying ? 'text-primary-600 animate-bounce' : ''}`} />
-            {isPlaying ? 'Pause Audio' : 'Listen to Product Instructions'}
+          <Button 
+            onClick={() => speak(fullProductSummary, 'agro_panel', i18n.language || 'en')} 
+            variant="outline" 
+            size="sm"
+            className="font-bold active:scale-95"
+          >
+            {speakingId === 'agro_panel' ? <VolumeX className="mr-2 h-4 w-4 text-rose-500 animate-pulse" /> : <Volume2 className="mr-2 h-4 w-4 text-primary-600" />}
+            {speakingId === 'agro_panel' ? 'Stop Voice Readout' : 'Listen to Product Instructions'}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -213,7 +231,17 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
       </CollapsibleSection>
 
       {/* 5. Compare Alternative Products */}
-      <CollapsibleSection title={t('agrochemical.compare_alternatives')} icon={ArrowLeftRight} badge={t('agrochemical.alternatives')} defaultOpen={false}>
+      <CollapsibleSection 
+        title={t('agrochemical.compare_alternatives')} 
+        icon={ArrowLeftRight} 
+        badge={t('agrochemical.alternatives')} 
+        defaultOpen={false}
+        onSpeak={() => {
+          const altText = `Alternative registered crop protection formulas: ${info.alternatives.map(a => `${a.name}, ${a.category}, safety: ${a.safety}`).join('. ')}`;
+          speak(altText, 'agro_alternatives', i18n.language || 'en');
+        }}
+        isSpeaking={speakingId === 'agro_alternatives'}
+      >
         <div className="space-y-2 text-xs">
           <p className="text-slate-600 dark:text-slate-400 font-medium mb-2">Alternative registered crop protection formulas:</p>
           <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">

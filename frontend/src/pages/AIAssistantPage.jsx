@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
+import { useSpeechReader } from '../hooks/useSpeechReader';
 
 /* ───────────────────────────────────────
    Inline text renderer: **bold**, `code`
@@ -283,8 +284,8 @@ const AIAssistantPage = () => {
   const [isSessionsLoaded, setIsSessionsLoaded] = useState(false);
   const [inputQuery, setInputQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
   const [copiedId, setCopiedId] = useState(null);
-  const [speakingId, setSpeakingId] = useState(null);
   const [feedbackMap, setFeedbackMap] = useState({});
   const [isListening, setIsListening] = useState(false);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
@@ -825,6 +826,20 @@ const AIAssistantPage = () => {
                   {/* ChatGPT Style Message Action Toolbar under Assistant response (Picture 2) */}
                   {!isUser && (
                     <div className="flex items-center gap-1 mt-2.5 text-slate-400">
+                      {/* Voice Readout Button */}
+                      <button 
+                        onClick={() => speak(msg.content, msg.id, i18n.language || 'en')}
+                        className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
+                          speakingId === msg.id 
+                            ? 'bg-emerald-500/20 text-emerald-400 animate-pulse' 
+                            : 'hover:bg-slate-100 dark:hover:bg-[#212121] hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                        title={speakingId === msg.id ? "Stop voice readout" : "Listen to answer"}
+                      >
+                        {speakingId === msg.id ? <VolumeX className="w-4 h-4 text-emerald-400" /> : <Volume2 className="w-4 h-4" />}
+                        <span className="text-[10px] hidden sm:inline">{speakingId === msg.id ? 'Stop' : 'Listen'}</span>
+                      </button>
+
                       <button 
                         onClick={() => copyToClipboard(msg.content, msg.id)}
                         className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#212121] hover:text-slate-700 dark:hover:text-slate-200 transition-colors"

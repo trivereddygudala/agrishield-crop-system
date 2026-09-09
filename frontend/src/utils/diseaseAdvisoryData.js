@@ -319,6 +319,206 @@ export const DISEASE_KB = {
       ],
       prevention: "संतुलित पोषण, समय पर सिंचाई और नियमित निरीक्षण जारी रखें।"
     }
+  },
+  "tikka disease": {
+    en: {
+      name: "Tikka Leaf Spot (Cercospora arachidicola / Cercosporidium personatum)",
+      overview: "Destructive fungal leaf spot disease of Groundnut / Peanut causing dark circular to irregular necrotic lesions with bright yellow halos, leading to severe defoliation and pod yield loss.",
+      chemicals: [
+        "Hexaconazole 5% EC (Contaf Plus) @ 2.0 ml/L of water (30 ml per 15L backpack pump).",
+        "Carbendazim 12% + Mancozeb 63% WP (Saaf) @ 2.0 g/L of water (30 g per 15L pump).",
+        "Tebuconazole 25.9% EC (Folicur) @ 1.5 ml/L of water for advanced post-infection curative control.",
+        "Chlorothalonil 75% WP (Kavach) @ 2.0 g/L as preventive protective shield."
+      ],
+      organic: [
+        "Foliar spray of 5% Neem Seed Kernel Extract (NSKE) or Neem oil @ 5 ml/L with soap emulsion.",
+        "Trichoderma viride or Pseudomonas fluorescens @ 5 g/L applied to foliage every 10 days.",
+        "Dusting with agricultural wettable sulfur 80% WDG @ 3 g/L during early vegetative stage."
+      ],
+      prevention: "Practice crop rotation with non-legume crops (Maize, Sorghum). Burn or deeply plow infected crop debris post-harvest."
+    },
+    te: {
+      name: "తిక్కా ఆకుమచ్చ తెగులు (సెర్కోస్పోరా మచ్చ తెగులు)",
+      overview: "వేరుశనగ పంటలో అత్యంత నష్టదాయకమైన శిలీంధ్ర తెగులు. ఆకులపై నల్లటి గుండ్రని మచ్చలు చుట్టూ పసుపు రంగు వలయంతో ఏర్పడి ఆకులు రాలిపోయి కాయల బరువు తగ్గుతుంది.",
+      chemicals: [
+        "హెక్సాకొనజోల్ 5% EC (కాంటాఫ్ ప్లస్) @ 2.0 మి.లీ/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి (15 లీటర్ల ట్యాంకుకు 30 మి.లీ).",
+        "కార్బెండజిమ్ 12% + మాంకోజెబ్ 63% WP (సాఫ్) @ 2.0 గ్రా/లీటర్ నీటిలో (15 లీటర్ల ట్యాంకుకు 30 గ్రాములు).",
+        "టెబుకొనజోల్ 25.9% EC (ఫోలికూర్) @ 1.5 మి.లీ/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి.",
+        "క్లోరోథలోనిల్ 75% WP (కవచ్) @ 2.0 గ్రా/లీటర్ రక్షణ స్ప్రేగా వాడండి."
+      ],
+      organic: [
+        "5% వేప గింజల కషాయం (NSKE) లేదా వేప నూనె @ 5 మి.లీ/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి.",
+        "ట్రైకోడెర్మా విరిడే లేదా సూడోమోనాస్ @ 5 గ్రా/లీటర్ నీటిలో కలిపి పిచికారీ చేయండి.",
+        "నీటిలో కరిగే గంధకం 80% WDG @ 3 గ్రా/లీటర్ ప్రారంభ దశలో వాడండి."
+      ],
+      prevention: "జొన్న లేదా మొక్కజొన్నతో పంట మార్పిడి చేయండి. పంట వ్యర్థాలను తగులబెట్టండి."
+    },
+    hi: {
+      name: "टिक्का रोग / पर्ण चित्ती (सर्कॉस्पोरा लीफ स्पॉट)",
+      overview: "मूंगफली की सबसे विनाशकारी कवक बीमारी। पत्तियों पर गहरे भूरे-काले गोल धब्बे बनते हैं जिनके चारों ओर पीला घेरा होता है, जिससे पत्तियां झड़ जाती हैं।",
+      chemicals: [
+        "हेक्साकोनाज़ोल 5% EC (कोंटाफ प्लस) @ 2.0 मिली/लीटर पानी में (15 लीटर पंप में 30 मिली)।",
+        "कार्बेन्डाजिम 12% + मैनकोजेब 63% WP (साफ) @ 2.0 ग्राम/लीटर पानी में (15 लीटर पंप में 30 ग्राम)।",
+        "टेबुकोनाज़ोल 25.9% EC (फॉलिक्योर) @ 1.5 मिली/लीटर पानी में छिड़कें।",
+        "क्लोरोथैलोनिल 75% WP (कवच) @ 2.0 ग्राम/लीटर सुरक्षात्मक उपयोग करें।"
+      ],
+      organic: [
+        "5% नीम बीज गिरी का अर्क (NSKE) या नीम तेल @ 5 मिली/लीटर का छिड़काव करें।",
+        "ट्राइकोडर्मा विरिडी या स्यूडोमोनास @ 5 ग्राम/लीटर प्रति 10 दिन पर छिड़कें।",
+        "घुलनशील गंधक 80% WDG @ 3 ग्राम/लीटर का प्रयोग करें।"
+      ],
+      prevention: "मक्का या ज्वार के साथ फसल चक्र अपनाएं। फसल अवशेषों को नष्ट करें।"
+    }
+  },
+  "anthracnose": {
+    en: {
+      name: "Anthracnose & Fruit Rot / Dieback (Colletotrichum capsici)",
+      overview: "Severe fungal disease of Chilli and Vegetables causing circular sunken spots with concentric rings on fruits, necrotic twig dieback from tip downwards, and flower drop.",
+      chemicals: [
+        "Azoxystrobin 18.2% + Difenoconazole 11.4% SC (Amistar Top) @ 1.0 ml/L of water (15 ml per 15L tank).",
+        "Copper Oxychloride 50% WP (Blitox 50) @ 2.5 g/L of water (37.5 g per 15L tank).",
+        "Pyraclostrobin 20% WG (Headline / Insignia) @ 1.0 g/L of water.",
+        "Mancozeb 75% WP (Dithane M-45) @ 2.5 g/L as early preventive foliar cover."
+      ],
+      organic: [
+        "Pseudomonas fluorescens foliar spray @ 10 g/L + soil drenching.",
+        "Trichoderma viride bio-fungicide @ 5 g/L applied every 10–12 days.",
+        "Spray Panchagavya (30 ml/L) or Dashaparni Kashayam for natural immunity."
+      ],
+      prevention: "Seed treatment with Thiram @ 3 g/kg seed. Avoid overhead sprinkler irrigation during flowering and fruiting."
+    },
+    te: {
+      name: "ఆంత్రాక్నోస్ / కొమ్మ ఎండు తెగులు & కాయ కుళ్లు (డైబాక్)",
+      overview: "మిరప మరియు కూరగాయలలో వచ్చే తీవ్రమైన శిలీంధ్ర తెగులు. కొమ్మలు పైనుండి కిందికి ఎండిపోతాయి, కాయలపై గుండ్రని నల్లటి గుంటల వంటి మచ్చలు ఏర్పడి కుళ్లిపోతాయి.",
+      chemicals: [
+        "అజాక్సిస్ట్రోబిన్ + డైఫెనోకోనజోల్ (అమిస్టార్ టాప్) @ 1.0 మి.లీ/లీటర్ నీటిలో (15 లీటర్ల ట్యాంకుకు 15 మి.లీ).",
+        "కాపర్ ఆక్సీక్లోరైడ్ 50% WP (బ్లైటాక్స్) @ 2.5 గ్రా/లీటర్ నీటిలో (15 లీటర్ల ట్యాంకుకు 37.5 గ్రాములు).",
+        "పైరాక్లోస్ట్రోబిన్ 20% WG @ 1.0 గ్రా/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి.",
+        "మాంకోజెబ్ 75% WP (డైథేన్ M-45) @ 2.5 గ్రా/లీటర్ రక్షణ స్ప్రేగా వాడండి."
+      ],
+      organic: [
+        "సూడోమోనాస్ ఫ్లోరోసెన్స్ @ 10 గ్రా/లీటర్ నీటిలో కలిపి పిచికారీ చేయండి.",
+        "ట్రైకోడెర్మా విరిడే @ 5 గ్రా/లీటర్ 10-12 రోజులకు ఒకసారి వాడండి.",
+        "పంచగవ్య (30 మి.లీ/లీటర్) లేదా దశపర్ణి కషాయం పిచికారీ చేయండి."
+      ],
+      prevention: "థైరమ్ @ 3 గ్రా/కిలో విత్తనానికి విత్తన శుద్ధి చేయండి. పూత దశలో స్ప్రింక్లర్లతో నీరు ఇవ్వడం ఆపండి."
+    },
+    hi: {
+      name: "एन्थ्रेक्नोज / फल सड़न एवं डाइबैक",
+      overview: "मिर्च और सब्जियों का कवक रोग। टहनियां ऊपर से नीचे की ओर सूखने लगती हैं और फलों पर गोल धंसे हुए काले धब्बे बनते हैं।",
+      chemicals: [
+        "एज़ोक्सिस्ट्रोबिन + डाइफेनोकोनाज़ोल (एमिस्टार टॉप) @ 1.0 मिली/लीटर (15 लीटर पंप में 15 मिली)।",
+        "कॉपर ऑक्सीक्लोराइड 50% WP (ब्लाइटॉक्स 50) @ 2.5 ग्राम/लीटर (15 लीटर पंप में 37.5 ग्राम)।",
+        "पाइराक्लोस्ट्रोबिन 20% WG @ 1.0 ग्राम/लीटर पानी में छिड़कें।",
+        "मैनकोजेब 75% WP (डाइथेन M-45) @ 2.5 ग्राम/लीटर सुरक्षात्मक उपयोग करें।"
+      ],
+      organic: [
+        "स्यूडोमोनास फ्लोरोसेंस @ 10 ग्राम/लीटर का पर्णीय छिड़काव करें।",
+        "ट्राइकोडर्मा विरिडी @ 5 ग्राम/लीटर प्रति 10-12 दिन पर छिड़कें।",
+        "पंचगव्य (30 मिली/लीटर) या दशपर्णी काढ़ा उपयोग करें।"
+      ],
+      prevention: "थीरम @ 3 ग्राम/किग्रा बीज से बीजोपचार करें। फव्वारा सिंचाई से बचें।"
+    }
+  },
+  "blast": {
+    en: {
+      name: "Blast Disease (Magnaporthe oryzae / Pyricularia grisea)",
+      overview: "Devastating fungal disease of Rice and Millets causing spindle-shaped eye lesions with grey centers and brown margins on leaves, neck rot, and node rot.",
+      chemicals: [
+        "Tricyclazole 75% WP (Beam / Baan) @ 0.6 g/L of water (9.0 g per 15L backpack pump).",
+        "Isoprothiolane 40% EC (Fuji-One) @ 1.5 ml/L of water (22.5 ml per 15L pump).",
+        "Kasugamycin 3% SL @ 2.0 ml/L for combined blast and bacterial protection.",
+        "Azoxystrobin 23% SC @ 1.0 ml/L at early boot leaf stage."
+      ],
+      organic: [
+        "Foliar spray of fermented cow urine (10%) mixed with 1% neem oil.",
+        "Pseudomonas fluorescens liquid formulation @ 5 ml/L foliar spray.",
+        "Avoid excessive nitrogen fertilizer application which triggers blast outbreaks."
+      ],
+      prevention: "Plant blast-resistant paddy varieties (MTU 1010, BPT 5204). Maintain balanced potash nutrition."
+    },
+    te: {
+      name: "అగ్గి తెగులు / బ్లాస్ట్ (మెగ్నాపోర్తే ఒరైజే)",
+      overview: "వరి మరియు చిరుధాన్యాలలో వచ్చే తీవ్రమైన తెగులు. ఆకులపై కంటి ఆకారంలో లేదా కండె ఆకారంలో బూడిద రంగు కేంద్రం గల నల్లటి మచ్చలు ఏర్పడతాయి. మెడ విరుపు తెగులుకు దారితీస్తుంది.",
+      chemicals: [
+        "ట్రైసైక్లాజోల్ 75% WP (బీమ్) @ 0.6 గ్రా/లీటర్ నీటిలో (15 లీటర్ల ట్యాంకుకు 9 గ్రాములు).",
+        "ఐసోప్రొథియోలేన్ 40% EC (ఫుజి-వన్) @ 1.5 మి.లీ/లీటర్ నీటిలో (15 లీటర్ల ట్యాంకుకు 22.5 మి.లీ).",
+        "కసుగామైసిన్ 3% SL @ 2.0 మి.లీ/లీటర్ పిచికారీ చేయండి.",
+        "అజాక్సిస్ట్రోబిన్ 23% SC @ 1.0 మి.లీ/లీటర్ ఈనె దశలో వాడండి."
+      ],
+      organic: [
+        "పులిసిన ఆవు మూత్రం (10%) + 1% వేపనూనె కలిపి పిచికారీ చేయండి.",
+        "సూడోమోనాస్ ఫ్లోరోసెన్స్ @ 5 మి.లీ/లీటర్ నీటిలో కలిపి పిచికారీ చేయండి.",
+        "యూరియా (నత్రజని) అధికంగా వేయడం నివారించండి."
+      ],
+      prevention: "తెగులును తట్టుకునే వరి రకాలను వాడండి. పొటాష్ ఎరువులను సిఫార్సు మేరకు వాడండి."
+    },
+    hi: {
+      name: "झोंका रोग / ब्लास्ट (पाइरीकुलरिया ओराइजी)",
+      overview: "धान और मोटे अनाजों का गंभीर कवक रोग। पत्तियों पर नाव या आंख के आकार के धब्बे बनते हैं जिनका केंद्र राख जैसा और किनारे कत्थई होते हैं।",
+      chemicals: [
+        "ट्राइसाइक्लाज़ोल 75% WP (बीम) @ 0.6 ग्राम/लीटर पानी में (15 लीटर पंप में 9 ग्राम)।",
+        "आइसोप्रोथियोलेन 40% EC (फ्यूजी-वन) @ 1.5 मिली/लीटर (15 लीटर पंप में 22.5 मिली)।",
+        "कसूगामाइसिन 3% SL @ 2.0 मिली/लीटर का छिड़काव करें।",
+        "एज़ोक्सिस्ट्रोबिन 23% SC @ 1.0 मिली/लीटर गभोट अवस्था में छिड़कें।"
+      ],
+      organic: [
+        "10% गौमूत्र में 1% नीम का तेल मिलाकर छिड़कें।",
+        "स्यूडोमोनास फ्लोरोसेंस तरल @ 5 मिली/लीटर का छिड़काव करें।",
+        "नाइट्रोजन (यूरिया) का अत्यधिक प्रयोग न करें।"
+      ],
+      prevention: "रोगरोधी धान की किस्में लगाएं। पोटाश का संतुलित प्रयोग करें।"
+    }
+  },
+  "powdery mildew": {
+    en: {
+      name: "Powdery Mildew (Erysiphe / Leveillula taurica)",
+      overview: "Common fungal disease producing white to greyish talcum powder-like fungal patches on the upper leaf surface, causing curling, chlorosis, and premature drying.",
+      chemicals: [
+        "Wettable Sulfur 80% WDG (Sulfex) @ 3.0 g/L of water (45 g per 15L tank).",
+        "Penconazole 10% EC (Topas) @ 0.5 ml/L of water (7.5 ml per 15L tank).",
+        "Dinocap 48% EC (Karathane) @ 1.0 ml/L of water.",
+        "Hexaconazole 5% SC @ 1.0 ml/L of water for deep systemic curative action."
+      ],
+      organic: [
+        "Spray dilute baking soda (Sodium bicarbonate @ 4 g/L + 1 ml liquid soap).",
+        "Raw milk spray diluted 1:9 with water under morning sunlight.",
+        "Foliar spray of Ampelomyces quisqualis bio-fungicide @ 5 g/L."
+      ],
+      prevention: "Ensure good canopy ventilation. Avoid shady, humid planting locations."
+    },
+    te: {
+      name: "బూడిద తెగులు (పౌడరీ మిల్డో)",
+      overview: "ఆకులపై తెల్లటి టాల్కమ్ పౌడర్ లాంటి బూజు పొర ఏర్పడి ఆకులు పసుపు రంగులోకి మారి ఎండిపోయి రాలిపోతాయి.",
+      chemicals: [
+        "నీటిలో కరిగే గంధకం 80% WDG (సల్ఫెక్స్) @ 3.0 గ్రా/లీటర్ (15 లీటర్ల ట్యాంకుకు 45 గ్రాములు).",
+        "పెన్‌కొనజోల్ 10% EC (టోపాస్) @ 0.5 మి.లీ/లీటర్ నీటిలో (15 లీటర్ల ట్యాంకుకు 7.5 మి.లీ).",
+        "డైనోకాప్ 48% EC @ 1.0 మి.లీ/లీటర్ పిచికారీ చేయండి.",
+        "హెక్సాకొనజోల్ 5% SC @ 1.0 మి.లీ/లీటర్ నీటిలో కలపండి."
+      ],
+      organic: [
+        "వంట సోడా (బేకింగ్ సోడా) 4 గ్రా/లీటర్ + కొద్దిగా సబ్బు కలిపి పిచికారీ చేయండి.",
+        "పచ్చి పాలు మరియు నీటి మిశ్రమం (1:9 నిష్పత్తి) ఎండలో పిచికారీ చేయండి.",
+        "ఆంపెలోమైసిస్ క్విస్క్వాలిస్ జీవ శిలీంద్రనాశిని @ 5 గ్రా/లీటర్ వాడండి."
+      ],
+      prevention: "మొక్కల మధ్య తగినంత గాలి వెలుతురు ఉండేలా చూడండి. నీడ ప్రదేశాలలో నాటడం నివారించండి."
+    },
+    hi: {
+      name: "चूर्णिल आसिता / पाउडरी मिल्ड्यू (सफेद फफूंद)",
+      overview: "पत्तियों की ऊपरी सतह पर सफेद पाउडर जैसी फफूंद जम जाती है, जिससे प्रकाश संश्लेषण रुक जाता है और पत्तियां सूख जाती हैं।",
+      chemicals: [
+        "घुलनशील गंधक 80% WDG (सल्फेक्स) @ 3.0 ग्राम/लीटर (15 लीटर पंप में 45 ग्राम)।",
+        "पेनकोनाज़ोल 10% EC (टोपास) @ 0.5 मिली/लीटर (15 लीटर पंप में 7.5 मिली)।",
+        "डाइनोकैप 48% EC @ 1.0 मिली/लीटर का छिड़काव करें।",
+        "हेक्साकोनाज़ोल 5% SC @ 1.0 मिली/लीटर का प्रयोग करें।"
+      ],
+      organic: [
+        "बेकिंग सोडा @ 4 ग्राम/लीटर पानी में थोड़ा साबुन मिलाकर छिड़कें।",
+        "कच्चा दूध और पानी (1:9) का सुबह की धूप में छिड़काव करें।",
+        "नीम तेल (5 मिली/लीटर) नियमित रूप से उपयोग करें।"
+      ],
+      prevention: "पौधों के बीच पर्याप्त दूरी रखें ताकि धूप और हवा मिले।"
+    }
   }
 };
 
@@ -1050,9 +1250,20 @@ export function normalizeDiseaseKey(rawName = '') {
 
 export function getDiseaseDetails(cropName, diseaseName, lang = 'en') {
   const key = normalizeDiseaseKey(diseaseName);
-  const kbKey = (key === 'early_blight' || key === 'late_blight' || key === 'target_spot' || key === 'bacterial_spot' || key === 'rust' || key === 'leaf_curl' || key === 'healthy') 
-    ? (key === 'early_blight' ? 'early blight' : key === 'late_blight' ? 'late blight' : key === 'target_spot' ? 'target spot' : key === 'bacterial_spot' ? 'bacterial spot' : key === 'leaf_curl' ? 'leaf curl virus' : key === 'rust' ? 'common rust' : key)
-    : 'early blight';
+  const keyMap = {
+    'early_blight': 'early blight',
+    'late_blight': 'late blight',
+    'target_spot': 'target spot',
+    'bacterial_spot': 'bacterial spot',
+    'leaf_curl': 'leaf curl virus',
+    'rust': 'common rust',
+    'leaf_spot': 'tikka disease',
+    'anthracnose': 'anthracnose',
+    'blast': 'blast',
+    'powdery_mildew': 'powdery mildew',
+    'healthy': 'healthy'
+  };
+  const kbKey = keyMap[key] || (DISEASE_KB[key] ? key : 'early blight');
   
   const kbEntry = DISEASE_KB[kbKey] || DISEASE_KB['early blight'];
   const language = (lang === 'te' || lang === 'hi') ? lang : 'en';

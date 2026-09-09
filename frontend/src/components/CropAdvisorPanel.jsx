@@ -12,12 +12,16 @@ import {
   Calendar,
   Clock,
   Shield,
-  ThumbsUp
+  ThumbsUp,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { useSpeechReader } from '../hooks/useSpeechReader';
 
 const CropAdvisorPanel = ({ advisor }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { speak, speakingId } = useSpeechReader();
   if (!advisor) return null;
 
   const { crop, severity, treatment, spray, recovery, prevention, tips } = advisor;
@@ -81,13 +85,26 @@ const CropAdvisorPanel = ({ advisor }) => {
         {/* Organic Treatment */}
         {treatment.organic && treatment.organic.length > 0 && (
           <Card className="border-emerald-300 dark:border-emerald-700/70 shadow-sm hover:shadow-md transition-all overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent dark:from-emerald-950/60 dark:to-slate-900 border-b border-emerald-200 dark:border-emerald-800/80 pb-4">
+            <CardHeader className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent dark:from-emerald-950/60 dark:to-slate-900 border-b border-emerald-200 dark:border-emerald-800/80 pb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-emerald-950 dark:text-emerald-300 flex items-center text-lg font-black">
                 <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 mr-2.5 border border-emerald-400/40">
                   <Leaf className="w-5 h-5" />
                 </div>
                 {t('results.organic_approach', 'Organic Approach')}
               </CardTitle>
+              <button
+                type="button"
+                onClick={() => speak(treatment.organic.join('. '), 'advisor_organic', i18n.language || 'en')}
+                className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
+                  speakingId === 'advisor_organic'
+                    ? 'bg-emerald-600 text-white border-emerald-500 animate-pulse shadow-md'
+                    : 'bg-white/80 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border-emerald-300/60 hover:bg-emerald-50'
+                }`}
+                title="Voice readout"
+              >
+                {speakingId === 'advisor_organic' ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_organic' ? 'Stop' : 'Listen'}</span>
+              </button>
             </CardHeader>
             <CardContent className="pt-5">
               <ul className="space-y-3">
@@ -105,13 +122,26 @@ const CropAdvisorPanel = ({ advisor }) => {
         {/* Chemical Treatment */}
         {treatment.chemical && treatment.chemical.length > 0 && (
           <Card className="border-blue-300 dark:border-blue-700/70 shadow-sm hover:shadow-md transition-all overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-500/15 via-indigo-500/10 to-transparent dark:from-blue-950/60 dark:to-slate-900 border-b border-blue-200 dark:border-blue-800/80 pb-4">
+            <CardHeader className="bg-gradient-to-r from-blue-500/15 via-indigo-500/10 to-transparent dark:from-blue-950/60 dark:to-slate-900 border-b border-blue-200 dark:border-blue-800/80 pb-4 flex flex-row items-center justify-between">
               <CardTitle className="text-blue-950 dark:text-blue-300 flex items-center text-lg font-black">
                 <div className="p-2 rounded-xl bg-blue-500/20 text-blue-700 dark:text-blue-300 mr-2.5 border border-blue-400/40">
                   <Activity className="w-5 h-5" />
                 </div>
                 {t('results.chemical_intervention', 'Chemical Intervention')}
               </CardTitle>
+              <button
+                type="button"
+                onClick={() => speak(treatment.chemical.join('. '), 'advisor_chemical', i18n.language || 'en')}
+                className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
+                  speakingId === 'advisor_chemical'
+                    ? 'bg-blue-600 text-white border-blue-500 animate-pulse shadow-md'
+                    : 'bg-white/80 dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-blue-300/60 hover:bg-blue-50'
+                }`}
+                title="Voice readout"
+              >
+                {speakingId === 'advisor_chemical' ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_chemical' ? 'Stop' : 'Listen'}</span>
+              </button>
             </CardHeader>
             <CardContent className="pt-5">
               <ul className="space-y-3">
@@ -131,12 +161,30 @@ const CropAdvisorPanel = ({ advisor }) => {
       {spray.best_time !== "No urgent spray needed" && (
         <Card className="bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-white dark:from-indigo-950/60 dark:via-purple-950/40 dark:to-slate-900 border-indigo-300 dark:border-indigo-700/70 shadow-sm overflow-hidden">
           <CardContent className="p-6">
-            <h3 className="text-lg font-black text-indigo-950 dark:text-indigo-200 mb-5 flex items-center">
-              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 mr-2.5 border border-indigo-400/40">
-                <Droplet className="w-5 h-5" />
-              </div>
-              {t('results.optimal_spray_conditions', 'Optimal Spray Conditions')}
-            </h3>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-black text-indigo-950 dark:text-indigo-200 flex items-center">
+                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 mr-2.5 border border-indigo-400/40">
+                  <Droplet className="w-5 h-5" />
+                </div>
+                {t('results.optimal_spray_conditions', 'Optimal Spray Conditions')}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  const sprayText = `Optimal spray conditions. Best timing: ${spray.best_time}. Wind alert: ${spray.wind_warning}. Spray interval: every ${spray.interval_days} days.`;
+                  speak(sprayText, 'advisor_spray', i18n.language || 'en');
+                }}
+                className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
+                  speakingId === 'advisor_spray'
+                    ? 'bg-indigo-600 text-white border-indigo-500 animate-pulse shadow-md'
+                    : 'bg-white/80 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-indigo-300/60 hover:bg-indigo-50'
+                }`}
+                title="Voice readout"
+              >
+                {speakingId === 'advisor_spray' ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_spray' ? 'Stop' : 'Listen'}</span>
+              </button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800/80 flex items-start space-x-3.5 shadow-2xs">
                 <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-1 shrink-0" />
@@ -168,13 +216,26 @@ const CropAdvisorPanel = ({ advisor }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Prevention */}
         <Card className="border-amber-300 dark:border-amber-700/70 shadow-sm hover:shadow-md transition-all overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent dark:from-amber-950/60 dark:to-slate-900 border-b border-amber-200 dark:border-amber-800/80 pb-4">
+          <CardHeader className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-transparent dark:from-amber-950/60 dark:to-slate-900 border-b border-amber-200 dark:border-amber-800/80 pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-amber-950 dark:text-amber-300 flex items-center text-lg font-black">
               <div className="p-2 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 mr-2.5 border border-amber-400/40">
                 <Shield className="w-5 h-5" />
               </div>
               {t('results.future_prevention', 'Future Prevention')}
             </CardTitle>
+            <button
+              type="button"
+              onClick={() => speak(prevention.join('. '), 'advisor_prevention', i18n.language || 'en')}
+              className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
+                speakingId === 'advisor_prevention'
+                  ? 'bg-amber-600 text-white border-amber-500 animate-pulse shadow-md'
+                  : 'bg-white/80 dark:bg-slate-800 text-amber-600 dark:text-amber-400 border-amber-300/60 hover:bg-amber-50'
+              }`}
+              title="Voice readout"
+            >
+              {speakingId === 'advisor_prevention' ? <VolumeX size={15} /> : <Volume2 size={15} />}
+              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_prevention' ? 'Stop' : 'Listen'}</span>
+            </button>
           </CardHeader>
           <CardContent className="pt-5">
             <ul className="space-y-3">
@@ -190,13 +251,26 @@ const CropAdvisorPanel = ({ advisor }) => {
 
         {/* Farmer Tips */}
         <Card className="border-sky-300 dark:border-sky-700/70 shadow-sm hover:shadow-md transition-all overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-transparent dark:from-sky-950/60 dark:to-slate-900 border-b border-sky-200 dark:border-sky-800/80 pb-4">
+          <CardHeader className="bg-gradient-to-r from-sky-500/15 via-cyan-500/10 to-transparent dark:from-sky-950/60 dark:to-slate-900 border-b border-sky-200 dark:border-sky-800/80 pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sky-950 dark:text-sky-300 flex items-center text-lg font-black">
               <div className="p-2 rounded-xl bg-sky-500/20 text-sky-700 dark:text-sky-300 mr-2.5 border border-sky-400/40">
                 <ThumbsUp className="w-5 h-5" />
               </div>
               {t('results.expert_farmer_tips', 'Expert Farmer Tips')}
             </CardTitle>
+            <button
+              type="button"
+              onClick={() => speak(tips.join('. '), 'advisor_tips', i18n.language || 'en')}
+              className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
+                speakingId === 'advisor_tips'
+                  ? 'bg-sky-600 text-white border-sky-500 animate-pulse shadow-md'
+                  : 'bg-white/80 dark:bg-slate-800 text-sky-600 dark:text-sky-400 border-sky-300/60 hover:bg-sky-50'
+              }`}
+              title="Voice readout"
+            >
+              {speakingId === 'advisor_tips' ? <VolumeX size={15} /> : <Volume2 size={15} />}
+              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_tips' ? 'Stop' : 'Listen'}</span>
+            </button>
           </CardHeader>
           <CardContent className="pt-5">
             <ul className="space-y-3">
