@@ -80,7 +80,7 @@ const SettingsPage = () => {
       const payload = {
         name: fullName,
         mobile: mobileNumber,
-        preferred_language: language,
+        preferred_language: user?.preferred_language || i18n.language || 'en',
       };
 
       if (password) {
@@ -129,6 +129,24 @@ const SettingsPage = () => {
                 <div className="text-left">
                   <p className="text-xs font-bold text-slate-900 dark:text-white">Notifications Inbox</p>
                   <p className="text-[10px] text-slate-450 dark:text-white/30">View recent system alerts and broadcasts</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/30 shrink-0" />
+            </Card>
+          </Link>
+
+          <Link to="/languages" className="block">
+            <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-slate-200/80 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] hover:border-teal-500/40">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🌐</span>
+                <div className="text-left">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">{t('more.tools.languages.label', 'Languages')}</p>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-teal-500/15 text-teal-700 dark:text-teal-300">
+                      1-Tap
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-450 dark:text-white/30">Switch Telugu, Hindi, Tamil & 9 more</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/30 shrink-0" />
@@ -386,20 +404,6 @@ const SettingsPage = () => {
               disabled
               helperText="Email address cannot be changed."
               className="bg-white dark:bg-slate-900 text-xs font-bold"
-            />
-            <Select
-              label="System Language"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              options={[
-                { value: 'en', label: 'English (US)' },
-                { value: 'hi', label: 'Hindi (हिंदी)' },
-                { value: 'te', label: 'Telugu (తెలుగు)' },
-                { value: 'ta', label: 'Tamil (தமிழ்)' },
-                { value: 'mr', label: 'Marathi (मराठी)' },
-                { value: 'pa', label: 'Punjabi (ਪੰਜਾਬੀ)' }
-              ]}
-              className="text-xs font-bold text-slate-800 dark:text-white"
             />
           </div>
         </Card>

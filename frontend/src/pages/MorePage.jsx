@@ -21,8 +21,11 @@ import {
   X,
   Leaf,
   TrendingUp,
-  Bell
+  Bell,
+  Globe
 } from 'lucide-react';
+import LanguageSelectModal from '../components/common/LanguageSelectModal';
+import { getLanguageByCode } from '../data/languages';
 
 const SectionHeader = ({ title, first = false }) => (
   <p className={`text-[10.5px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1 mb-2.5 ${first ? 'mt-0' : 'mt-6'}`}>
@@ -30,16 +33,23 @@ const SectionHeader = ({ title, first = false }) => (
   </p>
 );
 
-const MenuCard = ({ icon: Icon, label, description, path, iconColor, iconBg, accent, onClick }) => (
+const MenuCard = ({ icon: Icon, label, description, path, iconColor, iconBg, accent, badge, onClick }) => (
   <button
-    onClick={() => onClick(path)}
-    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-l-4 ${accent} bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-xs active:scale-[0.98] active:shadow-none transition-all duration-150 text-left group`}
+    onClick={() => onClick ? onClick(path) : null}
+    className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border-l-4 ${accent} bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-xs active:scale-[0.98] active:shadow-none transition-all duration-150 text-left group cursor-pointer`}
   >
     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
       <Icon className={`w-5 h-5 ${iconColor}`} />
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">{label}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">{label}</p>
+        {badge && (
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 shrink-0">
+            {badge}
+          </span>
+        )}
+      </div>
       <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-snug mt-0.5 line-clamp-1">{description}</p>
     </div>
     <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 group-hover:text-slate-700 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all" />
@@ -47,12 +57,15 @@ const MenuCard = ({ icon: Icon, label, description, path, iconColor, iconBg, acc
 );
 
 const MorePage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { hardwareMode } = useHardwareMode();
   const isAdmin = user?.role === 'admin';
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [languageModalOpen, setLanguageModalOpen] = useState(false);
+
+  const currentLang = getLanguageByCode(i18n.language);
 
   const FARMING_TOOLS = [
     { 
@@ -143,6 +156,17 @@ const MorePage = () => {
 
   const ACCOUNT_TOOLS = [
     { 
+      icon: Globe,     
+      label: t('more.tools.languages.label', 'Languages'), 
+      description: t('more.tools.languages.desc', 'Change app language directly with 1-tap instant switch'),    
+      path: '/languages', 
+      onClick: () => setLanguageModalOpen(true),
+      iconColor: 'text-teal-600 dark:text-teal-400', 
+      iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800', 
+      accent: 'border-l-teal-500',
+      badge: currentLang.nativeName
+    },
+    { 
       icon: Bell,     
       label: t('more.tools.notifications.label', 'Notifications Inbox'), 
       description: t('more.tools.notifications.desc', 'Outbreak warnings, spray reminders & alerts'),    
@@ -154,7 +178,7 @@ const MorePage = () => {
     { 
       icon: User,     
       label: t('more.tools.profile.label', 'My Profile'),          
-      description: t('more.tools.profile.desc', 'Name, phone number, language and farm location'), 
+      description: t('more.tools.profile.desc', 'Name, phone number, and farm location'), 
       path: '/profile',       
       iconColor: 'text-rose-600 dark:text-rose-400',   
       iconBg: 'bg-rose-100 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-800',     
@@ -163,7 +187,7 @@ const MorePage = () => {
     { 
       icon: Settings, 
       label: t('more.tools.settings.label', 'System Settings'),     
-      description: t('more.tools.settings.desc', 'Language, dark theme, and Hardware Mode switch'), 
+      description: t('more.tools.settings.desc', 'Theme, display accessibility, and Hardware Mode switch'), 
       path: '/settings',      
       iconColor: 'text-emerald-600 dark:text-emerald-400', 
       iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800', 
@@ -218,6 +242,17 @@ const MorePage = () => {
 
   const ADMIN_SYSTEM_TOOLS = [
     {
+      icon: Globe,
+      label: t('more.tools.languages.label', 'Languages'),
+      description: t('more.tools.languages.desc', 'Change app language directly with 1-tap instant switch'),
+      path: '/languages',
+      onClick: () => setLanguageModalOpen(true),
+      iconColor: 'text-teal-600 dark:text-teal-400',
+      iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
+      accent: 'border-l-teal-500',
+      badge: currentLang.nativeName
+    },
+    {
       icon: Bell,
       label: 'Notifications Box',
       description: 'Review high-priority system alerts and broadcasts',
@@ -238,7 +273,7 @@ const MorePage = () => {
     {
       icon: Settings,
       label: 'System Settings',
-      description: 'Theme toggle, display accessibility & language',
+      description: 'Theme toggle, display accessibility & mode switches',
       path: '/settings',
       iconColor: 'text-teal-600 dark:text-teal-400',
       iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
@@ -290,30 +325,30 @@ const MorePage = () => {
             {ADMIN_COMMAND_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={navigate} />)}
           </div>
 
-          <SectionHeader title="⚙️ System &amp; Preferences" />
+          <SectionHeader title="⚙️ System & Preferences" />
           <div className="flex flex-col gap-2.5">
-            {ADMIN_SYSTEM_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={navigate} />)}
+            {ADMIN_SYSTEM_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={item.onClick || navigate} />)}
           </div>
         </>
       ) : (
         <>
           <SectionHeader title={t('more.sections.farming', '🌾 Farming Tools')} first />
           <div className="flex flex-col gap-2.5">
-            {FARMING_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={navigate} />)}
+            {FARMING_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={item.onClick || navigate} />)}
           </div>
 
           {hardwareMode && (
             <>
               <SectionHeader title={t('more.sections.hardware', '🔧 Hardware & Devices')} />
               <div className="flex flex-col gap-2.5">
-                {HARDWARE_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={navigate} />)}
+                {HARDWARE_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={item.onClick || navigate} />)}
               </div>
             </>
           )}
 
           <SectionHeader title={t('more.sections.account', '👤 Account & Preferences')} />
           <div className="flex flex-col gap-2.5">
-            {ACCOUNT_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={navigate} />)}
+            {ACCOUNT_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={item.onClick || navigate} />)}
           </div>
         </>
       )}
@@ -409,6 +444,11 @@ const MorePage = () => {
           </div>
         )}
       </AnimatePresence>
+      {/* ── Language Selection Modal ── */}
+      <LanguageSelectModal 
+        isOpen={languageModalOpen} 
+        onClose={() => setLanguageModalOpen(false)} 
+      />
     </div>
   );
 };

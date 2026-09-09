@@ -39,6 +39,7 @@ const CropAdvisoryPage = lazyWithRetry(() => import('./pages/CropAdvisoryPage'))
 const MarketPricesPage = lazyWithRetry(() => import('./pages/MarketPricesPage'));
 const NodeControlPage = lazyWithRetry(() => import('./pages/NodeControlPage'));
 const MorePage = lazyWithRetry(() => import('./pages/MorePage'));
+const LanguagesPage = lazyWithRetry(() => import('./pages/LanguagesPage'));
 
 // Layout wrapper for internal dashboard views
 const DashboardLayout = () => {
@@ -155,6 +156,8 @@ function App() {
                     <Route path="/farm-analytics" element={<FarmAnalyticsPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/languages" element={<LanguagesPage />} />
+                    <Route path="/language" element={<Navigate to="/languages" replace />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/admin/*" element={<AdminPage />} />
                     <Route path="/admin-panel" element={<Navigate to="/admin" replace />} />

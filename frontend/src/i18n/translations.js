@@ -672,15 +672,19 @@ export const resources = {
           },
           "profile": {
             "label": "My Profile",
-            "desc": "Name, phone number, language and farm location"
+            "desc": "Name, phone number, and farm location"
           },
           "settings": {
             "label": "System Settings",
-            "desc": "Language, dark theme, and Hardware Mode switch"
+            "desc": "Theme, display accessibility, and Hardware Mode switch"
           },
           "admin": {
             "label": "Admin Control Center",
             "desc": "User management, system diagnostics & logs"
+          },
+          "languages": {
+            "label": "Languages",
+            "desc": "Change app language directly with 1-tap instant switch"
           }
         },
         "sign_out": "Sign Out of AgriShield",
@@ -882,6 +886,21 @@ export const resources = {
         "title": "Agronomy & Crop Advisory Hub",
         "badge": "AI Directive",
         "subtitle": "Prioritized daily AI farming actions, intelligence activity streams, health index metrics & crop lifecycle management for {{farm}}."
+      },
+      "languages_page": {
+        "title": "System Languages / భాషల ఎంపిక",
+        "subtitle": "Choose your preferred regional language. Live changes apply instantly without requiring any Save Changes button.",
+        "back_to_more": "← Back to More",
+        "currently_active": "Currently Active Language",
+        "available_languages": "Available Indian Languages (12 Locales)",
+        "instant_notice": "Languages switched here take effect globally across all pages, AI diagnostics, voice agronomist consultations, and weather forecasts without requiring you to submit any profile forms."
+      },
+      "languages_modal": {
+        "title": "Choose System Language / భాషను ఎంచుకోండి",
+        "subtitle": "Tap any regional language to switch immediately without saving.",
+        "current_active": "Active Language",
+        "no_save_needed": "No save button needed • Changes apply live",
+        "footer_info": "Telugu, Hindi, Tamil & 9 other Indian regional languages supported."
       }
     }
   },
@@ -2410,15 +2429,19 @@ export const resources = {
           },
           "profile": {
             "label": "నా ప్రొఫైల్",
-            "desc": "పేరు, ఫోన్ నంబర్, భాష మరియు పొలం స్థానం"
+            "desc": "పేరు, ఫోన్ నంబర్ మరియు పొలం స్థానం"
           },
           "settings": {
             "label": "సిస్టమ్ సెట్టింగ్‌లు",
-            "desc": "భాష, డార్క్ థీమ్ మరియు హార్డ్‌వేర్ మోడ్ మార్పిడి"
+            "desc": "థీమ్, డిస్‌ప్లే మోడ్లు మరియు హార్డ్‌వేర్ మోడ్ మార్పిడి"
           },
           "admin": {
             "label": "అడ్మిన్ కంట్రోల్ సెంటర్",
             "desc": "యూజర్ నిర్వహణ, సిస్టమ్ డయాగ్నస్టిక్స్ & లాగ్స్"
+          },
+          "languages": {
+            "label": "భాషలు (Languages)",
+            "desc": "యాప్ భాషను 1-క్లిక్‌తో నేరుగా మార్చండి (తెలుగు, English, हिंदी...)"
           }
         },
         "sign_out": "లాగ్ అవుట్ చేయండి",
@@ -2585,6 +2608,21 @@ export const resources = {
         "title": "వ్యవసాయం & పంట సలహా కేంద్రం",
         "badge": "AI మార్గదర్శకం",
         "subtitle": "{{farm}} కోసం రోజువారీ ప్రాధాన్యత AI వ్యవసాయ పనులు, ఇంటెలిజెన్స్ అప్‌డేట్‌లు & పంట జీవిత చక్ర నిర్వహణ."
+      },
+      "languages_page": {
+        "title": "సిస్టమ్ భాషలు (Languages)",
+        "subtitle": "మీ ప్రాధాన్యత ప్రాంతీయ భాషను ఎంచుకోండి. సేవ్ మార్పుల బటన్ అవసరం లేకుండా మార్పులు తక్షణమే వర్తిస్తాయి.",
+        "back_to_more": "← ఇతర సేవలకు తిరిగి వెళ్లండి",
+        "currently_active": "ప్రస్తుతం యాక్టివ్‌గా ఉన్న భాష",
+        "available_languages": "అందుబాటులో ఉన్న భారతీయ భాషలు (12 భాషలు)",
+        "instant_notice": "ఇక్కడ మార్చిన భాష అన్ని పేజీలు, AI వ్యాధి నిర్ధారణ, అగ్రోనమిస్ట్ కన్సల్టేషన్లలో తక్షణమే అమలులోకి వస్తుంది."
+      },
+      "languages_modal": {
+        "title": "భాషను ఎంచుకోండి (Choose Language)",
+        "subtitle": "సేవ్ చేయకుండా తక్షణమే మారడానికి ఏదైనా ప్రాంతీయ భాషపై నొక్కండి.",
+        "current_active": "యాక్టివ్ భాష",
+        "no_save_needed": "సేవ్ బటన్ అవసరం లేదు • లైవ్‌గా మారుతుంది",
+        "footer_info": "తెలుగు, హిందీ, తమిళం మరియు మరో 9 భారతీయ ప్రాంతీయ భాషలకు మద్దతు ఉంది."
       }
     }
   },

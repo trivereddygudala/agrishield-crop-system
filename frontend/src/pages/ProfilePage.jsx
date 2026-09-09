@@ -248,7 +248,7 @@ const ProfilePage = () => {
     try {
       const updatePayload = {
         name: name.trim(),
-        preferred_language: preferredLanguage,
+        preferred_language: user?.preferred_language || i18n.language || 'en',
       };
 
       if (userRole === 'admin') {
@@ -263,10 +263,6 @@ const ProfilePage = () => {
       }
 
       await updateProfile(updatePayload);
-      if (preferredLanguage) {
-        i18n.changeLanguage(preferredLanguage);
-        localStorage.setItem('i18nextLng', preferredLanguage);
-      }
       setToastMsg('Profile details updated successfully.');
       setErrorMsg('');
       setAdminPassword('');
@@ -500,27 +496,6 @@ const ProfilePage = () => {
                           ]}
                           className="text-xs font-bold text-slate-800 dark:text-white"
                         />
-
-                        <Select
-                          label="AI Language Preference"
-                          value={preferredLanguage}
-                          onChange={(e) => setPreferredLanguage(e.target.value)}
-                          options={[
-                            { value: 'en', label: 'English' },
-                            { value: 'te', label: 'Telugu (తెలుగు)' },
-                            { value: 'hi', label: 'Hindi (हिंदी)' },
-                            { value: 'ta', label: 'Tamil (தமிழ்)' },
-                            { value: 'kn', label: 'Kannada (ಕನ್ನಡ)' },
-                            { value: 'ml', label: 'Malayalam (മലയാളം)' },
-                            { value: 'mr', label: 'Marathi (मराठी)' },
-                            { value: 'gu', label: 'Gujarati (ગુજરાતી)' },
-                            { value: 'pa', label: 'Punjabi (ਪੰਜਾਬੀ)' },
-                            { value: 'ur', label: 'Urdu (اردو)' },
-                            { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
-                            { value: 'as', label: 'Assamese (অসমীয়া)' }
-                          ]}
-                          className="text-xs font-bold text-slate-800 dark:text-white"
-                        />
                       </div>
                     </>
                   )}
@@ -550,29 +525,6 @@ const ProfilePage = () => {
                           value={adminConfirmPassword}
                           onChange={(e) => setAdminConfirmPassword(e.target.value)}
                           className="bg-white dark:bg-slate-900 text-xs font-bold"
-                        />
-                      </div>
-
-                      <div className="pt-2">
-                        <Select
-                          label="System Language Preference"
-                          value={preferredLanguage}
-                          onChange={(e) => setPreferredLanguage(e.target.value)}
-                          options={[
-                            { value: 'en', label: 'English' },
-                            { value: 'te', label: 'Telugu (తెలుగు)' },
-                            { value: 'hi', label: 'Hindi (हिंदी)' },
-                            { value: 'ta', label: 'Tamil (தமிழ்)' },
-                            { value: 'kn', label: 'Kannada (ಕನ್ನಡ)' },
-                            { value: 'ml', label: 'Malayalam (മലയാളം)' },
-                            { value: 'mr', label: 'Marathi (मराठी)' },
-                            { value: 'gu', label: 'Gujarati (ગુજરાતી)' },
-                            { value: 'pa', label: 'Punjabi (ਪੰਜਾਬੀ)' },
-                            { value: 'ur', label: 'Urdu (اردو)' },
-                            { value: 'or', label: 'Odia (ଓଡ଼ିଆ)' },
-                            { value: 'as', label: 'Assamese (অসমীয়া)' }
-                          ]}
-                          className="text-xs font-bold text-slate-800 dark:text-white"
                         />
                       </div>
                     </div>

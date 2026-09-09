@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v78) - Dedicated "Languages" Tab in More & 1-Tap Instant Language Switching
+- **Summary:** Fulfilled the user's request to eliminate the tedious workflow of changing language in Profile/Settings (which required opening Profile, scrolling, selecting from a dropdown, and clicking "Save Changes"). Implemented a dedicated "Languages" tab in the More menu with 1-tap live switching across 12 Indian regional languages, and removed the obsolete dropdowns from Profile and Settings:
+  1. 🌐 **New "Languages" Tab in More Hub (`MorePage.jsx`):**
+     - Added a prominent `Languages (భాష)` card inside `ACCOUNT_TOOLS` (for farmers) and `ADMIN_SYSTEM_TOOLS` (for admins).
+     - Displays a live badge with the currently active language (e.g., `తెలుగు`, `English`, `हिंदी`).
+     - Tapping the card opens the interactive `LanguageSelectModal` immediately without leaving the page.
+     - Updated profile description to `"Name, phone number, and farm location"` (removing mention of language).
+  2. ⚡ **1-Tap Live Language Switcher Modal & Page (`LanguageSelectModal.jsx`, `LanguagesPage.jsx`, `languages.js`):**
+     - Created `frontend/src/data/languages.js` cataloging all 12 supported Indian regional languages (Telugu, English, Hindi, Tamil, Kannada, Malayalam, Marathi, Gujarati, Punjabi, Urdu, Odia, Assamese) with native scripts, greetings, and regional metadata.
+     - Created `LanguageSelectModal.jsx`: 1-tap switching instantly triggers `i18n.changeLanguage(code)`, updates `localStorage`, and silently syncs `preferred_language` to user account profile in the background. **Zero save buttons needed.**
+     - Created dedicated `LanguagesPage.jsx` registered to routes `/languages` and `/language` in `App.jsx` with responsive 12-language card grid and direct back navigation to `/more`.
+  3. 🧹 **Removed Obsolete Language Dropdowns from Forms (`ProfilePage.jsx`, `SettingsPage.jsx`):**
+     - Stripped `<Select label="AI Language Preference" ...>` from both farmer and admin profile forms in `ProfilePage.jsx`.
+     - Streamlined the profile update submission to preserve existing user language without requiring form input.
+     - Removed `<Select label="System Language" ...>` from the Personal Information form in `SettingsPage.jsx`.
+     - Added a clean 1-tap "Languages" quick card in `SettingsPage.jsx` that links directly to `/languages`, balancing the quick access grid.
+  4. 🌍 **Localization Updates (`translations.js`):**
+     - Enriched `more.tools.languages`, `languages_page`, and `languages_modal` across English (`en`) and Telugu (`te`).
+     - Verified with `npm --prefix frontend run build` (compiled cleanly with 0 errors).
+- **Files modified**: `frontend/src/App.jsx`, `frontend/src/data/languages.js`, `frontend/src/components/common/LanguageSelectModal.jsx`, `frontend/src/pages/LanguagesPage.jsx`, `frontend/src/pages/MorePage.jsx`, `frontend/src/pages/ProfilePage.jsx`, `frontend/src/pages/SettingsPage.jsx`, `frontend/src/i18n/translations.js`, `changes_happening.md`
+
 ## 2026-09-09 (v77) - Removal of Legacy 4-Corner Mock Scan & Neatly Adjusted Card Layout
 - **Summary:** Removed the redundant legacy mock "4-Corner Field Scan" toggle and 4-quadrant inspector card in favor of the production-ready "Multi-Leaf Plot Scan (2–5)" feature, and re-aligned the scan center cards for optimal mobile and desktop ergonomics:
   1. 🗑️ **Removed Legacy 4-Corner Mock Toggle (`ScanImageUploader.jsx`):**
