@@ -1336,7 +1336,7 @@ export function translateCrop(cropName = '', lang = 'en') {
   return cropName;
 }
 
-export function translateDisease(diseaseName = '', lang = 'en') {
+export function translateDisease(diseaseName = '', lang = 'en', cropName = '') {
   if (!diseaseName) return '';
   const key = normalizeDiseaseKey(diseaseName);
   
@@ -1344,6 +1344,21 @@ export function translateDisease(diseaseName = '', lang = 'en') {
   if (COMMON_DISEASES[key]) {
     const langEntry = COMMON_DISEASES[key][lang] || COMMON_DISEASES[key]['en'];
     if (langEntry) {
+      const isGroundnut = cropName && (cropName.toLowerCase().includes('groundnut') || cropName.toLowerCase().includes('peanut'));
+      if (key === 'leaf_spot' && !isGroundnut) {
+        return langEntry
+          .replace(/\(Tikka\s*\/\s*Cercospora\)/gi, '(Cercospora)')
+          .replace(/\s*\/\s*తిక్క తెగులు/g, '')
+          .replace(/\s*\/\s*टिक्का रोग/g, '')
+          .replace(/\s*\/\s*திக்கா நோய்/g, '')
+          .replace(/\s*\/\s*ತಿಕ್ಕಾ ರೋಗ/g, '')
+          .replace(/\s*\/\s*ടിക്ക രോഗം/g, '')
+          .replace(/\s*\/\s*ટીક્કા રોગ/g, '')
+          .replace(/\s*\/\s*ਟਿੱਕਾ ਰੋਗ/g, '')
+          .replace(/\s*\/\s*ଟିକା ରୋଗ/g, '')
+          .replace(/\s*\/\s*টিকা ৰোগ/g, '')
+          .replace(/\s*\/\s*ٹکا بیماری/g, '');
+      }
       return langEntry;
     }
   }

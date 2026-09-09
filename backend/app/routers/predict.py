@@ -590,11 +590,14 @@ async def predict_pytorch_endpoint(
             detail="Specified image file does not exist on server."
         )
 
+    # Check if user explicitly designated a target crop category filter
+    user_crop_filter = (getattr(req, "crop_filter", None) or "").strip()
+
     # Multimodal Cloud Vision Guardrail: Verify real crop leaf and detect botanical species using NVIDIA Llama-3.2 Vision NIM
     detected_vision_crop = None
     try:
         from backend.app.services.nvidia_service import nvidia_service
-        vision_analysis = await nvidia_service.analyze_crop_image(full_image_path)
+        vision_analysis = await nvidia_service.analyze_crop_image(full_image_path, crop_hint=user_crop_filter)
         if vision_analysis:
             if vision_analysis.get("is_valid_leaf") is False:
                 raise HTTPException(
@@ -613,7 +616,8 @@ async def predict_pytorch_endpoint(
         import inspect
         sig = inspect.signature(predict_crop_disease)
         kwargs = {}
-        active_crop_filter = getattr(req, "crop_filter", None) or detected_vision_crop
+        # User selection has absolute sovereign priority over any vision model guess
+        active_crop_filter = user_crop_filter if user_crop_filter else detected_vision_crop
         if "crop_filter" in sig.parameters:
             kwargs["crop_filter"] = active_crop_filter
         elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
@@ -647,7 +651,11 @@ async def predict_pytorch_endpoint(
 
     confidence = float(prediction_result.get("confidence", 0.0))
     if confidence < threshold:
-        if detected_vision_crop:
+        if user_crop_filter:
+            # User manually designated the crop; keep confidence viable
+            prediction_result["confidence"] = max(confidence, 0.70)
+            prediction_result["crop_name"] = user_crop_filter.title()
+        elif detected_vision_crop:
             # The vision model confirmed this is a valid agricultural crop leaf; adjust confidence
             prediction_result["confidence"] = max(confidence, 0.65)
             prediction_result["crop_name"] = detected_vision_crop
@@ -657,8 +665,10 @@ async def predict_pytorch_endpoint(
                 detail=f"Low confidence ({confidence * 100:.1f}%) - Unsupported crop or unknown input. Please upload a supported crop leaf image."
             )
 
-    # Harmonize predicted crop with verified botanical vision identification if available
-    if detected_vision_crop and prediction_result.get("crop_name") != detected_vision_crop:
+    # Harmonize predicted crop: ALWAYS strictly lock to user_crop_filter if specified
+    if user_crop_filter:
+        prediction_result["crop_name"] = user_crop_filter.title()
+    elif detected_vision_crop and prediction_result.get("crop_name") != detected_vision_crop:
         prediction_result["crop_name"] = detected_vision_crop
 
     # Refine borderline prediction using NVIDIA NIM LLM reasoning ONLY if there is true ambiguity
@@ -715,7 +725,7 @@ async def predict_pytorch_endpoint(
                 
                 if matched_cand:
                     print(f"[NVIDIA REFINEMENT SUCCESS] Tie-break resolved to: {matched_cand['disease_name']} ({refinement.get('confidence', 0.90)})")
-                    prediction_result["crop_name"] = matched_cand.get("crop_name", prediction_result["crop_name"])
+                    prediction_result["crop_name"] = user_crop_filter.title() if user_crop_filter else matched_cand.get("crop_name", prediction_result["crop_name"])
                     prediction_result["disease_name"] = matched_cand["disease_name"]
                     prediction_result["confidence"] = min(float(refinement.get("confidence", 0.90)), 0.95)
                     if prediction_result.get("top_predictions"):

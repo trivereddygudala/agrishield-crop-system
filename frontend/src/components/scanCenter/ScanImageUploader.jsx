@@ -794,53 +794,40 @@ const ScanImageUploader = ({
           </div>
         </div>
       ) : (
-        /* Image Selected / Preview Box */
-        <div className="relative rounded-3xl border border-slate-200 dark:border-white/10 bg-slate-900/90 dark:bg-black/95 overflow-hidden flex items-center justify-center min-h-[380px] max-h-[520px]">
-          
-          {/* Subtle diagnostic laser scan line */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/5 to-transparent h-20 w-full pointer-events-none" />
-
-          <img
-            src={showGradcam && liveResult?.gradcam_base64 ? liveResult.gradcam_base64 : previewUrl}
-            alt="Crop Preview"
-            className="w-full h-full object-contain max-h-[520px] relative z-10"
-          />
-          
-          {/* Unified Sleek Top Bar (No clumsy overlapping badges) */}
-          <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2 z-20 pointer-events-auto">
-            {/* Left: Clean status pill */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white shadow-xl max-w-[65%] truncate">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              {lastCapturedMeta?.detectedCrop ? (
-                <span className="text-xs font-black truncate text-white">
-                  {lastCapturedMeta.detectedCrop} <span className="text-emerald-400 font-normal">({lastCapturedMeta.confidence}%)</span>
-                </span>
-              ) : (
-                <span className="text-xs font-bold text-white/90">Leaf Photo Ready</span>
-              )}
+        /* Image Selected / Preview Card */
+        <div className="rounded-3xl border border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/70 backdrop-blur-md p-3.5 sm:p-4 shadow-xl">
+          {/* Header Row: Crop Status Badge & Top Action Controls */}
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 shadow-xs max-w-[70%] truncate">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="text-xs font-black truncate">
+                {lastCapturedMeta?.detectedCrop || selectedCropFilter || 'Ready to Analyze'}
+                {lastCapturedMeta?.confidence ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold ml-1">({lastCapturedMeta.confidence}%)</span>
+                ) : ''}
+              </span>
             </div>
 
-            {/* Right: Clean action icon buttons */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               {liveResult?.gradcam_base64 && (
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); setShowGradcam(!showGradcam); }}
-                  className={`h-9 px-3 text-xs font-bold rounded-full backdrop-blur-md transition-all border shadow-lg flex items-center gap-1.5 ${
+                  className={`h-8 px-3 text-xs font-extrabold rounded-full transition-all border shadow-xs flex items-center gap-1.5 cursor-pointer ${
                     showGradcam 
                       ? 'bg-rose-500 text-white border-rose-400 hover:bg-rose-600' 
-                      : 'bg-black/80 text-emerald-400 border-white/15 hover:bg-black/90'
+                      : 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border-slate-200 dark:border-white/10 hover:bg-slate-50'
                   }`}
                   title="Toggle Heatmap"
                 >
                   <Cpu className="w-3.5 h-3.5" />
-                  <span className="text-[11px] font-extrabold">{showGradcam ? 'Hide Heatmap' : 'Heatmap'}</span>
+                  <span>{showGradcam ? 'Hide Heatmap' : 'Heatmap'}</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => { setShowGradcam(false); setLastCapturedMeta(null); onClear(); }}
-                className="w-9 h-9 rounded-full bg-black/80 hover:bg-rose-600 text-white/80 hover:text-white backdrop-blur-md transition-all border border-white/15 flex items-center justify-center shadow-lg active:scale-95 cursor-pointer"
+                className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-300 transition-all border border-slate-300/50 dark:border-white/10 flex items-center justify-center shadow-xs active:scale-95 cursor-pointer"
                 title="Remove Image"
               >
                 <X className="w-4 h-4" />
@@ -848,22 +835,43 @@ const ScanImageUploader = ({
             </div>
           </div>
 
-          {/* Bottom Photo Info Bar */}
-          <div className="absolute bottom-3 inset-x-3 flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-black/85 backdrop-blur-md text-white border border-white/15 text-xs z-20 shadow-xl">
-            <div className="flex items-center gap-2 truncate min-w-0">
-              <ImageIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate font-semibold text-white/90 text-[11px]">{selectedFile?.name || 'Selected Crop Photo'}</span>
+          {/* Clean Image Viewport with Ambient Diffused Backdrop */}
+          <div className="relative rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center min-h-[260px] max-h-[400px] sm:max-h-[460px] w-full shadow-inner">
+            {/* Ambient blurred glow of the leaf photo itself */}
+            <img
+              src={previewUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-35 scale-110 pointer-events-none"
+            />
+
+            {/* Subtle diagnostic laser scan line */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/10 to-transparent h-24 w-full pointer-events-none z-10" />
+
+            {/* Foreground leaf photo - crisp, unobstructed, centered */}
+            <img
+              src={showGradcam && liveResult?.gradcam_base64 ? liveResult.gradcam_base64 : previewUrl}
+              alt="Crop Leaf Preview"
+              className="relative z-10 max-h-[390px] sm:max-h-[450px] w-auto h-auto object-contain rounded-xl shadow-2xl transition-transform"
+            />
+          </div>
+
+          {/* Bottom Metadata Bar - OUTSIDE the photo so foliage is never covered */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
+            <div className="flex items-center gap-2 truncate text-slate-700 dark:text-slate-300 min-w-0">
+              <ImageIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span className="truncate font-semibold text-[11px] max-w-[160px] sm:max-w-xs">{selectedFile?.name || 'Selected Crop Photo'}</span>
               {compressionInfo?.wasCompressed && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                  <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-                  <span>Compressed {(compressionInfo.originalSize / (1024*1024)).toFixed(1)}MB ➔ {(compressionInfo.compressedSize / 1024).toFixed(0)}KB ({compressionInfo.savingsPercent}% saved)</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 text-[10px] font-bold">
+                  <Sparkles className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                  <span>Compressed {(compressionInfo.compressedSize / 1024).toFixed(0)}KB ({compressionInfo.savingsPercent}% saved)</span>
                 </span>
               )}
             </div>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-emerald-400 hover:text-emerald-300 font-extrabold text-xs shrink-0 active:scale-95 transition-transform"
+              className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-extrabold text-xs shrink-0 cursor-pointer active:scale-95 transition-transform"
             >
               Change Photo
             </button>
@@ -912,8 +920,8 @@ const ScanImageUploader = ({
               <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>Target Crop Category</span>
               {selectedCropFilter && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wide">
-                  Detected: {selectedCropFilter}
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wide shadow-xs">
+                  Active: {selectedCropFilter}
                 </span>
               )}
             </span>

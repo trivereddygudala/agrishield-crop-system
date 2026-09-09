@@ -32,7 +32,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const rawCropName = liveResult?.crop_name || 'Agricultural Crop';
   
   const localizedCrop = translateCrop(rawCropName, i18n.language) || rawCropName;
-  const localizedDisease = translateDisease(rawDiseaseName, i18n.language) || rawDiseaseName;
+  const localizedDisease = translateDisease(rawDiseaseName, i18n.language, rawCropName) || rawDiseaseName;
 
   const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
   const status = liveResult?.prediction_status || 'diseased';

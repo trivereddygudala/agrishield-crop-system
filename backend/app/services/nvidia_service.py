@@ -854,11 +854,12 @@ Do not include any conversational text or markdown styling outside the JSON bloc
                 return parsed
         return None
 
-    async def analyze_crop_image(self, image_path: str) -> Optional[dict]:
+    async def analyze_crop_image(self, image_path: str, crop_hint: Optional[str] = None) -> Optional[dict]:
         """
         Multimodal Cloud Vision Guardrail using NVIDIA Llama-3.2 Vision NIM.
         Identifies whether the image is a valid plant leaf, extracts botanical species (Crop),
         confidence %, and brief anatomical reasoning with ZERO extra Render RAM.
+        Supports optional crop_hint to guide verification if the user explicitly specified a crop.
         """
         if not self.nvidia_client:
             return None
@@ -872,28 +873,30 @@ Do not include any conversational text or markdown styling outside the JSON bloc
             with open(image_path, "rb") as f:
                 b64_data = base64.b64encode(f.read()).decode("utf-8")
 
-            prompt = """You are an agricultural botanical and plant pathology vision expert.
+            hint_text = f"\nUser designated candidate crop: '{crop_hint}'. Carefully verify if the botanical foliage matches or belongs to this crop family." if crop_hint else ""
+
+            prompt = f"""You are an agricultural botanical and plant pathology vision expert.
 Examine this image and determine:
 1. Is this a real agricultural plant/crop foliage or leaf? (Reject non-plants, humans, pets, vehicles, keyboards, electronics, medicine boxes).
-2. What exact agricultural crop species is this? Choose from standard Indian & global agricultural crops such as:
-   Groundnut, Chilli, Tomato, Cotton, Rice, Sugarcane, Maize, Potato, Apple, Banana, Grape, Mango, Peach, Pepper, Soybean, Squash, Strawberry, Wheat, or identify the crop precisely.
+2. What exact agricultural crop species is this? Choose from standard agricultural crops such as:
+   Chilli, Cotton, Rice, Tomato, Groundnut, Sugarcane, Maize, Potato, Apple, Banana, Grape, Mango, Peach, Pepper, Soybean, Squash, Strawberry, Wheat, or identify the crop precisely.{hint_text}
 3. Your botanical confidence (percentage between 50.0 and 99.9).
 4. Brief 1-sentence botanical justification.
 
 Respond ONLY with a valid JSON object matching this schema:
-{
+{{
   "is_valid_leaf": true,
-  "crop": "Groundnut",
-  "confidence": 98.2,
-  "reasoning": "Characteristic trifoliate/pinnate oval leaflets with prominent venation typical of Arachis hypogaea."
-}
+  "crop": "<Exact agricultural crop species, e.g. Chilli, Cotton, Rice, Groundnut, Tomato, etc.>",
+  "confidence": 96.5,
+  "reasoning": "<Botanical anatomical justification describing leaf shape, margins, venation, and arrangement>"
+}}
 If it is NOT a plant or leaf:
-{
+{{
   "is_valid_leaf": false,
   "crop": "Non-Plant",
   "confidence": 95.0,
   "reasoning": "The image does not depict agricultural foliage or crop leaves."
-}
+}}
 Do NOT include markdown fences, backticks, or any conversational text. Only output raw JSON."""
 
             messages = [{
