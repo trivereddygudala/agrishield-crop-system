@@ -10,8 +10,6 @@ import re
 import cv2
 import numpy as np
 import logging
-import easyocr
-
 logger = logging.getLogger(__name__)
 
 # Cached EasyOCR Reader instance
@@ -20,7 +18,12 @@ _reader = None
 def get_ocr_reader():
     global _reader
     if _reader is None:
-        _reader = easyocr.Reader(['en'], gpu=False)
+        try:
+            import easyocr
+            _reader = easyocr.Reader(['en'], gpu=False)
+        except ImportError:
+            logger.warning("easyocr is not installed. Agrochemical image OCR is unavailable, but database lookups remain active.")
+            return None
     return _reader
 
 # Comprehensive Structured Agrochemical Database
@@ -203,6 +206,8 @@ def _preprocess_and_extract_text(image_path: str) -> list:
     """
     ocr = get_ocr_reader()
     extracted_lines = []
+    if not ocr:
+        return extracted_lines
 
     img = cv2.imread(image_path)
     if img is None:

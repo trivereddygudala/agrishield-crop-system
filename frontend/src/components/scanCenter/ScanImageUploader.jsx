@@ -130,14 +130,23 @@ const ScanImageUploader = ({
   const [lastCapturedMeta, setLastCapturedMeta] = useState(null);
   const [scanMode, setScanMode] = useState('single'); // 'single' | 'quadrant'
   const [activeQuadrant, setActiveQuadrant] = useState('east');
+  const lastProcessedFileKeyRef = useRef(null);
 
-  // Instant true ONNX neural pre-detection whenever an image file is selected/dropped/pasted
+  // Instant true ONNX neural pre-detection once per newly selected/dropped/pasted file
   useEffect(() => {
     if (!previewUrl || !selectedFile) {
       setIsLowRes(false);
       setLastCapturedMeta(null);
+      lastProcessedFileKeyRef.current = null;
       return;
     }
+
+    // Build unique identifier for selected file to eliminate infinite re-upload loops
+    const fileKey = `${selectedFile.name || 'file'}_${selectedFile.size || 0}_${selectedFile.lastModified || 0}`;
+    if (lastProcessedFileKeyRef.current === fileKey) {
+      return;
+    }
+    lastProcessedFileKeyRef.current = fileKey;
 
     let isMounted = true;
 
@@ -152,7 +161,7 @@ const ScanImageUploader = ({
         }
       };
 
-      // 2. Fast ONNX Neural Pre-Classification via backend
+      // 2. Fast ONNX Neural Pre-Classification via backend (single pass)
       try {
         const formData = new FormData();
         formData.append('file', selectedFile);
@@ -187,7 +196,7 @@ const ScanImageUploader = ({
     return () => {
       isMounted = false;
     };
-  }, [previewUrl, selectedFile, onCropFilterChange]);
+  }, [previewUrl, selectedFile]);
 
   const config = TAB_CONFIGS[tabId] || TAB_CONFIGS['disease-diag'];
   const ConfigIcon = config.icon;

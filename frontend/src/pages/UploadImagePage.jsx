@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -162,6 +162,10 @@ const UploadImagePage = () => {
     });
   };
 
+  const handleCropFilterChange = useCallback((crop) => {
+    scanStore.setState({ selectedCropFilter: crop });
+  }, []);
+
   const handleStartScan = async () => {
     if (!selectedFile) {
       scanStore.setState({ hasScanned: true });
@@ -311,7 +315,7 @@ const UploadImagePage = () => {
           errorMsg={errorMsg}
           liveResult={liveResult}
           selectedCropFilter={selectedCropFilter}
-          onCropFilterChange={(crop) => scanStore.setState({ selectedCropFilter: crop })}
+          onCropFilterChange={handleCropFilterChange}
         />
   
         {/* Results Section for the Active Tab */}

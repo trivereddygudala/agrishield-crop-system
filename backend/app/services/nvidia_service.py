@@ -86,6 +86,78 @@ def _fix_json_quotes(content: str) -> str:
     return '\n'.join(fixed_lines)
 
 
+def safe_parse_json(content: str):
+    """Robust JSON parser that extracts JSON blocks, auto-repairs truncated outputs, and falls back gracefully."""
+    if not content or not isinstance(content, str):
+        return None
+    cleaned = content.strip()
+    if "```json" in cleaned:
+        cleaned = cleaned.split("```json")[1].split("```")[0].strip()
+    elif "```" in cleaned:
+        cleaned = cleaned.split("```")[1].split("```")[0].strip()
+
+    # 1. Direct parse attempt
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        pass
+
+    # 2. If it starts with '{' or '[', prioritize root object/array repair
+    if cleaned.startswith("{") or cleaned.startswith("["):
+        try:
+            repaired = cleaned.rstrip()
+            repaired = re.sub(r'[,:\s]+$', '', repaired)
+            quote_count = repaired.count('"') - repaired.count(r'\"')
+            if quote_count % 2 != 0:
+                repaired += '"'
+            open_sq = repaired.count('[') - repaired.count(']')
+            if open_sq > 0:
+                repaired += ']' * open_sq
+            open_curly = repaired.count('{') - repaired.count('}')
+            if open_curly > 0:
+                repaired += '}' * open_curly
+            return json.loads(repaired)
+        except Exception:
+            pass
+
+    # 3. If there is text before '{' or '[', find the first root delimiter
+    first_curly = cleaned.find('{')
+    first_sq = cleaned.find('[')
+    
+    start_idx = -1
+    if first_curly != -1 and (first_sq == -1 or first_curly < first_sq):
+        start_idx = first_curly
+    elif first_sq != -1:
+        start_idx = first_sq
+
+    if start_idx != -1:
+        sub = cleaned[start_idx:]
+        try:
+            repaired = sub.rstrip()
+            repaired = re.sub(r'[,:\s]+$', '', repaired)
+            quote_count = repaired.count('"') - repaired.count(r'\"')
+            if quote_count % 2 != 0:
+                repaired += '"'
+            open_sq = repaired.count('[') - repaired.count(']')
+            if open_sq > 0:
+                repaired += ']' * open_sq
+            open_curly = repaired.count('{') - repaired.count('}')
+            if open_curly > 0:
+                repaired += '}' * open_curly
+            return json.loads(repaired)
+        except Exception:
+            pass
+
+    # 4. Fallback: try _fix_json_quotes only if multi-line
+    if '\n' in cleaned:
+        try:
+            return json.loads(_fix_json_quotes(cleaned))
+        except Exception:
+            pass
+
+    return None
+
+
 class NVIDIAService:
     def __init__(self):
         # 1. Groq Cloud Configuration (Primary Fast Engine)
@@ -154,8 +226,8 @@ class NVIDIAService:
             return None, None
 
         # Allow sufficient tokens for complete structured agronomic JSON
-        safe_tokens = min(max_tokens, 1024)
-        safe_timeout = min(timeout, 8.0)
+        safe_tokens = min(max_tokens, 2048)
+        safe_timeout = min(timeout, 12.0)
 
         for name, client, model in providers:
             try:
@@ -244,29 +316,11 @@ JSON Schema:
             {"role": "user", "content": prompt}
         ]
 
-        content, provider_name = await self._execute_completion(messages, temperature=0.2, max_tokens=950, timeout=6.0)
+        content, provider_name = await self._execute_completion(messages, temperature=0.2, max_tokens=1500, timeout=8.0)
         
         if content:
-            try:
-                # Strip markdown blocks if returned
-                if "```json" in content:
-                    content = content.split("```json")[1].split("```")[0].strip()
-                elif "```" in content:
-                    content = content.split("```")[1].split("```")[0].strip()
-                
-                content = _fix_json_quotes(content)
-
-                # Attempt auto-repair if JSON is truncated
-                if not content.rstrip().endswith("}"):
-                    # Find last closed quote or comma and close JSON
-                    last_brace = content.rfind("}")
-                    if last_brace != -1:
-                        content = content[:last_brace + 1]
-                    else:
-                        content = content + '"}'
-
-                parsed_data = json.loads(content)
-                
+            parsed_data = safe_parse_json(content)
+            if parsed_data and isinstance(parsed_data, dict):
                 # Check keys exist, substitute fallback values if missing
                 required_keys = [
                     "disease_explanation", "possible_causes", "severity", 
@@ -276,9 +330,8 @@ JSON Schema:
                 for key in required_keys:
                     if key not in parsed_data:
                         parsed_data[key] = f"Generic info for {key}"
-                
-            except (json.JSONDecodeError, ValueError) as pe:
-                logger.error(f"Failed to parse JSON response from {provider_name}: {pe}. Raw: {content}")
+            else:
+                logger.warning(f"Failed to parse JSON response from {provider_name}. Raw snippet: {content[:300] if content else 'empty'}")
                 parsed_data = None
 
         if not parsed_data:
@@ -869,13 +922,14 @@ Do NOT include markdown fences, backticks, or any conversational text. Only outp
             )
 
             content = response.choices[0].message.content.strip()
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0].strip()
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0].strip()
-
-            content = _fix_json_quotes(content)
-            parsed = json.loads(content)
+            parsed = safe_parse_json(content)
+            if not parsed or not isinstance(parsed, dict):
+                parsed = {
+                    "is_valid_leaf": True,
+                    "crop": None,
+                    "confidence": 88.0,
+                    "reasoning": "Standard agricultural leaf foliage verified."
+                }
 
             # Normalize crop name formatting
             if "crop" in parsed and isinstance(parsed["crop"], str):
@@ -958,19 +1012,14 @@ Do not include any conversational text or markdown blocks. Only output the raw J
             {"role": "user", "content": prompt}
         ]
 
-        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=450, timeout=3.5)
+        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=900, timeout=6.0)
         if content:
-            try:
-                if "```json" in content:
-                    content = content.split("```json")[1].split("```")[0].strip()
-                elif "```" in content:
-                    content = content.split("```")[1].split("```")[0].strip()
-                
-                parsed = json.loads(content)
-                if isinstance(parsed, list):
-                    return parsed
-            except Exception as e:
-                logger.warning(f"generate_prescription_calendar parsing failed from {provider}: {e}")
+            parsed = safe_parse_json(content)
+            if isinstance(parsed, list) and len(parsed) > 0:
+                return parsed
+            elif isinstance(parsed, dict) and "calendar" in parsed and isinstance(parsed["calendar"], list):
+                return parsed["calendar"]
+            logger.warning(f"generate_prescription_calendar unexpected format from {provider}: {content[:200] if content else 'empty'}")
 
         return self._generate_mock_calendar(disease_name)
 

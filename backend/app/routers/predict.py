@@ -1214,7 +1214,18 @@ async def get_history(
                 pass
 
     for rec in records:
-        rec["id"] = str(rec["_id"])
+        if "_id" in rec:
+            rec["id"] = str(rec["_id"])
+            rec["_id"] = str(rec["_id"])
+        
+        # Ensure any ObjectId fields are converted to string to prevent Pydantic serialization crash
+        for k, v in list(rec.items()):
+            if isinstance(v, ObjectId):
+                rec[k] = str(v)
+            elif isinstance(v, dict):
+                for sub_k, sub_v in list(v.items()):
+                    if isinstance(sub_v, ObjectId):
+                        v[sub_k] = str(sub_v)
         
         # Inject farmer info
         if "user_id" in rec and rec["user_id"] in user_cache:
