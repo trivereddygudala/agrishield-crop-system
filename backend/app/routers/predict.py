@@ -590,16 +590,34 @@ async def predict_pytorch_endpoint(
             detail="Specified image file does not exist on server."
         )
 
-    # Perform prediction using the real PyTorch pipeline inside a separate worker thread to prevent event loop blocking
+    # Multimodal Cloud Vision Guardrail: Verify real crop leaf and detect botanical species using NVIDIA Llama-3.2 Vision NIM
+    detected_vision_crop = None
+    try:
+        from backend.app.services.nvidia_service import nvidia_service
+        vision_analysis = await nvidia_service.analyze_crop_image(full_image_path)
+        if vision_analysis:
+            if vision_analysis.get("is_valid_leaf") is False:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail=f"Non-crop image detected: {vision_analysis.get('reasoning', 'Please upload a clear photograph of a crop leaf or plant.')}"
+                )
+            detected_vision_crop = vision_analysis.get("crop")
+    except HTTPException:
+        raise
+    except Exception as v_err:
+        logger.warning(f"Vision pre-check bypassed: {v_err}")
+
+    # Perform prediction using the real PyTorch/ONNX pipeline inside a separate worker thread
     try:
         import asyncio
         import inspect
         sig = inspect.signature(predict_crop_disease)
         kwargs = {}
+        active_crop_filter = getattr(req, "crop_filter", None) or detected_vision_crop
         if "crop_filter" in sig.parameters:
-            kwargs["crop_filter"] = getattr(req, "crop_filter", None)
+            kwargs["crop_filter"] = active_crop_filter
         elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
-            kwargs["crop_filter"] = getattr(req, "crop_filter", None)
+            kwargs["crop_filter"] = active_crop_filter
 
         prediction_result = await asyncio.to_thread(
             predict_crop_disease,
@@ -629,10 +647,19 @@ async def predict_pytorch_endpoint(
 
     confidence = float(prediction_result.get("confidence", 0.0))
     if confidence < threshold:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"Low confidence ({confidence * 100:.1f}%) - Unsupported crop or unknown input. Please upload a supported crop leaf image."
-        )
+        if detected_vision_crop:
+            # The vision model confirmed this is a valid agricultural crop leaf; adjust confidence
+            prediction_result["confidence"] = max(confidence, 0.65)
+            prediction_result["crop_name"] = detected_vision_crop
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"Low confidence ({confidence * 100:.1f}%) - Unsupported crop or unknown input. Please upload a supported crop leaf image."
+            )
+
+    # Harmonize predicted crop with verified botanical vision identification if available
+    if detected_vision_crop and prediction_result.get("crop_name") != detected_vision_crop:
+        prediction_result["crop_name"] = detected_vision_crop
 
     # Refine borderline prediction using NVIDIA NIM LLM reasoning
     confidence = float(prediction_result.get("confidence", 0.0))

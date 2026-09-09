@@ -97,6 +97,7 @@ class NVIDIAService:
         self.nvidia_api_key = getattr(settings, "NVIDIA_API_KEY", "") or os.getenv("NVIDIA_API_KEY", "")
         self.nvidia_base_url = getattr(settings, "NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1") or os.getenv("NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1")
         self.nvidia_model = getattr(settings, "NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731") or os.getenv("NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731")
+        self.vision_model = "meta/llama-3.2-11b-vision-instruct"
 
         # Compatibility properties
         self.api_key = self.groq_api_key or self.nvidia_api_key
@@ -806,6 +807,113 @@ Do not include any conversational text or markdown styling outside the JSON bloc
             except Exception as e:
                 logger.warning(f"refine_prediction parsing failed from {provider}: {e}")
         return None
+
+    async def analyze_crop_image(self, image_path: str) -> Optional[dict]:
+        """
+        Multimodal Cloud Vision Guardrail using NVIDIA Llama-3.2 Vision NIM.
+        Identifies whether the image is a valid plant leaf, extracts botanical species (Crop),
+        confidence %, and brief anatomical reasoning with ZERO extra Render RAM.
+        """
+        if not self.nvidia_client:
+            return None
+
+        try:
+            import base64
+            import asyncio
+            if not os.path.exists(image_path):
+                return None
+
+            with open(image_path, "rb") as f:
+                b64_data = base64.b64encode(f.read()).decode("utf-8")
+
+            prompt = """You are an agricultural botanical and plant pathology vision expert.
+Examine this image and determine:
+1. Is this a real agricultural plant/crop foliage or leaf? (Reject non-plants, humans, pets, vehicles, keyboards, electronics, medicine boxes).
+2. What exact agricultural crop species is this? Choose from standard Indian & global agricultural crops such as:
+   Groundnut, Chilli, Tomato, Cotton, Rice, Sugarcane, Maize, Potato, Apple, Banana, Grape, Mango, Peach, Pepper, Soybean, Squash, Strawberry, Wheat, or identify the crop precisely.
+3. Your botanical confidence (percentage between 50.0 and 99.9).
+4. Brief 1-sentence botanical justification.
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "is_valid_leaf": true,
+  "crop": "Groundnut",
+  "confidence": 98.2,
+  "reasoning": "Characteristic trifoliate/pinnate oval leaflets with prominent venation typical of Arachis hypogaea."
+}
+If it is NOT a plant or leaf:
+{
+  "is_valid_leaf": false,
+  "crop": "Non-Plant",
+  "confidence": 95.0,
+  "reasoning": "The image does not depict agricultural foliage or crop leaves."
+}
+Do NOT include markdown fences, backticks, or any conversational text. Only output raw JSON."""
+
+            messages = [{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_data}"}}
+                ]
+            }]
+
+            response = await asyncio.wait_for(
+                self.nvidia_client.chat.completions.create(
+                    model=self.vision_model,
+                    messages=messages,
+                    temperature=0.1,
+                    max_tokens=220
+                ),
+                timeout=7.0
+            )
+
+            content = response.choices[0].message.content.strip()
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
+
+            content = _fix_json_quotes(content)
+            parsed = json.loads(content)
+
+            # Normalize crop name formatting
+            if "crop" in parsed and isinstance(parsed["crop"], str):
+                crop_raw = parsed["crop"].strip()
+                # Standardize aliases
+                if any(k in crop_raw.lower() for k in ["peanut", "groundnut", "arachis"]):
+                    parsed["crop"] = "Groundnut"
+                elif any(k in crop_raw.lower() for k in ["chilli", "chili", "pepper", "capsicum"]):
+                    parsed["crop"] = "Chilli"
+                elif any(k in crop_raw.lower() for k in ["paddy", "rice"]):
+                    parsed["crop"] = "Rice"
+                elif any(k in crop_raw.lower() for k in ["corn", "maize"]):
+                    parsed["crop"] = "Maize"
+                elif "tomato" in crop_raw.lower():
+                    parsed["crop"] = "Tomato"
+                elif "potato" in crop_raw.lower():
+                    parsed["crop"] = "Potato"
+                elif "cotton" in crop_raw.lower():
+                    parsed["crop"] = "Cotton"
+                elif "sugarcane" in crop_raw.lower():
+                    parsed["crop"] = "Sugarcane"
+                elif "mango" in crop_raw.lower():
+                    parsed["crop"] = "Mango"
+                elif "apple" in crop_raw.lower():
+                    parsed["crop"] = "Apple"
+                elif "grape" in crop_raw.lower():
+                    parsed["crop"] = "Grape"
+                elif "banana" in crop_raw.lower():
+                    parsed["crop"] = "Banana"
+                elif "wheat" in crop_raw.lower():
+                    parsed["crop"] = "Wheat"
+                elif "soybean" in crop_raw.lower():
+                    parsed["crop"] = "Soybean"
+
+            return parsed
+        except Exception as e:
+            logger.warning(f"analyze_crop_image vision check failed: {e}")
+            return None
 
     async def generate_prescription_calendar(
         self,
