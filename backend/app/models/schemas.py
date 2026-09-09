@@ -112,8 +112,12 @@ class PredictionResponse(PredictionBase):
     irrigation_suggestions: Optional[str] = "None"
     environmental_recommendations: Optional[str] = "None"
     advisor: Optional[Dict[str, Any]] = None
+    disease_explanation: Optional[str] = None
+    farmer_friendly_advice: Optional[str] = None
+    prescription_calendar: Optional[List[Dict[str, Any]]] = None
+    financial_metrics: Optional[Dict[str, Any]] = None
 
-    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow")
 
 class PredictionHistoryResponse(BaseModel):
     predictions: List[PredictionResponse]

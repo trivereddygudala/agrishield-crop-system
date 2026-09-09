@@ -690,6 +690,7 @@ async def predict_pytorch_endpoint(
     organic_treatment = prediction_result.get("organic_treatment", "None")
     chemical_treatment = prediction_result.get("chemical_treatment", "None")
     possible_causes = prediction_result.get("possible_causes", [])
+    farmer_friendly_advice = ""
 
     # Enrich with NVIDIA LLM agronomic advice
     try:
@@ -740,6 +741,8 @@ async def predict_pytorch_endpoint(
                 organic_treatment = force_str(llama_advice["organic_treatment"])
             if llama_advice.get("chemical_treatment"):
                 chemical_treatment = force_str(llama_advice["chemical_treatment"])
+            if llama_advice.get("farmer_friendly_advice"):
+                farmer_friendly_advice = force_str(llama_advice["farmer_friendly_advice"])
             
             if llama_advice.get("prevention_methods"):
                 pm = llama_advice["prevention_methods"]
@@ -1047,6 +1050,8 @@ async def predict_pytorch_endpoint(
         "recommended_follow_up_actions": prediction_result.get("recommended_follow_up_actions", []),
         "irrigation_suggestions": prediction_result.get("irrigation_suggestions", "None"),
         "environmental_recommendations": prediction_result.get("environmental_recommendations", "None"),
+        "disease_explanation": symptoms,
+        "farmer_friendly_advice": farmer_friendly_advice,
         "advisor": advisor_data,
         "prescription_calendar": prescription_calendar,
         "financial_metrics": financial_metrics

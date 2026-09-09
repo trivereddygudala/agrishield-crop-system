@@ -97,18 +97,30 @@ export default function PrescriptionSlipModal({ isOpen, onClose, liveResult }) {
                 <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase block">
                   1. Biological Remedy
                 </span>
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                  {liveResult?.organic_treatment || "Apply Trichoderma viride (10g/L) or neem oil foliar spray."}
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                  {liveResult?.organic_treatment || "Apply Trichoderma viride (5g/L) or neem oil foliar spray (5ml/L)."}
                 </p>
               </div>
 
               <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200 dark:border-white/10 space-y-1">
                 <span className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase block">
-                  2. Chemical Dosage
+                  2. Chemical Fungicide & Dosage
                 </span>
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                   {liveResult?.chemical_treatment || "Apply Mancozeb 75% WP (2.5g/L) as foliar spray."}
                 </p>
+              </div>
+
+              {/* Standard Spray Protocol */}
+              <div className="p-3 sm:p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1">
+                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase block">
+                  3. Field Application Protocol
+                </span>
+                <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-0.5 list-disc pl-4">
+                  <li><strong>Timing:</strong> Spray early morning (6:30–9:00 AM) or late evening (4:30–6:30 PM).</li>
+                  <li><strong>Water Ratio:</strong> 200 Litres clean water / acre with 0.5 ml/L non-ionic sticker.</li>
+                  <li><strong>Safety:</strong> Use nitrile gloves & mask. Maintain 10-14 days Pre-Harvest Interval (PHI).</li>
+                </ul>
               </div>
             </div>
 

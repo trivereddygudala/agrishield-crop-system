@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
-  Bug, Stethoscope, Calculator, CloudSun, Volume2, Globe, Download, Save, Check, RefreshCw, AlertTriangle, ShieldCheck, Share2, Calendar, TrendingUp, Landmark, Phone, FileText
+  Bug, Stethoscope, Calculator, CloudSun, Volume2, Globe, Download, Save, Check, RefreshCw, AlertTriangle, ShieldCheck, Share2, Calendar, TrendingUp, Landmark, Phone, FileText, Sparkles
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress, Input, Select } from '../ui/index';
@@ -238,6 +238,23 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
         diseaseName={localizedDisease}
       />
 
+      {/* Direct Agronomist Advice Callout */}
+      {liveResult?.farmer_friendly_advice && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border border-emerald-500/35 flex items-start gap-3.5 shadow-md">
+          <div className="p-2 rounded-xl bg-emerald-500 text-white shrink-0 shadow-md">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
+              Agronomist Action Directive
+            </span>
+            <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+              {liveResult.farmer_friendly_advice}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Accordion Treatment Sections */}
       <CollapsibleSection
         title={t('results.pathology_overview', 'Pathology Overview & Symptoms')}
@@ -247,8 +264,21 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
       >
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
           <p>
-            {liveResult?.symptoms || 'Early blight is caused by the fungus Alternaria solani. It affects leaves, stems, and fruit of tomatoes, potatoes, and eggplants. Symptoms first appear on older leaves as small, dark brown to black spots.'}
+            {liveResult?.disease_explanation || liveResult?.symptoms || 'Early blight is caused by the fungus Alternaria solani. It affects leaves, stems, and fruit. Symptoms first appear on older leaves as small, dark brown to black spots with concentric rings.'}
           </p>
+
+          {liveResult?.possible_causes && Array.isArray(liveResult.possible_causes) && liveResult.possible_causes.length > 0 && (
+            <div className="pt-2 border-t border-slate-200 dark:border-white/10 space-y-1.5">
+              <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
+                Identified Environmental Causes & Vectors:
+              </span>
+              <ul className="list-disc pl-5 space-y-1 text-xs text-slate-700 dark:text-slate-300">
+                {liveResult.possible_causes.map((cause, idx) => (
+                  <li key={idx}>{cause}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 
@@ -258,7 +288,7 @@ const DiseaseDiagnosisResults = ({ liveResult, onSaveScan, onDownloadPDF }) => {
         badgeText="Eco Friendly"
       >
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
-          <p>{liveResult?.organic_treatment || 'Apply copper fungicide or neem oil solution (5ml/L) every 7-10 days. Ensure adequate spacing between plants for ventilation.'}</p>
+          <p>{liveResult?.organic_treatment || 'Apply Trichoderma viride (5g/L) or neem oil foliar spray (5ml/L) every 7-10 days.'}</p>
         </div>
       </CollapsibleSection>
 
