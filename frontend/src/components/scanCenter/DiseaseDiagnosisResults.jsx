@@ -27,6 +27,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const [fieldArea, setFieldArea] = useState(1.0);
   const [waterPerAcre, setWaterPerAcre] = useState(200);
   const [tankSize, setTankSize] = useState(15); // 15L or 20L backpack pump
+  const [selectedChemicalIdx, setSelectedChemicalIdx] = useState(0);
 
   const rawDiseaseName = liveResult?.disease_name || liveResult?.predicted_class || 'Crop Health Condition';
   const rawCropName = liveResult?.crop_name || 'Agricultural Crop';
@@ -50,11 +51,50 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       : ["Neem oil spray (5 ml/L with liquid soap) every 7 days.", "Trichoderma viride bio-fungicide (5 g/L) soil & foliar drench."]
   );
 
+  // Parsing helper to determine dosage and units (grams or ml) dynamically from chemical formulation
+  const parseChemicalDosage = (chemString = '') => {
+    if (!chemString) return { rate: 2.0, unit: 'g', displayUnit: 'Grams' };
+    const match = chemString.match(/(?:@|at|\(|\s)\s*([\d\.]+)\s*(ml|g|gm|grams)\s*(?:\/|\s*per)?\s*(?:l|litre|liter)/i) 
+      || chemString.match(/@\s*([\d\.]+)\s*(ml|g|gm|grams)/i);
+    if (match) {
+      const val = parseFloat(match[1]);
+      const isLiquid = match[2].toLowerCase().includes('ml');
+      return {
+        rate: !isNaN(val) && val > 0 ? val : 2.0,
+        unit: isLiquid ? 'ml' : 'g',
+        displayUnit: isLiquid ? 'ml' : 'Grams'
+      };
+    }
+    return { rate: 2.0, unit: 'g', displayUnit: 'Grams' };
+  };
+
+  // Farmer spoon / matchbox approximation helper for quick field application
+  const getFarmerMeasureTip = (amount, unit) => {
+    const num = parseFloat(amount);
+    if (isNaN(num) || num <= 0) return '';
+    if (unit === 'ml') {
+      if (num <= 5) return '~1 teaspoon (5 ml)';
+      if (num <= 10) return '~2 teaspoons (10 ml)';
+      if (num <= 20) return '~1 measuring cap (~15-20 ml)';
+      if (num <= 35) return '~2 measuring caps (~30 ml)';
+      return `~${Math.round(num / 15)} measuring caps`;
+    } else {
+      if (num <= 15) return '~1 level tablespoon (15 g)';
+      if (num <= 25) return '~1.5 tablespoons or 1 matchbox size';
+      if (num <= 35) return '~2 full tablespoons or 1.5 matchboxes';
+      if (num <= 50) return '~2.5 to 3 tablespoons or 2 matchboxes';
+      return `~${(num / 15).toFixed(1)} tablespoons`;
+    }
+  };
+
+  const selectedChem = chemicalsList[selectedChemicalIdx] || chemicalsList[0] || '';
+  const currentDosage = parseChemicalDosage(selectedChem);
+
   // Calculations
   const totalWaterLitres = (fieldArea * waterPerAcre).toFixed(0);
-  const chemicalDosageGrams = (fieldArea * waterPerAcre * 2.5).toFixed(0); // Standard 2.5g/L
+  const chemicalDosageGrams = (fieldArea * waterPerAcre * currentDosage.rate).toFixed(0);
   const tanksNeeded = Math.ceil((fieldArea * waterPerAcre) / (tankSize || 15));
-  const tankMedicineGrams = ((tankSize || 15) * 2.5).toFixed(1);
+  const tankMedicineGrams = ((tankSize || 15) * currentDosage.rate).toFixed(1);
 
   const displayOriginalImg = previewUrl || (liveResult?.image_path ? `/${liveResult.image_path}` : '');
   const gradCamImg = liveResult?.gradcam_base64 || null;
@@ -352,7 +392,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {organicList.map((item, idx) => (
-              <div key={idx} className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-2.5">
+              <div key={idx} className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-2.5 shadow-xs">
                 <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                   {idx + 1}
                 </span>
@@ -365,86 +405,181 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         </div>
       </CollapsibleSection>
 
-      {/* 3. Chemical Fungicide Treatment & Dosage (Enhanced with Real Fungicides & Backpack Calculator) */}
+      {/* 3. Chemical Fungicide Treatment & Dosage (Farmer-Friendly Interactive Single-Medicine Guide) */}
       <CollapsibleSection
         title={t('results.chemical_treatment', 'Chemical Fungicide Treatment & Dosage')}
         icon={Calculator}
         defaultOpen={true}
         badgeText="Chemical Protocol"
         onSpeak={() => {
-          const text = `Recommended chemical protocol. ${chemicalsList.join('. ')}. Recommended spray volume: ${totalWaterLitres} litres with ${chemicalDosageGrams} grams for ${fieldArea} acres.`;
+          const text = `Important chemical protocol. Use only one medicine from the recommended list, do not mix them. Selected medicine is ${selectedChem}. For a ${tankSize} litre tank, mix ${tankMedicineGrams} ${currentDosage.displayUnit} of medicine. For your ${fieldArea} acre field, you will need approximately ${tanksNeeded} tanks with ${totalWaterLitres} litres of water.`;
           speak(text, 'card_chemical', i18n.language || 'en');
         }}
         isSpeaking={speakingId === 'card_chemical'}
       >
         <div className="space-y-4 text-xs sm:text-sm text-slate-800 dark:text-slate-100">
-          {/* Specific Trade Name Fungicides */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
-              Tested & Recommended Chemical Formulations:
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {chemicalsList.map((chem, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 flex items-start gap-2.5 shadow-xs">
-                  <FlaskConical className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-relaxed">
-                    {chem}
-                  </p>
-                </div>
-              ))}
+          
+          {/* CRITICAL FARMER DIRECTIVE BANNER: USE ANY ONE */}
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/15 dark:bg-amber-950/50 border-2 border-amber-500/40 dark:border-amber-500/50 space-y-1.5 shadow-sm">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-extrabold text-amber-950 dark:text-amber-200 text-xs sm:text-sm uppercase tracking-wide">
+                  ⚠️ {t('results.single_medicine_rule', 'CRITICAL FARMER RULE: CHOOSE & USE ANY ONE MEDICINE ONLY!')}
+                </h4>
+                <p className="text-xs text-amber-900/90 dark:text-amber-300 font-medium leading-relaxed mt-0.5">
+                  {t('results.single_medicine_desc', 'DO NOT mix multiple fungicides together in the tank. Purchase whichever single formulation is available at your local Kisan Seva Kendra or agro store. Tap the option below that you have bought:')}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Quick Backpack Tank Glance Card */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-500/10 via-emerald-500/10 to-transparent border border-teal-500/30 space-y-3">
+          {/* Single Chemical Formulation Selector Cards */}
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-teal-700 dark:text-teal-300 flex items-center gap-1.5">
-                <Droplets className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                Backpack Tank Quick Fill Guide (15L / 20L)
+              <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
+                Recommended Formulations (Select 1 to calculate tank mix):
               </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setTankSize(15)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                    tankSize === 15 
-                      ? 'bg-teal-600 text-white shadow-xs' 
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  15 Litre Tank
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTankSize(20)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                    tankSize === 20 
-                      ? 'bg-teal-600 text-white shadow-xs' 
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  20 Litre Tank
-                </button>
+              <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">
+                Option {selectedChemicalIdx + 1} of {chemicalsList.length} Active
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {chemicalsList.map((chem, idx) => {
+                const isSelected = selectedChemicalIdx === idx;
+                const dosage = parseChemicalDosage(chem);
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedChemicalIdx(idx)}
+                    role="button"
+                    tabIndex={0}
+                    className={`relative p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border text-left ${
+                      isSelected
+                        ? 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/30 shadow-md'
+                        : 'bg-white/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/80 hover:border-emerald-300 dark:hover:border-emerald-700/60 shadow-xs'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5">
+                        <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                          isSelected 
+                            ? 'bg-emerald-600 text-white' 
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                        }`}>
+                          <FlaskConical className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                              Option {String.fromCharCode(65 + idx)}
+                            </span>
+                            {isSelected && (
+                              <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                Chosen (Use This)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-relaxed mt-1">
+                            {chem}
+                          </p>
+                          <span className="inline-block mt-1 text-[11px] font-semibold text-teal-700 dark:text-teal-300">
+                            Recommended Rate: {dosage.rate} {dosage.unit} / Litre water
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 mt-1">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          isSelected 
+                            ? 'border-emerald-600 bg-emerald-600 text-white' 
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Backpack Tank Glance Card with Dynamic Calculations */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-teal-500/10 via-emerald-500/10 to-transparent border-2 border-teal-500/30 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
+                  <Droplets className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  {t('results.backpack_guide', 'Backpack Sprayer Pump Mix Guide (Per Tank)')}
+                </span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Exact measurement for your knapsack or battery pump:
+                </p>
+              </div>
+
+              {/* Tank Size Selector (15L / 16L / 20L) */}
+              <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs self-start sm:self-auto">
+                {[15, 16, 20].map((litres) => (
+                  <button
+                    key={litres}
+                    type="button"
+                    onClick={() => setTankSize(litres)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                      tankSize === litres 
+                        ? 'bg-teal-600 text-white shadow-xs' 
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {litres}L Tank
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* Visual Tank Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">Tank Water</span>
-                <span className="text-sm font-black text-slate-900 dark:text-white">{tankSize} Litres</span>
+              <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">1. Water in Tank</span>
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">{tankSize} Litres</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">Clean water</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">Medicine per Tank</span>
-                <span className="text-sm font-black text-teal-600 dark:text-teal-400">{tankMedicineGrams} Grams</span>
+
+              <div className="p-3 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border-2 border-emerald-500/40 shadow-xs">
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block uppercase font-bold">2. Medicine per Tank</span>
+                <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300 mt-0.5 block">
+                  {tankMedicineGrams} {currentDosage.displayUnit}
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                  {getFarmerMeasureTip(tankMedicineGrams, currentDosage.unit)}
+                </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">Tanks for Field</span>
-                <span className="text-sm font-black text-slate-900 dark:text-white">{tanksNeeded} Pumps</span>
+
+              <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">3. Pumps for Field</span>
+                <span className="text-sm sm:text-base font-black text-teal-700 dark:text-teal-300 mt-0.5 block">{tanksNeeded} Pumps</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">For {fieldArea} Acre</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">Dilution Ratio</span>
-                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">2.5 g / Litre</span>
+
+              <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">4. Dilution Rate</span>
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">
+                  {currentDosage.rate} {currentDosage.unit}/L
+                </span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">Recommended standard</span>
               </div>
+            </div>
+
+            {/* Practical 3-Step Mixing Instruction for Farmers */}
+            <div className="p-3 rounded-xl bg-white/60 dark:bg-slate-800/50 border border-teal-500/20 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+              <span className="font-extrabold text-teal-900 dark:text-teal-200 block text-[11px] uppercase tracking-wider">
+                🚜 Easy Tank Mixing Instructions:
+              </span>
+              <p className="leading-relaxed">
+                <strong>1.</strong> Fill half the tank with clean water. <strong>2.</strong> Dissolve <strong>{tankMedicineGrams} {currentDosage.displayUnit}</strong> of your selected medicine in a small bucket of water first, then pour into the tank. <strong>3.</strong> Top up to {tankSize} Litres, shake gently, and spray uniformly on both sides of foliage.
+              </p>
             </div>
           </div>
 
@@ -470,9 +605,10 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             </div>
             <div className="p-3.5 bg-emerald-500/15 dark:bg-emerald-950/70 rounded-xl border border-emerald-400/40 dark:border-emerald-700/60 flex flex-wrap justify-between items-center font-bold text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm gap-2.5 shadow-xs">
               <span>{t('results.required_water', 'Required Water Volume')}: <strong className="text-emerald-700 dark:text-emerald-300 font-extrabold">{totalWaterLitres} {t('results.litres', 'Litres')}</strong></span>
-              <span>{t('results.chemical_weight', 'Chemical Weight')}: <strong className="text-emerald-700 dark:text-emerald-300 font-extrabold">{chemicalDosageGrams} {t('results.grams', 'Grams')}</strong></span>
+              <span>{t('results.chemical_weight', 'Total Medicine to Buy')}: <strong className="text-emerald-700 dark:text-emerald-300 font-extrabold">{chemicalDosageGrams >= 1000 ? `${(chemicalDosageGrams / 1000).toFixed(2)} Kg/L` : `${chemicalDosageGrams} ${currentDosage.displayUnit}`}</strong></span>
             </div>
           </div>
+
         </div>
       </CollapsibleSection>
 
@@ -489,7 +625,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           }}
           isSpeaking={speakingId === 'card_economic'}
         >
-          <div className="space-y-4 text-xs sm:text-sm text-slate-800 dark:text-slate-100">
+<div className="space-y-4 text-xs sm:text-sm text-slate-800 dark:text-slate-100">
             <p className="leading-relaxed font-medium">
               {t('results.economic_intro', 'Based on your registered farm profile of')} <strong className="text-slate-900 dark:text-white font-extrabold">{liveResult.financial_metrics.acreage_used} {t('results.acres', 'Acres')}</strong>, {t('results.economic_intro_mid', 'the regional market pricing, and yield estimates for')} <strong className="text-slate-900 dark:text-white font-extrabold">{liveResult.crop_name}</strong>:
             </p>

@@ -236,11 +236,13 @@ const UploadImagePage = () => {
     }
   };
 
-  // Code-split dynamic PDF generation (loads jspdf and autotable only on demand)
+  // Code-split dynamic PDF generation (loads jspdf and autotable only on demand with bulletproof fallback)
   const handleDownloadPDF = async () => {
     try {
-      const { default: jsPDF } = await import('jspdf');
-      await import('jspdf-autotable');
+      const jspdfModule = await import('jspdf');
+      const jsPDF = jspdfModule.default || jspdfModule.jsPDF || jspdfModule;
+      const autotableModule = await import('jspdf-autotable');
+      const autoTable = autotableModule.default || autotableModule;
 
       const doc = new jsPDF();
       doc.setFont('helvetica', 'bold');
@@ -258,7 +260,7 @@ const UploadImagePage = () => {
       const crop = liveResult?.crop_name || 'Agricultural Crop';
       const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
 
-      doc.autoTable({
+      const tableConfig = {
         startY: 38,
         head: [['Category', 'Details']],
         body: [
@@ -271,12 +273,42 @@ const UploadImagePage = () => {
         ],
         theme: 'grid',
         headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] }
-      });
+      };
+
+      if (typeof doc.autoTable === 'function') {
+        doc.autoTable(tableConfig);
+      } else if (typeof autoTable === 'function') {
+        autoTable(doc, tableConfig);
+      } else {
+        let y = 45;
+        tableConfig.body.forEach(([cat, val]) => {
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${cat}:`, 14, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(String(val).slice(0, 75), 65, y);
+          y += 12;
+        });
+      }
 
       doc.save(`Crop_Diagnosis_Report_${Date.now()}.pdf`);
     } catch (pdfErr) {
-      console.error("PDF generation failed:", pdfErr);
-      alert("Could not generate PDF report. Please try again.");
+      console.warn("Direct jsPDF failed, falling back to printable prescription slip:", pdfErr);
+      try {
+        const { printPrescriptionSlip } = await import('../utils/prescriptionShare');
+        printPrescriptionSlip({
+          cropName: liveResult?.crop_name || 'Agricultural Crop',
+          diseaseName: liveResult?.disease_name || 'Crop Health Condition',
+          confidence: liveResult?.confidence ? Math.round(liveResult.confidence * 100) : 98,
+          severity: liveResult?.severity || 'Moderate',
+          chemicals: liveResult?.chemical_treatment ? [liveResult.chemical_treatment] : [],
+          organic: liveResult?.organic_treatment ? [liveResult.organic_treatment] : [],
+          prevention: liveResult?.safety_precautions || '',
+          language: user?.preferred_language || i18n.language || 'en'
+        });
+      } catch (fallbackErr) {
+        console.error("PDF fallback failed:", fallbackErr);
+        alert("Could not generate PDF report. Please check browser pop-up permissions.");
+      }
     }
   };
 

@@ -2,6 +2,15 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v67) - Farmer-Friendly Single-Medicine Treatment Protocol, Knapsack Tank Calculator & Resilient PDF Generator
+- **Summary:** Enhanced the disease diagnosis treatment interface to make chemical dosage crystal-clear, safe, and practical for field farmers:
+  1. **Critical "USE ANY ONE" Protocol Banner (`DiseaseDiagnosisResults.jsx`):** Added a prominent amber warning banner instructing farmers that chemical fungicides must NEVER be mixed together in the spray tank. Farmers choose and purchase any ONE available formulation from their local agro store.
+  2. **Interactive Formulation Selector:** Added an interactive selector card for each recommended fungicide (Option 1, Option 2, Option 3, etc.) allowing farmers to tap the exact chemical they bought to dynamically calculate tank dosages.
+  3. **Real-Time Knapsack Sprayer Dosage Calculator:** Automatically computes the precise medicine dosage (grams or ml) needed for standard 16-litre knapsack pumps, total pumps required for their farm acreage, and total chemical purchase volume.
+  4. **3-Step Practical Tank Mixing Instructions:** Provides easy 3-step field instructions (half-fill tank with water, pre-dissolve medicine in a small bucket, pour in and top up to 16L, spray foliage uniformly).
+  5. **Resilient PDF Report Generator Fallback (`UploadImagePage.jsx`):** Enhanced PDF download with automatic graceful fallback to the printable prescription slip protocol if direct jsPDF generation or browser popups encounter restrictions.
+- **Files modified**: `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v66) - Target Crop Selection Enforcement, Photo Preview Ambient Framing & Crop-Aware Leaf Spot Advisory
 - **Summary:** Resolved both issues highlighted in user testing (cluttered/irritating photo preview frame and crop name switching to Groundnut when Chilli was selected):
   1. **Strict Target Crop Enforcement (`predict.py`, `nvidia_service.py`):** When a user selects a target crop (e.g. Chilli), the backend now treats `req.crop_filter` as sovereign ground truth. Previously, line 661 unconditionally overwrote `prediction_result["crop_name"]` with `detected_vision_crop` (which defaulted to "Groundnut" due to a prompt few-shot bias). Removed the prompt bias, added optional `crop_hint` pass-through, and guaranteed `prediction_result["crop_name"]` stays locked to `user_crop_filter.title()`.
