@@ -117,13 +117,15 @@ class PredictionResponse(PredictionBase):
     prescription_calendar: Optional[List[Dict[str, Any]]] = None
     financial_metrics: Optional[Dict[str, Any]] = None
 
-    model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow")
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow", arbitrary_types_allowed=True)
 
 class PredictionHistoryResponse(BaseModel):
     predictions: List[PredictionResponse]
     total: int
     page: int
     pages: int
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow", arbitrary_types_allowed=True)
 
 class PredictRequest(BaseModel):
     image_path: str

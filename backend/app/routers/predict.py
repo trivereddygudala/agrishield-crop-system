@@ -1242,39 +1242,48 @@ async def get_history(
             except Exception:
                 pass
 
+    def sanitize_mongo_doc(doc):
+        if isinstance(doc, ObjectId):
+            return str(doc)
+        if isinstance(doc, dict):
+            clean = {}
+            for k, v in doc.items():
+                if k == "_id":
+                    clean["_id"] = str(v)
+                    clean["id"] = str(v)
+                else:
+                    clean[k] = sanitize_mongo_doc(v)
+            return clean
+        if isinstance(doc, list):
+            return [sanitize_mongo_doc(item) for item in doc]
+        return doc
+
+    sanitized_records = []
     for rec in records:
-        if "_id" in rec:
-            rec["id"] = str(rec["_id"])
-            rec["_id"] = str(rec["_id"])
-        
-        # Ensure any ObjectId fields are converted to string to prevent Pydantic serialization crash
-        for k, v in list(rec.items()):
-            if isinstance(v, ObjectId):
-                rec[k] = str(v)
-            elif isinstance(v, dict):
-                for sub_k, sub_v in list(v.items()):
-                    if isinstance(sub_v, ObjectId):
-                        v[sub_k] = str(sub_v)
+        clean_rec = sanitize_mongo_doc(rec)
         
         # Inject farmer info
-        if "user_id" in rec and rec["user_id"] in user_cache:
-            rec["farmer_name"] = user_cache[rec["user_id"]]["name"]
-            rec["farmer_email"] = user_cache[rec["user_id"]]["email"]
-        elif "user_id" in rec and rec["user_id"] == str(current_user["id"]):
-            rec["farmer_name"] = current_user.get("name") or current_user.get("full_name")
-            rec["farmer_email"] = current_user.get("email")
+        u_id = clean_rec.get("user_id")
+        if u_id and u_id in user_cache:
+            clean_rec["farmer_name"] = user_cache[u_id]["name"]
+            clean_rec["farmer_email"] = user_cache[u_id]["email"]
+        elif u_id and u_id == str(current_user["id"]):
+            clean_rec["farmer_name"] = current_user.get("name") or current_user.get("full_name")
+            clean_rec["farmer_email"] = current_user.get("email")
             
         # Map legacy literal translations to high-fidelity agricultural terms
-        if rec.get("disease_name") == "పసుపు రంగు":
-            rec["disease_name"] = "ఆకులు పసుపుబారడం (క్లోరోసిస్)"
+        if clean_rec.get("disease_name") == "పసుపు రంగు":
+            clean_rec["disease_name"] = "ఆకులు పసుపుబారడం (క్లోరోసిస్)"
             
         # Ensure proper UTC ISO strings for frontend parsing
-        if "created_at" in rec and isinstance(rec["created_at"], datetime):
-            dt = rec["created_at"]
-            rec["created_at"] = dt.isoformat() + ("Z" if dt.tzinfo is None else "")
+        if "created_at" in clean_rec and isinstance(clean_rec["created_at"], datetime):
+            dt = clean_rec["created_at"]
+            clean_rec["created_at"] = dt.isoformat() + ("Z" if dt.tzinfo is None else "")
+
+        sanitized_records.append(clean_rec)
 
     return {
-        "predictions": records,
+        "predictions": sanitized_records,
         "total": total,
         "page": page,
         "pages": pages

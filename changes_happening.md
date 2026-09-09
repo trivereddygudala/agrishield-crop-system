@@ -2,6 +2,12 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v63) - Comprehensive History Serialization & Schema ObjectId Protection
+- **Summary:** Completely eradicated the "Failed to load history data" 500 error:
+  1. **Recursive `sanitize_mongo_doc` Implementation (`predict.py`):** Added a recursive tree traversal that converts every MongoDB `ObjectId` (including nested lists, sub-dictionaries, and extra metadata fields) into pure strings before the response is passed to FastAPI.
+  2. **Schema Arbitrary Types Config (`schemas.py`):** Added `arbitrary_types_allowed=True` to `PredictionResponse` and `PredictionHistoryResponse` Pydantic models so unexpected MongoDB binary representations never trigger ASGI application crashes.
+- **Files modified**: `backend/app/routers/predict.py`, `backend/app/models/schemas.py`, `changes_happening.md`
+
 ## 2026-09-09 (v62) - Critical Disease Name Normalization & Advisory Resolution Across All Languages
 - **Summary:** Resolved the core disease name mismatch bug where every crop pathology scan was collapsing into "Tomato Early Blight":
   1. **Fixed Multilingual Disease Key Mapping (`diseaseAdvisoryData.js`):** `normalizeDiseaseKey` previously lacked regional translations for Leaf Spot (`ఆకు మచ్చ`, `పत्ती धब्बा`), Anthracnose (`ఆంత్రాక్నోస్`, `కాయకుళ్లు`, `కొమ్మ ఎండు`, `एंथ्रेक्नोज`), and other common diseases, causing them to fall back to `'early_blight'`. Added comprehensive Telugu, Hindi, Tamil, and Kannada dictionary patterns and a dynamic `COMMON_DISEASES` match fallback.
