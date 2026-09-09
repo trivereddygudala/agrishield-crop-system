@@ -2,6 +2,12 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v68) - Groq Cloud OTPM Rate-Limit Enforcement & Multimodal Vision Timeout Tuning
+- **Summary:** Fixed the Groq Cloud HTTP 429 rate-limit error (`Limit 1000 OTPM, Requested 1252`) and tuned vision guardrail timeouts:
+  1. **Groq Output Token Cap (`nvidia_service.py`):** Capped `call_tokens` to 700 for Groq Cloud on-demand tier (and reduced `generate_farming_advice` default `max_tokens` from 1500 to 650), keeping expected tokens safely below Groq's 1,000 output tokens/minute ceiling.
+  2. **Extended Vision Guardrail Timeout:** Increased `analyze_crop_image` timeout to 12.0s to allow NVIDIA NIM `meta/llama-3.2-11b-vision-instruct` sufficient time to process base64 image requests over cold start or network latency.
+- **Files modified**: `backend/app/services/nvidia_service.py`, `changes_happening.md`
+
 ## 2026-09-09 (v67) - Farmer-Friendly Single-Medicine Treatment Protocol, Knapsack Tank Calculator & Resilient PDF Generator
 - **Summary:** Enhanced the disease diagnosis treatment interface to make chemical dosage crystal-clear, safe, and practical for field farmers:
   1. **Critical "USE ANY ONE" Protocol Banner (`DiseaseDiagnosisResults.jsx`):** Added a prominent amber warning banner instructing farmers that chemical fungicides must NEVER be mixed together in the spray tank. Farmers choose and purchase any ONE available formulation from their local agro store.

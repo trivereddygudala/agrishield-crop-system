@@ -231,13 +231,15 @@ class NVIDIAService:
 
         for name, client, model in providers:
             try:
+                # For Groq Cloud on-demand tier, cap max_tokens to 700 to strictly respect the 1000 OTPM rate limit
+                call_tokens = min(safe_tokens, 700) if "Groq" in name else safe_tokens
                 logger.info(f"Attempting AI completion via {name} ({model})...")
                 response = await asyncio.wait_for(
                     client.chat.completions.create(
                         model=model,
                         messages=messages,
                         temperature=temperature,
-                        max_tokens=safe_tokens,
+                        max_tokens=call_tokens,
                         timeout=safe_timeout
                     ),
                     timeout=safe_timeout + 1.0
@@ -316,7 +318,7 @@ JSON Schema:
             {"role": "user", "content": prompt}
         ]
 
-        content, provider_name = await self._execute_completion(messages, temperature=0.2, max_tokens=1500, timeout=8.0)
+        content, provider_name = await self._execute_completion(messages, temperature=0.2, max_tokens=650, timeout=8.0)
         
         if content:
             parsed_data = safe_parse_json(content)
@@ -914,7 +916,7 @@ Do NOT include markdown fences, backticks, or any conversational text. Only outp
                     temperature=0.1,
                     max_tokens=220
                 ),
-                timeout=7.0
+                timeout=12.0
             )
 
             content = response.choices[0].message.content.strip()
