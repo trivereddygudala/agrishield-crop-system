@@ -1,13 +1,16 @@
 import logging
 import asyncio
+import os
 import calendar
 from datetime import datetime, timedelta, timezone
+import httpx
 from backend.app.models.notification import NotificationCreate
 from backend.app.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
 scheduler_task = None
+keepalive_task = None
 
 async def scheduler_loop(db):
     """Async scheduler running background telemetry and alert tasks every minute."""
@@ -141,16 +144,40 @@ async def scheduler_loop(db):
         # Sleep for exactly 60 seconds
         await asyncio.sleep(60)
 
+async def render_keepalive_loop():
+    """
+    Pings self via public Render URL every 9 minutes to generate inbound HTTP traffic
+    and prevent the Render free-tier container from spinning down.
+    """
+    public_url = os.getenv("RENDER_EXTERNAL_URL", "https://agrishield-crop-system.onrender.com")
+    health_url = f"{public_url.rstrip('/')}/health"
+    await asyncio.sleep(45)
+    while True:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(health_url)
+                logger.info(f"[KEEPALIVE] Sent keep-alive ping to {health_url}, status: {resp.status_code}")
+        except Exception as e:
+            logger.debug(f"[KEEPALIVE] Keep-alive ping notice: {e}")
+        # Render spins down after 15 minutes of inactivity; ping every 9 minutes
+        await asyncio.sleep(540)
+
 def start_scheduler(db):
     """Initialize and run the background scheduler task thread."""
-    global scheduler_task
+    global scheduler_task, keepalive_task
     if scheduler_task is None or scheduler_task.done():
         scheduler_task = asyncio.create_task(scheduler_loop(db))
         logger.info("Notification scheduler background task registered and running.")
+    if keepalive_task is None or keepalive_task.done():
+        keepalive_task = asyncio.create_task(render_keepalive_loop())
+        logger.info("Render keep-alive background task registered and running.")
 
 def stop_scheduler():
     """Clean up and cancel the background scheduler thread."""
-    global scheduler_task
+    global scheduler_task, keepalive_task
     if scheduler_task and not scheduler_task.done():
         scheduler_task.cancel()
         logger.info("Notification scheduler background task canceled.")
+    if keepalive_task and not keepalive_task.done():
+        keepalive_task.cancel()
+        logger.info("Render keep-alive background task canceled.")

@@ -141,8 +141,8 @@ class NVIDIAService:
         self,
         messages: list,
         temperature: float = 0.2,
-        max_tokens: int = 1024,
-        timeout: float = 12.0
+        max_tokens: int = 450,
+        timeout: float = 4.0
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Executes a chat completion across configured AI providers with automatic failover.
@@ -152,6 +152,10 @@ class NVIDIAService:
         if not providers:
             return None, None
 
+        # Ensure max_tokens never triggers Groq OTPM quota limit (Limit 1000)
+        safe_tokens = min(max_tokens, 450)
+        safe_timeout = min(timeout, 4.0)
+
         for name, client, model in providers:
             try:
                 logger.info(f"Attempting AI completion via {name} ({model})...")
@@ -160,10 +164,10 @@ class NVIDIAService:
                         model=model,
                         messages=messages,
                         temperature=temperature,
-                        max_tokens=max_tokens,
-                        timeout=timeout
+                        max_tokens=safe_tokens,
+                        timeout=safe_timeout
                     ),
-                    timeout=timeout + 2.0
+                    timeout=safe_timeout + 1.0
                 )
                 content = response.choices[0].message.content.strip()
                 logger.info(f"AI completion succeeded via {name} ({model})")
@@ -234,7 +238,7 @@ JSON Schema:
             {"role": "user", "content": prompt}
         ]
 
-        content, provider_name = await self._execute_completion(messages, temperature=0.2, max_tokens=1024, timeout=12.0)
+        content, provider_name = await self._execute_completion(messages, temperature=0.2, max_tokens=450, timeout=4.0)
         
         if content:
             try:
@@ -536,9 +540,9 @@ Do not include any conversational text or markdown styling outside the JSON bloc
             return None
 
         # Format input details for the LLM
-        predictions_str = json.dumps(top_predictions, indent=2)
-        sensor_str = json.dumps(sensor_data, indent=2)
-        farm_str = json.dumps(farm_profile, indent=2) if farm_profile else "None"
+        predictions_str = json.dumps(top_predictions, indent=2, default=str)
+        sensor_str = json.dumps(sensor_data, indent=2, default=str)
+        farm_str = json.dumps(farm_profile, indent=2, default=str) if farm_profile else "None"
 
         prompt = f"""
 You are an expert crop pathologist. The PyTorch vision model detected a crop leaf scan with borderline confidence. 
@@ -577,7 +581,7 @@ Do not include any conversational text or markdown styling outside the JSON bloc
             {"role": "user", "content": prompt}
         ]
 
-        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=512, timeout=10.0)
+        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=450, timeout=3.5)
         if content:
             try:
                 if "```json" in content:
@@ -635,7 +639,7 @@ Do not include any conversational text or markdown blocks. Only output the raw J
             {"role": "user", "content": prompt}
         ]
 
-        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=1024, timeout=12.0)
+        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=450, timeout=3.5)
         if content:
             try:
                 if "```json" in content:

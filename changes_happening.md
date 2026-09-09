@@ -2,6 +2,10 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v55) - Resolved AI Inference Latency, Token Limits, MongoDB Serialization & Auto Keep-Alive Loop
+- **Summary:** Fixed the recurring diagnosis latency and 504 gateway timeout issues when scanning crop leaves. Capped LLM token generations to 450 tokens and set failover timeouts to 4.0 seconds in `nvidia_service.py` to prevent triggering Groq's 1,000 tokens-per-minute quota. Resolved MongoDB `ObjectId` JSON serialization error by adding `default=str` to `json.dumps()` in AI prompt formatters. Added `render_keepalive_loop` in `backend/app/services/scheduler.py` that automatically pings the service health endpoint every 9 minutes, preventing the container from spinning down and eliminating the cold-start delay for farmers.
+- **Files modified**: `backend/app/routers/predict.py`, `backend/app/services/nvidia_service.py`, `backend/app/services/scheduler.py`, `changes_happening.md`
+
 ## 2026-09-08 (v54) - Multi-Device Concurrent WebSocket Connection Support & Automatic Stale Socket Cleanup
 - **Summary:** Upgraded `WebSocketManager` in `backend/app/routers/notifications.py` to seamlessly support simultaneous multi-device logins (e.g., Desktop, Laptop, and Mobile running concurrently on the same account). Eliminated race conditions where new device connections dropped existing sockets. Wrapped websocket lifecycles in strict `try...finally` blocks to guarantee immediate garbage collection of stale sockets upon mobile sleep or tab switches. Enhanced client-side heartbeat timeouts in `frontend/src/context/WebSocketContext.jsx` from 15s to 35s to prevent false disconnect alerts during network transitions.
 - **Files modified**: `backend/app/routers/notifications.py`, `frontend/src/context/WebSocketContext.jsx`, `changes_happening.md`

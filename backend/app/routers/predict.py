@@ -643,6 +643,8 @@ async def predict_pytorch_endpoint(
             
             # Fetch active farm profile
             active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+            if active_farm and "_id" in active_farm:
+                active_farm["_id"] = str(active_farm["_id"])
             
             # Fetch latest telemetry context from MongoDB
             latest_telemetry = {}
@@ -695,6 +697,8 @@ async def predict_pytorch_endpoint(
         from backend.app.services.farm_profile_service import FarmProfileService
         user_id_val = str(current_user["id"]) if current_user else "demo_user"
         active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
+        if active_farm and "_id" in active_farm:
+            active_farm["_id"] = str(active_farm["_id"])
         llama_advice = await nvidia_service.generate_farming_advice(
             crop_name=prediction_result["crop_name"],
             disease_name=prediction_result["disease_name"],
