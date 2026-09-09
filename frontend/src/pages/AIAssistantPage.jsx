@@ -5,7 +5,7 @@ import {
   Search, Pin, Share2, ThumbsUp, ThumbsDown, Volume2, VolumeX, Mic, MicOff,
   ArrowUp, ChevronDown, MoreVertical, Image as ImageIcon, BookOpen, Cpu, 
   ExternalLink, Edit3, Globe, Layers, CheckCircle2, ShieldCheck, Leaf, RefreshCw,
-  Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain, TrendingUp
+  Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain, TrendingUp, Building2, Store
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -365,6 +365,28 @@ const AIAssistantPage = () => {
         kn: "🌿 ಜೀವಾಮೃತ ತಯಾರಿಕೆ"
       },
       query: "How do I prepare organic bio-pesticide using Neem leaves/oil and Jeevamrutha at home?"
+    },
+    {
+      icon: Building2,
+      label: {
+        en: "🏛️ Rythu Bharosa Kendram (RBK)",
+        te: "🏛️ రైతు భరోసా కేంద్రం (RBK సేవలు)",
+        hi: "🏛️ रायथू भरोसा केंद्र (RBK सेवा)",
+        ta: "🏛️ ரைத்து பரோசா மையம் (RBK)",
+        kn: "🏛️ ರೈತ ಭರೋಸಾ ಕೇಂದ್ರ (RBK)"
+      },
+      query: "What services, subsidized seeds, fertilizers, e-crop booking, and schemes are provided at village Rythu Bharosa Kendrams (RBK) in Andhra Pradesh?"
+    },
+    {
+      icon: Store,
+      label: {
+        en: "🏪 Agro Stores & Govt Offices",
+        te: "🏪 ఎరువుల దుకాణాలు & వ్యవసాయ ఆఫీస్",
+        hi: "🏪 खाद दुकान और कृषि कार्यालय",
+        ta: "🏪 உரக் கடைகள் மற்றும் அலுவலகங்கள்",
+        kn: "🏪 ರಸಗೊಬ್ಬರ ಅಂಗಡಿಗಳು ಮತ್ತು ಕಚೇರಿಗಳು"
+      },
+      query: "How do I find authorized agro-chemical pesticide stores, PACS societies, and the Mandal Agriculture Officer (MAO) office in Andhra Pradesh?"
     }
   ];
 
@@ -906,7 +928,7 @@ const AIAssistantPage = () => {
         <div 
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 sm:px-8 py-4 space-y-6 max-w-3xl w-full mx-auto"
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3.5 sm:px-6 py-4 space-y-6 max-w-3xl w-full mx-auto"
           style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
         >
           {/* Empty Chat State with Suggestion Cards (Picture 3) */}
@@ -1150,7 +1172,7 @@ const AIAssistantPage = () => {
         </AnimatePresence>
 
         {/* ── CHATGPT STYLE PILL SEARCH BAR (Pictures 2 & 3) ── */}
-        <div className="px-2.5 sm:px-6 pt-1 pb-1 lg:pb-2.5 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto border-t border-slate-100/80 dark:border-[#1a1a1a]">
+        <div className="px-3.5 sm:px-6 pt-1 pb-1 lg:pb-2.5 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto">
           
           {/* Hidden File & Camera Inputs for In-Chat Leaf Diagnosis */}
           <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelected} className="hidden" />
@@ -1309,16 +1331,6 @@ const AIAssistantPage = () => {
               title="Snap photo with camera"
             >
               <Camera className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Direct Photo Gallery Picker */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors shrink-0"
-              title="Upload leaf photo"
-            >
-              <Paperclip className="w-3.5 h-3.5" />
             </button>
 
             {/* Input Textarea */}

@@ -1178,6 +1178,22 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
      * Explain warmly in simple terms that AgriShield ALREADY has built-in real-time Mandi market rates without requiring any API keys or technical setup.
      * Directly provide the current Mandi rates for their crop or major crops (Modal rate ₹/Quintal, rate per kg/crate, MSP, and the APMC market name like Guntur, Madanapalle, Warangal, Vijayawada, Adoni).
      * Inform them that they can also tap the 'మార్కెట్ ధరలు / Market Prices' tab in the AgriShield app to see full live price charts, arrival volumes, and price trends.
+8. 🏛️ **Rythu Bharosa Kendrams (RBKs in Andhra Pradesh):**
+   - Provide complete, authoritative guidance on village RBKs (Dr. YSR Rythu Bharosa Kendralu) operational at all 10,778+ Grama Sachivalayams across Andhra Pradesh.
+   - RBK services include: distribution of certified subsidized seeds (APSSDC), certified chemical & bio fertilizers at MRP, mandatory e-Crop booking via CMAPP for free crop insurance (Uchitha Panta Bima), digital advisory kiosks, computerized soil health card testing, YSR Yantra Seva farm machinery custom hiring, and anti-spurious testing kits.
+   - RBK key village officers: Village Agriculture Assistant (VAA), Village Horticulture Assistant (VHA), and Village Animal Husbandry Assistant (AHA).
+9. 🏪 **Nearby Agro-Chemical Stores, Fertilizer Depots & PACS:**
+   - Guide farmers to authentic procurement channels: Local Village RBKs, Primary Agricultural Credit Societies (PACS), Markfed retail depots, DCMS centers, and authorized private pesticide/seed dealers located in Mandal headquarters or near APMC yards.
+   - Advise farmers to verify manufacturing/expiry dates, batch numbers, CIB&RC toxicity triangles, and to strictly demand a printed GST cash bill to claim compensation in case of crop failure.
+10. 🏢 **Government Agriculture Buildings & Offices:**
+    - Outline the official departmental hierarchy in Andhra Pradesh:
+      * Mandal Level: Mandal Agriculture Officer (MAO) and Mandal Horticulture Officer (MHO) at the MPDO campus / Sachivalayam.
+      * Divisional Level: Assistant Director of Agriculture (ADA) office.
+      * District Level: Joint Director of Agriculture (JDA) office at the District Collectorate.
+      * Research & Extension: ICAR Krishi Vigyan Kendra (KVK) in every district and Acharya N.G. Ranga Agricultural University (ANGRAU) research stations (Lam Farm Guntur, Tirupati, Anakapalle, Nandyal, Maruteru).
+    - Provide official helplines: AP Farmer Helpline `1907`, National Kisan Call Center `1800-180-1551`, Grama Sachivalayam `1902`.
+11. 💰 **Andhra Pradesh Farmer Welfare Schemes:**
+    - Highlight AP state welfare programs: Dr. YSR Rythu Bharosa (₹13,500/year assistance including CCRC tenant farmers), 100% Free Crop Insurance via e-Crop survey, Sunna Vaddi Panta Runalu (zero-interest crop loans up to ₹1 Lakh), YSR Jala Kala free borewells, and APMIP micro-irrigation (up to 90% drip/sprinkler subsidy).
 
 ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, numbered steps). Keep explanations clear, encouraging, and farmer-friendly.{lang_instruction}
 {context_str}"""
@@ -1211,6 +1227,30 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                         "3. Do NOT lecture the user on API keys, security, or AP-AIMS 2.0 scraping.\n"
                         "4. Immediately present today's actual Mandi prices (₹/Quintal, ₹/kg, nearest APMC yard) in a clean table or bullet points.\n"
                         "5. Tell the user they can also tap the 'మార్కెట్ ధరలు / Market Prices' tab in the AgriShield app to view full interactive charts."
+                    )
+                })
+
+            # Andhra Pradesh RBK, Agro Stores, & Govt Agriculture Offices Booster
+            is_rbk_govt_query = any(w in lower_user_msg for w in [
+                "rbk", "rythu bharosa", "bharosa kendram", "raithu barosa", "sachivalayam", 
+                "vaa", "vha", "mao", "ada", "jda", "kvk", "angrau", "agro store", "chemical store", 
+                "fertilizer shop", "fertilizer store", "pesticide store", "pesticide shop", "pacs", 
+                "markfed", "dcms", "andhra", "ap farmer", "e-crop", "cmapp", "uchitha panta", 
+                "sunna vaddi", "apmip", "రైతు భరోసా", "ఆర్బికె", "ఆర్బీకే", "ఎరువుల దుకాణం", 
+                "పురుగు మందుల దుకాణం", "వ్యవసాయ అధికారి", "గ్రామ సచివాలయం"
+            ])
+
+            if is_rbk_govt_query:
+                messages.append({
+                    "role": "system",
+                    "content": (
+                        "CRITICAL ANDHRA PRADESH RBK, AGRO STORES & GOVT OFFICES OVERRIDE:\n"
+                        "1. The farmer is asking about Rythu Bharosa Kendrams (RBKs), nearby agro-chemical stores, government agriculture buildings, or AP farm services.\n"
+                        "2. Explain clearly that Dr. YSR Rythu Bharosa Kendrams operate at every Grama Sachivalayam with Village Agriculture Assistants (VAAs).\n"
+                        "3. Guide them on certified seeds (APSSDC), subsidized fertilizers, mandatory e-Crop booking via CMAPP for Free Crop Insurance, digital kiosks, and soil testing.\n"
+                        "4. Detail nearby agro store sources: local RBKs, PACS societies, Markfed depots, DCMS, and licensed dealers in Mandal centers.\n"
+                        "5. Detail government offices: MAO (Mandal), ADA (Division), JDA (District Collectorate), KVKs, and ANGRAU research stations.\n"
+                        "6. Provide official helplines: AP Farmer Helpline 1907, Kisan Call Center 1800-180-1551, Sachivalayam 1902."
                     )
                 })
 
@@ -1331,7 +1371,82 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                 f"Continuous sensor broadcasting is normal. You can view interactive historical charts in the **Telemetry Dashboard** (`/telemetry`)."
             )
 
-        # ── 3. GOVERNMENT SCHEMES, SUBSIDIES & LOANS FOR FARMERS ───────────
+        # ── 3. RYTHU BHAROSA KENDRAMS (RBK), AGRO STORES & GOVERNMENT OFFICES ──
+        # 3a. Rythu Bharosa Kendrams (RBK) in Andhra Pradesh
+        if any(w in msg for w in ["rbk", "rythu bharosa kendram", "raithu barosa", "bharosa kendram", "రైతు భరోసా కేంద్రం", "ఆర్బికె", "ఆర్బీకే", "సచివాలయం", "గ్రామ సచివాలయం", "vaa", "vha", "cmapp", "e-crop", "e crop"]):
+            return (
+                "### 🏛️ Dr. YSR Rythu Bharosa Kendram (RBK) — Andhra Pradesh Village Hub\n\n"
+                "Rythu Bharosa Kendrams (RBKs) are integrated one-stop agricultural service centers operating at every **Grama Sachivalayam** across Andhra Pradesh (10,778+ centers) to serve farmers directly at the village level.\n\n"
+                "#### 🌟 Key Services Provided at Your Village RBK:\n"
+                "1. **🌱 Certified Quality Seeds (APSSDC):** Subsidized certified seeds for Paddy, Groundnut, Pulses, Millets, and Cotton with government lab test certification.\n"
+                "2. **🧪 Subsidized Fertilizers & Bio-Inputs:** Direct supply of Urea, DAP, MOP, Potash, Complex Fertilizers, and Neem-coated products at government-regulated MRP without black-marketing.\n"
+                "3. **🌾 Mandatory e-Crop Booking (CMAPP):**\n"
+                "   - The **Village Agriculture Assistant (VAA)** / **Village Horticulture Assistant (VHA)** conducts joint physical field surveys.\n"
+                "   - Registers farmer's Aadhaar, Pattadar Passbook, Survey number, and crop photo via the CMAPP digital system.\n"
+                "   - *Mandatory for:* **Free Crop Insurance (ఉచిత పంటల బీమా)**, Input Subsidy (పరిహారం), and Government MSP procurement.\n"
+                "4. **🖥️ Digital Kiosk Ordering:** Interactive touchscreens to book fertilizers, seeds, and micro-nutrients delivered directly to the village within 48-72 hours.\n"
+                "5. **🧪 Free Soil Health Testing:** Soil sample collection and issuance of computerized **Soil Health Cards** with customized NPK & micro-nutrient recommendations.\n"
+                "6. **🚜 YSR Yantra Seva (Custom Hiring Centers):** Community farm machinery hiring (Tractors, Combined Harvesters, Rotavators, Power Tillers, Sprayers) at nominal hourly rental rates.\n"
+                "7. **🛡️ Quality Testing & Anti-Spurious Cell:** Testing kits to detect duplicate or fake seeds, adulterated fertilizers, and spurious pesticides before purchase.\n\n"
+                "#### 👥 Key Officers at Your Village RBK:\n"
+                "- **Village Agriculture Assistant (VAA)** — For field crops, fertilizer supply, e-Crop, and seed distribution.\n"
+                "- **Village Horticulture Assistant (VHA)** — For fruits, vegetables, chili, spices, and drip subsidies.\n"
+                "- **Village Animal Husbandry Assistant (AHA)** — For livestock vaccination and dairy cattle feed.\n\n"
+                "📞 **Official Toll-Free Helplines:**\n"
+                "- **AP Farmer Call Center (RBK Integrated):** `1907`\n"
+                "- **Grama/Ward Sachivalayam Helpline:** `1902`\n"
+                "- **National Kisan Call Center:** `1800-180-1551`"
+            )
+
+        # 3b. Nearby Agro-Chemical & Fertilizer Stores (Authorized Retailers & PACS)
+        if any(w in msg for w in ["agro store", "chemical store", "fertilizer shop", "fertilizer store", "pesticide store", "pesticide shop", "pacs", "markfed", "dcms", "ఎరువుల దుకాణం", "పురుగు మందుల దుకాణం", "ఎరువుల దుకాణాలు", "దుకాణాలు", "ఖరీదు", "agro chemical"]):
+            return (
+                "### 🏪 Authorized Agro-Chemical, Fertilizer & Pesticide Stores\n\n"
+                "To ensure you purchase authentic, unadulterated agro-chemicals, fertilizers, and certified seeds, use the following authorized channels:\n\n"
+                "#### 📍 Where to Buy Authentic Agricultural Inputs:\n"
+                "1. **Village Rythu Bharosa Kendram (RBK):**\n"
+                "   - First recommended destination in Andhra Pradesh. 100% genuine, lab-tested seeds and fertilizers delivered directly at village MRP.\n"
+                "2. **PACS (Primary Agricultural Credit Societies):**\n"
+                "   - Cooperative fertilizer depots located at Mandal and village junctions offering subsidized Urea, DAP, and complex mixtures for society members and general farmers.\n"
+                "3. **Markfed & DCMS Retail Outlets:**\n"
+                "   - State Cooperative Marketing Federation distribution centers situated near Mandal headquarters and APMC Mandi yards.\n"
+                "4. **Licensed Private Agro-Chemical Dealers:**\n"
+                "   - Located along the main commercial roads of Mandal headquarters, near APMC Market Yards, and adjoining RTC bus stations.\n\n"
+                "#### 🛡️ Critical Farmer Safety Checklist Before Purchasing:\n"
+                "- **Check License & Display:** Ensure the retail shop displays a valid **Fertilizer / Pesticide License** issued by the Assistant Director of Agriculture (ADA).\n"
+                "- **Verify Batch & Expiry:** Check the manufacturing date, expiry date, batch number, and intact aluminum seal on liquid bottles.\n"
+                "- **Inspect Toxicity Triangle:** Look for the Central Insecticides Board (CIB&RC) color triangle (🟢 Green = Slightly Toxic, 🔵 Blue = Moderately Toxic, 🟡 Yellow = Highly Toxic, 🔴 Red = Extremely Toxic).\n"
+                "- **Insist on a Printed GST Cash Memo / Bill:** ALWAYS demand a computerized tax bill with your name, crop name, batch number, and shop stamp. *Without a bill, you cannot claim compensation or file a complaint if the chemical fails or damages crops.*\n\n"
+                "⚠️ **Suspect Spurious / Duplicate Chemicals?**\n"
+                "Report immediately to your **Mandal Agriculture Officer (MAO)** or call the **AP Agri Toll-Free Complaint Helpline:** `1907`."
+            )
+
+        # 3c. Government Agriculture Buildings & Extension Offices
+        if any(w in msg for w in ["government building", "government buildings", "government office", "government offices", "agriculture office", "agriculture department", "mao", "ada", "jda", "kvk", "angrau", "krishi vigyan", "వ్యవసాయ కార్యాలయం", "వ్యవసాయ ఆఫీస్", "వ్యవసాయ అధికారి", "వ్యవసాయ భవనం"]):
+            return (
+                "### 🏢 Government Agriculture Buildings & Administrative Offices\n\n"
+                "Here is the administrative hierarchy and contact directory for agricultural departments and extension offices in Andhra Pradesh:\n\n"
+                "#### 🏛️ Administrative Hierarchy (Village to State Level):\n"
+                "| Administrative Level | Government Office | Key Official / Authority | Primary Responsibilities |\n"
+                "| :--- | :--- | :--- | :--- |\n"
+                "| **Village Level** | **Rythu Bharosa Kendram (RBK)** | Village Agriculture Assistant (VAA) | Seed distribution, fertilizer booking, e-Crop survey, soil test collection. |\n"
+                "| **Mandal Level** | **Mandal Parishad (MPDO Compound)** | Mandal Agriculture Officer (MAO) | Subsidies sanction, pesticide shop inspections, calamity damage assessment. |\n"
+                "| **Divisional Level** | **ADA Office** | Assistant Director of Agriculture (ADA) | Fertilizer depot licensing, quality control, technical dispute resolution. |\n"
+                "| **District Level** | **District Collectorate Complex** | Joint Director of Agriculture (JDA) | District farm policy, disaster relief, input allocations, credit flow. |\n"
+                "| **State Level** | **Commissioner & Directorate of Agriculture** | Commissioner of Agriculture, AP | Guntur (Old Mirchi Yard Campus) — State-wide agricultural governance. |\n\n"
+                "#### 🔬 Agricultural Research & Advisory Centers:\n"
+                "- **ICAR Krishi Vigyan Kendra (KVK):** Dedicated agricultural science center in every district offering free on-farm technical training, seed production, and live crop demonstrations.\n"
+                "- **Acharya N.G. Ranga Agricultural University (ANGRAU):**\n"
+                "  - **Headquarters & Central Research Station:** Lam Farm, Guntur.\n"
+                "  - **Regional Stations:** Tirupati (Chittoor), Anakapalle (Visakhapatnam), Nandyal (Kurnool), Maruteru (West Godavari), Garikapadu (Krishna).\n"
+                "- **APMIP (Micro Irrigation Project Office):** Located at District Collectorates for 70%–90% subsidized drip/sprinkler installations.\n\n"
+                "📞 **Official Contacts & Helplines:**\n"
+                "- **AP Farmer Grievance Toll-Free:** `1907`\n"
+                "- **National Kisan Call Center (24x7):** `1800-180-1551`\n"
+                "- **Grama Sachivalayam Citizen Helpline:** `1902`"
+            )
+
+        # ── 4. GOVERNMENT SCHEMES, SUBSIDIES & LOANS FOR FARMERS ───────────
         if re.search(r'\b(scheme|schemes|subsidy|subsidies|pm-kisan|pm kisan|pmfby|fasal bima|kcc|kisan credit|kusum|solar pump|tractor subsidy|drone subsidy|loan|loans|yojana|sarkari|rythu bharosa|rythu bandhu|kalia|soil health card|pkvy|organic subsidy|nabard|sub-mission|mechanization)\b', msg) or any(w in msg for w in ["పథకం", "పథకాలు", "సబ్సిడీ", "రుణం", "రైతు భరోసా", "పిఎం కిసాన్", "యొజన", "యोजना", "सब्सिडी", "सरकारी", "ऋण", "திட்டம்", "திட்டங்கள்", "மானியம்", "ಯೋಜನೆ", "ಯೋಜನೆಗಳು", "ಸಬ್ಸಿಡಿ", "pathakam", "pathakalu", "yojana", "yojanaye", "subsidy", "subsidies"]):
             # 3a. PM-KISAN specific query
             if "kisan" in msg and any(w in msg for w in ["pm", "samman", "6000", "installment", "dbt"]):
@@ -1952,6 +2067,14 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                 "Rain": "వర్షం",
                 "Weather": "వాతావరణం",
                 "Field Telemetry Insights": "ఫీల్డ్ సమాచారం",
+                "Dr. YSR Rythu Bharosa Kendram (RBK) — Andhra Pradesh Village Hub": "డాక్టర్ వైఎస్సార్ రైతు భరోసా కేంద్రం (RBK) — గ్రామ వ్యవసాయ సేవలు",
+                "Authorized Agro-Chemical, Fertilizer & Pesticide Stores": "అధీకృత ఎరువులు & పురుగు మందుల దుకాణాలు",
+                "Government Agriculture Buildings & Administrative Offices": "ప్రభుత్వ వ్యవసాయ కార్యాలయాలు & అధికారులు",
+                "Key Services Provided at Your Village RBK:": "మీ గ్రామ RBK లో లభించే ముఖ్య సేవలు:",
+                "Where to Buy Authentic Agricultural Inputs:": "నాణ్యమైన వ్యవసాయ ఉత్పత్తులు ఎక్కడ కొనాలి:",
+                "Critical Farmer Safety Checklist Before Purchasing:": "కొనుగోలు చేసే ముందు రైతు తీసుకోవలసిన జాగ్రత్తలు:",
+                "Administrative Hierarchy (Village to State Level):": "పరిపాలనా విభాగం (గ్రామం నుండి రాష్ట్ర స్థాయి వరకు):",
+                "Agricultural Research & Advisory Centers:": "వ్యవసాయ పరిశోధన & సలహా కేంద్రాలు:",
                 "Key Government Schemes & Subsidies for Farmers": "రైతులకు ముఖ్యమైన ప్రభుత్వ పథకాలు & సబ్సిడీలు",
                 "Scheme Name": "పథకం పేరు",
                 "Core Benefit": "ముఖ్య ప్రయోజనం",

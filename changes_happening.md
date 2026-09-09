@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v72) - Andhra Pradesh Rural Agronomy Protocol (RBKs, Agro Stores, Govt Offices) & Chat Bar UI Polish
+- **Summary:** Fulfilled the user's complete request to remove redundant UI elements, align margins to page borders, and equip the AI Chatbot with deep Andhra Pradesh rural agronomic intelligence:
+  1. **Removed Border Line Under Chatbox (`AIAssistantPage.jsx`):** Removed `border-t border-slate-100/80 dark:border-[#1a1a1a]` from the bottom input container wrapper, leaving a clean seamless boundary without visible divider lines.
+  2. **Removed Redundant Paperclip Icon (`AIAssistantPage.jsx`):** Removed the standalone `<Paperclip>` icon button inside the input pill box since the adjacent `+` button already provides full leaf photo and gallery attachment actions.
+  3. **Symmetrical Left & Right Border Alignment (`AIAssistantPage.jsx`):** Reconciled the previous horizontal padding discrepancy between the message stream (`px-3 sm:px-8`) and the bottom container (`px-2.5 sm:px-6`). Standardized both to `px-3.5 sm:px-6 max-w-3xl w-full mx-auto` so message cards and the chat pill bar align symmetrically to the left and right borders on both mobile and desktop views.
+  4. **Andhra Pradesh RBK & Farmer Intelligence System Prompt (`nvidia_service.py`):** Added Rules 8, 9, 10, 11 to the AgriShield AI Agronomist system prompt:
+     - 🏛️ **Rythu Bharosa Kendrams (RBKs):** 10,778+ Grama Sachivalayam centers, Village Agriculture Assistant (VAA) & Village Horticulture Assistant (VHA), certified APSSDC seeds, subsidized fertilizers (Urea/DAP/MOP) at MRP, mandatory e-Crop survey via CMAPP, Free Crop Insurance (ఉచిత పంటల బీమా), digital kiosks, free soil testing, and YSR Yantra Seva machinery custom hiring.
+     - 🏪 **Nearby Agro-Chemical Stores & PACS:** Primary Agricultural Credit Societies (PACS), Markfed retail depots, DCMS, and licensed dealers in Mandal centers. Farmer safety checklists for batch numbers, expiry dates, toxicity triangles, and mandatory GST cash bills.
+     - 🏢 **Government Agriculture Buildings & Hierarchy:** MAO at MPDO (Mandal), ADA (Division), JDA (District Collectorate), ICAR Krishi Vigyan Kendras (KVK), and ANGRAU research stations (Lam Farm Guntur, Tirupati, Anakapalle, Nandyal, Maruteru). Official helplines: AP Farmer Helpline `1907`, Kisan Call Center `1800-180-1551`, Sachivalayam `1902`.
+     - 💰 **AP Welfare Schemes:** Dr. YSR Rythu Bharosa (₹13,500/year for landholders and CCRC tenant farmers), Sunna Vaddi (zero-interest crop loans), and APMIP micro-irrigation.
+  5. **RBK & Government Offices Booster (`nvidia_service.py`):** Injected a high-priority system-level booster override when queries mention RBKs, fertilizer stores, pesticide dealers, or agriculture offices so the LLM provides specific, local AP guidance.
+  6. **Comprehensive Offline/Local Agronomy Fallback (`nvidia_service.py`):** Extended `_generate_raw_agronomic_response` with complete local fallback knowledge for RBKs, agro stores, government buildings, and added Telugu translations in `_translate_agronomic_response`.
+  7. **New Multilingual Action Chips (`AIAssistantPage.jsx`):** Added 🏛️ *Rythu Bharosa Kendram (RBK)* and 🏪 *Agro Stores & Govt Offices* chips to the suggestion carousel in Telugu, Hindi, Tamil, Kannada, and English.
+- **Files modified**: `frontend/src/pages/AIAssistantPage.jsx`, `backend/app/services/nvidia_service.py`, `changes_happening.md`
+
 ## 2026-09-09 (v71) - Mobile Chat Box Slimming & Bottom Empty Gap Elimination
 - **Summary:** Resolved the issue where the search/input bar in the AI Assistant was excessively tall and had a massive ~120-140px blank empty white gap underneath on mobile devices:
   1. **Dynamic Mobile Viewport Correction (`App.jsx`):** Updated the layout height for `/assistant` on mobile to `h-[calc(100dvh-8rem)] max-h-[calc(100dvh-8rem)]` (accounting for 4rem top navbar + 4rem mobile bottom navigation), while preserving `h-[calc(100dvh-4rem)]` on desktop (`lg:`). This guarantees the chat viewport ends exactly flush at the top border of the mobile `BottomNav`.
