@@ -391,17 +391,17 @@ const ProfilePage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
-                      label="Full Name"
+                      label={t('profile_page.form.full_name', 'Full Name')}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       leftIcon={<User className="w-4 h-4 text-slate-400" />}
                       className="bg-white dark:bg-slate-900 text-xs font-bold"
                     />
                     <Input
-                      label="Email Address"
+                      label={t('profile_page.form.email', 'Email Address')}
                       value={email}
                       disabled
-                      helperText="Email is locked to account authentication."
+                      helperText={t('profile_page.form.email_locked', 'Email is locked to account authentication.')}
                       leftIcon={<Mail className="w-4 h-4 text-slate-400" />}
                       className="bg-white dark:bg-slate-900 text-xs font-bold"
                     />
@@ -485,14 +485,14 @@ const ProfilePage = () => {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Select
-                          label="Primary Farming Practice"
+                          label={t('profile_page.form.farming_practice', 'Primary Farming Practice')}
                           value={farmingPractices}
                           onChange={(e) => setFarmingPractices(e.target.value)}
                           options={[
-                            { value: 'Conventional', label: 'Conventional Farming' },
-                            { value: 'Organic', label: 'Organic Farming' },
-                            { value: 'Hydroponic', label: 'Hydroponic / Protected' },
-                            { value: 'Regenerative', label: 'Regenerative Agro-forestry' }
+                            { value: 'Conventional', label: t('profile_page.form.conventional', 'Conventional Farming') },
+                            { value: 'Organic', label: t('profile_page.form.organic', 'Organic Farming') },
+                            { value: 'Hydroponic', label: t('profile_page.form.hydroponic', 'Hydroponic / Protected') },
+                            { value: 'Regenerative', label: t('profile_page.form.regenerative', 'Regenerative Agro-forestry') }
                           ]}
                           className="text-xs font-bold text-slate-800 dark:text-white"
                         />
@@ -504,14 +504,14 @@ const ProfilePage = () => {
                     <div className="space-y-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] p-4">
                       <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 pb-2">
                         <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                          Admin Password &amp; Security Reset
+                          {t('profile_page.form.admin_password_section', 'Admin Password & Security Reset')}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-bold">Leave blank to keep current</span>
+                        <span className="text-[10px] text-slate-400 font-bold">{t('profile_page.form.leave_blank', 'Leave blank to keep current')}</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Input
-                          label="New Admin Password"
+                          label={t('profile_page.form.new_admin_password', 'New Admin Password')}
                           type="password"
                           placeholder="••••••••"
                           value={adminPassword}
@@ -519,7 +519,7 @@ const ProfilePage = () => {
                           className="bg-white dark:bg-slate-900 text-xs font-bold"
                         />
                         <Input
-                          label="Confirm New Password"
+                          label={t('profile_page.form.confirm_password', 'Confirm New Password')}
                           type="password"
                           placeholder="••••••••"
                           value={adminConfirmPassword}

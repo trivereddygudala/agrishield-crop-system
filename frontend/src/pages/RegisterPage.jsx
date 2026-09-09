@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Leaf, User, Lock, Eye, EyeOff, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { Leaf, User, Lock, Eye, EyeOff, MapPin, ShieldCheck, Sparkles, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/index';
 import { useToast } from '../components/ui/toast';
+import { useTranslation } from 'react-i18next';
+import LanguageSelectModal from '../components/common/LanguageSelectModal';
+import { getLanguageByCode } from '../data/languages';
 
 const RegisterPage = () => {
+  const { t, i18n } = useTranslation();
   const { register, user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -17,11 +21,21 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [village, setVillage] = useState('');
-  const [preferredLanguage, setPreferredLanguage] = useState('en');
+  const [preferredLanguage, setPreferredLanguage] = useState(i18n.language || 'en');
   const [activeStep, setActiveStep] = useState(0); // Onboarding slides index
+  const [langModalOpen, setLangModalOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const currentLang = getLanguageByCode(i18n.language);
+
+  // Sync preferredLanguage if i18n language changes
+  useEffect(() => {
+    if (i18n.language) {
+      setPreferredLanguage(i18n.language);
+    }
+  }, [i18n.language]);
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -31,9 +45,18 @@ const RegisterPage = () => {
   }, [user, navigate]);
 
   const onboardingSlides = [
-    { title: "📸 Step 1: Snap Leaf Photo", desc: "Take a clear, close-up picture of the infected crop leaf using your phone camera." },
-    { title: "🟢 Step 2: Instant AI Scan", desc: "AgriShield AI uses NIM endpoints to scan and detect symptoms in under 5 seconds." },
-    { title: "🌾 Step 3: Treatment & Spray Advice", desc: "Get organic & chemical recommendations, water guidance, and spray dosages." }
+    { 
+      title: t('auth.register.step1_title', '📸 Step 1: Snap Leaf Photo'), 
+      desc: t('auth.register.step1_desc', 'Take a clear, close-up picture of the infected crop leaf using your phone camera.') 
+    },
+    { 
+      title: t('auth.register.step2_title', '🟢 Step 2: Instant AI Scan'), 
+      desc: t('auth.register.step2_desc', 'AgriShield AI uses NIM endpoints to scan and detect symptoms in under 5 seconds.') 
+    },
+    { 
+      title: t('auth.register.step3_title', '🌾 Step 3: Treatment & Spray Advice'), 
+      desc: t('auth.register.step3_desc', 'Get organic & chemical recommendations, water guidance, and spray dosages.') 
+    }
   ];
 
   useEffect(() => {
@@ -41,7 +64,13 @@ const RegisterPage = () => {
       setActiveStep((prev) => (prev + 1) % onboardingSlides.length);
     }, 4500);
     return () => clearInterval(slideTimer);
-  }, []);
+  }, [onboardingSlides.length]);
+
+  const handleLanguageChange = (code) => {
+    setPreferredLanguage(code);
+    i18n.changeLanguage(code);
+    localStorage.setItem('i18nextLng', code);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,20 +79,23 @@ const RegisterPage = () => {
 
     const trimmedName = name.trim();
     if (!trimmedName || !password || !confirmPassword || !village) {
-      setErrorMsg('All fields are required.');
-      toast.error('Validation Error', 'All fields are required.');
+      const msg = t('auth.register.validation_all_required', 'All fields are required.');
+      setErrorMsg(msg);
+      toast.error('Validation Error', msg);
       return;
     }
 
     if (password.length < 4) {
-      setErrorMsg('Password must be at least 4 characters long.');
-      toast.error('Validation Error', 'Password must be at least 4 characters long.');
+      const msg = t('auth.register.validation_password_length', 'Password must be at least 4 characters long.');
+      setErrorMsg(msg);
+      toast.error('Validation Error', msg);
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match. Please re-enter.');
-      toast.error('Validation Error', 'Passwords do not match.');
+      const msg = t('auth.register.validation_password_mismatch', 'Passwords do not match. Please re-enter.');
+      setErrorMsg(msg);
+      toast.error('Validation Error', msg);
       return;
     }
 
@@ -78,7 +110,10 @@ const RegisterPage = () => {
       await register(trimmedName, email, password, preferredLanguage);
       // Store village details in localStorage to save farmer metadata locally
       localStorage.setItem('farmer_village', village);
-      toast.success('Account Created!', 'Welcome to AgriShield AI.');
+      toast.success(
+        t('auth.register.success_title', 'Account Created!'), 
+        t('auth.register.success_desc', 'Welcome to AgriShield AI.')
+      );
       navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error(err);
@@ -110,6 +145,20 @@ const RegisterPage = () => {
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[450px] w-[450px] rounded-full bg-emerald-500/5 blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/5 blur-3xl" />
 
+      {/* Floating Language Switcher in Top-Right Corner */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        <button
+          type="button"
+          onClick={() => setLangModalOpen(true)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-slate-200 transition-all backdrop-blur-md shadow-lg hover:border-emerald-500/40"
+        >
+          <Globe className="w-4 h-4 text-emerald-400" />
+          <span>{currentLang?.nativeName || 'English'}</span>
+        </button>
+      </div>
+
+      <LanguageSelectModal isOpen={langModalOpen} onClose={() => setLangModalOpen(false)} />
+
       <motion.div 
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
@@ -133,10 +182,10 @@ const RegisterPage = () => {
           </Link>
           
           <h2 className="font-display font-black text-white text-3xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-            Create Account
+            {t('auth.register.title', 'Create Account')}
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-2 leading-relaxed">
-            Start protecting your crops with machine intelligence
+            {t('auth.register.subtitle', 'Start protecting your crops with machine intelligence')}
           </p>
         </div>
         {/* Custom styled transparent card to bypass default light bg styles */}
@@ -186,7 +235,7 @@ const RegisterPage = () => {
 
             <div className="space-y-1">
               <label htmlFor="name" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                Full Name or Username
+                {t('auth.register.full_name', 'Full Name or Username')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -197,7 +246,7 @@ const RegisterPage = () => {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Ramesh or farmer1"
+                  placeholder={t('auth.register.full_name_placeholder', 'e.g. Ramesh or farmer1')}
                   className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
                   required
                 />
@@ -206,7 +255,7 @@ const RegisterPage = () => {
 
             <div className="space-y-1">
               <label htmlFor="password" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                Password
+                {t('auth.register.password', 'Password')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -217,7 +266,7 @@ const RegisterPage = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password (e.g. 1234)"
+                  placeholder={t('auth.register.password_placeholder', 'Enter password (e.g. 1234)')}
                   className="block w-full pl-10 pr-10 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
                   required
                 />
@@ -235,7 +284,7 @@ const RegisterPage = () => {
 
             <div className="space-y-1">
               <label htmlFor="confirmPassword" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                Confirm Password
+                {t('auth.register.confirm_password', 'Confirm Password')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -246,7 +295,7 @@ const RegisterPage = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter password"
+                  placeholder={t('auth.register.confirm_password_placeholder', 'Re-enter password')}
                   className="block w-full pl-10 pr-10 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
                   required
                 />
@@ -264,7 +313,7 @@ const RegisterPage = () => {
 
             <div className="space-y-1">
               <label htmlFor="village" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                Village / District
+                {t('auth.register.village', 'Village / District')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -275,7 +324,7 @@ const RegisterPage = () => {
                   type="text"
                   value={village}
                   onChange={(e) => setVillage(e.target.value)}
-                  placeholder="e.g. Rampur, Bihar"
+                  placeholder={t('auth.register.village_placeholder', 'e.g. Rampur, Bihar')}
                   className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
                   required
                 />
@@ -284,12 +333,12 @@ const RegisterPage = () => {
 
             <div className="space-y-1">
               <label htmlFor="language" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                Preferred Language
+                {t('auth.register.preferred_language', 'Preferred Language')}
               </label>
               <select
                 id="language"
                 value={preferredLanguage}
-                onChange={(e) => setPreferredLanguage(e.target.value)}
+                onChange={(e) => handleLanguageChange(e.target.value)}
                 className="block w-full px-3 py-3 border border-white/10 rounded-2xl bg-[#0d1527] text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
               >
                 <option value="en">English (English)</option>
@@ -299,7 +348,7 @@ const RegisterPage = () => {
                 <option value="kn">ಕನ್ನಡ (Kannada)</option>
                 <option value="ml">മലയാളം (Malayalam)</option>
                 <option value="bn">বাংলা (Bengali)</option>
-                <option value="mr">மরাঠী (Marathi)</option>
+                <option value="mr">मराठी (Marathi)</option>
                 <option value="gu">ગુજરાતી (Gujarati)</option>
                 <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
                 <option value="ur">اردو (Urdu)</option>
@@ -313,20 +362,20 @@ const RegisterPage = () => {
               loading={loading} 
               className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all mt-2"
             >
-              Register & Start Scanning
+              {t('auth.register.register_btn', 'Register & Start Scanning')}
             </Button>
           </form>
 
           {/* Project thematic details panel */}
           <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500">
-            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> AgriShield Secure</span>
-            <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" /> PyTorch Diagnostic</span>
+            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> {t('auth.login.agrishield_secure', 'AgriShield Secure')}</span>
+            <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" /> {t('auth.login.pytorch_diagnostic', 'PyTorch Diagnostic')}</span>
           </div>
 
           <p className="text-center text-xs text-slate-400 mt-6 font-bold">
-            Already have an account?{' '}
+            {t('auth.register.already_have_account', 'Already have an account?')}{' '}
             <Link to="/login" className="font-extrabold text-emerald-500 hover:underline">
-              Sign In
+              {t('auth.register.sign_in', 'Sign In')}
             </Link>
           </p>
         </div>

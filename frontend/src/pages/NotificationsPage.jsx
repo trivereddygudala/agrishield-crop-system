@@ -11,6 +11,7 @@ import API from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo, formatDateTime } from '../utils/dateUtils';
+import { useTranslation } from 'react-i18next';
 
 const PRIORITY_CONFIG = {
   Critical: { bg: 'bg-rose-50 dark:bg-rose-950/60', border: 'border-rose-200 dark:border-rose-800', badge: 'diseased', text: 'text-rose-700 dark:text-rose-300', label: 'Critical' },
@@ -33,6 +34,7 @@ const CATEGORIES = ['All', 'disease', 'weather', 'soil', 'battery', 'device', 'r
 const PRIORITIES = ['All', 'Critical', 'High', 'Medium', 'Low'];
 
 export default function NotificationsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const [notifications, setNotifications] = useState([]);
@@ -64,11 +66,11 @@ export default function NotificationsPage() {
       setPages(res.data.pages || 1);
       setPage(p);
     } catch {
-      setToastMsg('Failed to load notifications.');
+      setToastMsg(t('notifications_page.toast.load_failed', 'Failed to load notifications.'));
     } finally {
       setLoading(false);
     }
-  }, [category, priority, unreadOnly, limit]);
+  }, [category, priority, unreadOnly, limit, t]);
 
   useEffect(() => { fetchNotifications(1); }, [fetchNotifications]);
 
@@ -89,8 +91,8 @@ export default function NotificationsPage() {
     try {
       await API.put(`/api/v1/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, read: true } : n));
-      setToastMsg('Marked as read.');
-    } catch { setToastMsg('Failed to mark as read.'); }
+      setToastMsg(t('notifications_page.toast.marked_read', 'Marked as read.'));
+    } catch { setToastMsg(t('notifications_page.toast.mark_read_failed', 'Failed to mark as read.')); }
   };
 
   const handleAcknowledge = async (id, action) => {
@@ -99,8 +101,8 @@ export default function NotificationsPage() {
       setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, status: 'acknowledged', read: true } : n));
       setAcknowledgingId(null);
       setCustomActionText('');
-      setToastMsg('Alert acknowledged.');
-    } catch { setToastMsg('Failed to acknowledge alert.'); }
+      setToastMsg(t('notifications_page.toast.acknowledged', 'Alert acknowledged.'));
+    } catch { setToastMsg(t('notifications_page.toast.ack_failed', 'Failed to acknowledge alert.')); }
   };
 
   const handleDelete = async (id) => {
@@ -108,26 +110,26 @@ export default function NotificationsPage() {
       await API.delete(`/api/v1/notifications/${id}`);
       setNotifications(prev => prev.filter(n => n.notification_id !== id));
       setTotal(t => Math.max(0, t - 1));
-      setToastMsg('Notification deleted.');
-    } catch { setToastMsg('Failed to delete notification.'); }
+      setToastMsg(t('notifications_page.toast.deleted', 'Notification deleted.'));
+    } catch { setToastMsg(t('notifications_page.toast.delete_failed', 'Failed to delete notification.')); }
   };
 
   const handleReadAll = async () => {
     try {
       await API.post('/api/v1/notifications/read-all');
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setToastMsg('All notifications marked as read.');
-    } catch { setToastMsg('Failed to mark all as read.'); }
+      setToastMsg(t('notifications_page.toast.all_read', 'All notifications marked as read.'));
+    } catch { setToastMsg(t('notifications_page.toast.all_read_failed', 'Failed to mark all as read.')); }
   };
 
   const handleClear = async () => {
-    if (!window.confirm('Clear all notifications?')) return;
+    if (!window.confirm(t('notifications_page.confirm_clear', 'Clear all notifications?'))) return;
     try {
       await API.delete('/api/v1/notifications/clear');
       setNotifications([]);
       setTotal(0);
-      setToastMsg('Inbox cleared.');
-    } catch { setToastMsg('Failed to clear notifications.'); }
+      setToastMsg(t('notifications_page.toast.inbox_cleared', 'Inbox cleared.'));
+    } catch { setToastMsg(t('notifications_page.toast.clear_failed', 'Failed to clear notifications.')); }
   };
 
   const filteredNotifications = notifications.filter(n => {
@@ -135,6 +137,31 @@ export default function NotificationsPage() {
     const q = search.toLowerCase();
     return (n.title || '').toLowerCase().includes(q) || (n.message || '').toLowerCase().includes(q);
   });
+
+  const getCategoryLabel = (cat) => {
+    switch (cat) {
+      case 'All': return t('notifications_page.categories.all', 'All Categories');
+      case 'disease': return t('notifications_page.categories.disease', 'Disease');
+      case 'weather': return t('notifications_page.categories.weather', 'Weather');
+      case 'soil': return t('notifications_page.categories.soil', 'Soil & Irrigation');
+      case 'battery': return t('notifications_page.categories.battery', 'Battery');
+      case 'device': return t('notifications_page.categories.device', 'Device Status');
+      case 'recommendation': return t('notifications_page.categories.recommendation', 'Recommendation');
+      case 'system': return t('notifications_page.categories.system', 'System');
+      default: return cat;
+    }
+  };
+
+  const getPriorityLabel = (pri) => {
+    switch (pri) {
+      case 'All': return t('notifications_page.priorities.all', 'All Priorities');
+      case 'Critical': return t('notifications_page.priorities.critical', 'Critical');
+      case 'High': return t('notifications_page.priorities.high', 'High');
+      case 'Medium': return t('notifications_page.priorities.medium', 'Medium');
+      case 'Low': return t('notifications_page.priorities.low', 'Low');
+      default: return pri;
+    }
+  };
 
   if (loading) {
     return (
@@ -162,10 +189,10 @@ export default function NotificationsPage() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              Notifications Center
+              {t('notifications_page.title', 'Notifications Center')}
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Real-time disease warnings, IoT sensor threshold triggers &amp; system telemetry advisories.
+              {t('notifications_page.subtitle', 'Real-time disease warnings, IoT sensor threshold triggers & system telemetry advisories.')}
             </p>
           </div>
 
@@ -173,15 +200,15 @@ export default function NotificationsPage() {
             {isAdmin && (
               <Link to="/admin?tab=broadcast">
                 <Button variant="primary" size="sm" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold shadow-md shadow-amber-500/20">
-                  📢 Dispatch Broadcast Alert
+                  {t('notifications_page.dispatch_alert', '📢 Dispatch Broadcast Alert')}
                 </Button>
               </Link>
             )}
             <Button variant="outline" size="sm" onClick={handleReadAll} leftIcon={<CheckCheck className="w-4 h-4 text-emerald-600" />} className="flex-1 sm:flex-none">
-              Mark All Read
+              {t('notifications_page.mark_all_read', 'Mark All Read')}
             </Button>
             <Button variant="ghost" size="sm" onClick={handleClear} leftIcon={<Trash2 className="w-4 h-4 text-rose-500" />} className="flex-1 sm:flex-none">
-              Clear Inbox
+              {t('notifications_page.clear_inbox', 'Clear Inbox')}
             </Button>
           </div>
         </div>
@@ -191,26 +218,26 @@ export default function NotificationsPage() {
       <Card glass className="p-4 border-slate-200/80 dark:border-slate-800">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
           <Input
-            placeholder="Search notification title or body..."
+            placeholder={t('notifications_page.search_placeholder', 'Search notification title or body...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4 text-slate-400" />}
           />
 
-          <Select value={category} onChange={(e) => setCategory(e.target.value)} label="Category">
-            {CATEGORIES.map(c => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>)}
+          <Select value={category} onChange={(e) => setCategory(e.target.value)} label={t('notifications_page.category_label', 'Category')}>
+            {CATEGORIES.map(c => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={c} value={c}>{getCategoryLabel(c)}</option>)}
           </Select>
 
-          <Select value={priority} onChange={(e) => setPriority(e.target.value)} label="Priority">
-            {PRIORITIES.map(p => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={p} value={p}>{p === 'All' ? 'All Priorities' : p}</option>)}
+          <Select value={priority} onChange={(e) => setPriority(e.target.value)} label={t('notifications_page.priority_label', 'Priority')}>
+            {PRIORITIES.map(p => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={p} value={p}>{getPriorityLabel(p)}</option>)}
           </Select>
 
-          <Select value={limit} onChange={(e) => setLimit(Number(e.target.value))} label="Show Limit">
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={10}>10 Items</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={25}>25 Items</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={50}>50 Items</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={100}>100 Items</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={1000}>Show All</option>
+          <Select value={limit} onChange={(e) => setLimit(Number(e.target.value))} label={t('notifications_page.limit_label', 'Show Limit')}>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={10}>{t('notifications_page.items_count', '{{count}} Items', { count: 10 })}</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={25}>{t('notifications_page.items_count', '{{count}} Items', { count: 25 })}</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={50}>{t('notifications_page.items_count', '{{count}} Items', { count: 50 })}</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={100}>{t('notifications_page.items_count', '{{count}} Items', { count: 100 })}</option>
+            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={1000}>{t('notifications_page.show_all', 'Show All')}</option>
           </Select>
 
           <div className="flex items-center pt-5">
@@ -220,7 +247,7 @@ export default function NotificationsPage() {
                 unreadOnly ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
               }`}
             >
-              {unreadOnly ? 'Showing Unread Only' : 'Show Unread Only'}
+              {unreadOnly ? t('notifications_page.showing_unread', 'Showing Unread Only') : t('notifications_page.show_unread', 'Show Unread Only')}
             </button>
           </div>
         </div>
@@ -230,8 +257,8 @@ export default function NotificationsPage() {
       {filteredNotifications.length === 0 ? (
         <EmptyState
           icon={BellOff}
-          title="No Notifications Found"
-          description="Your inbox is completely clear! All farm environmental and diagnostic alerts will stream here."
+          title={t('notifications_page.empty_title', 'No Notifications Found')}
+          description={t('notifications_page.empty_desc', 'Your inbox is completely clear! All farm environmental and diagnostic alerts will stream here.')}
         />
       ) : (
         <div className="space-y-3">
@@ -259,23 +286,23 @@ export default function NotificationsPage() {
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{item.title}</h3>
-                          <Badge variant={pc.badge}>{item.priority}</Badge>
+                          <Badge variant={pc.badge}>{getPriorityLabel(item.priority)}</Badge>
                           {!item.read && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">{item.message}</p>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block pt-1">
-                          {(item.lifecycle?.created_at || item.created_at) ? formatDateTime(item.lifecycle?.created_at || item.created_at, { seconds: true }) : 'Unknown Date'} • {timeAgo(item.lifecycle?.created_at || item.created_at)}
+                          {(item.lifecycle?.created_at || item.created_at) ? formatDateTime(item.lifecycle?.created_at || item.created_at, { seconds: true }) : t('notifications_page.unknown_date', 'Unknown Date')} • {timeAgo(item.lifecycle?.created_at || item.created_at)}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
                       {!item.read && (
-                        <Button variant="ghost" size="icon" onClick={() => handleMarkRead(item.notification_id)} title="Mark Read">
+                        <Button variant="ghost" size="icon" onClick={() => handleMarkRead(item.notification_id)} title={t('notifications_page.mark_read', 'Mark Read')}>
                           <Check className="w-4 h-4 text-emerald-600" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.notification_id)} title="Delete Notification">
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.notification_id)} title={t('notifications_page.delete_notification', 'Delete Notification')}>
                         <Trash2 className="w-4 h-4 text-rose-500" />
                       </Button>
                     </div>
@@ -295,11 +322,11 @@ export default function NotificationsPage() {
                 disabled={page === 1}
                 leftIcon={<ChevronLeft className="w-4 h-4" />}
               >
-                Previous
+                {t('notifications_page.previous', 'Previous')}
               </Button>
               
               <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400">
-                Page {page} of {pages}
+                {t('notifications_page.page_info', 'Page {{current}} of {{total}}', { current: page, total: pages })}
               </span>
 
               <Button 
@@ -309,7 +336,7 @@ export default function NotificationsPage() {
                 disabled={page === pages}
                 rightIcon={<ChevronRight className="w-4 h-4" />}
               >
-                Next
+                {t('notifications_page.next', 'Next')}
               </Button>
             </div>
           )}

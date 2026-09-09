@@ -73,13 +73,15 @@ const FarmAnalyticsPage = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
         <AlertTriangle className="w-16 h-16 text-rose-500 mb-4" />
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Oops, something went wrong</h2>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          {t('analytics.something_went_wrong', 'Oops, something went wrong')}
+        </h2>
         <p className="text-slate-500 mb-6">{error}</p>
         <button 
           onClick={handleRefresh}
           className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
-          Try Again
+          {t('analytics.try_again', 'Try Again')}
         </button>
       </div>
     );
@@ -109,28 +111,28 @@ const FarmAnalyticsPage = () => {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
         <KpiCard 
-          title="Total Scans" 
+          title={t('analytics.kpi_total_scans', 'Total Scans')} 
           value={counts.total_scans || 0} 
           iconName="Activity" 
           colorClass="bg-blue-100 text-blue-600"
           delay={0.1}
         />
         <KpiCard 
-          title="Healthy Plants" 
+          title={t('analytics.kpi_healthy_plants', 'Healthy Plants')} 
           value={counts.healthy_plants || 0} 
           iconName="CheckCircle" 
           colorClass="bg-emerald-100 text-emerald-600"
           delay={0.2}
         />
         <KpiCard 
-          title="Diseased Plants" 
+          title={t('analytics.kpi_diseased_plants', 'Diseased Plants')} 
           value={counts.diseased_plants || 0} 
           iconName="AlertTriangle" 
           colorClass="bg-rose-100 text-rose-600"
           delay={0.3}
         />
         <KpiCard 
-          title="Agrochemical Scans" 
+          title={t('analytics.kpi_agrochemical_scans', 'Agrochemical Scans')} 
           value={counts.agrochemical_scans || 0} 
           iconName="FlaskConical" 
           colorClass="bg-purple-100 text-purple-600"

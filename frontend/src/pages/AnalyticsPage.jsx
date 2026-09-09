@@ -292,7 +292,7 @@ const AnalyticsPage = () => {
             <BarChart2 className="text-primary-600 dark:text-primary-400 shrink-0" /> {t('nav.analytics', 'Historical Analytics')}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
-            Analyze historical sensor trends, battery efficiency, and precipitation events.
+            {t('analytics.subtitle', 'Analyze historical sensor trends, battery efficiency, and precipitation events.')}
           </p>
         </div>
 
@@ -401,10 +401,10 @@ const AnalyticsPage = () => {
 
             <div className="flex items-center justify-end gap-2">
               <Button variant="sky" size="sm" onClick={handleExportCSV} leftIcon={<Download size={14} />} className="font-bold text-xs py-1.5 px-3">
-                Export CSV
+                {t('analytics.export_csv', 'Export CSV')}
               </Button>
               <Button variant="indigo" size="sm" onClick={handleExportPDF} leftIcon={<FileText size={14} />} className="font-bold text-xs py-1.5 px-3">
-                Export PDF
+                {t('analytics.export_pdf', 'Export PDF')}
               </Button>
             </div>
           </div>
@@ -513,12 +513,12 @@ const AnalyticsPage = () => {
               {/* Card 1: Avg Temp */}
               <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between card-accent-amber shadow-xs border-slate-200/90 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">Average Temp</span>
+                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">{t('analytics.stat_avg_temp', 'Average Temp')}</span>
                   <span className="text-2xl font-black text-slate-900 dark:text-slate-100 block mt-1">
                     {summaryData?.avg_temp != null ? `${summaryData.avg_temp}°C` : 'N/A'}
                   </span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-2 block">
-                    High: {summaryData?.max_temp != null ? `${summaryData.max_temp}°C` : 'N/A'} | Low: {summaryData?.min_temp != null ? `${summaryData.min_temp}°C` : 'N/A'}
+                    {t('analytics.stat_high', 'High')}: {summaryData?.max_temp != null ? `${summaryData.max_temp}°C` : 'N/A'} | {t('analytics.stat_low', 'Low')}: {summaryData?.min_temp != null ? `${summaryData.min_temp}°C` : 'N/A'}
                   </span>
                 </div>
                 <div className="bg-amber-100 dark:bg-amber-950/60 p-2 rounded-xl text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
@@ -529,11 +529,11 @@ const AnalyticsPage = () => {
               {/* Card 2: Avg Humidity */}
               <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between card-accent-sky shadow-xs border-slate-200/90 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">Avg Humidity</span>
+                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">{t('analytics.stat_avg_humidity', 'Avg Humidity')}</span>
                   <span className="text-2xl font-black text-slate-900 dark:text-slate-100 block mt-1">
                     {summaryData?.avg_humidity != null ? `${summaryData.avg_humidity}%` : 'N/A'}
                   </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-2 block">Relative Atmospheric</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-2 block">{t('analytics.stat_relative', 'Relative Atmospheric')}</span>
                 </div>
                 <div className="bg-sky-100 dark:bg-sky-950/60 p-2 rounded-xl text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800">
                   <Droplets size={18} />
@@ -543,11 +543,11 @@ const AnalyticsPage = () => {
               {/* Card 3: Avg Soil Moisture */}
               <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between card-accent-emerald shadow-xs border-slate-200/90 dark:border-slate-800">
                 <div>
-                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">Avg Soil Moisture</span>
+                  <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300 block uppercase tracking-wider">{t('analytics.stat_avg_soil', 'Avg Soil Moisture')}</span>
                   <span className="text-2xl font-black text-slate-800 dark:text-slate-100 block mt-1">
                     {summaryData?.avg_soil != null ? `${summaryData.avg_soil}%` : 'N/A'}
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-2 block">Root zone condition</span>
+                  <span className="text-[10px] text-slate-400 mt-2 block">{t('analytics.stat_root_zone', 'Root zone condition')}</span>
                 </div>
                 <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-xl text-emerald-500">
                   <Droplets size={18} />
@@ -557,11 +557,11 @@ const AnalyticsPage = () => {
               {/* Card 4: Rain events */}
               <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 block">Rain Events</span>
+                  <span className="text-xs font-semibold text-slate-400 block">{t('analytics.stat_rain_events', 'Rain Events')}</span>
                   <span className="text-2xl font-black text-slate-800 dark:text-slate-100 block mt-1">
                     {summaryData?.total_rain_events || 0}
                   </span>
-                  <span className="text-[10px] text-slate-400 mt-2 block">Precipitation readings</span>
+                  <span className="text-[10px] text-slate-400 mt-2 block">{t('analytics.stat_precipitation', 'Precipitation readings')}</span>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-950/40 p-2 rounded-xl text-blue-500">
                   <CloudRain size={18} />
@@ -571,12 +571,12 @@ const AnalyticsPage = () => {
               {/* Card 5: Battery Health */}
               <Card className="p-4 bg-white dark:bg-slate-950 flex items-start justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 block">Battery Status</span>
+                  <span className="text-xs font-semibold text-slate-400 block">{t('analytics.stat_battery', 'Battery Status')}</span>
                   <span className="text-2xl font-black text-slate-800 dark:text-slate-100 block mt-1">
                     {summaryData?.battery_status || 'Unknown'}
                   </span>
                   <span className="text-[10px] text-slate-400 mt-2 block">
-                    Latest: {summaryData?.latest_battery != null ? `${summaryData.latest_battery}%` : 'Ext Power'}
+                    {t('analytics.stat_latest', 'Latest')}: {summaryData?.latest_battery != null ? `${summaryData.latest_battery}%` : t('analytics.stat_ext_power', 'Ext Power')}
                   </span>
                 </div>
                 <div className={`p-2 rounded-xl ${

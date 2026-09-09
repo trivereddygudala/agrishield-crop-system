@@ -12,7 +12,7 @@ import { Card, Button, Input, Select } from '../components/ui/index';
 
 const SettingsPage = () => {
   const { user, logout, updateProfile } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { hardwareMode, toggleHardwareMode } = useHardwareMode();
   const userRole = user?.role?.toLowerCase() || 'farmer';
   const isFarmer = userRole === 'farmer';
@@ -119,7 +119,7 @@ const SettingsPage = () => {
       {/* Notifications Quick Link */}
       <div className="space-y-3">
         <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
-          {userRole === 'admin' ? 'Administrative Quick Access' : 'Inbox & Alerts'}
+          {userRole === 'admin' ? t('settings_page.admin_access', 'Administrative Quick Access') : t('settings_page.inbox_alerts', 'Inbox & Alerts')}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Link to="/notifications" className="block">
@@ -127,8 +127,8 @@ const SettingsPage = () => {
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🔔</span>
                 <div className="text-left">
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">Notifications Inbox</p>
-                  <p className="text-[10px] text-slate-450 dark:text-white/30">View recent system alerts and broadcasts</p>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">{t('settings_page.notifications_inbox', 'Notifications Inbox')}</p>
+                  <p className="text-[10px] text-slate-450 dark:text-white/30">{t('settings_page.notifications_desc', 'View recent system alerts and broadcasts')}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/30 shrink-0" />
@@ -146,7 +146,7 @@ const SettingsPage = () => {
                       1-Tap
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-450 dark:text-white/30">Switch Telugu, Hindi, Tamil & 9 more</p>
+                  <p className="text-[10px] text-slate-450 dark:text-white/30">{t('settings_page.language_desc', 'Switch Telugu, Hindi, Tamil & 9 more Indian languages')}</p>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/30 shrink-0" />
@@ -159,8 +159,8 @@ const SettingsPage = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">🛡️</span>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400">Admin Control Center</p>
-                    <p className="text-[10px] text-slate-450 dark:text-white/30">Users, broadcast, OTA, logs &amp; specs</p>
+                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400">{t('settings_page.admin_center', 'Admin Control Center')}</p>
+                    <p className="text-[10px] text-slate-450 dark:text-white/30">{t('settings_page.admin_center_desc', 'Users, broadcast, OTA, logs & specs')}</p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-amber-500 shrink-0" />
@@ -200,10 +200,10 @@ const SettingsPage = () => {
                 <p className={`text-sm font-black leading-tight ${
                   fieldMode ? 'text-amber-700 dark:text-amber-400' : 'text-slate-800 dark:text-white'
                 }`}>
-                  ☀️ Field Mode
+                  ☀️ {t('settings_page.field_mode', 'Field Mode')}
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-white/35 mt-0.5 leading-relaxed">
-                  High contrast • White bg • Max readability for outdoor sunlight
+                  {t('settings_page.field_mode_desc', 'High contrast • Max readability for outdoor sunlight')}
                 </p>
               </div>
             </div>
@@ -240,10 +240,10 @@ const SettingsPage = () => {
                 <p className={`text-sm font-black leading-tight ${
                   farmerMode ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-white'
                 }`}>
-                  🌾 Farmer Mode
+                  🌾 {t('settings_page.farmer_mode', 'Farmer Mode')}
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-white/35 mt-0.5 leading-relaxed">
-                  Larger text (120%) • Easier reading • Better accessibility
+                  {t('settings_page.farmer_mode_desc', 'Larger text (120%) • Easier reading • Better accessibility')}
                 </p>
               </div>
             </div>
@@ -264,8 +264,8 @@ const SettingsPage = () => {
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 text-[11px] font-bold">
             <Monitor className="w-3.5 h-3.5 shrink-0" />
             <span>
-              {[fieldMode && '☀️ Field Mode ON', farmerMode && '🌾 Farmer Mode ON'].filter(Boolean).join(' · ')}
-              {' '}&mdash; settings saved automatically.
+              {[fieldMode && `☀️ ${t('settings_page.field_mode', 'Field Mode')} ON`, farmerMode && `🌾 ${t('settings_page.farmer_mode', 'Farmer Mode')} ON`].filter(Boolean).join(' · ')}
+              {' '}{t('settings_page.auto_saved', '— settings saved automatically.')}
             </span>
           </div>
         )}
@@ -274,7 +274,7 @@ const SettingsPage = () => {
       {/* ── Hardware & IoT Integration Setup Mode ── */}
       <div className="space-y-3">
         <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
-          Hardware & IoT Setup
+          {t('settings_page.iot_mode', 'Hardware & IoT Setup')}
         </h3>
         <button
           type="button"
@@ -299,20 +299,20 @@ const SettingsPage = () => {
                 <p className={`text-base font-black leading-tight ${
                   hardwareMode ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-800 dark:text-white'
                 }`}>
-                  {hardwareMode ? '🔌 Hardware / IoT Setup: ENABLED' : '🌱 Software-Only Mode (Farmer Testing)'}
+                  {hardwareMode ? `🔌 ${t('settings_page.iot_enabled', 'Hardware / IoT Setup: ENABLED')}` : `🌱 ${t('settings_page.software_mode', 'Software-Only Mode (Farmer Testing)')}`}
                 </p>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                   hardwareMode
                     ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/40'
                     : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                 }`}>
-                  {hardwareMode ? 'All Hardware Features Active' : 'IoT Menus Hidden'}
+                  {hardwareMode ? t('settings_page.hw_active', 'All Hardware Features Active') : t('settings_page.hw_hidden', 'IoT Menus Hidden')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-white/45 mt-1 leading-relaxed max-w-xl">
                 {hardwareMode
-                  ? 'Showing all ESP32 Fleet Devices, Node Control Panel, MicroSD Storage, and live field sensor telemetry streams across the application.'
-                  : 'Designed for farmers testing the app without physical hardware. Hides ESP32 menus, battery statuses, and sensor gauges for a clean, zero-confusion software experience.'}
+                  ? t('settings_page.hw_enabled_desc', 'Showing all ESP32 devices, Node Control Panel, MicroSD Storage, and live sensor telemetry streams.')
+                  : t('settings_page.hw_disabled_desc', 'Farmer testing mode — hides ESP32 menus, battery statuses, and sensor gauges for a clean experience.')}
               </p>
             </div>
           </div>
@@ -320,7 +320,7 @@ const SettingsPage = () => {
           {/* Large Toggle Switch */}
           <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
             <span className="text-xs font-bold text-slate-500 dark:text-white/40 hidden sm:inline">
-              {hardwareMode ? 'Turn OFF' : 'Turn ON'}
+              {hardwareMode ? t('settings_page.turn_off', 'Turn OFF') : t('settings_page.turn_on', 'Turn ON')}
             </span>
             <div className={`relative w-14 h-8 rounded-full transition-colors duration-200 shrink-0 ${
               hardwareMode ? 'bg-cyan-500' : 'bg-slate-300 dark:bg-white/15'
@@ -341,16 +341,16 @@ const SettingsPage = () => {
               <Sprout className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight">Looking for Farm Sector, Crop & IoT Settings?</h3>
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight">{t('settings_page.farm_redirect_title', 'Looking for Farm, Crop & IoT Settings?')}</h3>
               <p className="text-[10px] sm:text-xs text-slate-500 dark:text-white/45 mt-1 leading-relaxed">
-                Farm coordinates, crop varieties, ESP32 pairing, and alert thresholds have been upgraded into the dedicated <strong>My Farm</strong> tab.
+                {t('settings_page.farm_redirect_desc', 'Farm location, crop varieties, ESP32 pairing, and alert settings are in the dedicated')} <strong>{t('nav.farm', 'My Farm')}</strong> {t('settings_page.farm_redirect_tab', 'tab.')}
               </p>
             </div>
           </div>
 
           <Link to="/farm" className="w-full sm:w-auto shrink-0">
             <Button size="sm" leftIcon={<Sprout className="w-4 h-4" />} rightIcon={<ArrowRight className="w-3.5 h-3.5" />} className="w-full sm:w-auto shadow-sm">
-              Go to My Farm
+              {t('settings_page.go_to_farm', 'Go to My Farm')}
             </Button>
           </Link>
         </Card>
@@ -378,28 +378,28 @@ const SettingsPage = () => {
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>Personal Information</h2>
-              <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">Update your account name, mobile number, and preferred language.</p>
+              <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>{t('settings_page.personal_info', 'Personal Information')}</h2>
+              <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">{t('settings_page.personal_info_desc', 'Update your account name and mobile number.')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Full Name"
+              label={t('profile_page.form.full_name', 'Full Name')}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
               className="bg-white dark:bg-slate-900 text-xs font-bold"
             />
             <Input
-              label="Mobile Phone Number"
+              label={t('settings_page.mobile_label', 'Mobile Phone Number')}
               value={mobileNumber}
               onChange={(e) => setMobileNumber(e.target.value)}
               placeholder="e.g. +91 9876543210"
               className="bg-white dark:bg-slate-900 text-xs font-bold"
             />
             <Input
-              label="Email Address"
+              label={t('profile_page.form.email', 'Email Address')}
               value={email}
               disabled
               helperText="Email address cannot be changed."
@@ -415,14 +415,14 @@ const SettingsPage = () => {
               <Key className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>Account Security</h2>
-              <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">Update your login password (leave blank to keep current password).</p>
+              <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>{t('settings_page.account_security', 'Account Security')}</h2>
+              <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">{t('settings_page.password_hint', 'Update your login password (leave blank to keep current).')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="New Password"
+              label={t('settings_page.new_password', 'New Password')}
               type="password"
               placeholder="••••••••"
               value={password}
@@ -430,7 +430,7 @@ const SettingsPage = () => {
               className="bg-white dark:bg-slate-900 text-xs font-bold"
             />
             <Input
-              label="Confirm Password"
+              label={t('settings_page.confirm_password', 'Confirm Password')}
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
@@ -449,7 +449,7 @@ const SettingsPage = () => {
             leftIcon={<LogOut className="w-4 h-4 text-rose-500" />}
             className="w-full sm:w-auto border-rose-200 dark:border-rose-950/40 text-rose-500 hover:bg-rose-500/10"
           >
-            Log Out Account
+            {t('settings_page.logout_btn', 'Log Out Account')}
           </Button>
 
           <Button
@@ -459,7 +459,7 @@ const SettingsPage = () => {
             leftIcon={<Save className="w-5 h-5 text-white" />}
             className="w-full sm:w-auto shadow-lg shadow-emerald-500/20"
           >
-            Save Account Settings
+            {t('settings_page.save_btn', 'Save Account Settings')}
           </Button>
         </div>
       </form>

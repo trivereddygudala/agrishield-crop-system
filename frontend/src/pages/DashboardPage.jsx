@@ -553,19 +553,19 @@ const DashboardPage = () => {
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-emerald-500" />
               <h3 className="text-sm font-black text-slate-800 dark:text-white/80 uppercase tracking-wider">
-                Live Field Micro-Telemetry Streams
+                {t('dashboard.telemetry_stream', 'Live Field Micro-Telemetry Streams')}
               </h3>
             </div>
             <div className="flex items-center gap-2">
               {activeDevice?.status === 'online' ? (
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-500">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  STREAMING LIVE
+                  {t('dashboard.streaming_live', 'STREAMING LIVE')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-white/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  NODE OFFLINE (USING ESTIMATED METRICS)
+                  {t('dashboard.node_offline_msg', 'NODE OFFLINE — SHOWING ESTIMATED DATA')}
                 </span>
               )}
             </div>

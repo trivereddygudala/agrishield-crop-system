@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { Leaf, ArrowLeft, Home, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/index';
+import { useTranslation } from 'react-i18next';
 
 const NotFoundPage = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   return (
@@ -29,26 +31,26 @@ const NotFoundPage = () => {
         </h1>
         
         <h2 className="font-bold text-slate-900 dark:text-slate-100 text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-          Page Not Found
+          {t('errors.page_not_found_title', 'Page Not Found')}
         </h2>
         
         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-          The agricultural section you are trying to reach doesn't exist or has been relocated to another crop zone.
+          {t('errors.page_not_found_desc', "The agricultural section you are trying to reach doesn't exist or has been relocated to another crop zone.")}
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
           <Link to="/">
             <Button variant="primary" leftIcon={<Home className="w-4 h-4" />}>
-              Go Home
+              {t('errors.go_home', 'Go Home')}
             </Button>
           </Link>
           <Link to="/admin">
             <button className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
-              👑 Admin Panel
+              {t('errors.admin_panel', '👑 Admin Panel')}
             </button>
           </Link>
           <Button variant="outline" onClick={() => window.history.back()} leftIcon={<ArrowLeft className="w-4 h-4" />}>
-            Go Back
+            {t('errors.go_back', 'Go Back')}
           </Button>
         </div>
       </motion.div>

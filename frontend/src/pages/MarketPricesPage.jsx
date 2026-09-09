@@ -264,7 +264,7 @@ const MarketPricesPage = () => {
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Real daily APMC wholesale auction rates, crop variety premiums, 2025–2026 Govt MSP comparisons &amp; trade advisories for <strong className="text-emerald-700 dark:text-emerald-400">{selectedDistrict}, {selectedState}</strong>.
+            {t('market_page.subtitle', 'Real daily APMC wholesale auction rates, crop variety premiums, Govt MSP comparisons & trade advisories for')} <strong className="text-emerald-700 dark:text-emerald-400">{selectedDistrict}, {selectedState}</strong>.
           </p>
         </div>
 
@@ -277,7 +277,7 @@ const MarketPricesPage = () => {
             leftIcon={<ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
             className="font-bold text-xs"
           >
-            Govt MSP Table
+            {t('market_page.msp_table_btn', 'Govt MSP Table')}
           </Button>
 
           <Button
@@ -288,7 +288,7 @@ const MarketPricesPage = () => {
             leftIcon={<RefreshCw className={`w-4 h-4 text-emerald-500 ${isRefreshing ? 'animate-spin' : ''}`} />}
             className="font-bold text-xs border-emerald-500/40 hover:border-emerald-500 text-emerald-700 dark:text-emerald-300"
           >
-            {isRefreshing ? 'Syncing...' : 'Refresh Live Rates'}
+            {isRefreshing ? t('market_page.syncing', 'Syncing...') : t('market_page.refresh_btn', 'Refresh Live Rates')}
           </Button>
 
           {/* Grid vs Table View */}

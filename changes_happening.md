@@ -2,7 +2,65 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
-## 2026-09-09 (v78) - Dedicated "Languages" Tab in More & 1-Tap Instant Language Switching
+## 2026-09-09 (v81) - Notifications, Auth (Login/Register), Farm Analytics & Error Pages Full Localization
+- **Summary:** Continued the comprehensive site-wide translation audit, completing NotificationsPage, LoginPage, RegisterPage, FarmAnalyticsPage, NotFoundPage, and ServerErrorPage, and adding instant 1-tap language switching directly on the entry screens:
+  1. 🔔 **Notifications Center Localization (`NotificationsPage.jsx`, `translations.js`):**
+     - Added comprehensive `notifications_page` namespace in both English and Telugu.
+     - Localized header, subtitle, actions ("📢 Dispatch Broadcast Alert", "Mark All Read", "Clear Inbox", confirmation prompt).
+     - Localized filter bar: Search placeholder, Category selector and option names (Disease, Weather, Soil & Irrigation, Battery, Device Status, Recommendation, System), Priority selector and levels (Critical, High, Medium, Low), Limit dropdown items, and Unread toggle badge.
+     - Localized notification empty state, timestamp fallbacks, priority badges, Mark Read and Delete actions, and pagination controls.
+     - Localized all toast feedback notifications for loading, marking read, acknowledging, deleting, and clearing.
+  2. 🔐 **Authentication & Regional Language Access (`LoginPage.jsx`, `RegisterPage.jsx`, `translations.js`):**
+     - Added comprehensive `auth.login` and `auth.register` dictionaries in English and Telugu.
+     - Added a floating 1-tap **Regional Language Switcher** button (`Globe`) directly on the top-right corner of both `LoginPage.jsx` and `RegisterPage.jsx`, triggering `LanguageSelectModal` so non-English-speaking farmers can immediately switch to Telugu before logging in or registering.
+     - Localized all login elements: Welcome Back, credentials prompt, username/email placeholder, password, remember me, submit button, badges ("AgriShield Secure", "PyTorch Diagnostic"), registration link, and validation toasts.
+     - Localized all registration elements: Create Account header, interactive 3-step picture-based onboarding carousel slides ("Snap Leaf Photo", "Instant AI Scan", "Treatment & Spray Advice"), input placeholders, password matching validations, and account creation toasts.
+     - Connected the registration language selection dropdown directly with live `i18n.changeLanguage(code)`.
+  3. 📊 **Farm Analytics KPI Localization (`FarmAnalyticsPage.jsx`, `translations.js`):**
+     - Localized analytics KPI cards: Total Scans (`kpi_total_scans`), Healthy Plants (`kpi_healthy_plants`), Diseased Plants (`kpi_diseased_plants`), and Agrochemical Scans (`kpi_agrochemical_scans`).
+     - Localized error state header and Try Again retry button.
+  4. ⚠️ **System Error Pages Localization (`NotFoundPage.jsx`, `ServerErrorPage.jsx`, `translations.js`):**
+     - Added root `errors` translation namespace in English and Telugu.
+     - Localized 404 Not Found title, agricultural relocation description, Go Home, Admin Panel, and Go Back actions.
+     - Localized 500 Server Error title, notification description, Try Again reload action, and Go to Dashboard link.
+- **Files modified**: `frontend/src/i18n/translations.js`, `frontend/src/pages/NotificationsPage.jsx`, `frontend/src/pages/LoginPage.jsx`, `frontend/src/pages/RegisterPage.jsx`, `frontend/src/pages/FarmAnalyticsPage.jsx`, `frontend/src/pages/NotFoundPage.jsx`, `frontend/src/pages/ServerErrorPage.jsx`, `changes_happening.md`
+
+## 2026-09-09 (v80) - Analytics, Market, and Profile Page Full Translation Audit & Telugu Localization
+- **Summary:** Continued the comprehensive site-wide translation audit, completing AnalyticsPage, MarketPricesPage, and ProfilePage:
+  1. 📊 **Analytics Page Localization (`AnalyticsPage.jsx`, `translations.js`):**
+     - Added dedicated root-level `analytics` namespace in both English and Telugu.
+     - Localized stat metrics and card labels: Average Temperature (`stat_avg_temp`), Relative Humidity (`stat_avg_hum`), Soil Moisture (`stat_soil_moist`), Ambient Light (`stat_amb_light`), Disease Probability (`stat_dis_prob`), Leaf Wetness (`stat_leaf_wet`), Active Monitoring (`stat_act_mon`), and Health Index (`stat_health_idx`).
+     - Localized export buttons: Export CSV (`export_csv`) and Export PDF Report (`export_pdf`).
+  2. 📈 **Market Prices Page Localization (`MarketPricesPage.jsx`, `translations.js`):**
+     - Localized dynamic APMC wholesale market subtitle (`market_page.subtitle`).
+     - Localized Government MSP table button (`market_page.msp_table_btn`), sync in progress status (`market_page.syncing`), and refresh live rates trigger (`market_page.refresh_btn`).
+  3. 👤 **Profile Page Form Localization (`ProfilePage.jsx`, `translations.js`):**
+     - Replaced hardcoded form labels with dynamic `t('profile_page.form.*')` translations: Full Name (`full_name`), Email Address (`email`), and immutable authentication note (`email_locked`).
+     - Localized Primary Farming Practice dropdown label (`farming_practice`) and options: Organic / Natural (`practice_organic`), Chemical / Conventional (`practice_conventional`), Integrated Pest Management / IPM (`practice_ipm`), and Hydroponic / Protected (`practice_hydroponic`).
+     - Localized Admin Password & Security header (`admin_security_heading`), New Password label (`new_password`), and Confirm New Password label (`confirm_password`).
+     - Mirrored all new keys into English and Telugu with culturally natural agricultural phrasing.
+- **Files modified**: `frontend/src/pages/AnalyticsPage.jsx`, `frontend/src/pages/MarketPricesPage.jsx`, `frontend/src/pages/ProfilePage.jsx`, `frontend/src/i18n/translations.js`, `changes_happening.md`
+
+## 2026-09-09 (v79) - Full Dashboard Translation Audit & Hardcoded String Fixes
+- **Summary:** Completed the Dashboard page full translation audit as part of the broader website audit:
+  1. 🌐 **Root-Level English Dashboard Keys Added (`translations.js`):**
+     - Added `dashboard.overview`, `dashboard.my_farm_overview`, `dashboard.scan_crop_leaf`, `dashboard.daily_actionable_summary`, `dashboard.crops_healthy`, `dashboard.soil_optimal`, `dashboard.disease_risk_low`, `dashboard.namaste_farmer` at root level.
+     - Added full `dashboard.kpi` block with: `active_crop_label`, `leaf_scans_label`, `stage`, `healthy`, `treated`, `soil_water_label`, `optimal`, `adequate`, `needs_water`, `mandi_rate_label`, `today`.
+     - Added full `dashboard.quick_tools` block with: `leaf_doctor`, `leaf_doctor_desc`, `agronomist`, `agronomist_desc`, `mandi_prices`, `mandi_prices_desc`, `my_farm`, `my_farm_desc`.
+     - Added `dashboard.telemetry_stream`, `dashboard.streaming_live`, `dashboard.node_offline_msg`, `dashboard.refresh_btn`.
+  2. 🌿 **Telugu Dashboard Keys Added (`translations.js`):**
+     - Mirrored all new root-level English keys into Telugu (`te`) with culturally accurate translations.
+     - Added `crops_healthy`, `soil_optimal`, `telemetry_stream`, `streaming_live`, `node_offline_msg`, `refresh_btn` in Telugu.
+     - All quick_tools and KPI labels translated properly for farmer-friendly Telugu display.
+  3. 🔧 **Hardcoded String Fixes (`DashboardPage.jsx`):**
+     - Replaced `"Live Field Micro-Telemetry Streams"` → `t('dashboard.telemetry_stream', ...)`.
+     - Replaced `"STREAMING LIVE"` → `t('dashboard.streaming_live', ...)`.
+     - Replaced `"NODE OFFLINE (USING ESTIMATED METRICS)"` → `t('dashboard.node_offline_msg', ...)`.
+  4. 📊 **Analytics Subtitle (`AnalyticsPage.jsx`):**
+     - Replaced hardcoded English subtitle with `t('analytics.subtitle', ...)`.
+- **Files modified**: `frontend/src/i18n/translations.js`, `frontend/src/pages/DashboardPage.jsx`, `frontend/src/pages/AnalyticsPage.jsx`, `changes_happening.md`
+
+
 - **Summary:** Fulfilled the user's request to eliminate the tedious workflow of changing language in Profile/Settings (which required opening Profile, scrolling, selecting from a dropdown, and clicking "Save Changes"). Implemented a dedicated "Languages" tab in the More menu with 1-tap live switching across 12 Indian regional languages, and removed the obsolete dropdowns from Profile and Settings:
   1. 🌐 **New "Languages" Tab in More Hub (`MorePage.jsx`):**
      - Added a prominent `Languages (భాష)` card inside `ACCOUNT_TOOLS` (for farmers) and `ADMIN_SYSTEM_TOOLS` (for admins).

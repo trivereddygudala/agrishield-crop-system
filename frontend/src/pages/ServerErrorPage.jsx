@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ServerCrash, RefreshCw, Home } from 'lucide-react';
 import { Button } from '../components/ui/index';
+import { useTranslation } from 'react-i18next';
 
 const ServerErrorPage = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center px-4 text-center overflow-hidden">
       <div className="absolute top-0 right-0 -z-10 h-96 w-96 rounded-full bg-rose-100/30 dark:bg-rose-950/20 blur-3xl" />
@@ -25,20 +28,20 @@ const ServerErrorPage = () => {
         </h1>
 
         <h2 className="font-bold text-slate-900 dark:text-slate-100 text-2xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-          Server Error
+          {t('errors.server_error_title', 'Server Error')}
         </h2>
 
         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-          Something went wrong on our end. Our team has been notified. Please try again in a few moments.
+          {t('errors.server_error_desc', 'Something went wrong on our end. Our team has been notified. Please try again in a few moments.')}
         </p>
 
         <div className="flex items-center justify-center gap-3 pt-4">
           <Button variant="primary" onClick={() => window.location.reload()} leftIcon={<RefreshCw className="w-4 h-4" />}>
-            Try Again
+            {t('errors.try_again', 'Try Again')}
           </Button>
           <Link to="/dashboard">
             <Button variant="outline" leftIcon={<Home className="w-4 h-4" />}>
-              Go to Dashboard
+              {t('errors.go_to_dashboard', 'Go to Dashboard')}
             </Button>
           </Link>
         </div>

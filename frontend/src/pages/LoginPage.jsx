@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Leaf, User, Mail, Lock, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react';
+import { Leaf, User, Mail, Lock, Eye, EyeOff, ShieldCheck, Sparkles, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/index';
 import { useToast } from '../components/ui/toast';
+import { useTranslation } from 'react-i18next';
+import LanguageSelectModal from '../components/common/LanguageSelectModal';
+import { getLanguageByCode } from '../data/languages';
 
 const LoginPage = () => {
+  const { t, i18n } = useTranslation();
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,9 +20,12 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [langModalOpen, setLangModalOpen] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const currentLang = getLanguageByCode(i18n.language);
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -32,17 +39,20 @@ const LoginPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('expired') === 'true') {
-      toast.warning('Session Expired', 'Please sign in again to access your dashboard.');
+      toast.warning(
+        t('auth.login.session_expired_title', 'Session Expired'),
+        t('auth.login.session_expired_desc', 'Please sign in again to access your dashboard.')
+      );
     }
-  }, [location, toast]);
+  }, [location, toast, t]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
 
     if (!email || !password) {
-      setErrorMsg('Please fill in all credentials.');
-      toast.error('Validation Error', 'Please fill in all credentials.');
+      setErrorMsg(t('auth.login.validation_required', 'Please fill in all credentials.'));
+      toast.error('Validation Error', t('auth.login.validation_required', 'Please fill in all credentials.'));
       return;
     }
 
@@ -51,7 +61,10 @@ const LoginPage = () => {
     
     try {
       const loggedUser = await login(email, password, rememberMe);
-      toast.success('Welcome Back!', 'Authentication successful.');
+      toast.success(
+        t('auth.login.welcome_back_toast', 'Welcome Back!'),
+        t('auth.login.login_success', 'Authentication successful.')
+      );
       const userRole = loggedUser?.role || (loggedUser?.user && loggedUser.user.role);
       const defaultPath = userRole === 'admin' ? '/admin' : '/dashboard';
       navigate(defaultPath, { replace: true });
@@ -62,7 +75,7 @@ const LoginPage = () => {
         ? raw.map(e => e.msg || JSON.stringify(e)).join(', ')
         : (typeof raw === 'string' ? raw : 'Incorrect email or password. Please try again.');
       setErrorMsg(detail);
-      toast.error('Login Failed', detail);
+      toast.error(t('auth.login.login_failed', 'Login Failed'), detail);
     } finally {
       setLoading(false);
     }
@@ -84,6 +97,20 @@ const LoginPage = () => {
       {/* Decorative Neon Blur Orbs */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[450px] w-[450px] rounded-full bg-emerald-500/5 blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/5 blur-3xl" />
+
+      {/* Floating Language Switcher in Top-Right Corner */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        <button
+          type="button"
+          onClick={() => setLangModalOpen(true)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-slate-200 transition-all backdrop-blur-md shadow-lg hover:border-emerald-500/40"
+        >
+          <Globe className="w-4 h-4 text-emerald-400" />
+          <span>{currentLang?.nativeName || 'English'}</span>
+        </button>
+      </div>
+
+      <LanguageSelectModal isOpen={langModalOpen} onClose={() => setLangModalOpen(false)} />
 
       <motion.div 
         initial={{ opacity: 0, y: 25 }}
@@ -108,10 +135,10 @@ const LoginPage = () => {
           </Link>
           
           <h2 className="font-display font-black text-white text-3xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-            Welcome Back
+            {t('auth.login.title', 'Welcome Back')}
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-2 leading-relaxed">
-            Enter credentials to access your AI Farm Sentinel dashboard
+            {t('auth.login.subtitle', 'Enter credentials to access your AI Farm Sentinel dashboard')}
           </p>
         </div>
 
@@ -131,7 +158,7 @@ const LoginPage = () => {
 
             <div className="space-y-1">
               <label htmlFor="email" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                Username or Email
+                {t('auth.login.username_or_email', 'Username or Email')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -142,7 +169,7 @@ const LoginPage = () => {
                   type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. farmer1 or your email"
+                  placeholder={t('auth.login.username_placeholder', 'e.g. farmer1 or your email')}
                   className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
                   required
                 />
@@ -151,7 +178,7 @@ const LoginPage = () => {
 
             <div className="space-y-1">
               <label htmlFor="password" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                Password
+                {t('auth.login.password', 'Password')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -185,7 +212,7 @@ const LoginPage = () => {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 rounded border-white/10 text-emerald-500 focus:ring-0 bg-[#0d1527] cursor-pointer"
                 />
-                Remember Me
+                {t('auth.login.remember_me', 'Remember Me')}
               </label>
             </div>
 
@@ -194,20 +221,20 @@ const LoginPage = () => {
               loading={loading} 
               className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all mt-2"
             >
-              Sign In to Account
+              {t('auth.login.sign_in_btn', 'Sign In to Account')}
             </Button>
           </form>
 
           {/* Project thematic details panel */}
           <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500">
-            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> AgriShield Secure</span>
-            <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" /> PyTorch Diagnostic</span>
+            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> {t('auth.login.agrishield_secure', 'AgriShield Secure')}</span>
+            <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" /> {t('auth.login.pytorch_diagnostic', 'PyTorch Diagnostic')}</span>
           </div>
 
           <p className="text-center text-xs text-slate-400 mt-6 font-bold">
-            New to AgriShield?{' '}
+            {t('auth.login.new_to_agrishield', 'New to AgriShield?')}{' '}
             <Link to="/register" className="font-extrabold text-emerald-500 hover:underline">
-              Create an account
+              {t('auth.login.create_account', 'Create an account')}
             </Link>
           </p>
         </div>
