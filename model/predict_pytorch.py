@@ -53,7 +53,15 @@ def load_resources():
                 classes_path=PipelineConfig.CLASSES_PATH
             )
             _classes = _loader.classes
+            _health_status.update({
+                "status": "loaded",
+                "ready": True,
+                "model_name": getattr(_loader, "architecture", "PyTorch/ONNX"),
+                "classes": len(_classes),
+                "device": str(getattr(_loader, "device", "CPU")).upper()
+            })
         except Exception as e:
+            _health_status["status"] = f"error: {str(e)}"
             raise RuntimeError(f"Corrupted model or weights failed to load: {e}")
         
     return _loader, _classes

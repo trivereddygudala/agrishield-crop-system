@@ -2,6 +2,20 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v83) - Production Deployment Audit, PyTorch Model Health Status & Anonymous Scan Guardrails
+- **Summary:** Conducted an end-to-end audit of the live deployment across Frontend (Vercel) and Backend (Render), resolving hidden backend runtime exceptions in the prediction and model status endpoints:
+  1. 🛡️ **Guarded Unauthenticated / Guest Scans (`predict.py`):**
+     - Resolved `AttributeError: 'NoneType' object has no attribute 'get'` at line 814 when `current_user` is `None` by adding safe lookup `user_pref_lang = (current_user.get("preferred_language") if current_user else None) or "en"`.
+     - Guarded `current_user["id"]` lookups across active farm profiles, outbreak warnings, and disease notifications, preventing `TypeError` when scanning as a guest.
+  2. 📜 **Imported Missing Logger in Inference Router (`predict.py`):**
+     - Fixed `NameError: name 'logger' is not defined` when vision guardrails timeout or bypass by importing `logging` and defining `logger = logging.getLogger("predict")`.
+  3. 🧠 **Dynamic PyTorch & ONNX Health Status (`predict_pytorch.py`, `predict.py`):**
+     - Updated `load_resources()` to set `_health_status["ready"] = True` and populate device/architecture metadata.
+     - Updated `/api/ai/model/status` to trigger lazy loading instead of unconditionally returning `500 {"detail": "offline"}`.
+  4. 📁 **Robust Cross-Directory File Path Resolution (`predict.py`):**
+     - Enhanced `predict_pytorch_endpoint` to resolve uploaded image paths across `backend/`, repository root, or absolute paths without 400 Bad Request errors.
+- **Files modified**: `backend/app/routers/predict.py`, `model/predict_pytorch.py`, `changes_happening.md`
+
 ## 2026-09-09 (v82) - Comprehensive Light Mode Color Vibrancy, Contrast & Outdoor Daylight Readability Overhaul
 - **Summary:** Executed an extensive, site-wide color and contrast overhaul across all core UI design tokens, components, and pages to eradicate washed-out grays, pale borders, and low-contrast elements in Light Mode, making the interface easily readable for farmers working outdoors under direct sunlight:
   1. 🎨 **App Canvas & Card Stacking Elevation (`App.jsx`, `index.css`, `Card.jsx`):**

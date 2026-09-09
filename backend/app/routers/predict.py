@@ -2,10 +2,13 @@ import os
 import sys
 import uuid
 import shutil
+import logging
 from datetime import datetime, timezone
 from bson import ObjectId
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
+
+logger = logging.getLogger("predict")
 
 # Ensure parent directory is in search path to import from model folder
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -284,10 +287,14 @@ router = APIRouter(prefix="/api", tags=["Predictions"])
 
 @router.get("/ai/model/status")
 async def get_ai_model_status():
-    from model.predict_pytorch import get_model_health_status
+    from model.predict_pytorch import get_model_health_status, load_resources
     status_data = get_model_health_status()
-    if not status_data["ready"]:
-        raise HTTPException(status_code=500, detail=status_data["status"])
+    if not status_data.get("ready"):
+        try:
+            load_resources()
+            status_data = get_model_health_status()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Model loading error: {str(e)}")
     return status_data
 
 
@@ -585,12 +592,20 @@ async def predict_pytorch_endpoint(
     Uses the main predict_crop_disease pipeline with full diagnostics and optional translation.
     """
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    full_image_path = os.path.join(base_dir, req.image_path.replace("/", os.sep))
+    repo_root = os.path.dirname(base_dir)
 
-    if not os.path.exists(full_image_path):
+    clean_rel = req.image_path.replace("/", os.sep).lstrip(os.sep)
+    candidate_paths = [
+        os.path.join(base_dir, clean_rel),
+        os.path.join(repo_root, clean_rel),
+        os.path.abspath(req.image_path)
+    ]
+    full_image_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+
+    if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Specified image file does not exist on server."
+            detail=f"Specified image file does not exist on server: {req.image_path}"
         )
 
     # Check if user explicitly designated a target crop category filter
@@ -687,7 +702,7 @@ async def predict_pytorch_endpoint(
             from backend.app.services.farm_profile_service import FarmProfileService
             
             # Fetch active farm profile
-            active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+            active_farm = await FarmProfileService.get_active_farm(db, str(current_user["id"])) if current_user else None
             if active_farm and "_id" in active_farm:
                 active_farm["_id"] = str(active_farm["_id"])
             
@@ -811,7 +826,7 @@ async def predict_pytorch_endpoint(
         pass
 
     # Translate diagnostic text into user's preferred language - fallback to profile language if not provided
-    user_pref_lang = current_user.get("preferred_language") or "en"
+    user_pref_lang = (current_user.get("preferred_language") if current_user else None) or "en"
     target_lang = (req.language or user_pref_lang).lower()
     if target_lang != "en":
         # Always preserve canonical English names before translation
@@ -1132,7 +1147,7 @@ async def predict_pytorch_endpoint(
         del prediction_record["_id"]
 
     # --- Disease Alert Notification ---
-    if prediction_result.get("prediction_status") == "diseased":
+    if prediction_result.get("prediction_status") == "diseased" and current_user and "id" in current_user:
         crop = prediction_result.get("crop_name", "Crop")
         disease = prediction_result.get("disease_name", "Unknown disease")
         confidence = round(float(prediction_result.get("confidence", 0)) * 100, 1)
@@ -1162,7 +1177,7 @@ async def predict_pytorch_endpoint(
         if is_contagious and is_severe:
             try:
                 from backend.app.services.farm_profile_service import FarmProfileService
-                active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+                active_farm = await FarmProfileService.get_active_farm(db, str(current_user["id"]))
                 if active_farm and active_farm.get("district"):
                     user_district = active_farm.get("district")
                     user_village = active_farm.get("village", "N/A")
