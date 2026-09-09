@@ -423,12 +423,12 @@ const UploadImagePage = () => {
 
       {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
       {activeTab === 'disease-diag' && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#1a1a1a] p-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#252525]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/80 dark:bg-white/[0.03] backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 dark:bg-white/[0.05] border border-slate-200/60 dark:border-white/5 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => scanStore.setState({ scanMode: 'single', hasScanned: !!liveResult, errorMsg: '' })}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+              className={`px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 scanMode === 'single'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
@@ -439,22 +439,22 @@ const UploadImagePage = () => {
             <button
               type="button"
               onClick={() => scanStore.setState({ scanMode: 'multi', hasScanned: !!batchResult, errorMsg: '' })}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+              className={`px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 scanMode === 'multi'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1.5">
                 <span>{t('scan_page.multi_leaf_scan', '🌿 Multi-Leaf Plot Scan (2–5)')}</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase">
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider">
                   {t('common.new', 'New')}
                 </span>
               </span>
             </button>
           </div>
 
-          <span className="text-[11px] text-slate-400 font-semibold px-2">
+          <span className="text-[11px] text-slate-500 dark:text-white/40 font-semibold px-2 text-center sm:text-right">
             {scanMode === 'multi' ? t('scan_page.multi_leaf_desc', 'Field Plot Severity Index (Samples 2–5 leaves across corners)') : t('scan_page.single_leaf_desc', 'High-precision single leaf pathology lesion scan')}
           </span>
         </div>

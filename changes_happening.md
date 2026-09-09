@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v77) - Removal of Legacy 4-Corner Mock Scan & Neatly Adjusted Card Layout
+- **Summary:** Removed the redundant legacy mock "4-Corner Field Scan" toggle and 4-quadrant inspector card in favor of the production-ready "Multi-Leaf Plot Scan (2–5)" feature, and re-aligned the scan center cards for optimal mobile and desktop ergonomics:
+  1. 🗑️ **Removed Legacy 4-Corner Mock Toggle (`ScanImageUploader.jsx`):**
+     - Stripped the legacy segmented toggle (`🌿 Single Leaf Focus` vs `🗺️ 4-Corner Field Scan [PRO]`) that was nested inside `ScanImageUploader.jsx` and only loaded mock static photos (`chilli_leaf_spot.jpg`).
+     - Removed unused `scanMode` and `activeQuadrant` state hooks from `ScanImageUploader.jsx`.
+     - Eliminated the duplicate mode switcher conflict where users saw two conflicting toggle bars on the diagnostic screen.
+  2. 🎛️ **Streamlined Primary Scan Mode Selector (`UploadImagePage.jsx`):**
+     - Enhanced the primary mode toggle bar (`🍃 Single Leaf Focus` vs `🌿 Multi-Leaf Plot Scan (2–5) [NEW]`) to use a responsive 2-column grid (`grid grid-cols-2 sm:flex`) on mobile devices, ensuring balanced tab widths and no awkward wrapping.
+     - Added subtle glassmorphism backdrop blur (`bg-white/80 dark:bg-white/[0.03] backdrop-blur-md`), refined border aesthetics, and aligned helper description text seamlessly.
+  3. 📐 **Polished Card Ergonomics & Dropzone Padding (`ScanImageUploader.jsx`):**
+     - Adjusted header layout to keep title and "Load Sample" button neatly aligned across mobile screens without pushing action buttons below the fold.
+     - Reduced excessive dropzone vertical padding from `p-12 sm:p-16` to `p-8 sm:p-12`, creating a compact, cohesive card structure with visible gallery and camera trigger buttons.
+     - Confirmed clean production compilation (`vite build`) with 0 errors.
+- **Files modified**: `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v76) - Complete Scratchpad Audit & All-Tabs Telugu (తెలుగు) Localization
 - **Summary:** Conducted an end-to-end scratchpad audit across every page, tab, modal, dropdown, and floating card in the application to replace all hardcoded English strings with culturally authentic Telugu (`te`) terminology:
   1. 🌐 **Dictionary Expansion (`frontend/src/i18n/translations.js`):**
