@@ -105,7 +105,7 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-xs">
-                🌾 Multi-Leaf Plot Scan
+                🌾 {t('batch_scan.uploader_title', 'Multi-Leaf Plot Scan')}
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${getSeverityBadgeClass()}`}>
                 {severity_level}
@@ -113,11 +113,11 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
             </div>
             
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Field Plot Health & Infection Severity Index
+              {t('batch_scan.results_title', 'Field Plot Health & Infection Severity Index')}
             </h2>
             
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Aggregated diagnosis across {total_samples} field sampling zones for <strong>{dominant_crop}</strong>.
+              {t('batch_scan.results_desc', 'Aggregated diagnosis across {{count}} field sampling zones for {{crop}}.', { count: total_samples, crop: dominant_crop })}
             </p>
           </div>
 
@@ -151,7 +151,7 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                   {plot_infection_rate}%
                 </span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide block">
-                  Infection
+                  {t('batch_scan.infection_rate', 'Infection')}
                 </span>
               </div>
             </div>
@@ -159,16 +159,16 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
             <div className="space-y-1 text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="font-bold text-slate-700 dark:text-slate-300">Healthy Samples:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">{t('batch_scan.healthy_samples', 'Healthy Samples:')}</span>
                 <strong className="text-emerald-600 dark:text-emerald-400">{healthy_count} / {total_samples}</strong>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                <span className="font-bold text-slate-700 dark:text-slate-300">Infected Samples:</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">{t('batch_scan.infected_samples', 'Infected Samples:')}</span>
                 <strong className="text-rose-600 dark:text-rose-400">{infected_count} / {total_samples}</strong>
               </div>
               <div className="text-[11px] text-slate-400 pt-0.5">
-                Dominant: <strong className="text-slate-700 dark:text-slate-200">{dominant_disease}</strong>
+                {t('batch_scan.dominant', 'Dominant:')} <strong className="text-slate-700 dark:text-slate-200">{dominant_disease}</strong>
               </div>
             </div>
           </div>
@@ -189,14 +189,14 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
             </div>
             <div className="space-y-1">
               <span className="text-[10px] font-black uppercase tracking-wider opacity-75 block">
-                AgriShield Agronomist Directive
+                {t('batch_scan.directive_title', 'AgriShield Agronomist Directive')}
               </span>
               <p className="text-xs sm:text-sm font-extrabold leading-relaxed">
                 {directive}
               </p>
               <div className="flex items-center gap-1 text-[11px] font-semibold opacity-90 pt-1">
                 <Wind className="w-3.5 h-3.5 shrink-0" />
-                <span><strong>4-Hour Weather Safety:</strong> Spray 6-9 AM or 4:30-6:30 PM. Ensure 4 hours of dry weather post-spray.</span>
+                <span>{t('batch_scan.weather_safety', '4-Hour Weather Safety: Spray 6-9 AM or 4:30-6:30 PM. Ensure 4 hours of dry weather post-spray.')}</span>
               </div>
             </div>
           </div>
@@ -209,11 +209,11 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-emerald-600" />
             <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
-              Individual Sampling Zone Diagnoses ({samples.length} Leaves)
+              {t('batch_scan.individual_diagnoses', 'Individual Sampling Zone Diagnoses ({{count}} Leaves)', { count: samples.length })}
             </h3>
           </div>
           <span className="text-xs text-slate-400 font-semibold">
-            Plot Breakdown
+            {t('batch_scan.plot_breakdown', 'Plot Breakdown')}
           </span>
         </div>
 
@@ -245,12 +245,12 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                       </div>
                     )}
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-white text-[10px] font-black tracking-wide">
-                      {s.label || `Sample #${s.sample_index}`}
+                      {s.label || `${t('batch_scan.zone', 'Zone #{{index}}', { index: s.sample_index })}`}
                     </span>
                     <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wide backdrop-blur-md ${
                       isHealthy ? 'bg-emerald-600/90 text-white' : 'bg-rose-600/90 text-white'
                     }`}>
-                      {isHealthy ? '✓ Healthy' : '⚠️ Diseased'}
+                      {isHealthy ? `✓ ${t('batch_scan.healthy', 'Healthy')}` : `⚠️ ${t('batch_scan.diseased', 'Diseased')}`}
                     </span>
                   </div>
 
@@ -272,14 +272,14 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                     )}
 
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 pt-1">
-                      <strong>Prescription:</strong> {s.treatment}
+                      <strong>{t('batch_scan.prescription_label', 'Prescription:')}</strong> {s.treatment}
                     </p>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                  <span>Severity: <strong className={isHealthy ? 'text-emerald-500' : 'text-amber-500'}>{s.severity}</strong></span>
-                  <span>Zone #{s.sample_index}</span>
+                  <span>{t('batch_scan.severity', 'Severity:')} <strong className={isHealthy ? 'text-emerald-500' : 'text-amber-500'}>{s.severity}</strong></span>
+                  <span>{t('batch_scan.zone', 'Zone #{{index}}', { index: s.sample_index })}</span>
                 </div>
               </motion.div>
             );
@@ -292,16 +292,16 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
             <span className="text-[10px] font-black uppercase text-emerald-600 tracking-wider block">
-              Field Plot Spray Calibration
+              {t('batch_scan.calc_title', 'Field Plot Spray Calibration')}
             </span>
             <h4 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-              Acreage Knapsack Pump Calculator & Digital Slip
+              {t('batch_scan.calc_subtitle', 'Acreage Knapsack Pump Calculator & Digital Slip')}
             </h4>
           </div>
 
           {/* Acreage Selector */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1f1f1f] p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold">
-            <span className="text-slate-400 px-1 text-[11px]">Acreage:</span>
+            <span className="text-slate-400 px-1 text-[11px]">{t('batch_scan.acreage', 'Acreage:')}</span>
             {[0.5, 1.0, 2.0, 5.0].map((ac) => (
               <button
                 key={ac}
@@ -313,7 +313,7 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
                 }`}
               >
-                {ac} Ac
+                {ac} {t('batch_scan.acres_unit', 'Ac')}
               </button>
             ))}
           </div>
@@ -322,19 +322,19 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
         {/* Calculated Volume Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
           <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
-            <span className="text-[10px] font-black uppercase text-slate-400 block">Total 16L Pumps</span>
+            <span className="text-[10px] font-black uppercase text-slate-400 block">{t('batch_scan.total_pumps', 'Total 16L Pumps')}</span>
             <span className="text-lg font-black text-emerald-700 dark:text-emerald-300">
-              {pumpsNeeded} Spray Tanks
+              {pumpsNeeded} {t('batch_scan.spray_tanks', 'Spray Tanks')}
             </span>
           </div>
           <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
-            <span className="text-[10px] font-black uppercase text-slate-400 block">Medicine Needed</span>
+            <span className="text-[10px] font-black uppercase text-slate-400 block">{t('batch_scan.medicine_needed', 'Medicine Needed')}</span>
             <span className="text-lg font-black text-emerald-700 dark:text-emerald-300">
               ~{chemVolume} ml / g
             </span>
           </div>
           <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
-            <span className="text-[10px] font-black uppercase text-slate-400 block">Estimated Cost</span>
+            <span className="text-[10px] font-black uppercase text-slate-400 block">{t('batch_scan.estimated_cost', 'Estimated Cost')}</span>
             <span className="text-lg font-black text-emerald-700 dark:text-emerald-300">
               ~₹{approxCost}
             </span>
@@ -346,28 +346,28 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
           <button
             type="button"
             onClick={onReset}
-            className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Scan Another Field Plot</span>
+            <span>{t('batch_scan.scan_another', 'Scan Another Field Plot')}</span>
           </button>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleWhatsAppShare}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>WhatsApp Dealer</span>
+              <span>{t('batch_scan.whatsapp_dealer', 'WhatsApp Dealer')}</span>
             </button>
             <button
               type="button"
               onClick={handleDownloadPrescription}
-              className="px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-teal-700/20 transition-all active:scale-95"
+              className="px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-teal-700/20 transition-all active:scale-95 cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>📄 Field Prescription Slip</span>
+              <span>{t('batch_scan.prescription_slip', '📄 Field Prescription Slip')}</span>
             </button>
           </div>
         </div>

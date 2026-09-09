@@ -434,7 +434,7 @@ const UploadImagePage = () => {
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span>🍃 Single Leaf Focus</span>
+              <span>{t('scan_page.single_leaf_focus', '🍃 Single Leaf Focus')}</span>
             </button>
             <button
               type="button"
@@ -446,16 +446,16 @@ const UploadImagePage = () => {
               }`}
             >
               <span className="flex items-center gap-1">
-                <span>🌿 Multi-Leaf Plot Scan (2–5)</span>
+                <span>{t('scan_page.multi_leaf_scan', '🌿 Multi-Leaf Plot Scan (2–5)')}</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase">
-                  New
+                  {t('common.new', 'New')}
                 </span>
               </span>
             </button>
           </div>
 
           <span className="text-[11px] text-slate-400 font-semibold px-2">
-            {scanMode === 'multi' ? 'Field Plot Severity Index (Samples 2–5 leaves across corners)' : 'High-precision single leaf pathology lesion scan'}
+            {scanMode === 'multi' ? t('scan_page.multi_leaf_desc', 'Field Plot Severity Index (Samples 2–5 leaves across corners)') : t('scan_page.single_leaf_desc', 'High-precision single leaf pathology lesion scan')}
           </span>
         </div>
       )}

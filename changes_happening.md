@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v76) - Complete Scratchpad Audit & All-Tabs Telugu (తెలుగు) Localization
+- **Summary:** Conducted an end-to-end scratchpad audit across every page, tab, modal, dropdown, and floating card in the application to replace all hardcoded English strings with culturally authentic Telugu (`te`) terminology:
+  1. 🌐 **Dictionary Expansion (`frontend/src/i18n/translations.js`):**
+     - Enriched `translations.js` with comprehensive translations for `batch_scan`, `market_page`, `offline`, `history`, `nav`, `results`, `profile_page`, and `crop_advisory_page` in Telugu (`te`) and English (`en`), falling back gracefully across all other regional Indian languages.
+  2. 📱 **Mobile & Global Navigation Localization (`AppLayout.jsx`):**
+     - Replaced hardcoded inline IIFE route header mappings on mobile viewports with dynamic `t('nav....')` keys (`/history` -> "స్కాన్ చరిత్ర", `/upload` -> "AI పంట డాక్టర్", etc.).
+     - Localized sidebar navigation section headers ("Main Menu" -> "ప్రధాన మెనూ", "My Sensors" -> "నా సెన్సార్లు", "Data & Logs" -> "డేటా & లాగ్‌లు", "Help & Settings" -> "సహాయం & సెట్టింగ్స్").
+     - Translated WebSocket connectivity status tags ("Live WS" -> "లైవ్ WS", "Reconnecting..." -> "తిరిగి కనెక్ట్ అవుతోంది...", "REST" -> "REST మోడ్", "WS Error" -> "WS లోపం").
+     - Localized user dropdown menu options ("Switch Active Farm", "Notification Inbox", "Settings", "Admin Control Panel", "Log Out").
+  3. 🌿 **Multi-Leaf Plot Scan & Diagnostic Results Localization (`MultiLeafUploader.jsx`, `MultiLeafResults.jsx`):**
+     - Integrated `useTranslation()` into `MultiLeafUploader.jsx`: translated sampling titles, zone designations (North-East Corner, Field Center Plot, South-West Corner, Upper Canopy, Lower Foliage Near Soil), counter badge, capture buttons ("Take Photo", "Choose from Gallery"), and diagnostic progress status.
+     - Fully translated `MultiLeafResults.jsx`: plot infection gauge, healthy vs infected sample stats, dominant disease header, Agronomist Directive banner, 4-hour weather spray window safety warning, plot breakdown cards, acreage knapsack pump calibration calculator, and digital prescription slip export buttons.
+  4. 📈 **Mandi & Market Prices Hub Localization (`MarketPricesPage.jsx`):**
+     - Localized header tickers (Season Cycle, Top Gainer Today, APMC Settlement Time).
+     - Localized all APMC mandi filter dropdowns (State, District, APMC Yard, Search keyword).
+     - Localized unit conversion switcher (Quintal, Kilogram, 25kg Crate, 50kg Bag) and live APMC quote counter.
+     - Localized crop filter pill chips, variety selection tags, modal price cards, daily arrival counters, min/max rate spreads, Govt MSP comparisons (+/- Above/Below MSP), 7-day sparkline trajectory, tabular APMC yard matrix, and harvest revenue & net farmer cash payout calculator.
+  5. 📜 **Scan History & Diagnostic Results Localization (`HistoryPage.jsx`, `PredictionResultPage.jsx`):**
+     - Translated history filter buttons, date range pickers, farmer/device dropdowns, empty states, and telemetry badges (Temp, Humid, Soil, Light, Rain Wet/Dry, Sleep Cycle, Photo).
+     - Translated disease results: Diagnostic Image placeholder, Symptoms & Causes, Organic & Chemical Treatment Plans, Prevention Methods, Farming Advice, Safety Precautions, and Agrochemical profile specifications.
+  6. 👤 **Farmer Native Location Details (`ProfilePage.jsx`):**
+     - Translated farmer native location selector labels (State / UT, District, Mandal / Taluka, Village / Town).
+- **Files modified**: `frontend/src/i18n/translations.js`, `frontend/src/components/AppLayout.jsx`, `frontend/src/components/common/OfflineStatusBar.jsx`, `frontend/src/components/scanCenter/MultiLeafUploader.jsx`, `frontend/src/components/scanCenter/MultiLeafResults.jsx`, `frontend/src/components/scanCenter/ScanCenterTabs.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `frontend/src/pages/CropAdvisoryPage.jsx`, `frontend/src/pages/HistoryPage.jsx`, `frontend/src/pages/MarketPricesPage.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `frontend/src/pages/ProfilePage.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v75) - Offline Scan Sync Resolution & Interactive Mobile Swipe-to-Dismiss Gesture
 - **Summary:** Resolved the issue where tapping "Sync Now" in the offline banner would spin without executing any diagnosis or syncing to database, and made the notification banner fully swipable/dismissible on touch devices:
   1. 🔄 **Resolved Offline Synchronization Execution Bug (`OfflineStatusBar.jsx`, `backend/app/routers/predict.py`):**

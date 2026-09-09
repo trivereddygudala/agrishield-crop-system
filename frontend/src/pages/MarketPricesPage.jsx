@@ -320,7 +320,7 @@ const MarketPricesPage = () => {
               <SeasonIcon className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider block opacity-80">Season Cycle</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-wider block opacity-80">{t('market_page.season_cycle', 'Season Cycle')}</span>
               <span className="text-sm font-bold block truncate">{currentSeason.name}</span>
             </div>
           </div>
@@ -332,7 +332,7 @@ const MarketPricesPage = () => {
                 <ArrowUpRight className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">Top Gainer Today</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block">{t('market_page.top_gainer', 'Top Gainer Today')}</span>
                 <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
                   {marketSummary.top_gainers[0]?.crop} ({marketSummary.top_gainers[0]?.variety?.split(' ')[0]})
                 </span>
@@ -350,7 +350,7 @@ const MarketPricesPage = () => {
                 <Calendar className="w-4 h-4 text-emerald-500" />
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">APMC Settlement Time</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">{t('market_page.settlement_time', 'APMC Settlement Time')}</span>
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block font-mono">
                   {syncTimestamp || '11 Aug 2026, 08:30 PM IST'}
                 </span>
@@ -397,7 +397,7 @@ const MarketPricesPage = () => {
               }}
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-xs focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
-              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="All">All Districts</option>
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="All">{t('market_page.all_districts', 'All Districts')}</option>
               {availableDistricts.map(d => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={d} value={d}>{d}</option>)}
             </select>
           </div>
@@ -405,14 +405,14 @@ const MarketPricesPage = () => {
           {/* Selector 3: APMC Market Yard */}
           <div>
             <label className="block text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Store className="w-3.5 h-3.5 text-amber-600" /> 3. Select APMC Market Yard
+              <Store className="w-3.5 h-3.5 text-amber-600" /> {t('market_page.select_mandi_step', '3. Select APMC Market Yard')}
             </label>
             <select
               value={selectedMandi}
               onChange={(e) => setSelectedMandi(e.target.value)}
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-xs focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
-              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="All">All APMC Mandis in {selectedDistrict || selectedState}</option>
+              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="All">{t('market_page.all_mandis_in', 'All APMC Mandis in {{location}}', { location: selectedDistrict || selectedState })}</option>
               {availableMandis.filter(m => m !== 'All').map(m => (
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={m} value={m}>{m}</option>
               ))}
@@ -422,7 +422,7 @@ const MarketPricesPage = () => {
           {/* Search Box */}
           <div>
             <label className="block text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Search className="w-3.5 h-3.5 text-sky-600" /> 4. Search Keyword
+              <Search className="w-3.5 h-3.5 text-sky-600" /> {t('market_page.search_keyword_step', '4. Search Keyword')}
             </label>
             <Input
               placeholder={t('market_page.search_placeholder', 'Search crop, variety, mandi...')}
@@ -437,10 +437,10 @@ const MarketPricesPage = () => {
         {/* Display Unit Switcher Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/80 dark:border-slate-800">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">Unit Conversion:</span>
+            <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">{t('market_page.unit_conversion', 'Unit Conversion:')}</span>
             <button
               onClick={() => setPriceUnit('quintal')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 priceUnit === 'quintal'
                   ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
@@ -450,39 +450,39 @@ const MarketPricesPage = () => {
             </button>
             <button
               onClick={() => setPriceUnit('kg')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 priceUnit === 'kg'
                   ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
               }`}
             >
-              ₹ / Kilogram (kg)
+              ₹ / {t('market_page.units.kg', 'Kilogram (kg)')}
             </button>
             <button
               onClick={() => setPriceUnit('crate')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 priceUnit === 'crate'
                   ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
               }`}
             >
-              ₹ / 25kg Crate (Tomatoes/Veggies)
+              ₹ / {t('market_page.units.crate', '25kg Crate (Tomatoes/Veggies)')}
             </button>
             <button
               onClick={() => setPriceUnit('bag')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 priceUnit === 'bag'
                   ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
               }`}
             >
-              ₹ / 50kg Bag (Grains/Onions)
+              ₹ / {t('market_page.units.bag', '50kg Bag (Grains/Onions)')}
             </button>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-500">
-              Showing <strong className="text-slate-800 dark:text-slate-200">{mandiPrices.length}</strong> Live APMC Quotes
+              {t('market_page.showing_quotes', 'Showing {{count}} Live APMC Quotes', { count: mandiPrices.length })}
             </span>
           </div>
         </div>
@@ -492,14 +492,14 @@ const MarketPricesPage = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-            <Tag className="w-4 h-4 text-emerald-600" /> Filter by Crop Name:
+            <Tag className="w-4 h-4 text-emerald-600" /> {t('market_page.filter_by_crop', 'Filter by Crop Name:')}
           </span>
           {selectedCrop !== 'All' && (
             <button
               onClick={() => { setSelectedCrop('All'); setSelectedVariety('All Varieties'); }}
-              className="text-xs font-bold text-rose-600 hover:underline"
+              className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
             >
-              Clear Crop Filter
+              {t('market_page.clear_crop_filter', 'Clear Crop Filter')}
             </button>
           )}
         </div>
@@ -539,7 +539,7 @@ const MarketPricesPage = () => {
           >
             <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-900 dark:text-emerald-300">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Select {selectedCrop} Variety in {selectedState}:</span>
+              <span>{t('market_page.select_variety', 'Select {{crop}} Variety in {{state}}:', { crop: selectedCrop, state: selectedState })}</span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -549,7 +549,7 @@ const MarketPricesPage = () => {
                   <button
                     key={varName}
                     onClick={() => setSelectedVariety(varName)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       isVarSelected
                         ? 'bg-emerald-700 text-white border-emerald-600 shadow-xs'
                         : 'bg-white hover:bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-slate-900 dark:hover:bg-emerald-900/60 dark:text-emerald-200 dark:border-emerald-800'
@@ -588,8 +588,8 @@ const MarketPricesPage = () => {
       ) : mandiPrices.length === 0 ? (
         <Card className="p-12 text-center flex flex-col items-center justify-center gap-3">
           <Store className="w-12 h-12 text-slate-300 dark:text-slate-700" />
-          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-base">No Mandi Quotes Found for Selected Filter</h3>
-          <p className="text-xs text-slate-500 max-w-sm">Try choosing 'All APMC Mandis' or 'All Varieties' to view other market arrivals in this region.</p>
+          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-base">{t('market_page.no_quotes_title', 'No Mandi Quotes Found for Selected Filter')}</h3>
+          <p className="text-xs text-slate-500 max-w-sm">{t('market_page.no_quotes_desc', "Try choosing 'All APMC Mandis' or 'All Varieties' to view other market arrivals in this region.")}</p>
         </Card>
       ) : viewMode === 'grid' ? (
         /* CARD GRID VIEW */
@@ -644,7 +644,7 @@ const MarketPricesPage = () => {
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 space-y-2.5">
                     <div className="flex items-baseline justify-between">
                       <div>
-                        <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">Today's Modal Rate</span>
+                        <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block">{t('market_page.todays_modal_rate', "Today's Modal Rate")}</span>
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-2xl font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
                             {formatPrice(item.modal_price)}
@@ -655,7 +655,7 @@ const MarketPricesPage = () => {
 
                       {/* Arrivals volume */}
                       <div className="text-right">
-                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Daily Arrivals</span>
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">{t('market_page.daily_arrivals', 'Daily Arrivals')}</span>
                         <span className="text-xs font-black text-slate-700 dark:text-slate-300">{item.arrivals_tons} Tons</span>
                       </div>
                     </div>
@@ -663,11 +663,11 @@ const MarketPricesPage = () => {
                     {/* Min & Max Range */}
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">Min Rate</span>
+                        <span className="text-[10px] text-slate-400 font-semibold block">{t('market_page.min_rate', 'Min Rate')}</span>
                         <span className="font-bold text-slate-700 dark:text-slate-300">{formatPrice(item.min_price)}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] text-slate-400 font-semibold block">Max Rate</span>
+                        <span className="text-[10px] text-slate-400 font-semibold block">{t('market_page.max_rate', 'Max Rate')}</span>
                         <span className="font-bold text-slate-700 dark:text-slate-300">{formatPrice(item.max_price)}</span>
                       </div>
                     </div>
@@ -680,9 +680,9 @@ const MarketPricesPage = () => {
                         ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' 
                         : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
                     }`}>
-                      <span className="text-[11px]">Govt MSP: ₹{item.msp_price.toLocaleString('en-IN')}/Qtl</span>
+                      <span className="text-[11px]">{t('market_page.govt_msp', 'Govt MSP')}: ₹{item.msp_price.toLocaleString('en-IN')}/Qtl</span>
                       <span className="text-[11px] font-black">
-                        {isAboveMsp ? `+₹${diffFromMsp} Above MSP 🟢` : `-₹${diffFromMsp} Below MSP 🔴`}
+                        {isAboveMsp ? t('market_page.above_msp', '+₹{{diff}} Above MSP 🟢', { diff: diffFromMsp }) : t('market_page.below_msp', '-₹{{diff}} Below MSP 🔴', { diff: diffFromMsp })}
                       </span>
                     </div>
                   )}
@@ -691,7 +691,7 @@ const MarketPricesPage = () => {
                   {item.weekly_trend && item.weekly_trend.length > 0 && (
                     <div className="space-y-1">
                       <div className="flex justify-between items-center text-[10px] font-extrabold text-slate-500 uppercase">
-                        <span>7-Day Price Trajectory</span>
+                        <span>{t('market_page.trajectory', '7-Day Price Trajectory')}</span>
                         <span className={isUp ? 'text-emerald-600' : 'text-rose-600'}>
                           ₹{item.weekly_trend[0]} &rarr; ₹{item.weekly_trend[item.weekly_trend.length - 1]}
                         </span>
@@ -730,9 +730,9 @@ const MarketPricesPage = () => {
                       size="sm"
                       onClick={() => { setCalcCrop(item); setCalculatorOpen(true); }}
                       leftIcon={<Calculator className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
-                      className="text-xs font-bold flex-1"
+                      className="text-xs font-bold flex-1 cursor-pointer"
                     >
-                      Calculate Profit
+                      {t('market_page.calculator.calc_btn', 'Calculate Profit')}
                     </Button>
                     <a
                       href={`https://www.google.com/maps/search/${encodeURIComponent(item.mandi_name + ' ' + item.district)}`}
@@ -741,7 +741,7 @@ const MarketPricesPage = () => {
                       className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 transition-all"
                     >
                       <MapPin className="w-3.5 h-3.5 text-sky-500" />
-                      <span>Route</span>
+                      <span>{t('market_page.gps_route', 'Route')}</span>
                     </a>
                   </div>
                 </Card>
@@ -756,14 +756,14 @@ const MarketPricesPage = () => {
             <table className="w-full text-left text-xs whitespace-nowrap">
               <thead className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 font-extrabold uppercase border-b border-slate-200 dark:border-slate-800 text-[10px] tracking-wider">
                 <tr>
-                  <th className="py-3 px-4">Commodity / Crop</th>
-                  <th className="py-3 px-4">Variety &amp; Grade</th>
-                  <th className="py-3 px-4">APMC Mandi Yard</th>
-                  <th className="py-3 px-4">Modal Price ({priceUnit.toUpperCase()})</th>
-                  <th className="py-3 px-4">Min / Max Spread</th>
-                  <th className="py-3 px-4">Daily Arrivals</th>
-                  <th className="py-3 px-4">Govt MSP Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4">{t('market_page.table_commodity', 'Commodity / Crop')}</th>
+                  <th className="py-3 px-4">{t('market_page.table.variety', 'Variety & Grade')}</th>
+                  <th className="py-3 px-4">{t('market_page.table_mandi', 'APMC Mandi Yard')}</th>
+                  <th className="py-3 px-4">{t('market_page.table.modal_price', 'Modal Price')} ({priceUnit.toUpperCase()})</th>
+                  <th className="py-3 px-4">{t('market_page.table_spread', 'Min / Max Spread')}</th>
+                  <th className="py-3 px-4">{t('market_page.table_arrivals', 'Daily Arrivals')}</th>
+                  <th className="py-3 px-4">{t('market_page.table_msp_status', 'Govt MSP Status')}</th>
+                  <th className="py-3 px-4 text-right">{t('market_page.table_actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800 font-medium">
@@ -792,10 +792,10 @@ const MarketPricesPage = () => {
                     <td className="py-3.5 px-4">
                       {item.msp_price ? (
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${item.modal_price >= item.msp_price ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'}`}>
-                          {item.modal_price >= item.msp_price ? 'Above MSP 🟢' : 'Below MSP 🔴'}
+                          {item.modal_price >= item.msp_price ? t('market_page.above_msp', 'Above MSP 🟢') : t('market_page.below_msp', 'Below MSP 🔴')}
                         </span>
                       ) : (
-                        <span className="text-slate-400 text-[10px]">No MSP</span>
+                        <span className="text-slate-400 text-[10px]">{t('market_page.no_msp', 'No MSP')}</span>
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right">
@@ -803,9 +803,9 @@ const MarketPricesPage = () => {
                         variant="glass"
                         size="sm"
                         onClick={() => { setCalcCrop(item); setCalculatorOpen(true); }}
-                        className="text-xs font-bold"
+                        className="text-xs font-bold cursor-pointer"
                       >
-                        Calculate
+                        {t('market_page.calculator.calc_btn', 'Calculate')}
                       </Button>
                     </td>
                   </tr>
@@ -827,7 +827,7 @@ const MarketPricesPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Harvest Yield Quantity (Quintals)
+                {t('market_page.calculator.quantity', 'Harvest Yield Quantity (Quintals)')}
               </label>
               <input
                 type="number"
@@ -842,7 +842,7 @@ const MarketPricesPage = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Transport Cost (₹ / Quintal)
+                {t('market_page.calculator.transport', 'Transport Cost (₹ / Quintal)')}
               </label>
               <input
                 type="number"
@@ -852,7 +852,7 @@ const MarketPricesPage = () => {
                 onChange={(e) => setCalcTransport(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-bold text-slate-900 dark:text-slate-100"
               />
-              <span className="text-[10px] text-slate-400">Tractor/Mini-Truck freight fee</span>
+              <span className="text-[10px] text-slate-400">{t('market_page.freight_fee', 'Tractor/Mini-Truck freight fee')}</span>
             </div>
           </div>
 
@@ -860,19 +860,19 @@ const MarketPricesPage = () => {
           {calcResult && (
             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 space-y-2.5 text-xs">
               <div className="flex justify-between font-medium text-slate-700 dark:text-slate-300">
-                <span>Gross Market Value ({calcQuantity} Qtl @ ₹{calcCrop?.modal_price}/Qtl):</span>
+                <span>{t('market_page.calculator.gross', 'Gross Market Value')} ({calcQuantity} Qtl @ ₹{calcCrop?.modal_price}/Qtl):</span>
                 <span className="font-bold">₹{calcResult.gross_revenue_inr.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                <span>Total Transport Freight:</span>
+                <span>{t('market_page.total_freight', 'Total Transport Freight:')}</span>
                 <span className="text-rose-600 font-semibold">- ₹{calcResult.transport_cost_inr.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-slate-500 dark:text-slate-400">
-                <span>APMC Market Cess Fee (1.5%):</span>
+                <span>{t('market_page.cess_fee', 'APMC Market Cess Fee (1.5%):')}</span>
                 <span className="text-rose-600 font-semibold">- ₹{calcResult.mandi_cess_inr.toLocaleString('en-IN')}</span>
               </div>
               <div className="pt-2 border-t border-emerald-300 dark:border-emerald-700 flex justify-between items-baseline">
-                <span className="text-sm font-extrabold text-emerald-900 dark:text-emerald-200">Net Farmer Cash Payout:</span>
+                <span className="text-sm font-extrabold text-emerald-900 dark:text-emerald-200">{t('market_page.net_payout', 'Net Farmer Cash Payout:')}</span>
                 <span className="text-xl font-black text-emerald-700 dark:text-emerald-300">
                   ₹{calcResult.net_farmer_payout_inr.toLocaleString('en-IN')}
                 </span>
@@ -881,8 +881,8 @@ const MarketPricesPage = () => {
           )}
 
           <div className="flex justify-end pt-2">
-            <Button variant="gradient" size="md" onClick={() => setCalculatorOpen(false)} className="w-full sm:w-auto font-bold">
-              Done
+            <Button variant="gradient" size="md" onClick={() => setCalculatorOpen(false)} className="w-full sm:w-auto font-bold cursor-pointer">
+              {t('common.done', 'Done')}
             </Button>
           </div>
         </div>
@@ -892,15 +892,15 @@ const MarketPricesPage = () => {
       <Dialog
         isOpen={mspModalOpen}
         onClose={() => setMspModalOpen(false)}
-        title="Official Government of India MSP Rates (2025–2026)"
-        description="Minimum Support Prices declared by Ministry of Agriculture & CACP"
+        title={t('market_page.msp_modal_title', 'Official Government of India MSP Rates (2025–2026)')}
+        description={t('market_page.msp_modal_desc', 'Minimum Support Prices declared by Ministry of Agriculture & CACP')}
       >
         <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-extrabold uppercase sticky top-0">
               <tr>
-                <th className="p-2.5">Crop / Commodity</th>
-                <th className="p-2.5 text-right">Official MSP (₹/Quintal)</th>
+                <th className="p-2.5">{t('market_page.table_commodity', 'Crop / Commodity')}</th>
+                <th className="p-2.5 text-right">{t('market_page.govt_msp', 'Official MSP')} (₹/{t('market_page.units.quintal', 'Quintal')})</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
@@ -916,8 +916,8 @@ const MarketPricesPage = () => {
           </table>
 
           <div className="flex justify-end pt-2">
-            <Button variant="gradient" size="sm" onClick={() => setMspModalOpen(false)}>
-              Close Benchmark Table
+            <Button variant="gradient" size="sm" onClick={() => setMspModalOpen(false)} className="cursor-pointer">
+              {t('common.close', 'Close Benchmark Table')}
             </Button>
           </div>
         </div>

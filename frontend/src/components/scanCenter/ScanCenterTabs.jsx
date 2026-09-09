@@ -12,6 +12,7 @@ const TABS = [
     icon: Bug,
     descKey: 'tabs.disease_diag_desc',
     description: 'Detect fungal, bacterial & viral crop pathologies',
+    badgeKey: 'tabs.badges.pytorch',
     badge: 'PyTorch AI',
     color: 'emerald'
   },
@@ -22,6 +23,7 @@ const TABS = [
     icon: Sprout,
     descKey: 'tabs.plant_id_desc',
     description: 'Identify crop variety, botanical species & growth traits',
+    badgeKey: 'tabs.badges.species',
     badge: 'Species Engine',
     color: 'teal'
   },
@@ -32,6 +34,7 @@ const TABS = [
     icon: FlaskConical,
     descKey: 'tabs.agro_scan_desc',
     description: 'Scan pesticides, fungicides & fertilizer product labels',
+    badgeKey: 'tabs.badges.ocr',
     badge: 'OCR Vision',
     color: 'sky'
   }
@@ -91,7 +94,7 @@ const ScanCenterTabs = ({ activeTab, onTabChange }) => {
                 </span>
               </div>
               <Badge variant={isActive ? "healthy" : "default"} className="text-[9px] uppercase tracking-wider font-extrabold shrink-0">
-                {tab.badge}
+                {tab.badgeKey ? t(tab.badgeKey, tab.badge) : tab.badge}
               </Badge>
             </div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Sprout, Calendar, Activity, Sparkles, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useFarm } from '../context/FarmContext';
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import { DailyRecommendations } from '../components/intelligence/DailyRecommendations';
@@ -10,6 +11,7 @@ import { CropCalendar } from '../components/intelligence/CropCalendar';
 import { Badge } from '../components/ui/index';
 
 const CropAdvisoryPage = () => {
+  const { t } = useTranslation();
   const { activeFarm } = useFarm();
 
   const farmId = activeFarm?.id || 1;
@@ -28,14 +30,14 @@ const CropAdvisoryPage = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              Agronomy & Crop Advisory Hub
+              {t('crop_advisory_page.title', 'Agronomy & Crop Advisory Hub')}
             </h1>
             <Badge variant="success" className="px-2 py-0.5 text-[10px] uppercase tracking-wider font-extrabold flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> AI Directive
+              <Sparkles className="w-3 h-3" /> {t('crop_advisory_page.badge', 'AI Directive')}
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Prioritized daily AI farming actions, intelligence activity streams, health index metrics & crop lifecycle management for <strong className="text-emerald-600 dark:text-emerald-400">{activeFarm?.farm_name || "My Farm"}</strong>.
+            {t('crop_advisory_page.subtitle', 'Prioritized daily AI farming actions, intelligence activity streams, health index metrics & crop lifecycle management for {{farm}}.', { farm: activeFarm?.farm_name || "My Farm" })}
           </p>
         </div>
       </div>

@@ -280,7 +280,7 @@ const PredictionResultPage = () => {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center text-slate-400">
                   <Leaf className="w-10 h-10 mb-2 opacity-40 text-emerald-400" />
-                  <span className="text-xs font-semibold">Diagnostic Image</span>
+                  <span className="text-xs font-semibold">{t('results.diagnostic_image', 'Diagnostic Image')}</span>
                 </div>
               )}
             </div>
@@ -306,10 +306,10 @@ const PredictionResultPage = () => {
           <div className="flex-1 space-y-3 w-full">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={isHealthy ? 'healthy' : 'diseased'}>
-                {isHealthy ? 'HEALTHY' : 'DISEASE DETECTED'}
+                {isHealthy ? `🟢 ${t('common.healthy', 'HEALTHY')}` : `🔴 ${t('common.diseased', 'DISEASE DETECTED')}`}
               </Badge>
               <Badge variant="outline" className="text-white border-white/20">
-                Crop: {localizedCrop || result?.crop_name || 'Agricultural Crop'}
+                {t('results.target_crop', 'Crop')}: {localizedCrop || result?.crop_name || 'Agricultural Crop'}
               </Badge>
             </div>
 
@@ -318,7 +318,7 @@ const PredictionResultPage = () => {
             </h1>
 
             <div className="pt-2">
-              <Progress value={parseFloat(confidencePercent)} label="Diagnostic Confidence" showValue />
+              <Progress value={parseFloat(confidencePercent)} label={t('results.confidence', 'Diagnostic Confidence')} showValue />
             </div>
 
             <div className="flex items-center gap-4 text-xs text-slate-300 pt-2">
@@ -343,7 +343,7 @@ const PredictionResultPage = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-amber-500" />
-                <h3 className="font-bold text-slate-800 dark:text-slate-100">Symptoms & Causes</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('results.symptoms', 'Symptoms & Causes')}</h3>
               </div>
               <button
                 type="button"
@@ -363,9 +363,9 @@ const PredictionResultPage = () => {
               </button>
             </div>
             <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-              <p><strong>Symptoms:</strong> {result.symptoms || nvidiaAdvice?.disease_explanation || 'No details available.'}</p>
+              <p><strong>{t('results.symptoms', 'Symptoms:')}</strong> {result.symptoms || nvidiaAdvice?.disease_explanation || 'No details available.'}</p>
               <div>
-                <strong>Possible Causes:</strong>
+                <strong>{t('results.causes', 'Possible Causes:')}</strong>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
                   {(result.possible_causes || nvidiaAdvice?.possible_causes || []).map((c, i) => (
                     <li key={i}>{c}</li>
@@ -379,7 +379,7 @@ const PredictionResultPage = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Sprout className="w-5 h-5 text-emerald-500" />
-                <h3 className="font-bold text-slate-800 dark:text-slate-100">Treatment Plan</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('results.treatment_plan', 'Treatment Plan')}</h3>
               </div>
               <button
                 type="button"
@@ -398,8 +398,8 @@ const PredictionResultPage = () => {
               </button>
             </div>
             <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-              <p><strong>Organic:</strong> {result.organic_treatment || nvidiaAdvice?.organic_treatment || 'None recommended.'}</p>
-              <p><strong>Chemical:</strong> {result.chemical_treatment || nvidiaAdvice?.chemical_treatment || 'None recommended.'}</p>
+              <p><strong>{t('results.organic', 'Organic:')}</strong> {result.organic_treatment || nvidiaAdvice?.organic_treatment || 'None recommended.'}</p>
+              <p><strong>{t('results.chemical', 'Chemical:')}</strong> {result.chemical_treatment || nvidiaAdvice?.chemical_treatment || 'None recommended.'}</p>
             </div>
           </Card>
 
@@ -407,7 +407,7 @@ const PredictionResultPage = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-blue-500" />
-                <h3 className="font-bold text-slate-800 dark:text-slate-100">Prevention & Precautions</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('results.prevention', 'Prevention & Precautions')}</h3>
               </div>
               <button
                 type="button"
@@ -428,16 +428,16 @@ const PredictionResultPage = () => {
             </div>
             <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
               <div>
-                <strong>Prevention Methods:</strong>
+                <strong>{t('results.prevention_methods', 'Prevention Methods:')}</strong>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
                   {(result.prevention_methods || nvidiaAdvice?.prevention_methods || fallbackAdvice.practices).map((p, i) => (
                     <li key={i}>{p}</li>
                   ))}
                 </ul>
               </div>
-              <p><strong>Farming Advice:</strong> {nvidiaAdvice?.farmer_friendly_advice || nvidiaAdvice?.best_farming_practices?.join(' ') || 'Regularly monitor crop health.'}</p>
+              <p><strong>{t('results.farming_advice', 'Farming Advice:')}</strong> {nvidiaAdvice?.farmer_friendly_advice || nvidiaAdvice?.best_farming_practices?.join(' ') || 'Regularly monitor crop health.'}</p>
               {result.safety_precautions && (
-                <p className="text-rose-600 dark:text-rose-400 mt-2"><strong>Safety Precautions:</strong> {result.safety_precautions}</p>
+                <p className="text-rose-600 dark:text-rose-400 mt-2"><strong>{t('results.safety_precautions', 'Safety Precautions:')}</strong> {result.safety_precautions}</p>
               )}
             </div>
           </Card>
@@ -462,14 +462,14 @@ const PredictionResultPage = () => {
         <Card className="p-6 border-l-4 border-l-purple-500 shadow-sm mt-4">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-purple-500" />
-            <h3 className="font-bold text-slate-800 dark:text-slate-100">Agrochemical Profile</h3>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('results.agrochemical_profile', 'Agrochemical Profile')}</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600 dark:text-slate-400">
-            <p><strong>Brand:</strong> {result.brand}</p>
-            <p><strong>Category:</strong> {result.category}</p>
-            <p><strong>Active Ingredient:</strong> {result.activeIngredient}</p>
-            <p><strong>Dosage:</strong> {result.dosage}</p>
-            <p className="md:col-span-2 text-rose-600 dark:text-rose-400"><strong>Safety Precautions:</strong> {result.ppe}</p>
+            <p><strong>{t('results.brand', 'Brand:')}</strong> {result.brand}</p>
+            <p><strong>{t('results.category', 'Category:')}</strong> {result.category}</p>
+            <p><strong>{t('results.active_ingredient', 'Active Ingredient:')}</strong> {result.activeIngredient}</p>
+            <p><strong>{t('results.dosage', 'Dosage:')}</strong> {result.dosage}</p>
+            <p className="md:col-span-2 text-rose-600 dark:text-rose-400"><strong>{t('results.safety_precautions', 'Safety Precautions:')}</strong> {result.ppe}</p>
           </div>
         </Card>
       )}

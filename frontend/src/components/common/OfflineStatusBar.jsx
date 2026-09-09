@@ -126,12 +126,12 @@ export const OfflineStatusBar = () => {
       await refreshPendingCount();
 
       if (syncedCount > 0) {
-        setSyncSuccessMsg(`Successfully synced ${syncedCount} offline field scan(s)!`);
+        setSyncSuccessMsg(t('offline.sync_success', `Successfully synced ${syncedCount} offline field scan(s)!`, { count: syncedCount }));
         // Notify History & Dashboard pages to refresh live data
         window.dispatchEvent(new CustomEvent('agrishield-sync-completed', { detail: { syncedCount } }));
         setTimeout(() => setSyncSuccessMsg(''), 6000);
       } else if (hasFailedItem) {
-        setSyncErrorMsg('Could not process offline scan. Image may be unreadable or corrupt.');
+        setSyncErrorMsg(t('offline.sync_failed', 'Could not process offline scan. Image may be unreadable or corrupt.'));
       }
     } catch (err) {
       console.error('Batch offline sync error:', err);
@@ -208,8 +208,8 @@ export const OfflineStatusBar = () => {
                 <div className="truncate font-medium text-[11.5px]">
                   {!isOnline ? (
                     <span>
-                      <strong>Field Offline Mode:</strong>{' '}
-                      {pendingCount > 0 ? `${pendingCount} scan(s) queued` : 'Scans will save locally'}
+                      <strong>{t('offline.field_offline_mode', 'Field Offline Mode:')}</strong>{' '}
+                      {pendingCount > 0 ? t('offline.scans_queued', '{{count}} scan(s) queued', { count: pendingCount }) : t('offline.save_locally', 'Scans will save locally')}
                     </span>
                   ) : syncSuccessMsg ? (
                     <span className="text-emerald-300 font-bold">{syncSuccessMsg}</span>
@@ -217,7 +217,7 @@ export const OfflineStatusBar = () => {
                     <span className="text-rose-300">{syncErrorMsg}</span>
                   ) : (
                     <span>
-                      <strong>Connection Restored:</strong> {pendingCount} offline scan(s) ready to sync
+                      <strong>{t('offline.connection_restored', 'Connection Restored:')}</strong> {t('offline.scans_ready', '{{count}} offline scan(s) ready to sync', { count: pendingCount })}
                     </span>
                   )}
                 </div>
@@ -233,7 +233,7 @@ export const OfflineStatusBar = () => {
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-[11px] shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                   >
                     <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                    <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+                    <span>{isSyncing ? t('offline.syncing', 'Syncing...') : t('offline.sync_now', 'Sync Now')}</span>
                   </button>
                 )}
 
@@ -242,11 +242,11 @@ export const OfflineStatusBar = () => {
                   <button
                     type="button"
                     onClick={handleDiscardAll}
-                    title="Discard pending queue"
+                    title={t('offline.discard', 'Discard pending queue')}
                     className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10.5px] font-semibold border border-rose-500/30 transition-all cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3 text-rose-300" />
-                    <span>Discard</span>
+                    <span>{t('offline.discard', 'Discard')}</span>
                   </button>
                 )}
 
@@ -254,7 +254,7 @@ export const OfflineStatusBar = () => {
                 <button
                   type="button"
                   onClick={() => setIsDismissed(true)}
-                  title="Dismiss banner"
+                  title={t('offline.dismiss', 'Dismiss banner')}
                   className="p-1 rounded-full hover:bg-white/20 active:scale-90 text-white/70 hover:text-white transition-all cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />

@@ -510,13 +510,13 @@ const HistoryPage = () => {
             className="sm:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold shrink-0 active:scale-95 transition-all"
           >
             <Filter className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Filter</span>
+            <span>{t('history.filters.filter_btn', 'Filter')}</span>
             <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showMobileFilters ? 'rotate-180' : ''}`} />
           </button>
 
           {/* Quick Presets (Desktop) */}
           <div className="hidden sm:flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">Quick:</span>
+            <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">{t('history.filters.quick_label', 'Quick:')}</span>
             <button
               onClick={() => setQuickDate('today')}
               className="px-3 py-1 text-xs font-bold rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-xs transition-all"
@@ -548,7 +548,7 @@ const HistoryPage = () => {
         <div className={`${showMobileFilters ? 'flex' : 'hidden sm:flex'} flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 transition-all`}>
           {/* Quick Presets for Mobile */}
           <div className="flex sm:hidden items-center gap-1.5 flex-wrap w-full mb-1">
-            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">Quick:</span>
+            <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1">{t('history.filters.quick_label', 'Quick:')}</span>
             {['today', '7days', '30days', 'all'].map((preset) => (
               <button
                 key={preset}
@@ -573,14 +573,14 @@ const HistoryPage = () => {
           {/* Clean Inline Date Range Box */}
           <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 w-full sm:w-auto justify-between sm:justify-start">
             <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span className="text-[11px] font-bold text-slate-400 uppercase">From</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase">{t('history.filters.from', 'From')}</span>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className="bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
             />
-            <span className="text-[11px] font-bold text-slate-400 uppercase">To</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase">{t('history.filters.to', 'To')}</span>
             <input
               type="date"
               value={endDate}
@@ -596,7 +596,7 @@ const HistoryPage = () => {
               onClick={() => { setStartDate(''); setEndDate(''); setSearch(''); setSelectedFarmer('all'); setSelectedDevice('all'); }}
               className="text-xs text-rose-500 hover:bg-rose-500/10 font-medium px-2.5"
             >
-              Reset Filters
+              {t('history.filters.reset_filters', 'Reset Filters')}
             </Button>
           )}
 
@@ -606,7 +606,7 @@ const HistoryPage = () => {
               onChange={(e) => setSelectedFarmer(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium w-full sm:w-auto"
             >
-              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Farmers</option>
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{t('history.filters.all_farmers', 'All Farmers')}</option>
               {uniqueFarmers.map(f => (
                 <option key={f} value={f} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{f}</option>
               ))}
@@ -618,7 +618,7 @@ const HistoryPage = () => {
               onChange={(e) => setSelectedDevice(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-medium w-full sm:w-auto"
             >
-              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Devices</option>
+              <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{t('history.filters.all_devices', 'All Devices')}</option>
               {uniqueDevices.map(d => (
                 <option key={d} value={d} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{d}</option>
               ))}
@@ -631,8 +631,8 @@ const HistoryPage = () => {
       {processedData.length === 0 ? (
         <EmptyState
           icon={Filter}
-          title="No History Records Found"
-          description="Try broadening your search keywords or adjusting date range filters."
+          title={t('history.empty_title', 'No History Records Found')}
+          description={t('history.empty_desc', 'Try broadening your search keywords or adjusting date range filters.')}
         />
       ) : (
         <div className="space-y-4">
@@ -658,7 +658,7 @@ const HistoryPage = () => {
                             onError={(e) => { e.target.style.display = 'none'; }}
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] font-semibold">No Photo</div>
+                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] font-semibold">{t('history.no_photo', 'No Photo')}</div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -735,10 +735,10 @@ const HistoryPage = () => {
                     {/* Expanded — full sensor details */}
                     {isExpanded && (
                       <div className="px-3.5 pb-3.5 pt-1 border-t border-slate-100 dark:border-slate-800">
-                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">Full Reading</p>
+                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-2">{t('history.full_reading', 'Full Reading')}</p>
                         <div className="flex flex-wrap gap-1.5">
                           <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">☀️ {item.light} lx</span>
-                          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">🌧️ {item.rain === '1' ? 'Wet' : 'Dry'}</span>
+                          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">🌧️ {item.rain === '1' ? t('history.wet', 'Wet') : t('history.dry', 'Dry')}</span>
                           <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-900/50">🔋 {item.battery}%</span>
                         </div>
                       </div>
@@ -786,7 +786,7 @@ const HistoryPage = () => {
                                 onError={(e) => { e.target.style.display = 'none'; }}
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-semibold">No Image</div>
+                              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-semibold">{t('history.no_image', 'No Image')}</div>
                             )}
                             <div className="absolute top-2 right-2">
                               <Badge variant={isHealthy ? 'healthy' : 'diseased'} className="text-[10px] shadow-sm">
@@ -879,22 +879,22 @@ const HistoryPage = () => {
                       
                       <div className="grid grid-cols-3 gap-2">
                         <div className="p-2 bg-orange-50/50 dark:bg-orange-950/20 rounded-xl border border-orange-100 dark:border-orange-900/50 text-center">
-                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Temp</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">{t('history.temp', 'Temp')}</span>
                           <span className="text-xs font-bold text-orange-600 dark:text-orange-400 mt-0.5 block">🌡️ {item.temperature}°C</span>
                         </div>
                         <div className="p-2 bg-sky-50/50 dark:bg-sky-950/20 rounded-xl border border-sky-100 dark:border-sky-900/50 text-center">
-                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Humid</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">{t('history.humid', 'Humid')}</span>
                           <span className="text-xs font-bold text-sky-600 dark:text-sky-400 mt-0.5 block">💧 {item.humidity}%</span>
                         </div>
                         <div className="p-2 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-center">
-                          <span className="text-[9px] text-slate-400 font-bold uppercase block">Soil</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block">{t('history.soil', 'Soil')}</span>
                           <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">🌱 {item.soil}%</span>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-800/80 pt-2 font-semibold">
                         <span>☀️ Light: {item.light} lx</span>
-                        <span>🌧️ Rain: {item.rain === '1' ? 'Wet' : 'Dry'}</span>
+                        <span>🌧️ Rain: {item.rain === '1' ? t('history.wet', 'Wet') : t('history.dry', 'Dry')}</span>
                         <span>🔋 Batt: {item.battery}%</span>
                       </div>
                     </Card>
@@ -919,14 +919,14 @@ const HistoryPage = () => {
                         </>
                       ) : (
                         <>
-                          <TableHead>Device Node</TableHead>
+                          <TableHead>{t('history.node', 'Device Node')}</TableHead>
                           {isAdmin && <TableHead>{t('history.table_headers.farmer', 'Farmer / Owner')}</TableHead>}
-                          <TableHead>Date & Time</TableHead>
-                          <TableHead>Temp (°C)</TableHead>
-                          <TableHead>Humidity (%)</TableHead>
-                          <TableHead>Soil Moisture</TableHead>
-                          <TableHead>Light (lux)</TableHead>
-                          <TableHead>Sleep Cycle</TableHead>
+                          <TableHead>{t('history.table_headers.date_time', 'Date & Time')}</TableHead>
+                          <TableHead>{t('history.temp', 'Temp')} (°C)</TableHead>
+                          <TableHead>{t('history.humidity_pct', 'Humidity (%)')}</TableHead>
+                          <TableHead>{t('history.soil_moisture', 'Soil Moisture')}</TableHead>
+                          <TableHead>{t('history.light_lux', 'Light (lux)')}</TableHead>
+                          <TableHead>{t('history.sleep_cycle', 'Sleep Cycle')}</TableHead>
                         </>
                       )}
                     </TableRow>
@@ -947,7 +947,7 @@ const HistoryPage = () => {
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px]">Photo</div>
+                                  <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px]">{t('history.photo', 'Photo')}</div>
                                 )}
                               </div>
                             </TableCell>

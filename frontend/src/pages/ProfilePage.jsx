@@ -416,18 +416,18 @@ const ProfilePage = () => {
                       <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.03] p-4 space-y-4">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Farmer Native Location (India)</span>
+                          <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">{t('profile_page.location_title', 'Farmer Native Location (India)')}</span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">State / UT</label>
+                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">{t('profile_page.form.state', 'State / UT')}</label>
                             <select
                               value={state}
                               onChange={(e) => { setState(e.target.value); setDistrict(''); setMandal(''); setVillage(''); }}
                               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
                             >
-                              <option value="">-- Select State / UT --</option>
+                              <option value="">-- {t('profile_page.form.select_state', 'Select State / UT')} --</option>
                               {INDIA_STATES.map(s => (
                                 <option key={s} value={s}>{s}</option>
                               ))}
@@ -435,14 +435,14 @@ const ProfilePage = () => {
                           </div>
 
                           <div className="space-y-1">
-                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">District</label>
+                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">{t('profile_page.form.district', 'District')}</label>
                             <select
                               value={district}
                               onChange={(e) => { setDistrict(e.target.value); setMandal(''); setVillage(''); }}
                               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all disabled:opacity-50 cursor-pointer"
                               disabled={!state}
                             >
-                              <option value="">{state ? '-- Select District --' : '-- Select State first --'}</option>
+                              <option value="">{state ? `-- ${t('profile_page.form.select_district', 'Select District')} --` : '-- Select State first --'}</option>
                               {availableDistricts.map(d => (
                                 <option key={d} value={d}>{d}</option>
                               ))}
@@ -450,14 +450,14 @@ const ProfilePage = () => {
                           </div>
 
                           <div className="space-y-1">
-                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">Mandal / Taluka</label>
+                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">{t('profile_page.form.mandal', 'Mandal / Taluka')}</label>
                             <select
                               value={mandal}
                               onChange={(e) => { setMandal(e.target.value); setVillage(''); }}
                               className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all disabled:opacity-50 cursor-pointer"
                               disabled={!district}
                             >
-                              <option value="">{district ? '-- Select Mandal --' : '-- Select District first --'}</option>
+                              <option value="">{district ? `-- ${t('profile_page.form.select_mandal', 'Select Mandal')} --` : '-- Select District first --'}</option>
                               {availableMandals.map(m => (
                                 <option key={m} value={m}>{m}</option>
                               ))}
@@ -465,7 +465,7 @@ const ProfilePage = () => {
                           </div>
 
                           <div className="space-y-1">
-                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">Village / Town</label>
+                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">{t('profile_page.form.village', 'Village / Town')}</label>
                             <select
                               value={village}
                               onChange={(e) => setVillage(e.target.value)}

@@ -467,21 +467,21 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 >
                   {(() => {
                     const path = location.pathname;
-                    if (path === '/dashboard') return 'AgriShield';
-                    if (path === '/upload' || path === '/result') return 'AI Doctor';
-                    if (path === '/history') return 'History Logs';
-                    if (path === '/analytics') return 'Analytics';
-                    if (path === '/market') return 'Mandi Prices';
-                    if (path === '/farm') return 'My Farm';
-                    if (path === '/notifications') return 'Alerts';
-                    if (path === '/settings') return 'Settings';
-                    if (path === '/profile') return 'My Profile';
-                    if (path === '/devices') return 'Devices';
-                    if (path === '/node-control') return 'Node Control';
-                    if (path === '/sdcard') return 'SD Storage';
-                    if (path === '/assistant') return 'AI Assistant';
-                    if (path === '/crop-advisory') return 'Crop Advisory';
-                    if (path === '/more') return 'More';
+                    if (path === '/dashboard') return t('nav.dashboard', 'AgriShield');
+                    if (path === '/upload' || path === '/result') return t('nav.scan_crop', 'AI Crop Doctor');
+                    if (path === '/history') return t('nav.scan_history', 'Scan History');
+                    if (path === '/analytics') return t('nav.analytics', 'Sensor Analytics');
+                    if (path === '/market') return t('nav.market', 'Mandi Prices');
+                    if (path === '/farm') return t('nav.farm', 'My Farm');
+                    if (path === '/notifications') return t('nav.notifications', 'Alerts');
+                    if (path === '/settings') return t('nav.settings', 'Settings');
+                    if (path === '/profile') return t('nav.profile', 'My Profile');
+                    if (path === '/devices') return t('nav.devices', 'Devices');
+                    if (path === '/node-control') return t('nav.node_control', 'Node Control');
+                    if (path === '/sdcard') return t('nav.sd_card', 'MicroSD Storage');
+                    if (path === '/assistant') return t('nav.assistant', 'AI Assistant');
+                    if (path === '/crop-advisory') return t('nav.crop_advisory', 'Crop Advisory');
+                    if (path === '/more') return t('nav.more_short', 'More');
                     return 'AgriShield';
                   })()}
                 </motion.span>
@@ -522,7 +522,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                       <div className="absolute right-0 mt-2 z-20 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 space-y-1">
-                        <p className="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-wider">Switch Active Farm</p>
+                        <p className="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-wider">{t('nav.switch_farm', 'Switch Active Farm')}</p>
                         {farms.map((f) => (
                           <button
                             key={f.id}
@@ -628,26 +628,26 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 {connectionStatus === 'connected' && (
                   <>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    <span className="text-emerald-700 dark:text-emerald-300 hidden sm:inline">Live WS</span>
+                    <span className="text-emerald-700 dark:text-emerald-300 hidden sm:inline">{t('nav.live_ws', 'Live WS')}</span>
                     {lastMessageTime && <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal hidden xl:inline">({lastMessageTime})</span>}
                   </>
                 )}
                 {connectionStatus === 'reconnecting' && (
                   <>
                     <UIPrimitiveSpinner size="xs" className="text-amber-500 shrink-0" />
-                    <span className="text-amber-700 dark:text-amber-300 hidden sm:inline">Reconnecting...</span>
+                    <span className="text-amber-700 dark:text-amber-300 hidden sm:inline">{t('nav.reconnecting', 'Reconnecting...')}</span>
                   </>
                 )}
                 {connectionStatus === 'offline' && (
                   <>
                     <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 shrink-0" />
-                    <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">REST</span>
+                    <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">{t('nav.rest_mode', 'REST')}</span>
                   </>
                 )}
                 {connectionStatus === 'error' && (
                   <>
                     <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-bounce" />
-                    <span className="text-rose-600 dark:text-rose-400 hidden sm:inline">WS Error</span>
+                    <span className="text-rose-600 dark:text-rose-400 hidden sm:inline">{t('nav.ws_error', 'WS Error')}</span>
                   </>
                 )}
               </div>
@@ -657,10 +657,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 <Link
                   to="/admin"
                   className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer whitespace-nowrap"
-                  title="Open Admin Control Panel"
+                  title={t('nav.admin_panel', 'Admin Control Panel')}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Admin Panel</span>
+                  <span className="hidden sm:inline">{t('nav.admin_panel', 'Admin Panel')}</span>
                 </Link>
               )}
 
@@ -837,7 +837,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <Bell className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Notification Inbox</span>
+                      <span>{t('nav.notification_inbox', 'Notification Inbox')}</span>
                     </Link>
 
                     <Link
@@ -846,7 +846,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Settings</span>
+                      <span>{t('nav.settings', 'Settings')}</span>
                     </Link>
 
                     {(user?.role?.toLowerCase() === 'admin') && (
@@ -856,7 +856,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors border border-amber-200 dark:border-amber-900/50 my-1"
                       >
                         <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Admin Control Panel</span>
+                        <span>{t('nav.admin_panel', 'Admin Control Panel')}</span>
                       </Link>
                     )}
 
@@ -866,10 +866,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                           setUserMenuOpen(false);
                           handleLogout();
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5" />
-                        <span>Log Out</span>
+                        <span>{t('nav.log_out', 'Log Out')}</span>
                       </button>
                     </div>
                   </div>
@@ -1016,6 +1016,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   ] : [
     {
       title: "Main Menu",
+      titleKey: "nav.group_main",
       items: [
         { key: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, label: "Home", color: "text-emerald-500" },
         { key: "nav.scan_crop", path: "/upload", icon: Camera, label: "AI Crop Doctor", color: "text-teal-500" },
@@ -1025,6 +1026,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     },
     ...(hardwareMode ? [{
       title: "My Sensors",
+      titleKey: "nav.group_sensors",
       items: [
         { key: "nav.devices", path: "/devices", icon: Cpu, label: "View Sensors", color: "text-sky-500" },
         { key: "nav.node_control", path: "/node-control", icon: Sliders, label: "Sensor Settings", color: "text-indigo-500" },
@@ -1033,6 +1035,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     }] : []),
     {
       title: "Data & Logs",
+      titleKey: "nav.group_data",
       items: [
         { key: "nav.scan_history", path: "/history", icon: History, label: "Scan History", color: "text-emerald-500" },
         { key: "nav.telemetry", path: "/analytics", icon: Activity, label: "Telemetry Logs", color: "text-cyan-500" },
@@ -1040,6 +1043,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     },
     {
       title: "Help & Settings",
+      titleKey: "nav.group_help",
       items: [
         { key: "nav.assistant", path: "/assistant", icon: Bot, label: "Ask AI Expert", color: "text-teal-500" },
         { key: "nav.profile", path: "/profile", icon: User, label: "My Profile", color: "text-violet-500" },
@@ -1070,7 +1074,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           {navGroups.map((group) => (
             <div key={group.title} className="space-y-1">
               <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
-                {group.title}
+                {group.titleKey ? t(group.titleKey, group.title) : group.title}
               </p>
               {group.items.map((item) => {
                 const Icon = item.icon;
@@ -1295,7 +1299,7 @@ export const Footer = () => {
         <div className="flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500">
           <span>Version 1.0.0</span>
           <span>•</span>
-          <span>Precision Agriculture Engine</span>
+          <span>{t('nav.precision_engine', 'Precision Agriculture Engine')}</span>
         </div>
       </div>
     </footer>
