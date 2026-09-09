@@ -830,12 +830,13 @@ Analyze the data carefully:
 - Pests thrive in high temperature/moderate humidity.
 
 Decide if the top prediction should be changed to one of the other options in the top_predictions list, or if the confidence scores should be corrected to be more accurate (raising the confidence of the most likely disease to >90%).
+CRITICAL CONSTRAINT: You MUST choose strictly from the disease names present in PyTorch Top Predictions. Do not invent or return any disease name that is not in the provided predictions list.
 
 Output ONLY a valid JSON object matching this schema:
 {{
   "refined": true or false (set to true if you are correcting the order, confidence, or resolving a borderline conflict, false if no change needed),
-  "crop_name": "Corrected/selected crop name",
-  "disease_name": "Corrected/selected disease name",
+  "crop_name": "Corrected/selected crop name from top_predictions",
+  "disease_name": "Corrected/selected disease name from top_predictions",
   "confidence": float (corrected confidence score between 0.0 and 1.0, e.g. 0.92),
   "reasoning": "A brief explanation of why the sensor readings or growth stages resolved this specific disease."
 }}
@@ -848,17 +849,9 @@ Do not include any conversational text or markdown styling outside the JSON bloc
 
         content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=450, timeout=3.5)
         if content:
-            try:
-                if "```json" in content:
-                    content = content.split("```json")[1].split("```")[0].strip()
-                elif "```" in content:
-                    content = content.split("```")[1].split("```")[0].strip()
-                
-                parsed = json.loads(content)
-                if parsed.get("refined"):
-                    return parsed
-            except Exception as e:
-                logger.warning(f"refine_prediction parsing failed from {provider}: {e}")
+            parsed = safe_parse_json(content)
+            if parsed and isinstance(parsed, dict) and parsed.get("refined"):
+                return parsed
         return None
 
     async def analyze_crop_image(self, image_path: str) -> Optional[dict]:

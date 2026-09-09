@@ -1211,20 +1211,21 @@ export const COMMON_DISEASES = {
 
 
 
-// Robust disease condition normalizer
+// Robust disease condition normalizer with full multilingual support
 export function normalizeDiseaseKey(rawName = '') {
+  if (!rawName) return 'healthy';
   const str = String(rawName).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ').trim();
   
-  if (str.includes('healthy') || str.includes('ఆరోగ్య') || str.includes('स्वस्थ') || str.includes('ஆரோக்கிய') || str.includes('ಆರೋಗ್ಯ')) return 'healthy';
-  if (str.includes('anthracn') || str.includes('dieback') || str.includes('die back') || str.includes('fruit rot')) return 'anthracnose';
+  if (str.includes('healthy') || str.includes('ఆరోగ్య') || str.includes('स्वस्थ') || str.includes('ஆரோக்கிய') || str.includes('ಆರೋಗ್ಯ') || str.includes('निरोगी')) return 'healthy';
+  if (str.includes('anthracn') || str.includes('dieback') || str.includes('die back') || str.includes('fruit rot') || str.includes('ఆంత్రాక్నోస్') || str.includes('కాయకుళ్లు') || str.includes('కొమ్మ ఎండు') || str.includes('కొమ్మఎండు') || str.includes('एंथ्रेक्नोज') || str.includes('एन्थ्रेक्नोज़')) return 'anthracnose';
   if (str.includes('damping off') || str.includes('నారుకుళ్లు') || str.includes('आर्द्र गलन')) return 'damping_off';
-  if (str.includes('curl') || str.includes('ముడత') || str.includes('मरोड़') || str.includes('சுருட்டு') || str.includes('ಮುದುರು')) return 'leaf_curl';
-  if (str.includes('tikka') || str.includes('తిక్క') || str.includes('टिक्का') || str.includes('திక్కா') || str.includes('cercospora') || str.includes('septoria') || str.includes('leaf spot') || str.includes('gray leaf spot')) return 'leaf_spot';
+  if (str.includes('curl') || str.includes('ముడత') || str.includes('ఆకు ముడుత') || str.includes('मरोड़') || str.includes('சுருட்டு') || str.includes('சுருள்') || str.includes('ಮುದುರು')) return 'leaf_curl';
+  if (str.includes('tikka') || str.includes('తిక్క') || str.includes('टिक्का') || str.includes('దిక్కా') || str.includes('cercospora') || str.includes('septoria') || str.includes('leaf spot') || str.includes('ఆకు మచ్చ') || str.includes('మచ్చ తెగులు') || str.includes('పत्ती धब्बा') || str.includes('धब्बा') || str.includes('gray leaf spot')) return 'leaf_spot';
   if (str.includes('early blight') || str.includes('ఆల్టర్నేరియా') || str.includes('ముందస్తు') || str.includes('अगेती')) return 'early_blight';
   if (str.includes('late blight') || str.includes('లేట్ బ్లైట్') || str.includes('ఆలస్యపు') || str.includes('पछेती')) return 'late_blight';
   if (str.includes('bacterial') && (str.includes('blight') || str.includes('ఎండాకు'))) return 'bacterial_blight';
-  if (str.includes('bacterial') || str.includes('బ్యాక్టీరియ') || str.includes('जीवाणु')) return 'bacterial_spot';
-  if (str.includes('blast') || str.includes('అగ్గి తెగులు') || str.includes('झोंका') || str.includes('குலை') || str.includes('ಬೆಂಕಿ ರೋಗ')) return 'blast';
+  if (str.includes('bacterial') || str.includes('బ్యాక్టీరియ') || str.includes('జీవాణు') || str.includes('जीवाणु')) return 'bacterial_spot';
+  if (str.includes('blast') || str.includes('అగ్గి తెగులు') || str.includes('అగ్గి') || str.includes('झोंका') || str.includes('குலை') || str.includes('ಬೆಂಕಿ ರೋಗ')) return 'blast';
   if (str.includes('powdery mildew') || str.includes('బూడిద') || str.includes('चूर्णिल') || str.includes('சாம்பல்') || str.includes('ಬೂದಿ')) return 'powdery_mildew';
   if (str.includes('downy mildew') || str.includes('పసుపు మచ్చ బూజు') || str.includes('मृदु रोमिल') || str.includes('அடிச்சாம்பல்')) return 'downy_mildew';
   if (str.includes('mildew')) return 'powdery_mildew';
@@ -1235,32 +1236,75 @@ export function normalizeDiseaseKey(rawName = '') {
   if (str.includes('aphid') || str.includes('పేనుబంక') || str.includes('माहू') || str.includes('அசுவினி') || str.includes('ಹೇನು')) return 'aphids';
   if (str.includes('borer') || str.includes('bollworm') || str.includes('armyworm') || str.includes('కాయ తొలుచు') || str.includes('కాండం తొలుచు') || str.includes('छेदक') || str.includes('துளைப்பான்') || str.includes('ಕೊರೆಯುವ')) return 'stem_borer';
   if (str.includes('smut') || str.includes('కాటుక') || str.includes('कंडुआ') || str.includes('கரிப்பூட்டை') || str.includes('ಕಾಡಿಗೆ')) return 'smut';
-  if (str.includes('red rot') || str.includes('ఎర్ర కుళ్లు') || str.includes('लाल सड़न') || str.includes('செவ்வழுகல்') || str.includes('ಕೆಂಪು ಕೊಳೆ')) return 'red_rot';
+  if (str.includes('red rot') || str.includes('ఎర్ర కుళ్లు') || str.includes('लाल सड़न')) return 'red_rot';
   if (str.includes('leaf mold') || str.includes('ఆకు బూజు') || str.includes('पत्ती फफूंद')) return 'leaf_mold';
   if (str.includes('target spot') || str.includes('లక్ష్యపు') || str.includes('टारगेट') || str.includes('வளைய')) return 'target_spot';
-  if (str.includes('mosaic') || str.includes('mottle') || str.includes('మొజాయిక్') || str.includes('मोज़ेक') || str.includes('மொசைக்')) return 'mosaic_virus';
+  if (str.includes('mosaic') || str.includes('mottle') || str.includes('మొజాయిక్') || str.includes('మొటల్') || str.includes('मोज़ेक') || str.includes('மொசைக்')) return 'mosaic_virus';
   if (str.includes('scab') || str.includes('గజ్జి') || str.includes('स्कैब') || str.includes('சொறி') || str.includes('ಗಜ್ಜು')) return 'scab';
-  if (str.includes('brown spot') || str.includes('గోధుమ రంగు మచ్చ') || str.includes('भूरा धब्बा')) return 'brown_spot';
+  if (str.includes('brown spot') || str.includes('గోధుమ రంగు మచ్చ') || str.includes('గోధుమ మచ్చ') || str.includes('भूरा धब्बा')) return 'brown_spot';
   if (str.includes('black rot') || str.includes('నల్ల కుళ్లు') || str.includes('काला सड़न')) return 'black_rot';
   if (str.includes('root rot') || str.includes('collar rot') || str.includes('వేరు కుళ్లు') || str.includes('जड़ सड़न')) return 'root_rot';
   if (str.includes('blight') || str.includes('మాడ తెగులు') || str.includes('झुलसा') || str.includes('கருகல்') || str.includes('ಕರಗು')) return 'blight';
+  if (str.includes('spot') || str.includes('మచ్చ') || str.includes('धब्बा') || str.includes('புள்ளி')) return 'leaf_spot';
   
-  return 'early_blight';
+  // Clean alphanumeric key fallback matching COMMON_DISEASES
+  const cleanKey = str.replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  if (COMMON_DISEASES[cleanKey] || DISEASE_KB[cleanKey]) {
+    return cleanKey;
+  }
+  for (const k of Object.keys(COMMON_DISEASES)) {
+    const kWords = k.split('_');
+    if (kWords.every(w => str.includes(w))) {
+      return k;
+    }
+  }
+
+  return cleanKey || 'healthy';
 }
 
-export function getDiseaseDetails(cropName, diseaseName, lang = 'en') {
+export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
+  let cropName = '';
+  let diseaseName = '';
+  let lang = 'en';
+
+  const knownLangs = ['en', 'te', 'hi', 'ta', 'kn', 'mr', 'gu', 'pa', 'ur', 'ml', 'or', 'as'];
+
+  if (arg3 && typeof arg3 === 'string' && arg2 && typeof arg2 === 'string' && !knownLangs.includes(arg2.toLowerCase().trim())) {
+    // Standard 3-arg call: getDiseaseDetails(cropName, diseaseName, lang)
+    cropName = arg1 || '';
+    diseaseName = arg2 || '';
+    lang = arg3 || 'en';
+  } else if (arg2 && typeof arg2 === 'string' && knownLangs.includes(arg2.toLowerCase().trim())) {
+    // Flexible 2-arg call: getDiseaseDetails(diseaseName, lang)
+    diseaseName = arg1 || '';
+    lang = arg2 || 'en';
+  } else {
+    // 1-arg or ambiguous call
+    diseaseName = arg2 || arg1 || '';
+    lang = (typeof arg3 === 'string' ? arg3 : 'en') || 'en';
+  }
+
   const key = normalizeDiseaseKey(diseaseName);
   const keyMap = {
     'early_blight': 'early blight',
     'late_blight': 'late blight',
     'target_spot': 'target spot',
     'bacterial_spot': 'bacterial spot',
+    'bacterial_blight': 'bacterial spot',
     'leaf_curl': 'leaf curl virus',
     'rust': 'common rust',
     'leaf_spot': 'tikka disease',
     'anthracnose': 'anthracnose',
     'blast': 'blast',
     'powdery_mildew': 'powdery mildew',
+    'downy_mildew': 'powdery mildew',
+    'brown_spot': 'tikka disease',
+    'black_rot': 'early blight',
+    'root_rot': 'early blight',
+    'damping_off': 'early blight',
+    'scab': 'target spot',
+    'leaf_mold': 'powdery mildew',
+    'mosaic_virus': 'leaf curl virus',
     'healthy': 'healthy'
   };
   const kbKey = keyMap[key] || (DISEASE_KB[key] ? key : 'early blight');

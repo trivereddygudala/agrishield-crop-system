@@ -28,8 +28,8 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const [waterPerAcre, setWaterPerAcre] = useState(200);
   const [tankSize, setTankSize] = useState(15); // 15L or 20L backpack pump
 
-  const rawDiseaseName = liveResult?.disease_name || 'Tomato Early Blight (Alternaria solani)';
-  const rawCropName = liveResult?.crop_name || 'Tomato';
+  const rawDiseaseName = liveResult?.disease_name || liveResult?.predicted_class || 'Crop Health Condition';
+  const rawCropName = liveResult?.crop_name || 'Agricultural Crop';
   
   const localizedCrop = translateCrop(rawCropName, i18n.language) || rawCropName;
   const localizedDisease = translateDisease(rawDiseaseName, i18n.language) || rawDiseaseName;

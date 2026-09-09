@@ -307,12 +307,12 @@ const PredictionResultPage = () => {
                 {isHealthy ? 'HEALTHY' : 'DISEASE DETECTED'}
               </Badge>
               <Badge variant="outline" className="text-white border-white/20">
-                Crop: {result?.crop_name || 'Tomato'}
+                Crop: {localizedCrop || result?.crop_name || 'Agricultural Crop'}
               </Badge>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
-              {result?.disease_name || 'Tomato Early Blight'}
+              {localizedDisease || result?.disease_name || 'Crop Health Condition'}
             </h1>
 
             <div className="pt-2">

@@ -249,8 +249,8 @@ const UploadImagePage = () => {
     doc.text(`Generated: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`, 14, 28);
     doc.line(14, 32, 196, 32);
 
-    const disease = liveResult?.disease_name || 'Tomato Early Blight';
-    const crop = liveResult?.crop_name || 'Tomato';
+    const disease = liveResult?.disease_name || 'Crop Health Condition';
+    const crop = liveResult?.crop_name || 'Agricultural Crop';
     const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
 
     (doc).autoTable({

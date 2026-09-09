@@ -2,6 +2,15 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v62) - Critical Disease Name Normalization & Advisory Resolution Across All Languages
+- **Summary:** Resolved the core disease name mismatch bug where every crop pathology scan was collapsing into "Tomato Early Blight":
+  1. **Fixed Multilingual Disease Key Mapping (`diseaseAdvisoryData.js`):** `normalizeDiseaseKey` previously lacked regional translations for Leaf Spot (`ఆకు మచ్చ`, `పत्ती धब्बा`), Anthracnose (`ఆంత్రాక్నోస్`, `కాయకుళ్లు`, `కొమ్మ ఎండు`, `एंथ्रेक्नोज`), and other common diseases, causing them to fall back to `'early_blight'`. Added comprehensive Telugu, Hindi, Tamil, and Kannada dictionary patterns and a dynamic `COMMON_DISEASES` match fallback.
+  2. **Fixed `getDiseaseDetails` Call Signature:** Updated `getDiseaseDetails(arg1, arg2, arg3)` to flexibly accept either `(diseaseName, lang)` or `(cropName, diseaseName, lang)`. Previously, calling it with 2 arguments treated the language code (e.g., `'en'` or `'te'`) as the disease name, causing every advisory card across the entire UI to return Early Blight treatments.
+  3. **Removed Hardcoded Fallback Strings:** Cleaned up hardcoded fallback strings `'Tomato Early Blight'` and `'Tomato'` in `DiseaseDiagnosisResults.jsx`, `PredictionResultPage.jsx`, and `UploadImagePage.jsx` so live visual diagnoses and localized names display accurately.
+  4. **Guarded `refine_prediction` Against Hallucinations & Vision Overwriting:** In `backend/app/routers/predict.py` and `backend/app/services/nvidia_service.py`, constrained LLM environmental refinement strictly to genuine ambiguous ties between the top 2 candidate predictions (confidence diff < 0.12). Validated that any LLM refinement MUST belong to the vision model's `top_predictions` list, strictly protecting the visual neural network's ground truth.
+  5. **Preserved Canonical Disease Names in Backend Pipeline:** Ensured `prediction_result` always stores `canonical_disease_name` and `canonical_crop_name` alongside translated strings so database lookups, agrochemical matches, and speech readouts remain 100% synchronized.
+- **Files modified**: `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `backend/app/routers/predict.py`, `backend/app/services/nvidia_service.py`, `changes_happening.md`
+
 ## 2026-09-09 (v61) - Render Production Server Fixes: History ObjectId Serialization, Weather 404, Upload Loop, & AI JSON Resilience
 - **Summary:** Diagnosed and resolved all server warnings and exceptions reported in Render deployment logs:
   1. **Fixed Prediction History 500 Error (`ObjectId` Serialization):** Converted all MongoDB `_id`, `id`, `user_id`, and nested `ObjectId` references into standard strings in `backend/app/routers/predict.py` (`get_history`), resolving Pydantic v2 `PydanticSerializationError: Unable to serialize unknown type: <class 'bson.objectid.ObjectId'>`.

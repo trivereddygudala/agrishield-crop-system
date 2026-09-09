@@ -661,9 +661,14 @@ async def predict_pytorch_endpoint(
     if detected_vision_crop and prediction_result.get("crop_name") != detected_vision_crop:
         prediction_result["crop_name"] = detected_vision_crop
 
-    # Refine borderline prediction using NVIDIA NIM LLM reasoning
+    # Refine borderline prediction using NVIDIA NIM LLM reasoning ONLY if there is true ambiguity
     confidence = float(prediction_result.get("confidence", 0.0))
-    if 0.55 <= confidence <= 0.88:
+    top_preds = prediction_result.get("top_predictions", [])
+    
+    # Check if there is genuine ambiguity between top 2 candidate predictions (diff < 0.12)
+    is_ambiguous = len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.12
+    
+    if is_ambiguous and 0.40 <= confidence <= 0.85:
         try:
             from backend.app.services.nvidia_service import nvidia_service
             from backend.app.services.farm_profile_service import FarmProfileService
@@ -688,7 +693,7 @@ async def predict_pytorch_endpoint(
 
             refinement = await nvidia_service.refine_prediction(
                 crop_name=prediction_result["crop_name"],
-                top_predictions=prediction_result.get("top_predictions", []),
+                top_predictions=top_preds,
                 sensor_data=latest_telemetry or {
                     "temperature": 28.0,
                     "humidity": 60.0,
@@ -699,14 +704,26 @@ async def predict_pytorch_endpoint(
             )
 
             if refinement and refinement.get("refined"):
-                print(f"[NVIDIA REFINEMENT SUCCESS] Refined to: {refinement['disease_name']} ({refinement['confidence']})")
-                prediction_result["crop_name"] = refinement["crop_name"]
-                prediction_result["disease_name"] = refinement["disease_name"]
-                prediction_result["confidence"] = refinement["confidence"]
-                if "top_predictions" in prediction_result and prediction_result["top_predictions"]:
-                    prediction_result["top_predictions"][0]["crop_name"] = refinement["crop_name"]
-                    prediction_result["top_predictions"][0]["disease_name"] = refinement["disease_name"]
-                    prediction_result["top_predictions"][0]["confidence"] = refinement["confidence"]
+                # Safety check: make sure the refined disease actually corresponds to one of the vision candidates
+                refined_d = str(refinement.get("disease_name", "")).strip().lower()
+                matched_cand = None
+                for cand in top_preds:
+                    cand_d = str(cand.get("disease_name", "")).strip().lower()
+                    if refined_d == cand_d or refined_d in cand_d or cand_d in refined_d:
+                        matched_cand = cand
+                        break
+                
+                if matched_cand:
+                    print(f"[NVIDIA REFINEMENT SUCCESS] Tie-break resolved to: {matched_cand['disease_name']} ({refinement.get('confidence', 0.90)})")
+                    prediction_result["crop_name"] = matched_cand.get("crop_name", prediction_result["crop_name"])
+                    prediction_result["disease_name"] = matched_cand["disease_name"]
+                    prediction_result["confidence"] = min(float(refinement.get("confidence", 0.90)), 0.95)
+                    if prediction_result.get("top_predictions"):
+                        prediction_result["top_predictions"][0]["crop_name"] = prediction_result["crop_name"]
+                        prediction_result["top_predictions"][0]["disease_name"] = prediction_result["disease_name"]
+                        prediction_result["top_predictions"][0]["confidence"] = prediction_result["confidence"]
+                else:
+                    print(f"[NVIDIA REFINEMENT REJECTED] Refinement '{refinement.get('disease_name')}' not in vision model predictions. Retaining vision ground truth: {prediction_result['disease_name']}")
         except Exception as ref_err:
             print(f"[NVIDIA REFINEMENT WARNING] Refiner execution bypassed: {ref_err}")
 
@@ -784,6 +801,10 @@ async def predict_pytorch_endpoint(
     user_pref_lang = current_user.get("preferred_language") or "en"
     target_lang = (req.language or user_pref_lang).lower()
     if target_lang != "en":
+        # Always preserve canonical English names before translation
+        prediction_result["canonical_crop_name"] = prediction_result.get("crop_name", "")
+        prediction_result["canonical_disease_name"] = prediction_result.get("disease_name", "")
+        
         translated_via_nvidia = False
         try:
             from backend.app.services.nvidia_service import nvidia_service
@@ -802,8 +823,12 @@ async def predict_pytorch_endpoint(
                 
                 translated_fields = await nvidia_service.translate_diagnosis(fields_to_translate, target_lang)
                 if translated_fields:
-                    prediction_result["crop_name"] = get_farmer_crop_translation(translated_fields.get("crop_name", prediction_result["crop_name"]), target_lang)
-                    prediction_result["disease_name"] = get_farmer_disease_translation(translated_fields.get("disease_name", prediction_result["disease_name"]), target_lang)
+                    trans_crop = get_farmer_crop_translation(translated_fields.get("crop_name", prediction_result["crop_name"]), target_lang)
+                    trans_dis = get_farmer_disease_translation(translated_fields.get("disease_name", prediction_result["disease_name"]), target_lang)
+                    prediction_result["crop_name"] = trans_crop
+                    prediction_result["disease_name"] = trans_dis
+                    prediction_result["localized_crop"] = trans_crop
+                    prediction_result["localized_disease"] = trans_dis
                     symptoms = translated_fields.get("symptoms", symptoms)
                     severity = translated_fields.get("severity", severity)
                     organic_treatment = translated_fields.get("organic_treatment", organic_treatment)
@@ -842,8 +867,12 @@ async def predict_pytorch_endpoint(
                     return translated
 
                 # Fallback translation for crop and disease names
-                prediction_result["crop_name"] = get_farmer_crop_translation(safe_translate(prediction_result.get("crop_name", "")), target_lang)
-                prediction_result["disease_name"] = get_farmer_disease_translation(safe_translate(prediction_result.get("disease_name", "")), target_lang)
+                fallback_crop = get_farmer_crop_translation(safe_translate(prediction_result.get("crop_name", "")), target_lang)
+                fallback_dis = get_farmer_disease_translation(safe_translate(prediction_result.get("disease_name", "")), target_lang)
+                prediction_result["crop_name"] = fallback_crop
+                prediction_result["disease_name"] = fallback_dis
+                prediction_result["localized_crop"] = fallback_crop
+                prediction_result["localized_disease"] = fallback_dis
                 symptoms = safe_translate(symptoms)
                 organic_treatment = translate_with_english_chemicals(organic_treatment)
                 chemical_treatment = translate_with_english_chemicals(chemical_treatment)
