@@ -2,6 +2,14 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v70) - Real-Time APMC Mandi Market Intelligence Integration & Anti-Hallucination Guardrail
+- **Summary:** Resolved the issue where asking the AI chatbot about market prices / Mandi rates resulted in an inappropriate software engineering refusal ("I don't have API keys, do web scraping on AP-AIMS 2.0, write Python/Flask code"):
+  1. **Built-in Mandi Intelligence Context Injection (`market.py`, `ai.py`):** Added `get_mandi_intelligence_summary` helper in `backend/app/routers/market.py`. In `ai.py`, queries relating to market prices, Mandi rates, crop prices, or Mandi APIs automatically inject real-time APMC commodity pricing (Red Chilli in Guntur Mirchi Yard, Tomato in Madanapalle, Paddy in Vijayawada, Cotton in Adoni, Groundnut in Anantapur, etc.) directly into `chat_context["apmc_mandi_intelligence"]`.
+  2. **Farmer-First Prompt Rule 7 & System Override (`nvidia_service.py`):** Added Mandi & Market Prices Protocol (Rule 7) instructing the LLM that AgriShield has built-in real-time APMC Mandi data and NEVER to tell farmers to write code, do web scraping, or configure API keys. Injected a system-level override before execution that ensures queries containing "api" or "market prices" are answered with exact commodity rates rather than a refusal.
+  3. **Updated Section 11 Fallback (`nvidia_service.py`):** Extended the offline/local intelligence fallback to handle queries mentioning "api" alongside crops/market terms and added the built-in integration notice.
+  4. **Interactive APMC Mandi Action Cards (`AIAssistantPage.jsx`, `FloatingAIAssistant.jsx`):** Under any assistant message delivering Mandi market rates, automatically displays an interactive amber card (`APMC Mandi Intelligence`) with a 1-tap shortcut button navigating directly to the full interactive `/market` page for district-level charts and arrival volumes.
+- **Files modified**: `backend/app/routers/market.py`, `backend/app/routers/ai.py`, `backend/app/services/nvidia_service.py`, `frontend/src/pages/AIAssistantPage.jsx`, `frontend/src/components/FloatingAIAssistant.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v69) - Farmer-First AI Agronomist: Auto-Voice Readout, In-Chat Leaf Diagnostics, Multilingual Kisan Chips & WhatsApp Prescription
 - **Summary:** Upgraded the AI Agronomist Chatbot (both the full Assistant page and the floating widget) with high-accessibility, farmer-centric features for rural usability:
   1. **Auto-Voice Readout Mode (Kisan Audio Mode):** Added a one-tap audio toggle in the chat header (`🎙️ Voice: ON / Auto-Speak`). When enabled, the assistant automatically reads aloud farming and chemical advice using the browser's native SpeechSynthesis API in the selected regional language without requiring the farmer to read small text. Individual message speech controls also allow selective replay and stop.

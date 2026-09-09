@@ -249,6 +249,18 @@ async def chat_with_farming_assistant(
             except Exception as we:
                 logger.warning(f"Error fetching live OpenWeather data: {we}")
 
+        # Fetch built-in APMC Mandi market rates if query is related to prices, rates, mandi, or market API
+        if any(w in lower_msg for w in [
+            "market", "price", "rate", "mandi", "cost", "selling", "bhav", "kilo", "quintal", 
+            "rupee", "₹", "worth", "ధర", "ధరలు", "రేటు", "రేట్లు", "రేట్", "మార్కెట్", "మండి", 
+            "भाव", "दाम", "मंडी", "बाजार", "api"
+        ]):
+            try:
+                from backend.app.routers.market import get_mandi_intelligence_summary
+                chat_context["apmc_mandi_intelligence"] = get_mandi_intelligence_summary(sanitized_message)
+            except Exception as me:
+                logger.warning(f"Error fetching Mandi market intelligence: {me}")
+
         # Check for in-chat leaf photo analysis
         image_to_analyze = getattr(req, "image_base64", None) or getattr(req, "image_url", None)
         if image_to_analyze:

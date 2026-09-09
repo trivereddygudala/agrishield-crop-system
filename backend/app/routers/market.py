@@ -914,3 +914,99 @@ async def calculate_farmer_revenue(payload: Dict[str, Any]):
         "net_farmer_payout_inr": round(net_payout, 2),
         "profit_per_quintal_net": round(net_payout / quantity_quintals, 2)
     }
+
+def get_mandi_intelligence_summary(query_text: str = "") -> Dict[str, Any]:
+    """
+    Returns a farmer-friendly summary of live APMC Mandi prices,
+    prioritizing crops matched in query_text.
+    """
+    q = (query_text or "").lower()
+    
+    keywords_to_crop = {
+        "chilli": ["Red Chilli", "Green Chilli"],
+        "chili": ["Red Chilli", "Green Chilli"],
+        "mirchi": ["Red Chilli", "Green Chilli"],
+        "మిర్చి": ["Red Chilli", "Green Chilli"],
+        "మిరప": ["Red Chilli", "Green Chilli"],
+        "मिर्च": ["Red Chilli", "Green Chilli"],
+        "tomato": ["Tomato"],
+        "టమాటా": ["Tomato"],
+        "టమోటా": ["Tomato"],
+        "టమాట": ["Tomato"],
+        "टमाटर": ["Tomato"],
+        "paddy": ["Paddy (Rice)"],
+        "rice": ["Paddy (Rice)"],
+        "వరి": ["Paddy (Rice)"],
+        "ధాన్యం": ["Paddy (Rice)"],
+        "బియ్యం": ["Paddy (Rice)"],
+        "धान": ["Paddy (Rice)"],
+        "चावल": ["Paddy (Rice)"],
+        "cotton": ["Cotton"],
+        "పత్తి": ["Cotton"],
+        "కపాస్": ["Cotton"],
+        "कपास": ["Cotton"],
+        "groundnut": ["Groundnut (Peanut)"],
+        "peanut": ["Groundnut (Peanut)"],
+        "వేరుశనగ": ["Groundnut (Peanut)"],
+        "పల్లీ": ["Groundnut (Peanut)"],
+        "मूंगफली": ["Groundnut (Peanut)"],
+        "maize": ["Maize (Corn)"],
+        "corn": ["Maize (Corn)"],
+        "మొక్కజొన్న": ["Maize (Corn)"],
+        "मक्का": ["Maize (Corn)"],
+        "onion": ["Onion"],
+        "ఉల్లి": ["Onion"],
+        "ఉల్లిపాయ": ["Onion"],
+        "प्याज": ["Onion"],
+        "wheat": ["Wheat"],
+        "గోధుమ": ["Wheat"],
+        "गेहूं": ["Wheat"],
+        "turmeric": ["Turmeric"],
+        "పసుపు": ["Turmeric"],
+        "हल्दी": ["Turmeric"]
+    }
+    
+    target_crops = set()
+    for kw, crops in keywords_to_crop.items():
+        if kw in q:
+            target_crops.update(crops)
+            
+    matched_items = []
+    if target_crops:
+        for item in LIVE_MANDI_DATA:
+            if item.get("crop") in target_crops:
+                matched_items.append(item)
+                
+    if not matched_items:
+        # Benchmark basket of essential farmer crops across AP, Telangana & neighbouring markets
+        key_crops = ["Red Chilli", "Tomato", "Paddy (Rice)", "Cotton", "Groundnut (Peanut)", "Maize (Corn)", "Onion"]
+        for item in LIVE_MANDI_DATA:
+            if item.get("crop") in key_crops and len(matched_items) < 8:
+                matched_items.append(item)
+                
+    rates_summary = []
+    for item in matched_items:
+        rates_summary.append({
+            "crop": item.get("crop"),
+            "variety": item.get("variety"),
+            "mandi": item.get("mandi_name"),
+            "district": item.get("district"),
+            "state": item.get("state"),
+            "modal_price_per_qtl": f"₹{item.get('modal_price')}",
+            "approx_kg_rate": f"₹{round(item.get('modal_price', 0) / 100, 2)}/kg",
+            "price_range": f"₹{item.get('min_price')} - ₹{item.get('max_price')}",
+            "msp": f"₹{item.get('msp_price')}" if item.get('msp_price') else "None",
+            "trend": f"{item.get('change_pct', 0.0):+}%",
+            "advice": item.get("ai_advice")
+        })
+        
+    return {
+        "status": "ready",
+        "notice": (
+            "AgriShield has BUILT-IN real-time APMC Mandi market rates across Andhra Pradesh, Telangana, and India. "
+            "No external API key, python script, or web scraping is required. "
+            "Never tell the user to write Python/Flask code or scrape websites. "
+            "Direct the farmer to the 'Market Prices (మార్కెట్ ధరలు)' page (/market) in the app navigation."
+        ),
+        "rates": rates_summary
+    }

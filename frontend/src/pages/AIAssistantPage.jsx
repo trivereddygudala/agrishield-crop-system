@@ -5,7 +5,7 @@ import {
   Search, Pin, Share2, ThumbsUp, ThumbsDown, Volume2, VolumeX, Mic, MicOff,
   ArrowUp, ChevronDown, MoreVertical, Image as ImageIcon, BookOpen, Cpu, 
   ExternalLink, Edit3, Globe, Layers, CheckCircle2, ShieldCheck, Leaf, RefreshCw,
-  Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain
+  Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain, TrendingUp
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -1016,6 +1016,37 @@ const AIAssistantPage = () => {
                                   <span>Kisan 1800 Helpline</span>
                                 </a>
                               </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Interactive Farmer Action Card for APMC Mandi Market Rates */}
+                        {(() => {
+                          const isMarketAdvice = /mandi|modal price|quintal|\/qtl|ధర|ధరలు|రేటు|మార్కెట్|మండి|మండీ|భావ|apmc/i.test(msg.content);
+                          if (!isMarketAdvice) return null;
+                          return (
+                            <div className="mt-3.5 p-3 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/50 flex flex-wrap items-center justify-between gap-2.5 shadow-xs w-full">
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                  📈
+                                </span>
+                                <div>
+                                  <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 tracking-wide block">
+                                    APMC Mandi Intelligence
+                                  </span>
+                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                    Live APMC Market Rates & Charts
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => navigate('/market')}
+                                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+                              >
+                                <TrendingUp className="w-3.5 h-3.5" />
+                                <span>View Market Prices (మార్కెట్ ధరలు)</span>
+                              </button>
                             </div>
                           );
                         })()}

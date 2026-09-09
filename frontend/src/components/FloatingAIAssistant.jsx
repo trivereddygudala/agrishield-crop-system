@@ -820,6 +820,23 @@ export default function FloatingAIAssistant() {
                                 </div>
                               </div>
                             )}
+
+                            {/* Interactive APMC Mandi Action Card */}
+                            {!isUser && /mandi|modal price|quintal|\/qtl|ధర|ధరలు|రేటు|మార్కెట్|మండి|మండీ|భావ|apmc/i.test(m.content) && (
+                              <div className="mt-2 p-2 rounded-xl bg-amber-950/40 border border-amber-500/30 flex items-center justify-between gap-2 text-[11px]">
+                                <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                                  <span>📈</span>
+                                  <span>Live APMC Mandi Rates</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => { setIsOpen(false); navigate('/market'); }}
+                                  className="px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold flex items-center gap-1 text-[10px]"
+                                >
+                                  <TrendingUp className="w-2.5 h-2.5" /> View /market
+                                </button>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
