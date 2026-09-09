@@ -260,20 +260,20 @@ const DashboardPage = () => {
                 {activeFarm?.farm_name ? `${activeFarm.farm_name} ${t('dashboard.overview', 'Overview')}` : t('dashboard.my_farm_overview', 'My Farm Overview')}
               </h1>
             </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-semibold">
               <span className="flex items-center gap-1 text-rose-500 font-bold">
                 <MapPin className="w-3.5 h-3.5" />
                 {activeFarm?.village ? `${activeFarm.village}, ${activeFarm.district || ''}` : (activeFarm?.district || "Pasupugallu, Prakasam")}
               </span>
               <span>•</span>
-              <span className="text-slate-600 dark:text-slate-300 font-semibold">{currentDateFormatted}</span>
+              <span className="text-slate-700 dark:text-slate-300 font-bold">{currentDateFormatted}</span>
             </div>
           </div>
           
           <div className="flex items-center gap-2.5 sm:gap-3">
             <button 
               onClick={handleManualRefresh}
-              className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] text-slate-500 dark:text-white/60 hover:bg-slate-50 dark:hover:bg-white/5 transition-all shadow-xs"
+              className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] text-slate-600 dark:text-white/60 hover:bg-slate-50 dark:hover:bg-white/5 transition-all shadow-xs"
               title={t('dashboard.refresh_btn', 'Refresh Dashboard Data')}
               disabled={isRefreshing}
             >
@@ -295,29 +295,29 @@ const DashboardPage = () => {
 
       {/* ─── Daily Farm Status Banner (Friendly & Actionable) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
-        <Card glass className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800/90 bg-white dark:bg-[#0c1626]/90 shadow-sm rounded-3xl">
+        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-[#0c1626]/90 shadow-sm rounded-3xl">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-1.5">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                 {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
               </h2>
-              <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
                 {t('dashboard.daily_actionable_summary', 'Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying')}
               </p>
             </div>
 
             {/* 3 Status Badges (Green / Sky / Protected) */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs sm:text-sm font-black">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-300 text-xs sm:text-sm font-black shadow-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 {t('dashboard.crops_healthy', 'Crops: Healthy')}
               </div>
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-600 dark:text-sky-400 text-xs sm:text-sm font-black">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100 dark:bg-sky-500/15 border border-sky-300 dark:border-sky-500/30 text-sky-900 dark:text-sky-300 text-xs sm:text-sm font-black shadow-xs">
                 <span>💧</span>
                 {t('dashboard.soil_optimal', 'Soil: {{pct}}% (Optimal)', { pct: activeTelemetry?.soil_moisture ?? 45 })}
               </div>
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-300 text-xs sm:text-sm font-black">
-                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/25 text-emerald-900 dark:text-emerald-300 text-xs sm:text-sm font-black shadow-xs">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 {t('dashboard.disease_risk_low', 'Disease Risk: Low')}
               </div>
             </div>
@@ -328,58 +328,58 @@ const DashboardPage = () => {
       {/* ─── Essential Farmer KPIs (4 Spacious, High-Contrast Cards) ─── */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* KPI 1: Active Crop */}
-        <Card glass className="p-4 sm:p-5 border border-emerald-500/30 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
+        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
           <div>
-            <span className="text-[11px] sm:text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
               {t('dashboard.kpi.active_crop_label', 'Active Crop:')}
             </span>
             <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
               {translateCrop(cropName, i18n.language) || 'Tomato'}
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 mt-3">
+          <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 mt-3">
             ({translateStage(growthStage, i18n.language)} {t('dashboard.kpi.stage', 'Stage')})
           </p>
         </Card>
 
         {/* KPI 2: Leaf Scans */}
-        <Card glass className="p-4 sm:p-5 border border-emerald-500/30 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
+        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
           <div>
-            <span className="text-[11px] sm:text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
               {t('dashboard.kpi.leaf_scans_label', 'Leaf Scans:')}
             </span>
             <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
               {stats.total}
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-3">
+          <p className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 mt-3">
             ({stats.healthy} {t('dashboard.kpi.healthy', 'Healthy')} · {stats.diseased} {t('dashboard.kpi.treated', 'Treated')})
           </p>
         </Card>
 
         {/* KPI 3: Soil Water */}
-        <Card glass className="p-4 sm:p-5 border border-emerald-500/30 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
+        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
           <div>
-            <span className="text-[11px] sm:text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
               {t('dashboard.kpi.soil_water_label', 'Soil Water:')}
             </span>
             <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
               {activeTelemetry?.soil_moisture ?? 45}%
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-bold text-sky-600 dark:text-sky-400 mt-3">
+          <p className="text-xs sm:text-sm font-bold text-sky-700 dark:text-sky-400 mt-3">
             ({(activeTelemetry?.soil_moisture ?? 45) > 50 ? t('dashboard.kpi.optimal', 'Optimal') : (activeTelemetry?.soil_moisture ?? 45) > 30 ? t('dashboard.kpi.adequate', 'Adequate') : t('dashboard.kpi.needs_water', 'Needs Water')})
           </p>
         </Card>
 
         {/* KPI 4: Mandi Rate */}
         <Link to="/market" className="block">
-          <Card glass className="p-4 sm:p-5 border border-emerald-500/30 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between h-full group">
+          <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between h-full group">
             <div>
-              <span className="text-[11px] sm:text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+              <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
                 {t('dashboard.kpi.mandi_rate_label', 'Mandi Rate:')}
               </span>
-              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 group-hover:text-emerald-400 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
+              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                 ₹2,150/Qtl
               </div>
             </div>

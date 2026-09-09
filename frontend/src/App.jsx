@@ -70,7 +70,7 @@ const DashboardLayout = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen pt-16 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
+    <div className="min-h-screen pt-16 bg-slate-100/90 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
       {/* Top Floating Offline Status & Auto-Sync Bar */}
       <OfflineStatusBar />
 

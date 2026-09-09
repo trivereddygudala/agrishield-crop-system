@@ -46,15 +46,15 @@ const ScanCenterTabs = ({ activeTab, onTabChange }) => {
     <div 
       role="tablist" 
       aria-label="AI Scan Modules" 
-      className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/40 dark:bg-white/[0.01] p-3 rounded-[24px] border border-slate-200/80 dark:border-white/10 backdrop-blur-md shadow-lg"
+      className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/90 dark:bg-slate-900/60 p-3 rounded-[24px] border border-slate-200 dark:border-white/10 backdrop-blur-md shadow-sm"
     >
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
         const colorsMap = {
-          emerald: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20 dark:border-emerald-500/30',
-          teal: 'text-teal-500 bg-teal-500/10 border-teal-500/20 dark:border-teal-500/30',
-          sky: 'text-sky-500 bg-sky-500/10 border-sky-500/20 dark:border-sky-500/30'
+          emerald: 'text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30',
+          teal: 'text-teal-700 dark:text-teal-400 bg-teal-100 dark:bg-teal-500/10 border-teal-300 dark:border-teal-500/30',
+          sky: 'text-sky-700 dark:text-sky-400 bg-sky-100 dark:bg-sky-500/10 border-sky-300 dark:border-sky-500/30'
         };
 
         return (
@@ -68,8 +68,8 @@ const ScanCenterTabs = ({ activeTab, onTabChange }) => {
             whileTap={{ scale: 0.98 }}
             className={`flex flex-col text-left p-5 rounded-2xl transition-all duration-300 relative overflow-hidden focus:outline-none ${
               isActive
-                ? 'bg-white dark:bg-white/[0.04] shadow-md border border-emerald-500/40 dark:border-emerald-500/30 z-10'
-                : 'hover:bg-white/80 dark:hover:bg-white/[0.02] text-slate-500 dark:text-white/40 border border-slate-200/50 dark:border-white/5 bg-transparent'
+                ? 'bg-white dark:bg-white/[0.04] shadow-md border-2 border-emerald-500 dark:border-emerald-500/50 z-10'
+                : 'hover:bg-white dark:hover:bg-white/[0.02] text-slate-700 dark:text-white/60 border border-slate-200 dark:border-white/5 bg-slate-50/60 dark:bg-transparent'
             }`}
           >
             {isActive && (
@@ -85,11 +85,11 @@ const ScanCenterTabs = ({ activeTab, onTabChange }) => {
                 <div className={`p-2.5 rounded-xl transition-colors border ${
                   isActive 
                     ? colorsMap[tab.color]
-                    : 'bg-slate-100 dark:bg-white/5 border-transparent text-slate-500 dark:text-white/30'
+                    : 'bg-white dark:bg-white/5 border-slate-200 dark:border-transparent text-slate-600 dark:text-white/30 shadow-xs'
                 }`}>
                   <Icon className="w-5 h-5 shrink-0" />
                 </div>
-                <span className={`font-black text-base tracking-tight ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-white/60'}`} style={{ fontFamily: 'var(--font-display)' }}>
+                <span className={`font-black text-base tracking-tight ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-white/70'}`} style={{ fontFamily: 'var(--font-display)' }}>
                   {t(tab.labelKey, tab.label)}
                 </span>
               </div>
@@ -98,7 +98,7 @@ const ScanCenterTabs = ({ activeTab, onTabChange }) => {
               </Badge>
             </div>
 
-            <p className={`text-xs sm:text-sm leading-relaxed relative z-10 ${isActive ? 'text-slate-600 dark:text-white/50 font-medium' : 'text-slate-500 dark:text-white/30'}`}>
+            <p className={`text-xs sm:text-sm leading-relaxed relative z-10 ${isActive ? 'text-slate-600 dark:text-white/60 font-medium' : 'text-slate-600 dark:text-white/40'}`}>
               {t(tab.descKey, tab.description)}
             </p>
           </motion.button>

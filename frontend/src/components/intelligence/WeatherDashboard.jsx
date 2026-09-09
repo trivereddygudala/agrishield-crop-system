@@ -46,7 +46,7 @@ export const WeatherCard = ({ current, location, providerName, cacheStatus, onRe
     {/* Weather Hero Temp & Graphic */}
     <div className="flex items-center justify-between py-1">
       <div className="flex items-center gap-3.5 sm:gap-5">
-        <div className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+        <div className="p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-amber-100 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
           <Sun className="w-9 h-9 sm:w-12 sm:h-12 animate-spin-slow" />
         </div>
         <div>
@@ -54,9 +54,9 @@ export const WeatherCard = ({ current, location, providerName, cacheStatus, onRe
             <span className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
               {current?.temperature ?? 30.9}
             </span>
-            <span className="text-xl sm:text-2xl font-bold text-slate-500 dark:text-slate-400">°C</span>
+            <span className="text-xl sm:text-2xl font-bold text-slate-600 dark:text-slate-400">°C</span>
           </div>
-          <span className="text-xs font-bold text-sky-600 dark:text-sky-400 block mt-0.5">
+          <span className="text-xs font-bold text-sky-700 dark:text-sky-400 block mt-0.5">
             {t('dashboard.weather.feels_like', 'Feels like')} {current?.feels_like ?? 33.2}°C • {t('dashboard.weather.partly_cloudy', 'Partly Cloudy')}
           </span>
         </div>
@@ -65,33 +65,33 @@ export const WeatherCard = ({ current, location, providerName, cacheStatus, onRe
 
     {/* Weather Stats Pills Grid — 2x2 grid on mobile, 4-col on sm+ */}
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 w-full pt-1 min-w-0">
-      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-0.5 truncate">
-          <Droplets className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400 shrink-0" />
+      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-black mb-0.5 truncate">
+          <Droplets className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
           <span className="truncate">{t('dashboard.weather.humidity', 'Humidity')}</span>
         </div>
         <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white block truncate">{current?.humidity ?? 59}%</span>
       </div>
 
-      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-0.5 truncate">
-          <CloudRain className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" />
+      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-black mb-0.5 truncate">
+          <CloudRain className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
           <span className="truncate">{t('dashboard.weather.rain_prob', 'Rain Prob')}</span>
         </div>
         <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white block truncate">{current?.rain_probability ?? 0}%</span>
       </div>
 
-      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-0.5 truncate">
-          <Wind className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-black mb-0.5 truncate">
+          <Wind className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span className="truncate">{t('dashboard.weather.wind_speed', 'Wind Speed')}</span>
         </div>
         <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white block truncate">{current?.wind_speed ?? 4.85} m/s</span>
       </div>
 
-      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-0.5 truncate">
-          <Gauge className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+      <div className="p-2.5 sm:p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0 overflow-hidden">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-black mb-0.5 truncate">
+          <Gauge className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
           <span className="truncate">{t('dashboard.weather.uv_index', 'UV Index')}</span>
         </div>
         <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white block truncate">6 / 10</span>
@@ -132,7 +132,7 @@ export const WeatherForecast = ({ forecast = [] }) => {
             iconColor = 'text-slate-500 dark:text-slate-400';
           }
           return (
-            <div key={i} className="min-w-[95px] flex-none p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-850 text-center space-y-1 hover:border-emerald-500/50 transition-colors">
+            <div key={i} className="min-w-[95px] flex-none p-3.5 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center space-y-1 hover:border-emerald-500/50 transition-colors shadow-xs">
               <span className="text-[10px] text-slate-600 dark:text-slate-300 font-bold block">{f.date}</span>
               <div className="my-1.5 flex items-center justify-center">
                 <WeatherIcon className={`w-6 h-6 ${iconColor}`} />

@@ -486,8 +486,8 @@ const HistoryPage = () => {
               onClick={() => setLayoutMode('grid')}
               className={`px-2.5 py-1 text-[11px] font-bold rounded-xl transition-all ${
                 layoutMode === 'grid'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-200'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               🖼️ {t('history.views.grid', 'Grid')}
@@ -496,8 +496,8 @@ const HistoryPage = () => {
               onClick={() => setLayoutMode('table')}
               className={`px-2.5 py-1 text-[11px] font-bold rounded-xl transition-all ${
                 layoutMode === 'table'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-850 dark:hover:text-slate-200'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               📋 {t('history.views.table', 'Table')}
@@ -571,21 +571,21 @@ const HistoryPage = () => {
           </div>
 
           {/* Clean Inline Date Range Box */}
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 w-full sm:w-auto justify-between sm:justify-start">
-            <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span className="text-[11px] font-bold text-slate-400 uppercase">{t('history.filters.from', 'From')}</span>
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 w-full sm:w-auto justify-between sm:justify-start shadow-xs">
+            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase">{t('history.filters.from', 'From')}</span>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-900 dark:text-slate-100 outline-none cursor-pointer"
             />
-            <span className="text-[11px] font-bold text-slate-400 uppercase">{t('history.filters.to', 'To')}</span>
+            <span className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase">{t('history.filters.to', 'To')}</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-transparent text-xs font-medium text-slate-800 dark:text-slate-200 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-900 dark:text-slate-100 outline-none cursor-pointer"
             />
           </div>
 
@@ -801,10 +801,10 @@ const HistoryPage = () => {
                               <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
                                 {translateCrop(item.crop_name, i18n.language)}
                               </span>
-                              <span className="text-[10px] text-slate-400 font-mono font-semibold">{item.displayDate || item.prediction_date}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">{item.displayDate || item.prediction_date}</span>
                             </div>
 
-                            <h3 className="font-bold text-xs text-slate-700 dark:text-slate-350 leading-snug flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                            <h3 className="font-bold text-xs text-slate-800 dark:text-slate-300 leading-snug flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-200 dark:border-slate-800/60">
                               <span className="truncate">🩺 {translateDisease(item.disease_name, i18n.language)}</span>
                               <button
                                 onClick={() => {
@@ -825,9 +825,9 @@ const HistoryPage = () => {
                             </h3>
 
                             <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-bold text-slate-400">
+                              <div className="flex justify-between text-[10px] font-bold text-slate-600 dark:text-slate-400">
                                 <span>{t('history.table_headers.confidence', 'Confidence')}</span>
-                                <span className="font-mono">{(item.confidence * 100).toFixed(1)}%</span>
+                                <span className="font-mono text-slate-800 dark:text-slate-200">{(item.confidence * 100).toFixed(1)}%</span>
                               </div>
                               <Progress value={item.confidence * 100} size="sm" />
                             </div>
@@ -874,25 +874,25 @@ const HistoryPage = () => {
                           </div>
                           <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{item.device}</span>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono font-semibold">{item.date} {item.time}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">{item.date} {item.time}</span>
                       </div>
                       
                       <div className="grid grid-cols-3 gap-2">
-                        <div className="p-2 bg-orange-50/50 dark:bg-orange-950/20 rounded-xl border border-orange-100 dark:border-orange-900/50 text-center">
-                          <span className="text-[9px] text-slate-400 font-bold uppercase block">{t('history.temp', 'Temp')}</span>
-                          <span className="text-xs font-bold text-orange-600 dark:text-orange-400 mt-0.5 block">🌡️ {item.temperature}°C</span>
+                        <div className="p-2 bg-orange-50 dark:bg-orange-950/20 rounded-xl border border-orange-200 dark:border-orange-900/50 text-center">
+                          <span className="text-[9px] text-slate-600 dark:text-slate-400 font-black uppercase block">{t('history.temp', 'Temp')}</span>
+                          <span className="text-xs font-bold text-orange-700 dark:text-orange-400 mt-0.5 block">🌡️ {item.temperature}°C</span>
                         </div>
-                        <div className="p-2 bg-sky-50/50 dark:bg-sky-950/20 rounded-xl border border-sky-100 dark:border-sky-900/50 text-center">
-                          <span className="text-[9px] text-slate-400 font-bold uppercase block">{t('history.humid', 'Humid')}</span>
-                          <span className="text-xs font-bold text-sky-600 dark:text-sky-400 mt-0.5 block">💧 {item.humidity}%</span>
+                        <div className="p-2 bg-sky-50 dark:bg-sky-950/20 rounded-xl border border-sky-200 dark:border-sky-900/50 text-center">
+                          <span className="text-[9px] text-slate-600 dark:text-slate-400 font-black uppercase block">{t('history.humid', 'Humid')}</span>
+                          <span className="text-xs font-bold text-sky-700 dark:text-sky-400 mt-0.5 block">💧 {item.humidity}%</span>
                         </div>
-                        <div className="p-2 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-center">
-                          <span className="text-[9px] text-slate-400 font-bold uppercase block">{t('history.soil', 'Soil')}</span>
-                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">🌱 {item.soil}%</span>
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-900/50 text-center">
+                          <span className="text-[9px] text-slate-600 dark:text-slate-400 font-black uppercase block">{t('history.soil', 'Soil')}</span>
+                          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 block">🌱 {item.soil}%</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-800/80 pt-2 font-semibold">
+                      <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/80 pt-2 font-bold">
                         <span>☀️ Light: {item.light} lx</span>
                         <span>🌧️ Rain: {item.rain === '1' ? t('history.wet', 'Wet') : t('history.dry', 'Dry')}</span>
                         <span>🔋 Batt: {item.battery}%</span>
@@ -955,7 +955,7 @@ const HistoryPage = () => {
                             <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
                               <div className="flex flex-col">
                                 <span className="font-semibold text-slate-900 dark:text-slate-100">{item.displayDate || item.prediction_date}</span>
-                                <span className="text-[11px] text-slate-400 font-mono">{item.displayTime || item.prediction_time}</span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium">{item.displayTime || item.prediction_time}</span>
                               </div>
                             </TableCell>
                             <TableCell className="font-bold text-slate-900 dark:text-slate-100 text-xs">
@@ -966,7 +966,7 @@ const HistoryPage = () => {
                                 {translateDisease(item.disease_name, i18n.language)}
                               </Badge>
                             </TableCell>
-                            <TableCell className="font-mono text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                            <TableCell className="font-mono text-emerald-700 dark:text-emerald-400 font-bold text-xs">
                               {(item.confidence * 100).toFixed(1)}%
                             </TableCell>
                             <TableCell className="text-right">
@@ -977,7 +977,7 @@ const HistoryPage = () => {
                                   onClick={() => { setInspectRecord(item); setInspectModalOpen(true); }}
                                   title={t('history.table_headers.details', 'Inspect Details')}
                                 >
-                                  <Eye className="w-4 h-4 text-slate-500" />
+                                  <Eye className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                                 </Button>
                                 {isAdmin && (
                                   <Button
@@ -998,7 +998,7 @@ const HistoryPage = () => {
                           <TableRow key={item.id}>
                             <TableCell className="font-bold text-slate-900 dark:text-slate-100 text-xs">
                               <div className="flex items-center gap-2">
-                                <Cpu className="w-4 h-4 text-emerald-500" />
+                                <Cpu className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                                 {item.device}
                               </div>
                             </TableCell>
@@ -1006,26 +1006,26 @@ const HistoryPage = () => {
                             <TableCell className="text-xs font-medium text-slate-700 dark:text-slate-300">
                               <div className="flex flex-col">
                                 <span className="font-semibold text-slate-900 dark:text-slate-100">{item.date}</span>
-                                <span className="text-[11px] text-slate-400 font-mono">{item.time}</span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium">{item.time}</span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="bg-orange-50/50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50 shadow-sm">
+                              <Badge variant="outline" className="bg-orange-100 text-orange-950 border-orange-300 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50 font-bold shadow-sm">
                                 {item.temperature}°C
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="bg-sky-50/50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50 shadow-sm">
+                              <Badge variant="outline" className="bg-sky-100 text-sky-950 border-sky-300 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50 font-bold shadow-sm">
                                 {item.humidity}%
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="bg-emerald-50/50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50 shadow-sm">
+                              <Badge variant="outline" className="bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50 font-bold shadow-sm">
                                 {item.soil}%
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="bg-amber-50/50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 shadow-sm">
+                              <Badge variant="outline" className="bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 font-bold shadow-sm">
                                 {item.light} lx
                               </Badge>
                             </TableCell>
@@ -1034,8 +1034,8 @@ const HistoryPage = () => {
                                 <div className="flex flex-col items-start gap-0.5">
                                   <Badge variant="outline" className={`text-[10px] font-bold shadow-sm ${
                                     item.is_night_mode
-                                      ? 'bg-indigo-50/50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50'
-                                      : 'bg-emerald-50/50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50'
+                                      ? 'bg-indigo-100 text-indigo-950 border-indigo-300 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50'
+                                      : 'bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50'
                                   }`}>
                                     {item.is_night_mode ? '🌙' : '☀️'} {item.sleep_interval_min}m
                                   </Badge>

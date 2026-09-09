@@ -2,6 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v82) - Comprehensive Light Mode Color Vibrancy, Contrast & Outdoor Daylight Readability Overhaul
+- **Summary:** Executed an extensive, site-wide color and contrast overhaul across all core UI design tokens, components, and pages to eradicate washed-out grays, pale borders, and low-contrast elements in Light Mode, making the interface easily readable for farmers working outdoors under direct sunlight:
+  1. 🎨 **App Canvas & Card Stacking Elevation (`App.jsx`, `index.css`, `Card.jsx`):**
+     - Upgraded the root application background from faint `bg-slate-50` to crisp `bg-slate-100/90 dark:bg-slate-950`, giving white cards immediate, punchy tactile elevation.
+     - Upgraded `.glass` and `.glass-card` styling in light mode with pure solid white background, defined `#cbd5e1` borders, and rich elevation box shadows (`shadow-[0_2px_10px_-2px_rgba(15,23,42,0.07)]`).
+     - Added saturated gradient tint stops and borders for card variants (`.bg-gradient-emerald-card`, `.bg-gradient-sky-card`, `.bg-gradient-amber-card`, `.bg-gradient-rose-card`, `.bg-gradient-indigo-card`, `.bg-gradient-purple-card`).
+     - Enhanced `CardDescription` typography to `text-slate-600 dark:text-slate-400 font-medium`.
+  2. 🏷️ **Vibrant, High-Contrast Badges & Status Chips (`Badge.jsx`):**
+     - Fixed `glass` badge variant from unreadable `text-white` to `bg-slate-100/90 text-slate-800 border-slate-300`.
+     - Overhauled `glow-emerald`, `glow-rose`, `glow-amber`, `glow-sky`, `glow-purple` badges to use deep dark-ink daylight typography (`text-emerald-900`, `text-rose-900`, `text-amber-950`, `text-sky-900`, `text-purple-950`) with firm `border-*-300` borders and scoped dark-mode styling.
+     - Upgraded `success`, `healthy`, `diseased`, `agrochemical`, `warning`, `purple`, `cyan` badges to vibrant saturated tones with solid borders.
+  3. 🔲 **Form Controls & Interactive Inputs (`Input.jsx`, `Select.jsx`, `Button.jsx`):**
+     - Swapped pale `border-slate-200/80` for crisp, tactile `border-slate-300 hover:border-slate-400 focus:border-emerald-600`.
+     - Hardened form labels to `text-slate-800 font-bold` and helper text to `text-slate-600 font-medium`.
+     - Strengthened button variants (`secondary`, `outline`, `ghost`, `glass`) with high-contrast borders and clear typography.
+  4. 📊 **Tables & Data Grids Contrast (`Table.jsx`, `HistoryPage.jsx`):**
+     - Upgraded table outer borders to `border-slate-200` and row dividers to `divide-slate-200/90`.
+     - Upgraded `TableHeader` to `bg-slate-100/90 text-slate-700 font-bold uppercase` and hover rows to `hover:bg-emerald-50/40 text-slate-800 font-medium`.
+     - Upgraded visual sensor cards and history table rows with rich ink typography (`text-slate-800`, `text-slate-900`), and high-contrast telemetry pills (`bg-*-100 text-*-950 border-*-300 font-bold`).
+     - Fixed invalid Tailwind classes (`dark:text-slate-350`, `hover:text-slate-850`).
+  5. 🌾 **Intelligence Widgets & Sensor Dashboards (`SensorCard.jsx`, `DiseaseRiskCard.jsx`, `WeatherDashboard.jsx`, `IrrigationAdvisor.jsx`, `KpiCard.jsx`, `DashboardPage.jsx`, `ScanCenterTabs.jsx`):**
+     - Upgraded SensorCard backgrounds to solid `bg-white border-slate-200` with high-contrast trend badges.
+     - Fixed invisible SVG gauge circle background track in DiseaseRiskCard (`text-slate-200`).
+     - Upgraded WeatherDashboard and IrrigationAdvisor stat pills, Sun container (`bg-amber-100 border-amber-300`), and weather metrics.
+     - Enhanced ScanCenterTabs container from washed-out `bg-white/40` to `bg-white/90 border-slate-200 shadow-sm` with deep saturated active/inactive icon tiles and badges.
+  6. 📡 **System Feedback, Toasts & Alerts High Contrast (`OfflineStatusBar.jsx`, `Alert.jsx`, `toast.jsx`):**
+     - Upgraded offline banner, sync success/error, and restored alerts to vibrant, daylight-readable colored boxes with deep text contrast (`text-*-950`) and solid borders (`border-*-300`).
+- **Files modified**: `frontend/src/App.jsx`, `frontend/src/index.css`, `frontend/src/components/ui/Badge.jsx`, `frontend/src/components/ui/Input.jsx`, `frontend/src/components/ui/Select.jsx`, `frontend/src/components/ui/Card.jsx`, `frontend/src/components/ui/Button.jsx`, `frontend/src/components/ui/Table.jsx`, `frontend/src/components/ui/Alert.jsx`, `frontend/src/components/ui/toast.jsx`, `frontend/src/components/common/OfflineStatusBar.jsx`, `frontend/src/components/dashboard/SensorCard.jsx`, `frontend/src/components/intelligence/DiseaseRiskCard.jsx`, `frontend/src/components/intelligence/WeatherDashboard.jsx`, `frontend/src/components/intelligence/IrrigationAdvisor.jsx`, `frontend/src/components/analytics/KpiCard.jsx`, `frontend/src/pages/DashboardPage.jsx`, `frontend/src/pages/HistoryPage.jsx`, `frontend/src/components/scanCenter/ScanCenterTabs.jsx`, `changes_happening.md`
+
 ## 2026-09-09 (v81) - Notifications, Auth (Login/Register), Farm Analytics & Error Pages Full Localization
 - **Summary:** Continued the comprehensive site-wide translation audit, completing NotificationsPage, LoginPage, RegisterPage, FarmAnalyticsPage, NotFoundPage, and ServerErrorPage, and adding instant 1-tap language switching directly on the entry screens:
   1. 🔔 **Notifications Center Localization (`NotificationsPage.jsx`, `translations.js`):**

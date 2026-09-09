@@ -48,8 +48,8 @@ export const WaterRecommendationCard = ({ data, onRefresh }) => {
 
         <span className={`self-start sm:self-auto px-3 py-1 text-[10px] font-black uppercase tracking-wider shrink-0 rounded-full border ${
           isRequired 
-            ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-xs' 
-            : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-xs'
+            ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 shadow-xs' 
+            : 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 shadow-xs'
         }`}>
           {isRequired ? t('dashboard.irrigation.required', 'IRRIGATION REQUIRED') : t('dashboard.irrigation.optimal', 'OPTIMAL MOISTURE')}
         </span>
@@ -101,29 +101,29 @@ export const WaterRecommendationCard = ({ data, onRefresh }) => {
 
       {/* 4 Bottom Stats Metric Pills */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
+          <span className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider block">
             {t('dashboard.irrigation.water_per_acre', 'Water per Acre')}
           </span>
           <p className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>{data.water_quantity_liters_per_acre} L</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
+          <span className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider block">
             {t('dashboard.irrigation.optimal_window', 'Optimal Window')}
           </span>
           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate mt-1">{data.best_irrigation_time}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
+          <span className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider block">
             {t('dashboard.irrigation.next_date', 'Next Target Date')}
           </span>
           <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">{data.next_irrigation_date}</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900/90 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-0.5 shadow-xs">
+          <span className="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-wider block">
             {t('dashboard.irrigation.confidence', 'Advisor Confidence')}
           </span>
           <p className="text-lg sm:text-xl font-extrabold text-emerald-600 dark:text-emerald-400" style={{ fontFamily: 'var(--font-display)' }}>{data.confidence_score}%</p>

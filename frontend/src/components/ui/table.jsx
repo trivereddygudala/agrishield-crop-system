@@ -2,7 +2,7 @@ import React from "react";
 import { cn } from "../../lib/utils";
 
 const Table = React.forwardRef(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+  <div className="relative w-full overflow-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm text-left", className)}
@@ -15,7 +15,7 @@ Table.displayName = "Table";
 const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn("bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-800", className)}
+    className={cn("bg-slate-100/90 text-xs font-bold uppercase tracking-wider text-slate-700 border-b border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-800", className)}
     {...props}
   />
 ));
@@ -24,7 +24,7 @@ TableHeader.displayName = "TableHeader";
 const TableBody = React.forwardRef(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("divide-y divide-slate-100 dark:divide-slate-800/60", className)}
+    className={cn("divide-y divide-slate-200/90 dark:divide-slate-800/60", className)}
     {...props}
   />
 ));
@@ -34,7 +34,7 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300",
+      "transition-colors hover:bg-emerald-50/40 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-200 font-medium",
       className
     )}
     {...props}
@@ -46,7 +46,7 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
   <th
     ref={ref}
     className={cn(
-      "h-11 px-4 text-left align-middle font-semibold text-slate-600 dark:text-slate-300 [&:has([role=checkbox])]:pr-0",
+      "h-11 px-4 text-left align-middle font-bold text-slate-700 dark:text-slate-200 [&:has([role=checkbox])]:pr-0",
       className
     )}
     {...props}

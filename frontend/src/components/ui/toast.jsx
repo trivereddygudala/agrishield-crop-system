@@ -14,10 +14,10 @@ const ICONS = {
 };
 
 const STYLES = {
-  success: 'bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-950/80 dark:border-emerald-800 dark:text-emerald-100',
-  error: 'bg-rose-50 border-rose-200 text-rose-900 dark:bg-rose-950/80 dark:border-rose-800 dark:text-rose-100',
-  warning: 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/80 dark:border-amber-800 dark:text-amber-100',
-  info: 'bg-sky-50 border-sky-200 text-sky-900 dark:bg-sky-950/80 dark:border-sky-800 dark:text-sky-100',
+  success: 'bg-emerald-50 border-emerald-300 text-emerald-950 dark:bg-emerald-950/80 dark:border-emerald-800 dark:text-emerald-100 shadow-emerald-900/10',
+  error: 'bg-rose-50 border-rose-300 text-rose-950 dark:bg-rose-950/80 dark:border-rose-800 dark:text-rose-100 shadow-rose-900/10',
+  warning: 'bg-amber-50 border-amber-300 text-amber-950 dark:bg-amber-950/80 dark:border-amber-800 dark:text-amber-100 shadow-amber-900/10',
+  info: 'bg-sky-50 border-sky-300 text-sky-950 dark:bg-sky-950/80 dark:border-sky-800 dark:text-sky-100 shadow-sky-900/10',
 };
 
 const ICON_STYLES = {

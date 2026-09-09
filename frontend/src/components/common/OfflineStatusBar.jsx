@@ -182,42 +182,42 @@ export const OfflineStatusBar = () => {
             transition={{ type: 'spring', stiffness: 450, damping: 30 }}
             className={`pointer-events-auto max-w-lg w-full rounded-2xl p-2.5 px-3.5 shadow-2xl backdrop-blur-md border flex flex-col gap-1.5 text-xs select-none touch-pan-x cursor-grab active:cursor-grabbing ${
               !isOnline
-                ? 'bg-amber-950/95 text-amber-200 border-amber-600/50 shadow-amber-950/30'
+                ? 'bg-amber-100 text-amber-950 border-amber-300 shadow-amber-900/10 dark:bg-amber-950/95 dark:text-amber-200 dark:border-amber-600/50 dark:shadow-amber-950/30'
                 : syncSuccessMsg
-                ? 'bg-emerald-950/95 text-emerald-200 border-emerald-600/50 shadow-emerald-950/30'
+                ? 'bg-emerald-100 text-emerald-950 border-emerald-300 shadow-emerald-900/10 dark:bg-emerald-950/95 dark:text-emerald-200 dark:border-emerald-600/50 dark:shadow-emerald-950/30'
                 : syncErrorMsg
-                ? 'bg-rose-950/95 text-rose-200 border-rose-600/50 shadow-rose-950/30'
-                : 'bg-sky-950/95 text-sky-200 border-sky-600/50 shadow-sky-950/30'
+                ? 'bg-rose-100 text-rose-950 border-rose-300 shadow-rose-900/10 dark:bg-rose-950/95 dark:text-rose-200 dark:border-rose-600/50 dark:shadow-rose-950/30'
+                : 'bg-sky-100 text-sky-950 border-sky-300 shadow-sky-900/10 dark:bg-sky-950/95 dark:text-sky-200 dark:border-sky-600/50 dark:shadow-sky-950/30'
             }`}
           >
             {/* Draggable indicator bar for tactile touch affordance */}
-            <div className="w-8 h-1 bg-white/25 hover:bg-white/40 rounded-full mx-auto -mt-0.5 transition-colors" />
+            <div className="w-8 h-1 bg-black/15 hover:bg-black/25 dark:bg-white/25 dark:hover:bg-white/40 rounded-full mx-auto -mt-0.5 transition-colors" />
 
             <div className="flex items-center justify-between gap-2.5">
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 {!isOnline ? (
-                  <WifiOff className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                  <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 animate-pulse" />
                 ) : syncSuccessMsg ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 ) : syncErrorMsg ? (
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                 ) : (
-                  <Wifi className="w-4 h-4 text-sky-400 shrink-0" />
+                  <Wifi className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
                 )}
 
-                <div className="truncate font-medium text-[11.5px]">
+                <div className="truncate font-semibold text-[11.5px]">
                   {!isOnline ? (
                     <span>
-                      <strong>{t('offline.field_offline_mode', 'Field Offline Mode:')}</strong>{' '}
+                      <strong className="font-black">{t('offline.field_offline_mode', 'Field Offline Mode:')}</strong>{' '}
                       {pendingCount > 0 ? t('offline.scans_queued', '{{count}} scan(s) queued', { count: pendingCount }) : t('offline.save_locally', 'Scans will save locally')}
                     </span>
                   ) : syncSuccessMsg ? (
-                    <span className="text-emerald-300 font-bold">{syncSuccessMsg}</span>
+                    <span className="text-emerald-800 dark:text-emerald-300 font-bold">{syncSuccessMsg}</span>
                   ) : syncErrorMsg ? (
-                    <span className="text-rose-300">{syncErrorMsg}</span>
+                    <span className="text-rose-800 dark:text-rose-300 font-bold">{syncErrorMsg}</span>
                   ) : (
                     <span>
-                      <strong>{t('offline.connection_restored', 'Connection Restored:')}</strong> {t('offline.scans_ready', '{{count}} offline scan(s) ready to sync', { count: pendingCount })}
+                      <strong className="font-black">{t('offline.connection_restored', 'Connection Restored:')}</strong> {t('offline.scans_ready', '{{count}} offline scan(s) ready to sync', { count: pendingCount })}
                     </span>
                   )}
                 </div>
@@ -230,7 +230,7 @@ export const OfflineStatusBar = () => {
                     type="button"
                     onClick={handleSyncAll}
                     disabled={isSyncing}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-[11px] shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-[11px] shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                   >
                     <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
                     <span>{isSyncing ? t('offline.syncing', 'Syncing...') : t('offline.sync_now', 'Sync Now')}</span>
@@ -243,9 +243,9 @@ export const OfflineStatusBar = () => {
                     type="button"
                     onClick={handleDiscardAll}
                     title={t('offline.discard', 'Discard pending queue')}
-                    className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[10.5px] font-semibold border border-rose-500/30 transition-all cursor-pointer"
+                    className="flex items-center gap-1 px-2 py-1 rounded-xl bg-rose-200 dark:bg-rose-500/20 hover:bg-rose-300 dark:hover:bg-rose-500/30 text-rose-900 dark:text-rose-200 text-[10.5px] font-bold border border-rose-300 dark:border-rose-500/30 transition-all cursor-pointer"
                   >
-                    <Trash2 className="w-3 h-3 text-rose-300" />
+                    <Trash2 className="w-3 h-3 text-rose-700 dark:text-rose-300" />
                     <span>{t('offline.discard', 'Discard')}</span>
                   </button>
                 )}
@@ -255,7 +255,7 @@ export const OfflineStatusBar = () => {
                   type="button"
                   onClick={() => setIsDismissed(true)}
                   title={t('offline.dismiss', 'Dismiss banner')}
-                  className="p-1 rounded-full hover:bg-white/20 active:scale-90 text-white/70 hover:text-white transition-all cursor-pointer"
+                  className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/20 active:scale-90 text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

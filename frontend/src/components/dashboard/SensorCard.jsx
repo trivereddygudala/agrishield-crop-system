@@ -16,7 +16,7 @@ const SensorCard = ({ title, value, unit, icon: Icon, trend, trendValue, color, 
     >
       <Card 
         glass 
-        className="p-4 rounded-2xl relative overflow-hidden group border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] backdrop-blur-md transition-all duration-300 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 h-full flex flex-col justify-between"
+        className="p-4 rounded-2xl relative overflow-hidden group border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] backdrop-blur-md transition-all duration-300 hover:border-emerald-500/50 hover:shadow-md h-full flex flex-col justify-between"
       >
         {/* Glow on hover */}
         <div 
@@ -26,10 +26,10 @@ const SensorCard = ({ title, value, unit, icon: Icon, trend, trendValue, color, 
 
         <div className="flex justify-between items-start relative z-10">
           <div 
-            className="p-2.5 rounded-xl border border-slate-200/60 dark:border-white/10 transition-colors shadow-xs"
+            className="p-2.5 rounded-xl border border-slate-200 dark:border-white/10 transition-colors shadow-xs"
             style={{ 
-              backgroundColor: `${color}12`, 
-              borderColor: `${color}25` 
+              backgroundColor: `${color}15`, 
+              borderColor: `${color}30` 
             }}
           >
             <Icon className="w-5 h-5 shrink-0" style={{ color }} />
@@ -38,8 +38,8 @@ const SensorCard = ({ title, value, unit, icon: Icon, trend, trendValue, color, 
           {trendValue && (
             <div className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-xs ${
               isPositive 
-                ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' 
-                : 'text-rose-500 bg-rose-500/10 border-rose-500/20'
+                ? 'text-emerald-700 bg-emerald-100 border-emerald-300 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20' 
+                : 'text-rose-700 bg-rose-100 border-rose-300 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20'
             }`}>
               {isPositive ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {trendValue}
@@ -48,12 +48,12 @@ const SensorCard = ({ title, value, unit, icon: Icon, trend, trendValue, color, 
         </div>
 
         <div className="space-y-1 relative z-10 mt-4 flex-1 flex flex-col justify-end">
-          <h3 className="text-slate-500 dark:text-white/40 text-[10px] font-bold uppercase tracking-wider">{title}</h3>
+          <h3 className="text-slate-600 dark:text-white/50 text-[10px] font-black uppercase tracking-wider">{title}</h3>
           <div className="flex items-baseline gap-0.5 flex-wrap">
             <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">
               {value}
             </span>
-            <span className="text-xs font-extrabold text-slate-500 dark:text-white/40 leading-none">
+            <span className="text-xs font-bold text-slate-600 dark:text-white/50 leading-none">
               {unit}
             </span>
           </div>

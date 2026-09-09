@@ -14,10 +14,10 @@ const KpiCard = ({ title, value, description, iconName, colorClass, delay = 0 })
     >
       <div className="flex justify-between items-start">
         <div className="space-y-1">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{title}</p>
+          <p className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">{title}</p>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100">{value}</h3>
           {description && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium pt-1">{description}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium pt-1">{description}</p>
           )}
         </div>
         <div className={`p-3 rounded-xl shrink-0 ${colorClass}`}>

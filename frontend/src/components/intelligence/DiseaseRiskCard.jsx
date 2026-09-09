@@ -12,7 +12,7 @@ export const RiskGauge = ({ percentage, level, color }) => {
     <div className="flex items-center gap-4">
       <div className="relative flex items-center justify-center w-20 h-20 shrink-0">
         <svg className="transform -rotate-90 w-20 h-20">
-          <circle cx="40" cy="40" r="32" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+          <circle cx="40" cy="40" r="32" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-200 dark:text-slate-800" />
           <motion.circle
             initial={{ strokeDashoffset: 200 }}
             animate={{ strokeDashoffset: 200 - (percentage / 100) * 200 }}
@@ -24,7 +24,7 @@ export const RiskGauge = ({ percentage, level, color }) => {
         <span className="absolute font-black text-sm text-slate-900 dark:text-white">{percentage}%</span>
       </div>
       <div>
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
           {t('dashboard.risk.outbreak_risk', 'Pathology Outbreak Risk')}
         </span>
         <h4 className="text-xl font-black" style={{ color }}>
@@ -73,7 +73,7 @@ export const DiseaseRiskCard = React.memo(({ farmId, cropName = "Tomato" }) => {
             {t('dashboard.risk.title', 'Explainable Disease Risk Forecast')}
           </h3>
         </div>
-        <span className="self-start sm:self-auto shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/15 text-purple-400 border border-purple-500/30">
+        <span className="self-start sm:self-auto shrink-0 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-900 border border-purple-300 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30">
           {t('dashboard.risk.confidence', 'Confidence: {{score}}%', { score: riskData.confidence_score })}
         </span>
       </div>
