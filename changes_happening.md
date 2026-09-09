@@ -2,6 +2,14 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v85) - Bidirectional Multilingual Crop Translation Engine
+- **Summary:** Resolved issue where scans saved while regional languages (such as Telugu `మిరప`) were active failed to translate back to English when switching application language:
+  1. 🔄 **Bidirectional Crop Translation (`diseaseAdvisoryData.js`):**
+     - Added English baseline mapping `CROPS_MAP.en` across all 24 supported agricultural crops.
+     - Implemented `getCanonicalCropKey` with automatic reverse cache indexing every localized vernacular crop name across Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi, Gujarati, Punjabi, Odia, Assamese, and Urdu back to its canonical key.
+     - Upgraded `translateCrop(cropName, lang)` to seamlessly normalize any crop name from any source language (e.g. `మిరప`, `టమోటా`, `వరి`) into any target language (e.g. English `Chilli`, Hindi `मिर्च`, Telugu `మిరప`).
+- **Files modified**: `frontend/src/utils/diseaseAdvisoryData.js`, `changes_happening.md`
+
 ## 2026-09-09 (v84) - Strict Farmer Authentication Enforcement for All Crop Disease Scans
 - **Summary:** Enforced strict mandatory farmer authentication (Option 1) across all leaf scanning and diagnosis endpoints, eliminating legacy guest loopholes:
   1. 🔐 **Mandatory JWT Authentication Across All Scan Endpoints (`predict.py`):**

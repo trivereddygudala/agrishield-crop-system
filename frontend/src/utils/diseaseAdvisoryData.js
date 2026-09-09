@@ -809,6 +809,32 @@ export const CROPS_MAP = {
     "strawberry": "اسٹرابیری",
     "blueberry": "بلیو بیری",
     "cherry": "چیری"
+  },
+  "en": {
+    "all": "All Crops (Auto-Detect)",
+    "rice": "Rice (Paddy)",
+    "sugarcane": "Sugarcane",
+    "cotton": "Cotton",
+    "maize": "Corn (Maize)",
+    "corn": "Corn (Maize)",
+    "groundnut": "Groundnut (Peanut)",
+    "peanut": "Groundnut (Peanut)",
+    "chilli": "Chilli",
+    "pepper": "Bell Pepper (Capsicum)",
+    "tomato": "Tomato",
+    "mango": "Mango",
+    "banana": "Banana",
+    "potato": "Potato",
+    "wheat": "Wheat",
+    "apple": "Apple",
+    "grape": "Grape",
+    "orange": "Orange / Sweet Lime",
+    "peach": "Peach",
+    "soybean": "Soybean",
+    "squash": "Squash / Pumpkin",
+    "strawberry": "Strawberry",
+    "blueberry": "Blueberry",
+    "cherry": "Cherry"
   }
 };
 
@@ -1319,20 +1345,67 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   };
 }
 
-export function translateCrop(cropName = '', lang = 'en') {
-  if (!cropName) return '';
-  const clean = String(cropName).toLowerCase().trim();
-  if (CROPS_MAP[lang] && CROPS_MAP[lang][clean]) {
-    return CROPS_MAP[lang][clean];
-  }
-  // Try matching partial key (e.g. 'tomato' from 'Tomato Plant')
-  if (CROPS_MAP[lang]) {
-    for (const [k, v] of Object.entries(CROPS_MAP[lang])) {
-      if (clean.includes(k) && k !== 'all') {
-        return v;
+// Cache for bidirectional reverse lookup across any language
+const REVERSE_CROPS_CACHE = {};
+function getCanonicalCropKey(rawName = '') {
+  if (!rawName) return '';
+  const clean = String(rawName).toLowerCase().trim();
+  
+  // Direct canonical check (if it's already English canonical key like "chilli", "corn", etc.)
+  if (CROPS_MAP.en && CROPS_MAP.en[clean]) return clean;
+  if (clean === 'maize') return 'corn';
+  if (clean === 'peanut') return 'groundnut';
+
+  // Check reverse cache
+  if (Object.keys(REVERSE_CROPS_CACHE).length === 0) {
+    for (const [langKey, map] of Object.entries(CROPS_MAP)) {
+      for (const [enKey, localizedName] of Object.entries(map)) {
+        if (enKey === 'all') continue;
+        const locClean = String(localizedName).toLowerCase().trim();
+        REVERSE_CROPS_CACHE[locClean] = enKey;
+        // Split by parentheticals and slashes e.g. "వేరుశనగ (పల్లీ)" -> "వేరుశనగ", "పల్లీ"
+        const parts = localizedName.split(/[/()]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+        for (const p of parts) {
+          if (p.length >= 2) REVERSE_CROPS_CACHE[p] = enKey;
+        }
       }
     }
   }
+
+  if (REVERSE_CROPS_CACHE[clean]) {
+    return REVERSE_CROPS_CACHE[clean];
+  }
+
+  // Partial / substring match in any language
+  for (const [locPhrase, canonicalKey] of Object.entries(REVERSE_CROPS_CACHE)) {
+    if (clean.includes(locPhrase) || locPhrase.includes(clean)) {
+      return canonicalKey;
+    }
+  }
+
+  return clean;
+}
+
+export function translateCrop(cropName = '', lang = 'en') {
+  if (!cropName) return '';
+  const targetLang = (lang || 'en').toLowerCase().trim();
+  const canonical = getCanonicalCropKey(cropName);
+
+  // Return localized name in target language
+  if (CROPS_MAP[targetLang] && CROPS_MAP[targetLang][canonical]) {
+    return CROPS_MAP[targetLang][canonical];
+  }
+
+  // Fallback to English clean name
+  if (CROPS_MAP.en && CROPS_MAP.en[canonical]) {
+    return CROPS_MAP.en[canonical];
+  }
+
+  // Capitalize canonical if string fallback
+  if (canonical && typeof canonical === 'string' && /^[a-z]+$/.test(canonical)) {
+    return canonical.charAt(0).toUpperCase() + canonical.slice(1);
+  }
+
   return cropName;
 }
 
