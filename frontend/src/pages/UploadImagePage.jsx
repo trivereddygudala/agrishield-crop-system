@@ -11,6 +11,9 @@ import DiseaseDiagnosisResults from '../components/scanCenter/DiseaseDiagnosisRe
 import AgrochemicalResults from '../components/scanCenter/AgrochemicalResults';
 import CropAdvisorPanel from '../components/CropAdvisorPanel';
 import FungalRiskAdvisor from '../components/intelligence/FungalRiskAdvisor';
+import MultiLeafUploader from '../components/scanCenter/MultiLeafUploader';
+import MultiLeafResults from '../components/scanCenter/MultiLeafResults';
+import { useFarm } from '../context/FarmContext';
 import { Badge } from '../components/ui/index';
 import { compressImageForUpload, formatFileSize } from '../utils/imageCompression';
 import { queueOfflineScan } from '../utils/offlineQueue';
@@ -19,6 +22,9 @@ import { queueOfflineScan } from '../utils/offlineQueue';
 const scanStore = {
   state: {
     activeTab: 'disease-diag',
+    scanMode: 'single', // 'single' | 'multi'
+    batchSamples: [],
+    batchResult: null,
     selectedFile: null,
     previewUrl: null,
     hasScanned: false,
@@ -45,13 +51,15 @@ const scanStore = {
 const UploadImagePage = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { activeFarm } = useFarm();
   const navigate = useNavigate();
 
   // Subscribe to the global reactive store (persists across unmounts!)
   const state = React.useSyncExternalStore(scanStore.subscribe, scanStore.getSnapshot);
   
   const { 
-    activeTab, selectedFile, previewUrl, 
+    activeTab, scanMode = 'single', batchSamples = [], batchResult,
+    selectedFile, previewUrl, 
     hasScanned, liveResult, loading, errorMsg,
     selectedCropFilter, compressionInfo
   } = state;
@@ -134,6 +142,80 @@ const UploadImagePage = () => {
   const handleCropFilterChange = useCallback((crop) => {
     scanStore.setState({ selectedCropFilter: crop });
   }, []);
+
+  const handleAddBatchSample = (sample) => {
+    const current = state.batchSamples || [];
+    if (current.length >= 5) {
+      scanStore.setState({ errorMsg: 'Maximum 5 leaf samples allowed per plot inspection.' });
+      return;
+    }
+    scanStore.setState({
+      batchSamples: [...current, sample],
+      errorMsg: ''
+    });
+  };
+
+  const handleRemoveBatchSample = (idx) => {
+    const current = state.batchSamples || [];
+    scanStore.setState({
+      batchSamples: current.filter((_, i) => i !== idx)
+    });
+  };
+
+  const handleClearBatch = () => {
+    scanStore.setState({
+      batchSamples: [],
+      batchResult: null,
+      errorMsg: '',
+      hasScanned: false
+    });
+  };
+
+  const handleStartBatchScan = async () => {
+    const samples = state.batchSamples || [];
+    if (samples.length < 2) {
+      scanStore.setState({ errorMsg: 'Please select at least 2 leaf samples to calculate plot-level infection severity.' });
+      return;
+    }
+
+    if (loading) return;
+    scanStore.setState({ loading: true, errorMsg: '' });
+
+    try {
+      // 1. Concurrently upload all sampled images to backend
+      const uploadPromises = samples.map(async (s) => {
+        const formData = new FormData();
+        formData.append('file', s.file);
+        const res = await API.post('/api/upload', formData);
+        return {
+          imagePath: res.data.image_path,
+          label: s.label
+        };
+      });
+
+      const uploadedResults = await Promise.all(uploadPromises);
+      const imagePaths = uploadedResults.map(u => u.imagePath);
+      const sampleLabels = uploadedResults.map(u => u.label);
+
+      // 2. Call batch prediction endpoint
+      const batchRes = await API.post('/api/predict-batch', {
+        image_paths: imagePaths,
+        sample_labels: sampleLabels,
+        crop_filter: selectedCropFilter || undefined,
+        language: user?.preferred_language || i18n.language || 'en'
+      });
+
+      scanStore.setState({
+        batchResult: batchRes.data,
+        hasScanned: true,
+        loading: false
+      });
+    } catch (err) {
+      console.error("Batch scan error:", err);
+      const msg = err.response?.data?.detail || "Failed to analyze multi-leaf plot. Please try again.";
+      scanStore.setState({ errorMsg: msg, loading: false });
+    }
+  };
 
   const handleStartScan = async () => {
     if (!selectedFile) {
@@ -339,58 +421,122 @@ const UploadImagePage = () => {
         onTabChange={(tabId) => scanStore.setState({ activeTab: tabId, errorMsg: '' })}
       />
 
-      {/* Upload, Camera, Preview & Scan Trigger Component */}
-      <ScanImageUploader
-        tabId={activeTab}
-        selectedFile={selectedFile}
-        previewUrl={previewUrl}
-        compressionInfo={compressionInfo}
-        onFileSelect={handleFileSelect}
-        onClear={clearSelection}
-        onStartScan={handleStartScan}
-        onLoadSample={loadSampleImage}
-        loading={loading}
-        errorMsg={errorMsg}
-        liveResult={liveResult}
-        selectedCropFilter={selectedCropFilter}
-        onCropFilterChange={handleCropFilterChange}
-      />
+      {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
+      {activeTab === 'disease-diag' && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#1a1a1a] p-2 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#252525]">
+            <button
+              type="button"
+              onClick={() => scanStore.setState({ scanMode: 'single', hasScanned: !!liveResult, errorMsg: '' })}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+                scanMode === 'single'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>🍃 Single Leaf Focus</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => scanStore.setState({ scanMode: 'multi', hasScanned: !!batchResult, errorMsg: '' })}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all ${
+                scanMode === 'multi'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <span>🌿 Multi-Leaf Plot Scan (2–5)</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase">
+                  New
+                </span>
+              </span>
+            </button>
+          </div>
 
-      {/* Results Section for the Active Tab */}
-      {hasScanned && (
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="pt-4"
-        >
-          {activeTab === 'plant-id' && (
-            <PlantIdResults liveResult={liveResult} />
-          )}
+          <span className="text-[11px] text-slate-400 font-semibold px-2">
+            {scanMode === 'multi' ? 'Field Plot Severity Index (Samples 2–5 leaves across corners)' : 'High-precision single leaf pathology lesion scan'}
+          </span>
+        </div>
+      )}
 
-          {activeTab === 'disease-diag' && (
-            <>
-              <DiseaseDiagnosisResults
-                liveResult={liveResult}
-                previewUrl={previewUrl}
-                onDownloadPDF={handleDownloadPDF}
-                onSaveScan={() => navigate('/history')}
-              />
-              <div className="mt-8">
-                <CropAdvisorPanel 
-                  cropName={liveResult?.crop_name} 
-                  diseaseName={liveResult?.disease_name} 
-                  confidence={liveResult?.confidence} 
-                  advisor={liveResult?.advisor}
-                />
-              </div>
-            </>
-          )}
+      {/* Upload & Scan Component based on activeTab & scanMode */}
+      {activeTab === 'disease-diag' && scanMode === 'multi' ? (
+        !hasScanned || !batchResult ? (
+          <MultiLeafUploader
+            samples={batchSamples}
+            onAddSample={handleAddBatchSample}
+            onRemoveSample={handleRemoveBatchSample}
+            onClearAll={handleClearBatch}
+            onStartBatchScan={handleStartBatchScan}
+            loading={loading}
+            errorMsg={errorMsg}
+            selectedCropFilter={selectedCropFilter}
+            onCropFilterChange={handleCropFilterChange}
+          />
+        ) : (
+          <MultiLeafResults
+            result={batchResult}
+            onReset={handleClearBatch}
+            farmName={activeFarm?.farm_name || "Field Plot"}
+            user={user}
+          />
+        )
+      ) : (
+        <>
+          <ScanImageUploader
+            tabId={activeTab}
+            selectedFile={selectedFile}
+            previewUrl={previewUrl}
+            compressionInfo={compressionInfo}
+            onFileSelect={handleFileSelect}
+            onClear={clearSelection}
+            onStartScan={handleStartScan}
+            onLoadSample={loadSampleImage}
+            loading={loading}
+            errorMsg={errorMsg}
+            liveResult={liveResult}
+            selectedCropFilter={selectedCropFilter}
+            onCropFilterChange={handleCropFilterChange}
+          />
 
-          {activeTab === 'agro-scan' && (
-            <AgrochemicalResults liveResult={liveResult} />
+          {/* Results Section for Single Leaf Scan */}
+          {hasScanned && (
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="pt-4"
+            >
+              {activeTab === 'plant-id' && (
+                <PlantIdResults liveResult={liveResult} />
+              )}
+
+              {activeTab === 'disease-diag' && (
+                <>
+                  <DiseaseDiagnosisResults
+                    liveResult={liveResult}
+                    previewUrl={previewUrl}
+                    onDownloadPDF={handleDownloadPDF}
+                    onSaveScan={() => navigate('/history')}
+                  />
+                  <div className="mt-8">
+                    <CropAdvisorPanel 
+                      cropName={liveResult?.crop_name} 
+                      diseaseName={liveResult?.disease_name} 
+                      confidence={liveResult?.confidence} 
+                      advisor={liveResult?.advisor}
+                    />
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'agro-scan' && (
+                <AgrochemicalResults liveResult={liveResult} />
+              )}
+            </motion.div>
           )}
-        </motion.div>
+        </>
       )}
     </motion.div>
   );

@@ -133,6 +133,12 @@ class PredictRequest(BaseModel):
     language: Optional[str] = Field(default="en", description="ISO language code for translated diagnosis output (en, hi, te, ta)")
     crop_filter: Optional[str] = Field(default=None, description="Optional crop category to filter prediction search space")
 
+class PredictBatchRequest(BaseModel):
+    image_paths: List[str] = Field(..., min_length=1, max_length=10, description="List of image paths for multi-leaf field plot scan")
+    sample_labels: Optional[List[str]] = Field(default_factory=list, description="Optional labels for samples like 'North-East Corner', 'Center Plot'")
+    language: Optional[str] = Field(default="en", description="ISO language code (en, te, hi, ta, kn)")
+    crop_filter: Optional[str] = Field(default=None, description="Optional crop category to filter prediction search space")
+
 class CropAdvisorRequest(BaseModel):
     crop_name: str
     disease_name: str

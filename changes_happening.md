@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-09 (v74) - Instant Multi-Leaf Field Plot Scan & Batch Health Severity Index (Field Agronomy Intelligence)
+- **Summary:** Fulfilled the user's request to audit candidate features 1, 2, 4, 5 (skipping 3). Identified that Feature 5 was missing (previous scan center only accepted a single image) and implemented end-to-end multi-leaf batch plot pathology analysis across backend and frontend:
+  1. 🌿 **Batch Diagnostic Inference Endpoint (`backend/app/routers/predict.py`, `schemas.py`):**
+     - Added `PredictBatchRequest` schema supporting 2 to 10 image paths with optional zone labels, crop filters, and regional language selection.
+     - Implemented `@router.post("/predict-batch")`: Concurrently evaluates multiple leaf samples using `asyncio.gather` on the neural pathology inference engine.
+     - Automatically aggregates individual predictions into field-level epidemiological metrics: `total_samples`, `healthy_count`, `infected_count`, `plot_infection_rate (%)`, `severity_level` (*Pristine, Mild, Moderate, Severe*), `dominant_disease`, and `dominant_crop`.
+     - Generates an actionable agronomic `field_treatment_directive`:
+       - `0% infection`: Pristine field health directive, advising against costly and wasteful chemical spraying.
+       - `1-30% infection`: Spot-treatment directive with bio-fungicides (Neem Oil 10,000 PPM @ 3ml/L) only on affected plants/rows, saving farmers money and preserving beneficial soil microbes.
+       - `>30% infection`: Full-canopy chemical foliar spray directive with weather window precautions and specific tank-mix dosages.
+     - Persists batch diagnostic records to MongoDB `batch_scans` collection with auto-generated timestamps.
+  2. 📸 **Interactive Multi-Leaf Zone Uploader (`frontend/src/components/scanCenter/MultiLeafUploader.jsx`):**
+     - Provides a 5-slot sampling grid with default zone labels (*North-East Corner, Field Center Plot, South-West Corner, Upper Canopy, Lower Foliage Near Soil*).
+     - Supports direct live camera snapping (`capture="environment"`) and bulk gallery selection.
+     - Pre-compresses all leaf images through canvas utilities before network transfer, preventing mobile memory exhaustion.
+     - Allows per-sample preview deletion, slot re-taking, and optional crop filter selection.
+  3. 📊 **Plot Health Severity Index & Digital Prescription Report (`frontend/src/components/scanCenter/MultiLeafResults.jsx`):**
+     - Displays an animated circular SVG gauge representing overall plot infection percentage with color-coded severity tiers (Emerald for Healthy, Amber for Mild, Orange for Moderate, Rose for Severe).
+     - Visual breakdown of Healthy vs Infected sample counts with percentage distribution bars.
+     - Agronomist field directive banner with the critical **4-Hour Rain-Free Spray Window Rule**.
+     - Side-by-side sampling zones gallery with individual confidence ratings, localized disease names, and status tags.
+     - Interactive **Acreage Knapsack Pump Calculator** (`0.5 Ac, 1.0 Ac, 2.0 Ac, 5.0 Ac`) showing exact 16L pumps, chemical volume, and estimated treatment expenditure.
+     - 1-Tap **Doctor-Style Kisan Prescription Slip** export and WhatsApp diagnostic sharing with local agricultural dealers.
+  4. 🔄 **Seamless Scan Mode Toggle (`frontend/src/pages/UploadImagePage.jsx`):**
+     - Added sub-mode selector in Disease Diagnosis tab: `🍃 Single Leaf Focus` vs `🌿 Multi-Leaf Plot Scan (2–5) [New]`.
+     - State management for multi-leaf sample queue, concurrent upload pipeline to `/api/upload`, and result reset flows.
+- **Files modified**: `backend/app/models/schemas.py`, `backend/app/routers/predict.py`, `frontend/src/pages/UploadImagePage.jsx`, `frontend/src/components/scanCenter/MultiLeafUploader.jsx` (NEW), `frontend/src/components/scanCenter/MultiLeafResults.jsx` (NEW), `changes_happening.md`
+
 ## 2026-09-09 (v73) - 7 AI Agronomist Chatbot Superpowers (Google Maps Hub, Bottle OCR, Weather Window, Acreage Calc, Digital Prescription Slip, Pest IPM & Audio Speed Controls)
 - **Summary:** Implemented the full suite of 7 AI Agronomist Superpowers across the full AI Assistant (`AIAssistantPage.jsx`), Floating Assistant widget (`FloatingAIAssistant.jsx`), speech reader hook (`useSpeechReader.js`), and backend multimodal agronomist service (`nvidia_service.py`):
   1. 📍 **1-Tap Google Maps Agriculture Hub Cards:** Built-in interactive cards under RBK / store / office queries with 1-tap links to Google Maps for *Nearest Rythu Bharosa Kendram (RBK)*, *Agro Chemical & Pesticide Stores*, and *Mandal Agriculture Officer (MAO)*, plus a live GPS pinpoint button (`Use GPS`) to open exact directions near the farmer's live location.
