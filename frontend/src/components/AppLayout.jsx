@@ -1287,6 +1287,7 @@ export const BottomNav = () => {
 
 // 9. Footer Component
 export const Footer = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   if (location.pathname === '/assistant') return null;
 

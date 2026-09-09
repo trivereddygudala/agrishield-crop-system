@@ -64,7 +64,7 @@ const ADVICE_DB = {
 };
 
 const PredictionResultPage = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { activeFarm, profileCompleted } = useFarm();

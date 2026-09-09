@@ -1468,3 +1468,14 @@
        - 🌾 ఎరువుల మోతాదు (యూరియా, DAP)
        - 💰 నేటి మండి మార్కెట్ ధరలు
 - **Build Verification:** Clean production build via Vite (`✓ built in 18.52s`, 0 errors).
+
+9/9/2026: Fixed `ReferenceError: t is not defined` Runtime Crash in AppLayout & PredictionResultPage (v80):
+- **Root Cause Analysis:**
+  1. `AppLayout.jsx`: In `Footer` component (line 1289), `t('nav.precision_engine', 'Precision Agriculture Engine')` was called without calling `const { t } = useTranslation();`. Because `Footer` renders on every authenticated view inside the main layout, logging into the dashboard immediately crashed the root rendering tree with `ReferenceError: t is not defined`.
+  2. `PredictionResultPage.jsx`: In `PredictionResultPage` component (line 67), `useTranslation()` only destructured `const { i18n }`, yet `t(...)` was referenced 21 times in JSX.
+- **Fix Applied:**
+  - Added `const { t } = useTranslation();` inside `Footer` in `AppLayout.jsx`.
+  - Updated `PredictionResultPage.jsx` to `const { t, i18n } = useTranslation();`.
+  - Executed Babel AST static analysis (`scratch_find_unbound_t.cjs`) across all 128 files in `frontend/src`: verified exactly 0 remaining unbound `t` references across the entire project.
+- **Build Verification:** Vite production bundle succeeded in 19.92s with 0 errors.
+
