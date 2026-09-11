@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v108) - Fix Blank White Screen on Open Map Click & Rename All Studio References to Open Map
+- **Summary:** Resolved the blank screen bug shown in user's mobile screenshot after tapping "Open Studio" and renamed all "Studio" terminology to "Open Map":
+  1. 🛠️ **Fixed Blank White Screen Root Cause (`FieldBoundaryMap.jsx`):**
+     - **The Diagnosis:** When full-screen mode was triggered, the root container had `className="relative w-full max-w-full min-w-0 flex flex-col fixed inset-0 z-[99999] ..."`. In Tailwind CSS, the `.relative` class has equal specificity and appeared after `.fixed` in compilation, meaning the element received `position: relative` instead of `position: fixed`. When portaled to `document.body` after `<div id="root">`, it was placed in standard document flow *below* `#root` (1000px off the bottom of the screen). Meanwhile, `<main>` was empty because the component portaled away, and `document.body.style.position = 'fixed'` locked the body, leaving the user staring at an empty white container between Navbar and BottomNav!
+     - **The Solution:** Separated the full-screen class list so it strictly applies `fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none` with **ZERO** `relative` class. Removed `document.body.style.position = 'fixed'` and retained clean `document.body.style.overflow = 'hidden'`. The map now renders instantly and reliably over the full viewport with 100% visibility.
+  2. 🗺️ **Renamed All "Studio" References to "Open Map" (`FarmPage.jsx`, `FieldBoundaryMap.jsx`, `NearbyFieldsRadar.jsx`):**
+     - Renamed "Dedicated Full-Screen Map Studio" banner to **"Full-Screen Map"** (`పూర్తి స్క్రీన్ మ్యాప్`).
+     - Renamed "Open Studio" button to **"Open Map"** (`మ్యాప్ తెరవండి`).
+     - Renamed embedded map "Studio" button to **"Open Map"** (`మ్యాప్ తెరవండి`).
+     - Renamed "Dedicated Full-Screen Radar Studio" to **"Full-Screen Radar Map"** (`పూర్తి స్క్రీన్ రాడార్ మ్యాప్`).
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/pages/FarmPage.jsx`, `frontend/src/components/intelligence/NearbyFieldsRadar.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v107) - General-Purpose Land & Field Area Calculator (No Crops/Registration) & React Portal Zero-Movement Map Studio
 - **Summary:** Delivered the requested redesign of the Field Area Calculator and resolved the root-cause CSS transform issue that caused upward movement when touching maps:
   1. 📐 **Field Area Calculator Redesigned as a Pure General Land Measurement Tool (`FieldAreaCalculatorPage.jsx`):**

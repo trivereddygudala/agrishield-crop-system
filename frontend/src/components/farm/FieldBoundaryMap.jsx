@@ -671,27 +671,14 @@ export default function FieldBoundaryMap({
 
   const isFullScreenView = isFullscreen || isDedicated;
 
-  // Lock body scroll when in fullscreen studio to completely eliminate background window scrolling and top-bar jump
+  // Lock body scroll when in fullscreen mode to eliminate background window scrolling
   useEffect(() => {
     if (isFullScreenView && typeof document !== 'undefined') {
       const originalOverflow = document.body.style.overflow;
-      const originalPosition = document.body.style.position;
-      const originalWidth = document.body.style.width;
-      const originalHeight = document.body.style.height;
-      const originalTouchAction = document.body.style.touchAction;
-
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
-      document.body.style.touchAction = 'none';
 
       return () => {
         document.body.style.overflow = originalOverflow;
-        document.body.style.position = originalPosition;
-        document.body.style.width = originalWidth;
-        document.body.style.height = originalHeight;
-        document.body.style.touchAction = originalTouchAction;
       };
     }
   }, [isFullScreenView]);
@@ -706,11 +693,11 @@ export default function FieldBoundaryMap({
 
   const mapContent = (
     <div
-      className={`relative w-full max-w-full min-w-0 flex flex-col ${
+      className={
         isFullScreenView
-          ? 'fixed inset-0 z-[99999] w-screen h-[100dvh] max-h-[100dvh] bg-slate-950 overflow-hidden overscroll-none touch-none select-none'
-          : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden'
-      }`}
+          ? 'fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none'
+          : 'relative w-full max-w-full min-w-0 flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden'
+      }
       style={{
         height: isFullScreenView ? '100dvh' : height,
         maxHeight: isFullScreenView ? '100dvh' : height
@@ -800,10 +787,10 @@ export default function FieldBoundaryMap({
                 }
               }}
               className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
-              title={isTelugu ? 'పూర్తి స్క్రీన్ తెరవండి' : 'Open Full-Screen Studio'}
+              title={isTelugu ? 'పూర్తి స్క్రీన్ మ్యాప్ తెరవండి' : 'Open Full-Screen Map'}
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span className="font-bold">{isTelugu ? 'స్టూడియో' : 'Studio'}</span>
+              <span className="font-bold">{isTelugu ? 'మ్యాప్ తెరవండి' : 'Open Map'}</span>
             </button>
           )}
         </div>

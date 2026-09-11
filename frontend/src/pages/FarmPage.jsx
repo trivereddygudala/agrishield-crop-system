@@ -757,12 +757,12 @@ const FarmPage = () => {
                     </span>
                   </div>
 
-                  {/* Dedicated Full-Screen Map Studio Banner */}
+                  {/* Dedicated Full-Screen Map Banner */}
                   <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/20">
                     <div className="flex items-center gap-2 min-w-0">
                       <Maximize2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <p className="text-xs font-black text-emerald-950 dark:text-emerald-200 truncate">
-                        {isTe ? 'ప్రత్యేక పూర్తి స్క్రీన్ మ్యాప్ స్టూడియో' : 'Dedicated Full-Screen Map Studio'}
+                        {isTe ? 'పూర్తి స్క్రీన్ మ్యాప్' : 'Full-Screen Map'}
                       </p>
                     </div>
                     <button
@@ -771,7 +771,7 @@ const FarmPage = () => {
                       className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1 shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all"
                     >
                       <Maximize2 className="w-3 h-3" />
-                      <span>{isTe ? 'స్టూడియో తెరవండి' : 'Open Studio'}</span>
+                      <span>{isTe ? 'మ్యాప్ తెరవండి' : 'Open Map'}</span>
                     </button>
                   </div>
 

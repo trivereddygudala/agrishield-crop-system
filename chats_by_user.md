@@ -6,6 +6,22 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 45
+* **User Input:**
+  > "i send 2 picture one is before clicking open studio and another one is after clicking open studio button, remane open studio as open map. Why it shows the blank white screen."
+* **Machine Summary Solution:**
+  * Analyzed user's uploaded mobile screenshots (Picture 1: before tapping "Open Studio"; Picture 2: after tapping "Open Studio", showing Navbar and BottomNav with a blank white screen in the middle).
+  * **Diagnosed Root Cause of Blank White Screen:**
+    - In `FieldBoundaryMap.jsx`, the root container had `className="relative w-full max-w-full min-w-0 flex flex-col fixed inset-0 z-[99999] ..."`.
+    - In Tailwind CSS compilation, `.relative` appeared after `.fixed` with identical specificity, causing the element to receive `position: relative` instead of `position: fixed`.
+    - Because it was portaled to `document.body` after `<div id="root">`, it was appended in standard document flow *below* `#root` (~1000px off the bottom of the screen).
+    - Meanwhile, `<main>` in `DashboardLayout` was empty because `FarmPage` portaled away its DOM, and `document.body.style.position = 'fixed'` locked scrolling, leaving the user staring at an empty white area between the Navbar and BottomNav.
+  * **Fix Implemented:**
+    1. Conditioned the className cleanly: when `isFullScreenView` is true, it strictly receives `fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none` with **ZERO** `relative` class.
+    2. Removed `document.body.style.position = 'fixed'` (retained clean `overflow = 'hidden'`). The full-screen map now renders reliably and immediately over the full mobile screen.
+    3. Renamed all "Studio" terminology to **"Open Map"** (`మ్యాప్ తెరవండి`) and **"Full-Screen Map"** (`పూర్తి స్క్రీన్ మ్యాప్`) across `FarmPage.jsx`, `FieldBoundaryMap.jsx`, and `NearbyFieldsRadar.jsx`.
+  * Verified build: `npm run build` passed with 0 errors in 19.73s.
+
 ### Chat Entry 44
 * **User Input:**
   > "the field area calculator use is to measure the fields for the farmer use why you include this to the crop that is for the general use to know how much field it is make it as general use not for the field calculator during the new field registrations ok do you understand my words. and that one also having the same issue with the map upward movement make it good neat and clean ok."
