@@ -2,6 +2,20 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v114) - Fix: Render Direct "Call Farmer" & "WhatsApp Farmer" Action Buttons on Admin Callback Tickets
+- **Summary:** Resolved the issue reported in user screenshot where the farmer's callback ticket was missing the phone number and one-click "Call Farmer" / "WhatsApp Farmer" action buttons:
+  1. 🛠️ **Backend Ticket Document Formatter (`backend/app/routers/support.py`):**
+     - Fixed `format_ticket_doc` to populate both `phone` and `contact_phone` (`phone_val = doc.get("phone") or doc.get("contact_phone") or ""`), as well as `contact_email` and `farmer_email`.
+     - Set `is_callback_request` flag for both `callback_request` and `urgent_callback` categories.
+     - Updated admin ticket query and stats aggregation to match both `callback_request` and `urgent_callback`.
+  2. 📱 **Frontend Ticket Card & One-Click Call Dialer (`frontend/src/pages/AdminPage.jsx`):**
+     - Updated phone resolver: `const farmerPhone = ticket.contact_phone || ticket.phone || '';`.
+     - Added prominent, pulsing **"📞 Call {farmerPhone}"** button (`tel:${farmerPhone}`) to trigger direct phone dialing with 1 click.
+     - Added direct **"💬 WhatsApp Farmer"** button (`https://wa.me/...`) with pre-filled acknowledgment message.
+     - Formatted the farmer's phone number in a highlighted green badge (`📞 +91...`).
+     - Added animated top banner: `⚡ URGENT 15-MINUTE CALLBACK REQUEST — FARMER WAITING FOR CALL`.
+- **Files modified**: `backend/app/routers/support.py`, `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v113) - Live Dynamic Helpdesk WhatsApp & Hotline Configuration in Admin Dashboard
 - **Summary:** Built dynamic, database-backed support contact settings enabling administrators to set and update their real WhatsApp number, hotline phone, and operating hours directly from the Admin Hub without touching any code:
   1. 🛠️ **Backend Support Config Endpoints (`backend/app/routers/support.py`):**

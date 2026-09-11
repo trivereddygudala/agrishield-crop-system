@@ -2382,11 +2382,13 @@ export default function AdminPage() {
               </div>
             ) : (
               supportTickets.map((ticket) => {
-                const cleanedPhone = (ticket.contact_phone || '').replace(/[^0-9]/g, '');
+                const farmerPhone = ticket.contact_phone || ticket.phone || '';
+                const rawDigits = farmerPhone.replace(/[^0-9]/g, '');
+                const cleanedPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits;
                 const waMessage = encodeURIComponent(
                   `Hello ${ticket.farmer_name || 'Farmer'}, this is the AgriShield Support Team responding to your request (Ref #${ticket.id.slice(0, 8)}: "${ticket.subject}"). How can we assist you with your field or device today?`
                 );
-                const isCallback = ticket.category === 'urgent_callback';
+                const isCallback = ticket.category === 'urgent_callback' || ticket.category === 'callback_request' || ticket.is_callback_request;
                 const currentResNote = ticketResolutionInputs[ticket.id] !== undefined
                   ? ticketResolutionInputs[ticket.id]
                   : (ticket.resolution_notes || '');
@@ -2405,7 +2407,7 @@ export default function AdminPage() {
                       <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-amber-600 text-white px-5 py-2 text-xs font-black flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <PhoneCall className="w-4 h-4 animate-bounce" />
-                          <span>⚡ URGENT 15-MINUTE CALLBACK REQUEST — FARMER WAITING</span>
+                          <span>⚡ URGENT 15-MINUTE CALLBACK REQUEST — FARMER WAITING FOR CALL</span>
                         </div>
                         <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-mono uppercase">
                           Priority Call
@@ -2427,7 +2429,7 @@ export default function AdminPage() {
                             {ticket.category === 'crop_scan' && 'Crop Disease Scan'}
                             {ticket.category === 'maps_gis' && 'Maps & Coordinates'}
                             {ticket.category === 'account_profile' && 'Account & Farm'}
-                            {ticket.category === 'urgent_callback' && '15-Min Phone Callback'}
+                            {(ticket.category === 'urgent_callback' || ticket.category === 'callback_request') && '⚡ 15-Min Phone Callback'}
                             {ticket.category === 'general' && 'General Inquiry'}
                           </span>
 
@@ -2505,41 +2507,55 @@ export default function AdminPage() {
                             <span>Farmer: {ticket.farmer_name || 'Registered Farmer'}</span>
                           </p>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                            {ticket.contact_phone && (
-                              <span className="font-mono font-semibold">📞 {ticket.contact_phone}</span>
+                            {farmerPhone ? (
+                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+                                📞 {farmerPhone}
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 dark:text-amber-400 font-medium">⚠️ No phone number provided</span>
                             )}
-                            {ticket.contact_email && (
-                              <span>✉️ {ticket.contact_email}</span>
+                            {(ticket.contact_email || ticket.farmer_email) && (
+                              <span>✉️ {ticket.contact_email || ticket.farmer_email}</span>
                             )}
-                            {(ticket.district || ticket.state) && (
-                              <span>📍 {[ticket.district, ticket.state].filter(Boolean).join(', ')}</span>
+                            {(ticket.district || ticket.state || ticket.location) && (
+                              <span>📍 {[ticket.district, ticket.state, ticket.location].filter(Boolean).join(', ')}</span>
+                            )}
+                            {ticket.preferred_time && (
+                              <span className="font-semibold text-sky-600 dark:text-sky-400">⏰ {ticket.preferred_time}</span>
                             )}
                           </div>
                         </div>
 
                         {/* Direct One-Click Communication Actions */}
                         <div className="flex flex-wrap items-center gap-2">
-                          {ticket.contact_phone && (
-                            <a
-                              href={`tel:${ticket.contact_phone}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
-                            >
-                              <PhoneCall className="w-3.5 h-3.5" />
-                              <span>Call Farmer</span>
-                            </a>
-                          )}
+                          {farmerPhone ? (
+                            <>
+                              <a
+                                href={`tel:${farmerPhone}`}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all cursor-pointer"
+                              >
+                                <PhoneCall className="w-4 h-4 animate-pulse" />
+                                <span>Call {farmerPhone}</span>
+                              </a>
 
-                          {cleanedPhone && (
+                              <a
+                                href={`https://wa.me/${cleanedPhone}?text=${waMessage}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs shadow-md active:scale-95 transition-all cursor-pointer"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                                <span>WhatsApp Farmer</span>
+                              </a>
+                            </>
+                          ) : (ticket.contact_email || ticket.farmer_email) ? (
                             <a
-                              href={`https://wa.me/${cleanedPhone}?text=${waMessage}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                              href={`mailto:${ticket.contact_email || ticket.farmer_email}?subject=${encodeURIComponent(`AgriShield Support - Ticket #${ticket.id.slice(0, 8)}`)}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
                             >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                              <span>Chat WhatsApp</span>
+                              <span>Email Farmer</span>
                             </a>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 

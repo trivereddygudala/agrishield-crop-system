@@ -41,23 +41,30 @@ class TicketUpdateRequest(BaseModel):
 # Helper: Format Ticket Document
 # ─────────────────────────────────────────────────────────────
 def format_ticket_doc(doc: dict) -> dict:
+    phone_val = doc.get("phone") or doc.get("contact_phone") or ""
+    email_val = doc.get("farmer_email") or doc.get("contact_email") or doc.get("email") or ""
+    category_val = doc.get("category", "general")
+    is_callback = doc.get("is_callback_request", False) or category_val in ["callback_request", "urgent_callback"]
+
     return {
         "id": str(doc["_id"]),
         "ticket_number": doc.get("ticket_number", f"TKT-{str(doc['_id'])[-4:].upper()}"),
         "user_id": doc.get("user_id"),
         "farmer_name": doc.get("farmer_name", "Farmer"),
-        "farmer_email": doc.get("farmer_email", ""),
-        "phone": doc.get("phone", ""),
+        "farmer_email": email_val,
+        "contact_email": email_val,
+        "phone": phone_val,
+        "contact_phone": phone_val,
         "language": doc.get("language", "en"),
         "location": doc.get("location", ""),
-        "category": doc.get("category", "general"),
+        "category": category_val,
         "priority": doc.get("priority", "medium"),
         "status": doc.get("status", "open"),
         "subject": doc.get("subject", ""),
         "description": doc.get("description", ""),
         "device_id": doc.get("device_id"),
         "attachments": doc.get("attachments", []),
-        "is_callback_request": doc.get("is_callback_request", False),
+        "is_callback_request": is_callback,
         "preferred_time": doc.get("preferred_time"),
         "assigned_agent": doc.get("assigned_agent"),
         "resolution_notes": doc.get("resolution_notes", ""),
@@ -185,17 +192,28 @@ async def list_admin_tickets(
     if status_filter and status_filter != "all":
         query["status"] = status_filter
     if category_filter and category_filter != "all":
-        query["category"] = category_filter
+        if category_filter in ["urgent_callback", "callback_request"]:
+            query["$or"] = [
+                {"category": "urgent_callback"},
+                {"category": "callback_request"},
+                {"is_callback_request": True}
+            ]
+        else:
+            query["category"] = category_filter
     if priority_filter and priority_filter != "all":
         query["priority"] = priority_filter
     if search:
-        query["$or"] = [
+        search_or = [
             {"ticket_number": {"$regex": search, "$options": "i"}},
             {"farmer_name": {"$regex": search, "$options": "i"}},
             {"phone": {"$regex": search, "$options": "i"}},
             {"subject": {"$regex": search, "$options": "i"}},
             {"device_id": {"$regex": search, "$options": "i"}},
         ]
+        if "$or" in query:
+            query["$and"] = [{"$or": query.pop("$or")}, {"$or": search_or}]
+        else:
+            query["$or"] = search_or
 
     total = await db.support_tickets.count_documents(query)
     cursor = db.support_tickets.find(query).sort("created_at", -1).skip(skip).limit(limit)

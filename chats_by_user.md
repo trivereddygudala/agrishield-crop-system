@@ -6,6 +6,24 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 51
+* **User Input:**
+  > "how i call back to the farmer can you tell me" [accompanied by screenshot of Admin Support ticket showing ticket `#e0ad1208` with farmer name `adireddy` but missing phone number and call button]
+* **Machine Summary Solution:**
+  * Diagnosed screenshot:
+    - In `backend/app/routers/support.py`, `format_ticket_doc` outputted `"phone"` instead of `"contact_phone"`.
+    - In `frontend/src/pages/AdminPage.jsx`, the card was strictly checking `ticket.contact_phone`, causing the phone number, the "Call Farmer" button (`tel:`), and "Chat WhatsApp" button (`wa.me`) to not render.
+    - Also, `isCallback` was checking `ticket.category === 'urgent_callback'`, missing tickets created with `callback_request`.
+  * **Fix Implemented:**
+    1. Updated `format_ticket_doc` in `support.py` to populate both `phone` and `contact_phone` (`phone_val = doc.get("phone") or doc.get("contact_phone") or ""`), plus `contact_email` and `farmer_email`.
+    2. Updated category filter and stats aggregation in `support.py` to match both `callback_request` and `urgent_callback`.
+    3. Updated `AdminPage.jsx` to resolve phone as `const farmerPhone = ticket.contact_phone || ticket.phone || '';`.
+    4. Rendered a prominent pulsing call button: `📞 Call {farmerPhone}` linking to `tel:${farmerPhone}`.
+    5. Rendered a direct WhatsApp button: `💬 WhatsApp Farmer` linking to `https://wa.me/...`.
+    6. Rendered the farmer's phone badge (`📞 +91...`) in highlighted green.
+    7. Rendered animated top banner: `⚡ URGENT 15-MINUTE CALLBACK REQUEST — FARMER WAITING FOR CALL`.
+  * Verified build: `npm run build` compiled 3140 modules successfully with 0 errors in 21.75s.
+
 ### Chat Entry 50
 * **User Input:**
   > "iam admin and how i put the real whatsapp number tell me" -> [User chose Option 2: Live Admin Dashboard Input]
