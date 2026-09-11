@@ -32,28 +32,34 @@ const openDB = () => {
 };
 
 /**
- * Save a field photograph for offline processing
+ * Save a field photograph for offline processing along with optional on-device offline triage
  */
-export const queueOfflineScan = async ({ file, tabId = 'disease-diag', cropFilter = '', language = 'en' }) => {
+export const queueOfflineScan = async ({ file, tabId = 'disease-diag', cropFilter = '', language = 'en', offlineTriage = null }) => {
   try {
     const db = await openDB();
 
     // Convert file to Base64 data URL for robust IndexedDB serialization
-    const base64Data = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    let base64Data = null;
+    if (file instanceof File || file instanceof Blob) {
+      base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } else if (typeof file === 'string' && file.startsWith('data:')) {
+      base64Data = file;
+    }
 
     const record = {
-      fileName: file.name || `field_scan_${Date.now()}.jpg`,
-      fileType: file.type || 'image/jpeg',
-      fileSize: file.size,
+      fileName: (file && file.name) || `field_scan_${Date.now()}.jpg`,
+      fileType: (file && file.type) || 'image/jpeg',
+      fileSize: (file && file.size) || (base64Data ? base64Data.length : 0),
       dataUrl: base64Data,
       tabId,
       cropFilter,
       language,
+      offlineTriage: offlineTriage || null,
       timestamp: Date.now(),
       status: 'pending'
     };
@@ -66,7 +72,7 @@ export const queueOfflineScan = async ({ file, tabId = 'disease-diag', cropFilte
       req.onsuccess = () => {
         // Dispatch custom window event so UI badges update instantly
         window.dispatchEvent(new CustomEvent('agrishield-offline-scans-updated'));
-        resolve({ success: true, id: req.result });
+        resolve({ success: true, id: req.result, record });
       };
       req.onerror = () => reject(req.error);
     });
@@ -143,6 +149,59 @@ export const clearAllOfflineScans = async () => {
 };
 
 /**
+ * Retrieve a specific scan by id
+ */
+export const getScanById = async (id) => {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(Number(id));
+
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.error(`Failed to get scan ${id}:`, err);
+    return null;
+  }
+};
+
+/**
+ * Update an existing scan record in IndexedDB (e.g. attaching cloud prediction result or updating status)
+ */
+export const updateScanRecord = async (id, updates) => {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const getReq = store.get(Number(id));
+
+      getReq.onsuccess = () => {
+        const current = getReq.result;
+        if (!current) {
+          resolve(false);
+          return;
+        }
+        const updated = { ...current, ...updates };
+        const putReq = store.put(updated);
+        putReq.onsuccess = () => {
+          window.dispatchEvent(new CustomEvent('agrishield-offline-scans-updated'));
+          resolve(updated);
+        };
+        putReq.onerror = () => reject(putReq.error);
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+  } catch (err) {
+    console.error(`Failed to update scan ${id}:`, err);
+    return false;
+  }
+};
+
+/**
  * Convert Base64 back to File object for FormData submission
  */
 export const dataUrlToFile = (dataUrl, fileName = 'offline_scan.jpg') => {
@@ -156,3 +215,4 @@ export const dataUrlToFile = (dataUrl, fileName = 'offline_scan.jpg') => {
   }
   return new File([u8arr], fileName, { type: mime });
 };
+

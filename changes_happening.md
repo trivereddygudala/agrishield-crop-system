@@ -2162,3 +2162,35 @@
 
 
 
+
+9/11/2026: Zero-Internet PWA Offline AI Diagnostics & Multimodal Voice Crop Doctor with Downloadable PDF Prescriptions (v104):
+- **Problem & Requirement:** The user requested two roadmap features:
+  1. **Roadmap 1 (PWA Offline AI Diagnostics):** Enable farmers in remote rural fields with zero internet connectivity to scan leaf photos, immediately receive an instant on-device preliminary triage diagnosis with severity and emergency first-aid advice, save to IndexedDB, and synchronize with the cloud PyTorch model once cellular reception returns.
+  2. **Roadmap 4 (Multimodal Voice Crop Doctor & PDF Treatment Prescriptions):** Provide an interactive voice-consultation AI Doctor supporting regional languages (Telugu, Hindi, English) with speech-to-text, animated audio waveforms, and spoken responses, plus a 1-click downloadable clinical PDF prescription generator using jsPDF.
+- **Root Cause & Architectural Implementations:**
+  1. **Zero-Internet Edge AI Engine (rontend/src/utils/offlineDiagnosticEngine.js):**
+     - Uses HTML5 Canvas offscreen processing (256x256) to extract foliar color histograms and spatial lesion distribution.
+     - Computes Chlorophyll Canopy Index (healthy tissue), Chlorosis Index (yellowing/stress), Necrosis Lesion Coverage (brown/black tissue), Powdery Mildew dispersion, and Rust pustules.
+     - Matches signatures against 38 PlantVillage crop-disease profiles (Early Blight, Late Blight, Powdery Mildew, Rust, Bacterial Spot, Yellow Leaf Curl, Healthy).
+     - Returns instant triage payload with severity rating, emergency organic/chemical remedies, and offline disclaimers.
+  2. **PWA Offline Queue Expansion (rontend/src/utils/offlineQueue.js):**
+     - Updated IndexedDB storage (pending_scans) to record both the compressed photo and the on-device offlineTriage results.
+     - Added getScanById and updateScanRecord helpers with custom window event dispatching.
+  3. **Scan Center Offline Integration (rontend/src/pages/UploadImagePage.jsx):**
+     - Upgraded handleStartScan: when offline or upon network drop, immediately runs diagnoseOfflineLeaf(), saves triage to IndexedDB, and transitions directly to PredictionResultPage.jsx with full offline diagnostic data.
+  4. **Offline Scans Management Drawer (rontend/src/components/common/OfflineSyncDrawer.jsx & OfflineStatusBar.jsx):**
+     - Added a slide-over tray allowing farmers to view all field photos taken offline, inspect local triage summaries, and trigger individual or batch sync to the cloud model.
+     - Added a "Tray (count)" button in the persistent offline status bar.
+  5. **Multimodal Voice Crop Doctor (rontend/src/components/intelligence/VoiceCropDoctorModal.jsx):**
+     - Interactive AI Doctor modal supporting **Telugu (	e-IN)**, **Hindi (hi-IN)**, and **English (en-IN)**.
+     - Web Speech Recognition with live transcription and animated audio wave pulses.
+     - Contextual intelligence calculating field water volumes (150L/acre) and 15L knapsack pump counts based on the farmer's active acreage.
+     - Natural speech playback via Web Speech Synthesis with native regional voice mapping.
+     - Integrated into PredictionResultPage.jsx and AIAssistantPage.jsx.
+  6. **1-Click Clinical PDF Prescription Generator (rontend/src/utils/pdfPrescriptionGenerator.js):**
+     - Formats a 1-page A4 clinical prescription slip using jspdf and jspdf-autotable.
+     - Displays official tele-clinic header, Rx ID, patient/farmer bio, diagnosis & severity, prescribed agrochemicals table with pump dilution rates, organic alternatives, and spray window weather rules.
+     - Direct file download (AgriShield_Rx_[Crop]_[Disease].pdf) eliminating browser popup blocker issues.
+     - Integrated into PredictionResultPage.jsx and AIAssistantPage.jsx.
+- **Verification:** Frontend built cleanly (
+pm run build, ✓ built in 21.86s, 0 errors). Backend compiled cleanly with python -m py_compile.

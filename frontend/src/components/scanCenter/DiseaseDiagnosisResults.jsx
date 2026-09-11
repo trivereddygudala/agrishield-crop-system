@@ -160,10 +160,25 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               <Badge variant="glass" className="px-3.5 py-1 text-xs font-bold text-white bg-white/20 border-white/30 backdrop-blur-md">
                 🌾 {t('results.target_crop', 'Crop')}: {localizedCrop}
               </Badge>
-              <Badge variant="glow-purple" className="px-3.5 py-1 text-xs font-bold text-teal-200 border-teal-400/40 bg-teal-500/20">
-                ⚡ PyTorch EfficientNetV2
-              </Badge>
+              {liveResult?.is_offline ? (
+                <Badge variant="glow-amber" className="px-3.5 py-1 text-xs font-black text-amber-200 border-amber-400/60 bg-amber-500/30 animate-pulse">
+                  📡 ZERO-INTERNET OFFLINE TRIAGE
+                </Badge>
+              ) : (
+                <Badge variant="glow-purple" className="px-3.5 py-1 text-xs font-bold text-teal-200 border-teal-400/40 bg-teal-500/20">
+                  ⚡ PyTorch EfficientNetV2
+                </Badge>
+              )}
             </div>
+
+            {liveResult?.is_offline && (
+              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-300" />
+                <span>
+                  {liveResult.triage_disclaimer || "📡 On-Device Field Triage: Calculated on your device without cellular internet. Saved to offline queue for cloud sync."}
+                </span>
+              </div>
+            )}
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">
               {localizedDisease}

@@ -17,6 +17,7 @@ import { useFarm } from '../context/FarmContext';
 import { Badge } from '../components/ui/index';
 import { compressImageForUpload, formatFileSize } from '../utils/imageCompression';
 import { queueOfflineScan } from '../utils/offlineQueue';
+import { diagnoseOfflineLeaf } from '../utils/offlineDiagnosticEngine';
 
 // Fully Reactive Global Store to persist scan state + background loading across tab navigation
 const scanStore = {
@@ -230,20 +231,43 @@ const UploadImagePage = () => {
 
     // Check if offline before initiating network requests
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      scanStore.setState({ loading: true, errorMsg: '' });
       try {
+        let offlineResult = null;
+        if (activeTab === 'disease-diag' && previewUrl) {
+          offlineResult = await diagnoseOfflineLeaf({
+            imageSrc: previewUrl,
+            cropFilter: selectedCropFilter,
+            language: activeLang
+          });
+        }
+
         await queueOfflineScan({
           file: selectedFile,
           tabId: activeTab,
           cropFilter: selectedCropFilter,
-          language: activeLang
+          language: activeLang,
+          offlineTriage: offlineResult
         });
-        scanStore.setState({
-          errorMsg: '📡 Offline Field Mode: Photo saved to offline queue. It will automatically upload and analyze when internet connection is restored!',
-          loading: false
-        });
-        return;
+
+        if (offlineResult) {
+          scanStore.setState({
+            liveResult: offlineResult,
+            hasScanned: true,
+            loading: false,
+            errorMsg: ''
+          });
+          return;
+        } else {
+          scanStore.setState({
+            errorMsg: '📡 Offline Field Mode: Photo saved to offline queue. It will automatically upload and analyze when internet connection is restored!',
+            loading: false
+          });
+          return;
+        }
       } catch (queueErr) {
-        console.error("Failed to queue offline scan:", queueErr);
+        console.error("Failed to run offline diagnosis or queue scan:", queueErr);
+        scanStore.setState({ loading: false });
       }
     }
 
@@ -280,21 +304,42 @@ const UploadImagePage = () => {
     } catch (err) {
       console.warn("Backend error during scan:", err);
 
-      // If connection was lost midway, automatically queue offline
+      // If connection was lost midway, automatically trigger offline diagnosis and queue
       if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
         try {
+          let offlineResult = null;
+          if (activeTab === 'disease-diag' && previewUrl) {
+            offlineResult = await diagnoseOfflineLeaf({
+              imageSrc: previewUrl,
+              cropFilter: selectedCropFilter,
+              language: activeLang
+            });
+          }
+
           await queueOfflineScan({
             file: selectedFile,
             tabId: activeTab,
             cropFilter: selectedCropFilter,
-            language: activeLang
+            language: activeLang,
+            offlineTriage: offlineResult
           });
-          scanStore.setState({
-            errorMsg: '📡 Network lost during scan: Photo saved to offline queue. It will auto-sync when connection returns!',
-            hasScanned: false,
-            liveResult: null
-          });
-          return;
+
+          if (offlineResult) {
+            scanStore.setState({
+              liveResult: offlineResult,
+              hasScanned: true,
+              loading: false,
+              errorMsg: ''
+            });
+            return;
+          } else {
+            scanStore.setState({
+              errorMsg: '📡 Network lost during scan: Photo saved to offline queue. It will auto-sync when connection returns!',
+              hasScanned: false,
+              liveResult: null
+            });
+            return;
+          }
         } catch {
           // fallback to normal error handling
         }

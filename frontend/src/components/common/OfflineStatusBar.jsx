@@ -4,6 +4,7 @@ import { WifiOff, Wifi, RefreshCw, CheckCircle2, AlertCircle, X, Trash2 } from '
 import { useTranslation } from 'react-i18next';
 import { getPendingOfflineScans, removeOfflineScan, clearAllOfflineScans, dataUrlToFile } from '../../utils/offlineQueue';
 import API from '../../services/api';
+import OfflineSyncDrawer from './OfflineSyncDrawer';
 
 export const OfflineStatusBar = () => {
   const { t } = useTranslation();
@@ -14,6 +15,7 @@ export const OfflineStatusBar = () => {
   const [syncSuccessMsg, setSyncSuccessMsg] = useState('');
   const [syncErrorMsg, setSyncErrorMsg] = useState('');
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const refreshPendingCount = useCallback(async () => {
     try {
@@ -205,7 +207,11 @@ export const OfflineStatusBar = () => {
                   <Wifi className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
                 )}
 
-                <div className="truncate font-semibold text-[11.5px]">
+                <div 
+                  onClick={() => pendingCount > 0 && setIsDrawerOpen(true)}
+                  className={`truncate font-semibold text-[11.5px] ${pendingCount > 0 ? 'cursor-pointer hover:underline' : ''}`}
+                  title={pendingCount > 0 ? "Click to view offline scans tray" : ""}
+                >
                   {!isOnline ? (
                     <span>
                       <strong className="font-black">{t('offline.field_offline_mode', 'Field Offline Mode:')}</strong>{' '}
@@ -225,6 +231,16 @@ export const OfflineStatusBar = () => {
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1.5 shrink-0">
+                {pendingCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="px-2 py-1 rounded-xl bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 active:scale-95 font-bold text-[11px] transition-all cursor-pointer"
+                  >
+                    Tray ({pendingCount})
+                  </button>
+                )}
+
                 {isOnline && pendingCount > 0 && !syncSuccessMsg && (
                   <button
                     type="button"
@@ -264,6 +280,9 @@ export const OfflineStatusBar = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Offline Scans Management Drawer */}
+      <OfflineSyncDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
     </AnimatePresence>
   );
 };

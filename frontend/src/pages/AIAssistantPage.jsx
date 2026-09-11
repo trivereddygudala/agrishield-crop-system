@@ -6,7 +6,8 @@ import {
   ArrowUp, ChevronDown, MoreVertical, Image as ImageIcon, BookOpen, Cpu, 
   ExternalLink, Edit3, Globe, Layers, CheckCircle2, ShieldCheck, Leaf, RefreshCw,
   Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain, TrendingUp, Building2, Store,
-  MapPin, Compass, FileText, Bug, FlaskConical, Sun, Wind, Thermometer, Calculator, Navigation
+  MapPin, Compass, FileText, Bug, FlaskConical, Sun, Wind, Thermometer, Calculator, Navigation,
+  Stethoscope, Download
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +17,8 @@ import { useFarm } from '../context/FarmContext';
 import { useSpeechReader } from '../hooks/useSpeechReader';
 import { compressImageForUpload } from '../utils/imageCompression';
 import { printPrescriptionSlip } from '../utils/prescriptionShare';
+import { generateAndDownloadPrescriptionPDF } from '../utils/pdfPrescriptionGenerator';
+import VoiceCropDoctorModal from '../components/intelligence/VoiceCropDoctorModal';
 
 /* ───────────────────────────────────────
    Inline text renderer: **bold**, `code`
@@ -318,6 +321,7 @@ const AIAssistantPage = () => {
   const [dosageAcreage, setDosageAcreage] = useState({});
   const [inspectionMode, setInspectionMode] = useState('leaf'); // 'leaf' | 'pest' | 'bottle'
   const [locationLoading, setLocationLoading] = useState(false);
+  const [showVoiceDoctor, setShowVoiceDoctor] = useState(false);
 
   const chatContainerRef = useRef(null);
   const chatBottomRef = useRef(null);
@@ -504,22 +508,42 @@ const AIAssistantPage = () => {
       chemicals.push('Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L (16ml per 16L pump)');
     }
 
-    printPrescriptionSlip({
-      cropName: detectedCrop.toUpperCase(),
-      diseaseName: detectedDisease.toUpperCase(),
-      confidence: 98,
-      severity: 'Moderate',
-      chemicals: chemicals.slice(0, 3),
-      organic: [
-        'Neem Oil (10,000 PPM) @ 3ml/L (50ml per 16L pump)',
-        'Trichoderma viride bio-fungicide foliar spray'
-      ],
-      prevention: 'Maintain 4-hour rain-free window. Apply foliar sprays early morning (6-9 AM) or late evening (4:30-6:30 PM).',
-      acres: acres,
-      farmerName: user?.name || 'Farmer',
-      farmLocation: user?.district || 'Andhra Pradesh',
-      language: (i18n.language || 'en').split('-')[0]
-    });
+    try {
+      generateAndDownloadPrescriptionPDF({
+        cropName: detectedCrop.toUpperCase(),
+        diseaseName: detectedDisease.toUpperCase(),
+        confidence: 98,
+        severity: 'Moderate',
+        chemicals: chemicals.slice(0, 3),
+        organic: [
+          'Neem Oil (10,000 PPM) @ 3ml/L (50ml per 16L pump)',
+          'Trichoderma viride bio-fungicide foliar spray'
+        ],
+        prevention: 'Maintain 4-hour rain-free window. Apply foliar sprays early morning (6-9 AM) or late evening (4:30-6:30 PM).',
+        acres: acres,
+        farmerName: user?.name || 'Farmer',
+        farmLocation: user?.district || activeFarm?.location || 'Andhra Pradesh',
+        language: (i18n.language || 'en').split('-')[0]
+      });
+    } catch (e) {
+      console.warn("Direct PDF failed, falling back to print slip:", e);
+      printPrescriptionSlip({
+        cropName: detectedCrop.toUpperCase(),
+        diseaseName: detectedDisease.toUpperCase(),
+        confidence: 98,
+        severity: 'Moderate',
+        chemicals: chemicals.slice(0, 3),
+        organic: [
+          'Neem Oil (10,000 PPM) @ 3ml/L (50ml per 16L pump)',
+          'Trichoderma viride bio-fungicide foliar spray'
+        ],
+        prevention: 'Maintain 4-hour rain-free window. Apply foliar sprays early morning (6-9 AM) or late evening (4:30-6:30 PM).',
+        acres: acres,
+        farmerName: user?.name || 'Farmer',
+        farmLocation: user?.district || activeFarm?.location || 'Andhra Pradesh',
+        language: (i18n.language || 'en').split('-')[0]
+      });
+    }
   };
 
   const handleOpenGpsMaps = (query = 'Rythu Bharosa Kendram near me') => {
@@ -1008,6 +1032,16 @@ const AIAssistantPage = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* Voice Doctor Consultation Button */}
+            <button
+              onClick={() => setShowVoiceDoctor(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer"
+              title="Speak with Dr. AgriShield (Voice Doctor)"
+            >
+              <Stethoscope className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Voice Doctor</span>
+            </button>
+
             <button 
               onClick={fetchSessions}
               disabled={isSyncing}
@@ -1817,6 +1851,13 @@ const AIAssistantPage = () => {
           </p>
         </div>
       </div>
+
+      {/* Multimodal Voice Crop Doctor Modal */}
+      <VoiceCropDoctorModal 
+        isOpen={showVoiceDoctor} 
+        onClose={() => setShowVoiceDoctor(false)} 
+        initialCrop={activeFarm?.crop_type || 'Tomato'} 
+      />
     </div>
   );
 };

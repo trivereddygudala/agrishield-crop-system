@@ -18,15 +18,20 @@ import {
   MessageCircle,
   Calculator,
   Volume2,
-  VolumeX
+  VolumeX,
+  Stethoscope,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import API from '../services/api';
 import { Card, Button, Badge, Progress, Skeleton } from '../components/ui/index';
 import { useFarm } from '../context/FarmContext';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
+import { generateAndDownloadPrescriptionPDF } from '../utils/pdfPrescriptionGenerator';
 import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
 import { useSpeechReader } from '../hooks/useSpeechReader';
+import VoiceCropDoctorModal from '../components/intelligence/VoiceCropDoctorModal';
 
 const ADVICE_DB = {
   "healthy": {
@@ -76,14 +81,28 @@ const PredictionResultPage = () => {
   const [imgError, setImgError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showGradCam, setShowGradCam] = useState(false);
+  const [showVoiceDoctor, setShowVoiceDoctor] = useState(false);
+  const [isVerifyingCloud, setIsVerifyingCloud] = useState(false);
   
   const imagePath = location.state?.imagePath;
   const passedPreviewUrl = location.state?.previewUrl;
   const backendBaseUrl = import.meta.env.VITE_API_URL || '';
 
   useEffect(() => {
-    if (!imagePath && !passedPreviewUrl) {
+    if (!imagePath && !passedPreviewUrl && !location.state?.offlineTriage) {
       navigate('/upload', { replace: true });
+      return;
+    }
+
+    if (location.state?.offlineTriage) {
+      setResult(location.state.offlineTriage);
+      setLoading(false);
+      return;
+    }
+
+    if (location.state?.initialResult) {
+      setResult(location.state.initialResult);
+      setLoading(false);
       return;
     }
 
@@ -121,7 +140,23 @@ const PredictionResultPage = () => {
     };
 
     runAIPrediction();
-  }, [imagePath, passedPreviewUrl, navigate, activeFarm]);
+  }, [imagePath, passedPreviewUrl, navigate, activeFarm, location.state]);
+
+  const handleCloudVerify = async () => {
+    if (!imagePath || !navigator.onLine) return;
+    setIsVerifyingCloud(true);
+    try {
+      const res = await API.post('/api/predict', { 
+        image_path: imagePath,
+        language: i18n.language || 'en'
+      });
+      setResult(res.data);
+    } catch (e) {
+      console.error('Cloud verification failed:', e);
+    } finally {
+      setIsVerifyingCloud(false);
+    }
+  };
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -193,6 +228,30 @@ const PredictionResultPage = () => {
     });
   };
 
+  const handleDownloadPDF = () => {
+    if (!result) return;
+    try {
+      generateAndDownloadPrescriptionPDF({
+        cropName: localizedCrop || result.crop_name,
+        diseaseName: localizedDisease || result.disease_name,
+        confidence: confidencePercent,
+        severity: isHealthy ? 'Healthy' : (result.severity || 'Active Symptoms'),
+        chemicals: diseaseKb.chemicals?.length > 0 ? diseaseKb.chemicals : (result.chemical_treatment ? [result.chemical_treatment] : []),
+        organic: diseaseKb.organic?.length > 0 ? diseaseKb.organic : (result.organic_treatment ? [result.organic_treatment] : []),
+        prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
+        acres: activeFarm?.total_area || 1.0,
+        farmLocation: activeFarm?.location || 'Pasupugallu Farm',
+        farmerName: activeFarm?.farm_name || 'AgriShield Farmer',
+        doctorNote: result.symptoms || 'Early foliar spray recommended before dewfall.',
+        language: i18n?.language || 'en',
+        isOffline: result.is_offline || false
+      });
+    } catch (e) {
+      console.warn("Direct PDF failed, falling back to print slip:", e);
+      handlePrintPrescription();
+    }
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -209,6 +268,17 @@ const PredictionResultPage = () => {
         </Link>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Ask Voice Doctor Button */}
+          <Button 
+            variant="solid" 
+            size="sm" 
+            onClick={() => setShowVoiceDoctor(true)}
+            className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black shadow-md border-0 active:scale-95"
+            leftIcon={<Stethoscope className="w-4 h-4 text-emerald-200" />}
+          >
+            Ask Voice Doctor
+          </Button>
+
           {/* Voice Readout Button */}
           {result && (
             <Button
@@ -241,15 +311,15 @@ const PredictionResultPage = () => {
             Send to WhatsApp
           </Button>
 
-          {/* Download / Print Prescription PDF */}
+          {/* Download Clinical Prescription PDF */}
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={handlePrintPrescription}
+            onClick={handleDownloadPDF}
             className="font-extrabold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 active:scale-95"
-            leftIcon={<Printer className="w-4 h-4 text-emerald-500" />}
+            leftIcon={<Download className="w-4 h-4 text-emerald-500" />}
           >
-            Prescription (PDF)
+            Download Rx (PDF)
           </Button>
 
           <Button 
@@ -262,6 +332,34 @@ const PredictionResultPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Offline Field Triage Banner */}
+      {result?.is_offline && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/15 border border-amber-400/40 text-amber-200 text-xs font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 animate-pulse" />
+            <div>
+              <p className="font-bold text-amber-300 text-sm">Zero-Internet Field Triage Mode</p>
+              <p className="text-slate-300 text-xs">
+                {result.triage_disclaimer || "Calculated locally on-device. Saved to offline queue."}
+              </p>
+            </div>
+          </div>
+
+          {imagePath && navigator.onLine && (
+            <Button
+              variant="solid"
+              size="sm"
+              onClick={handleCloudVerify}
+              disabled={isVerifyingCloud}
+              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isVerifyingCloud ? 'animate-spin' : ''}`} />}
+              className="bg-amber-600 hover:bg-amber-500 text-white font-bold shrink-0 shadow-md"
+            >
+              {isVerifyingCloud ? 'Verifying with Cloud...' : 'Verify with PyTorch Cloud AI'}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Main Prediction Summary Card */}
       <Card className={`p-6 sm:p-8 border-0 shadow-2xl text-white relative overflow-hidden ${
@@ -490,6 +588,15 @@ const PredictionResultPage = () => {
           </ul>
         </Card>
       )}
+
+      {/* Voice Crop Doctor Consultation Modal */}
+      <VoiceCropDoctorModal 
+        isOpen={showVoiceDoctor} 
+        onClose={() => setShowVoiceDoctor(false)} 
+        initialCrop={localizedCrop || result?.crop_name} 
+        initialDisease={localizedDisease || result?.disease_name} 
+        initialSymptoms={result?.symptoms} 
+      />
     </motion.div>
   );
 };
