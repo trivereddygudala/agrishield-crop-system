@@ -310,5 +310,40 @@ and one more error is when tapthe field button it goes to like this some times a
     2. Updated `FarmPage.jsx` so selecting a Mandal or Village immediately updates coordinates and flies the satellite map directly over that exact village/mandal with high zoom.
     3. Added live confirmation badge: `📍 Map auto-centered on [Village Name]`.
 
+---
 
+### Chat Entry 31
+* **User Input:**  
+  > "see how it is how i do operations in that that is not good give full screen with rotatable map, undo the pins the selected ones give many of the features and make it neatly give the list"
+* **Machine Summary Solution:**  
+  * Created implementation plan addressing all mobile usability bottlenecks:
+    1. **⛶ Fullscreen Studio Mode:** Edge-to-edge canvas on mobile giving 100% screen space for field operations.
+    2. **🧭 Rotatable Satellite Map:** Compass orientation with 45°/90° rotation and 1-tap True North reset.
+    3. **↩️ Undo / ↪️ Redo Stack:** Instant rollback of accidentally placed or moved pins.
+    4. **📏 Boundary Edge Measurements:** Shows length of each field side in meters on the map.
+    5. **📱 Clean Mobile UI:** Replaced stacked white box with a sleek single-line header and bottom thumb dock.
 
+---
+
+### Chat Entry 32
+* **User Input:**  
+  > "and it is glitching when i tap on the add plots, so many"
+* **Machine Summary Solution:**  
+  * Diagnosed exact root cause of the "Add Plot" glitch: An infinite re-render ping-pong cycle between `FieldBoundaryMap.jsx` and `FarmPage.jsx` (`setPlots` -> `onBoundaryChange` -> parent `setBoundaryCoordinates` -> re-triggered child `useEffect([boundaryCoordinates])` -> `setPlots`).
+  * Updated implementation plan to break this cyclic loop using serialized ref tracking, clean up the double `+ +` label, and integrate into the Full-Screen Studio & Clean Mobile layout.
+
+---
+
+### Chat Entry 33
+* **User Input:**  
+  > "see how it is how i do operations in that that is not good give full screen with rotatable map, undo the pins the selected ones give many of the features and make it neatly give the list"  
+  > "and it is glitching when i tap on the add plots, so many"
+* **Machine Summary Solution:**  
+  * Fully implemented all features and verified with clean Vite production build:
+    1. **Fixed "Add Plot" Loop Glitch:** Resolved cyclic props-to-state re-render cycle in `FieldBoundaryMap.jsx` using `lastSyncedStringRef` and `isUserActionRef`. Tapping "Add Plot" now instantly adds clean plots without freeze or loop. Removed duplicate `+ +` label.
+    2. **⛶ Fullscreen Studio Mode:** Tapping `[⛶ Fullscreen]` expands map to 100% of mobile screen (`fixed inset-0 z-[9999]`), calling Leaflet `invalidateSize()` for an unobstructed field boundary mapping canvas.
+    3. **🧭 Rotatable Satellite Map:** Added smooth CSS rotation with `+45°` / `-45°` controls, dynamic magnetic compass needle, and 1-tap True North (`0°`) reset.
+    4. **↩️ Undo / ↪️ Redo Pin History:** Integrated multi-level history stack allowing instant rollback of pins and restoration.
+    5. **📍 Pin Selection & Targeted Deletion:** Tapping any pin highlights it with a golden ring and opens a 1-tap `🗑️ Delete Pin` action.
+    6. **📏 Side Length Badges in Meters:** Displays real-time distance badges (e.g. `48m`, `115m`) on every boundary segment line.
+    7. **📱 Mobile Decluttering:** Replaced stacked white boxes with a sleek, floating top bar: `[🌾 Plot 1 ▾] [Total: X.XX Ac] [⛶ Fullscreen]`. Tapping the plot pill opens a drawer instead of covering the map. Bottom thumb-dock houses all tools ergonomically.

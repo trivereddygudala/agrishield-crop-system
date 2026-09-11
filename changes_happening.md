@@ -1723,6 +1723,25 @@
      - 🟢 Sensor Status: `🟢 పొలంలో సెన్సార్ పరికరం పనిచేస్తుంది (Field Sensor Node Active)`.
      - 7 Live Farm Sensor cards localized with human meanings (గాలి ఉష్ణోగ్రత, నేల తేమ, ఎండ తీవ్రత, వర్షం, గాలి తేమ, పీడనం, బ్యాటరీ, మెమరీ).
      - Collapsed deep engineering diagnostics (I2C 0x38/0x23/0x76, GPIO 34/32/35/5, CPU load, heap) inside an expandable `<details>` accordion for technicians.
+
+   9/11/2026: Fullscreen Studio Mode, Rotatable Satellite Map, Undo/Redo Pin History, Dynamic Edge Length Badges, and Multi-Plot Glitch Fix (v96):
+- **User Request & Problems Addressed:**
+  1. Fix mobile map usability: In mobile portrait view, the multi-plot and toolbar boxes stacked up and covered nearly the entire map viewport, making field navigation difficult.
+  2. Implement **Full-Screen Studio Mode (`⛶`)** so the farmer has 100% of the phone screen for mapping.
+  3. Implement **Rotatable Map (`🧭`)** with compass bearing and a 1-tap reset to True North (`0°`).
+  4. Implement **Undo / Redo (`↩️` / `↪️`)** for corner pins and allow selecting and deleting specific pins.
+  5. Fix the **"Add Plot" glitch** where tapping Add Plot caused repeated re-rendering and displayed double `+ + Add Plot 2`.
+  6. Display **Side Lengths & Widths** in meters on every boundary segment line.
+- **Architectural Enhancements & Fixes:**
+  1. **"Add Plot" Ping-Pong Loop Fix (`FieldBoundaryMap.jsx`):** Resolved cyclic re-render bug where adding a plot caused `onBoundaryChange` to update parent state, which sent new props back down and re-triggered `useEffect([boundaryCoordinates])`. Implemented `lastSyncedStringRef` and `isUserActionRef` to strictly break the feedback loop. Fixed double `+ +` label.
+  2. **1-Tap Full-Screen Studio (`⛶`):** Built edge-to-edge full-screen studio mode (`fixed inset-0 z-[9999] w-screen h-screen bg-slate-950`). Automatically calls Leaflet's `map.invalidateSize()` after DOM resize to prevent tile clipping.
+  3. **Rotatable Satellite Map (`🧭`):** Added smooth CSS rotation (`transform: rotate(${rotationAngle}deg)`) with `+45°`, `-45°` controls and a 1-tap True North (`0°`) Compass needle reset.
+  4. **Undo / Redo History Stack:** Implemented multi-level `history` state with `handleUndo` and `handleRedo` buttons, enabling instant rollback of accidentally placed or moved pins.
+  5. **Selected Pin Highlighting & Removal:** Tapping any pin highlights it with a gold ring and provides an instant `🗑️ Delete Pin` action.
+  6. **Side Lengths in Meters:** Renders real-time distance badges (e.g. `45m`, `120m`) on every edge segment using Haversine calculation.
+  7. **Clean Mobile Decluttering:** Replaced the stacked multi-row white box with a sleek, single-line glass top bar: `[🌾 Plot 1 ▾] [Total: X.XX Ac] [⛶ Fullscreen]`. Tapping the plot pill opens an elegant slide-over drawer instead of covering the map. Bottom thumb-dock houses `[🛰️ Layers] [🚶 Walk] [📍 Pin] [↩️ Undo] [↪️ Redo] [🧭 Rotate]`.
+- **Files Modified:** `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/pages/FarmPage.jsx`, `frontend/src/data/indiaLocations.js`
+
   3. **My Farm Operations (`frontend/src/pages/FarmPage.jsx` | 88 -> 97/100):**
      - 1-Tap Quick Plot Size chips: `[0.5 ఎకరం]`, `[1 ఎకరం]`, `[2 ఎకరాలు]`, `[3 ఎకరాలు]`, `[5 ఎకరాలు]`, `[10 ఎకరాలు]` for effortless one-touch land configuration without typing decimals.
      - Prominent GPS Geolocation Hero Card: High-visibility green gradient 1-tap button `"📍 నా ప్రస్తుత పొలం స్థానాన్ని తీసుకోండి (1-Tap GPS)"` with clear Telugu subtext.
