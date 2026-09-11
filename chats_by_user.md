@@ -6,6 +6,21 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 43
+* **User Input:**
+  > "the map issue is still there what is the issue means 1. when i tap on open studio it lloks like the first picture it is not good it hides something below the sat and map, and 2 back buttons are there awhat is this you dont know how to design. 2. in second picture when i touch map it will automatically goes like that that means the above ones are not in the seeing range they will automatically moves upward why this happens fix this issue . i think you dont know how to design it right analyze diffrent applications there are so many applications are there right why you dont analyze them and make it neatly and clearly with out any issues. Second issue: in the moretab why somany are there the field tab already have some of the tabs that are having in the more tab you don't know this tell."
+* **Machine Summary Solution:**
+  * Analyzed user's uploaded mobile screenshots and resolved both issues completely:
+    1. **Full-Screen Field Boundary Map Studio (Picture 1 & Picture 2 Fixes):**
+       - **Eliminated Duplicate Back Button:** Removed the second floating button (`absolute top-14 left-3`) that rendered right below the header bar. Studio now has strictly **ONE** single, sleek back button (`[ < ← వెనుకకు ]` / `[ < ← Back ]`) in the top bar.
+       - **Fixed Obstructed / Cut-off Guidance Banner:** Moved the floating status banner (`📍 మ్యాప్‌పై మీ పొలం మూలలను తాకండి`) from `top-14` into the map area at `top-3`, ensuring 100% unobstructed visibility without colliding with `Sat / Map` or the back button.
+       - **Fixed Header Moving Upward Upon Touch (Picture 2 Root Cause):** Identified that `style={{ height: '100%', minHeight: '100%' }}` on the map div inside a `flex flex-col` parent with a 56px header caused 56px of vertical overflow. When touched, mobile browser scrolled the whole container upward by 56px, pushing the header off-screen. Replaced with `flex-1 w-full h-full relative min-h-0 overflow-hidden touch-none` and added `overscroll-none touch-none select-none` to the full-screen container. Total height is strictly `100dvh`, preventing any scroll jump.
+    2. **Cleaned Redundant Tools from More Tab (`MorePage.jsx`):**
+       - Removed `My Farm & Operations` (`/farm`) because it is already the primary 2nd tab on the bottom navigation dock (`Field` / `పొలం`).
+       - Removed `Farming Tips & Advisory` (`/crop-advisory`) and `Analytics & Insights` (`/analytics`) because they are already part of the Field tab (`Farm Intelligence & Routine` and `Crop Lifecycle`).
+       - Retained genuine utility tools in the More tab: **Field Area Calculator** (`/field-calculator`), **Live Mandi Prices** (`/market`), **AI Agronomist Chat** (`/assistant`), **Audit Reports** (`/reports`), plus Hardware Tools & Account Settings.
+  * Verified build: `npm run build` passed with 0 errors in 21.31s.
+
 ### Chat Entry 42
 * **User Input:**
   > "why ai chat bot gives the extra answers correct this one give the conditions to give the what the userasks do not give extra answers becausethe user confuses . i give the images see those ones then you understand."

@@ -73,15 +73,6 @@ const MorePage = () => {
 
   const FARMING_TOOLS = [
     { 
-      icon: Sprout,    
-      label: t('more.tools.farm.label', 'My Farm & Operations'), 
-      description: t('more.tools.farm.desc', 'Farm sectors, soil types, and field boundaries'),  
-      path: '/farm',          
-      iconColor: 'text-emerald-600 dark:text-emerald-400', 
-      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800', 
-      accent: 'border-l-emerald-500' 
-    },
-    { 
       icon: Ruler,    
       label: isTe ? 'పొలం విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator', 
       description: isTe ? 'జీపీఎస్ వాక్ మోడ్ & మ్యాప్ ద్వారా ఖచ్చితమైన ఎకరాలు, గుంటలు, సెంట్లు కొలవండి' : 'GPS perimeter walk & map pin measuring for acres, cents & gunthas',  
@@ -101,15 +92,6 @@ const MorePage = () => {
       accent: 'border-l-amber-500' 
     },
     { 
-      icon: Leaf,      
-      label: t('more.tools.advisory.label', 'Farming Tips & Advisory'), 
-      description: t('more.tools.advisory.desc', 'Agronomy schedules, weather windows & spray alerts'), 
-      path: '/crop-advisory', 
-      iconColor: 'text-teal-600 dark:text-teal-400',   
-      iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',       
-      accent: 'border-l-teal-500' 
-    },
-    { 
       icon: Bot,       
       label: t('more.tools.assistant.label', 'AI Agronomist Chat'),   
       description: t('more.tools.assistant.desc', 'Voice & text consultation in Hindi, Telugu, Tamil'), 
@@ -117,15 +99,6 @@ const MorePage = () => {
       iconColor: 'text-blue-600 dark:text-blue-400',     
       iconBg: 'bg-blue-100 dark:bg-blue-950/70 border border-blue-300 dark:border-blue-800',         
       accent: 'border-l-blue-500' 
-    },
-    { 
-      icon: BarChart2, 
-      label: t('more.tools.analytics.label', 'Analytics & Insights'), 
-      description: t('more.tools.analytics.desc', 'Telemetry charts, crop health index & forecasts'), 
-      path: '/analytics',    
-      iconColor: 'text-indigo-600 dark:text-indigo-400', 
-      iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',   
-      accent: 'border-l-indigo-500' 
     },
     { 
       icon: FileText,  

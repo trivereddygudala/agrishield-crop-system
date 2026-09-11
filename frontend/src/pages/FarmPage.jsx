@@ -253,7 +253,7 @@ const FarmPage = () => {
   // ═══════ FULL-SCREEN GOOGLE MAPS STUDIO: FIELD BOUNDARY ═══════
   if (activeTab === 'boundary-studio') {
     return (
-      <div className="fixed inset-0 z-[9999] w-screen h-[100dvh] bg-slate-950 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-[9999] w-full h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none">
         <FieldBoundaryMap
           centerLat={effectiveLat}
           centerLng={effectiveLng}
@@ -277,7 +277,7 @@ const FarmPage = () => {
           showRadarRings={false}
           isDedicated={true}
           onBack={() => setActiveTab('field-setup')}
-          backLabel={isTe ? '← పొలం సెటప్‌కు తిరిగి' : '← Back to Field Setup'}
+          backLabel={isTe ? '← వెనుకకు' : '← Back'}
         />
       </div>
     );
@@ -286,7 +286,7 @@ const FarmPage = () => {
   // ═══════ FULL-SCREEN GOOGLE MAPS STUDIO: DISEASE RADAR ═══════
   if (activeTab === 'radar-studio') {
     return (
-      <div className="fixed inset-0 z-[9999] w-screen h-[100dvh] bg-slate-950 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-[9999] w-full h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none">
         <FieldBoundaryMap
           centerLat={effectiveLat}
           centerLng={effectiveLng}
@@ -311,7 +311,7 @@ const FarmPage = () => {
           interactive={true}
           isDedicated={true}
           onBack={() => setActiveTab('nearby-radar')}
-          backLabel={isTe ? '← వ్యాధి రాడార్‌కు తిరిగి' : '← Back to Disease Radar'}
+          backLabel={isTe ? '← వెనుకకు' : '← Back'}
         />
       </div>
     );

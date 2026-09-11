@@ -2,6 +2,19 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v106) - Fix Full-Screen Map Studio Double Back Buttons, Overlapping Guidance Banner & Scroll Jump; Clean Redundant Tools from More Tab
+- **Summary:** Addressed two major mobile UX and design issues based on user screenshots and feedback:
+  1. 🗺️ **Full-Screen Field Boundary Map Studio UX Overhaul (`FieldBoundaryMap.jsx` & `FarmPage.jsx`):**
+     - **Removed Duplicate Back Button:** Eliminated the second floating button (`absolute top-14 left-3`) that collided below the header bar. Studio mode now features strictly ONE single, clean, high-contrast back button (`[ < ← వెనుకకు ]` / `[ < ← Back ]`) in the top navigation bar.
+     - **Fixed Cut-off Guidance Banner Behind Sat/Map:** Moved the floating guidance banner (`📍 మ్యాప్‌పై మీ పొలం మూలలను తాకండి`) from an arbitrary `top-14` coordinate into the map viewport at `top-3`, ensuring 100% visibility without any text cut-off or collision with `Sat / Map` or the back button.
+     - **Eliminated Scroll Jump & Upward Moving Header (Picture 2 Root Cause):** Traced why the top header scrolled off-screen when the user touched the map. The map canvas previously used `style={{ height: '100%', minHeight: '100%' }}` within a `flex flex-col` parent with a 56px header, creating 56px of vertical overflow. Replaced with strict `flex-1 w-full h-full relative min-h-0 overflow-hidden touch-none` and added `overscroll-none touch-none select-none` to the full-screen wrapper. The map canvas now computes strictly to `100dvh - 56px`, eliminating all page scroll and locking the top header in place like Google Maps.
+  2. 📱 **Cleaned Redundant Tools from More Tab (`MorePage.jsx`):**
+     - Addressed user feedback regarding redundancy between the **More** tab and the bottom navigation **Field** (`పొలం`) tab.
+     - Removed `My Farm & Operations` (`/farm`) from the More tab because it is already the primary 2nd tab on the bottom navigation dock.
+     - Removed `Farming Tips & Advisory` (`/crop-advisory`) and `Analytics & Insights` (`/analytics`) from the More tab because they are already natively accessible inside the Field tab under `Farm Intelligence & Routine` and `Crop Lifecycle`.
+     - Focused the More tab on genuine utility services: **Field Area Calculator** (`/field-calculator`), **Live Mandi Prices** (`/market`), **AI Agronomist Chat** (`/assistant`), **Audit Reports** (`/reports`), plus Hardware Tools & Account Settings.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/pages/FarmPage.jsx`, `frontend/src/pages/MorePage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v105) - AI Assistant Strict Query Intent Adherence, Zero Unsolicited Advice & Elimination of Contradictory Cards
 - **Summary:** Resolved the issue where the AI Chatbot gave overwhelming, unsolicited extra answers (e.g., diagnosing tomato leaf spot and prescribing Mancozeb 75% WP @ 40g/16L pump when the user only asked a simple weather spray safety question) and rendered misleading contradictory cards:
   1. 🧠 **Backend Intent-Gated Context Injection (`backend/app/routers/ai.py`):**

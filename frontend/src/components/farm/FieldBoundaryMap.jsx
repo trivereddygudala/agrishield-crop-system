@@ -680,50 +680,51 @@ export default function FieldBoundaryMap({
 
   return (
     <div
-      className={`relative overflow-hidden transition-all duration-200 w-full max-w-full min-w-0 ${
+      className={`relative w-full max-w-full min-w-0 flex flex-col ${
         isFullScreenView
-          ? 'fixed inset-0 z-[9999] w-screen h-[100dvh] bg-slate-950 flex flex-col'
-          : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 flex flex-col'
+          ? 'fixed inset-0 z-[9999] w-full h-[100dvh] max-h-[100dvh] bg-slate-950 overflow-hidden overscroll-none touch-none select-none'
+          : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden'
       }`}
       style={{
         height: isFullScreenView ? '100dvh' : height,
-        minHeight: isFullScreenView ? '100dvh' : height
+        maxHeight: isFullScreenView ? '100dvh' : height
       }}
     >
-      {/* ═══════ 1. TOP HEADER BAR: CLEAN, BIG & IMPOSSIBLE TO MISS ═══════ */}
-      <div className={`border-b px-3 py-2.5 flex items-center justify-between gap-2 z-30 shrink-0 min-w-0 max-w-full ${
+      {/* ═══════ 1. TOP HEADER BAR: SINGLE, CLEAN, FIXED 56px HEIGHT (NO OVERLAPS) ═══════ */}
+      <div className={`h-14 shrink-0 px-3 py-2 flex items-center justify-between gap-1.5 z-30 min-w-0 max-w-full ${
         isFullScreenView
-          ? 'bg-slate-900 text-white border-slate-800 shadow-md'
-          : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800'
+          ? 'bg-slate-900 text-white border-b border-slate-800 shadow-md'
+          : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800'
       }`}>
-        {/* Left: Prominent Back Button */}
-        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-          {(isFullScreenView || onBack) ? (
+        {/* Left: ONLY ONE Prominent Back Button + Farm Area Badge */}
+        <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+          {(isFullScreenView || onBack) && (
             <button
               type="button"
               onClick={handleBackNavigation}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+              title={isTelugu ? 'వెనుకకు' : 'Back'}
             >
               <ChevronLeft className="w-4 h-4 stroke-[3]" />
-              <span className="font-extrabold truncate max-w-[160px]">
+              <span className="font-extrabold truncate max-w-[120px]">
                 {backLabel || (isTelugu ? '← వెనుకకు' : '← Back')}
               </span>
             </button>
-          ) : null}
+          )}
 
           {/* Farm Name & Area Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold shrink-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-            <span className="truncate max-w-[90px] xs:max-w-[130px] text-slate-900 dark:text-white">
+          <div className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span className="truncate max-w-[80px] xs:max-w-[110px] text-slate-900 dark:text-white font-bold">
               {farmName}
             </span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold ml-1">
+            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold ml-0.5">
               🌾 {area.acres} {isTelugu ? 'ఎక' : 'Ac'}
             </span>
           </div>
         </div>
 
-        {/* Right: Satellite/Street Toggle & Save/Expand Button */}
+        {/* Right: Satellite/Street Toggle & Save/Studio Button */}
         <div className="flex items-center gap-1.5 shrink-0">
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs">
             <button
@@ -756,7 +757,7 @@ export default function FieldBoundaryMap({
             <button
               type="button"
               onClick={handleBackNavigation}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
+              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
               title={isTelugu ? 'సరిహద్దు భద్రపరచి ముగించండి' : 'Save boundary and return'}
             >
               <Check className="w-4 h-4 stroke-[3]" />
@@ -782,183 +783,173 @@ export default function FieldBoundaryMap({
         </div>
       </div>
 
-      {/* ═══════ 2. PERSISTENT FLOATING BACK BUTTON ═══════ */}
-      {isFullScreenView && (
-        <button
-          type="button"
-          onClick={handleBackNavigation}
-          className="absolute top-14 left-3 z-[1000] flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 text-white shadow-xl hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer border border-emerald-400/50"
-        >
-          <ChevronLeft className="w-4 h-4 stroke-[3]" />
-          <span>{isTelugu ? '← వెనుకకు' : '← Back'}</span>
-        </button>
-      )}
-
-      {/* ═══════ 3. FRIENDLY FARMER GUIDANCE BANNER (TOP CENTER) ═══════ */}
-      {interactive && !isWalkMode && (
-        <div className="absolute top-14 inset-x-0 z-20 flex justify-center pointer-events-none px-4">
-          <div className="pointer-events-auto bg-slate-900/90 text-white backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700 shadow-xl text-xs flex items-center gap-2 max-w-sm text-center">
-            {isPinMode ? (
-              <span className="font-bold text-emerald-300 animate-pulse">
-                📍 {isTelugu ? 'మ్యాప్‌పై మీ పొలం మూలలను తాకండి' : 'Tap the corners of your field on the map'}
-              </span>
-            ) : pins.length >= 3 ? (
-              <span className="font-bold text-slate-100">
-                🌾 {isTelugu ? `విస్తీర్ణం: ${area.acres} ఎకరాలు (${pins.length} మూలలు)` : `Area: ${area.acres} Acres (${pins.length} corners)`}
-              </span>
-            ) : (
-              <span className="text-slate-300">
-                ℹ️ {isTelugu ? 'క్రింద "+ పిన్ వేయి" లేదా "వాక్ మోడ్" ఎంచుకోండి' : 'Select "+ Add Pin" or "Walk Mode" below'}
-              </span>
-            )}
+      {/* ═══════ 2. MAP CANVAS AREA: ZERO OVERFLOW, ABSOLUTE LEAFLET CONTAINER ═══════ */}
+      <div className="flex-1 w-full relative z-0 min-h-0 overflow-hidden touch-none">
+        {/* Friendly Farmer Guidance Banner (Top Center of Map - Clean & Unobstructed) */}
+        {interactive && !isWalkMode && (
+          <div className="absolute top-3 inset-x-0 z-20 flex justify-center pointer-events-none px-3">
+            <div className="pointer-events-auto bg-slate-900/90 text-white backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700 shadow-xl text-xs flex items-center gap-2 max-w-sm text-center">
+              {isPinMode ? (
+                <span className="font-bold text-emerald-300 animate-pulse">
+                  📍 {isTelugu ? 'మ్యాప్‌పై మీ పొలం మూలలను తాకండి' : 'Tap the corners of your field on the map'}
+                </span>
+              ) : pins.length >= 3 ? (
+                <span className="font-bold text-slate-100">
+                  🌾 {isTelugu ? `విస్తీర్ణం: ${area.acres} ఎకరాలు (${pins.length} మూలలు)` : `Area: ${area.acres} Acres (${pins.length} corners)`}
+                </span>
+              ) : (
+                <span className="text-slate-300">
+                  ℹ️ {isTelugu ? 'క్రింద "+ పిన్ వేయి" లేదా "వాక్ మోడ్" ఎంచుకోండి' : 'Select "+ Add Pin" or "Walk Mode" below'}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ═══════ 4. 🚶 PINPOINT GPS WALKING HUD FLOATING OVERLAY ═══════ */}
-      {isWalkMode && (
-        <div className="absolute inset-x-3 top-14 z-30 pointer-events-auto max-w-lg mx-auto">
-          <div className="p-3.5 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border border-sky-500/50 shadow-2xl flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
-                  <Footprints className="w-4 h-4 animate-bounce" />
+        {/* 🚶 Pinpoint GPS Walking HUD Floating Overlay */}
+        {isWalkMode && (
+          <div className="absolute inset-x-3 top-3 z-30 pointer-events-auto max-w-lg mx-auto">
+            <div className="p-3.5 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border border-sky-500/50 shadow-2xl flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+                    <Footprints className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-white flex items-center gap-1.5">
+                      <span>{isTelugu ? 'జీపీఎస్ వాకింగ్ సర్వే' : 'Pinpoint GPS Walk Survey'}</span>
+                      <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold">1m Accuracy</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-300 font-medium">
+                      {walkDistance}m {isTelugu ? 'నడిచారు' : 'walked'} • {pins.length} {isTelugu ? 'కార్నర్స్' : 'corners'} • 🌾 {area.acres} {isTelugu ? 'ఎకరాలు' : 'Acres'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-white flex items-center gap-1.5">
-                    <span>{isTelugu ? 'జీపీఎస్ వాకింగ్ సర్వే' : 'Pinpoint GPS Walk Survey'}</span>
-                    <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold">1m Accuracy</span>
-                  </h4>
-                  <p className="text-[11px] text-slate-300 font-medium">
-                    {walkDistance}m {isTelugu ? 'నడిచారు' : 'walked'} • {pins.length} {isTelugu ? 'కార్నర్స్' : 'corners'} • 🌾 {area.acres} {isTelugu ? 'ఎకరాలు' : 'Acres'}
-                  </p>
+
+                {/* GPS Accuracy Indicator */}
+                <div className={`px-2 py-1 rounded-xl text-[10px] font-black flex items-center gap-1 border ${
+                  gpsAccuracy !== null && gpsAccuracy <= 3
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : gpsAccuracy !== null && gpsAccuracy <= 6
+                    ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                }`}>
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>{gpsAccuracy !== null ? `±${gpsAccuracy}m GPS` : 'Acquiring GPS...'}</span>
                 </div>
               </div>
 
-              {/* GPS Accuracy Indicator */}
-              <div className={`px-2 py-1 rounded-xl text-[10px] font-black flex items-center gap-1 border ${
-                gpsAccuracy !== null && gpsAccuracy <= 3
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  : gpsAccuracy !== null && gpsAccuracy <= 6
-                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
-              }`}>
-                <ShieldCheck className="w-3 h-3" />
-                <span>{gpsAccuracy !== null ? `±${gpsAccuracy}m GPS` : 'Acquiring GPS...'}</span>
+              {/* Quick Action Buttons in Walk Mode */}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleDropManualCorner}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>{isTelugu ? '📍 కార్నర్ పిన్ వేయి' : 'Drop Corner Pin'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={finishWalkMode}
+                  className="flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>{isTelugu ? 'సర్వే ముగించు' : 'Finish'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={cancelWalkMode}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title={isTelugu ? 'రద్దు చేయి' : 'Cancel'}
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Quick Action Buttons in Walk Mode */}
-            <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800">
+        {/* Leaflet Map Canvas - strictly fills 100% of the flex-1 area without 1px overflow */}
+        <div
+          ref={mapContainerRef}
+          className="w-full h-full relative z-0 outline-none overflow-hidden touch-none"
+        />
+
+        {/* Simple Farmer Action Dock (Bottom Center of Map) */}
+        {interactive && !isWalkMode && (
+          <div className="absolute bottom-4 sm:bottom-6 inset-x-3 z-30 flex justify-center pointer-events-none pb-safe">
+            <div className="flex items-center gap-2 bg-slate-900/95 text-white backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto">
+              {/* 1. Add Pin Toggle Button */}
               <button
                 type="button"
-                onClick={handleDropManualCorner}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-all cursor-pointer"
+                onClick={() => setIsPinMode(!isPinMode)}
+                className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
+                  isPinMode
+                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-md animate-pulse'
+                    : 'bg-emerald-600/80 hover:bg-emerald-600 text-white shadow-xs'
+                }`}
               >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{isTelugu ? '📍 కార్నర్ పిన్ వేయి' : 'Drop Corner Pin'}</span>
+                <MapPin className="w-4 h-4" />
+                <span>
+                  {isPinMode
+                    ? (isTelugu ? 'తాకండి...' : 'Tap Map...')
+                    : (isTelugu ? '+ పిన్ వేయి' : '+ Add Pin')}
+                </span>
               </button>
 
+              {/* 2. Pinpoint GPS Walk Mode Button */}
               <button
                 type="button"
-                onClick={finishWalkMode}
-                className="flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-md active:scale-95 transition-all cursor-pointer"
+                onClick={startWalkMode}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
+                title={isTelugu ? 'నడక ద్వారా పొలం కొలవండి (1 మీటర్ ఖచ్చితత్వం)' : 'Walk field perimeter (1m accuracy)'}
               >
-                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                <span>{isTelugu ? 'సర్వే ముగించు' : 'Finish'}</span>
+                <Footprints className="w-4 h-4" />
+                <span>{isTelugu ? 'వాక్ మోడ్' : 'Walk Mode'}</span>
               </button>
 
+              {/* 3. Undo Last Pin */}
               <button
                 type="button"
-                onClick={cancelWalkMode}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                title={isTelugu ? 'రద్దు చేయి' : 'Cancel'}
+                onClick={handleUndo}
+                disabled={historyIndex <= 0 || pins.length === 0}
+                className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                title={isTelugu ? 'చివరి పిన్ రద్దు చేయి' : 'Undo last pin'}
               >
-                <X className="w-4 h-4" />
+                <Undo2 className="w-4 h-4" />
+                <span className="hidden xs:inline">{isTelugu ? 'రద్దు' : 'Undo'}</span>
+              </button>
+
+              {/* 4. Clear All Pins */}
+              {pins.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllPins}
+                  className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                  title={isTelugu ? 'అన్ని పిన్స్ తొలగించండి' : 'Clear all pins'}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden xs:inline">{isTelugu ? 'తీసివేయి' : 'Clear'}</span>
+                </button>
+              )}
+
+              {/* 5. Recenter Map on Farm */}
+              <button
+                type="button"
+                onClick={centerMap}
+                className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                title={isTelugu ? 'నా పొలం కేంద్రం' : 'Center on farm'}
+              >
+                <Crosshair className="w-4 h-4" />
+                <span className="hidden sm:inline">{isTelugu ? 'నా పొలం' : 'My Farm'}</span>
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ═══════ 5. MAP CANVAS CONTAINER ═══════ */}
-      <div
-        ref={mapContainerRef}
-        style={{ height: '100%', minHeight: '100%' }}
-        className="w-full relative z-0 flex-1 outline-none min-h-0"
-      />
-
-      {/* ═══════ 6. SIMPLE FARMER ACTION DOCK (BOTTOM CENTER) ═══════ */}
-      {interactive && !isWalkMode && (
-        <div className="absolute bottom-4 sm:bottom-6 inset-x-3 z-30 flex justify-center pointer-events-none pb-safe">
-          <div className="flex items-center gap-2 bg-slate-900/95 text-white backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto">
-            {/* 1. Add Pin Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsPinMode(!isPinMode)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
-                isPinMode
-                  ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-md animate-pulse'
-                  : 'bg-emerald-600/80 hover:bg-emerald-600 text-white shadow-xs'
-              }`}
-            >
-              <MapPin className="w-4 h-4" />
-              <span>
-                {isPinMode
-                  ? (isTelugu ? 'తాకండి...' : 'Tap Map...')
-                  : (isTelugu ? '+ పిన్ వేయి' : '+ Add Pin')}
-              </span>
-            </button>
-
-            {/* 2. Pinpoint GPS Walk Mode Button */}
-            <button
-              type="button"
-              onClick={startWalkMode}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
-              title={isTelugu ? 'నడక ద్వారా పొలం కొలవండి (1 మీటర్ ఖచ్చితత్వం)' : 'Walk field perimeter (1m accuracy)'}
-            >
-              <Footprints className="w-4 h-4" />
-              <span>{isTelugu ? 'వాక్ మోడ్' : 'Walk Mode'}</span>
-            </button>
-
-            {/* 3. Undo Last Pin */}
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={historyIndex <= 0 || pins.length === 0}
-              className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
-              title={isTelugu ? 'చివరి పిన్ రద్దు చేయి' : 'Undo last pin'}
-            >
-              <Undo2 className="w-4 h-4" />
-              <span className="hidden xs:inline">{isTelugu ? 'రద్దు' : 'Undo'}</span>
-            </button>
-
-            {/* 4. Clear All Pins */}
-            {pins.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearAllPins}
-                className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors cursor-pointer"
-                title={isTelugu ? 'అన్ని పిన్స్ తొలగించండి' : 'Clear all pins'}
-              >
-                <Trash2 className="w-4 h-4" />
-                <span className="hidden xs:inline">{isTelugu ? 'తీసివేయి' : 'Clear'}</span>
-              </button>
-            )}
-
-            {/* 5. Recenter Map on Farm */}
-            <button
-              type="button"
-              onClick={centerMap}
-              className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer"
-              title={isTelugu ? 'నా పొలం కేంద్రం' : 'Center on farm'}
-            >
-              <Crosshair className="w-4 h-4" />
-              <span className="hidden sm:inline">{isTelugu ? 'నా పొలం' : 'My Farm'}</span>
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
