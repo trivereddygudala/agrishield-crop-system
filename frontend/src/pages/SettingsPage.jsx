@@ -2,18 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, ShieldCheck, Globe, Key, Save, LogOut, Check, AlertCircle, Sprout, ArrowRight, ChevronRight,
-  Sun, Type, Contrast, Monitor, Cpu
+  Sun, Type, Contrast, Monitor, Cpu, Fingerprint, ScanFace, Smartphone, Trash2, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useHardwareMode } from '../hooks/useHardwareMode';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Input, Select } from '../components/ui/index';
+import { isBiometricSupported, registerBiometricCredential } from '../utils/biometricAuth';
 
 const SettingsPage = () => {
   const { user, logout, updateProfile } = useAuth();
   const { t, i18n } = useTranslation();
   const { hardwareMode, toggleHardwareMode } = useHardwareMode();
+  const isTe = i18n.language === 'te';
   const userRole = user?.role?.toLowerCase() || 'farmer';
   const isFarmer = userRole === 'farmer';
   
@@ -52,6 +55,58 @@ const SettingsPage = () => {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // ── Biometric Authentication State ──
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricDevices, setBiometricDevices] = useState([]);
+  const [enrollingBiometric, setEnrollingBiometric] = useState(false);
+
+  useEffect(() => {
+    isBiometricSupported().then(supported => setBiometricAvailable(supported));
+    API.get('/api/auth/biometric/status').then(res => {
+      setBiometricEnabled(Boolean(res.data?.biometric_enabled));
+      setBiometricDevices(res.data?.devices || []);
+    }).catch(() => {
+      setBiometricEnabled(localStorage.getItem('agrishield_biometric_enabled') === 'true');
+    });
+  }, []);
+
+  const handleEnrollBiometric = async () => {
+    setEnrollingBiometric(true);
+    setErrorMsg('');
+    try {
+      const cred = await registerBiometricCredential(user);
+      await API.post('/api/auth/biometric/register', cred);
+      localStorage.setItem('agrishield_biometric_enabled', 'true');
+      localStorage.setItem('agrishield_biometric_cid', cred.credential_id);
+      localStorage.setItem('agrishield_biometric_email', user?.email || user?.username || '');
+      setBiometricEnabled(true);
+      setBiometricDevices(prev => [{ device_name: cred.device_name, registered_at: new Date().toISOString() }, ...prev]);
+      setToastMsg(isTe ? 'వేలిముద్ర / ఫేస్ లాగిన్ విజయవంతంగా సక్రియం చేయబడింది!' : 'Fingerprint / Face ID sign-in successfully enabled on this device!');
+    } catch (err) {
+      console.error('Biometric registration failed:', err);
+      setErrorMsg(err.message || 'Failed to enroll biometric sensor.');
+    } finally {
+      setEnrollingBiometric(false);
+    }
+  };
+
+  const handleDisableBiometric = async () => {
+    if (!window.confirm(isTe ? 'వేలిముద్ర లాగిన్ నిలిపివేయాలా?' : 'Disable biometric sign-in on your account?')) return;
+    try {
+      await API.delete('/api/auth/biometric/disable');
+      localStorage.removeItem('agrishield_biometric_enabled');
+      localStorage.removeItem('agrishield_biometric_cid');
+      localStorage.removeItem('agrishield_biometric_email');
+      setBiometricEnabled(false);
+      setBiometricDevices([]);
+      setToastMsg(isTe ? 'వేలిముద్ర లాగిన్ నిలిపివేయబడింది.' : 'Biometric sign-in disabled.');
+    } catch (err) {
+      console.error('Failed to disable biometrics:', err);
+      setErrorMsg('Failed to disable biometric sign-in.');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -271,6 +326,91 @@ const SettingsPage = () => {
         )}
       </div>
 
+      {/* ── Biometric Quick Sign-In (Fingerprint / Face ID) ── */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
+          {isTe ? "వేలిముద్ర & ఫేస్ లాగిన్ (Biometric Quick Sign-In)" : "Biometric Quick Sign-In (Fingerprint / Face ID)"}
+        </h3>
+        <Card glass className={`p-4 sm:p-5 rounded-3xl border-2 transition-all space-y-4 ${
+          biometricEnabled
+            ? 'bg-emerald-50/60 border-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/50 shadow-md shadow-emerald-500/5'
+            : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10'
+        }`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className={`p-3 rounded-2xl border shrink-0 ${
+                biometricEnabled
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-inner'
+                  : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
+              }`}>
+                <Fingerprint className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
+                    {isTe ? "వేలిముద్ర / ముఖంతో 1-ట్యాప్ లాగిన్" : "1-Tap Fingerprint & Face Unlock"}
+                  </h4>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    biometricEnabled
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {biometricEnabled ? (isTe ? "🟢 సక్రియంగా ఉంది (ACTIVE)" : "🟢 ACTIVE") : (isTe ? "⚪ నిలిపివేయబడింది" : "⚪ NOT ENABLED")}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-white/45 mt-1 leading-relaxed max-w-xl">
+                  {isTe 
+                    ? "రైతులు పొలంలో మట్టి చేతులతో ఉన్నప్పుడు లేదా పాస్‌వర్డ్ టైప్ చేయకుండా, మీ ఫోన్ వేలిముద్ర సెన్సార్ లేదా ఫేస్ రికగ్నిషన్‌తో 1-సెకనులో సులభంగా లాగిన్ అవ్వండి."
+                    : "Skip typing passwords! Use your phone's fingerprint sensor, Touch ID, Face ID, or Windows Hello for instant, 1-tap secure sign-in."}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+              {biometricEnabled ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisableBiometric}
+                  leftIcon={<Trash2 className="w-4 h-4 text-rose-500" />}
+                  className="font-extrabold text-xs text-rose-600 border-rose-200 dark:border-rose-800/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                >
+                  {isTe ? "నిలిపివేయండి (Disable)" : "Disable Biometrics"}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleEnrollBiometric}
+                  disabled={enrollingBiometric}
+                  leftIcon={<Fingerprint className="w-4 h-4" />}
+                  className="font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-95"
+                >
+                  {enrollingBiometric 
+                    ? (isTe ? "సెన్సార్ తనిఖీ చేస్తోంది..." : "Scanning Sensor...")
+                    : (isTe ? "ఈ పరికరంలో వేలిముద్ర ఆన్ చేయండి" : "Enable on This Device")}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Enrolled devices list / hardware support badge */}
+          <div className="pt-3 border-t border-slate-200/60 dark:border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-white/40">
+            <span className="flex items-center gap-1.5 font-medium">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              {isTe 
+                ? "హార్డ్‌వేర్ సెక్యూర్ ఎన్‌క్లేవ్ ద్వారా సురక్షితం • మీ వేలిముద్ర ఫోన్ పరిధి దాటి వెళ్ళదు."
+                : "Protected by Hardware TPM / Secure Enclave • Your biometrics never leave your physical device."}
+            </span>
+            {biometricDevices.length > 0 && (
+              <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                {biometricDevices.length} registered device{biometricDevices.length > 1 ? 's' : ''} ({biometricDevices[0]?.device_name})
+              </span>
+            )}
+          </div>
+        </Card>
+      </div>
+
       {/* ── Hardware & IoT Integration Setup Mode ── */}
       <div className="space-y-3">
         <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
@@ -437,6 +577,102 @@ const SettingsPage = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="bg-white dark:bg-slate-900 text-xs font-bold"
             />
+          </div>
+        </Card>
+
+        {/* Biometric Quick Sign-In (Fingerprint / Face ID) */}
+        <Card glass className="p-6 space-y-5 border border-emerald-500/20 bg-gradient-to-br from-white/70 via-emerald-500/[0.02] to-white/70 dark:from-[#040d07]/80 dark:via-emerald-950/20 dark:to-[#040d07]/80 backdrop-blur-md shadow-lg shadow-emerald-500/5">
+          <div className="flex items-start sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/25">
+                <Fingerprint className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                    {isTe ? '🌾 వేలిముద్ర & ఫేస్ లాగిన్' : 'Biometric Quick Sign-In'}
+                  </h2>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    biometricEnabled
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                      : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-white/50'
+                  }`}>
+                    {biometricEnabled ? (isTe ? '✓ సక్రియంలో ఉంది (Active)' : 'Active') : (isTe ? 'నిష్క్రియం (Disabled)' : 'Not Enabled')}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-white/45 mt-0.5">
+                  {isTe
+                    ? 'పాస్‌వర్డ్ టైప్ చేయకుండా మొబైల్ ఫింగర్‌ప్రింట్ లేదా ఫేస్ లాక్‌తో 1-ట్యాప్‌లో లాగిన్ అవ్వండి.'
+                    : 'Sign in instantly using your phone or laptop fingerprint, Face ID, or Windows Hello.'}
+                </p>
+              </div>
+            </div>
+
+            {biometricEnabled && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDisableBiometric}
+                leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
+                className="border-rose-200 dark:border-rose-950/40 text-rose-500 hover:bg-rose-500/10 text-xs shrink-0"
+              >
+                {isTe ? 'తీసివేయి' : 'Disable'}
+              </Button>
+            )}
+          </div>
+
+          {/* Enrolled Devices & Status */}
+          <div className="space-y-3">
+            {biometricDevices.length > 0 ? (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 space-y-2">
+                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  {isTe ? 'నమోదైన బయోమెట్రిక్ పరికరాలు:' : 'Enrolled Biometric Devices:'}
+                </p>
+                <div className="space-y-1.5">
+                  {biometricDevices.map((dev, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs text-slate-600 dark:text-white/70 bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-white/5">
+                      <span className="font-semibold flex items-center gap-1.5">
+                        <ScanFace className="w-3.5 h-3.5 text-teal-400" />
+                        {dev.device_name || 'Biometric Authenticator'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {dev.registered_at ? new Date(dev.registered_at).toLocaleDateString() : 'Active'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-white/40 italic">
+                {isTe ? 'ప్రస్తుతం మీ ఖాతాలో బయోమెట్రిక్ నమోదు కాలేదు.' : 'No biometric sensor currently enrolled for this account.'}
+              </p>
+            )}
+
+            {/* Action Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-white/40">
+                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>
+                  {isTe
+                    ? 'మీ వేలిముద్ర డేటా మీ పరికరం సెక్యూర్ చిప్‌లోనే భద్రంగా ఉంటుంది.'
+                    : 'Biometric data remains encrypted inside your device hardware security enclave.'}
+                </span>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleEnrollBiometric}
+                isLoading={enrollingBiometric}
+                leftIcon={<Fingerprint className="w-4 h-4 text-white" />}
+                className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-md shadow-emerald-500/20 text-xs font-bold shrink-0"
+              >
+                {biometricEnabled
+                  ? (isTe ? 'మరో పరికరాన్ని జోడించు (+ Add Device)' : '+ Add Another Device')
+                  : (isTe ? 'ఇప్పుడే వేలిముద్రను ప్రారంభించు' : 'Enable Biometric Sign-In')}
+              </Button>
+            </div>
           </div>
         </Card>
 

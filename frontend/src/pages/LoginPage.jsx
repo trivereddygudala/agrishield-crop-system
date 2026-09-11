@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Lock, Eye, EyeOff, ShieldCheck, Sparkles, Globe } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ShieldCheck, Sparkles, Globe, Fingerprint, ScanFace } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/index';
 import { useToast } from '../components/ui/toast';
@@ -10,10 +10,11 @@ import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
 import NatureParticles from '../components/animations/NatureParticles';
 import LoginSuccessOverlay from '../components/animations/LoginSuccessOverlay';
+import { authenticateWithBiometrics, isBiometricSupported } from '../utils/biometricAuth';
 
 const LoginPage = () => {
   const { t, i18n } = useTranslation();
-  const { login, user } = useAuth();
+  const { login, biometricLogin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
@@ -30,6 +31,25 @@ const LoginPage = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successUser, setSuccessUser] = useState(null);
   const isLoggingInRef = useRef(false);
+
+  // ── Biometric 1-Tap Sign-In State ──
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [savedBiometricUser, setSavedBiometricUser] = useState(null);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+
+  useEffect(() => {
+    const checkBio = async () => {
+      const supported = await isBiometricSupported();
+      setBiometricSupported(supported);
+      const savedEmail = localStorage.getItem('agrishield_biometric_email');
+      const savedCid = localStorage.getItem('agrishield_biometric_cid');
+      if (savedEmail && savedCid) {
+        setSavedBiometricUser({ email: savedEmail, credentialId: savedCid });
+        setEmail(prev => prev || savedEmail);
+      }
+    };
+    checkBio();
+  }, []);
 
   // Destination after login
   const from = location.state?.from || null;
@@ -112,6 +132,49 @@ const LoginPage = () => {
       setScanProgress(0);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Biometric 1-Tap sign-in handler (WebAuthn)
+  const handleBiometricSignIn = async () => {
+    if (loading || biometricLoading || showSuccess) return;
+    setBiometricLoading(true);
+    setErrorMsg('');
+    try {
+      const result = await authenticateWithBiometrics(savedBiometricUser?.credentialId || null);
+      if (!result.success) {
+        toast.error('Biometric Sign-In', result.error || 'Biometric authentication was cancelled.');
+        setBiometricLoading(false);
+        return;
+      }
+
+      const emailToUse = email || savedBiometricUser?.email || '';
+      if (!emailToUse) {
+        toast.warning(
+          'Email Required',
+          'Please enter your username or email first to link your biometric key.'
+        );
+        setBiometricLoading(false);
+        return;
+      }
+
+      isLoggingInRef.current = true;
+      const loggedUser = await biometricLogin(emailToUse, result.credentialId);
+      setSuccessUser(loggedUser);
+      setShowSuccess(true);
+      toast.success(
+        t('auth.login.welcome_back_toast', 'Welcome Back!'),
+        'వేలిముద్ర ధృవీకరణ విజయవంతమైంది (Biometric authenticated).'
+      );
+    } catch (err) {
+      isLoggingInRef.current = false;
+      console.error('Biometric sign-in error:', err);
+      const raw = err.response?.data?.detail;
+      const detail = typeof raw === 'string' ? raw : (raw?.[0]?.msg || 'Biometric authentication failed. Please use your password.');
+      setErrorMsg(detail);
+      toast.error(t('auth.login.login_failed', 'Login Failed'), detail);
+    } finally {
+      setBiometricLoading(false);
     }
   };
 
@@ -259,6 +322,56 @@ const LoginPage = () => {
                 <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
               </svg>
             </div>
+
+            {/* Quick 1-Tap Biometric Sign-In Option */}
+            {biometricSupported && (
+              <div className="mb-6 relative z-10">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={biometricLoading || loading}
+                  onClick={handleBiometricSignIn}
+                  className="w-full relative overflow-hidden group p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/20 text-emerald-300 font-bold text-xs flex items-center justify-between gap-3 transition-all shadow-[0_0_20px_rgba(52,211,153,0.12)] hover:shadow-[0_0_28px_rgba(52,211,153,0.25)]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 group-hover:scale-110 transition-transform">
+                      {biometricLoading ? (
+                        <ScanFace className="w-5 h-5 animate-spin text-emerald-300" />
+                      ) : (
+                        <Fingerprint className="w-5 h-5 text-emerald-400" />
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-white font-extrabold text-xs tracking-tight">
+                          {biometricLoading ? 'ధృవీకరిస్తోంది (Scanning...)' : 'వేలిముద్ర లేదా ఫేస్ లాగిన్'}
+                        </span>
+                        <span className="text-[9px] bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.2 rounded-full font-black tracking-wider uppercase">
+                          1-Tap
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                        {savedBiometricUser?.email
+                          ? `Sign in as ${savedBiometricUser.email}`
+                          : 'Sign in with Fingerprint / Face ID'}
+                      </p>
+                    </div>
+                  </div>
+                  <ScanFace className="w-4 h-4 text-emerald-400/60 group-hover:text-emerald-300 transition-colors shrink-0" />
+                </motion.button>
+
+                {/* Divider */}
+                <div className="relative my-4 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10" />
+                  </div>
+                  <span className="relative px-3 bg-[#040d07] text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    లేదా పాస్‌వర్డ్ (Or with password)
+                  </span>
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
               {/* Wall 4: Ghost Honeypot Bot Trap */}

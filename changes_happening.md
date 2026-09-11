@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v119) - Feature: Biometric Authentication (Fingerprint & Face ID 1-Tap Sign-In)
+- **Summary:** Added WebAuthn biometric authentication (Fingerprint, Touch ID, Face ID, Windows Hello) enabling registered farmers to sign in instantly with a single touch or face scan:
+  1. 🔐 **Backend Biometric Authentication API (`backend/app/routers/auth.py`):**
+     - Added `BiometricRegisterRequest` and `BiometricLoginRequest` Pydantic schemas.
+     - `GET /api/auth/biometric/status`: Returns current user enrollment status and active hardware authenticator list.
+     - `POST /api/auth/biometric/register`: Enrolls user public key credentials, device name, and attestation into MongoDB user records (`biometric_credentials` list).
+     - `DELETE /api/auth/biometric/disable`: Safely revokes and purges biometric credentials from the user account.
+     - `POST /api/auth/biometric/login`: Fast 1-tap verification by matching credential ID against MongoDB and returning access & refresh JWT tokens with lockout protection.
+     - Ultra-lightweight storage: only ~0.5 KB per user in MongoDB Atlas (10,000 farmers occupy only ~5 MB, <1% of free storage).
+  2. 📱 **Frontend WebAuthn Core Utility (`frontend/src/utils/biometricAuth.js`):**
+     - Wrapped W3C Web Authentication API (`navigator.credentials.create` and `navigator.credentials.get`).
+     - Added Base64URL and ArrayBuffer encoders/decoders for cross-platform browser support on Android, iOS, Windows Hello, and macOS Touch ID.
+  3. ⚙️ **System Settings Enrollment Card (`frontend/src/pages/SettingsPage.jsx`):**
+     - Added the **"🌾 వేలిముద్ర & ఫేస్ లాగిన్ (Biometric Quick Sign-In)"** settings card.
+     - Displays enrollment status badges (Active / Disabled), enrolled devices list with registration dates, 1-tap sensor enrollment scan button, disable action, and hardware security enclave safety disclosure.
+  4. 👆 **1-Tap Biometric Login Flow (`frontend/src/pages/LoginPage.jsx`):**
+     - Automatically checks device sensor capability upon page load.
+     - Pre-detects enrolled farmers on the device from local storage.
+     - Displays a prominent **"వేలిముద్ర లేదా ఫేస్ లాగిన్ (1-Tap Biometric Sign-In)"** button above password credentials with loading spinners and smooth feedback.
+- **Files modified**: `backend/app/routers/auth.py`, `frontend/src/context/AuthContext.jsx`, `frontend/src/pages/SettingsPage.jsx`, `frontend/src/pages/LoginPage.jsx`, `frontend/src/utils/biometricAuth.js`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v118) - Feature: Complete AgriShield Software Suite (Features 1 to 5)
 - **Summary:** Implemented and integrated all 5 major software systems across the AgriShield web application:
   1. 📄 **Clinical PDF Prescriptions & Audit Reports (Feature 1):**

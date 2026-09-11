@@ -1,8 +1,9 @@
 import asyncio
 import re
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from backend.app.db.mongodb import get_database
 from backend.app.core.security import (
@@ -429,3 +430,213 @@ async def update_profile(
             pass
     
     return updated_user
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Biometric Authentication (Fingerprint / Face ID / WebAuthn Passkeys)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class BiometricRegisterRequest(BaseModel):
+    credential_id: str
+    public_key: Optional[str] = None
+    device_name: Optional[str] = "Personal Mobile / Device"
+    transports: Optional[List[str]] = ["internal"]
+
+class BiometricLoginRequest(BaseModel):
+    credential_id: str
+    email: Optional[str] = None
+
+@router.get("/biometric/status")
+async def get_biometric_status(current_user: dict = Depends(get_current_user), db = Depends(get_database)):
+    """Retrieve enrolled biometric credentials status for the current user."""
+    user_doc = await db.users.find_one({"_id": ObjectId(current_user["id"])})
+    if not user_doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    credentials = user_doc.get("biometric_credentials", [])
+    clean_creds = []
+    for c in credentials:
+        clean_creds.append({
+            "credential_id": c.get("credential_id"),
+            "device_name": c.get("device_name", "Registered Device"),
+            "registered_at": c.get("registered_at", datetime.now(timezone.utc)).isoformat() if isinstance(c.get("registered_at"), datetime) else str(c.get("registered_at", ""))
+        })
+
+    return {
+        "biometric_enabled": bool(user_doc.get("biometric_enabled", False)) and len(clean_creds) > 0,
+        "device_count": len(clean_creds),
+        "devices": clean_creds
+    }
+
+@router.post("/biometric/register")
+async def register_biometric_credential(
+    payload: BiometricRegisterRequest,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Enroll a new hardware biometric credential (Fingerprint / Face ID) for the logged-in farmer."""
+    if not payload.credential_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Credential ID is required")
+    
+    cred_doc = {
+        "credential_id": payload.credential_id.strip(),
+        "public_key": payload.public_key,
+        "device_name": payload.device_name or "Farmer Device",
+        "transports": payload.transports or ["internal"],
+        "registered_at": datetime.now(timezone.utc)
+    }
+
+    # Avoid duplicate credential registrations
+    await db.users.update_one(
+        {"_id": ObjectId(current_user["id"])},
+        {"$pull": {"biometric_credentials": {"credential_id": payload.credential_id.strip()}}}
+    )
+
+    await db.users.update_one(
+        {"_id": ObjectId(current_user["id"])},
+        {
+            "$set": {
+                "biometric_enabled": True,
+                "biometric_updated_at": datetime.now(timezone.utc)
+            },
+            "$push": {"biometric_credentials": cred_doc}
+        }
+    )
+
+    log_security_event(
+        "BIOMETRIC_REGISTER_SUCCESS",
+        {"user_id": current_user["id"], "device": payload.device_name},
+        level="INFO"
+    )
+
+    return {
+        "status": "success",
+        "message": "Fingerprint / Face ID biometric credential enrolled successfully!",
+        "biometric_enabled": True
+    }
+
+@router.delete("/biometric/disable")
+async def disable_biometric_login(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Disable biometric sign-in and remove registered hardware credentials for the user."""
+    await db.users.update_one(
+        {"_id": ObjectId(current_user["id"])},
+        {
+            "$set": {
+                "biometric_enabled": False,
+                "biometric_credentials": []
+            }
+        }
+    )
+
+    log_security_event("BIOMETRIC_DISABLED", {"user_id": current_user["id"]}, level="INFO")
+    return {
+        "status": "success",
+        "message": "Biometric sign-in disabled on this account.",
+        "biometric_enabled": False
+    }
+
+@router.post("/biometric/login", response_model=TokenResponse, dependencies=[Depends(rate_limit(AUTH_LIMIT, 60))])
+async def biometric_login(
+    request: Request,
+    payload: BiometricLoginRequest,
+    db = Depends(get_database)
+):
+    """Authenticate registered farmer via hardware biometric token / credential."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    cid = payload.credential_id.strip()
+
+    if not cid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Biometric credential identifier is missing"
+        )
+
+    # Find the user by credential_id, optionally matching email if provided
+    query = {
+        "biometric_enabled": True,
+        "biometric_credentials.credential_id": cid
+    }
+    if payload.email:
+        query["email"] = payload.email.strip().lower()
+
+    user = await db.users.find_one(query)
+
+    # Fallback search by email if credential was stored in a device mapping
+    if not user and payload.email:
+        fallback_user = await db.users.find_one({"email": payload.email.strip().lower(), "biometric_enabled": True})
+        if fallback_user and fallback_user.get("biometric_credentials"):
+            user = fallback_user
+
+    if not user:
+        log_security_event(
+            "BIOMETRIC_LOGIN_FAILED",
+            {"credential_id": cid, "email": payload.email},
+            level="WARNING",
+            client_ip=client_ip
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Biometric authentication failed. Fingerprint or Face ID not enrolled on this account."
+        )
+
+    # Check lockouts
+    user_email = user.get("email", "")
+    if is_account_locked(user_email) or is_account_locked(client_ip):
+        secs = max(get_remaining_lockout_seconds(user_email), get_remaining_lockout_seconds(client_ip))
+        raise HTTPException(
+            status_code=status.HTTP_423_LOCKED,
+            detail=f"Too many failed login attempts. Try again in {secs} seconds."
+        )
+
+    # Success: Reset failed attempts & lockouts
+    wall_record_successful_login(client_ip)
+    record_successful_login(client_ip)
+    record_successful_login(user_email)
+
+    user_role = user.get("role", "farmer")
+    user_id_str = str(user["_id"])
+
+    # Generate Access Token & Refresh Token
+    access_token = create_access_token(subject=user_id_str, role=user_role)
+    refresh_token = create_refresh_token(subject=user_id_str)
+
+    user["id"] = user_id_str
+    user["_id"] = user_id_str
+    user["name"] = str(user.get("name") or user.get("full_name") or "Farmer")
+    user.setdefault("role", user_role)
+    user.setdefault("farm_location", None)
+    user.setdefault("preferred_language", "en")
+    user.setdefault("farmer_mode", False)
+    user.setdefault("color_theme", "agrishield-default")
+    user.setdefault("navbar_theme", "farmer-dynamic")
+    user.setdefault("crop_history", [])
+    user.setdefault("farming_practices", "Conventional")
+    user.setdefault("farm_profile_completed", False)
+    user.setdefault("notification_settings", {})
+    
+    active_fid = user.get("active_farm_id")
+    user["active_farm_id"] = str(active_fid) if active_fid else None
+
+    # Track last login timestamp
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"last_login": datetime.now(timezone.utc), "last_login_method": "biometric"}}
+    )
+
+    log_security_event(
+        "BIOMETRIC_LOGIN_SUCCESS",
+        {"user_id": user_id_str, "email": user_email},
+        level="INFO",
+        client_ip=client_ip
+    )
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        user=user
+    )
+

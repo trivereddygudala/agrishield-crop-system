@@ -101,6 +101,45 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const biometricLogin = async (email, credentialId) => {
+    setLoading(true);
+    try {
+      const payload = { email: (email || '').trim(), credential_id: credentialId };
+      const res = await API.post('/api/auth/biometric/login', payload);
+      const { access_token, refresh_token, user: userData } = res.data;
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user');
+
+      setToken(access_token);
+      setUser(userData);
+
+      if (userData.preferred_language) {
+        i18n.changeLanguage(userData.preferred_language);
+      }
+
+      if (userData.farmer_mode) {
+        document.body.classList.add('farmer-mode');
+      } else {
+        document.body.classList.remove('farmer-mode');
+      }
+
+      localStorage.setItem('token', access_token);
+      if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const register = async (name, email, password, preferred_language = 'en', botTrap = '') => {
     setLoading(true);
     try {
@@ -186,7 +225,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateProfile, updateProfileLocal }}>
+    <AuthContext.Provider value={{ user, token, loading, login, biometricLogin, register, logout, updateProfile, updateProfileLocal }}>
       {children}
     </AuthContext.Provider>
   );
