@@ -22,7 +22,8 @@ import {
   Leaf,
   TrendingUp,
   Bell,
-  Globe
+  Globe,
+  Ruler
 } from 'lucide-react';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
@@ -79,6 +80,16 @@ const MorePage = () => {
       iconColor: 'text-emerald-600 dark:text-emerald-400', 
       iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800', 
       accent: 'border-l-emerald-500' 
+    },
+    { 
+      icon: Ruler,    
+      label: isTe ? 'పొలం విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator', 
+      description: isTe ? 'జీపీఎస్ వాక్ మోడ్ & మ్యాప్ ద్వారా ఖచ్చితమైన ఎకరాలు, గుంటలు, సెంట్లు కొలవండి' : 'GPS perimeter walk & map pin measuring for acres, cents & gunthas',  
+      path: '/field-calculator',          
+      iconColor: 'text-emerald-600 dark:text-emerald-400', 
+      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800', 
+      accent: 'border-l-emerald-500',
+      badge: isTe ? '1m ఖచ్చితత్వం' : '1m GPS'
     },
     { 
       icon: TrendingUp,

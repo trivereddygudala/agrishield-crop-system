@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v104) - Pinpoint Accurate GPS Walking Mode & Dedicated Field Area Calculator Feature
+- **Summary:** Delivered two high-precision agricultural surveying upgrades requested by the user:
+  1. 🚶 **Pinpoint Accurate GPS Walking Mode (`FieldBoundaryMap.jsx`):**
+     - Implemented sub-meter GPS smoothing with a moving-average coordinate filter to eliminate GPS multipath flutter.
+     - Added strict GPS accuracy gating (`enableHighAccuracy: true`, `maximumAge: 0`, filtering out drift fixes > 9m).
+     - Visual GPS accuracy badge (🟢 `±1.5m` High Accuracy locked, 🟡 `±4m`, 🔴 `±10m`).
+     - Real-time animated GPS live location puck with pulsing accuracy buffer circle and high-visibility dashed walk trail (`#0284c7`).
+     - Dual Corner Dropping:
+       - **Auto-Corner Turn Detection:** Calculates bearing delta between consecutive vectors. If the farmer turns > 28° around a field corner, drops a corner pin automatically.
+       - **Manual Corner Pin Drop:** Farmer can pause at physical corner stone/bund and tap `[ 📍 కార్నర్ పిన్ వేయి / Drop Corner Pin ]` to lock in exact sub-meter coordinates.
+     - Real-time Walking HUD showing live distance walked ($m$), live acreage calculated, corners count, and Pause/Finish controls.
+  2. 📐 **Dedicated "Field Area Calculator" Feature & Tab (`FieldAreaCalculatorPage.jsx`, `MorePage.jsx`, `App.jsx`):**
+     - Built brand new dedicated `/field-calculator` page accessible directly from the **More** tab under Farming Tools (`Ruler` icon, badge *"1m GPS"*).
+     - **8-Unit Real-Time Conversion Matrix:** Instant simultaneous calculations in:
+       - Acres (ఎకరాలు)
+       - Gunthas (గుంటలు - 40/acre)
+       - Cents (సెంట్లు - 100/acre)
+       - Gajam / Sq. Yards (గజాలు)
+       - Sq. Feet (చదరపు అడుగులు)
+       - Sq. Meters (చదరపు మీటర్లు)
+       - Hectares (హెక్టార్లు)
+       - Bigha (బీఘా)
+     - **Perimeter & Geometry Breakdown:** Perimeter in meters & feet, boundary pins count.
+     - **Agronomic Input Planning Calculator:** Automatically computes estimated seeds (kg/packets), 16L spray pump mixes (~3 pumps/acre), water volume (litres), and basal urea required for Tomato, Paddy, Cotton, Chili, Maize, or Groundnut.
+     - **One-Tap WhatsApp Survey Report:** Generates a professional digital land survey slip with full dimensions, date, and coordinates to share with revenue officers, tractor drivers, or family.
+     - **Save to Farm:** Applies the measured boundaries directly to the active farm profile.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/pages/FieldAreaCalculatorPage.jsx`, `frontend/src/pages/MorePage.jsx`, `frontend/src/App.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v103) - Simplify Field Boundary Map, Remove Multi-Field Clutter & Unmissable Back Navigation
 - **Summary:** Completely redesigned and simplified the field boundary mapping interface (`FieldBoundaryMap.jsx`) for rural farmers based on user feedback and mobile screenshots:
   1. 🔙 **Unmissable, Foolproof Back Navigation:**

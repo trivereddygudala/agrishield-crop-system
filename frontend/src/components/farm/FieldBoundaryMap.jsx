@@ -1,10 +1,30 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
   MapPin, Trash2, Plus, Crosshair, X, Check,
-  Maximize2, Undo2, ChevronLeft, Satellite, Map as MapIcon, Info
+  Maximize2, Undo2, ChevronLeft, Footprints, Play, Pause, AlertCircle, ShieldCheck
 } from 'lucide-react';
+
+// Haversine distance in meters
+export function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Calculate bearing between two points
+function calculateBearing(lat1, lon1, lat2, lon2) {
+  const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+            Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
 
 // Geodesic Polygon Area Calculation in Square Meters (WGS 84 ellipsoid)
 export function calculateGeodesicArea(coordinates) {
@@ -29,23 +49,47 @@ export function calculateGeodesicArea(coordinates) {
   return area;
 }
 
-// Convert Square Meters to Acres and Hectares
+// Calculate Perimeter Length in Meters
+export function calculatePerimeter(coordinates) {
+  if (!coordinates || coordinates.length < 2) return 0;
+  let totalDist = 0;
+  const len = coordinates.length;
+  for (let i = 0; i < len; i++) {
+    const p1 = coordinates[i];
+    const p2 = coordinates[(i + 1) % len];
+    totalDist += haversineDistanceMeters(p1[0], p1[1], p2[0], p2[1]);
+  }
+  return Math.round(totalDist);
+}
+
+// Convert Square Meters to Indian Regional & International Units
 export function formatAcreage(sqMeters) {
   const acres = sqMeters * 0.000247105;
   const hectares = sqMeters / 10000;
+  const gunthas = acres * 40;
+  const cents = acres * 100;
+  const sqFeet = sqMeters * 10.7639;
+  const gajam = sqMeters * 1.19599; // sq yards
+  const bigha = acres * 1.6;
+
   return {
     acres: acres < 10 ? acres.toFixed(2) : acres.toFixed(1),
     hectares: hectares < 10 ? hectares.toFixed(2) : hectares.toFixed(1),
-    rawAcres: acres
+    gunthas: gunthas < 10 ? gunthas.toFixed(2) : gunthas.toFixed(1),
+    cents: cents < 10 ? cents.toFixed(2) : cents.toFixed(1),
+    sqMeters: Math.round(sqMeters).toLocaleString('en-IN'),
+    sqFeet: Math.round(sqFeet).toLocaleString('en-IN'),
+    gajam: Math.round(gajam).toLocaleString('en-IN'),
+    bigha: bigha.toFixed(2),
+    rawAcres: acres,
+    rawSqMeters: sqMeters
   };
 }
 
 // Helper: Normalize incoming boundary coordinates into a flat array of pins [[lat, lng], ...]
 function normalizeIncomingPins(raw) {
   if (!raw || !Array.isArray(raw) || raw.length === 0) return [];
-  // If already array of coordinate pairs: [[lat, lng], ...]
   if (Array.isArray(raw[0])) return raw;
-  // If legacy multi-plot structure: [{ pins: [[lat, lng], ...] }]
   if (typeof raw[0] === 'object' && Array.isArray(raw[0].pins)) {
     return raw[0].pins;
   }
@@ -76,6 +120,7 @@ export default function FieldBoundaryMap({
   const boundaryLayerGroupRef = useRef(null);
   const pinsGroupRef = useRef(null);
   const radarGroupRef = useRef(null);
+  const walkLayerGroupRef = useRef(null);
 
   // Sync tracking to prevent infinite update loops
   const isUserActionRef = useRef(false);
@@ -89,12 +134,27 @@ export default function FieldBoundaryMap({
   // 3. Pin Dropping Mode
   const [isPinMode, setIsPinMode] = useState(false);
 
-  // 4. Fullscreen Studio Toggle (for inline preview instances)
+  // 4. Fullscreen Studio Toggle
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 5. Undo History Stack
   const [history, setHistory] = useState(() => [normalizeIncomingPins(boundaryCoordinates)]);
   const [historyIndex, setHistoryIndex] = useState(0);
+
+  // ═══════ 6. HIGH-PRECISION GPS WALKING SURVEY MODE ═══════
+  const [isWalkMode, setIsWalkMode] = useState(false);
+  const [isWalking, setIsWalking] = useState(false);
+  const [gpsAccuracy, setGpsAccuracy] = useState(null); // accuracy in meters (e.g. 1.8m)
+  const [walkDistance, setWalkDistance] = useState(0);   // total meters walked
+  const [liveLocation, setLiveLocation] = useState(null); // [lat, lng]
+  const watchIdRef = useRef(null);
+  const walkTrailRef = useRef([]); // continuous high-res coordinates
+  const lastLoggedCoordRef = useRef(null);
+  const recentGpsBufferRef = useRef([]); // for moving-average smoothing
+  const lastBearingRef = useRef(null);
+
+  // Coordinate rounding helper
+  const roundCoord = (val) => parseFloat(Number(val).toFixed(6));
 
   // Push pins to undo history
   const pushToHistory = useCallback((newPins) => {
@@ -105,11 +165,8 @@ export default function FieldBoundaryMap({
     setHistoryIndex((prev) => prev + 1);
   }, [historyIndex]);
 
-  // Coordinate rounding helper
-  const roundCoord = (val) => parseFloat(Number(val).toFixed(6));
-
   // Compute live acreage for the single field
-  const area = React.useMemo(() => {
+  const area = useMemo(() => {
     const sqM = calculateGeodesicArea(pins);
     return formatAcreage(sqM);
   }, [pins]);
@@ -146,7 +203,6 @@ export default function FieldBoundaryMap({
       attributionControl: false
     });
 
-    // Zoom controls placed unobtrusively at bottom-right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     // Google Ultra-Zoom Hybrid Satellite Layer
@@ -161,6 +217,7 @@ export default function FieldBoundaryMap({
     boundaryLayerGroupRef.current = L.layerGroup().addTo(map);
     pinsGroupRef.current = L.layerGroup().addTo(map);
     radarGroupRef.current = L.layerGroup().addTo(map);
+    walkLayerGroupRef.current = L.layerGroup().addTo(map);
 
     mapInstanceRef.current = map;
 
@@ -230,7 +287,7 @@ export default function FieldBoundaryMap({
     if (!map) return;
 
     const handleMapClick = (e) => {
-      if (!isPinMode || !interactive) return;
+      if (!isPinMode || !interactive || isWalkMode) return;
       const { lat, lng } = e.latlng;
       const newPin = [roundCoord(lat), roundCoord(lng)];
 
@@ -247,7 +304,195 @@ export default function FieldBoundaryMap({
     return () => {
       map.off('click', handleMapClick);
     };
-  }, [isPinMode, interactive, pushToHistory, notifyChange]);
+  }, [isPinMode, interactive, isWalkMode, pushToHistory, notifyChange]);
+
+  // ═══════ HIGH-PRECISION GPS WALKING SURVEY IMPLEMENTATION ═══════
+  const startWalkMode = () => {
+    if (!navigator.geolocation) {
+      alert(isTelugu ? 'మీ ఫోన్‌లో GPS సపోర్ట్ లేదు.' : 'GPS Geolocation is not supported on your device.');
+      return;
+    }
+
+    setIsWalkMode(true);
+    setIsWalking(true);
+    setIsPinMode(false);
+    setWalkDistance(0);
+    walkTrailRef.current = [];
+    lastLoggedCoordRef.current = null;
+    recentGpsBufferRef.current = [];
+    lastBearingRef.current = null;
+
+    if (walkLayerGroupRef.current) {
+      walkLayerGroupRef.current.clearLayers();
+    }
+
+    // High accuracy Geolocation Watch
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setGpsAccuracy(Math.round(accuracy * 10) / 10);
+
+        // Quality Gate: Filter out loose GPS drift fixes (> 9m)
+        if (accuracy > 9) return;
+
+        // Moving Average Buffer for Sub-Meter Jitter Reduction
+        recentGpsBufferRef.current.push([latitude, longitude]);
+        if (recentGpsBufferRef.current.length > 3) {
+          recentGpsBufferRef.current.shift();
+        }
+
+        const avgLat = recentGpsBufferRef.current.reduce((acc, c) => acc + c[0], 0) / recentGpsBufferRef.current.length;
+        const avgLng = recentGpsBufferRef.current.reduce((acc, c) => acc + c[1], 0) / recentGpsBufferRef.current.length;
+        const smoothCoord = [roundCoord(avgLat), roundCoord(avgLng)];
+
+        setLiveLocation(smoothCoord);
+
+        // Update live walk trail
+        const last = lastLoggedCoordRef.current;
+        if (last) {
+          const stepDist = haversineDistanceMeters(last[0], last[1], smoothCoord[0], smoothCoord[1]);
+          
+          // Only log point if moved more than 2.5 meters
+          if (stepDist >= 2.5) {
+            setWalkDistance((prev) => Math.round(prev + stepDist));
+            walkTrailRef.current.push(smoothCoord);
+            lastLoggedCoordRef.current = smoothCoord;
+
+            // Auto-corner bend detection (bearing turn > 28 degrees)
+            if (walkTrailRef.current.length >= 3) {
+              const p1 = walkTrailRef.current[walkTrailRef.current.length - 3];
+              const p2 = walkTrailRef.current[walkTrailRef.current.length - 2];
+              const currentBearing = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
+              const newBearing = calculateBearing(p2[0], p2[1], smoothCoord[0], smoothCoord[1]);
+              const diff = Math.abs(currentBearing - newBearing);
+              const turnAngle = diff > 180 ? 360 - diff : diff;
+
+              if (turnAngle >= 28 && stepDist >= 4) {
+                // Auto drop corner pin on turn
+                addWalkPin(smoothCoord);
+              }
+            }
+
+            drawWalkHUDTrail(walkTrailRef.current, smoothCoord, accuracy);
+          } else {
+            drawWalkHUDTrail(walkTrailRef.current, smoothCoord, accuracy);
+          }
+        } else {
+          // First point: drop initial starting corner pin
+          walkTrailRef.current.push(smoothCoord);
+          lastLoggedCoordRef.current = smoothCoord;
+          addWalkPin(smoothCoord);
+          drawWalkHUDTrail(walkTrailRef.current, smoothCoord, accuracy);
+        }
+
+        // Keep map centered on walking farmer
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.panTo(smoothCoord);
+        }
+      },
+      (err) => {
+        console.warn('GPS Walking Survey error:', err);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 12000
+      }
+    );
+  };
+
+  // Helper to append a pin during walk survey
+  const addWalkPin = (coord) => {
+    isUserActionRef.current = true;
+    setPins((prev) => {
+      // Prevent duplicate points within 2 meters
+      const exists = prev.some((p) => haversineDistanceMeters(p[0], p[1], coord[0], coord[1]) < 2);
+      if (exists) return prev;
+      const next = [...prev, coord];
+      pushToHistory(next);
+      notifyChange(next);
+      return next;
+    });
+  };
+
+  // Manual High-Precision Corner Drop (Farmer taps at physical corner stone)
+  const handleDropManualCorner = () => {
+    if (!liveLocation) return;
+    addWalkPin(liveLocation);
+  };
+
+  // Draw Walk Trail & High Accuracy Live Puck on Map
+  const drawWalkHUDTrail = (trail, livePoint, acc) => {
+    const map = mapInstanceRef.current;
+    if (!map || !walkLayerGroupRef.current) return;
+
+    walkLayerGroupRef.current.clearLayers();
+
+    // 1. Continuous High-Visibility Walking Trail
+    if (trail.length >= 2) {
+      L.polyline(trail, {
+        color: '#0284c7',
+        weight: 3.5,
+        dashArray: '6, 6'
+      }).addTo(walkLayerGroupRef.current);
+    }
+
+    // 2. High-Accuracy Live Location Puck with Pulsing Accuracy Ring
+    if (livePoint) {
+      // Precision circle representing GPS accuracy in meters
+      if (acc && acc <= 10) {
+        L.circle(livePoint, {
+          radius: acc,
+          color: '#0284c7',
+          fillColor: '#0284c7',
+          fillOpacity: 0.15,
+          weight: 1.5
+        }).addTo(walkLayerGroupRef.current);
+      }
+
+      const puckIcon = L.divIcon({
+        className: 'gps-live-puck',
+        html: `
+          <div style="position: relative; width: 26px; height: 26px;">
+            <div style="position: absolute; inset: 0; border-radius: 50%; background: #0284c7; opacity: 0.4; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; border-radius: 50%; background: #0284c7; border: 3px solid white; box-shadow: 0 0 12px rgba(2,132,199,0.9);"></div>
+          </div>
+        `,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+
+      L.marker(livePoint, { icon: puckIcon }).addTo(walkLayerGroupRef.current);
+    }
+  };
+
+  // Finish Walk Survey & Lock In Measured Boundary
+  const finishWalkMode = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (walkLayerGroupRef.current) {
+      walkLayerGroupRef.current.clearLayers();
+    }
+    setIsWalkMode(false);
+    setIsWalking(false);
+    setLiveLocation(null);
+  };
+
+  // Cancel Walk Survey
+  const cancelWalkMode = () => {
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (walkLayerGroupRef.current) {
+      walkLayerGroupRef.current.clearLayers();
+    }
+    setIsWalkMode(false);
+    setIsWalking(false);
+    setLiveLocation(null);
+  };
 
   // ═══════ PIN MANAGEMENT ACTIONS ═══════
   const handleUndo = () => {
@@ -268,7 +513,7 @@ export default function FieldBoundaryMap({
     setPins(emptyPins);
     pushToHistory(emptyPins);
     notifyChange(emptyPins);
-    setIsPinMode(true); // Automatically activate pin mode so farmer can tap right away
+    setIsPinMode(true);
   };
 
   const handleRemoveSinglePin = (indexToRemove) => {
@@ -342,9 +587,8 @@ export default function FieldBoundaryMap({
           iconAnchor: [14, 14]
         });
 
-        const marker = L.marker(pin, { icon: pinIcon, draggable: true }).addTo(pinsGroupRef.current);
+        const marker = L.marker(pin, { icon: pinIcon, draggable: !isWalkMode }).addTo(pinsGroupRef.current);
 
-        // Allow dragging corner pins to fine-tune boundaries
         marker.on('dragend', (ev) => {
           const { lat, lng } = ev.target.getLatLng();
           isUserActionRef.current = true;
@@ -357,7 +601,6 @@ export default function FieldBoundaryMap({
           });
         });
 
-        // Popup to delete pin if needed
         marker.bindPopup(`
           <div style="font-family: inherit; padding: 2px; text-align: center;">
             <strong style="font-size: 11px; color: #0f172a;">${isTelugu ? `మూల పిన్ #${index + 1}` : `Corner Pin #${index + 1}`}</strong>
@@ -384,7 +627,7 @@ export default function FieldBoundaryMap({
     // 4. Render Radar Rings and Nearby Farms (for Disease Radar mode)
     if (showRadarRings && radarGroupRef.current) {
       radarGroupRef.current.clearLayers();
-      const ringDistances = [1000, 3000, 5000]; // 1km, 3km, 5km
+      const ringDistances = [1000, 3000, 5000];
       ringDistances.forEach((radiusMeters) => {
         L.circle([centerLat, centerLng], {
           radius: radiusMeters,
@@ -395,7 +638,6 @@ export default function FieldBoundaryMap({
         }).addTo(radarGroupRef.current);
       });
 
-      // Render Nearby Neighbor Farms
       if (Array.isArray(nearbyFarms)) {
         nearbyFarms.forEach((f) => {
           if (!f.lat || !f.lng) return;
@@ -424,12 +666,10 @@ export default function FieldBoundaryMap({
         });
       }
     }
-  }, [pins, centerLat, centerLng, farmName, cropName, interactive, isTelugu, showRadarRings, nearbyFarms, area.acres]);
+  }, [pins, centerLat, centerLng, farmName, cropName, interactive, isTelugu, showRadarRings, nearbyFarms, area.acres, isWalkMode]);
 
-  // Determine if full-screen or dedicated mode is active
   const isFullScreenView = isFullscreen || isDedicated;
 
-  // Handle Back Navigation
   const handleBackNavigation = () => {
     if (onBack) {
       onBack();
@@ -456,7 +696,7 @@ export default function FieldBoundaryMap({
           ? 'bg-slate-900 text-white border-slate-800 shadow-md'
           : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800'
       }`}>
-        {/* Left: Prominent Back Button (in Studio or Preview with onBack) */}
+        {/* Left: Prominent Back Button */}
         <div className="flex items-center gap-2 min-w-0 overflow-hidden">
           {(isFullScreenView || onBack) ? (
             <button
@@ -485,7 +725,6 @@ export default function FieldBoundaryMap({
 
         {/* Right: Satellite/Street Toggle & Save/Expand Button */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Map Layer Switcher: Satellite vs Normal */}
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs">
             <button
               type="button"
@@ -513,7 +752,6 @@ export default function FieldBoundaryMap({
             </button>
           </div>
 
-          {/* Action Button: Save & Finish (in Studio) OR Open Full-Screen (in Preview) */}
           {isFullScreenView ? (
             <button
               type="button"
@@ -544,7 +782,7 @@ export default function FieldBoundaryMap({
         </div>
       </div>
 
-      {/* ═══════ 2. PERSISTENT FLOATING BACK BUTTON (CANNOT BE MISSED) ═══════ */}
+      {/* ═══════ 2. PERSISTENT FLOATING BACK BUTTON ═══════ */}
       {isFullScreenView && (
         <button
           type="button"
@@ -557,7 +795,7 @@ export default function FieldBoundaryMap({
       )}
 
       {/* ═══════ 3. FRIENDLY FARMER GUIDANCE BANNER (TOP CENTER) ═══════ */}
-      {interactive && (
+      {interactive && !isWalkMode && (
         <div className="absolute top-14 inset-x-0 z-20 flex justify-center pointer-events-none px-4">
           <div className="pointer-events-auto bg-slate-900/90 text-white backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700 shadow-xl text-xs flex items-center gap-2 max-w-sm text-center">
             {isPinMode ? (
@@ -570,29 +808,95 @@ export default function FieldBoundaryMap({
               </span>
             ) : (
               <span className="text-slate-300">
-                ℹ️ {isTelugu ? 'క్రింద "+ పిన్ వేయి" నొక్కి మూలలను గుర్తించండి' : 'Tap "+ Add Pin" below to mark field corners'}
+                ℹ️ {isTelugu ? 'క్రింద "+ పిన్ వేయి" లేదా "వాక్ మోడ్" ఎంచుకోండి' : 'Select "+ Add Pin" or "Walk Mode" below'}
               </span>
             )}
           </div>
         </div>
       )}
 
-      {/* ═══════ 4. MAP CANVAS CONTAINER ═══════ */}
+      {/* ═══════ 4. 🚶 PINPOINT GPS WALKING HUD FLOATING OVERLAY ═══════ */}
+      {isWalkMode && (
+        <div className="absolute inset-x-3 top-14 z-30 pointer-events-auto max-w-lg mx-auto">
+          <div className="p-3.5 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border border-sky-500/50 shadow-2xl flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+                  <Footprints className="w-4 h-4 animate-bounce" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-white flex items-center gap-1.5">
+                    <span>{isTelugu ? 'జీపీఎస్ వాకింగ్ సర్వే' : 'Pinpoint GPS Walk Survey'}</span>
+                    <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold">1m Accuracy</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-300 font-medium">
+                    {walkDistance}m {isTelugu ? 'నడిచారు' : 'walked'} • {pins.length} {isTelugu ? 'కార్నర్స్' : 'corners'} • 🌾 {area.acres} {isTelugu ? 'ఎకరాలు' : 'Acres'}
+                  </p>
+                </div>
+              </div>
+
+              {/* GPS Accuracy Indicator */}
+              <div className={`px-2 py-1 rounded-xl text-[10px] font-black flex items-center gap-1 border ${
+                gpsAccuracy !== null && gpsAccuracy <= 3
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : gpsAccuracy !== null && gpsAccuracy <= 6
+                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+              }`}>
+                <ShieldCheck className="w-3 h-3" />
+                <span>{gpsAccuracy !== null ? `±${gpsAccuracy}m GPS` : 'Acquiring GPS...'}</span>
+              </div>
+            </div>
+
+            {/* Quick Action Buttons in Walk Mode */}
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={handleDropManualCorner}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{isTelugu ? '📍 కార్నర్ పిన్ వేయి' : 'Drop Corner Pin'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={finishWalkMode}
+                className="flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                <span>{isTelugu ? 'సర్వే ముగించు' : 'Finish'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={cancelWalkMode}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title={isTelugu ? 'రద్దు చేయి' : 'Cancel'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ 5. MAP CANVAS CONTAINER ═══════ */}
       <div
         ref={mapContainerRef}
         style={{ height: '100%', minHeight: '100%' }}
         className="w-full relative z-0 flex-1 outline-none min-h-0"
       />
 
-      {/* ═══════ 5. SIMPLE FARMER ACTION DOCK (BOTTOM CENTER) ═══════ */}
-      {interactive && (
+      {/* ═══════ 6. SIMPLE FARMER ACTION DOCK (BOTTOM CENTER) ═══════ */}
+      {interactive && !isWalkMode && (
         <div className="absolute bottom-4 sm:bottom-6 inset-x-3 z-30 flex justify-center pointer-events-none pb-safe">
           <div className="flex items-center gap-2 bg-slate-900/95 text-white backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto">
             {/* 1. Add Pin Toggle Button */}
             <button
               type="button"
               onClick={() => setIsPinMode(!isPinMode)}
-              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
                 isPinMode
                   ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-md animate-pulse'
                   : 'bg-emerald-600/80 hover:bg-emerald-600 text-white shadow-xs'
@@ -606,24 +910,35 @@ export default function FieldBoundaryMap({
               </span>
             </button>
 
-            {/* 2. Undo Last Pin */}
+            {/* 2. Pinpoint GPS Walk Mode Button */}
+            <button
+              type="button"
+              onClick={startWalkMode}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
+              title={isTelugu ? 'నడక ద్వారా పొలం కొలవండి (1 మీటర్ ఖచ్చితత్వం)' : 'Walk field perimeter (1m accuracy)'}
+            >
+              <Footprints className="w-4 h-4" />
+              <span>{isTelugu ? 'వాక్ మోడ్' : 'Walk Mode'}</span>
+            </button>
+
+            {/* 3. Undo Last Pin */}
             <button
               type="button"
               onClick={handleUndo}
               disabled={historyIndex <= 0 || pins.length === 0}
-              className="flex items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               title={isTelugu ? 'చివరి పిన్ రద్దు చేయి' : 'Undo last pin'}
             >
               <Undo2 className="w-4 h-4" />
               <span className="hidden xs:inline">{isTelugu ? 'రద్దు' : 'Undo'}</span>
             </button>
 
-            {/* 3. Clear All Pins */}
+            {/* 4. Clear All Pins */}
             {pins.length > 0 && (
               <button
                 type="button"
                 onClick={handleClearAllPins}
-                className="flex items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors cursor-pointer"
                 title={isTelugu ? 'అన్ని పిన్స్ తొలగించండి' : 'Clear all pins'}
               >
                 <Trash2 className="w-4 h-4" />
@@ -631,11 +946,11 @@ export default function FieldBoundaryMap({
               </button>
             )}
 
-            {/* 4. Recenter Map on Farm */}
+            {/* 5. Recenter Map on Farm */}
             <button
               type="button"
               onClick={centerMap}
-              className="flex items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer"
               title={isTelugu ? 'నా పొలం కేంద్రం' : 'Center on farm'}
             >
               <Crosshair className="w-4 h-4" />
