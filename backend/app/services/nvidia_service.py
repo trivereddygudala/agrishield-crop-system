@@ -155,7 +155,21 @@ def safe_parse_json(content: str):
         except Exception:
             pass
 
-    return None
+
+LANGUAGE_CONFIG = {
+    "te": {"name": "Telugu", "native": "తెలుగు", "pattern": r'[\u0C00-\u0C7F]'},
+    "hi": {"name": "Hindi", "native": "हिन्दी", "pattern": r'[\u0900-\u097F]'},
+    "ta": {"name": "Tamil", "native": "தமிழ்", "pattern": r'[\u0B80-\u0BFF]'},
+    "kn": {"name": "Kannada", "native": "ಕನ್ನಡ", "pattern": r'[\u0C80-\u0CFF]'},
+    "ml": {"name": "Malayalam", "native": "മലയാളം", "pattern": r'[\u0D00-\u0D7F]'},
+    "mr": {"name": "Marathi", "native": "मराठी", "pattern": r'[\u0900-\u097F]'},
+    "bn": {"name": "Bengali", "native": "বাংলা", "pattern": r'[\u0980-\u09FF]'},
+    "gu": {"name": "Gujarati", "native": "ગુજરાતી", "pattern": r'[\u0A80-\u0AFF]'},
+    "pa": {"name": "Punjabi", "native": "ਪੰਜਾਬੀ", "pattern": r'[\u0A00-\u0A7F]'},
+    "ur": {"name": "Urdu", "native": "اردو", "pattern": r'[\u0600-\u06FF]'},
+    "or": {"name": "Odia", "native": "ଓଡ଼ିଆ", "pattern": r'[\u0B00-\u0B7F]'},
+    "as": {"name": "Assamese", "native": "অসমীয়া", "pattern": r'[\u0980-\u09FF]'}
+}
 
 
 class NVIDIAService:
@@ -1240,10 +1254,22 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                             )
                     else:
                         context_str += f"- {k}: {v}\n"
-                    if k.lower() == "language" and v:
-                        lang_instruction += f"\nCRITICAL: The user prefers to communicate in '{v}'. You MUST translate your ENTIRE response into '{v}'. Do not mix English. Use simple, farmer-friendly vocabulary. You must preserve the scientific crop disease names (e.g., 'Tomato Early Blight') but explain them simply in '{v}'."
-                    if k.lower() == "current_time_ampm" and v:
-                        lang_instruction += f"\nCRITICAL MANDATORY INSTRUCTION: If asked for the current time, you MUST respond EXACTLY with the string '{v}'. Do NOT convert to 24-hour time. Do NOT calculate the time. Simply output '{v}'."
+            # Explicit Language Requirement Injection
+            target_lang_code = (context.get("language") or "en").lower().strip()[:2] if context else "en"
+            lang_meta = LANGUAGE_CONFIG.get(target_lang_code)
+            
+            if lang_meta and target_lang_code != "en":
+                lang_name = lang_meta["name"]
+                native_name = lang_meta["native"]
+                lang_instruction = (
+                    f"\n\n=======================================================\n"
+                    f"CRITICAL MANDATORY LANGUAGE REQUIREMENT:\n"
+                    f"- The user's chosen interface language is: {lang_name} ({native_name}).\n"
+                    f"- You MUST generate your ENTIRE response 100% in {lang_name} script ({native_name}).\n"
+                    f"- DO NOT write your response in English. Writing in English is a severe failure.\n"
+                    f"- You may keep technical brand names, chemical formulas, or scientific disease names in English brackets (e.g., 'ఇర్లీ బ్లైట్ (Early Blight)'), but the entire explanation, dosage, greetings, headings, and field instructions MUST be written in {lang_name} ({native_name}).\n"
+                    f"=======================================================\n"
+                )
 
             user_role = (context.get("user_role") or context.get("role") or "farmer").lower() if context else "farmer"
 
@@ -1380,8 +1406,36 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                     )
                 })
 
+            # FINAL TURN REMINDER: Pinpoint output language to guarantee compliance
+            if lang_meta and target_lang_code != "en":
+                messages.append({
+                    "role": "system",
+                    "content": f"FINAL REMINDER: You MUST write your entire response in {lang_meta['name']} ({lang_meta['native']}). Do NOT respond in English."
+                })
+
             content, provider = await self._execute_completion(messages, temperature=0.3, max_tokens=1024, timeout=25.0)
             if content:
+                # Script Verification Guardrail: Check if non-English language was requested but output lacks Indic script
+                if lang_meta and target_lang_code != "en":
+                    indic_matches = re.findall(lang_meta["pattern"], content)
+                    if len(indic_matches) < 15:
+                        logger.warning(f"LLM replied in English despite {lang_meta['name']} requested ({len(indic_matches)} Indic chars). Running auto-translation guardrail...")
+                        trans_prompt = [
+                            {
+                                "role": "system",
+                                "content": (
+                                    f"You are a professional agricultural translator. Translate the following text completely and accurately into natural, farmer-friendly {lang_meta['name']} ({lang_meta['native']}). "
+                                    f"Preserve all markdown headings, bullet points, numbers, and dosage units (16L, ml, g, kg). Output ONLY the translated {lang_meta['name']} text without preamble."
+                                )
+                            },
+                            {
+                                "role": "user",
+                                "content": content
+                            }
+                        ]
+                        translated_content, _ = await self._execute_completion(trans_prompt, temperature=0.2, max_tokens=1024, timeout=15.0)
+                        if translated_content and len(re.findall(lang_meta["pattern"], translated_content)) >= 15:
+                            return translated_content
                 return content
             else:
                 logger.warning("AI cloud providers unavailable or timed out. Falling back to AgriShield Local Intelligence.")
@@ -2209,16 +2263,8 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                 return "hi"
             return "en"
 
-        # 3. Transliterated Indic keyword patterns for regional languages
-        if c_lang == "te" or any(w in msg for w in ["వరి", "ధర", "తేమ", "సమయం", "ఎరువులు", "పథకాలు", "పత్తి", "మిర్చి", "టమాటా", "రైతు", "తెగులు", "మొక్క", "ఉల్లిపాయ", "గోధుమ", "బాగున్నారా", "vatavarnam", "vaatavaranam", "e roju", "ela undi", "ela vundi", "entha", "enti", "undha", "cheppu", "vari", "dharalu", "eruvulu", "tegulu", "rythu", "pathakalu", "nela tema"]):
-            return "te"
-        if c_lang == "hi" or any(w in msg for w in ["धान", "भाव", "नमी", "समय", "खाद", "योजना", "कपास", "मिर्च", "टमाटर", "किसान", "रोग", "पौधा", "प्याज", "गेहूं", "नमस्ते", "mausam", "kaisa hai", "aaj", "kitna hai", "kheti", "pani", "kisan", "yojana", "khad"]):
-            return "hi"
-        if c_lang == "ta" or any(w in msg for w in ["நெல்", "விலை", "ஈரப்பதம்", "நேரம்", "உரம்", "திட்டங்கள்", "தக்காளி", "பருத்தி", "வணக்கம்", "neram", "vilai", "vanakkam"]):
-            return "ta"
-        if c_lang == "kn" or any(w in msg for w in ["ಭತ್ತ", "ಬೆಲೆ", "ತೇವಾಂಶ", "ಸಮಯ", "ಗೊಬ್ಬರ", "ಯೋಜನೆಗಳು", "ಟೊಮೆಟೊ", "ಹತ್ತಿ", "ನಮಸ್ಕಾರ", "samaya", "bele", "namaskara"]):
-            return "kn"
-        if c_lang in ["ml", "mr", "bn", "gu", "pa", "ur", "or", "as"]:
+        # 3. If context language is a configured regional language, prioritize it unless message has a distinct different Indic script
+        if c_lang in ["te", "hi", "ta", "kn", "ml", "mr", "bn", "gu", "pa", "ur", "or", "as"]:
             return c_lang
 
         return "en"
@@ -2354,6 +2400,7 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                 "Organic / Biological Control:": "సేంద్రీయ / జీవ నియంత్రణ:",
                 "Chemical Prescription:": "రసాయన మందులు:",
                 "Spraying Precaution": "పిచికారీ జాగ్రత్తలు",
+                "Ensure thorough coverage on both upper and lower leaf surfaces during early morning (6:00 AM – 9:00 AM) or late evening (4:30 PM – 6:30 PM).": "మందు పిచికారీ చేసేటప్పుడు ఆకుల పైభాగం మరియు క్రింది భాగం పూర్తిగా తడిసేలా ఉదయం (6:00 AM – 9:00 AM) లేదా సాయంత్రం (4:30 PM – 6:30 PM) సమయాల్లో మాత్రమే పిచికారీ చేయండి.",
                 "Crop Disease Scan Information": "పంట వ్యాధి స్కాన్ సమాచారం",
                 "No previous crop leaf scans have been recorded on your account yet.": "మీ ఖాతాలో ఇప్పటివరకు ఎలాంటి పంట ఆకుల స్కాన్‌లు నమోదు కాలేదు.",
                 "AgriShield Agronomy & Knowledge Assistant": "అగ్రిషీల్డ్ రైతు వ్యవసాయ సహాయకుడు",

@@ -336,7 +336,13 @@ const AIAssistantPage = () => {
         ta: "🌾 எனது பயிர் சிகிச்சை",
         kn: "🌾 ನನ್ನ ಬೆಳೆ ಚಿಕಿತ್ಸೆ"
       },
-      query: "Explain the recommended treatments and exact 16L spray pump dosages for my most recent crop disease scan."
+      query: {
+        en: "Explain the recommended treatments and exact 16L spray pump dosages for my most recent crop disease scan.",
+        te: "నా ఇటీవలి పంట స్కాన్‌లో గుర్తించిన వ్యాధికి తగిన నివారణలు మరియు 16 లీటర్ల స్ప్రే పంపుకు ఖచ్చితమైన మందుల మోతాదును వివరించండి.",
+        hi: "मेरी हाल ही में स्कैन की गई फसल की बीमारी के लिए अनुशंसित उपचार और 16 लीटर स्प्रे पंप के लिए सटीक खुराक बताएं।",
+        ta: "எனது சமீபத்திய பயிர் ஸ்கேனில் கண்டறியப்பட்ட நோய்க்கான மருந்துகள் மற்றும் 16L ஸ்ப்ரே பம்புக்கான துல்லியமான அளவை விளக்கவும்.",
+        kn: "ನನ್ನ ಇತ್ತೀಚಿನ ಬೆಳೆ ಸ್ಕ್ಯಾನ್‌ನಲ್ಲಿ ಗುರುತಿಸಲಾದ ರೋಗಕ್ಕೆ ಸೂಕ್ತ ಚಿಕಿತ್ಸೆಗಳು ಮತ್ತು 16L ಸಿಂಪಡಿಸುವ ಪಂಪ್‌ಗೆ ನಿಖರವಾದ ಔಷಧ ಪ್ರಮಾಣವನ್ನು ವಿವರಿಸಿ."
+      }
     },
     {
       icon: Droplets,
@@ -347,7 +353,13 @@ const AIAssistantPage = () => {
         ta: "🧪 16L தெளிப்பான் மருந்தளவு",
         kn: "🧪 16L ಪಂಪ್ ಔಷಧ ಪ್ರಮಾಣ"
       },
-      query: "How many grams or ml of medicine should I mix in one 16-litre knapsack sprayer pump for my crop?"
+      query: {
+        en: "How many grams or ml of medicine should I mix in one 16-litre knapsack sprayer pump for my crop?",
+        te: "నా పంటకు ఒక 16 లీటర్ల న్యాప్‌సాక్ స్ప్రేయర్ పంపులో ఎన్ని గ్రాములు లేదా మిల్లీలీటర్ల మందు కలపాలి?",
+        hi: "मेरी फसल के लिए 16 लीटर के नैपसैक स्प्रेयर पंप में कितने ग्राम या मिलीलीटर दवा मिलानी चाहिए?",
+        ta: "எனது பயிருக்கு ஒரு 16 லிட்டர் நேப்சாக் தெளிப்பான் பம்பில் எத்தனை கிராம் அல்லது மி.லி மருந்து கலக்க வேண்டும்?",
+        kn: "ನನ್ನ ಬೆಳೆಗೆ ಒಂದು 16 ಲೀಟರ್ ನ್ಯಾಪ್‌ಸ್ಯಾಕ್ ಸಿಂಪಡಿಸುವ ಪಂಪ್‌ನಲ್ಲಿ ಎಷ್ಟು ಗ್ರಾಂ ಅಥವಾ ಮಿಲಿ ಔಷಧ ಬೆರೆಸಬೇಕು?"
+      }
     },
     {
       icon: CloudRain,
@@ -358,7 +370,13 @@ const AIAssistantPage = () => {
         ta: "🌦️ மழை வருமா? மருந்து அடிக்கலாமா?",
         kn: "🌦️ ಮಳೆ ಬರುತ್ತಾ? ಔಷಧಿ ಸಿಂಪಡಿಸಬಹುದೇ?"
       },
-      query: "Based on today's weather and rain forecast, is it safe to spray pesticides today?"
+      query: {
+        en: "Based on today's weather and rain forecast, is it safe to spray pesticides today?",
+        te: "నేటి వాతావరణం మరియు వర్ష సూచన ప్రకారం ఈ రోజు పంటకు పురుగు మందులు పిచికారీ చేయడం సురక్షితమేనా?",
+        hi: "आज के मौसम और बारिश के पूर्वानुमान के आधार पर, क्या आज कीटनाशक का छिड़काव करना सुरक्षित है?",
+        ta: "இன்றைய வானிலை மற்றும் மழை முன்னறிவிப்பின் அடிப்படையில், இன்று பூச்சிக்கொல்லி மருந்து தெளிப்பது பாதுகாப்பானதா?",
+        kn: "ಇಂದಿನ ಹವಾಮಾನ ಮತ್ತು ಮಳೆಯ ಮುನ್ಸೂಚನೆಯ ಆಧಾರದ ಮೇಲೆ, ಇಂದು ಕೀಟನಾಶಕ ಸಿಂಪಡಿಸುವುದು ಸುರಕ್ಷಿತವೇ?"
+      }
     },
     {
       icon: Globe,
@@ -369,7 +387,13 @@ const AIAssistantPage = () => {
         ta: "💰 இன்றைய மண்டி விலை",
         kn: "💰 ಇಂದಿನ ಮಂಡಿ ಮಾರುಕಟ್ಟೆ ದರಗಳು"
       },
-      query: "What are today's wholesale Mandi prices for major agricultural crops in my region?"
+      query: {
+        en: "What are today's wholesale Mandi prices for major agricultural crops in my region?",
+        te: "మా ప్రాంతంలో ప్రధాన వ్యవసాయ పంటల నేటి హోల్‌సేల్ మండి మార్కెట్ ధరలు మరియు క్వింటాల్ రేట్లు ఏమిటి?",
+        hi: "मेरे क्षेत्र में प्रमुख कृषि फसलों के आज के थोक मंडी भाव और क्विंटल दरें क्या हैं?",
+        ta: "எனது பகுதியில் உள்ள முக்கிய விவசாயப் பயிர்களின் இன்றைய மொத்த மண்டி சந்தை விலைகள் என்ன?",
+        kn: "ನನ್ನ ಪ್ರದೇಶದಲ್ಲಿ ಪ್ರಮುಖ ಕೃಷಿ ಬೆಳೆಗಳ ಇಂದಿನ ಸಗಟು ಮಂಡಿ ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು ಮತ್ತು ಕ್ವಿಂಟಾಲ್ ದರಗಳು ಯಾವುವು?"
+      }
     },
     {
       icon: Sparkles,
@@ -380,7 +404,13 @@ const AIAssistantPage = () => {
         ta: "🌿 ஜீவாமிர்தம் தயாரிப்பு",
         kn: "🌿 ಜೀವಾಮೃತ ತಯಾರಿಕೆ"
       },
-      query: "How do I prepare organic bio-pesticide using Neem leaves/oil and Jeevamrutha at home?"
+      query: {
+        en: "How do I prepare organic bio-pesticide using Neem leaves/oil and Jeevamrutha at home?",
+        te: "ఇంట్లోనే వేప నూనె / వేపాకు కషాయం మరియు జీవామృతం ఉపయోగించి సహజ సేంద్రీయ పురుగు మందును ఎలా తయారు చేయాలి?",
+        hi: "घर पर नीम के पत्ते/तेल और जीवामृत का उपयोग करके जैविक कीटनाशक कैसे तैयार करें?",
+        ta: "வீட்டிலேயே வேப்ப எண்ணெய் / வேப்பிலை கரைசல் மற்றும் ஜீவாமிர்தம் பயன்படுத்தி இயற்கை பூச்சிக்கொல்லி தயாரிப்பது எப்படி?",
+        kn: "ಮನೆಯಲ್ಲೇ ಬೇವಿನ ಎಣ್ಣೆ / ಎಲೆಗಳ ಕಷಾಯ ಮತ್ತು ಜೀವಾಮೃತ ಬಳಸಿ ಸಾವಯವ ಜೈವಿಕ ಕೀಟನಾಶಕವನ್ನು ಹೇಗೆ ತಯಾರಿಸುವುದು?"
+      }
     },
     {
       icon: Building2,
@@ -391,7 +421,13 @@ const AIAssistantPage = () => {
         ta: "🏛️ ரைத்து பரோசா மையம் (RBK)",
         kn: "🏛️ ರೈತ ಭರೋಸಾ ಕೇಂದ್ರ (RBK)"
       },
-      query: "What services, subsidized seeds, fertilizers, e-crop booking, and schemes are provided at village Rythu Bharosa Kendrams (RBK) in Andhra Pradesh?"
+      query: {
+        en: "What services, subsidized seeds, fertilizers, e-crop booking, and schemes are provided at village Rythu Bharosa Kendrams (RBK) in Andhra Pradesh?",
+        te: "ఆంధ్రప్రదేశ్‌లోని గ్రామ రైతు భరోసా కేంద్రాల్లో (RBK) సబ్సిడీ విత్తనాలు, ఎరువులు, ఈ-పంట నమోదు మరియు ఏయే ప్రభుత్వ పథకాలు, సేవలు లభిస్తాయి?",
+        hi: "आंध्र प्रदेश में ग्राम रायथू भरोसा केंद्रों (RBK) पर सब्सिडी वाले बीज, उर्वरक, ई-फसल बुकिंग और कौन सी सरकारी योजनाएं व सेवाएं प्रदान की जाती हैं?",
+        ta: "ஆந்திரப் பிரதேசத்தில் உள்ள கிராம ரைத்து பரோசா மையங்களில் (RBK) மானிய விதைகள், உரங்கள், இ-பயிர் பதிவு மற்றும் என்னென்ன அரசு திட்டங்கள் கிடைக்கின்றன?",
+        kn: "ಆಂಧ್ರಪ್ರದೇಶದ ಗ್ರಾಮ ರೈತ ಭರೋಸಾ ಕೇಂದ್ರಗಳಲ್ಲಿ (RBK) ಸಬ್ಸಿಡಿ ಬೀಜಗಳು, ರಸಗೊಬ್ಬರಗಳು, ಇ-ಬೆಳೆ ಬುಕಿಂಗ್ ಮತ್ತು ಯಾವ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು ಹಾಗೂ ಸೇವೆಗಳು ದೊರೆಯುತ್ತವೆ?"
+      }
     },
     {
       icon: Store,
@@ -402,7 +438,13 @@ const AIAssistantPage = () => {
         ta: "🏪 உரக் கடைகள் மற்றும் அலுவலகங்கள்",
         kn: "🏪 ರಸಗೊಬ್ಬರ ಅಂಗಡಿಗಳು ಮತ್ತು ಕಚೇರಿಗಳು"
       },
-      query: "How do I find authorized agro-chemical pesticide stores, PACS societies, and the Mandal Agriculture Officer (MAO) office in Andhra Pradesh?"
+      query: {
+        en: "How do I find authorized agro-chemical pesticide stores, PACS societies, and the Mandal Agriculture Officer (MAO) office in Andhra Pradesh?",
+        te: "ఆంధ్రప్రదేశ్‌లో అధీకృత ఎరువులు & పురుగుమందుల దుకాణాలు, పీఏసీఎస్ (PACS) సంఘాలు మరియు మండల వ్యవసాయ అధికారి (MAO) కార్యాలయాన్ని ఎలా కనుగొనాలి?",
+        hi: "आंध्र प्रदेश में अधिकृत कीटनाशक और खाद की दुकानें, पैक्स (PACS) समितियां और मंडल कृषि अधिकारी (MAO) कार्यालय कैसे खोजें?",
+        ta: "ஆந்திரப் பிரதேசத்தில் அங்கீகரிக்கப்பட்ட பூச்சிக்கொல்லி உரக் கடைகள், PACS சங்கங்கள் மற்றும் மண்டல வேளாண்மை அலுவலர் (MAO) அலுவலகத்தை எவ்வாறு கண்டறிவது?",
+        kn: "ಆಂಧ್ರಪ್ರದೇಶದಲ್ಲಿ ಅಧಿಕೃತ ರಸಗೊಬ್ಬರ ಮತ್ತು ಕೀಟನಾಶಕ ಅಂಗಡಿಗಳು, PACS ಸಹಕಾರ ಸಂಘಗಳು ಮತ್ತು ಮಂಡಲ ಕೃಷಿ ಅಧಿಕಾರಿ (MAO) ಕಚೇರಿಯನ್ನು ಕಂಡುಹಿಡಿಯುವುದು ಹೇಗೆ?"
+      }
     }
   ];
 
@@ -1517,21 +1559,33 @@ const AIAssistantPage = () => {
 
                 <div className="border-t border-slate-100 dark:border-slate-800 my-1 pt-1">
                   <div className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    Kisan Quick Actions
+                    {isTe ? "రైతు తక్షణ చర్యలు" : "Kisan Quick Actions"}
                   </div>
                   <button
-                    onClick={() => { handleSendMessage("Where is the nearest Rythu Bharosa Kendram (RBK) and agrochemical store in Andhra Pradesh?"); setQuickMenuOpen(false); }}
+                    onClick={() => { 
+                      const rbkQuery = isTe 
+                        ? "ఆంధ్రప్రదేశ్‌లోని సమీప రైతు భరోసా కేంద్రం (RBK), పీఏసీఎస్ మరియు ఎరువుల దుకాణాలు ఎక్కడ ఉన్నాయి?" 
+                        : "Where is the nearest Rythu Bharosa Kendram (RBK) and agrochemical store in Andhra Pradesh?";
+                      handleSendMessage(rbkQuery); 
+                      setQuickMenuOpen(false); 
+                    }}
                     className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
                   >
                     <MapPin className="w-4 h-4 text-rose-500" />
-                    <span>🏛️ Find Nearest RBK & Stores</span>
+                    <span>{isTe ? "🏛️ సమీప RBK & ఎరువుల దుకాణాలు" : "🏛️ Find Nearest RBK & Stores"}</span>
                   </button>
                   <button
-                    onClick={() => { handleSendMessage("Check today's farm spraying weather window and 4-hour rain safety forecast"); setQuickMenuOpen(false); }}
+                    onClick={() => { 
+                      const sprayQuery = isTe 
+                        ? "నేటి తోట పిచికారీ వాతావరణం మరియు 4-గంటల వర్ష భద్రతా సూచనను తనిఖీ చేయండి" 
+                        : "Check today's farm spraying weather window and 4-hour rain safety forecast";
+                      handleSendMessage(sprayQuery); 
+                      setQuickMenuOpen(false); 
+                    }}
                     className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
                   >
                     <Sun className="w-4 h-4 text-sky-500" />
-                    <span>🌧️ Spraying Weather Window</span>
+                    <span>{isTe ? "🌧️ మందు కొట్టే అనుకూల వాతావరణం" : "🌧️ Spraying Weather Window"}</span>
                   </button>
                 </div>
               </motion.div>
@@ -1543,12 +1597,13 @@ const AIAssistantPage = () => {
             {kisanQuickChips.map((chip, idx) => {
               const activeLang = (i18n.language || 'en').split('-')[0];
               const label = chip.label[activeLang] || chip.label.en;
+              const queryText = typeof chip.query === 'object' ? (chip.query[activeLang] || chip.query.en) : chip.query;
               const IconComp = chip.icon;
               return (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => handleSendMessage(chip.query)}
+                  onClick={() => handleSendMessage(queryText)}
                   className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-[#1a1a1a] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-[#2b2b2b] hover:border-emerald-400/50 text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 text-[11px] font-bold flex items-center gap-1 shrink-0 transition-all shadow-2xs active:scale-95 whitespace-nowrap"
                 >
                   <IconComp className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />

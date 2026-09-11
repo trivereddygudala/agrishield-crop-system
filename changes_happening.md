@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v101) - Fix AI Chat Assistant Language Translation & Regional Script Enforcement
+- **Summary:** Resolved language translation mismatch in the AI Chat Assistant where selecting regional languages (Telugu, Hindi, Tamil, Kannada, etc.) resulted in English queries being sent and English responses being returned:
+  1. 🗣️ **Localized Kisan Question Chips (`AIAssistantPage.jsx`):**
+     - Root cause: `kisanQuickChips` had localized display labels, but every chip's `query` was a hardcoded English string (e.g. `"Explain the recommended treatments and exact 16L spray pump dosages for my most recent crop disease scan."`). When tapped, English text was dispatched to the chat and displayed in the user bubble.
+     - Solution: Replaced all chip `query` definitions with comprehensive multilingual dictionaries (`en`, `te`, `hi`, `ta`, `kn`). Updated `onClick` to resolve `activeLang = (i18n.language || 'en').split('-')[0]` and dynamically pass the native regional query text (e.g. `"నా ఇటీవలి పంట స్కాన్‌లో గుర్తించిన వ్యాధికి తగిన నివారణలు మరియు 16 లీటర్ల స్ప్రే పంపుకు ఖచ్చితమైన మందుల మోతాదును వివరించండి."`).
+  2. ⚡ **Localized Kisan Quick Menu Actions (`AIAssistantPage.jsx`):**
+     - Localized RBK discovery and 4-hour spraying window quick-action prompts in both English and Telugu.
+  3. 🤖 **Backend Strict Language Enforcement & Final Turn Reminders (`nvidia_service.py`):**
+     - Added centralized `LANGUAGE_CONFIG` dictionary mapping language codes (`te`, `hi`, `ta`, `kn`, `ml`, `mr`, `bn`, `gu`, `pa`, `ur`, `or`, `as`) to full English names, native script names (`తెలుగు`, `हिन्दी`, etc.), and Unicode Indic character ranges.
+     - Injected a prominent `CRITICAL MANDATORY LANGUAGE REQUIREMENT` block into the LLM system prompt enforcing 100% native script generation.
+     - Appended a dedicated final system turn right before LLM completion: `f"FINAL REMINDER: You MUST write your entire response in {lang_name} ({native_script}). Do NOT respond in English."`
+  4. 🛡️ **Indic Script Verification & Auto-Translation Guardrail (`nvidia_service.py`):**
+     - If a non-English language was requested, the backend inspects the generated output via regex. If fewer than 15 Indic script characters are detected (i.e. the model answered in English), an automatic high-speed translation pass translates the text completely into the target regional language while preserving markdown structure, numbers, and dosage units (16L, ml, g).
+  5. 🌾 **Local Agronomic Fallback Prioritization & Precision Translations (`nvidia_service.py`):**
+     - Updated `_detect_query_language` to prioritize the user's selected session language for local fallbacks.
+     - Added Telugu translations for spraying precautions and leaf coverage advisories in `_translate_agronomic_response`.
+- **Files modified**: `frontend/src/pages/AIAssistantPage.jsx`, `backend/app/services/nvidia_service.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v100) - Fix Mobile Map Screen Overflow, Dedicated Studio Pages & Backward Navigation
 - **Summary:** Resolved mobile screen limit overflow and created dedicated full-screen studio pages with top-left backward navigation:
   1. 📱 **Mobile Screen Limit Overflow Fixed (`FieldBoundaryMap.jsx`, `FarmPage.jsx`, `NearbyFieldsRadar.jsx`):**

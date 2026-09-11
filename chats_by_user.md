@@ -6,6 +6,22 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 37
+* **User Input:**
+  > "ai chat assistant language translation issue"
+* **Machine Summary Solution:**
+  * Diagnosed the root causes of the AI assistant responding in English despite Telugu/regional UI selection:
+    1. `kisanQuickChips` in `AIAssistantPage.jsx` had regional display labels but hardcoded English `query` strings, resulting in English queries being sent to the chat.
+    2. Quick menu actions sent hardcoded English text.
+    3. Backend prompt lacked language code resolution (`'te'` vs `'Telugu (తెలుగు)'`) and had no final reminder turn.
+    4. Backend lacked an Indic script verification guardrail to catch models failing to output the target script.
+  * Replaced all `kisanQuickChips.query` with full multilingual dictionaries (`en`, `te`, `hi`, `ta`, `kn`) and updated click handler to dispatch native regional language query strings.
+  * In `nvidia_service.py`, created `LANGUAGE_CONFIG` mapping codes to full names, native scripts, and Unicode ranges.
+  * Injected mandatory language instructions and added a final system reminder turn before generation.
+  * Implemented an automatic Unicode script verification guardrail: if a non-English response contains < 15 Indic characters, it is automatically translated into the requested regional language.
+  * Updated local agronomic fallback to respect session language and added complete Telugu translations for crop scan advisories and spraying precautions.
+  * Verified production build passes with 0 errors.
+
 ### Chat Entry 36
 * **User Input:**
   > "issue with the map it is exceeds the screen limit and update this as the when the user or farmer tap the expand symbol it wants go to seperate page and make it neat, and give the backwaard button at the top left side to return to the field setup tab, make it neatly . and make it neatly in the near by fields and disease radar tab also"
