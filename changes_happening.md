@@ -2,6 +2,13 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v111) - Layout Fix: Move "Back to More" Button Neatly Above Field Area Calculator Title
+- **Summary:** Resolved the header crowding issue in `FieldAreaCalculatorPage.jsx` shown in user's mobile screenshot:
+  1. 📱 **Dedicated Navigation Row:** Moved the `← Back to More` (`← ఇతర సేవలు (More)`) button out of the horizontal flex cluster and placed it into its own top row directly above the title.
+  2. 📐 **Unconstrained Full-Width Header:** The "Field Area Calculator" title, icon, and description now take full screen width on mobile devices without being squeezed horizontally by the back button.
+  3. 🔘 **Clean Action Grouping:** Grouped the `Full-Screen Map` (`పూర్తి స్క్రీన్ మ్యాప్`) and `Share` (`వాట్సాప్ షేర్`) action buttons neatly below/beside the title block for effortless thumb tapping.
+- **Files modified**: `frontend/src/pages/FieldAreaCalculatorPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v110) - Dedicated Field Area Calculator HUD, Dual On-Screen Visibility & Clean Separation from Farm/GPS Setup
 - **Summary:** Resolved user's inquiries regarding where measured area appears on screen and why the calculator interface resembled the Farm/GPS setup sector:
   1. 📐 **Prominent Floating Live Area Measurement HUD on Map Canvas (`FieldBoundaryMap.jsx`):**

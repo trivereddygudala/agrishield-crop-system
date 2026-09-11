@@ -168,57 +168,63 @@ export default function FieldAreaCalculatorPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto w-full pb-24">
       {/* ═══════ 1. TOP HEADER & NAVIGATION BAR ═══════ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-4">
-        <div className="flex items-center gap-3">
+      <div className="space-y-3 border-b border-slate-200/80 dark:border-slate-800 pb-4">
+        {/* Clean Back to More Button (Neatly Placed Above Title) */}
+        <div>
           <button
             type="button"
             onClick={() => navigate('/more')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95 shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95 shadow-xs"
           >
             <ChevronLeft className="w-4 h-4 stroke-[3]" />
-            <span>{isTe ? '← ఇతర సేవలు' : '← Back to More'}</span>
+            <span>{isTe ? '← ఇతర సేవలు (More)' : '← Back to More'}</span>
           </button>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                <Ruler className="w-5 h-5" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                {isTe ? 'భూమి విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator'}
-              </h1>
-              <span className="hidden xs:inline px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                {isTe ? 'సార్వత్రిక భూమి కొలత' : 'General Land Measure'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {isTe 
-                ? 'ఏ పొలం లేదా స్థలానికైనా శాటిలైట్ పిన్స్ లేదా వాక్ మోడ్ ద్వారా విస్తీర్ణం లెక్కించండి'
-                : 'Measure any field, plot or land area with satellite pins or high-precision GPS perimeter walk'}
-            </p>
-          </div>
         </div>
 
-        {/* Top Actions: Fullscreen & WhatsApp Share */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setIsStudioOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm"
-            title={isTe ? 'పూర్తి స్క్రీన్ తెరవండి' : 'Open Fullscreen Map'}
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-            <span>{isTe ? 'పూర్తి స్క్రీన్ మ్యాప్' : 'Full-Screen Map'}</span>
-          </button>
+        {/* Full Title, Description & Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Ruler className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {isTe ? 'భూమి విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator'}
+                </h1>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                  {isTe ? 'సార్వత్రిక భూమి కొలత' : 'General Land Measure'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {isTe 
+                  ? 'ఏ పొలం లేదా స్థలానికైనా శాటిలైట్ పిన్స్ లేదా వాక్ మోడ్ ద్వారా విస్తీర్ణం లెక్కించండి'
+                  : 'Measure any field, plot or land area with satellite pins or high-precision GPS perimeter walk'}
+              </p>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={handleWhatsAppShare}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>{isTe ? 'వాట్సాప్ షేర్' : 'Share'}</span>
-          </button>
+          {/* Top Actions: Fullscreen & WhatsApp Share */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsStudioOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm"
+              title={isTe ? 'పూర్తి స్క్రీన్ తెరవండి' : 'Open Fullscreen Map'}
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span>{isTe ? 'పూర్తి స్క్రీన్ మ్యాప్' : 'Full-Screen Map'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleWhatsAppShare}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>{isTe ? 'వాట్సాప్ షేర్' : 'Share'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
