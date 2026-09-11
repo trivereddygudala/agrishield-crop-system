@@ -2,6 +2,46 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v91) - Backward Navigation & Bottom Nav Field Routing Fix
+- **Summary:** Resolved two navigation issues reported by user:
+  1. 🔙 **Backward Navigation Buttons:** Added clean, prominent `← Back to Field` (`← పొలం పేజీకి తిరిగి వెళ్ళు`) navigation buttons at the top of:
+     - **Scan & Disease History** (`frontend/src/pages/HistoryPage.jsx`): Allows immediate one-tap return to the Field hub.
+     - **Agro-Weather & Spore Advisory Hub** (`frontend/src/pages/CropAdvisoryPage.jsx`): Also embedded `FungalRiskAdvisor` widget directly for live fungal spore germination & microclimate risk tracking.
+  2. 📱 **Fixed Field Tab Routing (`frontend/src/components/AppLayout.jsx`):** Fixed mobile bottom navigation bar where the `field` tab previously had `path: '/history'`, causing taps on the Field icon to mistakenly route to Scan History instead of the Farm/Field page. Now routes directly to `path: '/farm'`.
+- **Files modified**: `frontend/src/components/AppLayout.jsx`, `frontend/src/pages/HistoryPage.jsx`, `frontend/src/pages/CropAdvisoryPage.jsx`, `chats_by_user.md`, `changes_happening.md`
+
+## 2026-09-11 (v90) - Field Modules Vertical Card Layout (Drill-Down Navigation)
+- **Summary:** Replaced horizontal tab pills + inline tab content with clean vertical **"Field Modules"** cards matching user's screenshot design:
+  1. 📋 **4 Module Cards:** Field Setup & Location, Scan & Disease History, Agro-Weather & Spore Advisory, Crop Lifecycle & Spray Calendar — each with title, subtitle, and `>` chevron.
+  2. 🔗 **Drill-Down Navigation:** Clicking "Field Setup" or "Crop Lifecycle" drills inline with `← Back to Field` button; "Scan History" and "Weather Advisory" navigate to their existing routes (`/history`, `/crop-advisory`).
+  3. 🧹 **Clean File Rewrite:** Rewrote entire `FarmPage.jsx` to fix corrupted escaped strings from prior incremental edits. Default `activeTab` set to `'modules'` to show cards first.
+  4. ✨ **Preserved All Features:** Hero banner, 3 metric cards, quick actions, farm form (soil selection, GPS, location cascades, irrigation) — all retained cleanly.
+- **Files modified**: `frontend/src/pages/FarmPage.jsx`, `chats_by_user.md`, `changes_happening.md`
+
+## 2026-09-11 (v89) - Premium Farm Hero Banner with Crop Vitals & Growth Progress
+- **Summary:** Implemented a new premium hero banner above the farm module tabs in `FarmPage.jsx`:
+  1. 🌿 **Gradient Hero Card:** Emerald-to-teal gradient banner displaying farm name, crop emoji, village/district location, and a prominent **Day X** counter badge with animated growth progress bar (Planted → Current Stage → Harvest).
+  2. 📊 **3 Glass Metric Cards:** Compact, white glass cards overlapping the banner: Crop (name + variety), Growth Stage (+ Healthy badge), and Land (size + soil type in localized language).
+  3. ⚡ **Quick Action Row:** 3 color-coded buttons — Crop Details (green), AI Scan (blue), History (violet) — for instant navigation.
+  4. 🌐 **Full Telugu Localization:** All labels support `te` language fallback (పంట, దశ, భూమి, etc.).
+  5. 🎨 **Light Mode Mockup:** Generated full-page light mode design preview for user approval.
+- **Files modified**: `frontend/src/pages/FarmPage.jsx`, `chats_by_user.md`, `changes_happening.md`
+
+## 2026-09-11 (v88) - Location-Aware Native Soil Classification (12 Languages) & Chat Preservation
+- **Summary:** Completed Recommendation 1 and user chat log archiving:
+  1. 📝 **Preserved Chat History (`chats_by_user.md`):**
+     - Initialized permanent record tracking every user query alongside concise, actionable machine solutions for both human review and model context.
+  2. 🌱 **Regional Soil Database & 12-Language Dictionary (`indiaSoilTypes.js`):**
+     - Created `frontend/src/data/indiaSoilTypes.js` containing Indian agro-climatic soil profiles: Red Loamy / Chalka, Black Cotton (Regur), Alluvial / Delta Loam, Laterite / Gravelly, Coastal Sandy, and Clayey Wetland.
+     - Provided full 12-language vernacular naming (`te`, `hi`, `ta`, `kn`, `ml`, `mr`, `gu`, `pa`, `ur`, `or`, `as`, `en`) with authentic agricultural terminology (*నల్ల రేగడి*, *ఎర్ర చల్కా నేలలు*, *ఒండ్రు నేలలు*).
+     - Defined state-level priority mapping (`STATE_SOIL_PREFERENCES`) to automatically prioritize predominant soils when the farmer selects their State / District.
+     - Included agronomic attributes: water retention days, drainage speeds, pH profiles, and best-suited crops.
+  3. 🚜 **Field Setup Integration (`FarmPage.jsx`, `farm_profile.py`):**
+     - Added `soil_type` field to backend Pydantic models (`FarmProfileBase`, `FarmProfileUpdate`).
+     - Integrated interactive **Regional Soil Classification Card** into `FarmPage.jsx` directly under GPS coordinates, featuring 1-tap selectable cards with water retention chips, suitable crop badges, and active state highlights.
+     - Live browser scratchpad verified on localhost (`soil_selection_cards_1789108539507.png`): authenticated as `farmer1`, bypassed cache with `Ctrl+Shift+R`, and confirmed Telugu regional soils (*నల్ల రేగడి నేలలు*, *ఎర్ర చల్కా నేలలు*, *ఒండ్రు నేలలు*) with active selection ring.
+- **Files modified**: `backend/app/models/farm_profile.py`, `frontend/src/data/indiaSoilTypes.js`, `frontend/src/pages/FarmPage.jsx`, `chats_by_user.md`, `changes_happening.md`
+
 ## 2026-09-11 (v87) - Universal 100% Regional Language Localization Across All 12 Indian Languages & IoT Alerts
 - **Summary:** Conducted an exhaustive, full-system audit and eradication of hardcoded English strings, fallbacks, and regional gaps across the entire AgriShield platform. Upgraded system-wide support for all 12 Indian regional languages (`te`, `hi`, `ta`, `kn`, `ml`, `mr`, `gu`, `pa`, `ur`, `or`, `as`) + `en`:
   1. 🌐 **Universal Regional Locale Dictionary & Speech Engine (`regionalLocale.js`, `useSpeechReader.js`, `HistoryPage.jsx`):**

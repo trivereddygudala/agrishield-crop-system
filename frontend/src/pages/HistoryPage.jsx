@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Search, Filter, Download, FileText, FileSpreadsheet, Trash2, Calendar, Eye, 
   ChevronLeft, ChevronRight, ChevronDown, Activity, Cpu, RefreshCw,
   Info as InfoIcon, ShieldAlert, CheckCircle2, Leaf as LeafIcon, Volume2, Sparkles,
-  Printer, MessageCircle, Calculator
+  Printer, MessageCircle, Calculator, ArrowLeft
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import API from '../services/api';
@@ -22,7 +23,9 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const HistoryPage = () => {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const isTe = i18n?.language === 'te';
   const { user } = useAuth();
   const { activeFarm } = useFarm();
   const { hardwareMode } = useHardwareMode();
@@ -426,6 +429,18 @@ const HistoryPage = () => {
           <button onClick={() => setToastMsg('')} className="ml-2 text-slate-400 hover:text-white">&times;</button>
         </motion.div>
       )}
+
+      {/* Back to Field Navigation Button */}
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={() => navigate('/farm')}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-300 dark:hover:border-emerald-700 hover:text-emerald-700 dark:hover:text-emerald-300 text-xs sm:text-sm font-bold shadow-xs transition-all active:scale-95 group cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          <span>{isTe ? '← పొలం పేజీకి తిరిగి వెళ్ళు' : '← Back to Field'}</span>
+        </button>
+      </div>
 
       {/* Title Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">

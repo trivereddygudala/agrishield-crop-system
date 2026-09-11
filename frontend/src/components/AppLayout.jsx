@@ -1187,9 +1187,9 @@ export const BottomNav = () => {
     {
       key: 'field',
       label: t('nav.field_short', 'Field'),
-      path: '/history',
+      path: '/farm',
       Icon: Activity,
-      matchPaths: ['/history', '/analytics', '/farm', '/market', '/farm-analytics', '/reports'],
+      matchPaths: ['/farm', '/crop-advisory', '/history', '/analytics', '/market', '/farm-analytics', '/reports'],
     },
     {
       key: 'scan',
@@ -1212,7 +1212,7 @@ export const BottomNav = () => {
       label: t('nav.more_short', 'More'),
       path: '/more',
       Icon: SettingsIcon,
-      matchPaths: ['/more', '/settings', '/profile', '/admin', '/devices', '/node-control', '/sdcard', '/assistant', '/crop-advisory'],
+      matchPaths: ['/more', '/settings', '/profile', '/admin', '/devices', '/node-control', '/sdcard', '/assistant'],
     },
   ];
 
