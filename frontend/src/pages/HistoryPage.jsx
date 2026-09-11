@@ -13,6 +13,7 @@ import { useFarm } from '../context/FarmContext';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useHardwareMode } from '../hooks/useHardwareMode';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
+import { getSpeechLocale } from '../utils/regionalLocale';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
 import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
 import { parseServerDate, formatDateTime } from '../utils/dateUtils';
@@ -811,9 +812,7 @@ const HistoryPage = () => {
                                   if ('speechSynthesis' in window) {
                                     const textToSpeak = translateDisease(item.disease_name, i18n.language);
                                     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                                    if (i18n.language === 'te') utterance.lang = 'te-IN';
-                                    else if (i18n.language === 'hi') utterance.lang = 'hi-IN';
-                                    else if (i18n.language === 'ta') utterance.lang = 'ta-IN';
+                                    utterance.lang = getSpeechLocale(i18n.language);
                                     window.speechSynthesis.speak(utterance);
                                   }
                                 }}
@@ -1122,9 +1121,7 @@ const HistoryPage = () => {
                       onClick={() => {
                         if ('speechSynthesis' in window) {
                           const utterance = new SpeechSynthesisUtterance(localizedDisease);
-                          if (i18n.language === 'te') utterance.lang = 'te-IN';
-                          else if (i18n.language === 'hi') utterance.lang = 'hi-IN';
-                          else if (i18n.language === 'ta') utterance.lang = 'ta-IN';
+                          utterance.lang = getSpeechLocale(i18n.language);
                           window.speechSynthesis.speak(utterance);
                         }
                       }}

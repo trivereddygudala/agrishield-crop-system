@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v87) - Universal 100% Regional Language Localization Across All 12 Indian Languages & IoT Alerts
+- **Summary:** Conducted an exhaustive, full-system audit and eradication of hardcoded English strings, fallbacks, and regional gaps across the entire AgriShield platform. Upgraded system-wide support for all 12 Indian regional languages (`te`, `hi`, `ta`, `kn`, `ml`, `mr`, `gu`, `pa`, `ur`, `or`, `as`) + `en`:
+  1. 🌐 **Universal Regional Locale Dictionary & Speech Engine (`regionalLocale.js`, `useSpeechReader.js`, `HistoryPage.jsx`):**
+     - Built dedicated `regionalLocale.js` mapping all 12 languages with native BCP-47 speech tags (`te-IN`, `hi-IN`, `ta-IN`, `kn-IN`, `ml-IN`, `mr-IN`, `gu-IN`, `pa-IN`, `ur-IN`, `or-IN`, `as-IN`, `en-IN`).
+     - Added comprehensive 12-language lookup tables for section category badges (`getLocalizedBadge`), speech action labels (`getAudioActionLabel`), knapsack tank instructions, and pathology severity indicators (`getLocalizedSeverity`).
+  2. 🧪 **Prescription Sharing & Diagnostic Slip Formats (`prescriptionShare.js`):**
+     - Added complete vernacular agricultural diagnostic templates and prescription card text for all 7 previously missing languages (`ml`, `mr`, `gu`, `pa`, `ur`, `or`, `as`) alongside `te`, `hi`, `ta`, `kn`.
+  3. 🌿 **AI Scan Center, Diagnosis & Treatment Simulators (`DiseaseDiagnosisResults.jsx`, `MultiLeafResults.jsx`, `TreatmentRecoverySimulator.jsx`, `CollapsibleSection.jsx`, `CropAdvisorPanel.jsx`):**
+     - Replaced hardcoded WhatsApp text, knapsack tank calculations, and chemical formulations with dynamic 12-language strings.
+     - Upgraded MultiLeaf plot aggregate report and individual zone badges with regional severity indicators.
+     - Transformed `TreatmentRecoverySimulator.jsx` to dynamically render day-by-day healing stages across all 12 languages using `getRecoveryStageData(day, lang)`.
+     - Refactored `CollapsibleSection` and `CropAdvisorPanel` voice readouts to use localized labels.
+  4. 🧠 **Agro-Weather & Fungal Risk Telemetry Advisor (`FungalRiskAdvisor.jsx`):**
+     - Expanded fungal risk intelligence to provide native protocols, dynamic weather warning badges, micro-telemetry sensor indicators, and 3-step action plans in all 12 languages via `getFungalRiskData`.
+  5. 🛰️ **Navigation, Farm Switcher & Landing Experience (`LandingPage.jsx`, `AppLayout.jsx`, `QuickInsights.jsx`):**
+     - Expanded language selectors across Landing and Application Layout to support all 12 regional languages including Assamese (`as`).
+     - Localized farm switcher dropdown ("Select Active Farm", "Add New Field"), profile quick-actions, IoT notifications, and bottom mobile navigation tabs.
+  6. 📡 **Backend IoT & SMS Alert Templates (`templates.py`):**
+     - Upgraded all 10 IoT/telemetry alert templates in `backend/app/core/templates.py` to support Marathi, Gujarati, Punjabi, Urdu, Odia, and Assamese.
+     - Updated `SUPPORTED_LANGUAGES` and fallback rendering to eliminate raw string outputs.
+  7. 📚 **Telugu Parity & Key Completeness (`translations.js`):**
+     - Added missing nested `history.dashboard` telemetry and quick-tool definitions in Telugu dictionary for seamless navigation parity.
+- **Files modified**: `backend/app/core/templates.py`, `frontend/src/utils/regionalLocale.js`, `frontend/src/utils/prescriptionShare.js`, `frontend/src/components/AppLayout.jsx`, `frontend/src/components/CropAdvisorPanel.jsx`, `frontend/src/components/analytics/QuickInsights.jsx`, `frontend/src/components/intelligence/FungalRiskAdvisor.jsx`, `frontend/src/components/scanCenter/CollapsibleSection.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/MultiLeafResults.jsx`, `frontend/src/components/scanCenter/TreatmentRecoverySimulator.jsx`, `frontend/src/hooks/useSpeechReader.js`, `frontend/src/i18n/translations.js`, `frontend/src/pages/HistoryPage.jsx`, `frontend/src/pages/LandingPage.jsx`, `changes_happening.md`
+
 ## 2026-09-11 (v86) - 100% Full-Stack AI Scan Center Localization & Regional Prescriptive Calendar Engine
 - **Summary:** Resolved all remaining translation gaps in AI Scan Center (`/upload`) where sections remained in English while Telugu (or other regional languages) was selected:
   1. 🌐 **100% Localized Prescriptive Treatment Calendar (`nvidia_service.py`, `predict.py`, `DiseaseDiagnosisResults.jsx`):**

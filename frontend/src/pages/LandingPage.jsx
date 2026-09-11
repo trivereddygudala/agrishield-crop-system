@@ -37,7 +37,7 @@ const FloatingOrb = ({ className }) => (
 );
 
 /* ─── Feature Card ──────────────────────────────────── */
-const FeatureCard = ({ icon: Icon, badge, title, description, color, index, onClick }) => (
+const FeatureCard = ({ icon: Icon, badge, title, description, color, index, previewLabel, onClick }) => (
   <motion.div
     onClick={onClick}
     initial={{ opacity: 0, y: 30 }}
@@ -63,7 +63,7 @@ const FeatureCard = ({ icon: Icon, badge, title, description, color, index, onCl
       <p className="text-white/45 text-sm leading-relaxed">{description}</p>
     </div>
     <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:text-emerald-300 transition-colors relative z-10 mt-auto">
-      <span>Preview Demo</span>
+      <span>{previewLabel || 'Preview Demo'}</span>
       <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
     </div>
   </motion.div>
@@ -96,33 +96,33 @@ const LandingPage = () => {
   const handleLanguageChange = (e) => i18n.changeLanguage(e.target.value);
 
   const stats = [
-    { label: 'Disease Classes', value: 1200, suffix: '+' },
-    { label: 'AI Accuracy', value: 98, suffix: '%' },
-    { label: 'Active Farmers', value: 5000, suffix: '+' },
-    { label: 'Scans Done', value: 50000, suffix: '+' },
+    { label: t('landing.disease_classes', 'Disease Classes'), value: 1200, suffix: '+' },
+    { label: t('landing.ai_accuracy', 'AI Accuracy'), value: 98, suffix: '%' },
+    { label: t('landing.active_farmers', 'Active Farmers'), value: 5000, suffix: '+' },
+    { label: t('landing.scans_done', 'Scans Done'), value: 50000, suffix: '+' },
   ];
 
   const features = [
     {
-      icon: ScanLine, badge: 'AI Scan Center', route: '/upload',
+      icon: ScanLine, badge: t('nav.scan_center', 'AI Scan Center'), route: '/upload',
       color: 'bg-emerald-500/20 text-emerald-300',
       title: t('landing.feat1_title', 'Real-Time AI Disease Diagnosis'),
       description: t('landing.feat1_desc', 'Upload crop leaf photos to detect 1,200+ plant species and pathogens instantly using PyTorch EfficientNetV2 neural networks with Grad-CAM heatmaps.'),
     },
     {
-      icon: Sprout, badge: 'My Farm', route: '/farm',
+      icon: Sprout, badge: t('nav.my_farm', 'My Farm'), route: '/farm',
       color: 'bg-sky-500/20 text-sky-300',
       title: t('landing.feat2_title', 'Agronomic Sector & Crop Lifecycle'),
       description: t('landing.feat2_desc', 'Manage land sectors, active crop growth stages from Germination to Harvest, irrigation types, and 1-click GPS auto-coordinates.'),
     },
     {
-      icon: Cpu, badge: 'ESP32 IoT', route: '/devices',
+      icon: Cpu, badge: t('nav.iot_devices', 'ESP32 IoT'), route: '/devices',
       color: 'bg-amber-500/20 text-amber-300',
       title: t('landing.feat3_title', 'Real-Time Sensor Hardware Sync'),
       description: t('landing.feat3_desc', 'Stream live field metrics (Air Temp, Humidity, Soil Moisture, Rain, Sunlight) directly from paired ESP32 field transceiver nodes.'),
     },
     {
-      icon: Bot, badge: 'AI Agronomist', route: '/assistant',
+      icon: Bot, badge: t('nav.ai_advisor', 'AI Agronomist'), route: '/assistant',
       color: 'bg-purple-500/20 text-purple-300',
       title: t('landing.feat4_title', 'Multilingual Smart Chat Advisor'),
       description: t('landing.feat4_desc', 'Get 24/7 personalized advice on soil NPK nutrients, organic bio-pesticide treatments, and spray schedules in your preferred language.'),
@@ -130,11 +130,18 @@ const LandingPage = () => {
   ];
 
   const langOptions = [
-    { value: 'en', label: 'English (US)' }, { value: 'hi', label: 'हिन्दी' },
-    { value: 'te', label: 'తెలుగు' }, { value: 'ta', label: 'தமிழ்' },
-    { value: 'mr', label: 'मराठी' }, { value: 'ml', label: 'മലയാളം' },
-    { value: 'kn', label: 'ಕನ್ನಡ' }, { value: 'bn', label: 'বাংলা' },
-    { value: 'gu', label: 'ગુજરાતી' }, { value: 'pa', label: 'ਪੰਜਾਬੀ' },
+    { value: 'en', label: 'English (US)' },
+    { value: 'hi', label: 'हिन्दी (Hindi)' },
+    { value: 'te', label: 'తెలుగు (Telugu)' },
+    { value: 'ta', label: 'தமிழ் (Tamil)' },
+    { value: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+    { value: 'ml', label: 'മലയാളം (Malayalam)' },
+    { value: 'mr', label: 'मराठी (Marathi)' },
+    { value: 'gu', label: 'ગુજરાતી (Gujarati)' },
+    { value: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+    { value: 'ur', label: 'اردو (Urdu)' },
+    { value: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+    { value: 'as', label: 'অসমীয়া (Assamese)' },
   ];
 
   return (
@@ -164,9 +171,12 @@ const LandingPage = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-8">
-            {['Features', 'Technology'].map(item => (
-              <a key={item} href={`#${item.toLowerCase()}`} className="text-sm text-white/50 hover:text-white transition-colors duration-200 font-medium">
-                {item}
+            {[
+              { key: 'features', label: t('landing.nav_features', 'Features') },
+              { key: 'technology', label: t('landing.nav_technology', 'Technology') }
+            ].map(item => (
+              <a key={item.key} href={`#${item.key}`} className="text-sm text-white/50 hover:text-white transition-colors duration-200 font-medium">
+                {item.label}
               </a>
             ))}
           </div>
@@ -181,12 +191,12 @@ const LandingPage = () => {
             </div>
             {user ? (
               <Link to="/dashboard">
-                <button className="text-sm font-bold px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white transition-all duration-200 shadow-lg shadow-emerald-500/25">Dashboard</button>
+                <button className="text-sm font-bold px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white transition-all duration-200 shadow-lg shadow-emerald-500/25">{t('nav.dashboard', 'Dashboard')}</button>
               </Link>
             ) : (
               <>
-                <Link to="/login"><button className="text-sm font-semibold px-4 py-2 text-white/60 hover:text-white transition-colors duration-200">Sign In</button></Link>
-                <Link to="/register"><button className="text-sm font-bold px-5 py-2 rounded-lg bg-white text-[#060a10] hover:bg-emerald-50 transition-all duration-200 shadow-lg">Get Started</button></Link>
+                <Link to="/login"><button className="text-sm font-semibold px-4 py-2 text-white/60 hover:text-white transition-colors duration-200">{t('landing.sign_in', 'Sign In')}</button></Link>
+                <Link to="/register"><button className="text-sm font-bold px-5 py-2 rounded-lg bg-white text-[#060a10] hover:bg-emerald-50 transition-all duration-200 shadow-lg">{t('landing.get_started', 'Get Started')}</button></Link>
               </>
             )}
           </div>
@@ -202,10 +212,13 @@ const LandingPage = () => {
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
               className="md:hidden bg-[#060a10]/98 backdrop-blur-2xl border-b border-white/5">
               <div className="px-4 py-5 space-y-2">
-                {['Features', 'Technology'].map(item => (
-                  <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setMobileMenuOpen(false)}
+                {[
+                  { key: 'features', label: t('landing.nav_features', 'Features') },
+                  { key: 'technology', label: t('landing.nav_technology', 'Technology') }
+                ].map(item => (
+                  <a key={item.key} href={`#${item.key}`} onClick={() => setMobileMenuOpen(false)}
                     className="block text-sm font-medium text-white/50 hover:text-white py-2.5 border-b border-white/5">
-                    {item}
+                    {item.label}
                   </a>
                 ))}
                 <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-2.5 rounded-lg w-full mt-2">
@@ -217,11 +230,11 @@ const LandingPage = () => {
                 </div>
                 <div className="flex flex-col gap-2 pt-3">
                   {user ? (
-                    <Link to="/dashboard"><button className="w-full text-sm font-bold py-3.5 rounded-xl bg-emerald-500 text-white">Dashboard</button></Link>
+                    <Link to="/dashboard"><button className="w-full text-sm font-bold py-3.5 rounded-xl bg-emerald-500 text-white">{t('nav.dashboard', 'Dashboard')}</button></Link>
                   ) : (
                     <>
-                      <Link to="/register"><button className="w-full text-sm font-bold py-3.5 rounded-xl bg-white text-[#060a10]">Get Started Free</button></Link>
-                      <Link to="/login"><button className="w-full text-sm font-bold py-3.5 rounded-xl bg-white/8 border border-white/10 text-white">Sign In</button></Link>
+                      <Link to="/register"><button className="w-full text-sm font-bold py-3.5 rounded-xl bg-white text-[#060a10]">{t('landing.get_started_free', 'Get Started Free')}</button></Link>
+                      <Link to="/login"><button className="w-full text-sm font-bold py-3.5 rounded-xl bg-white/8 border border-white/10 text-white">{t('landing.sign_in', 'Sign In')}</button></Link>
                     </>
                   )}
                 </div>
@@ -412,11 +425,11 @@ const LandingPage = () => {
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
             className="text-center space-y-4 max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/40 tracking-widest mb-2">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-400" /> PLATFORM MODULES
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400" /> {t('landing.platform_modules', 'PLATFORM MODULES')}
             </div>
             <h2 className="font-extrabold text-white text-3xl sm:text-5xl leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
               {t('landing.precision_title', 'Built for Precision')}<br />
-              <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">Smart Agriculture</span>
+              <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">{t('landing.smart_agriculture', 'Smart Agriculture')}</span>
             </h2>
             <p className="text-white/35 text-sm sm:text-base leading-relaxed">
               {t('landing.precision_desc', 'Comprehensive agronomic tooling combining high-accuracy AI diagnostics, ESP32 telemetry, and personal advisory.')}
@@ -426,7 +439,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {features.map((feat, idx) => (
               <div key={idx} className="block h-full">
-                <FeatureCard {...feat} index={idx} onClick={() => openDemo(idx)} />
+                <FeatureCard {...feat} index={idx} previewLabel={t('landing.preview_demo', 'Preview Demo')} onClick={() => openDemo(idx)} />
               </div>
             ))}
           </div>
@@ -440,21 +453,21 @@ const LandingPage = () => {
             <div className="flex flex-col lg:flex-row items-center gap-12">
               <div className="flex-1 space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/40 tracking-widest">
-                  <Zap className="h-3.5 w-3.5 text-amber-400" /> TECHNOLOGY STACK
+                  <Zap className="h-3.5 w-3.5 text-amber-400" /> {t('landing.technology_stack', 'TECHNOLOGY STACK')}
                 </div>
                 <h2 className="font-extrabold text-white text-3xl sm:text-4xl leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                  Enterprise-Grade AI<br />
-                  <span className="text-emerald-400">for the Farm</span>
+                  {t('landing.tech_heading_1', 'Enterprise-Grade AI')}<br />
+                  <span className="text-emerald-400">{t('landing.tech_heading_2', 'for the Farm')}</span>
                 </h2>
                 <p className="text-white/35 text-sm sm:text-base leading-relaxed max-w-md">
-                  Powered by state-of-the-art deep learning, real-time ESP32 hardware integration, and cloud-synced intelligence — built to scale.
+                  {t('landing.tech_desc', 'Powered by state-of-the-art deep learning, real-time ESP32 hardware integration, and cloud-synced intelligence — built to scale.')}
                 </p>
                 <div className="flex flex-col gap-3">
                   {[
-                    { label: 'PyTorch EfficientNetV2-S neural network', icon: '🧠', cls: 'bg-violet-500/10 border-violet-500/20 text-violet-300' },
-                    { label: 'ESP32 multi-node sensor telemetry', icon: '📡', cls: 'bg-amber-500/10 border-amber-500/20 text-amber-300' },
-                    { label: 'NVIDIA NIM LLM multilingual advisory', icon: '💬', cls: 'bg-sky-500/10 border-sky-500/20 text-sky-300' },
-                    { label: 'Grad-CAM visual explainability heatmaps', icon: '🔥', cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' },
+                    { label: t('landing.tech_item_1', 'PyTorch EfficientNetV2-S neural network'), icon: '🧠', cls: 'bg-violet-500/10 border-violet-500/20 text-violet-300' },
+                    { label: t('landing.tech_item_2', 'ESP32 multi-node sensor telemetry'), icon: '📡', cls: 'bg-amber-500/10 border-amber-500/20 text-amber-300' },
+                    { label: t('landing.tech_item_3', 'NVIDIA NIM LLM multilingual advisory'), icon: '💬', cls: 'bg-sky-500/10 border-sky-500/20 text-sky-300' },
+                    { label: t('landing.tech_item_4', 'Grad-CAM visual explainability heatmaps'), icon: '🔥', cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' },
                   ].map(({ label, icon, cls }, i) => (
                     <motion.div key={label} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.4 }}
@@ -470,8 +483,8 @@ const LandingPage = () => {
               <div className="flex-1 w-full max-w-sm mx-auto lg:mx-0">
                 <div className="rounded-2xl bg-[#060a10]/80 border border-white/8 p-4 space-y-3 backdrop-blur-xl">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-white/50">ESP32 Field Nodes</span>
-                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">LIVE</span>
+                    <span className="text-xs font-bold text-white/50">{t('landing.esp32_nodes', 'ESP32 Field Nodes')}</span>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">{t('landing.live', 'LIVE')}</span>
                   </div>
                   {[
                     { name: 'Node Alpha', temp: '31.2°C', hum: '68%', soil: '41%', on: true },
@@ -498,8 +511,8 @@ const LandingPage = () => {
                         className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
                     </div>
                     <div className="flex justify-between text-[10px] text-white/25 font-medium">
-                      <span>System health</span>
-                      <span className="text-emerald-400 font-bold">73% optimal</span>
+                      <span>{t('landing.system_health', 'System health')}</span>
+                      <span className="text-emerald-400 font-bold">{t('landing.health_optimal', '73% optimal')}</span>
                     </div>
                   </div>
                 </div>
@@ -514,16 +527,16 @@ const LandingPage = () => {
         <div className="max-w-3xl mx-auto text-center space-y-8">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-400 mb-6 tracking-widest">
-              <Star className="h-3.5 w-3.5" /> FREE FOR FARMERS
+              <Star className="h-3.5 w-3.5" /> {t('landing.free_for_farmers', 'FREE FOR FARMERS')}
             </div>
             <h2 className="font-extrabold text-white text-4xl sm:text-6xl leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              Start Protecting<br />
+              {t('landing.cta_title_1', 'Start Protecting')}<br />
               <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">
-                Your Harvest Today
+                {t('landing.cta_title_2', 'Your Harvest Today')}
               </span>
             </h2>
             <p className="text-white/35 text-base sm:text-lg leading-relaxed mt-5 max-w-xl mx-auto">
-              Join thousands of farmers using AI-powered diagnostics and real-time sensor monitoring to protect their crops across India.
+              {t('landing.cta_desc', 'Join thousands of farmers using AI-powered diagnostics and real-time sensor monitoring to protect their crops across India.')}
             </p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
@@ -531,19 +544,19 @@ const LandingPage = () => {
             {user ? (
               <Link to="/dashboard">
                 <button className="group w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition-all duration-200 shadow-2xl shadow-emerald-500/25 hover:scale-[1.02]">
-                  Go to Dashboard <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                  {t('nav.dashboard', 'Go to Dashboard')} <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </Link>
             ) : (
               <>
                 <Link to="/register">
                   <button className="group w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition-all duration-200 shadow-2xl shadow-emerald-500/25 hover:scale-[1.02]">
-                    Create Free Account <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                    {t('landing.create_account', 'Create Free Account')} <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </Link>
                 <Link to="/login">
                   <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 rounded-xl bg-white/6 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white text-sm font-bold transition-all duration-200 hover:scale-[1.02]">
-                    Sign In
+                    {t('landing.sign_in', 'Sign In')}
                   </button>
                 </Link>
               </>
@@ -565,9 +578,9 @@ const LandingPage = () => {
             © 2026 AgriShield AI & IoT Crop Health Intelligence Platform. All rights reserved.
           </p>
           <div className="flex items-center gap-5 text-xs text-white/25 font-medium">
-            <span className="hover:text-white/50 cursor-pointer transition-colors">Privacy</span>
-            <span className="hover:text-white/50 cursor-pointer transition-colors">Terms</span>
-            <span className="hover:text-white/50 cursor-pointer transition-colors">Support</span>
+            <span className="hover:text-white/50 cursor-pointer transition-colors">{t('landing.privacy', 'Privacy')}</span>
+            <span className="hover:text-white/50 cursor-pointer transition-colors">{t('landing.terms', 'Terms')}</span>
+            <span className="hover:text-white/50 cursor-pointer transition-colors">{t('landing.support', 'Support')}</span>
           </div>
         </div>
       </footer>

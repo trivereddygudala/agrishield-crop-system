@@ -19,6 +19,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { useSpeechReader } from '../hooks/useSpeechReader';
 import { translateCrop, localizeAdvice } from '../utils/diseaseAdvisoryData';
+import { getLocalizedSeverity, getAudioActionLabel } from '../utils/regionalLocale';
 
 const CropAdvisorPanel = ({ advisor }) => {
   const { t, i18n } = useTranslation();
@@ -26,7 +27,6 @@ const CropAdvisorPanel = ({ advisor }) => {
   if (!advisor) return null;
 
   const { crop, severity, treatment, spray, recovery, prevention, tips } = advisor;
-  const isTelugu = i18n.language === 'te';
 
   // Compute severity style classes
   const isHighRisk = severity?.level?.toLowerCase()?.includes('high') || severity?.level?.toLowerCase()?.includes('severe');
@@ -46,17 +46,13 @@ const CropAdvisorPanel = ({ advisor }) => {
       : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-400/50';
 
   const localizedCropName = translateCrop(crop?.name, i18n.language) || crop?.name;
-  const localizedSeverityLevel = isTelugu 
-    ? (isHighRisk ? 'తీవ్రమైన' : isModerateRisk ? 'మధ్యస్థ' : 'తక్కువ') 
-    : severity?.level;
-
-  const localizedSeverityDesc = (isTelugu && !/[\u0C00-\u0C7F]/.test(severity?.description || ''))
-    ? (isHighRisk 
-        ? 'తీవ్రమైన తెగులు గుర్తించబడింది! తక్షణమే సిఫార్సు చేసిన రసాయన మందును పిచికారీ చేయండి.'
-        : isModerateRisk 
-          ? 'మధ్యస్థ స్థాయి తెగులు. వ్యాప్తి చెందకుండా వెంటనే నివారణ చర్యలు తీసుకోండి.'
-          : 'ప్రారంభ దశలో తెగులు గుర్తించబడింది. సేంద్రీయ పద్ధతులను అనుసరించండి.')
-    : severity?.description;
+  const normLevel = isHighRisk ? 'High' : isModerateRisk ? 'Moderate' : 'Low';
+  const localizedSev = getLocalizedSeverity(normLevel, i18n.language);
+  const localizedSeverityLevel = localizedSev.level;
+  const hasVernacular = /[\u0900-\u0D7F]/.test(severity?.description || '');
+  const localizedSeverityDesc = (!hasVernacular && i18n.language !== 'en')
+    ? localizedSev.desc
+    : (severity?.description || localizedSev.desc);
 
   return (
     <div className="space-y-6 mt-6">
@@ -118,7 +114,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 title="Voice readout"
               >
                 {speakingId === 'advisor_organic' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_organic' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
+                <span className="hidden sm:inline text-[11px]">{getAudioActionLabel(speakingId === 'advisor_organic', i18n.language)}</span>
               </button>
             </CardHeader>
             <CardContent className="pt-5">
@@ -155,7 +151,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 title="Voice readout"
               >
                 {speakingId === 'advisor_chemical' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_chemical' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
+                <span className="hidden sm:inline text-[11px]">{getAudioActionLabel(speakingId === 'advisor_chemical', i18n.language)}</span>
               </button>
             </CardHeader>
             <CardContent className="pt-5">
@@ -197,7 +193,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 title="Voice readout"
               >
                 {speakingId === 'advisor_spray' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_spray' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
+                <span className="hidden sm:inline text-[11px]">{getAudioActionLabel(speakingId === 'advisor_spray', i18n.language)}</span>
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -249,7 +245,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               title="Voice readout"
             >
               {speakingId === 'advisor_prevention' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_prevention' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
+              <span className="hidden sm:inline text-[11px]">{getAudioActionLabel(speakingId === 'advisor_prevention', i18n.language)}</span>
             </button>
           </CardHeader>
           <CardContent className="pt-5">
@@ -284,7 +280,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               title="Voice readout"
             >
               {speakingId === 'advisor_tips' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_tips' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
+              <span className="hidden sm:inline text-[11px]">{getAudioActionLabel(speakingId === 'advisor_tips', i18n.language)}</span>
             </button>
           </CardHeader>
           <CardContent className="pt-5">

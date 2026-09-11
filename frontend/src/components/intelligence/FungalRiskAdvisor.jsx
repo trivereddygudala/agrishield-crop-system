@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Button } from '../ui/index';
 import API from '../../services/api';
+import { getFungalRiskData } from '../../utils/regionalLocale';
 
 export default function FungalRiskAdvisor({ compact = false }) {
   const { t, i18n } = useTranslation();
@@ -55,53 +56,8 @@ export default function FungalRiskAdvisor({ compact = false }) {
 
   const isHighRisk = riskScore >= 70;
   const isModerateRisk = riskScore >= 45 && riskScore < 70;
-
-  const localizedAdvice = () => {
-    const lang = i18n.language || 'en';
-    if (lang === 'te') {
-      if (isHighRisk) {
-        return {
-          title: "అధిక శిలీంద్ర / తెగుళ్ల ముందస్తు హెచ్చరిక (82% తేమ)",
-          desc: "అధిక గాలి తేమ మరియు వర్ష సూచన వలన వేరుశనగలో తిక్క తెగులు, మిరపలో కొమ్మ ఎండు తెగులు వచ్చే అవకాశం ఎక్కువ. వర్షానికి ముందే ట్రైకోడెర్మా లేదా కాపర్ ఆక్సిక్లోరైడ్ పిచికారీ చేయండి.",
-          crops: "వేరుశనగ, మిరప, వరి, టమాట"
-        };
-      }
-      return {
-        title: "తేలికపాటి తెగుళ్ల ప్రమాదం - పంట క్షేత్ర పరిశీలన",
-        desc: "ప్రస్తుత వాతావరణం అనుకూలంగా ఉంది. అయితే ఆకుల అడుగు భాగాన రసం పీల్చే పురుగులు మరియు మచ్చలను క్రమం తప్పకుండా పరిశీలించండి.",
-        crops: "అన్ని సాధారణ పంటలు"
-      };
-    }
-    if (lang === 'hi') {
-      if (isHighRisk) {
-        return {
-          title: "उच्च कवक व फफूंद प्रकोप चेतावनी (82% आर्द्रता)",
-          desc: "हवा में अत्यधिक नमी के कारण मूंगफली में टिक्का रोग, मिर्च में डाईबैक और धान में झोंका रोग का भारी जोखिम है। बारिश से पूर्व कॉपर ऑक्सीक्लोराइड या ट्राइकोडर्मा का छिड़काव करें।",
-          crops: "मूंगफली, मिर्च, धान, टमाटर"
-        };
-      }
-      return {
-        title: "सामान्य मौसम - नियमित फसल निगरानी",
-        desc: "मौसम नियंत्रण में है। पत्तियों के निचली सतह पर रस चूसक कीटों और धब्बों की नियमित जांच जारी रखें।",
-        crops: "सभी प्रमुख फसलें"
-      };
-    }
-    // English default
-    if (isHighRisk) {
-      return {
-        title: "Elevated Fungal Spore Germination Warning",
-        desc: "High atmospheric relative humidity (80%+) and optimal incubation temperatures create extreme risk for Groundnut Tikka Leaf Spot, Chilli Anthracnose & Rice Blast over the next 48 hours. Apply preventive bio-fungicide (Trichoderma viride) before precipitation.",
-        crops: "Groundnut, Chilli, Rice, Tomato"
-      };
-    }
-    return {
-      title: "Moderate Agro-Climatic Foliar Alert",
-      desc: "Weather conditions are stable. Maintain regular scouting of leaf undersides for sucking pest vectors and initial foliar spotting.",
-      crops: "General Field Crops"
-    };
-  };
-
-  const advice = localizedAdvice();
+  const currentLang = i18n.language || 'en';
+  const advice = getFungalRiskData(isHighRisk, currentLang);
 
   if (loading) return null;
 
@@ -120,7 +76,7 @@ export default function FungalRiskAdvisor({ compact = false }) {
           </div>
         </div>
         <Badge variant={isHighRisk ? 'glow-amber' : 'glow-emerald'} className="shrink-0 text-[10px] font-black">
-          {isHighRisk ? 'HIGH RISK' : 'NORMAL'}
+          {isHighRisk ? t('advisor.high_risk', 'HIGH RISK') : t('advisor.normal', 'NORMAL')}
         </Badge>
       </div>
     );
@@ -150,9 +106,9 @@ export default function FungalRiskAdvisor({ compact = false }) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/20">
-                  Agro-Climatic Intelligence
+                  {t('advisor.agro_climatic', 'Agro-Climatic Intelligence')}
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold">48-Hr Forecast</span>
+                <span className="text-[10px] text-slate-400 font-semibold">{t('advisor.forecast_48h', '48-Hr Forecast')}</span>
               </div>
               <h3 className="text-base sm:text-lg font-black text-white mt-1">
                 {advice.title}
@@ -171,7 +127,7 @@ export default function FungalRiskAdvisor({ compact = false }) {
               <span>{humidity}%</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-black text-amber-400">
-              <span>Risk: {riskScore}%</span>
+              <span>{t('advisor.risk', 'Risk')}: {riskScore}%</span>
             </div>
           </div>
         </div>
@@ -183,7 +139,7 @@ export default function FungalRiskAdvisor({ compact = false }) {
         {/* Vulnerable Crops Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10 text-xs">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 font-bold">🌾 Vulnerable Crops:</span>
+            <span className="text-slate-400 font-bold">{t('advisor.vulnerable_crops', '🌾 Vulnerable Crops:')}</span>
             <span className="font-extrabold text-amber-300">{advice.crops}</span>
           </div>
 
@@ -192,7 +148,7 @@ export default function FungalRiskAdvisor({ compact = false }) {
             onClick={() => setExpanded(!expanded)}
             className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 transition-colors cursor-pointer"
           >
-            <span>{expanded ? 'Hide Details' : 'View Action Protocol'}</span>
+            <span>{expanded ? t('advisor.hide_details', 'Hide Details') : t('advisor.view_protocol', 'View Action Protocol')}</span>
             <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
           </button>
         </div>
@@ -206,16 +162,16 @@ export default function FungalRiskAdvisor({ compact = false }) {
             className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3"
           >
             <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 space-y-1">
-              <span className="text-[11px] font-black text-emerald-400 block uppercase">1. Biological Prevention</span>
-              <p className="text-xs text-slate-300 leading-normal">Foliar spray of <em>Trichoderma viride</em> (2.5 kg/ha) or <em>Pseudomonas</em> 10g/L during overcast hours.</p>
+              <span className="text-[11px] font-black text-emerald-400 block uppercase">{t('advisor.biological_prevention', '1. Biological Prevention')}</span>
+              <p className="text-xs text-slate-300 leading-normal">{t('advisor.bio_desc', 'Foliar spray of Trichoderma viride (2.5 kg/ha) or Pseudomonas 10g/L during overcast hours.')}</p>
             </div>
             <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 space-y-1">
-              <span className="text-[11px] font-black text-sky-400 block uppercase">2. Field Drainage</span>
-              <p className="text-xs text-slate-300 leading-normal">Clear furrow furcation drains to prevent soil water stagnation around collar roots.</p>
+              <span className="text-[11px] font-black text-sky-400 block uppercase">{t('advisor.field_drainage', '2. Field Drainage')}</span>
+              <p className="text-xs text-slate-300 leading-normal">{t('advisor.drainage_desc', 'Clear furrow furcation drains to prevent soil water stagnation around collar roots.')}</p>
             </div>
             <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 space-y-1">
-              <span className="text-[11px] font-black text-amber-400 block uppercase">3. Chemical Cushion</span>
-              <p className="text-xs text-slate-300 leading-normal">If active sporulation occurs, spray Mancozeb 75% WP (2g/L) or Copper Oxychloride.</p>
+              <span className="text-[11px] font-black text-amber-400 block uppercase">{t('advisor.chemical_cushion', '3. Chemical Cushion')}</span>
+              <p className="text-xs text-slate-300 leading-normal">{t('advisor.chemical_desc', 'If active sporulation occurs, spray Mancozeb 75% WP (2g/L) or Copper Oxychloride.')}</p>
             </div>
           </motion.div>
         )}

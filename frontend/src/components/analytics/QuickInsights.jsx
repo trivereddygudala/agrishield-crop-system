@@ -1,13 +1,15 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import * as Icons from 'lucide-react';
 
 const QuickInsights = ({ insights }) => {
+  const { t } = useTranslation();
   if (!insights || insights.length === 0) return null;
 
   return (
     <div className="bg-white dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm h-full">
-      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Quick Insights</h3>
+      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">{t('analytics.quick_insights', 'Quick Insights')}</h3>
       <div className="space-y-4">
         {insights.map((insight, idx) => {
           const IconComponent = Icons[insight.icon] || Icons.Lightbulb;

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Button } from '../ui/index';
 import { printPrescriptionSlip } from '../../utils/prescriptionShare';
+import { getLocalizedSeverity } from '../../utils/regionalLocale';
 
 export default function MultiLeafResults({ result, onReset, farmName = "My Farm Plot", user }) {
   const { t, i18n } = useTranslation();
@@ -73,14 +74,15 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
   };
 
   const handleWhatsAppShare = () => {
-    const text = `🌾 *AgriShield Field Plot Diagnostic Report*:\n` +
-      `• Plot: ${farmName}\n` +
-      `• Crop: ${dominant_crop}\n` +
-      `• Samples Analyzed: ${total_samples} leaves\n` +
-      `• Plot Infection Rate: ${plot_infection_rate}% (${infected_count} infected, ${healthy_count} healthy)\n` +
-      `• Dominant Issue: ${dominant_disease}\n` +
-      `• Action Directive: ${directive}\n\n` +
-      `(Generated via AgriShield AI Multi-Leaf Plot Scanner)`;
+    const currentLang = i18n.language || 'en';
+    const text = `🌾 *${t('share.batch_title', 'AgriShield Field Plot Diagnostic Report')}*:\n` +
+      `• ${t('share.plot', 'Plot')}: ${farmName}\n` +
+      `• ${t('share.crop', 'Crop')}: ${dominant_crop}\n` +
+      `• ${t('share.samples_analyzed', 'Samples Analyzed')}: ${total_samples} ${t('share.leaves', 'leaves')}\n` +
+      `• ${t('share.infection_rate', 'Plot Infection Rate')}: ${plot_infection_rate}% (${infected_count} ${t('share.infected', 'infected')}, ${healthy_count} ${t('share.healthy', 'healthy')})\n` +
+      `• ${t('share.dominant_issue', 'Dominant Issue')}: ${dominant_disease}\n` +
+      `• ${t('share.action_directive', 'Action Directive')}: ${directive}\n\n` +
+      `(${t('share.generated_via', 'Generated via AgriShield AI Multi-Leaf Plot Scanner')})`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -108,7 +110,7 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                 🌾 {t('batch_scan.uploader_title', 'Multi-Leaf Plot Scan')}
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${getSeverityBadgeClass()}`}>
-                {severity_level}
+                {getLocalizedSeverity(severity_level, i18n.language)}
               </span>
             </div>
             
@@ -278,7 +280,7 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                  <span>{t('batch_scan.severity', 'Severity:')} <strong className={isHealthy ? 'text-emerald-500' : 'text-amber-500'}>{s.severity}</strong></span>
+                  <span>{t('batch_scan.severity', 'Severity:')} <strong className={isHealthy ? 'text-emerald-500' : 'text-amber-500'}>{getLocalizedSeverity(s.severity, i18n.language)}</strong></span>
                   <span>{t('batch_scan.zone', 'Zone #{{index}}', { index: s.sample_index })}</span>
                 </div>
               </motion.div>

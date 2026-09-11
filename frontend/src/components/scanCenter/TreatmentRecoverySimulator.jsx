@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Calendar, CheckCircle2, ShieldAlert, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Card, Badge, Button } from '../ui/index';
+import { getRecoveryStageData } from '../../utils/regionalLocale';
 
 export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseName = 'Disease Condition' }) {
   const { t, i18n } = useTranslation();
@@ -17,9 +18,6 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
       leafColor: "from-amber-600/40 via-rose-900/60 to-emerald-950/80",
       lesionOpacity: 1.0,
       chlorophyllLevel: 45,
-      description: "Pathogen hyphae penetrate foliar stomata. Chlorosis, necrotic spots, and active spore germination in progress.",
-      te_desc: "తెగులు శిలీంద్రం ఆకు కణజాలంపై వ్యాపిస్తోంది. ఆకుపచ్చ రంగు తగ్గి పసుపు మచ్చలు తీవ్రమవుతున్నాయి.",
-      hi_desc: "रोग कारक फफूंद पत्तियों पर फैल रहा है। धब्बे तेजी से बढ़ रहे हैं और क्लोरोफिल की मात्रा घट रही है।"
     },
     {
       day: 5,
@@ -29,9 +27,6 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
       leafColor: "from-amber-700/30 via-slate-800/60 to-emerald-950/80",
       lesionOpacity: 0.6,
       chlorophyllLevel: 62,
-      description: "Fungicide / bio-agent spray desiccation stops secondary spore germination. Spot margins turn dark brown and inert.",
-      te_desc: "మందు పిచికారీ వలన శిలీంద్ర వ్యాప్తి ఆగింది. మచ్చల అంచులు ఎండిపోయి నిర్వీర్యమయ్యాయి.",
-      hi_desc: "दवा छिड़काव से फफूंद का फैलाव रुक गया है। धब्बे सूखकर भूरे और निष्क्रिय हो गए हैं।"
     },
     {
       day: 12,
@@ -41,9 +36,6 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
       leafColor: "from-emerald-600/20 via-emerald-800/50 to-emerald-950/90",
       lesionOpacity: 0.25,
       chlorophyllLevel: 80,
-      description: "Root uptake of micronutrients stimulates axillary shoots. Fresh green foliage emerges free of fungal spores.",
-      te_desc: "సూక్ష్మ పోషకాలు తీసుకోవడం ద్వారా కొత్త చిగుళ్లు, ఆరోగ్యకరమైన పచ్చని ఆకులు ఎదుగుతున్నాయి.",
-      hi_desc: "पोषक तत्वों के प्रभाव से नई कोपलें और रोगमुक्त हरी पत्तियां निकलने लगी हैं।"
     },
     {
       day: 20,
@@ -53,29 +45,15 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
       leafColor: "from-emerald-500/30 via-emerald-700/50 to-emerald-900/90",
       lesionOpacity: 0.05,
       chlorophyllLevel: 96,
-      description: "Full photosynthetic canopy recovery. Economic yield potential protected with complete foliar vigor restored.",
-      te_desc: "పైరు పూర్తి ఆరోగ్యంతో పచ్చగా మారింది. పంట దిగుబడి నష్టం నివారించబడి పూర్తి పునరుద్ధరణ జరిగింది.",
-      hi_desc: "फसल पूर्ण रूप से स्वस्थ और हरी-भरी हो गई है। फसल की पैदावार सुरक्षित हो गई है।"
     }
   ];
 
   const currentStage = stages.find(s => s.day === activeDay) || stages[0];
   const lang = i18n.language || 'en';
-
-  const localizedText = () => {
-    if (lang === 'te') return currentStage.te_desc;
-    if (lang === 'hi') return currentStage.hi_desc;
-    return currentStage.description;
-  };
+  const stageData = getRecoveryStageData(currentStage.day, lang);
 
   const getLocalizedBadge = (stage) => {
-    if (lang === 'te') {
-      if (stage.day === 0) return 'వ్యాధి వ్యాప్తిలో ఉంది';
-      if (stage.day === 5) return 'వ్యాప్తి ఆగింది';
-      if (stage.day === 12) return 'కొత్త చిగుళ్లు';
-      return 'దిగుబడి రక్షణ';
-    }
-    return stage.badge;
+    return getRecoveryStageData(stage.day, lang).badge;
   };
 
   return (
@@ -165,10 +143,10 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
           <div className="space-y-3 flex-1">
             <h4 className="text-base sm:text-lg font-black text-emerald-300 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-400" />
-              {t(`results.stage_day_${currentStage.day}`, currentStage.title)}
+              {stageData.title}
             </h4>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-              {localizedText()}
+              {stageData.desc}
             </p>
 
             <div className="grid grid-cols-2 gap-2 pt-2 text-xs">

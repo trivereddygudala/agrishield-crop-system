@@ -3067,6 +3067,41 @@ export const resources = {
           "healthy_prev": "వారానికి ఒకసారి ఆకులను గమనిస్తూ, కలుపు మొక్కలు లేకుండా చూసుకోండి.",
           "close": "మూసివేయి"
         },
+        "dashboard": {
+          "my_farm_overview": "నా పొలం అవలోకనం",
+          "overview": "అవలోకనం",
+          "scan_crop_leaf": "ఆకు స్కాన్ చేయండి",
+          "namaste_farmer": "నమస్తే, {{name}} రైతు గారూ! 👋",
+          "daily_actionable_summary": "నేడు 34°C, ఎండగా ఉంది — పొలం పని మరియు పిచికారీకి అనుకూల వాతావరణం",
+          "crops_healthy": "పంటలు: ఆరోగ్యకరమైనవి",
+          "soil_optimal": "నేల తేమ: {{pct}}% (అనుకూలం)",
+          "disease_risk_low": "తెగుళ్ల ముప్పు: తక్కువ",
+          "kpi": {
+            "active_crop_label": "ప్రస్తుత పంట:",
+            "leaf_scans_label": "ఆకు స్కాన్‌లు:",
+            "soil_water_label": "నేల తేమ:",
+            "mandi_rate_label": "మండీ ధర:",
+            "stage": "దశ",
+            "healthy": "ఆరోగ్యకరమైనవి",
+            "treated": "చికిత్స చేయబడినవి",
+            "optimal": "అనుకూలం",
+            "adequate": "సరిపడా",
+            "needs_water": "నీరు అవసరం",
+            "today": "నేడు"
+          },
+          "quick_tools": {
+            "title": "శీఘ్ర వ్యవసాయ సాధనాలు",
+            "see_all": "అన్ని సాధనాలు చూడండి",
+            "leaf_doctor": "పంట ఆకు డాక్టర్",
+            "leaf_doctor_desc": "తక్షణ వ్యాధి గుర్తింపు కోసం ఆకును స్కాన్ చేయండి.",
+            "agronomist": "AI వ్యవసాయ నిపుణుడు",
+            "agronomist_desc": "తెలుగులో వాయిస్ లేదా టెక్స్ట్‌లో సలహా పొందండి.",
+            "mandi_prices": "మండీ ధరలు",
+            "mandi_prices_desc": "రోజువారీ ప్రత్యక్ష వ్యవసాయ మండి ధరలు అనుసరించండి.",
+            "my_farm": "నా పొలం",
+            "my_farm_desc": "పొలం GPS సరిహద్దులు & పంట సెటప్ చూడండి."
+          }
+        },
         "no_photo": "ఫోటో లేదు",
         "full_reading": "పూర్తి రీడింగ్",
         "wet": "తేమగా ఉంది",

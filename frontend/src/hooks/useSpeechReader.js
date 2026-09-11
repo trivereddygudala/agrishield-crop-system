@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getSpeechLocale } from '../utils/regionalLocale';
 
 export const useSpeechReader = () => {
   const [speakingId, setSpeakingId] = useState(null);
@@ -43,15 +44,7 @@ export const useSpeechReader = () => {
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utteranceRef.current = utterance;
 
-    const langMap = {
-      te: 'te-IN',
-      hi: 'hi-IN',
-      ta: 'ta-IN',
-      kn: 'kn-IN',
-      en: 'en-IN'
-    };
-    const primaryLang = (lang || 'en').split('-')[0];
-    utterance.lang = langMap[primaryLang] || 'en-IN';
+    utterance.lang = getSpeechLocale(lang);
     utterance.rate = rate || 1.0;
     utterance.pitch = 1.0;
 

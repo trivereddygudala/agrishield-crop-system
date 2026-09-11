@@ -514,7 +514,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all font-semibold text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900"
                   >
                     <Sprout className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="max-w-[100px] truncate">{activeFarm ? activeFarm.farm_name : 'Select Farm'}</span>
+                    <span className="max-w-[100px] truncate">{activeFarm ? activeFarm.farm_name : t('nav.select_farm', 'Select Farm')}</span>
                     <ChevronDown className="h-3 w-3 text-slate-400" />
                   </button>
                   
@@ -553,7 +553,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                           }}
                           className="w-full flex items-center justify-center gap-2 px-3 py-2 text-center rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all border border-dashed border-emerald-200 dark:border-emerald-800/60"
                         >
-                          <span className="text-[14px]">+</span> Add New Field
+                          <span className="text-[14px]">+</span> {t('nav.add_field', 'Add New Field')}
                         </button>
                       </div>
                     </>
@@ -699,6 +699,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   <option value="pa" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ਪੰਜਾਬੀ</option>
                   <option value="ur" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">اردو</option>
                   <option value="or" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ଓଡ଼ିଆ</option>
+                  <option value="as" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">অসমীয়া</option>
                 </select>
               </div>
 
@@ -757,16 +758,16 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 {bellOpen && (
                   <div className="absolute right-0 mt-2 z-50 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">Notifications</span>
+                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{t('nav.notifications', 'Notifications')}</span>
                       <Link to="/notifications" onClick={() => setBellOpen(false)} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
-                        View All Inbox
+                        {t('nav.view_all_inbox', 'View All Inbox')}
                       </Link>
                     </div>
                     <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
                       {recentAlerts.length === 0 ? (
                         <div className="py-8 text-center text-slate-400 text-xs">
                           <Bell className="mx-auto mb-2 opacity-30" size={24} />
-                          All caught up!
+                          {t('nav.all_caught_up', 'All caught up!')}
                         </div>
                       ) : (
                         recentAlerts.map((alert) => {
@@ -821,7 +822,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{user?.role?.toLowerCase() === 'admin' ? 'Admin Profile & Security' : 'User Profile'}</span>
+                      <span>{user?.role?.toLowerCase() === 'admin' ? t('nav.admin_profile', 'Admin Profile & Security') : t('nav.profile', 'User Profile')}</span>
                     </Link>
 
                     {user?.role?.toLowerCase() !== 'admin' && (
@@ -831,7 +832,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                       >
                         <Sprout className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>My Farm & Operations</span>
+                        <span>{t('nav.farm_operations', 'My Farm & Operations')}</span>
                       </Link>
                     )}
 
@@ -899,7 +900,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             <div className="flex-grow min-w-0 pr-1">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">AI Diagnosis Alert</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{t('nav.live_alert_tag', 'AI Diagnosis Alert')}</span>
               </div>
               <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 leading-snug">{liveAlert.title}</h4>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{liveAlert.message}</p>
@@ -908,7 +909,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 onClick={() => setLiveAlert(null)}
                 className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 hover:underline mt-2"
               >
-                <span>View Full Details</span>
+                <span>{t('nav.view_details', 'View Full Details')}</span>
                 <span>&rarr;</span>
               </Link>
             </div>
@@ -1144,14 +1145,14 @@ export const BottomNav = () => {
   const adminTabs = [
     {
       key: 'dashboard',
-      label: 'Dashboard',
+      label: t('nav.dashboard', 'Dashboard'),
       path: '/admin',
       Icon: LayoutDashboard,
       matchPaths: ['/admin'],
     },
     {
       key: 'alerts',
-      label: 'Alerts',
+      label: t('nav.alerts_short', 'Alerts'),
       path: '/notifications',
       Icon: Bell,
       matchPaths: ['/notifications'],
@@ -1159,7 +1160,7 @@ export const BottomNav = () => {
     },
     {
       key: 'assistant',
-      label: 'AI Copilot',
+      label: t('nav.ai_copilot', 'AI Copilot'),
       path: '/assistant',
       Icon: Bot,
       isCenter: true,
@@ -1167,7 +1168,7 @@ export const BottomNav = () => {
     },
     {
       key: 'settings',
-      label: 'Settings',
+      label: t('nav.settings', 'Settings'),
       path: '/settings',
       Icon: SettingsIcon,
       matchPaths: ['/settings', '/more', '/profile'],
