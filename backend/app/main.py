@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.app.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
 from backend.app.services.scheduler import start_scheduler, stop_scheduler
-from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware
+from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, support
 from backend.app.core.security_middleware import SecurityHeadersMiddleware
 from backend.app.core.config import settings
 
@@ -112,7 +112,7 @@ app.add_middleware(
 # Serve uploads folder statically
 app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
-from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market
+from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support
 
 # 1. Include legacy routers for frontend backwards compatibility
 app.include_router(auth.router)
@@ -120,7 +120,7 @@ app.include_router(predict.router)
 app.include_router(ai.router)
 app.include_router(admin.router)
 
-# 2. Include new Batch 3 Hardware Integration & Market routers
+# 2. Include new Batch 3 Hardware Integration, Market & Support routers
 app.include_router(iot.router)
 app.include_router(devices.router)
 app.include_router(farm_profiles.router)
@@ -129,11 +129,12 @@ app.include_router(analytics.router)
 app.include_router(intelligence.router)
 app.include_router(firmware.router)
 app.include_router(market.router)
+app.include_router(support.router)
 
 # 3. Dynamic V1 Router construction mapping legacy routers to v1 paths
 v1_router = APIRouter(prefix="/api/v1")
 
-for router_module in [auth.router, predict.router, ai.router, farm_profiles.router, analytics.router, intelligence.router, admin.router]:
+for router_module in [auth.router, predict.router, ai.router, farm_profiles.router, analytics.router, intelligence.router, admin.router, support.router]:
     for route in router_module.routes:
         path_v1 = route.path.replace("/api", "")
         response_model = getattr(route, "response_model", None)

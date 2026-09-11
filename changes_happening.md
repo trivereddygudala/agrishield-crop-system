@@ -2,6 +2,36 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v112) - Complete Farmer Support Team & Helpdesk Management System (Backend, Farmer UI & Admin Helpdesk)
+- **Summary:** Built an end-to-end, multi-channel customer support system enabling farmers to easily contact helpdesk staff and empowering admins to manage tickets, phone callbacks, and WhatsApp consultations:
+  1. 🛠️ **Backend Support & Callback Engine (`backend/app/routers/support.py` & `main.py`):**
+     - **Farmer Endpoints:**
+       * `POST /api/support/tickets`: Farmer submits a detailed support ticket with category (`hardware_iot`, `crop_scan`, `maps_gis`, `account_profile`, `general`), priority, contact info, and optional device/crop IDs.
+       * `POST /api/support/callback-request`: Farmer requests an urgent 15-minute phone callback; automatically prioritized (`urgent_callback`, priority `critical`).
+       * `GET /api/support/tickets/my`: Authenticated farmer retrieves history of their submitted tickets with live status and resolution notes.
+     - **Admin Management Endpoints (Admin Role Guarded):**
+       * `GET /api/support/admin/tickets`: Admin queries all tickets across farmers with multi-criteria filters (status, category, priority, search text).
+       * `GET /api/support/admin/stats`: Summary counts (`total`, `open`, `in_progress`, `resolved`, `urgent_callbacks`).
+       * `PATCH /api/support/admin/tickets/{ticket_id}`: Admin updates status (`open`, `in_progress`, `resolved`) and saves diagnostic resolution notes.
+     - **Database Storage:** Stored in MongoDB collection `support_tickets` with ISO-8601 timestamps and user linkages. Registered router under `/api` and `/api/v1`.
+  2. 🧑‍🌾 **Farmer-Facing Help & Support Hub (`frontend/src/pages/HelpSupportPage.jsx`):**
+     - **Official Toll-Free Hotlines Banner:** One-tap dialing for Kisan Call Centre (`1800-180-1551`) and AgriShield Emergency Line (`1907`).
+     - **Direct WhatsApp Chat Generator:** Pre-fills farmer name, active device node ID, and location into a pre-formatted WhatsApp advisory message.
+     - **15-Minute Emergency Phone Callback Request:** Modal dialog for immediate callback requests when crop loss or node failure is imminent.
+     - **In-App Support Ticket Submission Form:** Multi-category selector with priority levels, description, and contact info.
+     - **Live Ticket Status Tracker ("My Support Tickets"):** Displays status badges (`Open`, `In Progress`, `Resolved`), ticket IDs, and staff resolution notes.
+     - **Interactive Self-Help FAQs:** Instant troubleshooting answers for ESP32 sensor offline, AI scan tips, GPS maps, and battery issues.
+  3. 📱 **Navigation & Routing Integration (`frontend/src/App.jsx` & `frontend/src/pages/MorePage.jsx`):**
+     - Lazy loaded `HelpSupportPage` and registered routes `/support`, `/help`, `/helpdesk`.
+     - Added a prominent `Help & Support Team` (`రైతు సహాయ కేంద్రం`) card in `MorePage.jsx` under Account Tools with a `24x7` badge.
+  4. 🛡️ **Enterprise Admin Helpdesk Management Module (`frontend/src/pages/AdminPage.jsx`):**
+     - Added 8th admin tab: `Farmer Support & Helpdesk` (`id: 'support'`).
+     - 4 Real-time KPI stat cards: Total Requests, Open Cases (Needs Action), Urgent 15-Min Callbacks (animated pulse), Resolved Cases.
+     - Live search and filter toolbar: search by farmer name, phone, ticket subject, IoT node ID; filter by status, category, and priority.
+     - Dynamic ticket cards with 1-click `Call Farmer` (`tel:`) and `Chat WhatsApp` (`https://wa.me/...`) links.
+     - Inline status updater dropdown (`open`, `in_progress`, `resolved`) with resolution notes input and instant save.
+- **Files modified**: `backend/app/routers/support.py`, `backend/app/main.py`, `frontend/src/pages/HelpSupportPage.jsx`, `frontend/src/App.jsx`, `frontend/src/pages/MorePage.jsx`, `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v111) - Layout Fix: Move "Back to More" Button Neatly Above Field Area Calculator Title
 - **Summary:** Resolved the header crowding issue in `FieldAreaCalculatorPage.jsx` shown in user's mobile screenshot:
   1. 📱 **Dedicated Navigation Row:** Moved the `← Back to More` (`← ఇతర సేవలు (More)`) button out of the horizontal flex cluster and placed it into its own top row directly above the title.

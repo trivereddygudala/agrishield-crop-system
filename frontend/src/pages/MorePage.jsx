@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Bell,
   Globe,
-  Ruler
+  Ruler,
+  Headphones
 } from 'lucide-react';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
@@ -142,6 +143,16 @@ const MorePage = () => {
   ];
 
   const ACCOUNT_TOOLS = [
+    { 
+      icon: Headphones,     
+      label: isTe ? 'రైతు మద్దతు & హెల్ప్‌డెస్క్' : 'Help & Support Team', 
+      description: isTe ? '24x7 వాట్సాప్ సహాయం, 15 నిమిషాల కాల్‌బ్యాక్ & సాంకేతిక టికెట్ సేవ' : '24x7 WhatsApp desk, 15-min phone callback & tech tickets', 
+      path: '/support',      
+      iconColor: 'text-indigo-600 dark:text-indigo-400', 
+      iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800', 
+      accent: 'border-l-indigo-500',
+      badge: '24x7'
+    },
     { 
       icon: Globe,     
       label: t('more.tools.languages.label', 'Languages'), 

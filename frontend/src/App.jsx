@@ -41,6 +41,7 @@ const NodeControlPage = lazyWithRetry(() => import('./pages/NodeControlPage'));
 const MorePage = lazyWithRetry(() => import('./pages/MorePage'));
 const LanguagesPage = lazyWithRetry(() => import('./pages/LanguagesPage'));
 const FieldAreaCalculatorPage = lazyWithRetry(() => import('./pages/FieldAreaCalculatorPage'));
+const HelpSupportPage = lazyWithRetry(() => import('./pages/HelpSupportPage'));
 
 // Layout wrapper for internal dashboard views
 const DashboardLayout = () => {
@@ -161,6 +162,9 @@ function App() {
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/languages" element={<LanguagesPage />} />
                     <Route path="/language" element={<Navigate to="/languages" replace />} />
+                    <Route path="/support" element={<HelpSupportPage />} />
+                    <Route path="/help" element={<Navigate to="/support" replace />} />
+                    <Route path="/helpdesk" element={<Navigate to="/support" replace />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/admin/*" element={<AdminPage />} />
                     <Route path="/admin-panel" element={<Navigate to="/admin" replace />} />

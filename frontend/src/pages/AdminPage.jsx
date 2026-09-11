@@ -40,7 +40,10 @@ import {
   Download,
   Clock,
   ShieldAlert,
-  CheckCircle2
+  CheckCircle2,
+  Headphones,
+  PhoneCall,
+  MessageCircle
 } from 'lucide-react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -111,6 +114,58 @@ export default function AdminPage() {
   // IoT Ingestion Master Switch State
   const [iotIngestionEnabled, setIotIngestionEnabled] = useState(false);
   const [togglingIngestion, setTogglingIngestion] = useState(false);
+
+  // Farmer Support & Helpdesk State
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [supportStats, setSupportStats] = useState({ total: 0, open: 0, in_progress: 0, resolved: 0, urgent_callbacks: 0 });
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportStatusFilter, setSupportStatusFilter] = useState('all');
+  const [supportCategoryFilter, setSupportCategoryFilter] = useState('all');
+  const [supportPriorityFilter, setSupportPriorityFilter] = useState('all');
+  const [supportSearchTerm, setSupportSearchTerm] = useState('');
+  const [updatingTicketId, setUpdatingTicketId] = useState(null);
+  const [ticketResolutionInputs, setTicketResolutionInputs] = useState({});
+
+  const fetchSupportTickets = async () => {
+    setSupportLoading(true);
+    try {
+      const params = {};
+      if (supportStatusFilter !== 'all') params.status_filter = supportStatusFilter;
+      if (supportCategoryFilter !== 'all') params.category_filter = supportCategoryFilter;
+      if (supportPriorityFilter !== 'all') params.priority_filter = supportPriorityFilter;
+      if (supportSearchTerm) params.search = supportSearchTerm;
+
+      const [ticketsRes, statsRes] = await Promise.all([
+        API.get('/api/support/admin/tickets', { params }),
+        API.get('/api/support/admin/stats')
+      ]);
+      setSupportTickets(ticketsRes.data?.tickets || []);
+      setSupportStats(statsRes.data || { total: 0, open: 0, in_progress: 0, resolved: 0, urgent_callbacks: 0 });
+    } catch (e) {
+      console.warn('Could not fetch support tickets:', e);
+    } finally {
+      setSupportLoading(false);
+    }
+  };
+
+  const handleUpdateTicketStatus = async (ticketId, newStatus, resolutionNotes = null) => {
+    setUpdatingTicketId(ticketId);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const payload = { status: newStatus };
+      if (resolutionNotes !== null) {
+        payload.resolution_notes = resolutionNotes;
+      }
+      await API.patch(`/api/support/admin/tickets/${ticketId}`, payload);
+      setSuccessMsg(`Ticket updated to '${newStatus}'!`);
+      fetchSupportTickets();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update ticket status.');
+    } finally {
+      setUpdatingTicketId(null);
+    }
+  };
 
   const fetchIoTIngestionStatus = async () => {
     try {
@@ -388,14 +443,24 @@ export default function AdminPage() {
     fetchAuditLogs();
     fetchFirmwareData();
     fetchIoTIngestionStatus();
+    fetchSupportTickets();
     
     const iotInterval = setInterval(fetchIotNodes, 10000);
     const auditInterval = setInterval(fetchAuditLogs, 15000);
+    const supportInterval = setInterval(fetchSupportTickets, 20000);
     return () => {
       clearInterval(iotInterval);
       clearInterval(auditInterval);
+      clearInterval(supportInterval);
     };
   }, []);
+
+  // Fetch support tickets whenever support filters change
+  useEffect(() => {
+    if (activeTab === 'support') {
+      fetchSupportTickets();
+    }
+  }, [activeTab, supportStatusFilter, supportCategoryFilter, supportPriorityFilter]);
 
   // Auto-dismiss messages
   useEffect(() => {
@@ -498,6 +563,14 @@ export default function AdminPage() {
       icon: FileText, 
       badge: 'Live Audit', 
       badgeColor: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' 
+    },
+    { 
+      id: 'support', 
+      label: 'Farmer Support & Helpdesk', 
+      description: 'Incoming farmer support tickets, 15-minute phone callback requests, and issue resolution.',
+      icon: Headphones, 
+      badge: supportStats?.open > 0 ? `${supportStats.open} Open` : 'Helpdesk', 
+      badgeColor: supportStats?.urgent_callbacks > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
     { 
       id: 'settings', 
@@ -707,11 +780,11 @@ export default function AdminPage() {
             </div>
 
             <button
-              onClick={() => { fetchUsers(); fetchIotNodes(); fetchAuditLogs(); fetchFirmwareData(); }}
-              disabled={loading}
+              onClick={() => { fetchUsers(); fetchIotNodes(); fetchAuditLogs(); fetchFirmwareData(); fetchSupportTickets(); }}
+              disabled={loading || supportLoading}
               className="self-end sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${(loading || supportLoading) ? 'animate-spin' : ''}`} />
               <span>Refresh Data</span>
             </button>
           </div>
@@ -727,6 +800,7 @@ export default function AdminPage() {
                 {activeTab === 'firmware' && <UploadCloud className="w-3.5 h-3.5" />}
                 {activeTab === 'logs' && <FileText className="w-3.5 h-3.5" />}
                 {activeTab === 'settings' && <Sliders className="w-3.5 h-3.5" />}
+                {activeTab === 'support' && <Headphones className="w-3.5 h-3.5" />}
                 <span>
                   {activeTab === 'users' && 'Farmer Directory & Roles'}
                   {activeTab === 'broadcast' && 'Emergency Broadcasting Service'}
@@ -735,6 +809,7 @@ export default function AdminPage() {
                   {activeTab === 'firmware' && 'Over-The-Air Fleet Flashing'}
                   {activeTab === 'logs' && 'Security & Access Logs'}
                   {activeTab === 'settings' && 'Platform Health & Specs'}
+                  {activeTab === 'support' && 'Farmer Support & Emergency Helpdesk'}
                 </span>
               </div>
               
@@ -750,6 +825,7 @@ export default function AdminPage() {
                 {activeTab === 'firmware' && 'Upload and deploy Over-The-Air (OTA) binary firmware updates to deployed field devices.'}
                 {activeTab === 'logs' && 'Real-time security log stream of user logins, role modifications, and administrative operations.'}
                 {activeTab === 'settings' && 'Inspect core platform health, API status, database connectivity, and runtime configurations.'}
+                {activeTab === 'support' && 'Directly assist registered farmers, dispatch 15-minute phone callbacks, WhatsApp consultations, and resolve technical issues.'}
               </p>
             </div>
 
@@ -1937,6 +2013,449 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 8: FARMER SUPPORT & HELPDESK MANAGEMENT              */}
+      {/* ======================================================== */}
+      {activeTab === 'support' && (
+        <div className="space-y-6">
+          {/* KPI Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Stat 1: Total Tickets */}
+            <button
+              onClick={() => { setSupportStatusFilter('all'); setSupportCategoryFilter('all'); }}
+              className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer"
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-xs">
+                  <Headphones className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  All Requests
+                </span>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 font-mono">
+                  {supportStats.total || supportTickets.length || 0}
+                </p>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
+                  Total Farmer Inquiries
+                </p>
+              </div>
+            </button>
+
+            {/* Stat 2: Open Tickets */}
+            <button
+              onClick={() => setSupportStatusFilter('open')}
+              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportStatusFilter === 'open' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200 dark:border-slate-800'} hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer`}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white transition-all shadow-xs">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
+                  Needs Action
+                </span>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-mono">
+                  {supportStats.open || supportTickets.filter(t => t.status === 'open').length || 0}
+                </p>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
+                  Open Support Cases
+                </p>
+              </div>
+            </button>
+
+            {/* Stat 3: Urgent Callbacks */}
+            <button
+              onClick={() => { setSupportCategoryFilter('urgent_callback'); setSupportStatusFilter('all'); }}
+              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportCategoryFilter === 'urgent_callback' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800'} hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden`}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-xs">
+                  <PhoneCall className="w-5 h-5 animate-pulse" />
+                </div>
+                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse">
+                  ⚡ 15-Min Priority
+                </span>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono">
+                  {supportStats.urgent_callbacks || supportTickets.filter(t => t.category === 'urgent_callback' && t.status !== 'resolved').length || 0}
+                </p>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
+                  Urgent Callbacks Requested
+                </p>
+              </div>
+            </button>
+
+            {/* Stat 4: Resolved Tickets */}
+            <button
+              onClick={() => setSupportStatusFilter('resolved')}
+              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportStatusFilter === 'resolved' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800'} hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer`}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
+                  Resolved
+                </span>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                  {supportStats.resolved || supportTickets.filter(t => t.status === 'resolved').length || 0}
+                </p>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
+                  Resolved Cases
+                </p>
+              </div>
+            </button>
+          </div>
+
+          {/* Filters and Search Bar */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Search Box */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search by farmer name, phone, ticket subject, or IoT node ID..."
+                  value={supportSearchTerm}
+                  onChange={(e) => setSupportSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                />
+                {supportSearchTerm && (
+                  <button
+                    onClick={() => setSupportSearchTerm('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/70 p-1 rounded-2xl shrink-0 overflow-x-auto">
+                {[
+                  { id: 'all', label: 'All Statuses' },
+                  { id: 'open', label: 'Open' },
+                  { id: 'in_progress', label: 'In Progress' },
+                  { id: 'resolved', label: 'Resolved' },
+                ].map((st) => (
+                  <button
+                    key={st.id}
+                    onClick={() => setSupportStatusFilter(st.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      supportStatusFilter === st.id
+                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchSupportTickets}
+                  disabled={supportLoading}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${supportLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh Queue</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Dropdown Filters for Category & Priority */}
+            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <div className="flex items-center gap-2">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-bold text-slate-500">Category:</span>
+                <select
+                  value={supportCategoryFilter}
+                  onChange={(e) => setSupportCategoryFilter(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="urgent_callback">⚡ 15-Minute Emergency Callback</option>
+                  <option value="hardware_iot">Hardware & IoT Sensor Nodes</option>
+                  <option value="crop_scan">AI Crop Disease Diagnostics</option>
+                  <option value="maps_gis">Farm Boundary & Satellite Maps</option>
+                  <option value="account_profile">Farmer Account & Setup</option>
+                  <option value="general">General Advisory & Assistance</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-500">Priority:</span>
+                <select
+                  value={supportPriorityFilter}
+                  onChange={(e) => setSupportPriorityFilter(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">All Priorities</option>
+                  <option value="critical">Critical</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+
+              {(supportCategoryFilter !== 'all' || supportPriorityFilter !== 'all' || supportStatusFilter !== 'all' || supportSearchTerm) && (
+                <button
+                  onClick={() => {
+                    setSupportCategoryFilter('all');
+                    setSupportPriorityFilter('all');
+                    setSupportStatusFilter('all');
+                    setSupportSearchTerm('');
+                  }}
+                  className="text-xs font-bold text-rose-500 hover:text-rose-600 underline cursor-pointer ml-auto"
+                >
+                  Reset all filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tickets Queue List */}
+          <div className="space-y-4">
+            {supportTickets.length === 0 ? (
+              <div className="text-center py-16 px-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+                  <Headphones className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                  No Farmer Support Tickets Found
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  There are currently no support requests matching your criteria. When farmers request 15-minute callbacks or submit tickets, they will appear here in real time.
+                </p>
+              </div>
+            ) : (
+              supportTickets.map((ticket) => {
+                const cleanedPhone = (ticket.contact_phone || '').replace(/[^0-9]/g, '');
+                const waMessage = encodeURIComponent(
+                  `Hello ${ticket.farmer_name || 'Farmer'}, this is the AgriShield Support Team responding to your request (Ref #${ticket.id.slice(0, 8)}: "${ticket.subject}"). How can we assist you with your field or device today?`
+                );
+                const isCallback = ticket.category === 'urgent_callback';
+                const currentResNote = ticketResolutionInputs[ticket.id] !== undefined
+                  ? ticketResolutionInputs[ticket.id]
+                  : (ticket.resolution_notes || '');
+
+                return (
+                  <div
+                    key={ticket.id}
+                    className={`rounded-3xl bg-white dark:bg-slate-900 border transition-all duration-200 overflow-hidden shadow-sm hover:shadow-md ${
+                      isCallback
+                        ? 'border-amber-300 dark:border-amber-800 ring-1 ring-amber-400/20'
+                        : 'border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    {/* Urgent 15-Minute Callback Banner */}
+                    {isCallback && (
+                      <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-amber-600 text-white px-5 py-2 text-xs font-black flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <PhoneCall className="w-4 h-4 animate-bounce" />
+                          <span>⚡ URGENT 15-MINUTE CALLBACK REQUEST — FARMER WAITING</span>
+                        </div>
+                        <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-mono uppercase">
+                          Priority Call
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="p-5 sm:p-6 space-y-4">
+                      {/* Top Meta Row */}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            #{ticket.id.slice(0, 8)}
+                          </span>
+
+                          {/* Category Badge */}
+                          <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            {ticket.category === 'hardware_iot' && 'Hardware & IoT'}
+                            {ticket.category === 'crop_scan' && 'Crop Disease Scan'}
+                            {ticket.category === 'maps_gis' && 'Maps & Coordinates'}
+                            {ticket.category === 'account_profile' && 'Account & Farm'}
+                            {ticket.category === 'urgent_callback' && '15-Min Phone Callback'}
+                            {ticket.category === 'general' && 'General Inquiry'}
+                          </span>
+
+                          {/* Priority Badge */}
+                          <span
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              ticket.priority === 'critical'
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-300 dark:border-rose-800'
+                                : ticket.priority === 'high'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
+                                : ticket.priority === 'medium'
+                                ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400'
+                                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                            }`}
+                          >
+                            {ticket.priority} priority
+                          </span>
+
+                          {/* Status Badge */}
+                          <span
+                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                              ticket.status === 'open'
+                                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60'
+                                : ticket.status === 'in_progress'
+                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/60'
+                                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60'
+                            }`}
+                          >
+                            {ticket.status === 'open' && 'Open'}
+                            {ticket.status === 'in_progress' && 'In Progress'}
+                            {ticket.status === 'resolved' && 'Resolved'}
+                          </span>
+                        </div>
+
+                        {/* Timestamp */}
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{ticket.created_at ? formatDateTime(ticket.created_at) : 'Just now'}</span>
+                        </div>
+                      </div>
+
+                      {/* Subject & Description */}
+                      <div className="space-y-2">
+                        <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                          {ticket.subject}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 leading-relaxed whitespace-pre-wrap">
+                          {ticket.description}
+                        </p>
+                      </div>
+
+                      {/* Extra Hardware/Crop Metadata Badges if present */}
+                      {(ticket.device_id || ticket.crop_type) && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          {ticket.device_id && (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                              <Cpu className="w-3 h-3" />
+                              <span>Node: {ticket.device_id}</span>
+                            </span>
+                          )}
+                          {ticket.crop_type && (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              <Sprout className="w-3 h-3" />
+                              <span>Crop: {ticket.crop_type}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Farmer Contact Card & Direct Communication Buttons */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                        <div className="space-y-1">
+                          <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Farmer: {ticket.farmer_name || 'Registered Farmer'}</span>
+                          </p>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                            {ticket.contact_phone && (
+                              <span className="font-mono font-semibold">📞 {ticket.contact_phone}</span>
+                            )}
+                            {ticket.contact_email && (
+                              <span>✉️ {ticket.contact_email}</span>
+                            )}
+                            {(ticket.district || ticket.state) && (
+                              <span>📍 {[ticket.district, ticket.state].filter(Boolean).join(', ')}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Direct One-Click Communication Actions */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {ticket.contact_phone && (
+                            <a
+                              href={`tel:${ticket.contact_phone}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                            >
+                              <PhoneCall className="w-3.5 h-3.5" />
+                              <span>Call Farmer</span>
+                            </a>
+                          )}
+
+                          {cleanedPhone && (
+                            <a
+                              href={`https://wa.me/${cleanedPhone}?text=${waMessage}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>Chat WhatsApp</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Resolution Summary if already resolved */}
+                      {ticket.status === 'resolved' && ticket.resolution_notes && (
+                        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>Resolution Notes ({ticket.resolved_at ? formatDateTime(ticket.resolved_at) : 'Saved'}):</span>
+                          </div>
+                          <p className="text-emerald-900 dark:text-emerald-200 pl-5 leading-relaxed">
+                            {ticket.resolution_notes}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Admin Resolution & Status Management Actions */}
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                        {/* Status Dropdown */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Update Status:</span>
+                          <select
+                            value={ticket.status}
+                            disabled={updatingTicketId === ticket.id}
+                            onChange={(e) => handleUpdateTicketStatus(ticket.id, e.target.value, currentResNote)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                          >
+                            <option value="open">🔴 Open (Pending Action)</option>
+                            <option value="in_progress">🟡 In Progress (Contacting Farmer)</option>
+                            <option value="resolved">🟢 Resolved (Issue Closed)</option>
+                          </select>
+                        </div>
+
+                        {/* Resolution Note Input & Save Button */}
+                        <div className="flex-1 flex items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder="Add resolution details or advice notes..."
+                            value={currentResNote}
+                            onChange={(e) => setTicketResolutionInputs(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                            className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500"
+                          />
+                          <button
+                            onClick={() => handleUpdateTicketStatus(ticket.id, ticket.status, currentResNote)}
+                            disabled={updatingTicketId === ticket.id}
+                            className="px-3 py-1.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white font-bold text-xs shrink-0 transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {updatingTicketId === ticket.id ? 'Saving...' : 'Save Note'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
