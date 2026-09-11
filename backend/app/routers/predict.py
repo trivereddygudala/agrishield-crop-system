@@ -827,7 +827,11 @@ async def predict_pytorch_endpoint(
 
     # Translate diagnostic text into user's preferred language - fallback to profile language if not provided
     user_pref_lang = (current_user.get("preferred_language") if current_user else None) or "en"
-    target_lang = (req.language or user_pref_lang).lower()
+    raw_req_lang = (getattr(req, "language", None) or "").strip().lower()
+    target_lang = (raw_req_lang or user_pref_lang).lower()
+    if "-" in target_lang:
+        target_lang = target_lang.split("-")[0]
+        
     if target_lang != "en":
         # Always preserve canonical English names before translation
         prediction_result["canonical_crop_name"] = prediction_result.get("crop_name", "")
@@ -846,6 +850,7 @@ async def predict_pytorch_endpoint(
                     "chemical_treatment": chemical_treatment,
                     "prevention_methods": prevention_methods,
                     "possible_causes": possible_causes,
+                    "farmer_friendly_advice": farmer_friendly_advice,
                     "safety_precautions": prediction_result.get("safety_precautions", "None")
                 }
                 
@@ -863,6 +868,7 @@ async def predict_pytorch_endpoint(
                     chemical_treatment = translated_fields.get("chemical_treatment", chemical_treatment)
                     prevention_methods = translated_fields.get("prevention_methods", prevention_methods)
                     possible_causes = translated_fields.get("possible_causes", possible_causes)
+                    farmer_friendly_advice = translated_fields.get("farmer_friendly_advice", farmer_friendly_advice)
                     prediction_result["safety_precautions"] = translated_fields.get("safety_precautions", prediction_result.get("safety_precautions", "None"))
                     translated_via_nvidia = True
         except Exception as tx_err:
@@ -904,6 +910,7 @@ async def predict_pytorch_endpoint(
                 symptoms = safe_translate(symptoms)
                 organic_treatment = translate_with_english_chemicals(organic_treatment)
                 chemical_treatment = translate_with_english_chemicals(chemical_treatment)
+                farmer_friendly_advice = safe_translate(farmer_friendly_advice)
                 
                 if isinstance(prevention_methods, list):
                     prevention_methods = [safe_translate(m) for m in prevention_methods]

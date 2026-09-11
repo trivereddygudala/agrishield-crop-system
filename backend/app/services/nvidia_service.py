@@ -329,9 +329,11 @@ JSON Schema:
                     "organic_treatment", "chemical_treatment", "prevention_methods", 
                     "best_farming_practices", "farmer_friendly_advice"
                 ]
+                mock_fallback = self._generate_mock_advice(crop_name, clean_disease, severity="Medium")
                 for key in required_keys:
-                    if key not in parsed_data:
-                        parsed_data[key] = f"Generic info for {key}"
+                    val = parsed_data.get(key)
+                    if not val or (isinstance(val, str) and ("generic info" in val.lower() or not val.strip())):
+                        parsed_data[key] = mock_fallback.get(key, "")
             else:
                 logger.warning(f"Failed to parse JSON response from {provider_name}. Raw snippet: {content[:300] if content else 'empty'}")
                 parsed_data = None

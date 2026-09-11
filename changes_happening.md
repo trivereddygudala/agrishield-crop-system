@@ -1598,3 +1598,17 @@
   - Executed Babel AST static analysis (`scratch_find_unbound_t.cjs`) across all 128 files in `frontend/src`: verified exactly 0 remaining unbound `t` references across the entire project.
 - **Build Verification:** Vite production bundle succeeded in 19.92s with 0 errors.
 
+9/11/2026: Comprehensive Vernacular Language Localization Across Scan Center, Knapsack Calculator & AI Advisory (v86):
+- **Problem Statement:** When changing languages (e.g., Telugu), UI headers translated while dynamic scan results, disease explanations, chemical dosages, organic treatments, treatment recovery simulator, knapsack pump calculator, and agronomy advice cards remained in English or displayed generic fallback strings (`Generic info for farmer_friendly_advice`).
+- **Root Cause & Architectural Fixes:**
+  1. **User Profile Language Override Bug (`frontend/src/pages/UploadImagePage.jsx`):** Scan requests were sending `user?.preferred_language || i18n.language || 'en'`, which continuously sent `'en'` because the user's MongoDB profile had default `'en'` saved, overriding navbar language switcher. Changed priority to use active i18n language: `(i18n.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase()`.
+  2. **Navbar Language Sync (`frontend/src/components/AppLayout.jsx`):** Changing language in the header now updates user profile in database and dispatches `agrishield-language-changed` custom event.
+  3. **Backend NVIDIA AI Fallback Bug (`backend/app/services/nvidia_service.py`):** Eliminated line 334 bug returning `f"Generic info for {key}"`. Replaced with authentic ICAR agricultural agronomy protocols.
+  4. **Target Language Resolution & Translation (`backend/app/routers/predict.py`):** Stripped dialect tags (e.g., `te-IN` -> `te`) and added `farmer_friendly_advice` to translation pipeline.
+  5. **Chilli & Groundnut Leaf Spot KB Entry (`frontend/src/utils/diseaseAdvisoryData.js`):** Added comprehensive `leaf spot` entry into `DISEASE_KB` with authentic Telugu (`ఆకు మచ్చ తెగులు`), Hindi, and English entries (overview, trade chemicals like Saaf & Kavach, biological organic remedies like Neem oil & Trichoderma).
+  6. **UI & Scan Center Translations (`frontend/src/i18n/translations.js`):** Added all missing keys for knapsack spray mix guide, single medicine rule banner, tank dilution instructions, and treatment simulator metrics.
+  7. **20-Day Simulator & Image Uploader Localization (`frontend/src/components/scanCenter/TreatmentRecoverySimulator.jsx`, `ScanImageUploader.jsx`):** Localized stage titles, badges, 20-day horizon, chlorophyll vigor, lesion activity, Dual View toggle, and camera status chips.
+  8. **Crop Advisor & Diagnosis Result Cards (`frontend/src/components/CropAdvisorPanel.jsx`, `DiseaseDiagnosisResults.jsx`):** Wired `localizeAdvice` and `diseaseInfo` fallback so that even if backend models emit English text, it instantly translates into authentic vernacular Telugu with complete trade names and farmer-friendly matchbox/spoon measurements.
+- **Verification:** Frontend production build passed cleanly (`✓ built in 32.32s`, exit code 0).
+
+

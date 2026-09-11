@@ -197,12 +197,13 @@ const UploadImagePage = () => {
       const imagePaths = uploadedResults.map(u => u.imagePath);
       const sampleLabels = uploadedResults.map(u => u.label);
 
+      const activeLang = (i18n.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase();
       // 2. Call batch prediction endpoint
       const batchRes = await API.post('/api/predict-batch', {
         image_paths: imagePaths,
         sample_labels: sampleLabels,
         crop_filter: selectedCropFilter || undefined,
-        language: user?.preferred_language || i18n.language || 'en'
+        language: activeLang
       });
 
       scanStore.setState({
@@ -225,6 +226,8 @@ const UploadImagePage = () => {
 
     if (loading) return;
 
+    const activeLang = (i18n.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase();
+
     // Check if offline before initiating network requests
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       try {
@@ -232,7 +235,7 @@ const UploadImagePage = () => {
           file: selectedFile,
           tabId: activeTab,
           cropFilter: selectedCropFilter,
-          language: user?.preferred_language || i18n.language || 'en'
+          language: activeLang
         });
         scanStore.setState({
           errorMsg: '📡 Offline Field Mode: Photo saved to offline queue. It will automatically upload and analyze when internet connection is restored!',
@@ -267,7 +270,7 @@ const UploadImagePage = () => {
 
       const predictRes = await API.post(endpoint, {
         image_path: imagePath,
-        language: user?.preferred_language || i18n.language || 'en',
+        language: activeLang,
         crop_filter: selectedCropFilter || undefined
       });
       scanStore.setState({
@@ -284,7 +287,7 @@ const UploadImagePage = () => {
             file: selectedFile,
             tabId: activeTab,
             cropFilter: selectedCropFilter,
-            language: user?.preferred_language || i18n.language || 'en'
+            language: activeLang
           });
           scanStore.setState({
             errorMsg: '📡 Network lost during scan: Photo saved to offline queue. It will auto-sync when connection returns!',
@@ -385,7 +388,7 @@ const UploadImagePage = () => {
           chemicals: liveResult?.chemical_treatment ? [liveResult.chemical_treatment] : [],
           organic: liveResult?.organic_treatment ? [liveResult.organic_treatment] : [],
           prevention: liveResult?.safety_precautions || '',
-          language: user?.preferred_language || i18n.language || 'en'
+          language: (i18n.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase()
         });
       } catch (fallbackErr) {
         console.error("PDF fallback failed:", fallbackErr);

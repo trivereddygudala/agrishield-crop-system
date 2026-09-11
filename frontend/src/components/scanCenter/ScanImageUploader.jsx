@@ -691,7 +691,7 @@ const ScanImageUploader = ({
                   title="Toggle Heatmap"
                 >
                   <Cpu className="w-3.5 h-3.5" />
-                  <span>{showGradcam ? 'Hide Heatmap' : 'Heatmap'}</span>
+                  <span>{showGradcam ? t('uploader.hide_heatmap', 'Hide Heatmap') : t('uploader.heatmap', 'Heatmap')}</span>
                 </button>
               )}
               <button
@@ -743,7 +743,7 @@ const ScanImageUploader = ({
               onClick={() => fileInputRef.current?.click()}
               className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 font-extrabold text-xs shrink-0 cursor-pointer active:scale-95 transition-transform"
             >
-              Change Photo
+              {t('uploader.change_photo', 'Change Photo')}
             </button>
           </div>
         </div>
@@ -762,9 +762,9 @@ const ScanImageUploader = ({
         <div className="mt-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-semibold flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500 animate-bounce" />
           <div>
-            <p className="font-black text-amber-400">Low Resolution Detected!</p>
+            <p className="font-black text-amber-400">{t('uploader.low_res_title', 'Low Resolution Detected!')}</p>
             <p className="text-[11px] font-normal leading-relaxed mt-0.5 text-amber-400/80">
-              For 98.4% diagnostic accuracy, please open the original webpage, download/save the full image, and drag or upload that file instead!
+              {t('uploader.low_res_warning', 'For reliable diagnostic accuracy, please open the original webpage, download/save the full image, and drag or upload that file instead.')}
             </p>
           </div>
         </div>
@@ -772,7 +772,9 @@ const ScanImageUploader = ({
 
       {/* Supported Targets Tag Bar */}
       <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5">
-        <span className="block mb-2.5 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-white/40">Supported Target Classes:</span>
+        <span className="block mb-2.5 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-white/40">
+          {t('uploader.supported_target_crops', 'Supported Target Classes')}:
+        </span>
         <div className="flex flex-wrap items-center gap-2">
           {config.supportedItems.map((item) => (
             <span key={item} className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white/50 text-[10px] font-black tracking-wide border border-slate-200 dark:border-white/5">
@@ -788,7 +790,7 @@ const ScanImageUploader = ({
           <label className="block text-xs font-black text-emerald-800 dark:text-emerald-400 mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
             <span className="flex items-center gap-1.5">
               <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>Target Crop Category</span>
+              <span>{t('uploader.target_crop_category', 'Target Crop Category')}</span>
               {selectedCropFilter && (
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wide shadow-xs">
                   Active: {selectedCropFilter}

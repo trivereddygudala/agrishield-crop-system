@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { useSpeechReader } from '../hooks/useSpeechReader';
+import { translateCrop, localizeAdvice } from '../utils/diseaseAdvisoryData';
 
 const CropAdvisorPanel = ({ advisor }) => {
   const { t, i18n } = useTranslation();
@@ -25,6 +26,7 @@ const CropAdvisorPanel = ({ advisor }) => {
   if (!advisor) return null;
 
   const { crop, severity, treatment, spray, recovery, prevention, tips } = advisor;
+  const isTelugu = i18n.language === 'te';
 
   // Compute severity style classes
   const isHighRisk = severity?.level?.toLowerCase()?.includes('high') || severity?.level?.toLowerCase()?.includes('severe');
@@ -43,6 +45,19 @@ const CropAdvisorPanel = ({ advisor }) => {
       ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-400/50' 
       : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-400/50';
 
+  const localizedCropName = translateCrop(crop?.name, i18n.language) || crop?.name;
+  const localizedSeverityLevel = isTelugu 
+    ? (isHighRisk ? 'తీవ్రమైన' : isModerateRisk ? 'మధ్యస్థ' : 'తక్కువ') 
+    : severity?.level;
+
+  const localizedSeverityDesc = (isTelugu && !/[\u0C00-\u0C7F]/.test(severity?.description || ''))
+    ? (isHighRisk 
+        ? 'తీవ్రమైన తెగులు గుర్తించబడింది! తక్షణమే సిఫార్సు చేసిన రసాయన మందును పిచికారీ చేయండి.'
+        : isModerateRisk 
+          ? 'మధ్యస్థ స్థాయి తెగులు. వ్యాప్తి చెందకుండా వెంటనే నివారణ చర్యలు తీసుకోండి.'
+          : 'ప్రారంభ దశలో తెగులు గుర్తించబడింది. సేంద్రీయ పద్ధతులను అనుసరించండి.')
+    : severity?.description;
+
   return (
     <div className="space-y-6 mt-6">
       {/* 1. Header & Severity Summary */}
@@ -57,14 +72,14 @@ const CropAdvisorPanel = ({ advisor }) => {
           </div>
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2 flex-wrap">
-              <span>{crop.name}</span>
+              <span>{localizedCropName}</span>
               <span className="text-slate-400 dark:text-slate-600">•</span>
               <span className={`px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider border ${severityBadgeBg}`}>
-                {severity.level} {t('results.risk_label', 'Risk')}
+                {localizedSeverityLevel} {t('results.risk_label', 'Risk')}
               </span>
             </h2>
             <p className="text-slate-700 dark:text-slate-300 font-medium text-xs sm:text-sm mt-1.5 leading-relaxed">
-              {severity.description}
+              {localizedSeverityDesc}
             </p>
           </div>
         </div>
@@ -111,7 +126,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 {treatment.organic.map((step, idx) => (
                   <li key={idx} className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/60 flex items-start gap-3 shadow-2xs">
                     <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-                    <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{step}</span>
+                    <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{localizeAdvice(step, i18n.language)}</span>
                   </li>
                 ))}
               </ul>
@@ -131,7 +146,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               </CardTitle>
               <button
                 type="button"
-                onClick={() => speak(treatment.chemical.join('. '), 'advisor_chemical', i18n.language || 'en')}
+                onClick={() => speak(treatment.chemical.map(s => localizeAdvice(s, i18n.language)).join('. '), 'advisor_chemical', i18n.language || 'en')}
                 className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
                   speakingId === 'advisor_chemical'
                     ? 'bg-blue-600 text-white border-blue-500 animate-pulse shadow-md'
@@ -148,7 +163,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 {treatment.chemical.map((step, idx) => (
                   <li key={idx} className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 flex items-start gap-3 shadow-2xs">
                     <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                    <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{step}</span>
+                    <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{localizeAdvice(step, i18n.language)}</span>
                   </li>
                 ))}
               </ul>
@@ -171,7 +186,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               <button
                 type="button"
                 onClick={() => {
-                  const sprayText = `Optimal spray conditions. Best timing: ${spray.best_time}. Wind alert: ${spray.wind_warning}. Spray interval: every ${spray.interval_days} days.`;
+                  const sprayText = `Optimal spray conditions. Best timing: ${localizeAdvice(spray.best_time, i18n.language)}. Wind alert: ${localizeAdvice(spray.wind_warning, i18n.language)}. Spray interval: every ${spray.interval_days} days.`;
                   speak(sprayText, 'advisor_spray', i18n.language || 'en');
                 }}
                 className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
@@ -190,14 +205,14 @@ const CropAdvisorPanel = ({ advisor }) => {
                 <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-1 shrink-0" />
                 <div>
                   <div className="text-xs font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">{t('results.timing', 'Timing')}</div>
-                  <div className="text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm mt-1">{spray.best_time}</div>
+                  <div className="text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm mt-1">{localizeAdvice(spray.best_time, i18n.language)}</div>
                 </div>
               </div>
               <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800/80 flex items-start space-x-3.5 shadow-2xs">
                 <Wind className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-1 shrink-0" />
                 <div>
                   <div className="text-xs font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">{t('results.wind_alert', 'Wind Alert')}</div>
-                  <div className="text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm mt-1">{spray.wind_warning}</div>
+                  <div className="text-slate-900 dark:text-slate-100 font-bold text-xs sm:text-sm mt-1">{localizeAdvice(spray.wind_warning, i18n.language)}</div>
                 </div>
               </div>
               <div className="bg-white/90 dark:bg-slate-900/90 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-800/80 flex items-start space-x-3.5 shadow-2xs">
@@ -225,7 +240,7 @@ const CropAdvisorPanel = ({ advisor }) => {
             </CardTitle>
             <button
               type="button"
-              onClick={() => speak(prevention.join('. '), 'advisor_prevention', i18n.language || 'en')}
+              onClick={() => speak(prevention.map(p => localizeAdvice(p, i18n.language)).join('. '), 'advisor_prevention', i18n.language || 'en')}
               className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
                 speakingId === 'advisor_prevention'
                   ? 'bg-amber-600 text-white border-amber-500 animate-pulse shadow-md'
@@ -242,7 +257,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               {prevention.map((item, idx) => (
                 <li key={idx} className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 flex items-start gap-3 shadow-2xs">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500 dark:bg-amber-400 mt-1.5 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
-                  <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{item}</span>
+                  <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{localizeAdvice(item, i18n.language)}</span>
                 </li>
               ))}
             </ul>
@@ -260,7 +275,7 @@ const CropAdvisorPanel = ({ advisor }) => {
             </CardTitle>
             <button
               type="button"
-              onClick={() => speak(tips.join('. '), 'advisor_tips', i18n.language || 'en')}
+              onClick={() => speak(tips.map(tp => localizeAdvice(tp, i18n.language)).join('. '), 'advisor_tips', i18n.language || 'en')}
               className={`p-2 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold ${
                 speakingId === 'advisor_tips'
                   ? 'bg-sky-600 text-white border-sky-500 animate-pulse shadow-md'
@@ -277,7 +292,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               {tips.map((item, idx) => (
                 <li key={idx} className="p-3.5 rounded-xl bg-sky-50/70 dark:bg-sky-950/40 border border-sky-200/80 dark:border-sky-900/60 flex items-start gap-3 shadow-2xs hover:border-sky-400 transition-colors">
                   <Info className="w-5 h-5 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
-                  <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{item}</span>
+                  <span className="text-slate-800 dark:text-slate-100 font-medium text-xs sm:text-sm leading-relaxed">{localizeAdvice(item, i18n.language)}</span>
                 </li>
               ))}
             </ul>

@@ -68,15 +68,27 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
     return currentStage.description;
   };
 
+  const getLocalizedBadge = (stage) => {
+    if (lang === 'te') {
+      if (stage.day === 0) return 'వ్యాధి వ్యాప్తిలో ఉంది';
+      if (stage.day === 5) return 'వ్యాప్తి ఆగింది';
+      if (stage.day === 12) return 'కొత్త చిగుళ్లు';
+      return 'దిగుబడి రక్షణ';
+    }
+    return stage.badge;
+  };
+
   return (
     <Card className="p-5 sm:p-7 border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/80 shadow-xl relative overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-white/10">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              AI Prognosis Simulator
+              {t('results.recovery_prognosis', 'AI Prognosis Simulator')}
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-white/40 font-semibold">20-Day Treatment Horizon</span>
+            <span className="text-[11px] text-slate-500 dark:text-white/40 font-semibold">
+              {t('results.treatment_horizon', '20-Day Treatment Horizon')}
+            </span>
           </div>
           <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-1">
             {t('results.recovery_simulator', 'Prescriptive Treatment & Foliar Recovery Simulator')}
@@ -84,7 +96,7 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
         </div>
 
         <Badge variant="glass" className={`px-3 py-1 text-xs font-black uppercase border ${currentStage.badgeColor}`}>
-          {currentStage.badge}
+          {getLocalizedBadge(currentStage)}
         </Badge>
       </div>
 
@@ -104,8 +116,8 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
                     : 'bg-white/60 dark:bg-white/[0.03] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-emerald-500/40 font-bold'
                 }`}
               >
-                <span className="text-xs sm:text-sm block">Day {stage.day}</span>
-                <span className="text-[10px] opacity-80 hidden sm:block truncate">{stage.badge}</span>
+                <span className="text-xs sm:text-sm block">{t(`results.day_${stage.day}`, `Day ${stage.day}`)}</span>
+                <span className="text-[10px] opacity-80 hidden sm:block truncate">{getLocalizedBadge(stage)}</span>
               </button>
             );
           })}
@@ -144,7 +156,7 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
 
             {/* Chlorophyll Gauge Badge */}
             <div className="absolute bottom-2 inset-x-2 px-2.5 py-1 rounded-xl bg-black/75 backdrop-blur-md border border-white/15 flex items-center justify-between text-[11px] font-bold z-20">
-              <span className="text-slate-300">Chlorophyll Vigor</span>
+              <span className="text-slate-300">{t('results.chlorophyll_vigor', 'Chlorophyll Vigor')}</span>
               <span className="text-emerald-400 font-extrabold">{currentStage.chlorophyllLevel}%</span>
             </div>
           </div>
@@ -153,7 +165,7 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
           <div className="space-y-3 flex-1">
             <h4 className="text-base sm:text-lg font-black text-emerald-300 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-400" />
-              {currentStage.title}
+              {t(`results.stage_day_${currentStage.day}`, currentStage.title)}
             </h4>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
               {localizedText()}
@@ -161,15 +173,15 @@ export default function TreatmentRecoverySimulator({ cropName = 'Crop', diseaseN
 
             <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
               <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">Lesion Activity</span>
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">{t('results.lesion_activity', 'Lesion Activity')}</span>
                 <span className="font-extrabold text-white">
-                  {activeDay === 0 ? 'Active (High)' : activeDay === 5 ? 'Desiccating' : 'Arrested (Zero)'}
+                  {activeDay === 0 ? t('results.active_high', 'Active (High)') : activeDay === 5 ? t('results.active_moderate', 'Desiccating') : t('results.active_low', 'Arrested (Zero)')}
                 </span>
               </div>
               <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <span className="text-[10px] text-slate-400 font-bold block uppercase">Photosynthetic Capacity</span>
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">{t('results.photosynthetic_capacity', 'Photosynthetic Capacity')}</span>
                 <span className="font-extrabold text-emerald-400">
-                  {currentStage.chlorophyllLevel}% Restored
+                  {currentStage.chlorophyllLevel}% {t('results.restored', 'Restored')}
                 </span>
               </div>
             </div>

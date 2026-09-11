@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress, Input, Select } from '../ui/index';
-import { translateCrop, translateDisease, getDiseaseDetails } from '../../utils/diseaseAdvisoryData';
+import { translateCrop, translateDisease, getDiseaseDetails, localizeAdvice } from '../../utils/diseaseAdvisoryData';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import TreatmentRecoverySimulator from './TreatmentRecoverySimulator';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
@@ -38,52 +38,74 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
   const status = liveResult?.prediction_status || 'diseased';
 
+  const currentLang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
+  const hasRegionalText = (str) => /[\u0900-\u0D7F]/.test(str || '');
+
   // Advisory lookup for real trade names and dilution
-  const diseaseInfo = getDiseaseDetails(rawDiseaseName, i18n.language || 'en');
-  const chemicalsList = diseaseInfo?.chemicals || (
-    liveResult?.chemical_treatment 
-      ? [liveResult.chemical_treatment]
-      : ["Mancozeb 75% WP (Saaf / Dithane M-45) @ 2.5 g/L of water.", "Chlorothalonil 75% WP (Kavach) @ 2.0 g/L of water."]
-  );
-  const organicList = diseaseInfo?.organic || (
-    liveResult?.organic_treatment 
-      ? [liveResult.organic_treatment] 
-      : ["Neem oil spray (5 ml/L with liquid soap) every 7 days.", "Trichoderma viride bio-fungicide (5 g/L) soil & foliar drench."]
-  );
+  const diseaseInfo = getDiseaseDetails(rawCropName, rawDiseaseName, currentLang);
+  
+  const chemicalsList = (currentLang !== 'en' && !hasRegionalText(liveResult?.chemical_treatment) && diseaseInfo?.chemicals?.length)
+    ? diseaseInfo.chemicals
+    : (liveResult?.chemical_treatment 
+        ? [liveResult.chemical_treatment]
+        : (diseaseInfo?.chemicals || [
+            currentLang === 'te' 
+              ? "మాంకోజెబ్ 75% WP (సాఫ్ / డైథేన్ M-45) @ 2.5 గ్రా/లీ నీటికి కలిపి పిచికారీ చేయాలి." 
+              : "Mancozeb 75% WP (Saaf / Dithane M-45) @ 2.5 g/L of water.",
+            currentLang === 'te'
+              ? "క్లోరోథలోనిల్ 75% WP (కవచ్) @ 2.0 గ్రా/లీ నీటికి కలిపి పిచికారీ చేయాలి."
+              : "Chlorothalonil 75% WP (Kavach) @ 2.0 g/L of water."
+          ])
+      );
+
+  const organicList = (currentLang !== 'en' && !hasRegionalText(liveResult?.organic_treatment) && diseaseInfo?.organic?.length)
+    ? diseaseInfo.organic
+    : (liveResult?.organic_treatment 
+        ? [liveResult.organic_treatment] 
+        : (diseaseInfo?.organic || [
+            currentLang === 'te'
+              ? "వేప నూనె స్ప్రే (5 మి.లీ/లీటర్ నీటికి) ప్రతి 7 రోజులకు ఒకసారి పిచికారీ చేయాలి."
+              : "Neem oil spray (5 ml/L with liquid soap) every 7 days.",
+            currentLang === 'te'
+              ? "ట్రైకోడెర్మా విరిడే జీవ శిలీంద్రనాశిని (5 గ్రా/లీ) నేల మరియు ఆకులపై పిచికారీ చేయాలి."
+              : "Trichoderma viride bio-fungicide (5 g/L) soil & foliar drench."
+          ])
+      );
 
   // Parsing helper to determine dosage and units (grams or ml) dynamically from chemical formulation
   const parseChemicalDosage = (chemString = '') => {
-    if (!chemString) return { rate: 2.0, unit: 'g', displayUnit: 'Grams' };
-    const match = chemString.match(/(?:@|at|\(|\s)\s*([\d\.]+)\s*(ml|g|gm|grams)\s*(?:\/|\s*per)?\s*(?:l|litre|liter)/i) 
-      || chemString.match(/@\s*([\d\.]+)\s*(ml|g|gm|grams)/i);
+    if (!chemString) return { rate: 2.0, unit: currentLang === 'te' ? 'గ్రా' : 'g', displayUnit: currentLang === 'te' ? 'గ్రాములు' : 'Grams' };
+    const match = chemString.match(/(?:@|at|\(|\s)\s*([\d\.]+)\s*(ml|g|gm|grams|మి\.లీ|గ్రా)\s*(?:\/|\s*per)?\s*(?:l|litre|liter|లీ|లీటర్)/i) 
+      || chemString.match(/@\s*([\d\.]+)\s*(ml|g|gm|grams|మి\.లీ|గ్రా)/i);
     if (match) {
       const val = parseFloat(match[1]);
-      const isLiquid = match[2].toLowerCase().includes('ml');
+      const isLiquid = match[2].toLowerCase().includes('ml') || match[2].includes('మి.లీ');
       return {
         rate: !isNaN(val) && val > 0 ? val : 2.0,
-        unit: isLiquid ? 'ml' : 'g',
-        displayUnit: isLiquid ? 'ml' : 'Grams'
+        unit: isLiquid ? (currentLang === 'te' ? 'మి.లీ' : 'ml') : (currentLang === 'te' ? 'గ్రా' : 'g'),
+        displayUnit: isLiquid ? (currentLang === 'te' ? 'మి.లీ' : 'ml') : (currentLang === 'te' ? 'గ్రాములు' : 'Grams')
       };
     }
-    return { rate: 2.0, unit: 'g', displayUnit: 'Grams' };
+    return { rate: 2.0, unit: currentLang === 'te' ? 'గ్రా' : 'g', displayUnit: currentLang === 'te' ? 'గ్రాములు' : 'Grams' };
   };
 
   // Farmer spoon / matchbox approximation helper for quick field application
   const getFarmerMeasureTip = (amount, unit) => {
     const num = parseFloat(amount);
     if (isNaN(num) || num <= 0) return '';
-    if (unit === 'ml') {
-      if (num <= 5) return '~1 teaspoon (5 ml)';
-      if (num <= 10) return '~2 teaspoons (10 ml)';
-      if (num <= 20) return '~1 measuring cap (~15-20 ml)';
-      if (num <= 35) return '~2 measuring caps (~30 ml)';
-      return `~${Math.round(num / 15)} measuring caps`;
+    const isTe = currentLang === 'te';
+    if (unit === 'ml' || unit === 'మి.లీ') {
+      if (num <= 5) return isTe ? '~1 చిన్న చెంచా (5 మి.లీ)' : '~1 teaspoon (5 ml)';
+      if (num <= 10) return isTe ? '~2 చిన్న చెంచాలు (10 మి.లీ)' : '~2 teaspoons (10 ml)';
+      if (num <= 20) return isTe ? '~1 మూత / కప్పు (~15-20 మి.లీ)' : '~1 measuring cap (~15-20 ml)';
+      if (num <= 35) return isTe ? '~2 మూతలు (~30 మి.లీ)' : '~2 measuring caps (~30 ml)';
+      return isTe ? `~${Math.round(num / 15)} మూతలు` : `~${Math.round(num / 15)} measuring caps`;
     } else {
-      if (num <= 15) return '~1 level tablespoon (15 g)';
-      if (num <= 25) return '~1.5 tablespoons or 1 matchbox size';
-      if (num <= 35) return '~2 full tablespoons or 1.5 matchboxes';
-      if (num <= 50) return '~2.5 to 3 tablespoons or 2 matchboxes';
-      return `~${(num / 15).toFixed(1)} tablespoons`;
+      if (num <= 15) return isTe ? '~1 టేబుల్ స్పూన్ (15 గ్రా)' : '~1 level tablespoon (15 g)';
+      if (num <= 25) return isTe ? '~1.5 స్పూన్లు లేదా 1 అగ్గిపెట్టె పరిమాణం' : '~1.5 tablespoons or 1 matchbox size';
+      if (num <= 35) return isTe ? '~2 పూర్తి స్పూన్లు లేదా 1.5 అగ్గిపెట్టెలు' : '~2 full tablespoons or 1.5 matchboxes';
+      if (num <= 50) return isTe ? '~2.5 నుండి 3 స్పూన్లు లేదా 2 అగ్గిపెట్టెలు' : '~2.5 to 3 tablespoons or 2 matchboxes';
+      return isTe ? `~${(num / 15).toFixed(1)} స్పూన్లు` : `~${(num / 15).toFixed(1)} tablespoons`;
     }
   };
 
@@ -190,7 +212,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               leftIcon={<FileText className="w-4 h-4 text-emerald-300" />}
               className="bg-emerald-700/70 hover:bg-emerald-600 text-white font-bold border-emerald-400/40 shadow-sm"
             >
-              Rx Slip (QR)
+              {t('results.rx_slip', 'Rx Slip (QR)')}
             </Button>
 
             <Button
@@ -200,7 +222,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               leftIcon={<Phone className="w-4 h-4 text-amber-300" />}
               className="bg-amber-600/70 hover:bg-amber-500 text-white font-bold border-amber-400/40 shadow-sm"
             >
-              Kisan Helpline
+              {t('results.kisan_helpline', 'Kisan Helpline')}
             </Button>
 
             {onDownloadPDF && (
@@ -228,10 +250,10 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </div>
               <div>
                 <h3 className="font-display font-extrabold text-slate-900 dark:text-slate-100 text-base">
-                  Diagnostic Image Analysis (Dual View)
+                  {t('results.dual_view_title', 'Diagnostic Image Analysis (Dual View)')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Side-by-side comparison of your uploaded leaf photo and the neural network activation focus.
+                  {t('results.dual_view_subtitle', 'Side-by-side comparison of your uploaded leaf photo and the neural network activation focus.')}
                 </p>
               </div>
             </div>
@@ -243,7 +265,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
                 <Eye className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                {showHeatmapOverlay ? 'Both Views Visible' : 'Show Heatmap'}
+                {showHeatmapOverlay ? t('results.dual_view', 'Dual View Active') : t('uploader.show_heatmap', 'Show Heatmap')}
               </button>
             )}
           </div>
@@ -254,9 +276,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 px-1">
                 <span className="flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
-                  Original Field Photo
+                  {t('results.original_photo', 'Original Field Photo')}
                 </span>
-                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Captured Leaf</span>
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">{t('results.captured_leaf', 'Captured Leaf')}</span>
               </div>
               <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center">
                 {displayOriginalImg ? (
@@ -271,7 +293,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   </div>
                 )}
                 <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-bold text-white border border-white/20">
-                  {localizedCrop} Leaf
+                  {localizedCrop} {t('results.leaf', 'Leaf')}
                 </div>
               </div>
             </div>
@@ -281,9 +303,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 px-1">
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-rose-500" />
-                  AI Attention Focus (Heatmap)
+                  {t('results.heatmap_focus', 'AI Attention Focus (Heatmap)')}
                 </span>
-                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">Necrosis Highlight</span>
+                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">{t('results.necrosis_highlight', 'Necrosis Highlight')}</span>
               </div>
               <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center">
                 {gradCamImg ? (
@@ -300,7 +322,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   </div>
                 )}
                 <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-rose-950/80 backdrop-blur-md text-[10px] font-bold text-rose-200 border border-rose-400/30">
-                  Deep Vision X-Ray
+                  {t('results.deep_vision_xray', 'Deep Vision X-Ray')}
                 </div>
               </div>
             </div>
@@ -323,17 +345,17 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             </div>
             <div className="space-y-1">
               <span className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
-                Agronomist Action Directive
+                {t('results.action_directive', 'Agronomist Action Directive')}
               </span>
               <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
-                {liveResult.farmer_friendly_advice}
+                {localizeAdvice(liveResult.farmer_friendly_advice, currentLang)}
               </p>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={() => speak(liveResult.farmer_friendly_advice, 'agronomist_directive', i18n.language || 'en')}
+            onClick={() => speak(localizeAdvice(liveResult.farmer_friendly_advice, currentLang), 'agronomist_directive', i18n.language || 'en')}
             className={`p-2 rounded-xl border shrink-0 transition-all ${
               speakingId === 'agronomist_directive'
                 ? 'bg-emerald-600 text-white border-emerald-500 animate-pulse'
@@ -353,24 +375,28 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         defaultOpen={true}
         badgeText="AI Analysis"
         onSpeak={() => {
-          const overviewText = liveResult?.disease_explanation || liveResult?.symptoms || diseaseInfo?.overview || 'Pathology details for this crop condition.';
+          const overviewText = (currentLang === 'te' && !hasRegionalText(liveResult?.disease_explanation))
+            ? (diseaseInfo?.overview || liveResult?.disease_explanation || 'ఆకులపై శిలీంధ్ర మచ్చలు మరియు పసుపు రంగు వలయాలు గమనించబడ్డాయి.')
+            : (liveResult?.disease_explanation || liveResult?.symptoms || diseaseInfo?.overview || 'Pathology details for this crop condition.');
           speak(overviewText, 'card_pathology', i18n.language || 'en');
         }}
         isSpeaking={speakingId === 'card_pathology'}
       >
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
           <p>
-            {liveResult?.disease_explanation || liveResult?.symptoms || diseaseInfo?.overview || 'Fungal lesions with concentric rings and chlorotic halos observed across foliage.'}
+            {(currentLang === 'te' && !hasRegionalText(liveResult?.disease_explanation))
+              ? (diseaseInfo?.overview || liveResult?.disease_explanation || 'ఆకులపై శిలీంధ్ర మచ్చలు మరియు పసుపు రంగు వలయాలు గమనించబడ్డాయి.')
+              : (liveResult?.disease_explanation || liveResult?.symptoms || diseaseInfo?.overview || 'Fungal lesions with concentric rings and chlorotic halos observed across foliage.')}
           </p>
 
           {liveResult?.possible_causes && Array.isArray(liveResult.possible_causes) && liveResult.possible_causes.length > 0 && (
             <div className="pt-2 border-t border-slate-200 dark:border-white/10 space-y-1.5">
               <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
-                Identified Environmental Causes & Vectors:
+                {t('results.causes_vectors', 'Identified Environmental Causes & Vectors:')}
               </span>
               <ul className="list-disc pl-5 space-y-1 text-xs text-slate-700 dark:text-slate-300">
                 {liveResult.possible_causes.map((cause, idx) => (
-                  <li key={idx}>{cause}</li>
+                  <li key={idx}>{localizeAdvice(cause, currentLang)}</li>
                 ))}
               </ul>
             </div>
@@ -438,10 +464,10 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
-                Recommended Formulations (Select 1 to calculate tank mix):
+                {t('results.recommended_formulations', 'Recommended Formulations (Select 1 to calculate tank mix):')}
               </span>
               <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">
-                Option {selectedChemicalIdx + 1} of {chemicalsList.length} Active
+                {t('results.option', 'Option')} {selectedChemicalIdx + 1} {t('results.of', 'of')} {chemicalsList.length} {t('results.active', 'Active')}
               </span>
             </div>
 
@@ -473,12 +499,12 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                              Option {String.fromCharCode(65 + idx)}
+                              {t('results.option', 'Option')} {String.fromCharCode(65 + idx)}
                             </span>
                             {isSelected && (
                               <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                                 <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                Chosen (Use This)
+                                {t('results.chosen_option', 'Chosen (Use This)')}
                               </span>
                             )}
                           </div>
@@ -486,7 +512,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                             {chem}
                           </p>
                           <span className="inline-block mt-1 text-[11px] font-semibold text-teal-700 dark:text-teal-300">
-                            Recommended Rate: {dosage.rate} {dosage.unit} / Litre water
+                            {t('results.recommended_rate', 'Recommended Rate')}: {dosage.rate} {dosage.unit} / {t('results.litre_water', 'Litre water')}
                           </span>
                         </div>
                       </div>
@@ -516,7 +542,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   {t('results.backpack_guide', 'Backpack Sprayer Pump Mix Guide (Per Tank)')}
                 </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Exact measurement for your knapsack or battery pump:
+                  {t('results.exact_measurement', 'Exact measurement for your knapsack or battery pump:')}
                 </p>
               </div>
 
@@ -533,7 +559,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                         : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    {litres}L Tank
+                    {litres}L {t('results.tank', 'Tank')}
                   </button>
                 ))}
               </div>
@@ -542,13 +568,13 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             {/* Visual Tank Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
               <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">1. Water in Tank</span>
-                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">{tankSize} Litres</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">Clean water</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">1. {t('results.water_in_tank', 'Water in Tank')}</span>
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">{tankSize} {t('results.litres', 'Litres')}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('results.clean_water', 'Clean water')}</span>
               </div>
 
               <div className="p-3 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border-2 border-emerald-500/40 shadow-xs">
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block uppercase font-bold">2. Medicine per Tank</span>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block uppercase font-bold">2. {t('results.medicine_per_tank', 'Medicine per Tank')}</span>
                 <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300 mt-0.5 block">
                   {tankMedicineGrams} {currentDosage.displayUnit}
                 </span>
@@ -558,27 +584,31 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </div>
 
               <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">3. Pumps for Field</span>
-                <span className="text-sm sm:text-base font-black text-teal-700 dark:text-teal-300 mt-0.5 block">{tanksNeeded} Pumps</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">For {fieldArea} Acre</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">3. {t('results.pumps_for_field', 'Pumps for Field')}</span>
+                <span className="text-sm sm:text-base font-black text-teal-700 dark:text-teal-300 mt-0.5 block">{tanksNeeded} {t('results.pumps', 'Pumps')}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('results.for_area', 'For')} {fieldArea} {t('results.acres', 'Acre')}</span>
               </div>
 
               <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">4. Dilution Rate</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">4. {t('results.dilution_rate', 'Dilution Rate')}</span>
                 <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">
                   {currentDosage.rate} {currentDosage.unit}/L
                 </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">Recommended standard</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('results.recommended_standard', 'Recommended standard')}</span>
               </div>
             </div>
 
             {/* Practical 3-Step Mixing Instruction for Farmers */}
             <div className="p-3 rounded-xl bg-white/60 dark:bg-slate-800/50 border border-teal-500/20 text-xs text-slate-700 dark:text-slate-300 space-y-1">
               <span className="font-extrabold text-teal-900 dark:text-teal-200 block text-[11px] uppercase tracking-wider">
-                🚜 Easy Tank Mixing Instructions:
+                🚜 {t('results.tank_instructions_title', 'Easy Tank Mixing Instructions')}:
               </span>
               <p className="leading-relaxed">
-                <strong>1.</strong> Fill half the tank with clean water. <strong>2.</strong> Dissolve <strong>{tankMedicineGrams} {currentDosage.displayUnit}</strong> of your selected medicine in a small bucket of water first, then pour into the tank. <strong>3.</strong> Top up to {tankSize} Litres, shake gently, and spray uniformly on both sides of foliage.
+                <strong>1.</strong> {t('results.tank_step_1', 'Fill half the tank with clean water.')}{' '}
+                <strong>2.</strong> {t('results.tank_step_2', 'Dissolve')}{' '}
+                <strong>{tankMedicineGrams} {currentDosage.displayUnit}</strong>{' '}
+                {t('results.tank_step_2b', 'of your selected medicine in a small bucket of water first, then pour into the tank.')}{' '}
+                <strong>3.</strong> {t('results.tank_step_3', 'Top up to')} {tankSize} {t('results.litres', 'Litres')}{t('results.tank_step_3b', ', shake gently, and spray uniformly on both sides of foliage.')}
               </p>
             </div>
           </div>
@@ -697,13 +727,19 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         icon={ShieldCheck}
         badgeText="Safety Protocol"
         onSpeak={() => {
-          const text = liveResult?.safety_precautions || 'Always wear protective gloves and a mask when applying chemical treatments. Keep away from children and pets.';
+          const text = (currentLang === 'te' && !hasRegionalText(liveResult?.safety_precautions))
+            ? "రసాయన మందులు పిచికారీ చేసేటప్పుడు రక్షణ చేతి తొడుగులు మరియు ముఖానికి మాస్క్ తప్పనిసరిగా ధరించండి. పిల్లలు మరియు పశువులకు దూరంగా భద్రపరచండి."
+            : (liveResult?.safety_precautions || 'Always wear protective gloves and a mask when applying chemical treatments. Keep away from children and pets.');
           speak(text, 'card_safety', i18n.language || 'en');
         }}
         isSpeaking={speakingId === 'card_safety'}
       >
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
-          <p>{liveResult?.safety_precautions || 'Always wear protective gloves and a mask when applying chemical treatments. Keep away from children and pets.'}</p>
+          <p>
+            {(currentLang === 'te' && !hasRegionalText(liveResult?.safety_precautions))
+              ? "రసాయన మందులు పిచికారీ చేసేటప్పుడు రక్షణ చేతి తొడుగులు మరియు ముఖానికి మాస్క్ తప్పనిసరిగా ధరించండి. పిల్లలు మరియు పశువులకు దూరంగా భద్రపరచండి."
+              : (liveResult?.safety_precautions || 'Always wear protective gloves and a mask when applying chemical treatments. Keep away from children and pets.')}
+          </p>
         </div>
       </CollapsibleSection>
 
@@ -713,7 +749,8 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         icon={CloudSun}
         badgeText="Agronomy Tips"
         onSpeak={() => {
-          const items = Array.isArray(liveResult?.prevention_methods) ? liveResult.prevention_methods : [liveResult?.prevention_methods || 'Practice crop rotation and field sanitation.'];
+          const rawItems = Array.isArray(liveResult?.prevention_methods) ? liveResult.prevention_methods : [liveResult?.prevention_methods || 'Practice crop rotation and field sanitation.'];
+          const items = rawItems.map(item => localizeAdvice(item, currentLang));
           speak(items.join('. '), 'card_prevention', i18n.language || 'en');
         }}
         isSpeaking={speakingId === 'card_prevention'}
@@ -721,7 +758,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
           <ul className="list-disc pl-5 space-y-1.5">
             {(Array.isArray(liveResult?.prevention_methods) ? liveResult.prevention_methods : [liveResult?.prevention_methods || 'Practice crop rotation and field sanitation.']).map((method, i) => (
-              <li key={i}>{method}</li>
+              <li key={i}>{localizeAdvice(method, currentLang)}</li>
             ))}
           </ul>
         </div>
@@ -733,7 +770,8 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         icon={AlertTriangle}
         badgeText="Root Cause"
         onSpeak={() => {
-          const causes = Array.isArray(liveResult?.possible_causes) ? liveResult.possible_causes : [liveResult?.possible_causes || 'High humidity and poor air circulation.'];
+          const rawCauses = Array.isArray(liveResult?.possible_causes) ? liveResult.possible_causes : [liveResult?.possible_causes || 'High humidity and poor air circulation.'];
+          const causes = rawCauses.map(cause => localizeAdvice(cause, currentLang));
           speak(causes.join('. '), 'card_causes', i18n.language || 'en');
         }}
         isSpeaking={speakingId === 'card_causes'}
@@ -741,7 +779,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
           <ul className="list-disc pl-5 space-y-1.5">
             {(Array.isArray(liveResult?.possible_causes) ? liveResult.possible_causes : [liveResult?.possible_causes || 'High humidity and poor air circulation.']).map((cause, i) => (
-              <li key={i}>{cause}</li>
+              <li key={i}>{localizeAdvice(cause, currentLang)}</li>
             ))}
           </ul>
         </div>

@@ -200,7 +200,7 @@ export const Toast = ({ message, type = 'success', onClose, duration = 4000 }) =
 
 // 7. Navbar Component
 export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const { theme } = useNavbarTheme();
   const { hardwareMode } = useHardwareMode();
   const navigate = useNavigate();
@@ -679,6 +679,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                     const lang = e.target.value;
                     i18n.changeLanguage(lang);
                     localStorage.setItem('i18nextLng', lang);
+                    if (user && updateProfile) {
+                      updateProfile({ preferred_language: lang }).catch(() => {});
+                    }
+                    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: lang } }));
                   }}
                   className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer max-w-[70px] sm:max-w-none"
                   aria-label="Select Application Language"

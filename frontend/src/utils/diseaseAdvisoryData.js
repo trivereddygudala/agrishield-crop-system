@@ -519,6 +519,59 @@ export const DISEASE_KB = {
       ],
       prevention: "पौधों के बीच पर्याप्त दूरी रखें ताकि धूप और हवा मिले।"
     }
+  },
+  "leaf spot": {
+    en: {
+      name: "Leaf Spot (Cercospora / Alternaria / Bacterial)",
+      overview: "Leaf spot in chilli and other crops is caused by fungal pathogens (such as Cercospora capsici, Alternaria solani) or bacterial agents (Xanthomonas). It manifests as small circular to irregular brown-black spots on upper leaf surfaces, often with yellow halos, leading to premature leaf defoliation and reduced photosynthetic yield.",
+      chemicals: [
+        "Carbendazim 12% + Mancozeb 63% WP (Saaf) @ 2.0 g/L of water (30 g per 15L backpack pump).",
+        "Chlorothalonil 75% WP (Kavach) @ 2.0 g/L of water (30 g per 15L pump).",
+        "Azoxystrobin 23% SC (Amistar) @ 1.0 ml/L of water (15 ml per 15L pump) for systemic control.",
+        "Hexaconazole 5% EC (Contaf Plus) @ 2.0 ml/L of water (30 ml per 15L pump)."
+      ],
+      organic: [
+        "Apply neem oil spray (5 ml/L of water with liquid soap) every 7 days until symptoms reduce.",
+        "Use copper-based organic fungicide (Bordeaux mixture 1%) as preventive foliar spray.",
+        "Apply Trichoderma harzianum bio-formulation (5 g/L) to soil and foliage.",
+        "Spray diluted baking soda solution (4 g/L) to raise leaf surface pH."
+      ],
+      prevention: "Practice 3-year crop rotation with non-solanaceous crops. Use certified disease-free seeds. Maintain proper plant spacing (60 cm) for adequate air circulation. Avoid overhead irrigation and use drip systems."
+    },
+    te: {
+      name: "ఆకుమచ్చ తెగులు (లీఫ్ స్పాట్)",
+      overview: "మిరప మరియు ఇతర పంటలలో ఆకుమచ్చ తెగులు సెర్కోస్పోరా లేదా ఆల్టర్నేరియా శిలీంధ్రాలు మరియు బ్యాక్టీరియా వల్ల వస్తుంది. ఆకులపై చిన్న గుండ్రని నల్లటి లేదా గోధుమ రంగు మచ్చలు చుట్టూ పసుపు వలయంతో ఏర్పడతాయి. తెగులు తీవ్రమైతే ఆకులు ఎండి రాలిపోతాయి, కిరణజన్య సంయోగక్రియ తగ్గి పంట దిగుబడి దెబ్బతింటుంది.",
+      chemicals: [
+        "కార్బెండజిమ్ 12% + మాంకోజెబ్ 63% WP (సాఫ్) @ 2.0 గ్రా/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి (15 లీటర్ల ట్యాంకుకు 30 గ్రాములు).",
+        "క్లోరోథలోనిల్ 75% WP (కవచ్) @ 2.0 గ్రా/లీటర్ రక్షణ స్ప్రేగా వాడండి (15 లీటర్ల ట్యాంకుకు 30 గ్రాములు).",
+        "అజాక్సిస్ట్రోబిన్ 23% SC (అమిస్టార్) @ 1.0 మి.లీ/లీటర్ నీటిలో (15 లీటర్ల ట్యాంకుకు 15 మి.లీ) తీవ్రత ఎక్కువగా ఉన్నప్పుడు వాడండి.",
+        "హెక్సాకొనజోల్ 5% EC (కాంటాఫ్ ప్లస్) @ 2.0 మి.లీ/లీటర్ నీటిలో పిచికారీ చేయాలి."
+      ],
+      organic: [
+        "వేప నూనె (5 మి.లీ/లీటర్ నీటికి) 7 రోజులకు ఒకసారి లక్షణాలు తగ్గే వరకు క్రమం తప్పకుండా పిచికారీ చేయండి.",
+        "బోర్డో మిశ్రమం (1%) లేదా కాపర్ ఆధారిత సేంద్రీయ శిలీంద్ర సంహారిణి నివారణ పిచికారీగా వాడండి.",
+        "ట్రైకోడెర్మా హర్జియానమ్ జీవ శిలీంద్రనాశిని (5 గ్రా/లీటర్) నేల మరియు ఆకులపై పిచికారీ చేయండి.",
+        "వంట సోడా (బేకింగ్ సోడా) ద్రావణం (4 గ్రా/లీటర్) ఆకుల ఉపరితలంపై పిచికారీ చేయండి."
+      ],
+      prevention: "3 సంవత్సరాల పంట మార్పిడి పాటించండి. ధృవీకరించబడిన నాణ్యమైన విత్తనాలు వాడండి. మొక్కల మధ్య 60 సెం.మీ దూరం పాటించండి. ఆకులపై నీరు పడకుండా డ్రిప్ లేదా కాల్వ ద్వారా నీటిని అందించండి."
+    },
+    hi: {
+      name: "पत्ती धब्बा रोग (लीफ स्पॉट)",
+      overview: "मिर्च और अन्य फसलों में यह रोग कवक या जीवाणुओं के कारण होता है। पत्तियों पर छोटे गोल भूरे-काले धब्बे बनते हैं। पत्तियां पीली पड़कर झड़ने लगती हैं जिससे पैदावार कम हो जाती है।",
+      chemicals: [
+        "कार्बेन्डाजिम 12% + मैनकोजेब 63% WP (साफ) @ 2.0 ग्राम/लीटर पानी में (15 लीटर पंप में 30 ग्राम)।",
+        "क्लोरोथैलोनिल 75% WP (कवच) @ 2.0 ग्राम/लीटर का सुरक्षात्मक छिड़काव करें।",
+        "एज़ोक्सिस्ट्रोबिन 23% SC @ 1.0 मिली/लीटर पानी में मिलाकर छिड़कें।",
+        "हेक्साकोनाज़ोल 5% EC @ 2.0 मिली/लीटर पानी में प्रयोग करें।"
+      ],
+      organic: [
+        "नीम का तेल (5 मिली/लीटर पानी) प्रति 7 दिन पर छिड़कें।",
+        "तांबा आधारित जैविक बोर्डो मिश्रण (1%) का छिड़काव करें।",
+        "ट्राइकोडर्मा हरजियानम (5 ग्राम/लीटर) का प्रयोग करें।",
+        "बेकिंग सोडा (4 ग्राम/लीटर) का घोल बनाकर छिड़कें।"
+      ],
+      prevention: "3-वर्षीय फसल चक्र अपनाएं। प्रमाणित रोगमुक्त बीज का उपयोग करें। पौधों के बीच 60 सेमी की दूरी रखें।"
+    }
   }
 };
 
@@ -1311,6 +1364,7 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   }
 
   const key = normalizeDiseaseKey(diseaseName);
+  const isGroundnut = String(cropName).toLowerCase().includes('groundnut') || String(cropName).toLowerCase().includes('peanut') || String(cropName).includes('వేరుశనగ');
   const keyMap = {
     'early_blight': 'early blight',
     'late_blight': 'late blight',
@@ -1319,12 +1373,15 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
     'bacterial_blight': 'bacterial spot',
     'leaf_curl': 'leaf curl virus',
     'rust': 'common rust',
-    'leaf_spot': 'tikka disease',
+    'leaf_spot': isGroundnut ? 'tikka disease' : 'leaf spot',
+    'chilli_leaf_spot': 'leaf spot',
+    'cercospora_leaf_spot': 'leaf spot',
     'anthracnose': 'anthracnose',
     'blast': 'blast',
     'powdery_mildew': 'powdery mildew',
     'downy_mildew': 'powdery mildew',
-    'brown_spot': 'tikka disease',
+    'tikka_disease': 'tikka disease',
+    'brown_spot': 'leaf spot',
     'black_rot': 'early blight',
     'root_rot': 'early blight',
     'damping_off': 'early blight',
@@ -1490,3 +1547,47 @@ export function translateStage(stage = '', lang = 'en') {
   }
   return stage;
 }
+
+export const TELUGU_ADVICE_MAP = {
+  "neem oil": "వేప నూనె స్ప్రే (5 మి.లీ/లీటర్ నీటికి) లక్షణాలు తగ్గే వరకు ప్రతి 7 రోజులకు ఒకసారి పిచికారీ చేయండి.",
+  "bordeaux mixture": "బోర్డో మిశ్రమం (1%) లేదా కాపర్ ఆధారిత సేంద్రీయ శిలీంద్ర సంహారిణి నివారణ పిచికారీగా వాడండి.",
+  "trichoderma": "ట్రైకోడెర్మా హర్జియానమ్ జీవ శిలీంద్రనాశిని (5 గ్రా/లీటర్) నేల మరియు ఆకులపై పిచికారీ చేయండి.",
+  "baking soda": "వంట సోడా (బేకింగ్ సోడా) ద్రావణం (4 గ్రా/లీటర్) ఆకులపై పిచికారీ చేయండి.",
+  "mancozeb": "మాంకోజెబ్ 75% WP @ 2.5 గ్రా/లీటర్ నీటిలో కలిపి 7-10 రోజులకు ఒకసారి పిచికారీ చేయండి.",
+  "chlorothalonil": "క్లోరోథలోనిల్ 75% WP @ 2.0 గ్రా/లీటర్ రక్షణ స్ప్రేగా వాడండి.",
+  "azoxystrobin": "అజాక్సిస్ట్రోబిన్ 23% SC @ 1.0 మి.లీ/లీటర్ నీటిలో తీవ్రత ఎక్కువగా ఉన్నప్పుడు పిచికారీ చేయండి.",
+  "alternate fungicide": "శిలీంధ్రాలలో నిరోధకత రాకుండా వివిధ గ్రూపుల మందులను మార్చి మార్చి వాడండి.",
+  "crop rotation": "పప్పుధాన్యాలు లేదా తృణధాన్యాలతో 3 సంవత్సరాల పంట మార్పిడి పాటించండి.",
+  "disease-free seeds": "ధృవీకరించబడిన నాణ్యమైన విత్తనాలు మరియు ఆరోగ్యకరమైన నారును మాత్రమే వాడండి.",
+  "plant spacing": "గాలి వెలుతురు ధారాళంగా ఉండేలా మొక్కల మధ్య తగినంత దూరం పాటించండి.",
+  "organic mulch": "నేల నుండి శిలీంధ్ర బీజాలు ఆకులకు చేరకుండా మొక్క మొదట్లో ఎండుటాకుల మల్చింగ్ వేయండి.",
+  "crop debris": "పంట కోసిన తర్వాత మిగిలిన వ్యర్థాలను మరియు కలుపును తగులబెట్టండి.",
+  "overhead irrigation": "ఆకులపై నీరు పడేలా చేయవద్దు - డ్రిప్ లేదా కాల్వల ద్వారా నీటిని అందించండి.",
+  "preventive fungicide": "పూత దశలో తెగులు లక్షణాలు రాకముందే నివారణ పిచికారీ చేయండి.",
+  "lower leaves": "ప్రతి వారం అడుగు భాగపు ఆకులను పరిశీలించండి - తెగులు ఎల్లప్పుడూ క్రింది ఆకుల నుండే మొదలవుతుంది.",
+  "base of the plant": "ఉదయాన్నే మొక్కల మొదట్లో నీరు పెట్టండి, తద్వారా సాయంత్రానికల్లా ఆకులు ఎండిపోతాయి.",
+  "prune": "నేలకు తగిలే క్రింది కొమ్మలను మరియు రెమ్మలను కత్తిరించి తీసివేయండి.",
+  "crop diary": "వ్యాధి లక్షణాలు కనిపించిన తేదీలను నోట్ చేసుకోండి, తద్వారా వచ్చే సీజన్ ముందుగానే జాగ్రత్త పడవచ్చు.",
+  "rotate fungicide": "ప్రతి 2 స్ప్రేలకు మందుల గ్రూపులను మార్చి పిచికారీ చేయండి.",
+  "current season": "ప్రస్తుత సీజన్: అధిక తేమ పేరుకుపోకుండా వాతావరణాన్ని బట్టి నీటి తడులను సరిచేసుకోండి.",
+  "protective gloves": "రసాయన మందులు పిచికారీ చేసేటప్పుడు రక్షణ చేతి తొడుగులు మరియు మాస్క్ ధరించండి.",
+  "high humidity": "అధిక తేమ మరియు సరిపోని గాలి ప్రసరణ తెగులు వ్యాప్తికి దోహదం చేస్తాయి.",
+  "field sanitation": "పొలంలో కలుపు మొక్కలను మరియు వ్యాధి సోకిన ఆకులను తొలగించి శుభ్రంగా ఉంచండి.",
+  "morning": "ఉదయం వేళల్లో మాత్రమే పిచికారీ చేయండి (ఎండ తక్కువగా ఉన్నప్పుడు).",
+  "evening": "సాయంత్రం వేళల్లో చల్లబడిన తర్వాత పిచికారీ చేయడం ఉత్తమం.",
+  "wind": "గాలి వేగం ఎక్కువగా ఉన్నప్పుడు రసాయనాలు పిచికారీ చేయవద్దు."
+};
+
+export function localizeAdvice(str, lang = 'en') {
+  if (!str) return '';
+  const cleanLang = (lang ? lang.split('-')[0] : 'en').toLowerCase();
+  if (cleanLang !== 'te' || /[\u0C00-\u0C7F]/.test(str)) return str;
+  const lower = String(str).toLowerCase();
+  for (const [key, translated] of Object.entries(TELUGU_ADVICE_MAP)) {
+    if (lower.includes(key)) {
+      return translated;
+    }
+  }
+  return str;
+}
+
