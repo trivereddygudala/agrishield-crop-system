@@ -132,18 +132,19 @@ async def jail_ip(ip: str, reason: str, duration_hours: float = 24.0):
 
     # Persist to database asynchronously
     try:
-        db = await get_database()
-        await db.security_banned_ips.update_one(
-            {"ip": ip},
-            {"$set": {
-                "ip": ip,
-                "reason": reason,
-                "banned_at": datetime.now(timezone.utc),
-                "expires_at": datetime.now(timezone.utc) + timedelta(hours=duration_hours),
-                "active": True
-            }},
-            upsert=True
-        )
+        db = get_database()
+        if db is not None:
+            await db.security_banned_ips.update_one(
+                {"ip": ip},
+                {"$set": {
+                    "ip": ip,
+                    "reason": reason,
+                    "banned_at": datetime.now(timezone.utc),
+                    "expires_at": datetime.now(timezone.utc) + timedelta(hours=duration_hours),
+                    "active": True
+                }},
+                upsert=True
+            )
     except Exception as e:
         logger.warning(f"Could not persist banned IP {ip} to MongoDB: {e}")
 
@@ -156,13 +157,14 @@ async def unban_ip(ip: str) -> bool:
         unbanned = True
 
     try:
-        db = await get_database()
-        res = await db.security_banned_ips.update_many(
-            {"ip": ip},
-            {"$set": {"active": False, "unbanned_at": datetime.now(timezone.utc)}}
-        )
-        if res.modified_count > 0:
-            unbanned = True
+        db = get_database()
+        if db is not None:
+            res = await db.security_banned_ips.update_many(
+                {"ip": ip},
+                {"$set": {"active": False, "unbanned_at": datetime.now(timezone.utc)}}
+            )
+            if res.modified_count > 0:
+                unbanned = True
     except Exception as e:
         logger.warning(f"Could not update unban in MongoDB: {e}")
 
@@ -173,25 +175,26 @@ async def unban_ip(ip: str) -> bool:
 async def sync_banned_ips_from_db():
     """Sync active bans from MongoDB into memory on startup."""
     try:
-        db = await get_database()
-        now_dt = datetime.now(timezone.utc)
-        cursor = db.security_banned_ips.find({"active": True, "expires_at": {"$gt": now_dt}})
-        docs = await cursor.to_list(500)
-        now = time.time()
-        for doc in docs:
-            exp_dt = doc.get("expires_at")
-            if exp_dt:
-                exp_timestamp = exp_dt.replace(tzinfo=timezone.utc).timestamp() if exp_dt.tzinfo is None else exp_dt.timestamp()
-                if exp_timestamp > now:
-                    _JAILED_IPS[doc["ip"]] = {
-                        "ip": doc["ip"],
-                        "reason": doc.get("reason", "Administrative Security Ban"),
-                        "banned_at": now,
-                        "expires_at": exp_timestamp,
-                        "duration_hours": max(1.0, (exp_timestamp - now) / 3600),
-                        "banned_at_iso": doc.get("banned_at", now_dt).isoformat(),
-                        "expires_at_iso": exp_dt.isoformat()
-                    }
+        db = get_database()
+        if db is not None:
+            now_dt = datetime.now(timezone.utc)
+            cursor = db.security_banned_ips.find({"active": True, "expires_at": {"$gt": now_dt}})
+            docs = await cursor.to_list(500)
+            now = time.time()
+            for doc in docs:
+                exp_dt = doc.get("expires_at")
+                if exp_dt:
+                    exp_timestamp = exp_dt.replace(tzinfo=timezone.utc).timestamp() if exp_dt.tzinfo is None else exp_dt.timestamp()
+                    if exp_timestamp > now:
+                        _JAILED_IPS[doc["ip"]] = {
+                            "ip": doc["ip"],
+                            "reason": doc.get("reason", "Administrative Security Ban"),
+                            "banned_at": now,
+                            "expires_at": exp_timestamp,
+                            "duration_hours": max(1.0, (exp_timestamp - now) / 3600),
+                            "banned_at_iso": doc.get("banned_at", now_dt).isoformat(),
+                            "expires_at_iso": exp_dt.isoformat()
+                        }
     except Exception as e:
         logger.warning(f"Could not sync banned IPs from DB: {e}")
 
