@@ -1035,13 +1035,17 @@ Do NOT include markdown fences, backticks, or any conversational text. Only outp
         crop_name: str,
         disease_name: str,
         severity: str,
-        irrigation_method: str = "Drip"
+        irrigation_method: str = "Drip",
+        target_lang: str = "en"
     ) -> list:
         """
         Generates a customized, day-by-day 7-day prescriptive spray and cultural treatment calendar for farmers.
         """
+        clean_lang = (target_lang.split("-")[0] if target_lang else "en").lower()
         if not self._get_providers():
-            return self._generate_mock_calendar(disease_name)
+            return self._generate_mock_calendar(disease_name, clean_lang)
+
+        lang_instruction = f"All titles and activities MUST be written in fluent native {clean_lang} (e.g. Telugu script if 'te', Hindi script if 'hi')." if clean_lang != "en" else "Language: English."
 
         prompt = f"""
 You are an expert crop pathologist. Design a highly specific, customized 7-Day Day-by-Day Prescriptive Spray and Cultural Treatment Calendar for a farmer:
@@ -1049,6 +1053,7 @@ Crop: {crop_name}
 Diagnosed Condition: {disease_name}
 Disease Severity: {severity}
 Irrigation Method: {irrigation_method}
+{lang_instruction}
 
 Provide a specific day-by-day action timeline starting from Day 1 to Day 7. Each day should contain actionable agricultural tasks (e.g. spray details, water reduction, soil airing, pruning).
 
@@ -1082,9 +1087,31 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                 return parsed["calendar"]
             logger.warning(f"generate_prescription_calendar unexpected format from {provider}: {content[:200] if content else 'empty'}")
 
-        return self._generate_mock_calendar(disease_name)
+        return self._generate_mock_calendar(disease_name, clean_lang)
 
-    def _generate_mock_calendar(self, disease_name: str) -> list:
+    def _generate_mock_calendar(self, disease_name: str, target_lang: str = "en") -> list:
+        clean_lang = (target_lang.split("-")[0] if target_lang else "en").lower()
+        if clean_lang == "te":
+            return [
+                {"day": 1, "title": "పొలం పరిశుభ్రత & ఆకుల తొలగింపు", "activity": "మచ్చలు ఎక్కువగా ఉన్న ఆకులను జాగ్రత్తగా కత్తిరించి తొలగించండి. చేతుల ద్వారా ఇతర ఆరోగ్యకరమైన మొక్కలకు తెగులు సోకకుండా చూడండి."},
+                {"day": 2, "title": "మొదటి రక్షణ స్ప్రే (శిలీంద్ర సంహారిణి)", "activity": "ఉదయం చల్లని వేళల్లో మాంకోజెబ్ (2.5 గ్రా/లీ) కాంటాక్ట్ శిలీంద్రనాశిని సమానంగా పిచికారీ చేయండి."},
+                {"day": 3, "title": "గాలి ప్రసరణ & కలుపు నివారణ", "activity": "మొక్కల మొదళ్ల వద్ద గాలి, ఎండ ధారాళంగా తగిలేలా చుట్టూ ఉన్న కలుపు మొక్కలను తొలగించండి."},
+                {"day": 4, "title": "డ్రిప్ లైన్ తనిఖీ & నేల తేమ నియంత్రణ", "activity": "నేలలో తేమను పరిశీలించి, అధిక తడి నివారించడానికి నీటి తడులను 20% వరకు తగ్గించండి."},
+                {"day": 5, "title": "పోషకాల సమతుల్యత & పత్రహరితం పెంపు", "activity": "దెబ్బతిన్న కణజాలం పునరుద్ధరణకు మరియు పత్రహరితం పెంచడానికి మైక్రోన్యూట్రియెంట్ ద్రావణాన్ని పిచికారీ చేయండి."},
+                {"day": 6, "title": "రెండవ దశ పొలం సమీక్ష & తనిఖీ", "activity": "కొత్తగా వచ్చిన చిగుళ్లపై నల్లటి మచ్చలు ఉన్నాయో లేదో గమనించి, అవసరమైతే మాత్రమే స్పాట్ స్ప్రే చేయండి."},
+                {"day": 7, "title": "అగ్రిషీల్డ్ రీ-స్కాన్ & రికవరీ పురోగతి", "activity": "పంట ఆరోగ్య రికవరీ సూచికను ధృవీకరించడానికి అగ్రిషీల్డ్ స్కానర్‌తో ఆకులను తిరిగి స్కాన్ చేయండి."}
+            ]
+        elif clean_lang == "hi":
+            return [
+                {"day": 1, "title": "खेत की स्वच्छता व संक्रमित पत्तों की कटाई", "activity": "अधिक धब्बेदार पत्तों को सावधानीपूर्वक काटकर नष्ट करें ताकि रोग स्वस्थ पौधों में न फैले।"},
+                {"day": 2, "title": "पहला सुरक्षात्मक कवकनाशी छिड़काव", "activity": "सुबह के ठंडे समय में मैंकोजेब (2.5 ग्राम/लीटर) कवकनाशी का समान रूप से छिड़काव करें।"},
+                {"day": 3, "title": "वायु संचार व खरपतवार नियंत्रण", "activity": "पौधों के आधार पर धूप व हवा लगने के लिए आसपास के खरपतवार हटा दें।"},
+                {"day": 4, "title": "ड्रिप लाइन जांच व नमी नियंत्रण", "activity": "मिट्टी की नमी जांचें और फंगस रोकने के लिए सिंचाई 20% तक कम करें।"},
+                {"day": 5, "title": "सूक्ष्म पोषक तत्व व क्लोरोफिल सुधार", "activity": "पौधों के पुनर्प्राप्ति के लिए पर्ण सूक्ष्म पोषक तत्वों का छिड़काव करें।"},
+                {"day": 6, "title": "द्वितीय चरण खेत निरीक्षण", "activity": "नए निकले पत्तों पर धब्बों की जांच करें और आवश्यकतानुसार ही उपचार करें।"},
+                {"day": 7, "title": "एग्रीशील्ड री-स्कैन व स्वास्थ्य प्रगति", "activity": "फसल सुधार सूचकांक की पुष्टि के लिए एग्रीशील्ड स्कैनर से दोबारा स्कैन करें।"}
+            ]
+
         return [
             {"day": 1, "title": "Field Sanitization", "activity": "Carefully prune heavily spotted leaves. Avoid touch-transfer to healthy crops."},
             {"day": 2, "title": "First Protection Spray", "activity": "Spray broad-spectrum contact fungicide (e.g., Mancozeb 2.5g/L) during cool morning hours."},

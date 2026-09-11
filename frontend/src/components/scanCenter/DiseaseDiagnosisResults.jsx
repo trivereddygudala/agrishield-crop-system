@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress, Input, Select } from '../ui/index';
-import { translateCrop, translateDisease, getDiseaseDetails, localizeAdvice } from '../../utils/diseaseAdvisoryData';
+import { translateCrop, translateDisease, getDiseaseDetails, localizeAdvice, localizeCalendarItem } from '../../utils/diseaseAdvisoryData';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import TreatmentRecoverySimulator from './TreatmentRecoverySimulator';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
@@ -190,7 +190,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'hero_summary' ? 'animate-bounce text-emerald-300' : 'text-white'}`} />}
               className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-lg shadow-emerald-950/40"
             >
-              {speakingId === 'hero_summary' ? t('results.pause_voice', 'Stop Voice') : t('results.listen_advice', 'Listen Full Summary')}
+              {speakingId === 'hero_summary' ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : t('results.pause_voice', 'Stop Voice')) : (currentLang === 'te' ? 'సారాంశం వినండి' : t('results.listen_advice', 'Listen Full Summary'))}
             </Button>
 
             <Button
@@ -200,7 +200,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               leftIcon={<Share2 className="w-4 h-4 text-emerald-300" />}
               className="bg-white/20 hover:bg-white/30 text-white font-bold border-white/30 shadow-md backdrop-blur-md"
             >
-              Share Report
+              {currentLang === 'te' ? 'రిపోర్ట్ షేర్ చేయండి' : t('results.share_report', 'Share Report')}
             </Button>
           </div>
 
@@ -464,10 +464,10 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
-                {t('results.recommended_formulations', 'Recommended Formulations (Select 1 to calculate tank mix):')}
+                {currentLang === 'te' ? 'సిఫార్సు చేయబడిన మందులు (ట్యాంక్ మిశ్రమాన్ని లెక్కించడానికి 1 ఎంచుకోండి):' : t('results.recommended_formulations', 'Recommended Formulations (Select 1 to calculate tank mix):')}
               </span>
               <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400">
-                {t('results.option', 'Option')} {selectedChemicalIdx + 1} {t('results.of', 'of')} {chemicalsList.length} {t('results.active', 'Active')}
+                {currentLang === 'te' ? `ఎంపిక ${selectedChemicalIdx + 1} / ${chemicalsList.length} యాక్టివ్` : `${t('results.option', 'Option')} ${selectedChemicalIdx + 1} ${t('results.of', 'of')} ${chemicalsList.length} ${t('results.active', 'Active')}`}
               </span>
             </div>
 
@@ -499,12 +499,12 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-                              {t('results.option', 'Option')} {String.fromCharCode(65 + idx)}
+                              {currentLang === 'te' ? `ఎంపిక ${String.fromCharCode(65 + idx)}` : `Option ${String.fromCharCode(65 + idx)}`}
                             </span>
                             {isSelected && (
                               <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                                 <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                {t('results.chosen_option', 'Chosen (Use This)')}
+                                {currentLang === 'te' ? 'ఎంచుకోబడింది (దీనిని వాడండి)' : t('results.chosen_option', 'Chosen (Use This)')}
                               </span>
                             )}
                           </div>
@@ -512,7 +512,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                             {chem}
                           </p>
                           <span className="inline-block mt-1 text-[11px] font-semibold text-teal-700 dark:text-teal-300">
-                            {t('results.recommended_rate', 'Recommended Rate')}: {dosage.rate} {dosage.unit} / {t('results.litre_water', 'Litre water')}
+                            {currentLang === 'te' ? `సిఫార్సు మోతాదు: ${dosage.rate} ${dosage.unit} / లీటర్ నీరు` : `Recommended Rate: ${dosage.rate} ${dosage.unit} / Litre water`}
                           </span>
                         </div>
                       </div>
@@ -539,10 +539,10 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               <div>
                 <span className="text-xs font-black uppercase tracking-wider text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
                   <Droplets className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                  {t('results.backpack_guide', 'Backpack Sprayer Pump Mix Guide (Per Tank)')}
+                  {currentLang === 'te' ? 'న్యాప్‌సాక్ స్ప్రేయర్ పంప్ మిశ్రమ మార్గదర్శిని (ప్రతి ట్యాంకుకు)' : t('results.backpack_guide', 'Backpack Sprayer Pump Mix Guide (Per Tank)')}
                 </span>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  {t('results.exact_measurement', 'Exact measurement for your knapsack or battery pump:')}
+                  {currentLang === 'te' ? 'మీ న్యాప్‌సాక్ లేదా బ్యాటరీ పంపుల కోసం ఖచ్చితమైన కొలత:' : t('results.exact_measurement', 'Exact measurement for your knapsack or battery pump:')}
                 </p>
               </div>
 
@@ -559,7 +559,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                         : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    {litres}L {t('results.tank', 'Tank')}
+                    {litres}{currentLang === 'te' ? ' లీటర్ల ట్యాంక్' : 'L Tank'}
                   </button>
                 ))}
               </div>
@@ -568,13 +568,13 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             {/* Visual Tank Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
               <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">1. {t('results.water_in_tank', 'Water in Tank')}</span>
-                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">{tankSize} {t('results.litres', 'Litres')}</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('results.clean_water', 'Clean water')}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">{currentLang === 'te' ? '1. ట్యాంకులోని నీరు' : '1. Water in Tank'}</span>
+                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">{tankSize} {currentLang === 'te' ? 'లీటర్లు' : 'Litres'}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{currentLang === 'te' ? 'శుభ్రమైన నీరు' : 'Clean water'}</span>
               </div>
 
               <div className="p-3 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/60 border-2 border-emerald-500/40 shadow-xs">
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block uppercase font-bold">2. {t('results.medicine_per_tank', 'Medicine per Tank')}</span>
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block uppercase font-bold">{currentLang === 'te' ? '2. ప్రతి ట్యాంకుకు మందు' : '2. Medicine per Tank'}</span>
                 <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300 mt-0.5 block">
                   {tankMedicineGrams} {currentDosage.displayUnit}
                 </span>
@@ -584,31 +584,35 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </div>
 
               <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">3. {t('results.pumps_for_field', 'Pumps for Field')}</span>
-                <span className="text-sm sm:text-base font-black text-teal-700 dark:text-teal-300 mt-0.5 block">{tanksNeeded} {t('results.pumps', 'Pumps')}</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('results.for_area', 'For')} {fieldArea} {t('results.acres', 'Acre')}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">{currentLang === 'te' ? '3. పొలానికి అవసరమైన పంపులు' : '3. Pumps for Field'}</span>
+                <span className="text-sm sm:text-base font-black text-teal-700 dark:text-teal-300 mt-0.5 block">{tanksNeeded} {currentLang === 'te' ? 'పంపులు' : 'Pumps'}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{currentLang === 'te' ? `పొలం: ${fieldArea} ఎకరం` : `For ${fieldArea} Acre`}</span>
               </div>
 
               <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 shadow-xs">
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">4. {t('results.dilution_rate', 'Dilution Rate')}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">{currentLang === 'te' ? '4. కలిపే మోతాదు' : '4. Dilution Rate'}</span>
                 <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-0.5 block">
                   {currentDosage.rate} {currentDosage.unit}/L
                 </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('results.recommended_standard', 'Recommended standard')}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{currentLang === 'te' ? 'సిఫార్సు ప్రమాణం' : 'Recommended standard'}</span>
               </div>
             </div>
 
             {/* Practical 3-Step Mixing Instruction for Farmers */}
             <div className="p-3 rounded-xl bg-white/60 dark:bg-slate-800/50 border border-teal-500/20 text-xs text-slate-700 dark:text-slate-300 space-y-1">
               <span className="font-extrabold text-teal-900 dark:text-teal-200 block text-[11px] uppercase tracking-wider">
-                🚜 {t('results.tank_instructions_title', 'Easy Tank Mixing Instructions')}:
+                🚜 {currentLang === 'te' ? 'సులభమైన ట్యాంక్ మిక్సింగ్ సూచనలు' : 'Easy Tank Mixing Instructions'}:
               </span>
               <p className="leading-relaxed">
-                <strong>1.</strong> {t('results.tank_step_1', 'Fill half the tank with clean water.')}{' '}
-                <strong>2.</strong> {t('results.tank_step_2', 'Dissolve')}{' '}
-                <strong>{tankMedicineGrams} {currentDosage.displayUnit}</strong>{' '}
-                {t('results.tank_step_2b', 'of your selected medicine in a small bucket of water first, then pour into the tank.')}{' '}
-                <strong>3.</strong> {t('results.tank_step_3', 'Top up to')} {tankSize} {t('results.litres', 'Litres')}{t('results.tank_step_3b', ', shake gently, and spray uniformly on both sides of foliage.')}
+                {currentLang === 'te' ? (
+                  <>
+                    <strong>1.</strong> ట్యాంకులో సగం వరకు శుభ్రమైన నీటిని నింపండి. <strong>2.</strong> ఒక చిన్న బకెట్ నీటిలో <strong>{tankMedicineGrams} {currentDosage.displayUnit}</strong> మందును బాగా కరిగించి, ఆపై ట్యాంకులో పోయండి. <strong>3.</strong> {tankSize} లీటర్ల వరకు నీటిని నింపి, సున్నితంగా కలిపి, ఆకుల రెండు వైపులా సమానంగా పిచికారీ చేయండి.
+                  </>
+                ) : (
+                  <>
+                    <strong>1.</strong> Fill half the tank with clean water. <strong>2.</strong> Dissolve <strong>{tankMedicineGrams} {currentDosage.displayUnit}</strong> of your selected medicine in a small bucket of water first, then pour into the tank. <strong>3.</strong> Top up to {tankSize} Litres, shake gently, and spray uniformly on both sides of foliage.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -702,20 +706,23 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               {t('results.calendar_intro', 'Customized calendar timeline for row sanitization, fungicide application, row ventilation, and nutritional recovery:')}
             </p>
             <div className="relative border-l-2 border-emerald-400/50 dark:border-emerald-700/50 ml-3 pl-5 space-y-4 my-2">
-              {liveResult.prescription_calendar.map((item, index) => (
-                <div key={index} className="relative">
-                  <div className="absolute -left-[28px] top-0 w-4 h-4 rounded-full border-2 border-emerald-500 bg-white dark:bg-slate-900 flex items-center justify-center shadow-xs">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {liveResult.prescription_calendar.map((rawItem, index) => {
+                const item = localizeCalendarItem(rawItem, currentLang);
+                return (
+                  <div key={index} className="relative">
+                    <div className="absolute -left-[28px] top-0 w-4 h-4 rounded-full border-2 border-emerald-500 bg-white dark:bg-slate-900 flex items-center justify-center shadow-xs">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 p-3.5 rounded-2xl hover:border-emerald-400/60 dark:hover:border-emerald-500/60 transition-colors shadow-xs">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-black bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 mb-1.5">
+                        {currentLang === 'te' ? 'రోజు' : t('results.day', 'Day')} {item.day}
+                      </span>
+                      <h5 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm mb-1">{item.title}</h5>
+                      <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed font-medium">{item.activity}</p>
+                    </div>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 p-3.5 rounded-2xl hover:border-emerald-400/60 dark:hover:border-emerald-500/60 transition-colors shadow-xs">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-black bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 mb-1.5">
-                      {t('results.day', 'Day')} {item.day}
-                    </span>
-                    <h5 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm mb-1">{item.title}</h5>
-                    <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed font-medium">{item.activity}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </CollapsibleSection>

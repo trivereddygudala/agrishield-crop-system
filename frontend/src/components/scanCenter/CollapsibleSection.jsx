@@ -1,6 +1,30 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const BADGE_TRANSLATIONS = {
+  te: {
+    'Safety Protocol': 'భద్రతా విధానం',
+    'Agronomy Tips': 'వ్యవసాయ చిట్కాలు',
+    'Root Cause': 'మూల కారణం',
+    'Chemical Protocol': 'రసాయన విధానం',
+    'Eco Friendly': 'సేంద్రీయ పద్ధతి',
+    'AI Analysis': 'AI విశ్లేషణ',
+    'Outbreak Plan': 'నివారణ ప్రణాళిక',
+    'Mandi Index': 'మార్కెట్ సూచిక'
+  },
+  hi: {
+    'Safety Protocol': 'सुरक्षा नियम',
+    'Agronomy Tips': 'कृषि सलाह',
+    'Root Cause': 'मूल कारण',
+    'Chemical Protocol': 'रासायनिक नियम',
+    'Eco Friendly': 'जैविक विधि',
+    'AI Analysis': 'AI विश्लेषण',
+    'Outbreak Plan': 'रोकथाम योजना',
+    'Mandi Index': 'मंडी भाव सूचकांक'
+  }
+};
 
 const CollapsibleSection = ({ 
   title, 
@@ -15,8 +39,11 @@ const CollapsibleSection = ({
   isSpeaking = false,
   speechTitle = 'Listen this section'
 }) => {
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const activeBadge = badge || badgeText;
+  const rawBadge = badge || badgeText;
+  const langKey = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
+  const localizedBadge = (BADGE_TRANSLATIONS[langKey] && BADGE_TRANSLATIONS[langKey][rawBadge]) || rawBadge;
 
   return (
     <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-sm overflow-hidden transition-all duration-200 ${className}`}>
@@ -35,9 +62,9 @@ const CollapsibleSection = ({
           <span className="font-display font-extrabold text-slate-800 dark:text-slate-100 text-xs sm:text-base truncate">
             {title}
           </span>
-          {activeBadge && (
+          {localizedBadge && (
             <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-600 text-white shadow-xs shrink-0">
-              {activeBadge}
+              {localizedBadge}
             </span>
           )}
         </button>
@@ -51,7 +78,7 @@ const CollapsibleSection = ({
                 e.preventDefault();
                 onSpeak();
               }}
-              title={isSpeaking ? 'Stop voice readout' : speechTitle}
+              title={isSpeaking ? (langKey === 'te' ? 'వాయిస్ ఆపండి' : 'Stop voice readout') : (langKey === 'te' ? 'ఈ విభాగాన్ని వినండి' : speechTitle)}
               aria-label={isSpeaking ? 'Stop voice readout' : speechTitle}
               className={`p-2 sm:px-2.5 sm:py-1.5 rounded-xl border transition-all duration-200 flex items-center gap-1 text-xs font-bold active:scale-95 ${
                 isSpeaking
@@ -62,12 +89,12 @@ const CollapsibleSection = ({
               {isSpeaking ? (
                 <>
                   <VolumeX size={16} />
-                  <span className="text-[11px] hidden sm:inline">Stop</span>
+                  <span className="text-[11px] hidden sm:inline">{langKey === 'te' ? 'ఆపండి' : 'Stop'}</span>
                 </>
               ) : (
                 <>
                   <Volume2 size={16} />
-                  <span className="text-[11px] hidden sm:inline">Listen</span>
+                  <span className="text-[11px] hidden sm:inline">{langKey === 'te' ? 'వినండి' : 'Listen'}</span>
                 </>
               )}
             </button>

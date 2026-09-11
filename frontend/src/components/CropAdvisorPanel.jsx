@@ -118,7 +118,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 title="Voice readout"
               >
                 {speakingId === 'advisor_organic' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_organic' ? 'Stop' : 'Listen'}</span>
+                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_organic' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
               </button>
             </CardHeader>
             <CardContent className="pt-5">
@@ -155,7 +155,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 title="Voice readout"
               >
                 {speakingId === 'advisor_chemical' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_chemical' ? 'Stop' : 'Listen'}</span>
+                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_chemical' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
               </button>
             </CardHeader>
             <CardContent className="pt-5">
@@ -197,7 +197,7 @@ const CropAdvisorPanel = ({ advisor }) => {
                 title="Voice readout"
               >
                 {speakingId === 'advisor_spray' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_spray' ? 'Stop' : 'Listen'}</span>
+                <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_spray' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -249,7 +249,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               title="Voice readout"
             >
               {speakingId === 'advisor_prevention' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_prevention' ? 'Stop' : 'Listen'}</span>
+              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_prevention' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
             </button>
           </CardHeader>
           <CardContent className="pt-5">
@@ -284,7 +284,7 @@ const CropAdvisorPanel = ({ advisor }) => {
               title="Voice readout"
             >
               {speakingId === 'advisor_tips' ? <VolumeX size={15} /> : <Volume2 size={15} />}
-              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_tips' ? 'Stop' : 'Listen'}</span>
+              <span className="hidden sm:inline text-[11px]">{speakingId === 'advisor_tips' ? (isTelugu ? 'ఆపండి' : 'Stop') : (isTelugu ? 'వినండి' : 'Listen')}</span>
             </button>
           </CardHeader>
           <CardContent className="pt-5">

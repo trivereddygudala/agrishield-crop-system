@@ -1044,7 +1044,8 @@ async def predict_pytorch_endpoint(
             crop_name=prediction_result["crop_name"],
             disease_name=prediction_result["disease_name"],
             severity=severity,
-            irrigation_method=irrigation
+            irrigation_method=irrigation,
+            target_lang=target_lang
         )
     except Exception as cal_err:
         print(f"[NVIDIA PRESCRIPTION WARNING] Failed to generate treatment calendar: {cal_err}")

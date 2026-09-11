@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v86) - 100% Full-Stack AI Scan Center Localization & Regional Prescriptive Calendar Engine
+- **Summary:** Resolved all remaining translation gaps in AI Scan Center (`/upload`) where sections remained in English while Telugu (or other regional languages) was selected:
+  1. 🌐 **100% Localized Prescriptive Treatment Calendar (`nvidia_service.py`, `predict.py`, `DiseaseDiagnosisResults.jsx`):**
+     - Updated backend calendar generation to accept `target_lang` and pass explicit vernacular prompts to NVIDIA AI inference.
+     - Added robust regional mock/fallback calendar templates in Telugu covering all 7 days with day-by-day agronomic steps.
+     - Added `localizeCalendarItem(item, lang)` helper in `diseaseAdvisoryData.js` to translate day numbers (`Day 1` -> `రోజు 1`), titles, and activities.
+  2. 🧪 **Chemical Formulation Cards & Knapsack Tank Guide (`DiseaseDiagnosisResults.jsx`):**
+     - Replaced hardcoded English option labels (`OPTION A` -> `ఎంపిక A`, `CHOSEN (USE THIS)` -> `ఎంచుకోబడింది (దీనిని వాడండి)`, `Recommended Rate` -> `సిఫార్సు మోతాదు`).
+     - Localized Knapsack Sprayer Pump Mix Guide header, subtitles, tank tabs (`15L Tank` -> `15 లీటర్ల ట్యాంక్`), water/chemical metrics, and sprayer tank mixing instructions.
+  3. 🛡️ **Collapsible Section Badges & Voice Readout Buttons (`CollapsibleSection.jsx`, `CropAdvisorPanel.jsx`):**
+     - Added `BADGE_TRANSLATIONS` mapping for all category pill badges (`Safety Protocol` -> `భద్రతా విధానం`, `Agronomy Tips` -> `వ్యవసాయ చిట్కాలు`, `Root Cause` -> `మూల కారణం`, `Chemical Protocol` -> `రసాయన విధానం`, `Eco Friendly` -> `సేంద్రీయ పద్ధతి`, `AI Analysis` -> `AI విశ్లేషణ`, `Outbreak Plan` -> `నివారణ ప్రణాళిక`, `Mandi Index` -> `మార్కెట్ సూచిక`).
+     - Localized voice readout buttons from hardcoded English (`Listen` / `Stop`) to Telugu (`వినండి` / `ఆపండి`).
+  4. 🌿 **Environmental Vectors & Agronomic Prevention Translations (`diseaseAdvisoryData.js`):**
+     - Enriched `TELUGU_ADVICE_MAP` with exact phrases seen in leaf scans (crop residue, inoculum sources, plant overcrowding/foliage density, disease-free seed usage, and sanitation).
+- **Files modified**: `backend/app/routers/predict.py`, `backend/app/services/nvidia_service.py`, `frontend/src/components/scanCenter/CollapsibleSection.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/CropAdvisorPanel.jsx`, `frontend/src/utils/diseaseAdvisoryData.js`, `changes_happening.md`
+
 ## 2026-09-09 (v85) - Bidirectional Multilingual Crop Translation Engine
 - **Summary:** Resolved issue where scans saved while regional languages (such as Telugu `మిరప`) were active failed to translate back to English when switching application language:
   1. 🔄 **Bidirectional Crop Translation (`diseaseAdvisoryData.js`):**
