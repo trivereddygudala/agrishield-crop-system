@@ -281,7 +281,15 @@ class NVIDIAService:
                 logger.info(f"AI completion succeeded via {name} ({model}) [finish_reason={finish_reason}]")
                 return content, name
             except Exception as ex:
-                logger.warning(f"Provider {name} ({model}) failed or timed out: {ex}. Checking for fallback...")
+                ex_str = str(ex).lower()
+                if "401" in ex_str or "invalid_api_key" in ex_str or "invalid api key" in ex_str:
+                    logger.warning(f"Provider {name} returned 401 Invalid API Key. Disabling provider to eliminate request latency.")
+                    if "groq" in name.lower():
+                        self.groq_client = None
+                    elif "nvidia" in name.lower():
+                        self.nvidia_client = None
+                else:
+                    logger.warning(f"Provider {name} ({model}) failed or timed out: {ex}. Checking for fallback...")
                 continue
 
         logger.error("All AI cloud providers failed for request.")

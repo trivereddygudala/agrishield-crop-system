@@ -304,8 +304,10 @@ const UploadImagePage = () => {
     } catch (err) {
       console.warn("Backend error during scan:", err);
 
-      // If connection was lost midway, automatically trigger offline diagnosis and queue
-      if (!navigator.onLine || err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+      // If connection was lost, server unreachable, or network timed out, seamlessly execute on-device offline diagnosis
+      const isNetworkUnreachable = !navigator.onLine || !err.response || err.message === 'Network Error' || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED' || (err.message && err.message.toLowerCase().includes('network'));
+
+      if (isNetworkUnreachable) {
         try {
           let offlineResult = null;
           if (activeTab === 'disease-diag' && previewUrl) {
@@ -334,14 +336,15 @@ const UploadImagePage = () => {
             return;
           } else {
             scanStore.setState({
-              errorMsg: '📡 Network lost during scan: Photo saved to offline queue. It will auto-sync when connection returns!',
+              errorMsg: '📡 Field Offline Mode: Photo saved to offline queue. It will auto-sync when connection returns!',
               hasScanned: false,
-              liveResult: null
+              liveResult: null,
+              loading: false
             });
             return;
           }
-        } catch {
-          // fallback to normal error handling
+        } catch (offlineErr) {
+          console.error("Offline fallback execution error:", offlineErr);
         }
       }
 

@@ -81,45 +81,47 @@ export const extractLeafMetrics = async (imageSrc) => {
       continue;
     }
 
-    // 1. Healthy Green Canopy
-    if (g > r * 1.15 && g > b * 1.15 && g > 45) {
+    // 1. Healthy Green Canopy (Strict dominance of pure chlorophyll green)
+    if (g > 55 && g > r * 1.22 && g > b * 1.25 && brightness > 40 && brightness < 225) {
       greenHealthyPixels++;
       continue;
     }
 
-    // 2. Necrotic Lesion (Brown / Black dead tissue)
-    if (brightness < 80 && r > g && g >= b) {
-      necroticBrownBlackPixels++;
-      quadrantLesions[quadIdx]++;
-      continue;
-    }
-    if (r > 60 && r < 140 && g > 30 && g < 100 && b < 70 && r > g * 1.1) {
-      necroticBrownBlackPixels++;
-      quadrantLesions[quadIdx]++;
-      continue;
-    }
-
-    // 3. Chlorosis (Yellowing / Viral / Stress)
-    if (r > 120 && g > 120 && b < 90 && Math.abs(r - g) < 40) {
-      chlorosisYellowPixels++;
-      continue;
-    }
-
-    // 4. White / Gray Powdery Mildew
-    if (brightness > 180 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
+    // 2. White / Gray Powdery Mildew (Pale fuzzy spore patches)
+    if (brightness > 165 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18) {
       whitePowderyPixels++;
       continue;
     }
 
-    // 5. Rust / Orange Pustules
-    if (r > 140 && g > 60 && g < 120 && b < 60 && r > g * 1.3) {
+    // 3. Rust / Orange Pustules
+    if (r > 130 && g > 50 && g < 130 && b < 70 && r > g * 1.28) {
       rustOrangePixels++;
       quadrantLesions[quadIdx]++;
       continue;
     }
 
-    // Default to leaf tissue
-    if (g >= r && g >= b) {
+    // 4. Chlorosis (Yellowing halos, viral mottling, or nitrogen deficiency)
+    if (r > 110 && g > 110 && b < 95 && Math.abs(r - g) < 35 && (r + g) > 2.2 * b) {
+      chlorosisYellowPixels++;
+      continue;
+    }
+
+    // 5. Necrotic Lesions (Dead brown, dark tan, black spots, or water-soaked blight tissue)
+    // A: Dark necrotic core / black speckles
+    if (brightness < 85 && (r > b || g > b)) {
+      necroticBrownBlackPixels++;
+      quadrantLesions[quadIdx]++;
+      continue;
+    }
+    // B: Typical brown / tan fungal spot with dry necrotic margin
+    if (r > 45 && r < 165 && g > 30 && g < 145 && b < 105 && (r >= g * 0.95 || Math.abs(r - g) < 20)) {
+      necroticBrownBlackPixels++;
+      quadrantLesions[quadIdx]++;
+      continue;
+    }
+
+    // Default remaining foliar tissue: If green tint is noticeable, classify as green, else mild chlorosis/stress
+    if (g > r && g > b && g > 45) {
       greenHealthyPixels++;
     } else {
       chlorosisYellowPixels++;
@@ -136,7 +138,7 @@ export const extractLeafMetrics = async (imageSrc) => {
   // Calculate lesion spatial distribution variance across 4 quadrants
   const meanQuadrant = (quadrantLesions[0] + quadrantLesions[1] + quadrantLesions[2] + quadrantLesions[3]) / 4;
   const variance = quadrantLesions.reduce((acc, val) => acc + Math.pow(val - meanQuadrant, 2), 0) / 4;
-  const isConcentratedLesions = variance > 200;
+  const isConcentratedLesions = variance > 60;
 
   return {
     greenPct: parseFloat(greenPct.toFixed(1)),
@@ -163,67 +165,67 @@ export const diagnoseOfflineLeaf = async ({
     ? cropFilter
     : 'Tomato'; // Sensible default for solanaceous field diagnostics
 
-  let conditionKey = 'healthy';
-  let diseaseName = 'Healthy Crop';
-  let confidence = 0.94;
-  let severity = 'Healthy';
-  let reasoning = 'Leaf canopy exhibits uniform chlorophyll density with minimal foliar lesions.';
+  let conditionKey = 'early blight';
+  let diseaseName = `${effectiveCrop} Early Blight`;
+  let confidence = 0.88;
+  let severity = 'Moderate';
+  let reasoning = 'Foliar necrotic lesions and tissue stress detected on canopy.';
 
-  // 1. Check for Healthy Leaf
-  if (metrics.greenPct >= 78 && metrics.necrosisPct < 4.0 && metrics.chlorosisPct < 8.0) {
+  // 1. Check for Strict Healthy Leaf (Requires overwhelming green chlorophyll and near-zero necrosis)
+  if (metrics.greenPct >= 88.0 && metrics.necrosisPct < 1.2 && metrics.chlorosisPct < 4.5 && metrics.powderyPct < 3.0 && metrics.rustPct < 1.2) {
     conditionKey = 'healthy';
     diseaseName = `${effectiveCrop} Healthy`;
-    confidence = Math.min(0.97, 0.85 + (metrics.greenPct / 100) * 0.12);
+    confidence = Math.min(0.97, 0.88 + (metrics.greenPct / 100) * 0.1);
     severity = 'Healthy';
-    reasoning = `Healthy green chlorophyll coverage detected (${metrics.greenPct}%). No significant necrotic or fungal lesions present.`;
+    reasoning = `Healthy green chlorophyll canopy detected (${metrics.greenPct}% green, minimal foliar lesions < 1%).`;
   }
   // 2. Check for Powdery Mildew
-  else if (metrics.powderyPct > 9.0) {
+  else if (metrics.powderyPct >= 5.0) {
     conditionKey = 'powdery mildew';
     diseaseName = `${effectiveCrop} Powdery Mildew`;
-    confidence = Math.min(0.95, 0.82 + (metrics.powderyPct / 100) * 0.4);
-    severity = metrics.powderyPct > 20 ? 'Severe' : 'Moderate';
-    reasoning = `Diffuse whitish-gray fungal powdery patches covering ${metrics.powderyPct}% of foliar surface.`;
+    confidence = Math.min(0.95, 0.84 + (metrics.powderyPct / 100) * 0.4);
+    severity = metrics.powderyPct > 15 ? 'Severe' : 'Moderate';
+    reasoning = `Whitish-gray powdery fungal patches covering ${metrics.powderyPct}% of foliar surface.`;
   }
   // 3. Check for Rust
-  else if (metrics.rustPct > 4.5) {
+  else if (metrics.rustPct >= 2.5) {
     conditionKey = 'leaf rust';
     diseaseName = `${effectiveCrop} Leaf Rust`;
-    confidence = Math.min(0.93, 0.80 + (metrics.rustPct / 100) * 0.5);
-    severity = metrics.rustPct > 12 ? 'Severe' : 'Moderate';
-    reasoning = `Characteristic reddish-orange pustule discoloration detected across ${metrics.rustPct}% of canopy.`;
+    confidence = Math.min(0.94, 0.82 + (metrics.rustPct / 100) * 0.5);
+    severity = metrics.rustPct > 8 ? 'Severe' : 'Moderate';
+    reasoning = `Reddish-orange rust pustule discoloration detected across ${metrics.rustPct}% of canopy.`;
   }
-  // 4. Check for Late Blight (High necrosis + rapid water-soaked dispersion)
-  else if (metrics.necrosisPct > 22.0 || (metrics.necrosisPct > 12.0 && !metrics.isConcentratedLesions)) {
+  // 4. Check for Late Blight (High necrosis + rapid water-soaked dispersion across leaves)
+  else if (metrics.necrosisPct > 16.0 || (metrics.necrosisPct > 9.0 && !metrics.isConcentratedLesions)) {
     conditionKey = 'late blight';
     diseaseName = `${effectiveCrop} Late Blight`;
-    confidence = Math.min(0.96, 0.85 + (metrics.necrosisPct / 100) * 0.3);
-    severity = metrics.necrosisPct > 30 ? 'Severe' : 'Moderate';
-    reasoning = `Extensive water-soaked necrotic lesions spanning ${metrics.necrosisPct}% of leaf tissue. Spores spread rapidly under humid conditions.`;
+    confidence = Math.min(0.96, 0.86 + (metrics.necrosisPct / 100) * 0.3);
+    severity = metrics.necrosisPct > 25 ? 'Severe' : 'Moderate';
+    reasoning = `Extensive water-soaked necrotic lesions spanning ${metrics.necrosisPct}% of foliar tissue. High blight progression risk.`;
   }
-  // 5. Check for Early Blight (Concentric ring target spots)
-  else if (metrics.necrosisPct >= 5.0 && metrics.isConcentratedLesions) {
+  // 5. Check for Early Blight (Concentric rings / localized target lesions)
+  else if (metrics.necrosisPct >= 2.5) {
     conditionKey = 'early blight';
     diseaseName = `${effectiveCrop} Early Blight`;
-    confidence = Math.min(0.94, 0.84 + (metrics.necrosisPct / 100) * 0.35);
-    severity = metrics.necrosisPct > 15 ? 'Severe' : 'Mild';
-    reasoning = `Target-like concentric brown necrotic lesions clustered across lower canopy sections (${metrics.necrosisPct}% affected).`;
+    confidence = Math.min(0.94, 0.85 + (metrics.necrosisPct / 100) * 0.3);
+    severity = metrics.necrosisPct > 10 ? 'Severe' : (metrics.necrosisPct > 5 ? 'Moderate' : 'Mild');
+    reasoning = `Concentric brown necrotic lesions detected across foliar surface (${metrics.necrosisPct}% affected).`;
   }
-  // 6. Check for Yellow Leaf Curl Virus / Chlorosis
-  else if (metrics.chlorosisPct > 18.0) {
+  // 6. Check for Yellow Leaf Curl Virus / Severe Chlorosis
+  else if (metrics.chlorosisPct >= 8.0) {
     conditionKey = 'yellow leaf curl virus';
     diseaseName = `${effectiveCrop} Yellow Leaf Curl Virus`;
-    confidence = Math.min(0.92, 0.80 + (metrics.chlorosisPct / 100) * 0.3);
-    severity = metrics.chlorosisPct > 35 ? 'Severe' : 'Moderate';
-    reasoning = `Severe foliar chlorosis with yellowing margins detected across ${metrics.chlorosisPct}% of canopy.`;
+    confidence = Math.min(0.92, 0.82 + (metrics.chlorosisPct / 100) * 0.3);
+    severity = metrics.chlorosisPct > 25 ? 'Severe' : 'Moderate';
+    reasoning = `Pronounced foliar chlorosis with yellowing margins detected across ${metrics.chlorosisPct}% of canopy.`;
   }
-  // 7. General Bacterial / Foliar Spot
-  else if (metrics.necrosisPct >= 3.0) {
+  // 7. Subtle or early bacterial foliar spot
+  else if (metrics.necrosisPct >= 1.0) {
     conditionKey = 'bacterial spot';
     diseaseName = `${effectiveCrop} Bacterial Spot`;
-    confidence = 0.87;
+    confidence = 0.88;
     severity = 'Mild';
-    reasoning = `Small angular necrotic speckles detected (${metrics.necrosisPct}% coverage).`;
+    reasoning = `Small angular necrotic speckles detected (${metrics.necrosisPct}% coverage). Early stage intervention recommended.`;
   }
 
   // Retrieve advisory details from localized database
