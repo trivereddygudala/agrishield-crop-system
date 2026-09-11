@@ -6,6 +6,21 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 42
+* **User Input:**
+  > "why ai chat bot gives the extra answers correct this one give the conditions to give the what the userasks do not give extra answers becausethe user confuses . i give the images see those ones then you understand."
+* **Machine Summary Solution:**
+  * Analyzed user's uploaded mobile screenshots: When farmer asked in Telugu: *"According to today's weather and rain forecast, is it safe to spray pesticides on the crop today?"*, the AI gave extra unwanted answers:
+    1. Unsolicited disease advice (`🌾 మీ పంట కోసం సూచన`) prescribing Mancozeb 75% WP @ 40g/16L pump for Tomato Leaf Spot from a past scan.
+    2. Frontend auto-injected a Knapsack Sprayer Calibration card with 3 pumps, 90 ml/g, ₹320 cost, and prescription slip download.
+    3. Frontend rendered a static Spraying Safety Window card with a hardcoded `✓ SAFE TO SPRAY` badge, directly contradicting the AI's Telugu text that said *"ఈ రోజు పిచికారీ చేయడం సురక్షితం కాదు"* (*"NOT SAFE TO SPRAY"*).
+  * Implemented 4-layer solution across backend and frontend:
+    1. **Backend Scan Context Gating (`ai.py`):** Classified query intent (`is_disease_or_tx_query`, `is_weather_spray_query`, `is_market_price_query`). Strictly suppressed `latest_scan_result` and `full_scan_history` when asking about weather or markets, cutting off the unasked disease trigger.
+    2. **Strict Intent System Protocol (`nvidia_service.py`):** Added RULE 0 and conditioned Rule 15 to mandate answering ONLY what was asked. Added Weather & Spray Safety Booster strictly forbidding unasked medicine prescriptions.
+    3. **Knapsack Card Intent Filter (`AIAssistantPage.jsx` & `FloatingAIAssistant.jsx`):** Completely suppressed the Knapsack Sprayer Calibration card for weather/market queries; now displays ONLY when user explicitly asks for dosage/treatment.
+    4. **Dynamic Spray Safety Card (`AIAssistantPage.jsx` & `FloatingAIAssistant.jsx`):** Replaced hardcoded `✓ Safe to Spray` badge and fake 28°C dry mockup with dynamic verdict. If weather/rain is unsafe, displays `⚠️ DO NOT SPRAY` (`⚠️ స్ప్రే వాయిదా వేయండి`) alert; if clear, displays `✓ SAFE TO SPRAY` with the 4-hour dry rule.
+  * Verified build: `npm run build` finished with 0 errors in 20.05s.
+
 ### Chat Entry 41
 * **User Input:**
   > "make it like a the field applications are there to measure field area like that with pin point accuracy for in the walking mode with out any error even 1 meter also i want to make it good ok. 1. Add one more feature also for my website is the field area calculator by using this feature calculate the size of the field and put this name is Field area calculator and create a tab in the more ."

@@ -862,9 +862,16 @@ export default function FloatingAIAssistant() {
             ) : (
               /* Messages Body */
               <div className="flex-1 min-h-0 p-3.5 overflow-y-auto overscroll-contain touch-pan-y space-y-3 scrollbar-thin scrollbar-thumb-slate-800">
-                {messages.map((m) => {
+                {messages.map((m, idx) => {
                   const isUser = m.role === 'user';
-                  const isAgronomyAdvice = !isUser && /spray|fungicide|pesticide|dosage|dose|neem|pump|litres|carbendazim|mancozeb|మందు|స్ప్రే|దవా|दवा/i.test(m.content);
+                  const prevUserMsg = idx > 0 ? messages[idx - 1] : null;
+                  const prevUserText = (prevUserMsg?.content || '').toLowerCase();
+                  const isUserWeatherQuery = /weather|forecast|rain|spray today|safe to spray|వాతావరణం|వర్షం|పిచికారీ చేయడం సురక్షితమేనా|స్ప్రే చేయవచ్చా|పిచికారీ సురక్షితమేనా|సురక్షితమేనా/i.test(prevUserText);
+                  const isUserMarketQuery = /mandi|price|rate|cost|bhav|ధర|ధరలు|రేటు|మార్కెట్|మండి/i.test(prevUserText);
+                  const isUserTreatmentQuery = /dosage|dose|how much|treatment|medicine|cure|spray pump|వాడాలి|మోతాదు|ఎంత కలపాలి|ఏ మందు|పురుగు మందు|నివారణ|చికిత్స/i.test(prevUserText);
+
+                  const hasExplicitPrescription = /per 16L|16L pump|16 లీటర్ల పంపు|గ్రాములు.*16.*లీటర్ల|ml.*per.*16L|g.*per.*16L/i.test(m.content);
+                  const isAgronomyAdvice = !isUser && !isUserWeatherQuery && !isUserMarketQuery && (isUserTreatmentQuery || hasExplicitPrescription);
 
                   return (
                     <div
@@ -1003,33 +1010,37 @@ export default function FloatingAIAssistant() {
                               );
                             })()}
 
-                            {/* 3. Feature 3: Spraying Safety Window & 3-Day Farm Weather */}
+                            {/* 3. Feature 3: Dynamic Spraying Safety Window */}
                             {(() => {
-                              const isWeatherAdvice = /weather|forecast|rain|spray window|safe to spray|foliar spray weather|వాతావరణం|వర్షం|స్ప్రే సమయం/i.test(m.content);
+                              const isWeatherAdvice = isUserWeatherQuery || /weather|forecast|rain|spray window|safe to spray|foliar spray weather|వాతావరణం|వర్షం|స్ప్రే సమయం|పిచికారీ చేయడం సురక్షితమేనా/i.test(m.content);
                               if (!isWeatherAdvice) return null;
+
+                              const isUnsafe = /సురక్షితం కాదు|చేయకూడదు|ఆపండి|వద్దు|వాయిదా|not safe|unsafe|do not spray|avoid spraying|వర్షం పడే|వర్ష సూచన|వర్ష సెన్సార్\s*=\s*1/i.test(m.content);
+
                               return (
-                                <div className="mt-2 p-2 rounded-xl bg-sky-950/60 border border-sky-500/40 space-y-1 text-[10px]">
-                                  <div className="flex items-center justify-between font-extrabold text-sky-300">
-                                    <span className="flex items-center gap-1">🌤️ Spraying Safety Window</span>
-                                    <span className="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px]">✓ Safe to Spray</span>
+                                <div className={`mt-2 p-2 rounded-xl border space-y-1 text-[10px] ${
+                                  isUnsafe ? 'bg-rose-950/60 border-rose-500/40 text-rose-200' : 'bg-sky-950/60 border-sky-500/40 text-sky-200'
+                                }`}>
+                                  <div className="flex items-center justify-between font-extrabold">
+                                    <span className="flex items-center gap-1">
+                                      {isUnsafe ? '🌧️ పిచికారీ హెచ్చరిక' : '🌤️ Spraying Safety Window'}
+                                    </span>
+                                    <span className={`px-1.5 py-0.5 rounded text-white text-[9px] font-bold ${
+                                      isUnsafe ? 'bg-rose-600' : 'bg-emerald-600'
+                                    }`}>
+                                      {isUnsafe ? '⚠️ DO NOT SPRAY' : '✓ SAFE TO SPRAY'}
+                                    </span>
                                   </div>
-                                  <div className="grid grid-cols-3 gap-1 text-center font-bold text-[9px] pt-0.5">
-                                    <div className="p-1 rounded bg-slate-900 border border-sky-500/30">
-                                      <div className="text-slate-400">Today</div>
-                                      <div className="text-emerald-300">28°C ☀️ 0%</div>
-                                    </div>
-                                    <div className="p-1 rounded bg-slate-900 border border-sky-500/30">
-                                      <div className="text-slate-400">Tomorrow</div>
-                                      <div className="text-slate-200">29°C ⛅ 10%</div>
-                                    </div>
-                                    <div className="p-1 rounded bg-slate-900 border border-sky-500/30">
-                                      <div className="text-slate-400">Day 3</div>
-                                      <div className="text-slate-200">27°C 🌤️ 15%</div>
-                                    </div>
+                                  <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-700/60 text-[9px] font-semibold">
+                                    {isUnsafe ? (
+                                      <span className="text-rose-300">⚠️ వర్షం / తేమ సూచన ఉంది. మందు కొట్టుకుపోయే ప్రమాదం ఉన్నందున స్ప్రే వాయిదా వేయండి.</span>
+                                    ) : (
+                                      <span className="text-sky-300">✓ వాతావరణం అనుకూలంగా ఉంది. ఉదయం 6-9 AM లేదా సాయంత్రం 4:30-6:30 PM స్ప్రే చేయండి.</span>
+                                    )}
                                   </div>
-                                  <div className="text-[9px] text-sky-200 flex items-center gap-1 font-semibold pt-0.5">
+                                  <div className="text-[9px] flex items-center gap-1 font-semibold pt-0.5">
                                     <Wind className="w-2.5 h-2.5 text-sky-400 shrink-0" />
-                                    <span><strong>4-Hour Rain Rule:</strong> Spray 6-9 AM or 4:30-6:30 PM. Ensure 4h dry window after spray.</span>
+                                    <span><strong>4-Hour Dry Rule:</strong> కనీసం 4 గంటలు వర్షం పడకుండా ఉండాలి. గాలి &lt; 12 km/h.</span>
                                   </div>
                                 </div>
                               );

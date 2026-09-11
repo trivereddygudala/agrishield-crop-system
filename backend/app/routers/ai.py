@@ -112,59 +112,84 @@ async def chat_with_farming_assistant(
                 for d in devices_list
             ]
 
-        # Fetch user's recent crop disease scan records
+        lower_msg = sanitized_message.lower()
+
+        # Classify query intent to avoid injecting irrelevant scan data that triggers unsolicited AI advice
+        is_disease_or_tx_query = any(w in lower_msg for w in [
+            "disease", "pest", "leaf", "blight", "spot", "rot", "wilt", "fungus", "virus",
+            "medicine", "chemical", "treatment", "dosage", "dose", "cure", "mancozeb", "carbendazim",
+            "what to spray", "which medicine", "sprayer pump", "knapsack", "spray dose",
+            "తెగులు", "వ్యాధి", "పురుగు", "లక్షణ", "మందు", "మోతాదు", "నివారణ", "చికిత్స", "ఆకు", "స్కాన్", "ఏ మందు",
+            "రోగ", "दवा", "कीड़ा", "इलाज", "लक्षण"
+        ])
+        is_weather_spray_query = any(w in lower_msg for w in [
+            "weather", "temperature", "temp", "rain", "forecast", "climate", "humidity", "wind",
+            "safe to spray", "spray today", "spray now",
+            "వాతావరణం", "వర్షం", "పిచికారీ", "సురక్షితమేనా", "స్ప్రే చేయవచ్చా", "వర్ష సూచన",
+            "मौसम", "बारिश", "வானிலை"
+        ])
+        is_market_price_query = any(w in lower_msg for w in [
+            "market", "mandi", "price", "rate", "cost", "bhav", "quintal",
+            "ధర", "ధరలు", "రేటు", "రేట్లు", "రేట్", "మార్కెట్", "మండి", "భావ"
+        ])
+
+        # Fetch user's recent crop disease scan records ONLY if the query is related to disease/diagnosis
+        # or if it is a general agronomy query (never for pure weather or pure market queries)
+        should_include_scans = (is_disease_or_tx_query or (not is_weather_spray_query and not is_market_price_query))
+
         user_id_str = str(current_user.get("id") or current_user.get("_id", ""))
         recent_scans = []
-        if user_id_str:
-            recent_scans = await db.predictions.find(
-                {"$or": [{"user_id": user_id_str}, {"user_id": current_user.get("id")}, {"user_id": current_user.get("_id")}]}
-            ).sort("created_at", -1).limit(10).to_list(10)
+        if should_include_scans:
+            if user_id_str:
+                recent_scans = await db.predictions.find(
+                    {"$or": [{"user_id": user_id_str}, {"user_id": current_user.get("id")}, {"user_id": current_user.get("_id")}]}
+                ).sort("created_at", -1).limit(10).to_list(10)
 
-        if not recent_scans:
-            # Fallback to any recent system scans (for demo/tester or legacy scans)
-            recent_scans = await db.predictions.find().sort("created_at", -1).limit(10).to_list(10)
+            if not recent_scans:
+                # Fallback to any recent system scans (for demo/tester or legacy scans)
+                recent_scans = await db.predictions.find().sort("created_at", -1).limit(10).to_list(10)
 
-        if recent_scans:
-            latest_s = recent_scans[0]
-            date_val = "Recent"
-            time_val = ""
-            created = latest_s.get("created_at")
-            if isinstance(created, datetime):
-                date_val = created.strftime("%Y-%m-%d")
-                time_val = created.strftime("%I:%M %p")
-            elif isinstance(created, str) and "T" in created:
-                date_val = created.split("T")[0]
-                time_val = created.split("T")[1].split(".")[0][:5]
+            if recent_scans:
+                latest_s = recent_scans[0]
+                date_val = "Recent"
+                time_val = ""
+                created = latest_s.get("created_at")
+                if isinstance(created, datetime):
+                    date_val = created.strftime("%Y-%m-%d")
+                    time_val = created.strftime("%I:%M %p")
+                elif isinstance(created, str) and "T" in created:
+                    date_val = created.split("T")[0]
+                    time_val = created.split("T")[1].split(".")[0][:5]
 
-            raw_conf = latest_s.get("confidence", 0.95)
-            try:
-                conf_float = float(raw_conf)
-                conf_str = f"{round(conf_float * 100, 1)}%" if conf_float <= 1.0 else f"{round(conf_float, 1)}%"
-            except Exception:
-                conf_str = "98.5%"
+                raw_conf = latest_s.get("confidence", 0.95)
+                try:
+                    conf_float = float(raw_conf)
+                    conf_str = f"{round(conf_float * 100, 1)}%" if conf_float <= 1.0 else f"{round(conf_float, 1)}%"
+                except Exception:
+                    conf_str = "98.5%"
 
-            chat_context["latest_scan_result"] = {
-                "crop": latest_s.get("crop_name") or latest_s.get("crop") or "Tomato",
-                "disease": latest_s.get("disease_name") or latest_s.get("disease") or "Early Blight",
-                "confidence": conf_str,
-                "severity": latest_s.get("disease_severity") or latest_s.get("severity") or "Moderate",
-                "symptoms": latest_s.get("symptoms") or "Concentric dark brown circular lesions on leaves with chlorotic halo",
-                "organic_treatment": latest_s.get("organic_treatment") or "Apply Neem Oil (10,000 PPM) @ 3ml/L with bio-fungicide Trichoderma viride.",
-                "chemical_treatment": latest_s.get("chemical_treatment") or "Spray Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L or Mancozeb 75% WP @ 2.5g/L.",
-                "date": date_val,
-                "time": time_val
-            }
-
-            chat_context["full_scan_history"] = [
-                {
-                    "crop": s.get("crop_name") or s.get("crop") or "Crop",
-                    "disease": s.get("disease_name") or s.get("disease") or "Healthy",
-                    "confidence": f"{round(float(s.get('confidence', 0.95)) * 100, 1)}%" if float(s.get('confidence', 0.95)) <= 1.0 else f"{s.get('confidence')}%",
-                    "severity": s.get("disease_severity") or s.get("severity") or "Normal",
-                    "date": s.get("created_at").strftime("%Y-%m-%d") if isinstance(s.get("created_at"), datetime) else "Recent"
+                chat_context["latest_scan_result"] = {
+                    "crop": latest_s.get("crop_name") or latest_s.get("crop") or "Tomato",
+                    "disease": latest_s.get("disease_name") or latest_s.get("disease") or "Early Blight",
+                    "confidence": conf_str,
+                    "severity": latest_s.get("disease_severity") or latest_s.get("severity") or "Moderate",
+                    "symptoms": latest_s.get("symptoms") or "Concentric dark brown circular lesions on leaves with chlorotic halo",
+                    "organic_treatment": latest_s.get("organic_treatment") or "Apply Neem Oil (10,000 PPM) @ 3ml/L with bio-fungicide Trichoderma viride.",
+                    "chemical_treatment": latest_s.get("chemical_treatment") or "Spray Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L or Mancozeb 75% WP @ 2.5g/L.",
+                    "date": date_val,
+                    "time": time_val
                 }
-                for s in recent_scans
-            ]
+
+                chat_context["full_scan_history"] = [
+                    {
+                        "crop": s.get("crop_name") or s.get("crop") or "Crop",
+                        "disease": s.get("disease_name") or s.get("disease") or "Healthy",
+                        "confidence": f"{round(float(s.get('confidence', 0.95)) * 100, 1)}%" if float(s.get('confidence', 0.95)) <= 1.0 else f"{s.get('confidence')}%",
+                        "severity": s.get("disease_severity") or s.get("severity") or "Normal",
+                        "date": s.get("created_at").strftime("%Y-%m-%d") if isinstance(s.get("created_at"), datetime) else "Recent"
+                    }
+                    for s in recent_scans
+                ]
 
         # Check if the user is asking for time-windowed telemetry logs
         window_minutes = None

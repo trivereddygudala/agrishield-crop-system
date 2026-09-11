@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v105) - AI Assistant Strict Query Intent Adherence, Zero Unsolicited Advice & Elimination of Contradictory Cards
+- **Summary:** Resolved the issue where the AI Chatbot gave overwhelming, unsolicited extra answers (e.g., diagnosing tomato leaf spot and prescribing Mancozeb 75% WP @ 40g/16L pump when the user only asked a simple weather spray safety question) and rendered misleading contradictory cards:
+  1. 🧠 **Backend Intent-Gated Context Injection (`backend/app/routers/ai.py`):**
+     - Classified incoming chat queries (`is_disease_or_tx_query`, `is_weather_spray_query`, `is_market_price_query`).
+     - Strictly suppressed `latest_scan_result` and `full_scan_history` from `chat_context` when the user is asking about weather, rain, spray safety, or market prices. This eliminates the root prompt trigger that caused the AI to volunteer unrequested crop disease treatments.
+  2. 🎯 **Strict Intent Adherence System Protocol (`backend/app/services/nvidia_service.py`):**
+     - Added **RULE 0 (STRICT INTENT ADHERENCE - ZERO UNWANTED EXTRAS):**
+       - The AI is strictly mandated to answer ONLY what the user asked.
+       - For Weather / Spray queries: Answer ONLY whether it is safe or unsafe to spray today, weather/rain reasons (sensor data, rain forecast), and the recommended spray window (e.g., tomorrow morning 6-9 AM, 4-hour dry rule).
+       - Strictly forbade recommending chemicals, fungicides, or previous scan diseases unless explicitly asked.
+       - Conditioned Rule 15 delivery mandate to match user intent rather than forcing medicine recipes on every single prompt.
+     - Added dedicated **Weather & Spray Safety Query Booster** providing real-time system prompt overrides for weather queries.
+  3. 🚜 **Frontend Knapsack Sprayer Calibration Card Intent Filter (`AIAssistantPage.jsx` & `FloatingAIAssistant.jsx`):**
+     - Fixed regex matching that previously checked `msg.content` for words like "spray" / "మందు".
+     - Gated the Knapsack Sprayer Calibration card so it is **100% suppressed** when the user's question is about weather, rain, or market rates. It now renders ONLY when the user explicitly asks for medicine dosage or treatment.
+  4. 🌤️ **Dynamic Spraying Safety Window Card & Contradiction Fix (`AIAssistantPage.jsx` & `FloatingAIAssistant.jsx`):**
+     - Eliminated the hardcoded `✓ Safe to Spray` badge and fake `Today 28°C • Dry 0% Rain` mockup that directly contradicted rainy weather responses.
+     - Implemented dynamic verdict parsing: If the AI advises against spraying (e.g. rain sensor = 1 or rain expected), the card renders a prominent warning badge `⚠️ DO NOT SPRAY` (`⚠️ స్ప్రే వాయిదా వేయండి`) with clear explanation of rain wash-off risk. If weather is clear, renders `✓ SAFE TO SPRAY` with the 4-hour rain-free rule and wind limit.
+- **Files modified**: `backend/app/routers/ai.py`, `backend/app/services/nvidia_service.py`, `frontend/src/pages/AIAssistantPage.jsx`, `frontend/src/components/FloatingAIAssistant.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v104) - Pinpoint Accurate GPS Walking Mode & Dedicated Field Area Calculator Feature
 - **Summary:** Delivered two high-precision agricultural surveying upgrades requested by the user:
   1. 🚶 **Pinpoint Accurate GPS Walking Mode (`FieldBoundaryMap.jsx`):**
