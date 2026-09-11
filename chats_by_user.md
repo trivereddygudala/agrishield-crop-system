@@ -6,6 +6,19 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 46
+* **User Input:**
+  > "why the esp32 comesiam using the software mode telll the ai chat when evr the smart iot node turn on only or the user asks about the in field hardware in that time only give about the esp32 node data ok . do you understand what i try to tell make it more clearly"
+* **Machine Summary Solution:**
+  * Diagnosed user's screenshot where the AI assistant answered a weather question (*"Based on today's weather and rain forecast, is it safe to spray pesticides today?"*) with hardware sensor readings: `1. Rain Sensor Alert: Your field sensor (ESP32-NODE-ALPHA) shows rain detected = 1`.
+  * **Root Cause:** In `backend/app/routers/ai.py`, `await db.iot_telemetry.find_one(sort=[("received_at", -1)])` was unconditionally querying the database and injecting simulated/stale telemetry (`ESP32-NODE-ALPHA`) into `chat_context["latest_telemetry"]` for all queries. The LLM read `rain_detected = 1` and assumed the user had an active hardware node in the field.
+  * **Two-Condition Gating Implemented:**
+    1. **Live Node Verification (`backend/app/routers/ai.py`):** The system checks if IoT ingestion is actively turned on AND a device in `db.devices` reported within the last 120 seconds.
+    2. **Hardware Query Detection:** The system checks if the user's prompt explicitly mentions hardware, sensors, ESP32, or IoT devices in English or Telugu.
+    3. **Software Mode Enforcement:** If neither condition is true, the user is in **Software Mode**. `latest_telemetry` and `devices_summary` are completely excluded from `chat_context`.
+    4. **System Prompt Mandates (`backend/app/services/nvidia_service.py`):** Added a `STRICT SOFTWARE MODE MANDATE` to Rule 0 and the Weather/Spray directive instructing the AI that the farmer is in Software Mode and must base all weather analysis strictly on satellite/regional weather forecasts, completely forbidding mentioning `ESP32`, `ESP32-NODE-ALPHA`, or physical rain probes.
+  * Updated rule-based fallback responses to attribute weather to *"Live Regional Meteorological & Satellite Forecast (Software Mode)"* and soil moisture to *"Software Agronomic Root-Zone Moisture Model"* unless hardware is active or requested.
+
 ### Chat Entry 45
 * **User Input:**
   > "i send 2 picture one is before clicking open studio and another one is after clicking open studio button, remane open studio as open map. Why it shows the blank white screen."

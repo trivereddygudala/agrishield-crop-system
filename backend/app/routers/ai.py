@@ -82,37 +82,71 @@ async def chat_with_farming_assistant(
         chat_context["user_name"] = current_user.get("name", "Farmer")
         chat_context["user_email"] = current_user.get("email", "")
 
-        # Fetch latest real-time IoT hardware telemetry
-        latest_tel = await db.iot_telemetry.find_one(sort=[("received_at", -1)])
-        if latest_tel:
-            chat_context["latest_telemetry"] = {
-                "device_id": latest_tel.get("device_id", "ESP32-NODE-ALPHA"),
-                "temperature": latest_tel.get("temperature", 28.5),
-                "humidity": latest_tel.get("humidity", 65.0),
-                "pressure": latest_tel.get("pressure", 1012.0),
-                "soil_moisture": latest_tel.get("soil_percentage") or latest_tel.get("soil_moisture", 72.0),
-                "light_lux": latest_tel.get("light_lux") or latest_tel.get("light_intensity", 540.0),
-                "rain_detected": latest_tel.get("rain_detected") or latest_tel.get("rain_sensor", 0),
-                "battery_percentage": latest_tel.get("battery_percentage", 92.0),
-                "wifi_rssi": latest_tel.get("wifi_rssi", -65),
-                "firmware_version": latest_tel.get("firmware_version", "v2.0"),
-                "device_status": latest_tel.get("device_status", "online")
-            }
-
-        # Fetch connected devices summary
-        devices_list = await db.devices.find().to_list(10)
-        if devices_list:
-            chat_context["devices_summary"] = [
-                {
-                    "device_id": d.get("device_id"),
-                    "name": d.get("name", "Field Node"),
-                    "status": d.get("status", "online"),
-                    "last_seen": d.get("last_seen", "Active")
-                }
-                for d in devices_list
-            ]
-
+        # Check if user explicitly asked about in-field hardware, sensors, ESP32, or IoT devices
         lower_msg = sanitized_message.lower()
+        is_hardware_query = any(w in lower_msg for w in [
+            "esp32", "node", "hardware", "sensor", "soil sensor", "iot", "device", "battery",
+            "telemetry", "firmware", "సెన్సార్", "హార్డ్‌వేర్", "పరికరాలు", "నోడ్", "हार्डवेयर", "सेंसर"
+        ])
+
+        # Check if a physical Smart IoT node is actively TURNED ON and communicating right now
+        # Criteria: IoT telemetry ingestion is enabled AND an active device has reported in the last 120 seconds
+        from backend.app.routers.iot import is_iot_ingestion_enabled
+        iot_ingestion_on = await is_iot_ingestion_enabled(db)
+        is_node_online = False
+
+        if iot_ingestion_on:
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+            active_device = await db.devices.find_one({"status": "online"})
+            if active_device:
+                last_seen = active_device.get("last_seen")
+                if isinstance(last_seen, datetime):
+                    if (now_utc - last_seen.replace(tzinfo=None)).total_seconds() <= 120:
+                        is_node_online = True
+                elif isinstance(last_seen, str):
+                    try:
+                        parsed_dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00')).replace(tzinfo=None)
+                        if (now_utc - parsed_dt).total_seconds() <= 120:
+                            is_node_online = True
+                    except Exception:
+                        pass
+
+        # SOFTWARE MODE VS HARDWARE MODE:
+        # If no IoT node is turned on and the user did not explicitly ask about hardware,
+        # the system runs in SOFTWARE MODE (weather and advice from satellite / software models, ZERO ESP32 mentions).
+        chat_context["is_software_mode"] = not is_node_online and not is_hardware_query
+        chat_context["is_node_online"] = is_node_online
+        chat_context["is_hardware_query"] = is_hardware_query
+
+        # Only inject in-field hardware telemetry if the node is turned on OR the user specifically asks about hardware
+        if is_node_online or is_hardware_query:
+            latest_tel = await db.iot_telemetry.find_one(sort=[("received_at", -1)])
+            if latest_tel:
+                chat_context["latest_telemetry"] = {
+                    "device_id": latest_tel.get("device_id", "ESP32-NODE-ALPHA"),
+                    "temperature": latest_tel.get("temperature", 28.5),
+                    "humidity": latest_tel.get("humidity", 65.0),
+                    "pressure": latest_tel.get("pressure", 1012.0),
+                    "soil_moisture": latest_tel.get("soil_percentage") or latest_tel.get("soil_moisture", 72.0),
+                    "light_lux": latest_tel.get("light_lux") or latest_tel.get("light_intensity", 540.0),
+                    "rain_detected": latest_tel.get("rain_detected") or latest_tel.get("rain_sensor", 0),
+                    "battery_percentage": latest_tel.get("battery_percentage", 92.0),
+                    "wifi_rssi": latest_tel.get("wifi_rssi", -65),
+                    "firmware_version": latest_tel.get("firmware_version", "v2.0"),
+                    "device_status": "online" if is_node_online else "offline"
+                }
+
+            devices_list = await db.devices.find().to_list(10)
+            if devices_list:
+                chat_context["devices_summary"] = [
+                    {
+                        "device_id": d.get("device_id"),
+                        "name": d.get("name", "Field Node"),
+                        "status": d.get("status", "online"),
+                        "last_seen": d.get("last_seen", "Active")
+                    }
+                    for d in devices_list
+                ]
 
         # Classify query intent to avoid injecting irrelevant scan data that triggers unsolicited AI advice
         is_disease_or_tx_query = any(w in lower_msg for w in [

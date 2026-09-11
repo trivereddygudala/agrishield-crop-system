@@ -2,6 +2,20 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v109) - Software Mode vs Hardware Mode Gating: Enforce Zero ESP32 Mentions Unless IoT Node is Turned On or In-Field Hardware is Asked
+- **Summary:** Resolved the issue where the AI Chatbot cited in-field hardware telemetry (`Rain Sensor Alert: Your field sensor (ESP32-NODE-ALPHA) shows rain detected = 1`) when the user is operating in Software Mode without active field hardware:
+  1. 🧠 **Software Mode vs Hardware Mode Intent & Live Status Verification (`backend/app/routers/ai.py`):**
+     - Added dual verification for hardware activation:
+       * **Live Node Online Check:** Checks `is_iot_ingestion_enabled(db)` is True AND an active device in `db.devices` reported telemetry heartbeat within the last 120 seconds.
+       * **Hardware Query Detection:** Checks if user explicitly asked about hardware (`esp32`, `node`, `hardware`, `sensor`, `soil sensor`, `iot`, `device`, `battery`, `సెన్సార్`, `హార్డ్‌వేర్`, `పరికరాలు`, `నోడ్`).
+     - **Telemetry Isolation:** If neither condition is met, the system operates in **Software Mode** (`is_software_mode = True`). `latest_telemetry` and `devices_summary` are **100% suppressed** from `chat_context`.
+  2. 🛡️ **Software Mode System Prompt Mandates & Weather Query Booster (`backend/app/services/nvidia_service.py`):**
+     - Updated System Prompt Rule 0 with the **Hardware vs Software Mode Protocol**: Only mention ESP32 node readings or hardware details when a smart IoT node is turned on or the user explicitly asks about hardware.
+     - Updated Weather & Spray Safety Booster with **STRICT SOFTWARE MODE MANDATE**: In Software Mode, weather reasons and verdicts are based exclusively on live satellite weather forecasts, rain probability, cloud cover, humidity, and wind speed. Explicitly forbade mentioning ESP32, ESP32-NODE-ALPHA, rain sensor probes, or hardware IDs.
+     - Updated simulated IoT fallback intercept in `nvidia_service.py` so simulated sensor telemetry is withheld in Software Mode.
+     - Updated rule-based fallback responses: In Software Mode, soil moisture cites *"Software Agronomic Root-Zone Moisture Model"* and weather cites *"Live Regional Meteorological & Satellite Forecast (Software Mode)"* rather than hardware node IDs.
+- **Files modified**: `backend/app/routers/ai.py`, `backend/app/services/nvidia_service.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v108) - Fix Blank White Screen on Open Map Click & Rename All Studio References to Open Map
 - **Summary:** Resolved the blank screen bug shown in user's mobile screenshot after tapping "Open Studio" and renamed all "Studio" terminology to "Open Map":
   1. 🛠️ **Fixed Blank White Screen Root Cause (`FieldBoundaryMap.jsx`):**

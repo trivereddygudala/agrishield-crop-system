@@ -1165,20 +1165,26 @@ Do not include any conversational text or markdown blocks. Only output the raw J
             return self._generate_local_agronomic_response(message, context)
 
         try:
-            # IoT Simulation Intercept
-            iot_mode = os.getenv("IOT_MODE", "simulation")
-            if iot_mode == "simulation":
-                if not context:
-                    context = {}
-                context["sensor_data"] = {
-                    "temperature": round(random.uniform(20.0, 35.0), 1),
-                    "humidity": round(random.uniform(40.0, 90.0), 1),
-                    "soil_moisture": round(random.uniform(20.0, 80.0), 1),
-                    "light_intensity": round(random.uniform(200.0, 1000.0), 1),
-                    "rain_sensor": random.choice([0, 1]),
-                    "battery_level": round(random.uniform(50.0, 100.0), 1),
-                    "device_status": "online_simulated"
-                }
+            # IoT Simulation Intercept - ONLY when hardware mode is active or user explicitly asks about hardware
+            is_hardware_req = any(w in message.lower() for w in [
+                "esp32", "node", "hardware", "sensor", "soil sensor", "iot", "device", "battery",
+                "telemetry", "firmware", "సెన్సార్", "హార్డ్‌వేర్", "పరికరాలు", "నోడ్"
+            ])
+            is_node_online = context.get("is_node_online", False) if context else False
+            is_software_mode = context.get("is_software_mode", True) if context else not is_hardware_req
+
+            if not is_software_mode or is_hardware_req or is_node_online:
+                iot_mode = os.getenv("IOT_MODE", "simulation")
+                if iot_mode == "simulation" and context and not context.get("latest_telemetry"):
+                    context["sensor_data"] = {
+                        "temperature": round(random.uniform(20.0, 35.0), 1),
+                        "humidity": round(random.uniform(40.0, 90.0), 1),
+                        "soil_moisture": round(random.uniform(20.0, 80.0), 1),
+                        "light_intensity": round(random.uniform(200.0, 1000.0), 1),
+                        "rain_sensor": random.choice([0, 1]),
+                        "battery_level": round(random.uniform(50.0, 100.0), 1),
+                        "device_status": "online_simulated"
+                    }
 
             # In-Chat Multi-Modal Image Diagnostic Pre-Check (Foliage, Pest / Insect, or Agrochemical Bottle)
             if image_data:
@@ -1320,10 +1326,15 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
 CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
 0. 🎯 **STRICT INTENT ADHERENCE (NO EXTRA UNASKED ANSWERS):**
    - Answer ONLY and PRECISELY what the farmer asked in their specific prompt.
+   - 💻 **SOFTWARE MODE VS HARDWARE MODE MANDATE:**
+     * The system operates in **SOFTWARE MODE** by default unless a physical ESP32 Smart IoT node is actively turned ON in the field.
+     * In Software Mode: **ABSOLUTELY NEVER** mention ESP32, ESP32-NODE-ALPHA, in-field sensors, or hardware rain probes!
+     * For all weather, rain, temperature, and spray safety evaluations in Software Mode: Base your reasons 100% EXCLUSIVELY on live satellite weather forecasts, cloud cover, regional precipitation probability, and wind speed.
+     * **ONLY** when the smart IoT node is turned ON, OR when the user explicitly asks about their in-field hardware, sensors, or ESP32 node: ONLY THEN provide ESP32 node readings or hardware details!
    - NEVER volunteer unsolicited crop disease diagnosis, unasked chemical treatments, unasked fertilizer recipes, or unasked growth stage advice when the user did not ask for it. Answering unrequested topics confuses the farmer!
    - When a farmer asks about Weather or Spray Timing ("Is it safe to spray today?"):
      * Verdict: Clear Yes/No whether it is safe to spray today based on rain/weather.
-     * Reasons: Rain forecast, sensor telemetry, wind drift.
+     * Reasons: Satellite weather forecast, cloud cover, rain probability, wind drift (NO ESP32 or sensor mentions in Software Mode!).
      * Best Window: E.g., tomorrow morning 6:00 - 9:00 AM.
      * 🛑 STRICT FORBIDDEN: DO NOT recommend any chemical fungicides, pesticides, or medicines. DO NOT mention previous scan results, leaf spots, or crop diseases.
    - When a farmer asks about Mandi Market Prices:
@@ -1411,15 +1422,32 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
             ]) and not any(w in lower_user_msg for w in ["which medicine", "what medicine", "dosage", "మందు పేరు", "ఏ మందు", "మోతాదు", "दवा"])
 
             if is_weather_spray_query:
+                is_hardware_query = any(w in lower_user_msg for w in [
+                    "esp32", "node", "hardware", "sensor", "soil sensor", "iot", "device", "battery",
+                    "సెన్సార్", "హార్డ్‌వేర్", "పరికరాలు", "నోడ్"
+                ])
+                is_node_online = context.get("is_node_online", False) if context else False
+
+                if is_node_online or is_hardware_query:
+                    hardware_rule = "4. HARDWARE STATUS (NODE ACTIVE): An in-field IoT node is active or requested. You may reference verified sensor readings.\n"
+                else:
+                    hardware_rule = (
+                        "4. STRICT SOFTWARE MODE MANDATE:\n"
+                        "   - The farmer is in SOFTWARE MODE (no active in-field IoT hardware node is turned on).\n"
+                        "   - Base all weather reasons and verdicts EXCLUSIVELY on satellite weather forecasts, rain radar, cloud cover, humidity, and wind speed.\n"
+                        "   - ABSOLUTELY DO NOT mention ESP32, ESP32-NODE-ALPHA, rain sensor = 1, or hardware sensors!\n"
+                    )
+
                 messages.append({
                     "role": "system",
                     "content": (
                         "CRITICAL WEATHER & SPRAY SAFETY DIRECTIVE:\n"
                         "1. The farmer is ONLY asking if it is safe to spray today/tomorrow based on weather and rain.\n"
-                        "2. Answer ONLY: 1) Direct Verdict (Safe to spray or Not safe to spray today), 2) Weather reasons (rain forecast, sensor data, wind speed), 3) Recommended window (e.g., tomorrow morning 6-9 AM, 4-hour dry rule).\n"
+                        "2. Answer ONLY: 1) Direct Verdict (Safe to spray or Not safe to spray today), 2) Weather reasons (satellite weather forecast, cloud cover, humidity, wind speed), 3) Recommended window (e.g., tomorrow morning 6-9 AM, 4-hour dry rule).\n"
                         "3. ABSOLUTELY DO NOT suggest, prescribe, or name ANY medicine, fungicide, or chemical.\n"
-                        "4. ABSOLUTELY DO NOT mention any previous crop scans, leaf spot, diseases, or plant growth stages.\n"
-                        "5. Give a clean, direct answer to the farmer's question with NO extra unasked sections."
+                        + hardware_rule +
+                        "5. ABSOLUTELY DO NOT mention any previous crop scans, leaf spot, diseases, or plant growth stages.\n"
+                        "6. Give a clean, direct answer to the farmer's question with NO extra unasked sections."
                     )
                 })
 
@@ -1520,6 +1548,14 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
         scan_latest = context.get("latest_scan_result") if context else None
         scan_history = context.get("full_scan_history") if context else None
         farm = context.get("active_farm") if context else None
+
+        # Software Mode vs Hardware Mode Detection
+        is_node_online = context.get("is_node_online", False) if context else False
+        is_hardware_query = context.get("is_hardware_query") if (context and "is_hardware_query" in context) else any(w in msg for w in [
+            "esp32", "node", "hardware", "sensor", "soil sensor", "iot", "device", "battery",
+            "telemetry", "firmware", "సెన్సార్", "హార్డ్‌వేర్", "పరికరాలు", "నోడ్"
+        ])
+        is_software_mode = context.get("is_software_mode", not is_node_online and not is_hardware_query) if context else not is_hardware_query
 
         # Compute dynamic live time in Indian Standard Time (IST - UTC+5:30)
         ist_tz = timezone(timedelta(hours=5, minutes=30))
@@ -1867,15 +1903,19 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
             )
 
         # ── 6. SPECIFIC TELEMETRY & SENSOR METRICS ──────────────────────────
+        is_node_online = tel.get("device_status", "online") == "online"
+        is_hardware_query = any(w in msg for w in ["hardware", "esp32", "sensor node", "device", "offline", "iot device"])
+
         if re.search(r'\b(soil moisture|soil water|soil moisture level|soil percentage|soil sensor|moisture)\b', msg) or any(w in msg for w in ["nela tema", "tema", "భూమి తేమ", "నేల తేమ", "నమి", "मिट्टी की नमी", "மண் ஈரப்பதம்", "ಮಣ್ಣಿನ ತೇವಾಂಶ"]):
             val = tel.get("soil_moisture") or 72.0
             status_desc = "Optimal (65-80%)" if 65 <= float(val) <= 80 else ("Low Moisture (Needs Irrigation)" if float(val) < 65 else "High Moisture (Saturated)")
+            source_line = f"- **Sensor Node:** `{tel.get('device_id', 'ESP32-NODE-ALPHA')}` (Capacitive v1.2 on GPIO 34)\n\n" if (is_node_online or is_hardware_query) else "- **Source:** Software Agronomic Root-Zone Moisture Model\n\n"
             return (
                 f"### 🌱 Real-Time Soil Moisture Telemetry\n\n"
                 f"- **Current Soil Moisture:** **{val}%**\n"
                 f"- **Status:** 🟢 **{status_desc}**\n"
                 f"- **Optimal Field Capacity:** 65% - 80%\n"
-                f"- **Sensor Node:** `{tel.get('device_id', 'ESP32-NODE-ALPHA')}` (Capacitive v1.2 on GPIO 34)\n\n"
+                f"{source_line}"
                 f"#### 💡 Irrigation Recommendation:\n"
                 f"{'Soil moisture is within the ideal root respiration zone. No immediate watering required.' if 65 <= float(val) <= 80 else ('Soil moisture is below threshold. Schedule a 45-minute drip cycle.' if float(val) < 65 else 'Soil is saturated. Suspend drip lines to prevent root rot.')}"
             )
@@ -1887,8 +1927,8 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
             lux = tel.get("light_lux", 540.0)
             rain_val = tel.get("rain_detected") or tel.get("rain_sensor", 0)
             is_rain = rain_val > 50 or rain_val == 1
-            rain_label = "Rain / Showers Detected 🌧️" if is_rain else "Clear & Dry (No Rain) ☀️"
-            dev_id = tel.get("device_id", "ESP32-NODE-ALPHA")
+            rain_label = "Rain / Showers Expected 🌧️" if is_rain else "Clear & Dry (No Rain) ☀️"
+            source_line = f"- **Sensor Hardware Station:** `{tel.get('device_id', 'ESP32-NODE-ALPHA')}`\n\n" if (is_node_online or is_hardware_query) else "- **Weather Data Source:** Live Regional Meteorological & Satellite Forecast (Software Mode)\n\n"
 
             return (
                 f"### 🌤️ Live Farm Weather & Microclimate Report\n\n"
