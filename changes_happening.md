@@ -2,6 +2,31 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v103) - Simplify Field Boundary Map, Remove Multi-Field Clutter & Unmissable Back Navigation
+- **Summary:** Completely redesigned and simplified the field boundary mapping interface (`FieldBoundaryMap.jsx`) for rural farmers based on user feedback and mobile screenshots:
+  1. 🔙 **Unmissable, Foolproof Back Navigation:**
+     - Fixed issue where farmers got trapped in full-screen map views with no way to go back.
+     - Top bar now features a prominent, large emerald back button: `← వెనుకకు` / `← Back to Field Setup` with bold icon and label.
+     - Added a **permanent, fixed floating back button** at `top-14 left-3 z-[1000]` on the map canvas itself, ensuring a back button is 100% visible and accessible regardless of scroll or viewport state.
+     - Studio view includes a direct `💾 సేవ్ చేయి / Save` action button to commit boundaries and return cleanly.
+  2. 🌾 **Removed Multi-Field Clutter (One Field at a Time):**
+     - Completely eliminated complex multi-plot tabs (`Plot 1`, `Plot 2`, `P1`, `P2`), multi-polygon color selectors, separate plot drawers, and add-plot dialogs.
+     - Re-architected state to manage **one single field at a time** (`pins: [[lat, lng], ...]`), directly calculating real-time field acreage in Acres and Gunthas via geodesic area calculation.
+  3. 🧹 **Cleaned Up Clumsy & Overwhelming Map Controls:**
+     - Removed compass rotation degree dial (`↺ 0° ↻`).
+     - Removed floating mobile tile layer switchers blocking the map.
+     - Removed intermediate segment distance handles (`+ 78 m`) that cluttered road and field lines.
+     - Replaced two split dark toolbars with a single, touch-friendly, centered farmer dock:
+       - `📍 పిన్ వేయి / Add Pin` (primary toggle button with glowing active pulse)
+       - `↩️ రద్దు / Undo Pin` (one-tap undo for last pin dropped)
+       - `🗑️ అంతా తీసివేయి / Clear All` (clears boundary to redraw)
+       - `🎯 నా పొలం / My Farm` (recenters view on farm)
+  4. 💡 **Farmer-Friendly Guidance Banner:**
+     - Dynamic guidance banner at top-center displaying simple instructions: *"📍 మ్యాప్‌పై మీ పొలం మూలలను తాకండి (Tap corners of your field on the map)"* and live area calculation *"🌾 విస్తీర్ణం: X.XX ఎకరాలు"*.
+  5. 🛰️ **Streamlined Satellite/Street Layer Toggle:**
+     - Integrated a clean `🛰️ Sat` / `🗺️ Map` toggle cleanly into the top header bar without obstructing map view.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v102) - Fix Truncated AI Assistant Chat Responses & Regional Token Inflation
 - **Summary:** Resolved the issue where the AI Chat Assistant responses were cut off mid-sentence (e.g. halting abruptly at `• ఆప్షన్ B (ప్రొటెక్టెంట్ కెమికల్): **Mancozeb`):
   1. 🔍 **Root Cause Discovery:**

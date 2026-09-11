@@ -6,6 +6,33 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 40
+* **User Input:**
+  > "see this how i go back still issue with the map all the options inside it are clumpsy resolve this make it simpple and easier for the farmers remove the multifield the farmer wants to choose one field ata a time make sure build it simply, understandable by the farmers ok"
+* **Machine Summary Solution:**
+  * Redesigned and simplified `FieldBoundaryMap.jsx` completely for rural farmers:
+    1. **Unmissable Back Navigation:**
+       - Added prominent top-left green back button: `← పొలం సెటప్‌కు తిరిగి` / `← Back` in the header bar.
+       - Added a **permanent, fixed floating back button** at `top-14 left-3 z-[1000]` directly on the map canvas so the farmer can NEVER get trapped even if elements scroll.
+       - Added top-right `💾 సేవ్ చేయి / Save` button to easily commit field boundaries and return to the main field page.
+    2. **Removed Multi-Field Clutter:**
+       - Removed all multi-plot abstractions (`Plot 1`, `Plot 2`, multi-color selectors, drawers, add/delete plot buttons).
+       - Farmer manages **one field at a time** (`pins: [[lat, lng], ...]`), with automatic live area calculation in Acres and Hectares.
+    3. **Eliminated Clumsy Controls:**
+       - Removed compass rotation dial (`↺ 0° ↻`).
+       - Removed intermediate segment distance labels (`+ 78 m`) that cluttered lines.
+       - Removed cluttered split dark floating pods.
+       - Built a single, touch-friendly, centered dock:
+         - `📍 పిన్ వేయి / Add Pin` (toggle with pulsing glow)
+         - `↩️ రద్దు / Undo Pin` (one-tap undo)
+         - `🗑️ అంతా తీసివేయి / Clear All`
+         - `🎯 నా పొలం / My Farm` (recenter)
+    4. **Farmer Guidance Banner:**
+       - Dynamic banner at top-center guiding the farmer: *"📍 మ్యాప్‌పై మీ పొలం మూలలను తాకండి"* and *"🌾 విస్తీర్ణం: X.XX ఎకరాలు"*.
+    5. **Layer Toggle:**
+       - Clean `🛰️ Sat` / `🗺️ Map` toggle cleanly embedded in the top bar.
+  * Verified build: `npm run build` completed with 0 errors in 19.5s.
+
 ### Chat Entry 39
 * **User Input:**
   > "why it is not provide the full chat what is the issue"
