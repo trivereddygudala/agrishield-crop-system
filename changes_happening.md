@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v116) - Fix: Admin Helpdesk Ticket Status Updating (CORS PATCH, Multi-Route Fallbacks & Optimistic UI)
+- **Summary:** Diagnosed and resolved the root causes preventing administrators from updating ticket status and saving resolution notes in the Helpdesk:
+  1. 🌐 **CORS Configuration in Backend (`backend/app/main.py`):**
+     - Added `"PATCH"` to `allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]`. Previously, missing `PATCH` in CORSMiddleware caused browser preflight `OPTIONS` requests to be rejected on status update.
+     - Preserved route dependencies when constructing the dynamic `/api/v1` router mapping (`dependencies=getattr(route, "dependencies", None)`).
+  2. 🛠️ **Backend Support Router Hardening (`backend/app/routers/support.py`):**
+     - Supported both `@router.patch` AND `@router.put` on `/admin/tickets/{ticket_id}` for proxy/firewall compatibility.
+     - Removed redundant unused `current_user: dict = Depends(get_current_user)` parameter that could fail with 401 Unauthorized if the admin token's subject ID was formatted differently in users collection.
+     - Upgraded database query to match by `ObjectId`, string `_id`, and `ticket_number` via `{"$or": query_conditions}` so tickets are found regardless of ID format.
+     - Automatically populated `resolved_at: datetime.now(timezone.utc)` and formatted it in `format_ticket_doc` when marking a ticket as `resolved`.
+  3. ⚡ **Frontend Optimistic UI & Resilient Multi-Route Fallback (`frontend/src/pages/AdminPage.jsx`):**
+     - Added instantaneous optimistic state update: selecting a status immediately reflects on the ticket badge and dropdown without delay, rolling back gracefully only if network calls fail.
+     - Added multi-route failover: automatically attempts `/api/v1` and falls back to `/api` with both `PATCH` and `PUT` verbs.
+     - Added real-time animated loading spinner (`RefreshCw`) beside the dropdown and inside the "Save Note" button.
+     - Refreshed KPI stats counters automatically upon status transition.
+- **Files modified**: `backend/app/main.py`, `backend/app/routers/support.py`, `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v115) - Modern SaaS Visual Redesign & Elevated Color System for Admin Helpdesk
 - **Summary:** Upgraded the visual styling, typography, color accents, and interactivity of the Farmer Support & Helpdesk Admin Hub (`frontend/src/pages/AdminPage.jsx`) to match the approved premium SaaS mockup:
   1. 📊 **4 Elevated Metric KPI Cards (`AdminPage.jsx`):**

@@ -105,7 +105,7 @@ app.add_middleware(
     allow_origins=origins if env_mode == "production" else [],
     allow_origin_regex=None if env_mode == "production" else ".*",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -141,6 +141,7 @@ for router_module in [auth.router, predict.router, ai.router, farm_profiles.rout
         tags = getattr(route, "tags", [])
         summary = getattr(route, "summary", None)
         description = getattr(route, "description", None)
+        dependencies = getattr(route, "dependencies", None)
         
         v1_router.add_api_route(
             path=path_v1,
@@ -149,7 +150,8 @@ for router_module in [auth.router, predict.router, ai.router, farm_profiles.rout
             response_model=response_model,
             summary=summary,
             description=description,
-            tags=tags
+            tags=tags,
+            dependencies=dependencies
         )
 
 app.include_router(v1_router)

@@ -135,7 +135,12 @@ export default function AdminPage() {
 
   const fetchSupportConfig = async () => {
     try {
-      const res = await API.get('/api/support/config');
+      let res;
+      try {
+        res = await API.get('/api/v1/support/config');
+      } catch {
+        res = await API.get('/api/support/config');
+      }
       if (res.data && res.data.whatsapp_number) {
         setSupportConfig(res.data);
       }
@@ -150,7 +155,11 @@ export default function AdminPage() {
     setError('');
     setSuccessMsg('');
     try {
-      await API.put('/api/support/admin/config', supportConfig);
+      try {
+        await API.put('/api/v1/support/admin/config', supportConfig);
+      } catch {
+        await API.put('/api/support/admin/config', supportConfig);
+      }
       setSuccessMsg('Helpdesk contact & WhatsApp settings saved! All farmer app buttons updated in real-time.');
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to update helpdesk configuration.');
@@ -168,10 +177,18 @@ export default function AdminPage() {
       if (supportPriorityFilter !== 'all') params.priority_filter = supportPriorityFilter;
       if (supportSearchTerm) params.search = supportSearchTerm;
 
-      const [ticketsRes, statsRes] = await Promise.all([
-        API.get('/api/support/admin/tickets', { params }),
-        API.get('/api/support/admin/stats')
-      ]);
+      let ticketsRes, statsRes;
+      try {
+        [ticketsRes, statsRes] = await Promise.all([
+          API.get('/api/v1/support/admin/tickets', { params }),
+          API.get('/api/v1/support/admin/stats')
+        ]);
+      } catch (e1) {
+        [ticketsRes, statsRes] = await Promise.all([
+          API.get('/api/support/admin/tickets', { params }),
+          API.get('/api/support/admin/stats')
+        ]);
+      }
       setSupportTickets(ticketsRes.data?.tickets || []);
       setSupportStats(statsRes.data || { total: 0, open: 0, in_progress: 0, resolved: 0, urgent_callbacks: 0 });
     } catch (e) {
@@ -185,16 +202,72 @@ export default function AdminPage() {
     setUpdatingTicketId(ticketId);
     setError('');
     setSuccessMsg('');
+
+    // Snapshot previous state for rollback if network call fails
+    const previousTickets = [...supportTickets];
+
+    // Optimistically update ticket in UI immediately for snappy response
+    setSupportTickets(prev =>
+      prev.map(t => {
+        if (t.id === ticketId || t.ticket_number === ticketId) {
+          return {
+            ...t,
+            status: newStatus,
+            resolution_notes: resolutionNotes !== null ? resolutionNotes : t.resolution_notes,
+            resolved_at: newStatus === 'resolved' ? (t.resolved_at || new Date().toISOString()) : t.resolved_at
+          };
+        }
+        return t;
+      })
+    );
+
     try {
       const payload = { status: newStatus };
       if (resolutionNotes !== null) {
         payload.resolution_notes = resolutionNotes;
       }
-      await API.patch(`/api/support/admin/tickets/${ticketId}`, payload);
-      setSuccessMsg(`Ticket updated to '${newStatus}'!`);
-      fetchSupportTickets();
+
+      let res;
+      // Resilient execution: Try PATCH then PUT across /api/v1 and /api routes
+      try {
+        res = await API.patch(`/api/v1/support/admin/tickets/${ticketId}`, payload);
+      } catch (err1) {
+        try {
+          res = await API.put(`/api/v1/support/admin/tickets/${ticketId}`, payload);
+        } catch (err2) {
+          try {
+            res = await API.patch(`/api/support/admin/tickets/${ticketId}`, payload);
+          } catch (err3) {
+            res = await API.put(`/api/support/admin/tickets/${ticketId}`, payload);
+          }
+        }
+      }
+
+      if (res?.data?.ticket) {
+        setSupportTickets(prev =>
+          prev.map(t => (t.id === ticketId || t.ticket_number === ticketId) ? res.data.ticket : t)
+        );
+      }
+
+      setSuccessMsg(`Ticket status successfully updated to '${newStatus}'!`);
+
+      // Refresh stats to keep KPI counters in sync
+      try {
+        let statsRes;
+        try {
+          statsRes = await API.get('/api/v1/support/admin/stats');
+        } catch {
+          statsRes = await API.get('/api/support/admin/stats');
+        }
+        if (statsRes?.data) setSupportStats(statsRes.data);
+      } catch {
+        // silent stats refresh fallback
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update ticket status.');
+      // Revert optimistic update on failure
+      setSupportTickets(previousTickets);
+      const errMsg = err.response?.data?.detail || err.message || 'Failed to update ticket status.';
+      setError(`Ticket update failed: ${errMsg}`);
     } finally {
       setUpdatingTicketId(null);
     }
@@ -2626,16 +2699,21 @@ export default function AdminPage() {
                         {/* Status Dropdown */}
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Update Status:</span>
-                          <select
-                            value={ticket.status}
-                            disabled={updatingTicketId === ticket.id}
-                            onChange={(e) => handleUpdateTicketStatus(ticket.id, e.target.value, currentResNote)}
-                            className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
-                          >
-                            <option value="open">🔴 Open (Pending Action)</option>
-                            <option value="in_progress">🟡 In Progress (Contacting Farmer)</option>
-                            <option value="resolved">🟢 Resolved (Issue Closed)</option>
-                          </select>
+                          <div className="relative inline-flex items-center">
+                            <select
+                              value={ticket.status}
+                              disabled={updatingTicketId === ticket.id}
+                              onChange={(e) => handleUpdateTicketStatus(ticket.id, e.target.value, currentResNote)}
+                              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500 cursor-pointer disabled:opacity-60"
+                            >
+                              <option value="open">🔴 Open (Pending Action)</option>
+                              <option value="in_progress">🟡 In Progress (Contacting Farmer)</option>
+                              <option value="resolved">🟢 Resolved (Issue Closed)</option>
+                            </select>
+                            {updatingTicketId === ticket.id && (
+                              <RefreshCw className="w-3.5 h-3.5 text-emerald-500 animate-spin ml-2" />
+                            )}
+                          </div>
                         </div>
 
                         {/* Resolution Note Input & Save Button */}
@@ -2650,9 +2728,12 @@ export default function AdminPage() {
                           <button
                             onClick={() => handleUpdateTicketStatus(ticket.id, ticket.status, currentResNote)}
                             disabled={updatingTicketId === ticket.id}
-                            className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-700 hover:bg-black dark:hover:bg-slate-600 text-white font-bold text-xs shrink-0 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-700 hover:bg-black dark:hover:bg-slate-600 text-white font-bold text-xs shrink-0 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
                           >
-                            {updatingTicketId === ticket.id ? 'Saving...' : 'Save Note'}
+                            {updatingTicketId === ticket.id && (
+                              <RefreshCw className="w-3 h-3 animate-spin text-white" />
+                            )}
+                            <span>{updatingTicketId === ticket.id ? 'Saving...' : 'Save Note'}</span>
                           </button>
                         </div>
                       </div>

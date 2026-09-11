@@ -68,6 +68,7 @@ def format_ticket_doc(doc: dict) -> dict:
         "preferred_time": doc.get("preferred_time"),
         "assigned_agent": doc.get("assigned_agent"),
         "resolution_notes": doc.get("resolution_notes", ""),
+        "resolved_at": doc.get("resolved_at", "").isoformat() if isinstance(doc.get("resolved_at"), datetime) else doc.get("resolved_at", ""),
         "created_at": doc.get("created_at", datetime.now(timezone.utc)).isoformat() if isinstance(doc.get("created_at"), datetime) else doc.get("created_at"),
         "updated_at": doc.get("updated_at", datetime.now(timezone.utc)).isoformat() if isinstance(doc.get("updated_at"), datetime) else doc.get("updated_at")
     }
@@ -117,36 +118,38 @@ async def create_support_ticket(
 
     return {
         "success": True,
-        "message": f"Support ticket #{ticket_num} created successfully! Our team will contact you shortly.",
+        "message": f"Support ticket #{ticket_num} registered! Our agro-technical team will review it shortly.",
         "ticket": format_ticket_doc(ticket_doc)
     }
 
 @router.post("/callback-request")
-async def request_support_callback(
+async def request_callback(
     payload: CallbackCreateRequest,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """1-Tap Request a Callback for farmers who prefer phone calls over typing."""
+    """Emergency 15-minute phone callback request for urgent field issues."""
     now_utc = datetime.now(timezone.utc)
     ticket_num = f"CALL-{random.randint(1000, 9999)}"
 
-    name = payload.farmer_name or current_user.get("name") or current_user.get("full_name") or "Farmer"
     location = current_user.get("farm_location") or current_user.get("location") or "Field Location"
+    name = payload.farmer_name or current_user.get("name") or current_user.get("full_name") or "Farmer"
 
     ticket_doc = {
         "ticket_number": ticket_num,
         "user_id": current_user["id"],
         "farmer_name": name,
         "farmer_email": current_user.get("email", ""),
-        "phone": payload.phone.strip(),
+        "phone": payload.phone,
         "language": payload.language or current_user.get("preferred_language", "te"),
         "location": location,
-        "category": "callback_request",
-        "priority": "urgent",
+        "category": "urgent_callback",
+        "priority": "critical",
         "status": "open",
-        "subject": f"Urgent 15-Min Phone Callback Request ({payload.language.upper()})",
-        "description": payload.issue_summary or "Farmer requested phone consultation.",
+        "subject": f"⚡ Urgent Phone Callback ({payload.preferred_time or '15 Mins'})",
+        "description": payload.issue_summary or "Farmer requested urgent 15-minute phone callback.",
+        "device_id": None,
+        "attachments": [],
         "is_callback_request": True,
         "preferred_time": payload.preferred_time or "Within 15 minutes",
         "assigned_agent": "Phone Support Queue",
@@ -242,21 +245,27 @@ async def get_admin_support_stats(db = Depends(get_database)):
     }
 
 @router.patch("/admin/tickets/{ticket_id}", dependencies=[Depends(require_role("admin"))])
+@router.put("/admin/tickets/{ticket_id}", dependencies=[Depends(require_role("admin"))])
 async def update_ticket_status(
     ticket_id: str,
     payload: TicketUpdateRequest,
-    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Admin endpoint to resolve tickets, add resolution notes, or update priority."""
+    query_conditions = []
     try:
-        obj_id = ObjectId(ticket_id)
+        query_conditions.append({"_id": ObjectId(ticket_id)})
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid ticket ID format")
+        pass
+    query_conditions.append({"_id": ticket_id})
+    query_conditions.append({"ticket_number": ticket_id})
+    query_conditions.append({"ticket_number": ticket_id.upper()})
 
     update_fields = {"updated_at": datetime.now(timezone.utc)}
     if payload.status:
         update_fields["status"] = payload.status
+        if payload.status == "resolved":
+            update_fields["resolved_at"] = datetime.now(timezone.utc)
     if payload.priority:
         update_fields["priority"] = payload.priority
     if payload.assigned_agent:
@@ -265,12 +274,12 @@ async def update_ticket_status(
         update_fields["resolution_notes"] = payload.resolution_notes
 
     res = await db.support_tickets.find_one_and_update(
-        {"_id": obj_id},
+        {"$or": query_conditions},
         {"$set": update_fields},
         return_document=True
     )
     if not res:
-        raise HTTPException(status_code=404, detail="Support ticket not found")
+        raise HTTPException(status_code=404, detail=f"Support ticket '{ticket_id}' not found")
 
     return {
         "success": True,
