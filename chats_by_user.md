@@ -288,5 +288,27 @@ and one more error is when tapthe field button it goes to like this some times a
     3. **Unlimited Irregular Polygon Points:** Unlimited pins with interactive midpoint handles (`+`) to insert bends/bunds on boundary lines.
     4. **🚶 Live GPS Walk Mode:** Perimeter walking HUD with accuracy meter (`±2.5m`), walking distance, manual corner dropping, and auto-close boundary.
 
+---
+
+### Chat Entry 29
+* **User Input:**  
+  > "and one more thing is when the farmer select the village name it wants to automatically redirects to the village map it is easy when some one is there outside and wants to add new field and location and all how is this andtell it is requuired or not , already it is there or not"
+* **Machine Summary Solution:**  
+  * Answered user directly:
+    1. **Is it already there?** Currently, it auto-redirects to the **District** level. It does not yet automatically pan down to the specific **Village / Mandal**.
+    2. **Is it required / helpful?** **YES, absolutely!** Indian districts are huge (10,000+ sq km). When a farmer or agent adds a field remotely from outside the farm, zooming directly into the specific Village/Mandal saves them from having to manually pan and search across 80 km of satellite imagery.
+    3. **Implementation approach:** We can connect real-time geocoding so selecting Mandal or Village immediately flies the satellite camera directly over that exact village.
+
+---
+
+### Chat Entry 30
+* **User Input:**  
+  > "yeah"
+* **Machine Summary Solution:**  
+  * Fully implemented Automatic Village & Mandal Satellite Map Redirection:
+    1. Added `MANDAL_COORDINATES` and `VILLAGE_COORDINATES` dictionaries in `indiaLocations.js` plus `geocodeLocationAsync` with live OpenStreetMap Nominatim fallback.
+    2. Updated `FarmPage.jsx` so selecting a Mandal or Village immediately updates coordinates and flies the satellite map directly over that exact village/mandal with high zoom.
+    3. Added live confirmation badge: `📍 Map auto-centered on [Village Name]`.
+
 
 

@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
 import { Card, Button, Input, Select, Switch, Badge, Skeleton } from '../components/ui/index';
 import API from '../services/api';
-import { INDIA_STATES, getDistricts, getMandals, getVillages, getCoordinatesForLocation } from '../data/indiaLocations';
+import { INDIA_STATES, getDistricts, getMandals, getVillages, getCoordinatesForLocation, geocodeLocationAsync } from '../data/indiaLocations';
 import { getSoilOptions, getLocalizedSoilName, SOIL_TYPES_DATABASE } from '../data/indiaSoilTypes';
 import { useTranslation } from 'react-i18next';
 import { translateCrop } from '../utils/diseaseAdvisoryData';
@@ -599,7 +599,19 @@ const FarmPage = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('farm_page.info.mandal', 'Mandal / Taluka')}</label>
-                    <select value={mandal} onChange={(e) => { setMandal(e.target.value); setVillage(''); setCustomVillage(false); }}
+                    <select value={mandal} onChange={async (e) => {
+                      const newMandal = e.target.value;
+                      setMandal(newMandal);
+                      setVillage('');
+                      setCustomVillage(false);
+                      if (newMandal) {
+                        const coords = await geocodeLocationAsync(state, district, newMandal, '');
+                        if (coords && coords.length === 2) {
+                          setLatitude(coords[0].toFixed(6));
+                          setLongitude(coords[1].toFixed(6));
+                        }
+                      }
+                    }}
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-50" disabled={!district}>
                       <option value="">{district ? t('farm_page.info.select_mandal', '-- Select Mandal --') : t('farm_page.info.select_district_first', '-- Select District first --')}</option>
                       {availableMandals.map(m => <option key={m} value={m}>{m}</option>)}
@@ -607,7 +619,17 @@ const FarmPage = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('farm_page.info.village', 'Village / Town')}</label>
-                    <select value={village} onChange={(e) => setVillage(e.target.value)}
+                    <select value={village} onChange={async (e) => {
+                      const newVillage = e.target.value;
+                      setVillage(newVillage);
+                      if (newVillage) {
+                        const coords = await geocodeLocationAsync(state, district, mandal, newVillage);
+                        if (coords && coords.length === 2) {
+                          setLatitude(coords[0].toFixed(6));
+                          setLongitude(coords[1].toFixed(6));
+                        }
+                      }
+                    }}
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-50" disabled={!mandal}>
                       <option value="">{!mandal ? t('farm_page.info.select_mandal_first', '-- Select Mandal first --') : availableVillages.length > 0 ? t('farm_page.info.select_village', '-- Select Village --') : t('farm_page.info.select_village_sector', '-- Select Village / Sector --')}</option>
                       {availableVillages.map(v => <option key={v} value={v}>{v}</option>)}
@@ -628,6 +650,12 @@ const FarmPage = () => {
                     {mandal && <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-[11px] font-semibold rounded-full">{mandal}</span>}
                     {district && <span className="px-2 py-0.5 bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 text-[11px] font-semibold rounded-full">{district}</span>}
                     {state && <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 text-[11px] font-semibold rounded-full">{state}</span>}
+                    {(village || mandal) && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md ml-auto">
+                        <Check className="w-3 h-3" />
+                        {isTe ? `మ్యాప్ ఆటోమేటిక్‌గా ${village || mandal} వద్ద సెట్ చేయబడింది` : `Map auto-centered on ${village || mandal}`}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v95) - Automatic Village & Mandal Satellite Map Redirection
+- **Summary:** Added automatic satellite map zooming and redirection down to the specific Village and Mandal level when setting up or adding a farm:
+  1. 📍 **Instant Mandal & Village Coordinates Resolver (`indiaLocations.js`):**
+     - Added `MANDAL_COORDINATES` and `VILLAGE_COORDINATES` lookup tables for key agricultural mandals and villages (Mundlamuru, Pasupugallu, Chirala, Addanki, Podili, Markapur, etc.) delivering instantaneous 0ms local positioning.
+     - Implemented `geocodeLocationAsync(state, district, mandal, village)` with dynamic OpenStreetMap Nominatim live query fallback for any village across India.
+  2. 🗺️ **Auto-Centering Map Behavior (`FarmPage.jsx`):**
+     - Selecting a **Mandal** instantly geocodes and flies the satellite map over that mandal's agricultural lands.
+     - Selecting a **Village** automatically geocodes and zooms the satellite map directly over that specific village at close zoom (`zoom: 17`).
+     - Added an instant confirmation badge: `📍 Map auto-centered on [Village Name]` (`📍 మ్యాప్ ఆటోమేటిక్‌గా [గ్రామం] వద్ద సెట్ చేయబడింది`).
+     - Enables farmers and agricultural agents to register new fields from anywhere outside without searching through 80 km of district terrain.
+- **Files modified**: `frontend/src/data/indiaLocations.js`, `frontend/src/pages/FarmPage.jsx`, `chats_by_user.md`, `changes_happening.md`
+
 ## 2026-09-11 (v94) - Ultra-Zoom (Level 22), Multi-Plot Fragmented Land Mapping, Irregular Boundaries & GPS Walk Mode
 - **Summary:** Implemented comprehensive agricultural GIS upgrades based on real-world Indian farm field conditions:
   1. 🔍 **Ultra-Zoom Resolution (Up to Zoom 22 without Grey Tiles):**

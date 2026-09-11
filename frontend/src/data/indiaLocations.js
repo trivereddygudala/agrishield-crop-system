@@ -296,7 +296,13 @@ export const DISTRICT_COORDINATES = {
   "Assam": [26.2006, 92.9376]
 };
 
-export function getCoordinatesForLocation(state, district) {
+export function getCoordinatesForLocation(state, district, mandal = '', village = '') {
+  if (village && VILLAGE_COORDINATES[village]) {
+    return VILLAGE_COORDINATES[village];
+  }
+  if (mandal && MANDAL_COORDINATES[mandal]) {
+    return MANDAL_COORDINATES[mandal];
+  }
   if (district && DISTRICT_COORDINATES[district]) {
     return DISTRICT_COORDINATES[district];
   }
@@ -305,4 +311,103 @@ export function getCoordinatesForLocation(state, district) {
   }
   return [14.6819, 77.6006]; // Default to Indian agricultural district (Anantapur)
 }
+
+export const MANDAL_COORDINATES = {
+  "Mundlamuru": [15.7878, 79.8211],
+  "Ongole": [15.5057, 80.0499],
+  "Chirala": [15.8246, 80.3522],
+  "Addanki": [15.8123, 79.9744],
+  "Kandukur": [15.2165, 79.9042],
+  "Kanigiri": [15.4018, 79.5126],
+  "Podili": [15.6053, 79.6062],
+  "Markapur": [15.7350, 79.2710],
+  "Giddalur": [15.3784, 78.9248],
+  "Guntur": [16.3067, 80.4365],
+  "Tenali": [16.2430, 80.6400],
+  "Mangalagiri": [16.4300, 80.5600],
+  "Sattenapalle": [16.3962, 80.1492],
+  "Narasaraopet": [16.2348, 80.0441],
+  "Vijayawada Rural": [16.5400, 80.6600],
+  "Gannavaram": [16.5414, 80.7967],
+  "Gudivada": [16.4410, 80.9926],
+  "Kankipadu": [16.4254, 80.7712],
+  "Machilipatnam": [16.1809, 81.1303],
+  "Anantapur": [14.6819, 77.6006],
+  "Dharmavaram": [14.4137, 77.7126],
+  "Hindupur": [13.8285, 77.4916],
+  "Kadiri": [14.1124, 78.1587],
+  "Puttaparthi": [14.1670, 77.8114],
+  "Tirupati Rural": [13.6288, 79.4192],
+  "Srikalahasti": [13.7498, 79.6984],
+  "Kuppam": [12.7486, 78.3653],
+  "Madanapalle": [13.5560, 78.5010],
+  "Kurnool": [15.8281, 78.0373],
+  "Nandyal": [15.4776, 78.4836],
+  "Adoni": [15.6322, 77.2728],
+  "Rajahmundry Rural": [16.9891, 81.7840],
+  "Kovvur": [17.0142, 81.7289],
+  "Nuzvid": [16.7885, 80.8465],
+  "Eluru": [16.7107, 81.0952],
+  "Tadepalligudem": [16.8142, 81.5267],
+  "Bhimavaram": [16.5449, 81.5212]
+};
+
+export const VILLAGE_COORDINATES = {
+  "Pasupugallu": [15.8020, 79.8050],
+  "Purimetla": [15.7950, 79.8320],
+  "Mundlamuru": [15.7878, 79.8211],
+  "Ullagallu": [15.7720, 79.8150],
+  "Pulipadu": [15.8110, 79.8290],
+  "Vemula": [15.7680, 79.8410],
+  "Kothapatnam": [15.4650, 80.1250],
+  "Pelluru": [15.5230, 80.0380],
+  "Vetapalem": [15.7830, 80.3180],
+  "Gorantla": [16.3210, 80.4120],
+  "Nowlur": [16.4420, 80.5510],
+  "Nunna": [16.5820, 80.6810],
+  "Enikepadu": [16.5180, 80.6930],
+  "Gudavalli": [16.5120, 80.7250],
+  "Kakkalapalle": [14.6720, 77.5850],
+  "Rudrampeta": [14.6610, 77.6120],
+  "Joharapuram": [15.8390, 78.0210],
+  "Panyam": [15.5210, 78.3510],
+  "Tangellamudi": [16.7210, 81.0850]
+};
+
+// Async Geocoder: checks local high-speed dictionary first, then OpenStreetMap Nominatim
+export async function geocodeLocationAsync(state, district, mandal, village) {
+  // 1. Instant local dictionary check
+  if (village && VILLAGE_COORDINATES[village]) {
+    return VILLAGE_COORDINATES[village];
+  }
+  if (mandal && MANDAL_COORDINATES[mandal]) {
+    return MANDAL_COORDINATES[mandal];
+  }
+  if (district && DISTRICT_COORDINATES[district]) {
+    return DISTRICT_COORDINATES[district];
+  }
+
+  // 2. OpenStreetMap Nominatim live query
+  try {
+    const parts = [village, mandal, district, state, "India"].filter(Boolean);
+    const query = encodeURIComponent(parts.join(", "));
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`, {
+      headers: { "Accept-Language": "en" }
+    });
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lon = parseFloat(data[0].lon);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        return [parseFloat(lat.toFixed(6)), parseFloat(lon.toFixed(6))];
+      }
+    }
+  } catch (err) {
+    console.warn("Live Nominatim geocoding error:", err);
+  }
+
+  // Fallback to district or state centroid
+  return getCoordinatesForLocation(state, district);
+}
+
 
