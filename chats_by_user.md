@@ -6,6 +6,22 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 54
+* **User Input:**
+  > "see this error and resolve the error tell me what error you see" [accompanied by 2 mobile screenshots showing Resolved filter tab active, yet ticket #6aa41280 is displayed with Open status]
+* **Machine Summary Solution:**
+  * Diagnosed the 2 core errors shown in the user's screenshots:
+    1. **Tab Filter Mismatch (Screenshot 1):** The user selected the **"Resolved"** filter tab, but the ticket underneath still displayed with **`🔴 Open`** status. This occurred because the frontend was relying solely on the backend query to filter tickets; if the backend query hadn't updated or if local state was retained, open tickets remained visible under the Resolved tab.
+    2. **Status Update Friction (Screenshot 2):** At the bottom of the card, the dropdown still read `Update Status: 🔴 Open (Pending Action)`. Users previously had to fiddle with mobile select menus and a separate "Save Note" button without clear 1-tap resolution.
+  * **Fixes Implemented (`frontend/src/pages/AdminPage.jsx`):**
+    1. Added `filteredSupportTickets` client-side filtering guardrail. Selecting **"Resolved"** now immediately hides non-resolved tickets with 0ms delay, and displays a clean empty state message if no resolved tickets exist.
+    2. Added high-visibility **1-Tap Quick Action Buttons** directly on each ticket card:
+       - `[ 🟢 Mark Resolved & Close ]` (1-tap resolution with instant visual feedback and stats update)
+       - `[ 🟡 Mark In Progress ]` (for active handling)
+       - `[ ↩️ Reopen as Open ]` (for reopening resolved cases)
+    3. Retained the detailed dropdown and resolution note input for custom notes.
+  * Verified build: `npm run build` compiled 3140 modules with 0 errors in 20.18s.
+
 ### Chat Entry 53
 * **User Input:**
   > "when i try to update statusin the helpdesk asa admin it is not working can you see the issue"

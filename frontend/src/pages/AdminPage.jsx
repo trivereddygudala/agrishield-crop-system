@@ -615,6 +615,41 @@ export default function AdminPage() {
     return matchesSearch && matchesRole && matchesProfile;
   });
 
+  const filteredSupportTickets = supportTickets.filter(ticket => {
+    // 1. Status Filter
+    if (supportStatusFilter !== 'all') {
+      if (supportStatusFilter === 'open' && ticket.status !== 'open') return false;
+      if (supportStatusFilter === 'in_progress' && ticket.status !== 'in_progress') return false;
+      if (supportStatusFilter === 'resolved' && ticket.status !== 'resolved') return false;
+    }
+
+    // 2. Category Filter
+    if (supportCategoryFilter !== 'all') {
+      if (supportCategoryFilter === 'urgent_callback' || supportCategoryFilter === 'callback_request') {
+        if (!ticket.is_callback_request && ticket.category !== 'urgent_callback' && ticket.category !== 'callback_request') return false;
+      } else if (ticket.category !== supportCategoryFilter) {
+        return false;
+      }
+    }
+
+    // 3. Priority Filter
+    if (supportPriorityFilter !== 'all' && ticket.priority !== supportPriorityFilter) return false;
+
+    // 4. Search Filter
+    if (supportSearchTerm) {
+      const q = supportSearchTerm.toLowerCase();
+      const numMatch = ticket.ticket_number && ticket.ticket_number.toLowerCase().includes(q);
+      const idMatch = ticket.id && ticket.id.toLowerCase().includes(q);
+      const nameMatch = ticket.farmer_name && ticket.farmer_name.toLowerCase().includes(q);
+      const phoneMatch = (ticket.phone && ticket.phone.includes(q)) || (ticket.contact_phone && ticket.contact_phone.includes(q));
+      const subMatch = ticket.subject && ticket.subject.toLowerCase().includes(q);
+      const descMatch = ticket.description && ticket.description.toLowerCase().includes(q);
+      if (!numMatch && !idMatch && !nameMatch && !phoneMatch && !subMatch && !descMatch) return false;
+    }
+
+    return true;
+  });
+
   const totalUsers = usersList.length;
   const totalAdmins = usersList.filter(u => u.role === 'admin').length;
   const totalFarmers = usersList.filter(u => u.role === 'farmer').length;
@@ -2477,20 +2512,22 @@ export default function AdminPage() {
 
           {/* Tickets Queue List */}
           <div className="space-y-4">
-            {supportTickets.length === 0 ? (
+            {filteredSupportTickets.length === 0 ? (
               <div className="text-center py-16 px-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                 <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
                   <Headphones className="w-8 h-8" />
                 </div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  No Farmer Support Tickets Found
+                  No {supportStatusFilter !== 'all' ? supportStatusFilter.replace('_', ' ').toUpperCase() : ''} Support Tickets Found
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                  There are currently no support requests matching your criteria. When farmers request 15-minute callbacks or submit tickets, they will appear here in real time.
+                  {supportStatusFilter === 'resolved' 
+                    ? 'There are currently no resolved tickets. When you mark open requests as resolved, they will appear here.'
+                    : 'There are currently no support requests matching your criteria. When farmers request 15-minute callbacks or submit tickets, they will appear here in real time.'}
                 </p>
               </div>
             ) : (
-              supportTickets.map((ticket) => {
+              filteredSupportTickets.map((ticket) => {
                 const farmerPhone = ticket.contact_phone || ticket.phone || '';
                 const rawDigits = farmerPhone.replace(/[^0-9]/g, '');
                 const cleanedPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits;
@@ -2693,6 +2730,44 @@ export default function AdminPage() {
                           </p>
                         </div>
                       )}
+
+                      {/* 1-Tap Quick Status Actions Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Quick Actions:</span>
+                          {ticket.status !== 'in_progress' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateTicketStatus(ticket.id, 'in_progress', currentResNote)}
+                              disabled={updatingTicketId === ticket.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-extrabold text-xs border border-amber-200 dark:border-amber-800 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                              <span>🟡 Mark In Progress</span>
+                            </button>
+                          )}
+                          {ticket.status !== 'resolved' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateTicketStatus(ticket.id, 'resolved', currentResNote || 'Issue marked as resolved by admin.')}
+                              disabled={updatingTicketId === ticket.id}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>🟢 Mark Resolved & Close</span>
+                            </button>
+                          )}
+                          {ticket.status === 'resolved' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateTicketStatus(ticket.id, 'open', currentResNote)}
+                              disabled={updatingTicketId === ticket.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-extrabold text-xs border border-rose-200 dark:border-rose-800 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                              <span>↩️ Reopen as Open</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
 
                       {/* Admin Resolution & Status Management Actions */}
                       <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">

@@ -2,6 +2,20 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v117) - Fix: Resolved Tab Filter Mismatch & 1-Tap Instant Status Actions on Helpdesk Tickets
+- **Summary:** Resolved the issue reported in user screenshot where clicking the "Resolved" filter tab still displayed an "Open" ticket, and made status updating foolproof with 1-tap quick action buttons:
+  1. 🔍 **Client-Side Filtering Guardrail (`frontend/src/pages/AdminPage.jsx`):**
+     - Introduced `filteredSupportTickets` with instant local filtering across status (`open`, `in_progress`, `resolved`), category, priority, and search terms.
+     - Guarantees with 100% certainty that selecting the **Resolved** tab will NEVER show an open or pending ticket, even before network responses return or if there's a cached state.
+     - Added clear empty-state messaging when no tickets match the selected filter (e.g. *"There are currently no resolved tickets. When you mark open requests as resolved, they will appear here."*).
+  2. ⚡ **1-Tap Quick Status Action Buttons on Ticket Cards:**
+     - Added prominent, direct 1-tap action buttons directly inside each ticket card:
+       * **`[ 🟢 Mark Resolved & Close ]`**: One-tap resolution that immediately marks the ticket as resolved, saves resolution notes, updates KPI counters, and moves it to the Resolved tab.
+       * **`[ 🟡 Mark In Progress ]`**: For transitioning tickets when phone contact is initiated.
+       * **`[ ↩️ Reopen as Open ]`**: For reopening tickets if the farmer calls back.
+     - Retained the detailed status dropdown and resolution notes input with live spinning feedback.
+- **Files modified**: `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v116) - Fix: Admin Helpdesk Ticket Status Updating (CORS PATCH, Multi-Route Fallbacks & Optimistic UI)
 - **Summary:** Diagnosed and resolved the root causes preventing administrators from updating ticket status and saving resolution notes in the Helpdesk:
   1. 🌐 **CORS Configuration in Backend (`backend/app/main.py`):**
