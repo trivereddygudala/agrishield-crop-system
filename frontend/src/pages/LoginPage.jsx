@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Lock, Eye, EyeOff, ShieldCheck, Sparkles, Globe } from 'lucide-react';
@@ -28,18 +28,19 @@ const LoginPage = () => {
   const [scanProgress, setScanProgress] = useState(0); // 0–100 while loading
   const [showSuccess, setShowSuccess] = useState(false);
   const [successUser, setSuccessUser] = useState(null);
+  const isLoggingInRef = useRef(false);
 
   // Destination after login
   const from = location.state?.from || null;
   const currentLang = getLanguageByCode(i18n.language);
 
-  // Redirect if already logged in
+  // Redirect only if user was ALREADY logged in before visiting /login (not during active login animation)
   useEffect(() => {
-    if (user) {
+    if (user && !isLoggingInRef.current && !showSuccess) {
       const targetPath = user.role === 'admin' ? '/admin' : '/dashboard';
       navigate(targetPath, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, showSuccess]);
 
   // Session-expired toast
   useEffect(() => {
@@ -67,14 +68,15 @@ const LoginPage = () => {
   // Navigate after success overlay finishes
   const handleSuccessDone = useCallback(() => {
     setShowSuccess(false);
-    const userRole = successUser?.role || (successUser?.user?.role);
+    isLoggingInRef.current = false;
+    const userRole = successUser?.role || (successUser?.user?.role) || user?.role;
     const defaultPath = userRole === 'admin' ? '/admin' : (from || '/dashboard');
     navigate(defaultPath, { replace: true });
-  }, [successUser, navigate, from]);
+  }, [successUser, user, navigate, from]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (loading) return;
+    if (loading || showSuccess) return;
 
     if (!email || !password) {
       setErrorMsg(t('auth.login.validation_required', 'Please fill in all credentials.'));
@@ -84,19 +86,21 @@ const LoginPage = () => {
 
     setLoading(true);
     setErrorMsg('');
-    setScanProgress(10);
+    setScanProgress(15);
+    isLoggingInRef.current = true; // Lock redirection so overlay can play
 
     try {
       const loggedUser = await login(email, password, rememberMe);
       setScanProgress(100);
+      setSuccessUser(loggedUser);
+      // Immediately display the full-screen cinematic overlay
+      setShowSuccess(true);
       toast.success(
         t('auth.login.welcome_back_toast', 'Welcome Back!'),
         t('auth.login.login_success', 'Authentication successful.')
       );
-      setSuccessUser(loggedUser);
-      // Small delay so progress bar hits 100 before overlay
-      setTimeout(() => setShowSuccess(true), 180);
     } catch (err) {
+      isLoggingInRef.current = false;
       console.error(err);
       const raw = err.response?.data?.detail;
       const detail = Array.isArray(raw)
@@ -115,7 +119,7 @@ const LoginPage = () => {
       {/* ── Login Success Overlay ── */}
       {showSuccess && (
         <LoginSuccessOverlay
-          userName={successUser?.name || successUser?.user?.name || email}
+          userName={successUser?.name || successUser?.user?.name || user?.name || email.split('@')[0] || 'Farmer'}
           onDone={handleSuccessDone}
         />
       )}

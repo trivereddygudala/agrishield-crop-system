@@ -4,6 +4,8 @@ import { Sprout, BookOpen, Sun, FlaskConical, Volume2, VolumeX } from 'lucide-re
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
+import { buildPlantSpeech } from '../../utils/regionalLocale';
+import { translateCrop } from '../../utils/diseaseAdvisoryData';
 
 const PLANT_KNOWLEDGE_BASE = {
   onion: {
@@ -286,8 +288,11 @@ const PlantIdResults = ({ liveResult, data }) => {
   const { t, i18n } = useTranslation();
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
   const info = data || getPlantDetails(liveResult);
+  const currentLang = (i18n.language || 'en').split('-')[0].toLowerCase();
 
-  const fullSpeciesSummary = `Identified Crop: ${info.commonName}. Botanical family: ${info.family}. Native origin: ${info.nativeRegion}. Growth habit: ${info.growthHabit}. Recommended fertilizer: ${info.fertilizer}.`;
+  const localizedCropName = info.regionalNames?.[currentLang] || translateCrop(info.commonName, currentLang) || info.commonName;
+  const speechInfo = { ...info, commonName: localizedCropName };
+  const fullSpeciesSummary = buildPlantSpeech(speechInfo, currentLang, 'summary');
 
   return (
     <div className="space-y-4">
@@ -306,16 +311,16 @@ const PlantIdResults = ({ liveResult, data }) => {
 
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white leading-tight">
-                {info.commonName}
+                {localizedCropName}
               </h2>
               <Button
                 variant="glass"
                 size="sm"
-                onClick={() => speak(fullSpeciesSummary, 'plant_summary', i18n.language || 'en')}
+                onClick={() => speak(fullSpeciesSummary, 'plant_summary', currentLang)}
                 leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'plant_summary' ? 'animate-bounce text-teal-300' : 'text-white'}`} />}
                 className="bg-teal-600/80 hover:bg-teal-500 text-white font-bold border-teal-400/40 shadow-sm"
               >
-                {speakingId === 'plant_summary' ? 'Stop Voice' : 'Listen Summary'}
+                {speakingId === 'plant_summary' ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Voice') : (currentLang === 'te' ? 'సారాంశం వినండి' : currentLang === 'hi' ? 'सारांश सुनें' : 'Listen Summary')}
               </Button>
             </div>
 
@@ -397,8 +402,8 @@ const PlantIdResults = ({ liveResult, data }) => {
         badge="Overview" 
         defaultOpen={true}
         onSpeak={() => {
-          const text = `Common Name: ${info.commonName}. Botanical Family: ${info.family}. Native Origin: ${info.nativeRegion}. Growth Habit: ${info.growthHabit}.`;
-          speak(text, 'plant_details', i18n.language || 'en');
+          const text = buildPlantSpeech(speechInfo, currentLang, 'details');
+          speak(text, 'plant_details', currentLang);
         }}
         isSpeaking={speakingId === 'plant_details'}
       >
@@ -429,8 +434,8 @@ const PlantIdResults = ({ liveResult, data }) => {
         badge="Taxonomy" 
         defaultOpen={true}
         onSpeak={() => {
-          const text = `Botanical genus: ${info.genus}. Species: ${info.species}. Foliage morphology: ${info.leafType}.`;
-          speak(text, 'plant_scientific', i18n.language || 'en');
+          const text = buildPlantSpeech(speechInfo, currentLang, 'scientific');
+          speak(text, 'plant_scientific', currentLang);
         }}
         isSpeaking={speakingId === 'plant_scientific'}
       >
@@ -457,8 +462,8 @@ const PlantIdResults = ({ liveResult, data }) => {
         badge="Agronomy" 
         defaultOpen={false}
         onSpeak={() => {
-          const text = `Sunlight requirement: ${info.sunlight}. Optimal soil pH: ${info.soilpH}. Watering requirement: ${info.waterNeed}. Climate temperature: ${info.temperature}.`;
-          speak(text, 'plant_growing', i18n.language || 'en');
+          const text = buildPlantSpeech(speechInfo, currentLang, 'growing');
+          speak(text, 'plant_growing', currentLang);
         }}
         isSpeaking={speakingId === 'plant_growing'}
       >
@@ -489,8 +494,12 @@ const PlantIdResults = ({ liveResult, data }) => {
         badge="Nutrition" 
         defaultOpen={false}
         onSpeak={() => {
-          const text = `Recommended fertilizer blend: ${info.fertilizer}. Essential micronutrients: ${info.micronutrients}.`;
-          speak(text, 'plant_fertilizer', i18n.language || 'en');
+          const text = currentLang === 'te' 
+            ? `ఎరువుల సిఫార్సు. ఎరువుల మిశ్రమం: ${info.fertilizer}. సూక్ష్మపోషకాలు: ${info.micronutrients}.`
+            : currentLang === 'hi'
+            ? `उर्वरक सिफारिश। अनुशंसित उर्वरक: ${info.fertilizer}। आवश्यक सूक्ष्म पोषक तत्व: ${info.micronutrients}।`
+            : `Recommended fertilizer blend: ${info.fertilizer}. Essential micronutrients: ${info.micronutrients}.`;
+          speak(text, 'plant_fertilizer', currentLang);
         }}
         isSpeaking={speakingId === 'plant_fertilizer'}
       >

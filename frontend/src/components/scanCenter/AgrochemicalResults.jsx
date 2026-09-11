@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
+import { buildAgroSpeech } from '../../utils/regionalLocale';
 
 const DEFAULT_AGRO_DATA = {
   productName: "Luliconazole Lotion IP / Mancozeb 75% WP",
@@ -52,8 +53,9 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
 
   const info = isDiseaseResult ? adaptedData : { ...DEFAULT_AGRO_DATA, ...data };
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
+  const currentLang = (i18n.language || 'en').split('-')[0].toLowerCase();
 
-  const fullProductSummary = `Scanned Agrochemical Product: ${info.productName}. Category: ${info.category}. Active ingredient: ${info.activeIngredient}. Recommended dosage: ${info.dosage}. Safety instructions: ${info.ppe === DEFAULT_AGRO_DATA.ppe ? t('agrochemical.ppe_desc') : info.ppe}`;
+  const fullProductSummary = buildAgroSpeech(info, currentLang, 'summary');
 
   return (
     <div className="space-y-4">
@@ -75,11 +77,11 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
               <Button
                 variant="glass"
                 size="sm"
-                onClick={() => speak(fullProductSummary, 'agro_summary', i18n.language || 'en')}
+                onClick={() => speak(fullProductSummary, 'agro_summary', currentLang)}
                 leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'agro_summary' ? 'animate-bounce text-indigo-300' : 'text-white'}`} />}
                 className="bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm"
               >
-                {speakingId === 'agro_summary' ? 'Stop Voice' : 'Listen Summary'}
+                {speakingId === 'agro_summary' ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Voice') : (currentLang === 'te' ? 'సారాంశం వినండి' : currentLang === 'hi' ? 'सारांश सुनें' : 'Listen Summary')}
               </Button>
             </div>
 
@@ -124,8 +126,8 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
         badge="Chemical Info" 
         defaultOpen={true}
         onSpeak={() => {
-          const text = `Product Name: ${info.productName}. Category: ${info.category}. Active Ingredient: ${info.activeIngredient}.`;
-          speak(text, 'agro_details', i18n.language || 'en');
+          const text = buildAgroSpeech(info, currentLang, 'details');
+          speak(text, 'agro_details', currentLang);
         }}
         isSpeaking={speakingId === 'agro_details'}
       >
@@ -152,8 +154,8 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
         badge={t('agrochemical.protocol')} 
         defaultOpen={true}
         onSpeak={() => {
-          const text = `Usage Instructions. Recommended rate: ${info.dosage}. Target pathogens: ${info.targetDiseases}. Spray schedule: ${info.sprayInterval}.`;
-          speak(text, 'agro_usage', i18n.language || 'en');
+          const text = buildAgroSpeech(info, currentLang, 'usage');
+          speak(text, 'agro_usage', currentLang);
         }}
         isSpeaking={speakingId === 'agro_usage'}
       >
@@ -180,8 +182,8 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
         badge={t('agrochemical.safety')} 
         defaultOpen={false}
         onSpeak={() => {
-          const text = `Safety Guidelines. Toxicity rating: ${info.toxicityClass}. Protective equipment: ${info.ppe}. Storage: ${info.storage}.`;
-          speak(text, 'agro_safety', i18n.language || 'en');
+          const text = buildAgroSpeech(info, currentLang, 'safety');
+          speak(text, 'agro_safety', currentLang);
         }}
         isSpeaking={speakingId === 'agro_safety'}
       >
@@ -205,13 +207,13 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
       <CollapsibleSection title={t('agrochemical.voice_readout')} icon={Volume2} badge={t('agrochemical.accessibility')} defaultOpen={false}>
         <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
           <Button 
-            onClick={() => speak(fullProductSummary, 'agro_panel', i18n.language || 'en')} 
+            onClick={() => speak(fullProductSummary, 'agro_panel', currentLang)} 
             variant="outline" 
             size="sm"
             className="font-bold active:scale-95"
           >
             {speakingId === 'agro_panel' ? <VolumeX className="mr-2 h-4 w-4 text-rose-500 animate-pulse" /> : <Volume2 className="mr-2 h-4 w-4 text-primary-600" />}
-            {speakingId === 'agro_panel' ? 'Stop Voice Readout' : 'Listen to Product Instructions'}
+            {speakingId === 'agro_panel' ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Voice Readout') : (currentLang === 'te' ? 'సూచనలు వినండి' : currentLang === 'hi' ? 'दवा निर्देश सुनें' : 'Listen to Product Instructions')}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -237,8 +239,12 @@ const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
         badge={t('agrochemical.alternatives')} 
         defaultOpen={false}
         onSpeak={() => {
-          const altText = `Alternative registered crop protection formulas: ${info.alternatives.map(a => `${a.name}, ${a.category}, safety: ${a.safety}`).join('. ')}`;
-          speak(altText, 'agro_alternatives', i18n.language || 'en');
+          const altText = currentLang === 'te'
+            ? `ప్రత్యామ్నాయ పంట రక్షణ మందులు: ${info.alternatives.map(a => `${a.name}, వర్గం: ${a.category}, భద్రత: ${a.safety}`).join('. ')}`
+            : currentLang === 'hi'
+            ? `वैकल्पिक पंजीकृत फसल सुरक्षा दवाएं: ${info.alternatives.map(a => `${a.name}, श्रेणी: ${a.category}, सुरक्षा: ${a.safety}`).join('. ')}`
+            : `Alternative registered crop protection formulas: ${info.alternatives.map(a => `${a.name}, ${a.category}, safety: ${a.safety}`).join('. ')}`;
+          speak(altText, 'agro_alternatives', currentLang);
         }}
         isSpeaking={speakingId === 'agro_alternatives'}
       >

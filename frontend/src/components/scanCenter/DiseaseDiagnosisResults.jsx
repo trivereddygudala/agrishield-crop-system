@@ -10,7 +10,7 @@ import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress, Input, Select } from '../ui/index';
 import { translateCrop, translateDisease, getDiseaseDetails, localizeAdvice, localizeCalendarItem } from '../../utils/diseaseAdvisoryData';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
-import { TANK_GUIDE_TEXTS, FORMULATION_TEXTS, getAudioActionLabel, getSpeechLocale, getSafetyFallback } from '../../utils/regionalLocale';
+import { TANK_GUIDE_TEXTS, FORMULATION_TEXTS, getAudioActionLabel, getSpeechLocale, getSafetyFallback, buildDiseaseChemicalSpeech } from '../../utils/regionalLocale';
 import TreatmentRecoverySimulator from './TreatmentRecoverySimulator';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
@@ -195,7 +195,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               size="sm"
               onClick={() => {
                 const summaryText = `${localizedCrop}. ${localizedDisease}. ${organicList[0] || ''}. ${chemicalsList[0] || ''}`;
-                speak(summaryText, 'hero_summary', i18n.language || 'en');
+                speak(summaryText, 'hero_summary', currentLang);
               }}
               leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'hero_summary' ? 'animate-bounce text-emerald-300' : 'text-white'}`} />}
               className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-lg shadow-emerald-950/40"
@@ -385,17 +385,17 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         defaultOpen={true}
         badgeText="AI Analysis"
         onSpeak={() => {
-          const overviewText = (currentLang === 'te' && !hasRegionalText(liveResult?.disease_explanation))
-            ? (diseaseInfo?.overview || liveResult?.disease_explanation || 'ఆకులపై శిలీంధ్ర మచ్చలు మరియు పసుపు రంగు వలయాలు గమనించబడ్డాయి.')
+          const overviewText = (currentLang !== 'en' && !hasRegionalText(liveResult?.disease_explanation) && diseaseInfo?.overview)
+            ? diseaseInfo.overview
             : (liveResult?.disease_explanation || liveResult?.symptoms || diseaseInfo?.overview || 'Pathology details for this crop condition.');
-          speak(overviewText, 'card_pathology', i18n.language || 'en');
+          speak(overviewText, 'card_pathology', currentLang);
         }}
         isSpeaking={speakingId === 'card_pathology'}
       >
         <div className="space-y-3 text-xs sm:text-sm text-slate-800 dark:text-slate-100 font-medium leading-relaxed">
           <p>
-            {(currentLang === 'te' && !hasRegionalText(liveResult?.disease_explanation))
-              ? (diseaseInfo?.overview || liveResult?.disease_explanation || 'ఆకులపై శిలీంధ్ర మచ్చలు మరియు పసుపు రంగు వలయాలు గమనించబడ్డాయి.')
+            {(currentLang !== 'en' && !hasRegionalText(liveResult?.disease_explanation) && diseaseInfo?.overview)
+              ? diseaseInfo.overview
               : (liveResult?.disease_explanation || liveResult?.symptoms || diseaseInfo?.overview || 'Fungal lesions with concentric rings and chlorotic halos observed across foliage.')}
           </p>
 
@@ -421,7 +421,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         badgeText="Eco Friendly"
         onSpeak={() => {
           const text = organicList.join('. ');
-          speak(text, 'card_organic', i18n.language || 'en');
+          speak(text, 'card_organic', currentLang);
         }}
         isSpeaking={speakingId === 'card_organic'}
       >
@@ -448,8 +448,16 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         defaultOpen={true}
         badgeText="Chemical Protocol"
         onSpeak={() => {
-          const text = `Important chemical protocol. Use only one medicine from the recommended list, do not mix them. Selected medicine is ${selectedChem}. For a ${tankSize} litre tank, mix ${tankMedicineGrams} ${currentDosage.displayUnit} of medicine. For your ${fieldArea} acre field, you will need approximately ${tanksNeeded} tanks with ${totalWaterLitres} litres of water.`;
-          speak(text, 'card_chemical', i18n.language || 'en');
+          const text = buildDiseaseChemicalSpeech({
+            selectedChem,
+            tankSize,
+            tankGrams: tankMedicineGrams,
+            unit: currentDosage.displayUnit,
+            area: fieldArea,
+            tanks: tanksNeeded,
+            water: totalWaterLitres
+          }, currentLang);
+          speak(text, 'card_chemical', currentLang);
         }}
         isSpeaking={speakingId === 'card_chemical'}
       >
@@ -718,8 +726,12 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           badgeText="Outbreak Plan"
           defaultOpen={true}
           onSpeak={() => {
-            const text = liveResult.prescription_calendar.map(item => `Day ${item.day}: ${item.title}. ${item.activity}`).join('. ');
-            speak(text, 'card_calendar', i18n.language || 'en');
+            const text = liveResult.prescription_calendar.map(rawItem => {
+              const item = localizeCalendarItem(rawItem, currentLang);
+              const dayLabel = currentLang === 'te' ? `రోజు ${item.day}` : currentLang === 'hi' ? `दिन ${item.day}` : `Day ${item.day}`;
+              return `${dayLabel}: ${item.title}. ${item.activity}`;
+            }).join('. ');
+            speak(text, 'card_calendar', currentLang);
           }}
           isSpeaking={speakingId === 'card_calendar'}
         >
@@ -759,7 +771,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           const text = (!hasRegionalText(liveResult?.safety_precautions) && currentLang !== 'en')
             ? getSafetyFallback(currentLang)
             : (liveResult?.safety_precautions || getSafetyFallback(currentLang));
-          speak(text, 'card_safety', i18n.language || 'en');
+          speak(text, 'card_safety', currentLang);
         }}
         isSpeaking={speakingId === 'card_safety'}
       >
@@ -780,7 +792,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         onSpeak={() => {
           const rawItems = Array.isArray(liveResult?.prevention_methods) ? liveResult.prevention_methods : [liveResult?.prevention_methods || 'Practice crop rotation and field sanitation.'];
           const items = rawItems.map(item => localizeAdvice(item, currentLang));
-          speak(items.join('. '), 'card_prevention', i18n.language || 'en');
+          speak(items.join('. '), 'card_prevention', currentLang);
         }}
         isSpeaking={speakingId === 'card_prevention'}
       >
@@ -801,7 +813,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         onSpeak={() => {
           const rawCauses = Array.isArray(liveResult?.possible_causes) ? liveResult.possible_causes : [liveResult?.possible_causes || 'High humidity and poor air circulation.'];
           const causes = rawCauses.map(cause => localizeAdvice(cause, currentLang));
-          speak(causes.join('. '), 'card_causes', i18n.language || 'en');
+          speak(causes.join('. '), 'card_causes', currentLang);
         }}
         isSpeaking={speakingId === 'card_causes'}
       >

@@ -894,3 +894,182 @@ export function getFungalRiskData(isHighRisk = false, lang = 'en') {
   };
 }
 
+export const PLANT_SPEECH_TEMPLATES = {
+  summary: {
+    te: (d) => `గుర్తించబడిన పంట: ${d.name}. వృక్ష కుటుంబం: ${d.family}. స్థానిక మూలం: ${d.origin}. పెరుగుదల విధానం: ${d.habit}. సిఫార్సు చేసిన ఎరువులు: ${d.fertilizer}.`,
+    hi: (d) => `पहचाना गया पौधा: ${d.name}। वानस्पतिक कुल: ${d.family}। मूल उत्पत्ति: ${d.origin}। वृद्धि का प्रकार: ${d.habit}। अनुशंसित उर्वरक: ${d.fertilizer}।`,
+    ta: (d) => `கண்டறியப்பட்ட பயிர்: ${d.name}. தாவரவியல் குடும்பம்: ${d.family}. பிறப்பிடம்: ${d.origin}. வளர்ச்சி முறை: ${d.habit}. பரிந்துரைக்கப்பட்ட உரம்: ${d.fertilizer}.`,
+    kn: (d) => `ಗುರುತಿಸಲಾದ ಬೆಳೆ: ${d.name}. ಸಸ್ಯಶಾಸ್ತ್ರೀಯ ಕುಟುಂಬ: ${d.family}. ಮೂಲ ಪ್ರದೇಶ: ${d.origin}. ಬೆಳವಣಿಗೆಯ ಪ್ರಕಾರ: ${d.habit}. ಶಿಫಾರಸು ಮಾಡಿದ ಗೊಬ್ಬರ: ${d.fertilizer}.`,
+    ml: (d) => `തിരിച്ചറിഞ്ഞ വിള: ${d.name}. സസ്യ കുടുംബം: ${d.family}. ഉത്ഭവം: ${d.origin}. വളർച്ചാ രീതി: ${d.habit}. ശുപാർശ ചെയ്ത വളം: ${d.fertilizer}.`,
+    mr: (d) => `ओळखलेले पीक: ${d.name}. वनस्पती कुटुंब: ${d.family}. मूळ प्रदेश: ${d.origin}. वाढीचा प्रकार: ${d.habit}. शिफारस केलेले खत: ${d.fertilizer}.`,
+    gu: (d) => `ઓળખાયેલ પાક: ${d.name}. વનસ્પતિ પરિવાર: ${d.family}. મૂળ વિસ્તાર: ${d.origin}. વૃદ્ધિનો પ્રકાર: ${d.habit}. ભલામણ કરેલ ખાતર: ${d.fertilizer}.`,
+    pa: (d) => `ਪਛਾਣੀ ਗਈ ਫ਼ਸਲ: ${d.name}. ਬਨਸਪਤੀ ਪਰਿਵਾਰ: ${d.family}. ਮੂਲ ਖੇਤਰ: ${d.origin}. ਵਾਧੇ ਦੀ ਕਿਸਮ: ${d.habit}. ਸਿਫਾਰਸ਼ ਕੀਤੀ ਖਾਦ: ${d.fertilizer}.`,
+    ur: (d) => `شناخت شدہ فصل: ${d.name}۔ نباتاتی خاندان: ${d.family}۔ آبائی خطہ: ${d.origin}۔ نشوونما کا طریقہ: ${d.habit}۔ تجویز کردہ کھاد: ${d.fertilizer}۔`,
+    or: (d) => `ଚିହ୍ନଟ ହୋଇଥିବା ଫସଲ: ${d.name}। ଉଦ୍ଭିଦ ପରିବାର: ${d.family}। ମୂଳ ଉତ୍ପତ୍ତି: ${d.origin}। ବୃଦ୍ଧି ପ୍ରକାର: ${d.habit}। ପରାମର୍ଶିତ ଖତ: ${d.fertilizer}।`,
+    as: (d) => `চিনাক্ত কৰা শস্য: ${d.name}। উদ্ভিদ পৰিয়াল: ${d.family}। উৎপত্তি স্থল: ${d.origin}। বিকাশৰ ধৰণ: ${d.habit}। পৰামৰ্শিত সাৰ: ${d.fertilizer}।`,
+    en: (d) => `Identified Crop: ${d.name}. Botanical family: ${d.family}. Native origin: ${d.origin}. Growth habit: ${d.habit}. Recommended fertilizer: ${d.fertilizer}.`
+  },
+  details: {
+    te: (d) => `పంట పేరు: ${d.name}. వృక్ష కుటుంబం: ${d.family}. స్థానిక మూలం: ${d.origin}. పెరుగుదల విధానం: ${d.habit}.`,
+    hi: (d) => `फसल का नाम: ${d.name}। वानस्पतिक कुल: ${d.family}। मूल उत्पत्ति: ${d.origin}। विकास प्रकार: ${d.habit}।`,
+    ta: (d) => `பயிர் பெயர்: ${d.name}. தாவர குடும்பம்: ${d.family}. பிறப்பிடம்: ${d.origin}. வளர்ச்சி வடிவம்: ${d.habit}.`,
+    kn: (d) => `ಬೆಳೆಯ ಹೆಸರು: ${d.name}. ಸಸ್ಯ ಕುಟುಂಬ: ${d.family}. ಮೂಲ ಪ್ರದೇಶ: ${d.origin}. ಬೆಳವಣಿಗೆ ರೀತಿ: ${d.habit}.`,
+    ml: (d) => `വിളയുടെ പേര്: ${d.name}. സസ്യ കുടുംബം: ${d.family}. ഉത്ഭവം: ${d.origin}. വളർച്ചാ രീതി: ${d.habit}.`,
+    mr: (d) => `पिकाचे नाव: ${d.name}. वनस्पती कुटुंब: ${d.family}. मूळ प्रदेश: ${d.origin}. वाढीचा प्रकार: ${d.habit}.`,
+    gu: (d) => `પાકનું નામ: ${d.name}. વનસ્પતિ કુટુંબ: ${d.family}. મૂળ વિસ્તાર: ${d.origin}. વિકાસ પદ્ધતિ: ${d.habit}.`,
+    pa: (d) => `ਫ਼ਸਲ ਦਾ ਨਾਮ: ${d.name}. ਬਨਸਪਤੀ ਕੁਲ: ${d.family}. ਮੂਲ ਸਥਾਨ: ${d.origin}. ਵਾਧਾ ਢੰਗ: ${d.habit}.`,
+    ur: (d) => `فصل کا نام: ${d.name}۔ نباتاتی خاندان: ${d.family}۔ آبائی مقام: ${d.origin}۔ نشوونما: ${d.habit}۔`,
+    or: (d) => `ଫସଲର ନାମ: ${d.name}। ଉଦ୍ଭିଦ ପରିବାର: ${d.family}। ମୂଳ ସ୍ଥାନ: ${d.origin}। ବୃଦ୍ଧି ପ୍ରକୃତି: ${d.habit}।`,
+    as: (d) => `শস্যৰ নাম: ${d.name}। উদ্ভিদ পৰিয়াল: ${d.family}। উৎপত্তি: ${d.origin}। বিকাশ: ${d.habit}।`,
+    en: (d) => `Common Name: ${d.name}. Botanical Family: ${d.family}. Native Origin: ${d.origin}. Growth Habit: ${d.habit}.`
+  },
+  scientific: {
+    te: (d) => `శాస్త్రీయ సమాచారం. ప్రజాతి: ${d.genus}. జాతి: ${d.species}. ఆకుల లక్షణాలు: ${d.leafType}.`,
+    hi: (d) => `वैज्ञानिक जानकारी। वंश: ${d.genus}। प्रजाति: ${d.species}। पत्तियों की संरचना: ${d.leafType}।`,
+    ta: (d) => `அறிவியல் தகவல். பேரினம்: ${d.genus}. இனம்: ${d.species}. இலை அமைப்பு: ${d.leafType}.`,
+    kn: (d) => `ವೈಜ್ಞಾನಿಕ ಮಾಹಿತಿ. ಕುಲ: ${d.genus}. ಪ್ರಭೇದ: ${d.species}. ಎಲೆಗಳ ವಿನ್ಯಾಸ: ${d.leafType}.`,
+    ml: (d) => `ശാസ്ത്രീയ വിവരങ്ങൾ. ജീനസ്: ${d.genus}. സ്പീഷീസ്: ${d.species}. ഇലകളുടെ ഘടന: ${d.leafType}.`,
+    mr: (d) => `वैज्ञानिक माहिती. वंश: ${d.genus}. प्रजाती: ${d.species}. पानांची रचना: ${d.leafType}.`,
+    gu: (d) => `વૈજ્ઞાનિક માહિતી. પ્રજાતિ: ${d.genus}. જાતિ: ${d.species}. પર્ણ રચના: ${d.leafType}.`,
+    pa: (d) => `ਵਿਗਿਆਨਕ ਜਾਣਕਾਰੀ। ਵੰਸ਼: ${d.genus}। ਨਸਲ: ${d.species}। ਪੱਤਿਆਂ ਦੀ ਬਣਤਰ: ${d.leafType}।`,
+    ur: (d) => `سائنسی معلومات۔ جنس: ${d.genus}۔ قسم: ${d.species}۔ پتوں کی ساخت: ${d.leafType}۔`,
+    or: (d) => `ବୈଜ୍ଞାନିକ ତଥ୍ୟ। ପ୍ରଜାତି: ${d.genus}। ଜାତି: ${d.species}। ପତ୍ର ଗଠନ: ${d.leafType}।`,
+    as: (d) => `বৈজ্ঞানিক তথ্য। বংশ: ${d.genus}। প্ৰজাতি: ${d.species}। পাতৰ গঠন: ${d.leafType}।`,
+    en: (d) => `Botanical genus: ${d.genus}. Species: ${d.species}. Foliage morphology: ${d.leafType}.`
+  },
+  growing: {
+    te: (d) => `సాగు వివరాలు. సూర్యరశ్మి: ${d.sunlight}. నేల పిహెచ్: ${d.soilpH}. నీటి అవసరం: ${d.waterNeed}. అనుకూల ఉష్ణోగ్రత: ${d.temperature}.`,
+    hi: (d) => `खेती की जानकारी। धूप की आवश्यकता: ${d.sunlight}। मिट्टी का पीएच: ${d.soilpH}। पानी की आवश्यकता: ${d.waterNeed}। उपयुक्त तापमान: ${d.temperature}।`,
+    ta: (d) => `சாகுபடி விவரங்கள். சூரிய ஒளி தேவை: ${d.sunlight}. மண் பி.எச்: ${d.soilpH}. நீர் தேவை: ${d.waterNeed}. காலநிலை வெப்பநிலை: ${d.temperature}.`,
+    kn: (d) => `ಕೃಷಿ ಮಾಹಿತಿ. ಸೂರ್ಯನ ಬೆಳಕು: ${d.sunlight}. ಮಣ್ಣಿನ ಪಿ.ಎಚ್: ${d.soilpH}. ನೀರಿನ ಅಗತ್ಯ: ${d.waterNeed}. ತಾಪಮಾನ: ${d.temperature}.`,
+    ml: (d) => `കൃഷി വിവരങ്ങൾ. സൂര്യപ്രകാശം: ${d.sunlight}. മണ്ണിലെ പി.എച്ച്: ${d.soilpH}. ജല ആവശ്യകത: ${d.waterNeed}. അനുയോജ്യമായ താപനില: ${d.temperature}.`,
+    mr: (d) => `लागवड माहिती. सूर्यप्रकाश: ${d.sunlight}. जमिनीचा सामू: ${d.soilpH}. पाण्याची गरज: ${d.waterNeed}. अनुकूल तापमान: ${d.temperature}.`,
+    gu: (d) => `ખેતી માહિતી. સૂર્યપ્રકાશ: ${d.sunlight}. જમીન પી.એચ: ${d.soilpH}. પાણીની જરૂરિયાત: ${d.waterNeed}. અનુકૂળ તાપમાન: ${d.temperature}.`,
+    pa: (d) => `ਖੇਤੀ ਜਾਣਕਾਰੀ। ਧੁੱਪ ਦੀ ਲੋੜ: ${d.sunlight}। ਮਿੱਟੀ ਦਾ ਪੀ.ਐਚ: ${d.soilpH}। ਪਾਣੀ ਦੀ ਲੋੜ: ${d.waterNeed}। ਢੁਕਵਾਂ ਤਾਪਮਾਨ: ${d.temperature}।`,
+    ur: (d) => `کاشتکاری کی معلومات۔ دھوپ کی ضرورت: ${d.sunlight}۔ مٹی کا پی ایچ: ${d.soilpH}۔ پانی کی ضرورت: ${d.waterNeed}۔ موزوں درجہ حرارت: ${d.temperature}۔`,
+    or: (d) => `ଚାଷ ତଥ୍ୟ। ସୂର୍ଯ୍ୟାଲୋକ: ${d.sunlight}। ମାଟି ପିଏଚ୍: ${d.soilpH}। ଜଳ ଆବଶ୍ୟକତା: ${d.waterNeed}। ତାପମାତ୍ରା: ${d.temperature}।`,
+    as: (d) => `কৃষি তথ্য। সূৰ্যৰ পোহৰ: ${d.sunlight}। মাটিৰ পিএইচ: ${d.soilpH}। পানীৰ প্ৰয়োজন: ${d.waterNeed}। উপযুক্ত উষ্ণতা: ${d.temperature}।`,
+    en: (d) => `Sunlight requirement: ${d.sunlight}. Optimal soil pH: ${d.soilpH}. Watering requirement: ${d.waterNeed}. Climate temperature: ${d.temperature}.`
+  }
+};
+
+export function buildPlantSpeech(info = {}, lang = 'en', section = 'summary') {
+  const code = (lang || 'en').split('-')[0].toLowerCase();
+  const group = PLANT_SPEECH_TEMPLATES[section] || PLANT_SPEECH_TEMPLATES.summary;
+  const templateFn = group[code] || group.en;
+  const data = {
+    name: info.commonName || 'Crop',
+    family: info.family || 'Agricultural Plant',
+    origin: info.nativeRegion || 'India',
+    habit: info.growthHabit || 'Field Crop',
+    fertilizer: info.fertilizer || 'Balanced Organic NPK',
+    genus: info.genus || 'Plantae',
+    species: info.species || 'Cultivar',
+    leafType: info.leafType || 'Foliage Leaf',
+    sunlight: info.sunlight || 'Full Sun',
+    soilpH: info.soilpH || '6.0 - 7.0',
+    waterNeed: info.waterNeed || 'Moderate Irrigation',
+    temperature: info.temperature || '20°C - 30°C'
+  };
+  return templateFn(data);
+}
+
+export const AGRO_SPEECH_TEMPLATES = {
+  summary: {
+    te: (d) => `స్కాన్ చేసిన రసాయన మందు: ${d.name}. వర్గం: ${d.category}. క్రియాశీల రసాయనం: ${d.ingredient}. సిఫార్సు మోతాదు: ${d.dosage}. భద్రతా సూచన: ${d.safety}.`,
+    hi: (d) => `स्कैन किया गया कृषि रसायन: ${d.name}। श्रेणी: ${d.category}। सक्रिय घटक: ${d.ingredient}। अनुशंसित मात्रा: ${d.dosage}। सुरक्षा निर्देश: ${d.safety}।`,
+    ta: (d) => `ஸ்கேன் செய்யப்பட்ட மருந்து: ${d.name}. வகை: ${d.category}. மூலப்பொருள்: ${d.ingredient}. பரிந்துரைக்கப்பட்ட அளவு: ${d.dosage}. பாதுகாப்பு வழிமுறை: ${d.safety}.`,
+    kn: (d) => `ಸ್ಕ್ಯಾನ್ ಮಾಡಿದ ಕೃಷಿ ರಾಸಾಯನಿಕ: ${d.name}. ವರ್ಗ: ${d.category}. ಸಕ್ರಿಯ ಘಟಕ: ${d.ingredient}. ಶಿಫಾರಸು ಪ್ರಮಾಣ: ${d.dosage}. ಸುರಕ್ಷತಾ ಸೂಚನೆ: ${d.safety}.`,
+    ml: (d) => `സ്കാൻ ചെയ്ത കാർഷിക രാസവസ്തു: ${d.name}. വിഭാഗം: ${d.category}. സജീവ ഘടകം: ${d.ingredient}. ശുപാർശ ചെയ്ത അളവ്: ${d.dosage}. സുരക്ഷാ നിർദ്ദേശം: ${d.safety}.`,
+    mr: (d) => `स्कॅन केलेले कृषी रसायन: ${d.name}. वर्ग: ${d.category}. सक्रिय घटक: ${d.ingredient}. शिफारस प्रमाण: ${d.dosage}. सुरक्षा सूचना: ${d.safety}.`,
+    gu: (d) => `સ્કેન કરેલ કૃષિ રસાયણ: ${d.name}. શ્રેણી: ${d.category}. સક્રિય ઘટક: ${d.ingredient}. ભલામણ કરેલ માત્રા: ${d.dosage}. સુરક્ષા સૂચના: ${d.safety}.`,
+    pa: (d) => `ਸਕੈਨ ਕੀਤਾ ਖੇਤੀ ਰਸਾਇਣ: ${d.name}. ਸ਼੍ਰੇਣੀ: ${d.category}. ਸਰਗਰਮ ਤੱਤ: ${d.ingredient}. ਸਿਫਾਰਸ਼ ਕੀਤੀ ਮਾਤਰਾ: ${d.dosage}. ਸੁਰੱਖਿਆ ਨਿਰਦੇਸ਼: ${d.safety}.`,
+    ur: (d) => `اسکین شدہ زرعی دوا: ${d.name}۔ زمرہ: ${d.category}۔ فعال جزو: ${d.ingredient}۔ تجویز کردہ خوراک: ${d.dosage}۔ حفاظتی ہدایت: ${d.safety}۔`,
+    or: (d) => `ସ୍କାନ ହୋଇଥିବା କୃଷି ଔଷଧ: ${d.name}। ବର୍ଗ: ${d.category}। ସକ୍ରିୟ ଉପାଦାନ: ${d.ingredient}। ପରାମର୍ଶିତ ମାତ୍ରା: ${d.dosage}। ସୁରକ୍ଷା ନିର୍ଦ୍ଦେଶ: ${d.safety}।`,
+    as: (d) => `স্কেন কৰা কৃষি ৰাসায়নিক: ${d.name}। শ্ৰেণী: ${d.category}। সক্ৰিয় উপাদান: ${d.ingredient}। পৰামৰ্শিত মাত্ৰা: ${d.dosage}। সুৰক্ষা নিৰ্দেশনা: ${d.safety}।`,
+    en: (d) => `Scanned Agrochemical Product: ${d.name}. Category: ${d.category}. Active ingredient: ${d.ingredient}. Recommended dosage: ${d.dosage}. Safety instructions: ${d.safety}.`
+  },
+  details: {
+    te: (d) => `రసాయన మందు వివరాలు. మందు పేరు: ${d.name}. వర్గం: ${d.category}. క్రియాశీల రసాయనం: ${d.ingredient}.`,
+    hi: (d) => `उत्पाद विवरण। ब्रांड नाम: ${d.name}। श्रेणी: ${d.category}। सक्रिय घटक: ${d.ingredient}।`,
+    ta: (d) => `தயாரிப்பு விவரங்கள். பெயர்: ${d.name}. வகை: ${d.category}. மூலப்பொருள்: ${d.ingredient}.`,
+    kn: (d) => `ಉತ್ಪನ್ನದ ವಿವರಗಳು. ಹೆಸರು: ${d.name}. ವರ್ಗ: ${d.category}. ಸಕ್ರಿಯ ಘಟಕ: ${d.ingredient}.`,
+    ml: (d) => `ഉൽപ്പന്ന വിവരങ്ങൾ. പേര്: ${d.name}. വിഭാഗം: ${d.category}. സജീവ ഘടകം: ${d.ingredient}.`,
+    mr: (d) => `उत्पादन तपशील. नाव: ${d.name}. वर्ग: ${d.category}. सक्रिय घटक: ${d.ingredient}.`,
+    gu: (d) => `ઉત્પાદન વિગત. નામ: ${d.name}. શ્રેણી: ${d.category}. સક્રિય ઘટક: ${d.ingredient}.`,
+    pa: (d) => `ਉਤਪਾਦ ਵੇਰਵਾ। ਨਾਮ: ${d.name}। ਸ਼੍ਰੇਣੀ: ${d.category}। ਸਰਗਰਮ ਤੱਤ: ${d.ingredient}.`,
+    ur: (d) => `پروڈکٹ کی تفصیل۔ نام: ${d.name}۔ زمرہ: ${d.category}۔ فعال جزو: ${d.ingredient}۔`,
+    or: (d) => `ଉତ୍ପାଦ ବିବରଣୀ। ନାମ: ${d.name}। ବର୍ଗ: ${d.category}। ସକ୍ରିୟ ଉପାଦାନ: ${d.ingredient}।`,
+    as: (d) => `সামগ্ৰীৰ বিৱৰণ। নাম: ${d.name}। শ্ৰেণী: ${d.category}। সক্ৰিয় উপাদান: ${d.ingredient}।`,
+    en: (d) => `Product Name: ${d.name}. Category: ${d.category}. Active Ingredient: ${d.ingredient}.`
+  },
+  usage: {
+    te: (d) => `వాడుక మార్గదర్శకాలు. సిఫార్సు మోతాదు: ${d.dosage}. నివారించే తెగుళ్లు: ${d.target}. పిచికారీ వ్యవధి: ${d.interval}.`,
+    hi: (d) => `उपयोग निर्देश। अनुशंसित मात्रा: ${d.dosage}। लक्षित रोग: ${d.target}। छिड़काव अंतराल: ${d.interval}।`,
+    ta: (d) => `பயன்பாட்டு வழிகாட்டுதல். பரிந்துரைக்கப்பட்ட அளவு: ${d.dosage}. இலக்கு நோய்கள்: ${d.target}. தெளிப்பு இடைவெளி: ${d.interval}.`,
+    kn: (d) => `ಬಳಕೆಯ ಮಾರ್ಗದರ್ಶಿ. ಶಿಫಾರಸು ಪ್ರಮಾಣ: ${d.dosage}. ನಿಯಂತ್ರಿಸುವ ರೋಗಗಳು: ${d.target}. ಸಿಂಪಡಣೆಯ ಅಂತರ: ${d.interval}.`,
+    ml: (d) => `ഉപയോഗ നിർദ്ദേശങ്ങൾ. ശുപാർശ ചെയ്ത അളവ്: ${d.dosage}. ലക്ഷ്യ രോഗങ്ങൾ: ${d.target}. സ്പ്രേ ഇടവേള: ${d.interval}.`,
+    mr: (d) => `वापर सूचना. शिफारस केलेले प्रमाण: ${d.dosage}. नियंत्रित होणारे रोग: ${d.target}. फवारणी अंतर: ${d.interval}.`,
+    gu: (d) => `વપરાશ માર્ગદર્શિકા. ભલામણ કરેલ માત્રા: ${d.dosage}. લક્ષિત રોગો: ${d.target}. છંટકાવ અંતરાલ: ${d.interval}.`,
+    pa: (d) => `ਵਰਤੋਂ ਨਿਰਦੇਸ਼। ਸਿਫਾਰਸ਼ ਕੀਤੀ ਮਾਤਰਾ: ${d.dosage}। ਨਿਯੰਤਰਿਤ ਬਿਮਾਰੀਆਂ: ${d.target}। ਛਿੜਕਾਅ ਦਾ ਅੰਤਰਾਲ: ${d.interval}।`,
+    ur: (d) => `استعمال کی ہدایات۔ تجویز کردہ خوراک: ${d.dosage}۔ نشانہ بننے والی بیماریاں: ${d.target}۔ اسپرے وقفہ: ${d.interval}۔`,
+    or: (d) => `ବ୍ୟବହାର ନିର୍ଦ୍ଦେଶ। ପରାମର୍ଶିତ ମାତ୍ରା: ${d.dosage}। ନିୟନ୍ତ୍ରିତ ରୋଗ: ${d.target}। ସ୍ପ୍ରେ ବ୍ୟବଧାନ: ${d.interval}।`,
+    as: (d) => `ব্যৱহাৰ নিৰ্দেশনা। পৰামৰ্শিত মাত্ৰা: ${d.dosage}। লক্ষ্য ৰোগ: ${d.target}। স্প্ৰেৰ ব্যৱধান: ${d.interval}।`,
+    en: (d) => `Usage Instructions. Recommended rate: ${d.dosage}. Target pathogens: ${d.target}. Spray schedule: ${d.interval}.`
+  },
+  safety: {
+    te: (d) => `భద్రతా సూచనలు. విషపూరిత స్థాయి: ${d.toxicity}. రక్షణ పరికరాలు: ${d.ppe}. భద్రపరిచే విధానం: ${d.storage}.`,
+    hi: (d) => `सुरक्षा निर्देश। विषाक्तता रेटिंग: ${d.toxicity}। सुरक्षा उपकरण: ${d.ppe}। भंडारण: ${d.storage}।`,
+    ta: (d) => `பாதுகாப்பு வழிகாட்டுதல்கள். நச்சுத்தன்மை அளவு: ${d.toxicity}. பாதுகாப்பு உபகரணங்கள்: ${d.ppe}. சேமிப்பு முறை: ${d.storage}.`,
+    kn: (d) => `ಸುರಕ್ಷತಾ ಮಾರ್ಗಸೂಚಿಗಳು. ವಿಷತ್ವ ಪ್ರಮಾಣ: ${d.toxicity}. ರಕ್ಷಣಾತ್ಮಕ ಸಾಧನಗಳು: ${d.ppe}. ಸಂಗ್ರಹಣೆ: ${d.storage}.`,
+    ml: (d) => `സുരക്ഷാ മാർഗ്ഗനിർദ്ദേശങ്ങൾ. വിഷാംശ നില: ${d.toxicity}. സംരക്ഷണ ഉപകരണങ്ങൾ: ${d.ppe}. സംഭരണം: ${d.storage}.`,
+    mr: (d) => `सुरक्षा मार्गदर्शक. विषारीपणा वर्ग: ${d.toxicity}. संरक्षक उपकरणे: ${d.ppe}. साठवणूक: ${d.storage}.`,
+    gu: (d) => `સુરક્ષા માર્ગદર્શિકા. ઝેરીલાપણું: ${d.toxicity}. રક્ષણાત્મક સાધનો: ${d.ppe}. સંગ્રહ: ${d.storage}.`,
+    pa: (d) => `ਸੁਰੱਖਿਆ ਨਿਰਦੇਸ਼। ਜ਼ਹਿਰੀਲਾਪਨ: ${d.toxicity}। ਸੁਰੱਖਿਆ ਉਪਕਰਣ: ${d.ppe}। ਭੰਡਾਰਨ: ${d.storage}।`,
+    ur: (d) => `حفاظتی ہدایات۔ زہریلا پن: ${d.toxicity}۔ حفاظتی سامان: ${d.ppe}۔ ذخیرہ: ${d.storage}۔`,
+    or: (d) => `ସୁରକ୍ଷା ନିର୍ଦ୍ଦେଶାବଳୀ। ବିଷାକ୍ତତା: ${d.toxicity}। ସୁରକ୍ଷା ଉପକରଣ: ${d.ppe}। ସଂରକ୍ଷଣ: ${d.storage}।`,
+    as: (d) => `সুৰক্ষা নিৰ্দেশনা। বিষাক্ততা: ${d.toxicity}। সুৰক্ষা সঁজুলি: ${d.ppe}। সংৰক্ষণ: ${d.storage}।`,
+    en: (d) => `Safety Guidelines. Toxicity rating: ${d.toxicity}. Protective equipment: ${d.ppe}. Storage: ${d.storage}.`
+  }
+};
+
+export function buildAgroSpeech(info = {}, lang = 'en', section = 'summary') {
+  const code = (lang || 'en').split('-')[0].toLowerCase();
+  const group = AGRO_SPEECH_TEMPLATES[section] || AGRO_SPEECH_TEMPLATES.summary;
+  const templateFn = group[code] || group.en;
+  const data = {
+    name: info.productName || 'Agrochemical Product',
+    category: info.category || 'Fungicide',
+    ingredient: info.activeIngredient || 'Active Formulation',
+    dosage: info.dosage || '2.0 g/L',
+    safety: info.ppe || getSafetyFallback(code),
+    target: info.targetDiseases || 'Foliar fungal pathogens',
+    interval: info.sprayInterval || 'Every 7–10 days',
+    toxicity: info.toxicityClass || 'Class III (Slightly Hazardous)',
+    storage: info.storage || 'Store in cool dry locked place away from children'
+  };
+  return templateFn(data);
+}
+
+export const CHEMICAL_PROTOCOL_TEMPLATES = {
+  te: (d) => `ముఖ్యమైన రసాయన పిచికారీ మార్గదర్శకం. సిఫార్సు చేసిన మందులలో ఏదైనా ఒక మందును మాత్రమే వాడండి, కలపవద్దు. ఎంచుకున్న మందు: ${d.selectedChem}. ${d.tankSize} లీటర్ల ట్యాంకుకు ${d.tankGrams} ${d.unit} మందు కలపండి. మీ ${d.area} ఎకరాల పొలానికి సుమారు ${d.tanks} పంపులు మరియు ${d.water} లీటర్ల నీరు అవసరం.`,
+  hi: (d) => `महत्वपूर्ण रासायनिक छिड़काव निर्देश। अनुशंसित दवाओं में से केवल एक दवा का प्रयोग करें, आपस में न मिलाएं। चयनित दवा: ${d.selectedChem}। ${d.tankSize} लीटर टैंक के लिए ${d.tankGrams} ${d.unit} दवा मिलाएं। आपके ${d.area} एकड़ खेत के लिए लगभग ${d.tanks} पंप और ${d.water} लीटर पानी की आवश्यकता होगी।`,
+  ta: (d) => `முக்கியமான ரசாயன தெளிப்பு வழிகாட்டி. பரிந்துரைக்கப்பட்ட மருந்துகளில் ஏதேனும் ஒன்றை மட்டும் பயன்படுத்தவும், ஒன்றாக கலக்க வேண்டாம். தேர்ந்தெடுக்கப்பட்ட மருந்து: ${d.selectedChem}. ${d.tankSize} லிட்டர் டேங்கிற்கு ${d.tankGrams} ${d.unit} மருந்து கலக்கவும். உங்கள் ${d.area} ஏக்கர் வயலுக்கு சுமார் ${d.tanks} பம்புகள் மற்றும் ${d.water} லிட்டர் தண்ணீர் தேவைப்படும்.`,
+  kn: (d) => `ಪ್ರಮುಖ ರಾಸಾಯನಿಕ ಸಿಂಪಡಣೆ ಮಾರ್ಗದರ್ಶಿ. ಶಿಫಾರಸು ಮಾಡಿದ ಔಷಧಿಗಳಲ್ಲಿ ಒಂದನ್ನು ಮಾತ್ರ ಬಳಸಿ, ಮಿಶ್ರಣ ಮಾಡಬೇಡಿ. ಆಯ್ಕೆಮಾಡಿದ ಔಷಧಿ: ${d.selectedChem}. ${d.tankSize} ಲೀಟರ್ ಟ್ಯಾಂಕ್‌ಗೆ ${d.tankGrams} ${d.unit} ಔಷಧಿ ಮಿಶ್ರಣ ಮಾಡಿ. ನಿಮ್ಮ ${d.area} ಎಕರೆ ಜಮೀನಿಗೆ ಸುಮಾರು ${d.tanks} ಪಂಪ್‌ಗಳು ಮತ್ತು ${d.water} ಲೀಟರ್ ನೀರು ಬೇಕಾಗುತ್ತದೆ.`,
+  ml: (d) => `പ്രധാനപ്പെട്ട രാസചികിത്സാ മാർഗ്ഗനിർദ്ദേശം. ശുപാർശ ചെയ്ത മരുന്നുകളിൽ ഏതെങ്കിലും ഒരെണ്ണം മാത്രം ഉപയോഗിക്കുക. തിരഞ്ഞെടുത്ത മരുന്ന്: ${d.selectedChem}. ${d.tankSize} ലിറ്റർ ടാങ്കിന് ${d.tankGrams} ${d.unit} മരുന്ന് ചേർക്കുക. നിങ്ങളുടെ ${d.area} ഏക്കർ സ്ഥലത്തിന് ഏകദേശം ${d.tanks} പമ്പുകളും ${d.water} ലിറ്റർ വെള്ളവും ആവശ്യമാണ്.`,
+  mr: (d) => `महत्त्वाचा रासायनिक फवारणी सल्ला. शिफारस केलेल्या औषधांपैकी फक्त एकच औषध वापरा, मिसळू नका. निवडलेले औषध: ${d.selectedChem}. ${d.tankSize} लिटर टाकीसाठी ${d.tankGrams} ${d.unit} औषध मिसळा. तुमच्या ${d.area} एकर शेतासाठी सुमारे ${d.tanks} पंप आणि ${d.water} लिटर पाणी लागेल.`,
+  gu: (d) => `મહત્વપૂર્ણ રાસાયણિક છંટકાવ માર્ગદર્શિકા. ભલામણ કરેલ દવાઓમાંથી ફક્ત એક જ દવા વાપરો, ભેળવશો નહીં. પસંદ કરેલ દવા: ${d.selectedChem}. ${d.tankSize} લિટર ટાંકી માટે ${d.tankGrams} ${d.unit} દવા ઉમેરો. તમારા ${d.area} એકર ખેતર માટે આશરે ${d.tanks} પંપ અને ${d.water} લિટર પાણીની જરૂર પડશે.`,
+  pa: (d) => `ਮਹੱਤਵਪੂਰਨ ਰਸਾਇਣਕ ਛਿੜਕਾਅ ਗਾਈਡ। ਸਿਫਾਰਸ਼ ਕੀਤੀਆਂ ਦਵਾਈਆਂ ਵਿੱਚੋਂ ਸਿਰਫ਼ ਇੱਕ ਦੀ ਵਰਤੋਂ ਕਰੋ। ਚੁਣੀ ਗਈ ਦਵਾਈ: ${d.selectedChem}। ${d.tankSize} ਲੀਟਰ ਟੈਂਕ ਲਈ ${d.tankGrams} ${d.unit} ਦਵਾਈ ਮਿਲਾਓ। ਤੁਹਾਡੇ ${d.area} ਏਕੜ ਖੇਤ ਲਈ ਲਗਭਗ ${d.tanks} ਪੰਪ ਅਤੇ ${d.water} ਲੀਟਰ ਪਾਣੀ ਚਾਹੀਦਾ ਹੈ।`,
+  ur: (d) => `اہم کیمیائی سپرے گائیڈ۔ تجویز کردہ ادویات میں سے صرف ایک دوا استعمال کریں، آپس میں نہ ملائیں۔ منتخب دوا: ${d.selectedChem}۔ ${d.tankSize} لیٹر ٹینک کے لیے ${d.tankGrams} ${d.unit} دوا حل کریں۔ آپ کے ${d.area} ایکڑ کھیت کے لیے تقریباً ${d.tanks} پمپ اور ${d.water} لیٹر پانی درکار ہوگا۔`,
+  or: (d) => `ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ ରାସାୟନିକ ସ୍ପ୍ରେ ମାର୍ଗଦର୍ଶିକା। ପରାମର୍ଶିତ ଔଷଧ ମଧ୍ୟରୁ କେବଳ ଗୋଟିଏ ବ୍ୟବହାର କରନ୍ତୁ। ଚୟନିତ ଔଷଧ: ${d.selectedChem}। ${d.tankSize} ଲିଟର ଟାଙ୍କି ପାଇଁ ${d.tankGrams} ${d.unit} ଔଷଧ ମିଶାନ୍ତୁ। ଆପଣଙ୍କ ${d.area} ଏକର ଜମି ପାଇଁ ପ୍ରାୟ ${d.tanks} ପମ୍ପ ଏବଂ ${d.water} ଲିଟର ପାଣି ଆବଶ୍ୟକ।`,
+  as: (d) => `গুৰুত্বপূৰ্ণ ৰাসায়নিক স্প্ৰে নিৰ্দেশনা। পৰামৰ্শিত দৰবৰ পৰা মাত্ৰ এটা ব্যৱহাৰ কৰক। নিৰ্বাচিত দৰব: ${d.selectedChem}। ${d.tankSize} লিটাৰ টেংকীৰ বাবে ${d.tankGrams} ${d.unit} দৰব মিহলাওক। আপোনাৰ ${d.area} একৰ পথাৰৰ বাবে প্ৰায় ${d.tanks} পাম্প আৰু ${d.water} লিটাৰ পানী লাগিব।`,
+  en: (d) => `Important chemical protocol. Use only one medicine from the recommended list, do not mix them. Selected medicine is ${d.selectedChem}. For a ${d.tankSize} litre tank, mix ${d.tankGrams} ${d.unit} of medicine. For your ${d.area} acre field, you will need approximately ${d.tanks} tanks with ${d.water} litres of water.`
+};
+
+export function buildDiseaseChemicalSpeech(data = {}, lang = 'en') {
+  const code = (lang || 'en').split('-')[0].toLowerCase();
+  const templateFn = CHEMICAL_PROTOCOL_TEMPLATES[code] || CHEMICAL_PROTOCOL_TEMPLATES.en;
+  return templateFn(data);
+}
+
+

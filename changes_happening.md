@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v99) - Fix Login Animation Timing & Full Multilingual TTS Speech Engine
+- **Summary:** Resolved two critical user issues:
+  1. 🔑 **Login Cinematic Animation Fixed (`LoginPage.jsx`):**
+     - Root cause: `LoginPage.jsx` had a `useEffect` watching `[user]` which immediately called `navigate('/dashboard')` the millisecond `login()` set user state in `AuthContext`, unmounting the page before `LoginSuccessOverlay` could display.
+     - Solution: Added `isLoggingInRef` lock that holds back automatic redirection during active login submissions. `LoginSuccessOverlay` now plays its full 2.5s scan cinematic (concentric scan rings, animated SVG checkmark, typewriter 'Field AI Connected 🌾', status badges), and cleanly navigates to `/dashboard` inside `onDone()`.
+  2. 🔊 **Multilingual Voice Synthesis Across All Scan Tabs (`regionalLocale.js`, `useSpeechReader.js`, `PlantIdResults.jsx`, `AgrochemicalResults.jsx`, `DiseaseDiagnosisResults.jsx`, `PredictionResultPage.jsx`):**
+     - Root cause: In non-English languages (Telugu, Hindi, Tamil, etc.), the speech readouts either failed silently or produced errors because hardcoded English sentences were being passed to Indic language speech synthesizers (`te-IN`, `hi-IN`), which cannot parse English text without Indic scripts or failed due to missing local TTS voices.
+     - Upgraded `useSpeechReader.js`: Added dynamic voice selection matching regional language codes (`te`, `hi`, `ta`, `kn`, etc.), async voice cache synchronization with `onvoiceschanged`, Chrome cancellation race-condition safety delay, and automatic graceful fallback to Indian English (`en-IN`) / system voice if a specific regional OS pack is unavailable.
+     - Added comprehensive speech builders in `regionalLocale.js`: `buildPlantSpeech`, `buildAgroSpeech`, and `buildDiseaseChemicalSpeech` with full translations for Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi, Gujarati, Punjabi, Urdu, Odia, Assamese, and English.
+     - Updated all tabs to speak in the user's active regional language:
+       - **Plant Identification tab (`PlantIdResults.jsx`):** Full summary, Plant Details, Scientific Information, Growing Information, and Fertilizer recommendations now speak natively in Telugu, Hindi, etc.
+       - **Agrochemical Scanner tab (`AgrochemicalResults.jsx`):** Product summary, Product details, Usage instructions, Safety & PPE, and Alternative products speak natively.
+       - **Disease Diagnosis tab (`DiseaseDiagnosisResults.jsx`):** Hero summary, Pathology overview, Organic remedies, Chemical spray dosage guide (tank mixing, single medicine rule), 7-day treatment calendar, Safety PPE, Prevention, and Root causes all speak in the active regional language.
+       - **Prediction Result Page (`PredictionResultPage.jsx`):** Localized crop and disease readout.
+- **Files modified**: `frontend/src/pages/LoginPage.jsx`, `frontend/src/hooks/useSpeechReader.js`, `frontend/src/utils/regionalLocale.js`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `changes_happening.md`
+
 ## 2026-09-11 (v98) - Cinematic Login / Logout / Splash Animations — Nature + Scan Theme
 - **Summary:** Implemented stunning wow-factor animations for Login, Logout, and App Boot screens:
   1. 🌱 **`NatureParticles.jsx` (NEW):** Reusable animated background of 20+ floating leaf/spore SVG particles drifting upward with sway; used on Login and Register pages.

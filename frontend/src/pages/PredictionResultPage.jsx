@@ -215,15 +215,18 @@ const PredictionResultPage = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                const speechSummary = `${result.crop_name || 'Crop'}. ${result.disease_name || 'Diagnosis'}. ${result.organic_treatment ? `Organic treatment: ${result.organic_treatment}` : ''}. ${result.chemical_treatment ? `Chemical intervention: ${result.chemical_treatment}` : ''}`;
-                speak(speechSummary, 'pred_summary', i18n.language || 'en');
+                const currentLang = (i18n.language || 'en').split('-')[0].toLowerCase();
+                const crop = translateCrop(result.crop_name, currentLang) || result.crop_name || 'Crop';
+                const disease = translateDisease(result.disease_name, currentLang, result.crop_name) || result.disease_name || 'Diagnosis';
+                const speechSummary = `${crop}. ${disease}. ${result.organic_treatment || ''}. ${result.chemical_treatment || ''}`;
+                speak(speechSummary, 'pred_summary', currentLang);
               }}
               className={`font-extrabold border-slate-300 dark:border-slate-700 active:scale-95 ${
                 speakingId === 'pred_summary' ? 'bg-emerald-600 text-white border-emerald-500 animate-pulse' : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
               leftIcon={speakingId === 'pred_summary' ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-emerald-500" />}
             >
-              {speakingId === 'pred_summary' ? 'Stop Voice' : 'Listen Voice'}
+              {speakingId === 'pred_summary' ? (i18n.language === 'te' ? 'వాయిస్ ఆపండి' : i18n.language === 'hi' ? 'आवाज रोकें' : 'Stop Voice') : (i18n.language === 'te' ? 'సారాంశం వినండి' : i18n.language === 'hi' ? 'सारांश सुनें' : 'Listen Voice')}
             </Button>
           )}
 
