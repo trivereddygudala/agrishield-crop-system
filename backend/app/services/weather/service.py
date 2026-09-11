@@ -45,8 +45,17 @@ class WeatherIntelligenceService:
                     if farm_doc.get("latitude") is not None and farm_doc.get("longitude") is not None:
                         lat = float(farm_doc["latitude"])
                         lon = float(farm_doc["longitude"])
-                    if farm_doc.get("village"):
-                        location_name_override = farm_doc.get("village")
+                    village = farm_doc.get("village")
+                    district = farm_doc.get("district")
+                    farm_name = farm_doc.get("farm_name")
+                    if village and district:
+                        location_name_override = f"{village}, {district}"
+                    elif village:
+                        location_name_override = village
+                    elif district:
+                        location_name_override = district
+                    elif farm_name:
+                        location_name_override = farm_name
             except Exception as e:
                 logger.error(f"Error resolving farm coordinates: {e}")
 

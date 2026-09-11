@@ -58,9 +58,10 @@ const MenuCard = ({ icon: Icon, label, description, path, iconColor, iconBg, acc
 
 const MorePage = () => {
   const { t, i18n } = useTranslation();
+  const isTe = i18n?.language === 'te';
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { hardwareMode } = useHardwareMode();
+  const { hardwareMode, setHardwareMode } = useHardwareMode();
   const isAdmin = user?.role === 'admin';
   const [aboutOpen, setAboutOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
@@ -292,31 +293,94 @@ const MorePage = () => {
 
   return (
     <div className="max-w-lg mx-auto w-full pb-28 animate-fade-in px-1 sm:px-0">
-      <div className="mb-6 flex items-start justify-between gap-3">
+      {/* ─── CLEAN HEADER ─── */}
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            {isAdmin ? 'Settings & System Hub' : t('more.title', 'More Tools & Hub')}
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {isAdmin ? 'Settings & System Hub' : (isTe ? 'మరిన్ని సాధనాలు & సెట్టింగ్‌లు' : 'More Tools & Settings')}
           </h1>
-          <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5">
-            {isAdmin 
-              ? 'Administrator command tools, security settings, and notifications' 
-              : t('more.subtitle', 'All farming tools, sensor nodes, and settings in one place')}
-          </p>
         </div>
-        {!isAdmin && (
-          <button
-            onClick={() => navigate('/settings')}
-            className={`shrink-0 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-xs transition-all active:scale-95 ${
-              hardwareMode
-                ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30'
-                : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-            }`}
-            title="Change in Settings"
-          >
-            {hardwareMode ? t('more.iot_mode', '🟢 IoT Mode') : t('more.software_mode', '🌱 Software Mode')}
-          </button>
-        )}
       </div>
+
+      {/* ─── VISUAL SOFTWARE VS HARDWARE MODE SELECTOR ─── */}
+      {!isAdmin && (
+        <div className="space-y-2 mb-6">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              {isTe ? "ఆపరేటింగ్ మోడ్" : "Operating Mode"}
+            </span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+              hardwareMode
+                ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25'
+                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
+            }`}>
+              {hardwareMode ? "📡 Smart IoT Active" : "🌱 Software AI Active"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+            {/* Mode 1: Software AI Mode */}
+            <button
+              type="button"
+              onClick={() => setHardwareMode(false)}
+              className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
+                !hardwareMode
+                  ? 'bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-white dark:to-slate-900 border-emerald-500 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/10'
+                  : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 opacity-65 hover:opacity-90'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 flex items-center justify-center text-xl shadow-xs">
+                  🌱
+                </div>
+                {!hardwareMode && (
+                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
+                    ✓
+                  </span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                  {isTe ? "సాఫ్ట్‌వేర్ AI మోడ్" : "Software AI Mode"}
+                </h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-snug">
+                  {isTe ? "మొబైల్ కెమెరా స్కాన్, వాతావరణం, మండి ధరలు" : "Camera scan, weather, satellite map & mandi rates"}
+                </p>
+              </div>
+            </button>
+
+            {/* Mode 2: Smart IoT Hardware Mode */}
+            <button
+              type="button"
+              onClick={() => setHardwareMode(true)}
+              className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
+                hardwareMode
+                  ? 'bg-gradient-to-br from-cyan-500/15 via-sky-500/5 to-white dark:to-slate-900 border-cyan-500 ring-2 ring-cyan-500/30 shadow-md shadow-cyan-500/10'
+                  : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 opacity-65 hover:opacity-90'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300 dark:border-cyan-800 flex items-center justify-center text-xl shadow-xs">
+                  📡
+                </div>
+                {hardwareMode && (
+                  <span className="w-5 h-5 rounded-full bg-cyan-500 text-white flex items-center justify-center text-xs font-black shadow-xs">
+                    ✓
+                  </span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                  {isTe ? "స్మార్ట్ IoT హార్డ్‌వేర్" : "Smart IoT Hardware"}
+                </h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-snug">
+                  {isTe ? "ESP32 సెన్సార్ నోడ్స్, నేల ప్రోబ్స్ & మైక్రో-SD" : "ESP32 nodes, live telemetry & SD blackbox logs"}
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {isAdmin ? (
         <>

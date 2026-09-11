@@ -309,7 +309,7 @@ export function getCoordinatesForLocation(state, district, mandal = '', village 
   if (state && DISTRICT_COORDINATES[state]) {
     return DISTRICT_COORDINATES[state];
   }
-  return [14.6819, 77.6006]; // Default to Indian agricultural district (Anantapur)
+  return [15.9129, 79.7400]; // Central Andhra Pradesh agricultural hub
 }
 
 export const MANDAL_COORDINATES = {

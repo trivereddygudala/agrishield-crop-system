@@ -347,3 +347,25 @@ and one more error is when tapthe field button it goes to like this some times a
     5. **📍 Pin Selection & Targeted Deletion:** Tapping any pin highlights it with a golden ring and opens a 1-tap `🗑️ Delete Pin` action.
     6. **📏 Side Length Badges in Meters:** Displays real-time distance badges (e.g. `48m`, `115m`) on every boundary segment line.
     7. **📱 Mobile Decluttering:** Replaced stacked white boxes with a sleek, floating top bar: `[🌾 Plot 1 ▾] [Total: X.XX Ac] [⛶ Fullscreen]`. Tapping the plot pill opens a drawer instead of covering the map. Bottom thumb-dock houses all tools ergonomically.
+
+---
+
+### Chat Entry 34
+* **User Input:**  
+  > "remove the auto speak and speed button from top and remove t he visual customization and the website themes from the mobile layout , and put the farm intelligence in the field tab. And remove the tabs what are there in the field that are there in the more tab.  
+  > 1. And give the notifications settings in the notifications page and make the notifications page neatly like the normal message apps.  
+  > 2. and make the more tab neatly remove the unwanted text in the top when it openes and shows the software and hardware modes withthe pictures neatly .  
+  > 3. do not give the random crop name and random data in the home page why it shows the live sync as anantapur remove that one where it is like when i set the filed also it shows anantapur as in the district place directly.  
+  > if you want to tell me anything just tell me ok."
+* **Machine Summary Solution:**  
+  * Fully implemented all 6 requests and verified with clean Vite production build:
+    1. **AI Assistant Header Cleanup:** Removed `Auto-Speak` toggle and `🔊 1x` speed button from the top header in `AIAssistantPage.jsx`.
+    2. **Mobile Profile Cleanup:** Hid `Visual Customization` and `Website Themes` on mobile screens in `ProfilePage.jsx`, displaying only Profile Settings on phones.
+    3. **Farm Intelligence Hub in Field Tab:** Embedded `Autonomous Farm Routine`, `Live Weather Intelligence`, and `Spray Application Advisor` directly into the Field tab (`FarmPage.jsx`).
+    4. **Removed Duplicate More Links:** Cleaned up `FIELD_MODULES` in `FarmPage.jsx` by removing external links (`/history` and `/crop-advisory`) that duplicate More tab destinations.
+    5. **Messaging App-Style Notifications + Settings Modal:** Completely rebuilt `NotificationsPage.jsx` with a modern chat/messaging layout (category avatars, timestamps, unread status indicators) and added an interactive **Notification Settings Modal** allowing farmers to toggle Disease Outbreak Warnings, Rain/Spray Windows, Battery/Offline Alerts, Irrigation Alerts, and Sound Chime.
+    6. **More Tab Overhaul:** Removed unwanted top subtitle text clutter and added a visual **Software Mode vs. Hardware Mode Switcher** with clean illustration cards and 1-tap switching.
+    7. **Eliminated Anantapur & Tomato Hardcoded Defaults:**
+       - Removed hardcoded `"Anantapur"` and coordinate defaults from `farm_profile.py`, `FarmPage.jsx`, and `indiaLocations.js`.
+       - Replaced fallback `"Pasupugallu, Prakasam"` and `"Tomato"` on the Home dashboard (`DashboardPage.jsx`) with dynamic active farm location and crop (with "+ Set Your Crop" link).
+       - Updated `WeatherDashboard.jsx` and `service.py` to prioritize the active farm's village, district, and farm name over OpenWeather's weather station city name.

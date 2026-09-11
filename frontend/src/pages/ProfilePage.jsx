@@ -282,13 +282,12 @@ const ProfilePage = () => {
 
   const profileTabs = userRole === 'admin' ? [
     { id: 'profile', label: 'Admin Profile & Security' },
-    { id: 'visuals', label: 'Visual Customization' },
-    { id: 'themes', label: 'Website Themes' },
+    { id: 'visuals', label: 'Visual Customization', hideOnMobile: true },
+    { id: 'themes', label: 'Website Themes', hideOnMobile: true },
   ] : [
     { id: 'profile', label: t('profile_page.tabs.profile', 'Profile Settings') },
-    { id: 'intelligence', label: t('profile_page.tabs.intelligence', 'Farm Intelligence') },
-    { id: 'visuals', label: t('profile_page.tabs.visuals', 'Visual Customization') },
-    { id: 'themes', label: t('profile_page.tabs.themes', 'Website Themes') },
+    { id: 'visuals', label: t('profile_page.tabs.visuals', 'Visual Customization'), hideOnMobile: true },
+    { id: 'themes', label: t('profile_page.tabs.themes', 'Website Themes'), hideOnMobile: true },
     ...(userRole === 'tester' ? [{ id: 'tester', label: t('profile_page.tabs.tester', 'Tester Operations Panel') }] : [])
   ];
 
@@ -315,7 +314,7 @@ const ProfilePage = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-xs sm:text-sm font-bold whitespace-nowrap transition-colors relative focus:outline-none ${
+            className={`px-4 py-2.5 text-xs sm:text-sm font-bold whitespace-nowrap transition-colors relative focus:outline-none ${tab.hideOnMobile ? 'hidden md:inline-block' : ''} ${
               activeTab === tab.id 
                 ? 'text-emerald-500' 
                 : 'text-slate-500 hover:text-slate-700 dark:text-white/35 dark:hover:text-white/60'

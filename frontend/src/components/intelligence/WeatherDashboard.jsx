@@ -186,6 +186,9 @@ export const WeatherDashboard = React.memo(({ farmId, lat, lon }) => {
       let query = "";
       if (activeCoords && activeCoords.lat && activeCoords.lon) {
         query = `lat=${activeCoords.lat}&lon=${activeCoords.lon}`;
+        if (targetFarmId && targetFarmId !== 'default') {
+          query += `&farm_id=${targetFarmId}`;
+        }
       } else {
         const idToUse = targetId || targetFarmId;
         query = `farm_id=${idToUse}`;
@@ -258,7 +261,10 @@ export const WeatherDashboard = React.memo(({ farmId, lat, lon }) => {
   const current = data?.current || { temperature: 30.9, humidity: 59, rain_probability: 0, wind_speed: 4.85 };
   const forecast = data?.forecast || [];
   const recs = data?.recommendations || [];
-  const location = data?.location || (activeFarm ? activeFarm.farm_name : "Farm Location");
+  const farmLocationName = activeFarm?.village 
+    ? `${activeFarm.village}${activeFarm.district ? `, ${activeFarm.district}` : ''}` 
+    : (activeFarm?.district || activeFarm?.farm_name);
+  const location = farmLocationName || data?.location || "Farm Location";
   const providerName = data?.provider_name || "OpenWeatherMapProvider";
   const cacheStatus = data?.metadata?.cache_status || data?.cache_status || "Live";
 

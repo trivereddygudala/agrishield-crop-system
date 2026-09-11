@@ -16,6 +16,9 @@ import { useTranslation } from 'react-i18next';
 import { translateCrop } from '../utils/diseaseAdvisoryData';
 import NearbyFieldsRadar from '../components/intelligence/NearbyFieldsRadar';
 import FieldBoundaryMap from '../components/farm/FieldBoundaryMap';
+import FarmRoutineWidget from '../components/intelligence/FarmRoutineWidget';
+import LiveWeatherWidget from '../components/intelligence/LiveWeatherWidget';
+import SprayAdvisorWidget from '../components/intelligence/SprayAdvisorWidget';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -174,9 +177,9 @@ const FarmPage = () => {
         growth_stage: growthStage || 'Vegetative',
         planting_date: plantingDate || new Date().toISOString().split('T')[0],
         state: state || 'Andhra Pradesh',
-        district: district || 'Anantapur',
+        district: district || '',
         mandal: mandal || '',
-        village: village || 'Sector 1',
+        village: village || '',
         latitude: effectiveLat,
         longitude: effectiveLng,
         irrigation_method: irrigationMethod || 'Manual',
@@ -223,16 +226,10 @@ const FarmPage = () => {
       action: 'inline'
     },
     { 
-      id: 'scan-history', 
-      title: isTe ? 'స్కాన్ & వ్యాధి చరిత్ర' : 'Scan & Disease History', 
-      subtitle: isTe ? 'AI ఆకు రోగ నిర్ధారణలు & చికిత్సలు' : 'AI leaf diagnoses & prescriptions',
-      action: 'navigate', route: '/history'
-    },
-    { 
-      id: 'weather-advisory', 
-      title: isTe ? 'వ్యవసాయ వాతావరణం & బీజాణు సలహా' : 'Agro-Weather & Spore Advisory', 
-      subtitle: isTe ? 'స్థానిక వాతావరణం & ఫంగల్ రిస్క్' : 'Local weather & fungal risk',
-      action: 'navigate', route: '/crop-advisory'
+      id: 'farm-intelligence', 
+      title: isTe ? 'వ్యవసాయ ఇంటెలిజెన్స్ & షెడ్యూల్' : 'Farm Intelligence & Routine', 
+      subtitle: isTe ? 'స్వయంప్రతిపత్తి షెడ్యూల్, లైవ్ వాతావరణం & స్ప్రే సలహాదారు' : 'Autonomous routine, live weather & spray advisor',
+      action: 'inline'
     },
     { 
       id: 'crop-lifecycle', 
@@ -829,6 +826,25 @@ const FarmPage = () => {
               }
             }}
           />
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Farm Intelligence & Routine ═══════ */}
+      {activeTab === 'farm-intelligence' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <button type="button" onClick={() => setActiveTab('modules')}
+            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1 cursor-pointer">
+            <ChevronRight className="w-4 h-4 rotate-180" />
+            {isTe ? '← ఫీల్డ్‌కు తిరిగి' : '← Back to Field'}
+          </button>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="lg:col-span-2">
+              <FarmRoutineWidget />
+            </div>
+            <LiveWeatherWidget />
+            <SprayAdvisorWidget />
+          </div>
         </motion.div>
       )}
 

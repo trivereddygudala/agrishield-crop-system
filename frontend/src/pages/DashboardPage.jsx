@@ -199,7 +199,7 @@ const DashboardPage = () => {
   };
 
   const farmId = activeFarm?.farm_id || activeFarm?.id;
-  const cropName = activeFarm?.crop_name || "Tomato";
+  const cropName = activeFarm?.crop_name || "";
   const growthStage = activeFarm?.growth_stage || "Vegetative";
   const farmSize = activeFarm?.farm_size || 1.0;
 
@@ -207,6 +207,10 @@ const DashboardPage = () => {
     i18n.language === 'te' ? 'te-IN' : i18n.language === 'hi' ? 'hi-IN' : 'en-US',
     { weekday: 'long', month: 'long', day: 'numeric' }
   );
+
+  const farmLocationDisplay = activeFarm?.village 
+    ? `${activeFarm.village}${activeFarm.district ? `, ${activeFarm.district}` : ''}` 
+    : (activeFarm?.district || activeFarm?.farm_name || t('dashboard.my_farm_field', 'My Farm Field'));
 
   // Stagger container animation
   const containerVariants = {
@@ -263,7 +267,7 @@ const DashboardPage = () => {
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-semibold">
               <span className="flex items-center gap-1 text-rose-500 font-bold">
                 <MapPin className="w-3.5 h-3.5" />
-                {activeFarm?.village ? `${activeFarm.village}, ${activeFarm.district || ''}` : (activeFarm?.district || "Pasupugallu, Prakasam")}
+                {farmLocationDisplay}
               </span>
               <span>•</span>
               <span className="text-slate-700 dark:text-slate-300 font-bold">{currentDateFormatted}</span>
@@ -334,12 +338,22 @@ const DashboardPage = () => {
               {t('dashboard.kpi.active_crop_label', 'Active Crop:')}
             </span>
             <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-              {translateCrop(cropName, i18n.language) || 'Tomato'}
+              {cropName ? (translateCrop(cropName, i18n.language) || cropName) : (
+                <Link to="/farm" className="text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
+                  <span>+ {t('dashboard.set_crop', 'Set Your Crop')}</span>
+                </Link>
+              )}
             </div>
           </div>
-          <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 mt-3">
-            ({translateStage(growthStage, i18n.language)} {t('dashboard.kpi.stage', 'Stage')})
-          </p>
+          {cropName ? (
+            <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 mt-3">
+              ({translateStage(growthStage, i18n.language)} {t('dashboard.kpi.stage', 'Stage')})
+            </p>
+          ) : (
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold mt-3">
+              {t('dashboard.configure_crop', 'Configure crop in My Farm')}
+            </p>
+          )}
         </Card>
 
         {/* KPI 2: Leaf Scans */}

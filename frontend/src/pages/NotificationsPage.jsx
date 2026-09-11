@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell, Search, Trash2, CheckCheck, Filter, RefreshCw,
   AlertTriangle, CloudRain, Droplets, BatteryWarning,
-  WifiOff, Activity, ChevronDown, ChevronLeft, ChevronRight, X, BellOff, Download, Clock, Check
+  WifiOff, Activity, ChevronDown, ChevronLeft, ChevronRight, X, BellOff, Download, Clock, Check,
+  Settings, Volume2, VolumeX, ShieldAlert, Sparkles, SlidersHorizontal, MessageSquare
 } from 'lucide-react';
-import { Card, Button, Input, Select, Badge, Dialog, EmptyState, Skeleton } from '../components/ui/index';
+import { Card, Button, Input, Select, Badge, Dialog, EmptyState, Skeleton, Switch } from '../components/ui/index';
 import API from '../services/api';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,28 +15,26 @@ import { timeAgo, formatDateTime } from '../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
 
 const PRIORITY_CONFIG = {
-  Critical: { bg: 'bg-rose-50 dark:bg-rose-950/60', border: 'border-rose-200 dark:border-rose-800', badge: 'diseased', text: 'text-rose-700 dark:text-rose-300', label: 'Critical' },
-  High:     { bg: 'bg-amber-50 dark:bg-amber-950/60', border: 'border-amber-200 dark:border-amber-800', badge: 'warning', text: 'text-amber-700 dark:text-amber-300', label: 'High' },
-  Medium:   { bg: 'bg-sky-50 dark:bg-sky-950/60', border: 'border-sky-200 dark:border-sky-800', badge: 'agrochemical', text: 'text-sky-700 dark:text-sky-300', label: 'Medium' },
-  Low:      { bg: 'bg-emerald-50 dark:bg-emerald-950/60', border: 'border-emerald-200 dark:border-emerald-800', badge: 'healthy', text: 'text-emerald-700 dark:text-emerald-300', label: 'Low' },
+  Critical: { bg: 'bg-rose-100 dark:bg-rose-950/70', border: 'border-rose-300 dark:border-rose-800', dot: 'bg-rose-500', badge: 'diseased', text: 'text-rose-700 dark:text-rose-300', label: 'Critical' },
+  High:     { bg: 'bg-amber-100 dark:bg-amber-950/70', border: 'border-amber-300 dark:border-amber-800', dot: 'bg-amber-500', badge: 'warning', text: 'text-amber-700 dark:text-amber-300', label: 'High' },
+  Medium:   { bg: 'bg-sky-100 dark:bg-sky-950/70', border: 'border-sky-300 dark:border-sky-800', dot: 'bg-sky-500', badge: 'agrochemical', text: 'text-sky-700 dark:text-sky-300', label: 'Medium' },
+  Low:      { bg: 'bg-emerald-100 dark:bg-emerald-950/70', border: 'border-emerald-300 dark:border-emerald-800', dot: 'bg-emerald-500', badge: 'healthy', text: 'text-emerald-700 dark:text-emerald-300', label: 'Low' },
 };
 
 const CATEGORY_ICONS = {
-  disease:        { Icon: AlertTriangle, color: 'text-rose-500', label: 'Disease' },
-  weather:        { Icon: CloudRain,     color: 'text-sky-500', label: 'Weather' },
-  soil:           { Icon: Droplets,      color: 'text-teal-500', label: 'Soil & Irrigation' },
-  battery:        { Icon: BatteryWarning,color: 'text-amber-500', label: 'Battery' },
-  device:         { Icon: WifiOff,       color: 'text-slate-500', label: 'Device Status' },
-  recommendation: { Icon: Activity,      color: 'text-purple-500', label: 'Recommendation' },
-  system:         { Icon: Activity,      color: 'text-purple-500', label: 'System' },
+  disease:        { Icon: AlertTriangle, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-950/60', label: 'Disease' },
+  weather:        { Icon: CloudRain,     color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-100 dark:bg-sky-950/60', label: 'Weather' },
+  soil:           { Icon: Droplets,      color: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-100 dark:bg-teal-950/60', label: 'Irrigation' },
+  battery:        { Icon: BatteryWarning,color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-950/60', label: 'Battery' },
+  device:         { Icon: WifiOff,       color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', label: 'Node Offline' },
+  recommendation: { Icon: Activity,      color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-950/60', label: 'Advisory' },
+  system:         { Icon: Activity,      color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-950/60', label: 'System' },
 };
-
-const CATEGORIES = ['All', 'disease', 'weather', 'soil', 'battery', 'device', 'recommendation', 'system'];
-const PRIORITIES = ['All', 'Critical', 'High', 'Medium', 'Low'];
 
 export default function NotificationsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const [notifications, setNotifications] = useState([]);
   const [total, setTotal]     = useState(0);
@@ -49,9 +48,31 @@ export default function NotificationsPage() {
   const [limit, setLimit]           = useState(25);
   const [toastMsg, setToastMsg] = useState('');
 
-  const [selectedTimeline, setSelectedTimeline] = useState(null);
-  const [acknowledgingId, setAcknowledgingId] = useState(null);
-  const [customActionText, setCustomActionText] = useState('');
+  // Selected Notification Dialog (Message view)
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
+  // Settings Modal State
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [alertSettings, setAlertSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('agrishield_alert_settings');
+      return saved ? JSON.parse(saved) : {
+        disease: true,
+        weather: true,
+        battery: true,
+        irrigation: true,
+        sound: true
+      };
+    } catch {
+      return { disease: true, weather: true, battery: true, irrigation: true, sound: true };
+    }
+  });
+
+  const handleSaveAlertSettings = (newSettings) => {
+    setAlertSettings(newSettings);
+    localStorage.setItem('agrishield_alert_settings', JSON.stringify(newSettings));
+    setToastMsg(t('notifications_page.settings_saved', 'Notification preferences updated!'));
+  };
 
   const fetchNotifications = useCallback(async (p = 1) => {
     setLoading(true);
@@ -78,7 +99,6 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (latestAlert) {
       setNotifications(prev => {
-        // Prevent duplicate if notification_id or id already exists in list
         const exists = prev.some(n => (n.notification_id && n.notification_id === latestAlert.notification_id) || (n.id && n.id === latestAlert.id) || (n._id && n._id === latestAlert._id));
         if (exists) return prev;
         return [latestAlert, ...prev];
@@ -87,7 +107,8 @@ export default function NotificationsPage() {
     }
   }, [latestAlert]);
 
-  const handleMarkRead = async (id) => {
+  const handleMarkRead = async (id, e) => {
+    if (e) e.stopPropagation();
     try {
       await API.put(`/api/v1/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, read: true } : n));
@@ -95,21 +116,13 @@ export default function NotificationsPage() {
     } catch { setToastMsg(t('notifications_page.toast.mark_read_failed', 'Failed to mark as read.')); }
   };
 
-  const handleAcknowledge = async (id, action) => {
-    try {
-      await API.post(`/api/v1/notifications/${id}/acknowledge`, { acknowledged_action: action });
-      setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, status: 'acknowledged', read: true } : n));
-      setAcknowledgingId(null);
-      setCustomActionText('');
-      setToastMsg(t('notifications_page.toast.acknowledged', 'Alert acknowledged.'));
-    } catch { setToastMsg(t('notifications_page.toast.ack_failed', 'Failed to acknowledge alert.')); }
-  };
-
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, e) => {
+    if (e) e.stopPropagation();
     try {
       await API.delete(`/api/v1/notifications/${id}`);
       setNotifications(prev => prev.filter(n => n.notification_id !== id));
       setTotal(t => Math.max(0, t - 1));
+      if (selectedMessage?.notification_id === id) setSelectedMessage(null);
       setToastMsg(t('notifications_page.toast.deleted', 'Notification deleted.'));
     } catch { setToastMsg(t('notifications_page.toast.delete_failed', 'Failed to delete notification.')); }
   };
@@ -128,9 +141,12 @@ export default function NotificationsPage() {
       await API.delete('/api/v1/notifications/clear');
       setNotifications([]);
       setTotal(0);
+      setSelectedMessage(null);
       setToastMsg(t('notifications_page.toast.inbox_cleared', 'Inbox cleared.'));
     } catch { setToastMsg(t('notifications_page.toast.clear_failed', 'Failed to clear notifications.')); }
   };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const filteredNotifications = notifications.filter(n => {
     if (!search) return true;
@@ -138,39 +154,23 @@ export default function NotificationsPage() {
     return (n.title || '').toLowerCase().includes(q) || (n.message || '').toLowerCase().includes(q);
   });
 
-  const getCategoryLabel = (cat) => {
-    switch (cat) {
-      case 'All': return t('notifications_page.categories.all', 'All Categories');
-      case 'disease': return t('notifications_page.categories.disease', 'Disease');
-      case 'weather': return t('notifications_page.categories.weather', 'Weather');
-      case 'soil': return t('notifications_page.categories.soil', 'Soil & Irrigation');
-      case 'battery': return t('notifications_page.categories.battery', 'Battery');
-      case 'device': return t('notifications_page.categories.device', 'Device Status');
-      case 'recommendation': return t('notifications_page.categories.recommendation', 'Recommendation');
-      case 'system': return t('notifications_page.categories.system', 'System');
-      default: return cat;
-    }
-  };
-
-  const getPriorityLabel = (pri) => {
-    switch (pri) {
-      case 'All': return t('notifications_page.priorities.all', 'All Priorities');
-      case 'Critical': return t('notifications_page.priorities.critical', 'Critical');
-      case 'High': return t('notifications_page.priorities.high', 'High');
-      case 'Medium': return t('notifications_page.priorities.medium', 'Medium');
-      case 'Low': return t('notifications_page.priorities.low', 'Low');
-      default: return pri;
-    }
-  };
+  const FILTER_PILLS = [
+    { id: 'All', label: 'All Messages', icon: MessageSquare },
+    { id: 'unread', label: `Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
+    { id: 'disease', label: '🚨 Disease', icon: AlertTriangle },
+    { id: 'weather', label: '🌦️ Weather', icon: CloudRain },
+    { id: 'soil', label: '💧 Irrigation', icon: Droplets },
+    { id: 'battery', label: '🔋 Hardware', icon: BatteryWarning },
+  ];
 
   if (loading) {
     return (
-      <div className="space-y-6 max-w-5xl mx-auto w-full">
+      <div className="space-y-4 max-w-3xl mx-auto w-full p-4">
         <Skeleton className="h-10 w-48 rounded-xl" />
-        <Skeleton className="h-16 rounded-2xl" />
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
+        <Skeleton className="h-12 w-full rounded-2xl" />
+        <div className="space-y-2">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -178,170 +178,337 @@ export default function NotificationsPage() {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6 max-w-5xl mx-auto w-full pb-12"
-    >
-      {/* Title Header */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-              {t('notifications_page.title', 'Notifications Center')}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {t('notifications_page.subtitle', 'Real-time disease warnings, IoT sensor threshold triggers & system telemetry advisories.')}
-            </p>
-          </div>
+    <div className="max-w-3xl mx-auto w-full pb-24 px-2 sm:px-4 space-y-4 animate-fade-in">
+      {/* Toast Feedback */}
+      {toastMsg && (
+        <div className="fixed top-18 right-4 z-50 px-4 py-2.5 rounded-2xl bg-slate-900/90 text-white text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-2 border border-white/10">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {isAdmin && (
-              <Link to="/admin?tab=broadcast">
-                <Button variant="primary" size="sm" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold shadow-md shadow-amber-500/20">
-                  {t('notifications_page.dispatch_alert', '📢 Dispatch Broadcast Alert')}
-                </Button>
-              </Link>
+      {/* ─── APP BAR HEADER (WhatsApp / Messages Style) ─── */}
+      <div className="flex items-center justify-between gap-3 pt-1 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              {t('notifications_page.title', 'Messages & Alerts')}
+            </h1>
+            {unreadCount > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-white shadow-xs">
+                {unreadCount} new
+              </span>
             )}
-            <Button variant="outline" size="sm" onClick={handleReadAll} leftIcon={<CheckCheck className="w-4 h-4 text-emerald-600" />} className="flex-1 sm:flex-none">
-              {t('notifications_page.mark_all_read', 'Mark All Read')}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleClear} leftIcon={<Trash2 className="w-4 h-4 text-rose-500" />} className="flex-1 sm:flex-none">
-              {t('notifications_page.clear_inbox', 'Clear Inbox')}
-            </Button>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+            {total} farm updates & disease warnings
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {/* Notification Settings Button */}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all shadow-xs"
+            title="Notification Settings"
+          >
+            <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+          </button>
+
+          {/* Mark All Read */}
+          {unreadCount > 0 && (
+            <button
+              onClick={handleReadAll}
+              className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-xs"
+              title="Mark All Read"
+            >
+              <CheckCheck className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Clear Inbox */}
+          {notifications.length > 0 && (
+            <button
+              onClick={handleClear}
+              className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 transition-all shadow-xs"
+              title="Clear Inbox"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <Card glass className="p-4 border-slate-200/80 dark:border-slate-800">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-          <Input
-            placeholder={t('notifications_page.search_placeholder', 'Search notification title or body...')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search className="w-4 h-4 text-slate-400" />}
-          />
+      {/* ─── SEARCH BAR (Instant filter) ─── */}
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 dark:text-slate-500" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search alerts, crops, disease names, weather..."
+          className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-          <Select value={category} onChange={(e) => setCategory(e.target.value)} label={t('notifications_page.category_label', 'Category')}>
-            {CATEGORIES.map(c => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={c} value={c}>{getCategoryLabel(c)}</option>)}
-          </Select>
-
-          <Select value={priority} onChange={(e) => setPriority(e.target.value)} label={t('notifications_page.priority_label', 'Priority')}>
-            {PRIORITIES.map(p => <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={p} value={p}>{getPriorityLabel(p)}</option>)}
-          </Select>
-
-          <Select value={limit} onChange={(e) => setLimit(Number(e.target.value))} label={t('notifications_page.limit_label', 'Show Limit')}>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={10}>{t('notifications_page.items_count', '{{count}} Items', { count: 10 })}</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={25}>{t('notifications_page.items_count', '{{count}} Items', { count: 25 })}</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={50}>{t('notifications_page.items_count', '{{count}} Items', { count: 50 })}</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={100}>{t('notifications_page.items_count', '{{count}} Items', { count: 100 })}</option>
-            <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value={1000}>{t('notifications_page.show_all', 'Show All')}</option>
-          </Select>
-
-          <div className="flex items-center pt-5">
+      {/* ─── FILTER CHIPS CAROUSEL (WhatsApp Style) ─── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+        {FILTER_PILLS.map((pill) => {
+          const isActive = pill.isUnreadPill ? unreadOnly : (!unreadOnly && category === pill.id);
+          return (
             <button
-              onClick={() => setUnreadOnly(!unreadOnly)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all w-full border ${
-                unreadOnly ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+              key={pill.id}
+              onClick={() => {
+                if (pill.isUnreadPill) {
+                  setUnreadOnly(!unreadOnly);
+                } else {
+                  setUnreadOnly(false);
+                  setCategory(pill.id);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-xs ${
+                isActive
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/20'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
-              {unreadOnly ? t('notifications_page.showing_unread', 'Showing Unread Only') : t('notifications_page.show_unread', 'Show Unread Only')}
+              <span>{pill.label}</span>
             </button>
-          </div>
-        </div>
-      </Card>
+          );
+        })}
+      </div>
 
-      {/* Notifications Timeline List */}
+      {/* ─── NOTIFICATIONS CHAT LIST (WhatsApp / iMessage Style) ─── */}
       {filteredNotifications.length === 0 ? (
         <EmptyState
           icon={BellOff}
-          title={t('notifications_page.empty_title', 'No Notifications Found')}
-          description={t('notifications_page.empty_desc', 'Your inbox is completely clear! All farm environmental and diagnostic alerts will stream here.')}
+          title={t('notifications_page.empty_title', 'No Messages')}
+          description="Your inbox is completely clear! All field disease warnings and environmental updates will stream here."
         />
       ) : (
-        <div className="space-y-3">
+        <div className="bg-white dark:bg-slate-900/80 rounded-3xl border border-slate-200/80 dark:border-slate-800/90 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
           <AnimatePresence>
             {filteredNotifications.map((item) => {
               const pc = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG.Low;
               const catObj = CATEGORY_ICONS[item.category] || CATEGORY_ICONS.system;
               const CatIcon = catObj.Icon;
+              const isUnread = !item.read;
 
               return (
                 <motion.div
-                  key={item.notification_id}
-                  initial={{ opacity: 0, y: 8 }}
+                  key={item.notification_id || item.id}
+                  initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className={`p-4 rounded-2xl border transition-all duration-200 relative overflow-hidden bg-white dark:bg-slate-900 ${pc.border} ${
-                    !item.read ? 'shadow-md border-l-4 border-l-emerald-500' : 'opacity-85'
+                  exit={{ opacity: 0, x: -15 }}
+                  onClick={() => {
+                    setSelectedMessage(item);
+                    if (isUnread) handleMarkRead(item.notification_id);
+                  }}
+                  className={`flex items-start gap-3.5 p-3.5 sm:p-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors relative group ${
+                    isUnread ? 'bg-emerald-50/40 dark:bg-emerald-950/15' : ''
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2.5 rounded-xl ${pc.bg} shrink-0 mt-0.5`}>
-                        <CatIcon className={`w-5 h-5 ${catObj.color}`} />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{item.title}</h3>
-                          <Badge variant={pc.badge}>{getPriorityLabel(item.priority)}</Badge>
-                          {!item.read && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">{item.message}</p>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold block pt-1">
-                          {(item.lifecycle?.created_at || item.created_at) ? formatDateTime(item.lifecycle?.created_at || item.created_at, { seconds: true }) : t('notifications_page.unknown_date', 'Unknown Date')} • {timeAgo(item.lifecycle?.created_at || item.created_at)}
-                        </span>
-                      </div>
+                  {/* Left Avatar Icon */}
+                  <div className="relative shrink-0 mt-0.5">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border shadow-xs ${catObj.bg} ${pc.border}`}>
+                      <CatIcon className={`w-5 h-5 ${catObj.color}`} />
+                    </div>
+                    {isUnread && (
+                      <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                    )}
+                  </div>
+
+                  {/* Message Content */}
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className={`text-xs sm:text-sm truncate font-black ${
+                        isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'
+                      }`}>
+                        {item.title}
+                      </h3>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold shrink-0">
+                        {timeAgo(item.lifecycle?.created_at || item.created_at)}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
-                      {!item.read && (
-                        <Button variant="ghost" size="icon" onClick={() => handleMarkRead(item.notification_id)} title={t('notifications_page.mark_read', 'Mark Read')}>
-                          <Check className="w-4 h-4 text-emerald-600" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.notification_id)} title={t('notifications_page.delete_notification', 'Delete Notification')}>
-                        <Trash2 className="w-4 h-4 text-rose-500" />
-                      </Button>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
+                      {item.message}
+                    </p>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${pc.bg} ${pc.text}`}>
+                        {item.priority}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                        {catObj.label}
+                      </span>
                     </div>
+                  </div>
+
+                  {/* Right Quick Actions */}
+                  <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                    {isUnread && (
+                      <button
+                        onClick={(e) => handleMarkRead(item.notification_id, e)}
+                        className="p-1.5 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-950 text-emerald-600"
+                        title="Mark Read"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => handleDelete(item.notification_id, e)}
+                      className="p-1.5 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-500 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </motion.div>
               );
             })}
           </AnimatePresence>
-
-          {/* Pagination Controls */}
-          {pages > 1 && (
-            <div className="flex items-center justify-between pt-5 mt-4 border-t border-slate-200/60 dark:border-slate-800/80">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => fetchNotifications(Math.max(1, page - 1))} 
-                disabled={page === 1}
-                leftIcon={<ChevronLeft className="w-4 h-4" />}
-              >
-                {t('notifications_page.previous', 'Previous')}
-              </Button>
-              
-              <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400">
-                {t('notifications_page.page_info', 'Page {{current}} of {{total}}', { current: page, total: pages })}
-              </span>
-
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => fetchNotifications(Math.min(pages, page + 1))} 
-                disabled={page === pages}
-                rightIcon={<ChevronRight className="w-4 h-4" />}
-              >
-                {t('notifications_page.next', 'Next')}
-              </Button>
-            </div>
-          )}
         </div>
       )}
-    </motion.div>
+
+      {/* ─── MESSAGE DETAILS POPUP MODAL ─── */}
+      <Dialog
+        isOpen={Boolean(selectedMessage)}
+        onClose={() => setSelectedMessage(null)}
+        title={selectedMessage?.title || "Alert Details"}
+      >
+        {selectedMessage && (() => {
+          const pc = PRIORITY_CONFIG[selectedMessage.priority] || PRIORITY_CONFIG.Low;
+          const catObj = CATEGORY_ICONS[selectedMessage.category] || CATEGORY_ICONS.system;
+          const CatIcon = catObj.Icon;
+
+          return (
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${catObj.bg}`}>
+                  <CatIcon className={`w-5 h-5 ${catObj.color}`} />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{catObj.label} Alert</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={pc.badge}>{selectedMessage.priority} Priority</Badge>
+                    <span className="text-xs text-slate-500 font-bold">
+                      {formatDateTime(selectedMessage.lifecycle?.created_at || selectedMessage.created_at)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">{selectedMessage.title}</h4>
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                  {selectedMessage.message}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <Button variant="outline" size="sm" onClick={() => setSelectedMessage(null)}>
+                  Close
+                </Button>
+                {selectedMessage.category === 'disease' && (
+                  <Button variant="primary" size="sm" onClick={() => { setSelectedMessage(null); navigate('/upload'); }}>
+                    🌿 Scan Crop Leaf
+                  </Button>
+                )}
+                {selectedMessage.category === 'weather' && (
+                  <Button variant="primary" size="sm" onClick={() => { setSelectedMessage(null); navigate('/crop-advisory'); }}>
+                    🌦️ View Weather Advisory
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => handleDelete(selectedMessage.notification_id)} className="text-rose-500 hover:bg-rose-50">
+                  Delete
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+      </Dialog>
+
+      {/* ─── NOTIFICATION SETTINGS MODAL ─── */}
+      <Dialog
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        title="🔔 Notification Settings & Alert Channels"
+      >
+        <div className="space-y-4 pt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Customize which field alerts and push warnings you receive on this device.
+          </p>
+
+          <div className="space-y-3 divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="flex items-center justify-between pt-2">
+              <div className="pr-4">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🚨 Disease & Pest Outbreak Alerts</p>
+                <p className="text-[11px] text-slate-500">Immediate warnings when neighboring farms detect fungal or pest infections.</p>
+              </div>
+              <Switch
+                checked={alertSettings.disease}
+                onChange={(e) => handleSaveAlertSettings({ ...alertSettings, disease: e.target.checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-3">
+              <div className="pr-4">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🌧️ Severe Rain & Spray Windows</p>
+                <p className="text-[11px] text-slate-500">Advisories before high wind or rainfall to prevent pesticide chemical wastage.</p>
+              </div>
+              <Switch
+                checked={alertSettings.weather}
+                onChange={(e) => handleSaveAlertSettings({ ...alertSettings, weather: e.target.checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-3">
+              <div className="pr-4">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">💧 Soil Moisture & Irrigation Prompts</p>
+                <p className="text-[11px] text-slate-500">Alerts when soil water percentage drops below optimal crop thresholds.</p>
+              </div>
+              <Switch
+                checked={alertSettings.irrigation}
+                onChange={(e) => handleSaveAlertSettings({ ...alertSettings, irrigation: e.target.checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-3">
+              <div className="pr-4">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🔋 Hardware Battery & Node Offline</p>
+                <p className="text-[11px] text-slate-500">Alerts when ESP32 battery drops under 20% or Wi-Fi loses connection.</p>
+              </div>
+              <Switch
+                checked={alertSettings.battery}
+                onChange={(e) => handleSaveAlertSettings({ ...alertSettings, battery: e.target.checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-3">
+              <div className="pr-4">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🔊 Alert Sound Chime</p>
+                <p className="text-[11px] text-slate-500">Play an audible chime whenever a critical emergency warning arrives.</p>
+              </div>
+              <Switch
+                checked={alertSettings.sound}
+                onChange={(e) => handleSaveAlertSettings({ ...alertSettings, sound: e.target.checked })}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
+            <Button variant="primary" size="sm" onClick={() => setSettingsOpen(false)}>
+              Done
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </div>
   );
 }

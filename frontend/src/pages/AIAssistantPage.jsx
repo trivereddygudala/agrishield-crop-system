@@ -966,36 +966,6 @@ const AIAssistantPage = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Kisan Auto-Voice Readout Mode Toggle */}
-            <button
-              onClick={() => {
-                setAutoSpeak(prev => {
-                  const next = !prev;
-                  localStorage.setItem('agrishield_kisan_autospeak', String(next));
-                  if (!next && speakingId) stopSpeech();
-                  return next;
-                });
-              }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all shadow-xs ${
-                autoSpeak
-                  ? 'bg-emerald-600 text-white shadow-emerald-500/20 ring-2 ring-emerald-400/40'
-                  : 'bg-slate-100 dark:bg-[#1e1e1e] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#282828]'
-              }`}
-              title={autoSpeak ? "Auto-speak is ON (Answers read aloud automatically)" : "Enable Kisan Voice (Answers will be read aloud)"}
-            >
-              <Volume2 className={`w-3.5 h-3.5 ${autoSpeak ? 'animate-pulse text-white' : ''}`} />
-              <span className="text-[11px] font-extrabold">{autoSpeak ? "Voice: ON" : "Auto-Speak"}</span>
-            </button>
-
-            {/* Playback Speed Controller */}
-            <button
-              onClick={() => setAudioSpeed(s => s === 1.0 ? 1.25 : s === 1.25 ? 0.75 : 1.0)}
-              className="px-2 py-1 rounded-full text-xs font-black border border-slate-200 dark:border-[#2e2e2e] bg-slate-100 dark:bg-[#1e1e1e] text-slate-700 dark:text-slate-200 hover:border-emerald-500 transition-colors shadow-xs"
-              title="Voice readout speed (0.75x slow, 1.0x normal, 1.25x fast)"
-            >
-              🔊 {audioSpeed}x
-            </button>
-
             <button 
               onClick={fetchSessions}
               disabled={isSyncing}
