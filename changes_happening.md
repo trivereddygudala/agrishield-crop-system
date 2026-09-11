@@ -1832,4 +1832,28 @@
   8. **Crop Advisor & Diagnosis Result Cards (`frontend/src/components/CropAdvisorPanel.jsx`, `DiseaseDiagnosisResults.jsx`):** Wired `localizeAdvice` and `diseaseInfo` fallback so that even if backend models emit English text, it instantly translates into authentic vernacular Telugu with complete trade names and farmer-friendly matchbox/spoon measurements.
 - **Verification:** Frontend production build passed cleanly (`✓ built in 32.32s`, exit code 0).
 
+9/11/2026: Google Maps Full-Screen Studio Expansion & Edge-to-Edge Control Docks (v102):
+- **Problem Statement:** When tapping the expand icon or "Open Studio" on the field boundary map in the Field Setup tab, the page navigated to the studio view but remained trapped underneath the top page header, "+ Add New Field" action buttons, the large Farm Hero card, and the bottom mobile navigation bar. This compressed the map canvas into an unusable ~100px sliver, overlapping the controls and failing to deliver the requested Google Maps edge-to-edge experience.
+- **Root Cause & Architectural Fixes:**
+  1. **Early Return Full-Screen Overlay (`FarmPage.jsx`):**
+     - Bypassed the top page header, hero card, and bottom navigation bar completely by adding early returns when `activeTab === 'boundary-studio'` or `activeTab === 'radar-studio'`.
+     - Studio view now renders as an edge-to-edge `fixed inset-0 z-[9999] w-screen h-[100dvh] bg-slate-950 flex flex-col overflow-hidden` container covering 100% of viewport just like Google Maps.
+     - Clicking the back button returns smoothly to `'field-setup'` or `'nearby-radar'`.
+  2. **Top Features Bar (`FieldBoundaryMap.jsx`):**
+     - **Prominent Back Button:** `← Back to Field Setup` / `← Back` with high-contrast emerald badge.
+     - **Farm Name & Multi-Plot Pill:** Dropdown selector showing active plot name, per-plot acreage, and `+ Add Separate Plot`.
+     - **Google-Style Layer Switcher:** 1-tap switching between `🛰️ HD` (Ultra-Zoom Hybrid), `📡 Sat` (High-Res Satellite), and `🗺️ Map` (Street/Terrain).
+     - **Compass & Orientation Controls:** Dynamic magnetic compass needle pointing north (1-tap True North reset) and `+45°` / `-45°` rotation buttons with angle indicator.
+     - **Total Acreage Badge:** Real-time geodesic area calculation badge (`🌾 7309.6 Ac`).
+     - **Done / Save Button:** High-visibility emerald `✓ Done` action pill.
+  3. **Bottom Floating Action Dock (`FieldBoundaryMap.jsx`):**
+     - Redesigned as floating glassmorphic pills placed cleanly at `bottom-4 sm:bottom-6 inset-x-2 sm:inset-x-6 z-20` with safe area padding (`pb-safe`) so controls never collide with system navigation bars:
+       - **Left Pill:** `🚶 Walk Mode` (GPS live walking boundary tool), `+ Pin Mode` (tap on map to drop corner pins), `✨ Auto Box` (instant 4-corner box).
+       - **Right Pill:** `↩ Undo`, `↪ Redo`, `🗑️ Clear Active Plot`, and `🎯 Center on Farm`.
+  4. **Fixed Card Preview Slivers:**
+     - Set guaranteed height `380px` (`min-h-[380px]`) in embedded card mode so the preview map is spacious and controls never overlap.
+     - Added staggered Leaflet `invalidateSize()` triggers (50ms, 150ms, 350ms, 600ms + window resize listener) ensuring map tiles immediately render across 100% of viewport without grey tiles or clipping.
+- **Verification:** Built with Vite (`✓ built in 19.24s`, 0 errors).
+
+
 

@@ -408,3 +408,28 @@ and one more error is when tapthe field button it goes to like this some times a
        - Removed hardcoded `"Anantapur"` and coordinate defaults from `farm_profile.py`, `FarmPage.jsx`, and `indiaLocations.js`.
        - Replaced fallback `"Pasupugallu, Prakasam"` and `"Tomato"` on the Home dashboard (`DashboardPage.jsx`) with dynamic active farm location and crop (with "+ Set Your Crop" link).
        - Updated `WeatherDashboard.jsx` and `service.py` to prioritize the active farm's village, district, and farm name over OpenWeather's weather station city name.
+
+---
+
+### Chat Entry 38
+* **User Input:**  
+  > "see the map what i ask and you give tell i ask when i tap the expand button it wants to expand to entire screen like the google maps in that give the available features in above and below to access easily solve this error and bugs."
+* **Machine Summary Solution:**  
+  * Fully implemented edge-to-edge Google Maps full-screen studio mode and verified with clean Vite build (`✓ built in 19.24s`, 0 errors):
+    1. **True Full-Screen Expansion (`FarmPage.jsx`):**
+       - Implemented early returns for `boundary-studio` and `radar-studio` rendering an edge-to-edge `fixed inset-0 z-[9999] w-screen h-[100dvh] bg-slate-950 flex flex-col overflow-hidden` container.
+       - Completely eliminates page header, hero banner, and bottom navigation bar obstruction, allowing the Leaflet canvas to occupy 100% of the screen just like Google Maps.
+    2. **Top Features Bar Above (`FieldBoundaryMap.jsx`):**
+       - **Prominent Back Button:** `← Back to Field Setup` / `← Back` emerald pill for 1-tap exit.
+       - **Farm & Multi-Plot Selector:** Pill showing active plot name, acreage, and dropdown to switch or add plots (`+ Add Separate Plot`).
+       - **Google-Style Layer Switcher:** 1-tap switching between `🛰️ HD` (Satellite Hybrid), `📡 Sat` (Satellite), and `🗺️ Map` (Street/Terrain).
+       - **Compass & Orientation:** Dynamic True North compass needle (tap to snap 0° North) + rotation controls with degree badge.
+       - **Total Acreage Badge:** Real-time calculation badge (`🌾 7309.6 Ac`).
+       - **Done / Save Button:** High-visibility emerald `✓ Done` action pill.
+    3. **Bottom Floating Action Dock Below (`FieldBoundaryMap.jsx`):**
+       - Floating glassmorphic dock with mobile safe area padding (`pb-safe bottom-4 sm:bottom-6`):
+         - **Left Controls:** `🚶 Walk Mode` (GPS field walking), `+ Pin Mode` (tap map to place pins), `✨ Auto Box` (4-corner plot generator).
+         - **Right Controls:** `↩ Undo`, `↪ Redo`, `🗑️ Clear Active Plot`, and `🎯 Center on Farm`.
+    4. **Solved Card Preview Slivers:**
+       - Embedded preview card has guaranteed height `380px` (`min-h-[380px]`) so it never collapses into a narrow sliver.
+       - Staggered Leaflet `invalidateSize()` listeners guarantee all tiles load across 100% of the screen without delay.
