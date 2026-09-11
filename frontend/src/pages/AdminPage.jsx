@@ -2056,117 +2056,153 @@ export default function AdminPage() {
       {/* ======================================================== */}
       {activeTab === 'support' && (
         <div className="space-y-6">
-          {/* KPI Stat Cards */}
+          {/* KPI Stat Cards (Matching Modern SaaS Mockup) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Stat 1: Total Tickets */}
+            {/* Stat 1: Total Inquiries */}
             <button
               onClick={() => { setSupportStatusFilter('all'); setSupportCategoryFilter('all'); }}
-              className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer"
+              className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-t-4 border-t-indigo-500 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden"
             >
               <div className="flex items-center justify-between w-full">
-                <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-xs">
-                  <Headphones className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  All Requests
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Total Inquiries
+                </span>
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                  All
                 </span>
               </div>
-              <div className="mt-4">
-                <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 font-mono">
-                  {supportStats.total || supportTickets.length || 0}
-                </p>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                  Total Farmer Inquiries
-                </p>
+              
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-slate-100 font-mono tracking-tight">
+                    {supportStats.total || supportTickets.length || 0}
+                  </p>
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+                    Farmer requests logged
+                  </p>
+                </div>
+                {/* SVG Mini Sparkline Wave */}
+                <div className="w-16 h-8 shrink-0 text-indigo-500 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <svg viewBox="0 0 64 32" className="w-full h-full fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round">
+                    <path d="M 0,22 Q 16,8 32,20 T 64,10" />
+                  </svg>
+                </div>
               </div>
             </button>
 
-            {/* Stat 2: Open Tickets */}
+            {/* Stat 2: Open Action Items */}
             <button
               onClick={() => setSupportStatusFilter('open')}
-              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportStatusFilter === 'open' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200 dark:border-slate-800'} hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer`}
+              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportStatusFilter === 'open' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-slate-200 dark:border-slate-800'} border-t-4 border-t-rose-500 hover:shadow-xl hover:shadow-rose-500/10 transition-all duration-300 text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden`}
             >
               <div className="flex items-center justify-between w-full">
-                <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white transition-all shadow-xs">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Open Action Items
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
+                    Needs Action
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <p className="text-3xl sm:text-4xl font-black text-rose-600 dark:text-rose-400 font-mono tracking-tight">
+                    {supportStats.open || supportTickets.filter(t => t.status === 'open').length || 0}
+                  </p>
+                  <p className="text-[11px] font-bold text-rose-500/80 mt-0.5">
+                    Pending response
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
                   <AlertCircle className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
-                  Needs Action
-                </span>
-              </div>
-              <div className="mt-4">
-                <p className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-mono">
-                  {supportStats.open || supportTickets.filter(t => t.status === 'open').length || 0}
-                </p>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                  Open Support Cases
-                </p>
               </div>
             </button>
 
-            {/* Stat 3: Urgent Callbacks */}
+            {/* Stat 3: Urgent 15-Min Callbacks */}
             <button
               onClick={() => { setSupportCategoryFilter('urgent_callback'); setSupportStatusFilter('all'); }}
-              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportCategoryFilter === 'urgent_callback' ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800'} hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden`}
+              className={`p-5 rounded-3xl bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-white dark:to-slate-900 border ${supportCategoryFilter === 'urgent_callback' ? 'border-amber-500 ring-2 ring-amber-500/30' : 'border-amber-300/70 dark:border-amber-700/60'} border-t-4 border-t-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden`}
             >
               <div className="flex items-center justify-between w-full">
-                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-xs">
-                  <PhoneCall className="w-5 h-5 animate-pulse" />
-                </div>
-                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse">
-                  ⚡ 15-Min Priority
+                <span className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                  Urgent 15-Min Callbacks
+                </span>
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-500 text-white shadow-xs animate-pulse flex items-center gap-1">
+                  <span>⚡ LIVE</span>
                 </span>
               </div>
-              <div className="mt-4">
-                <p className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono">
-                  {supportStats.urgent_callbacks || supportTickets.filter(t => t.category === 'urgent_callback' && t.status !== 'resolved').length || 0}
-                </p>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                  Urgent Callbacks Requested
-                </p>
+
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <p className="text-3xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight">
+                    {supportStats.urgent_callbacks || supportTickets.filter(t => (t.category === 'urgent_callback' || t.category === 'callback_request' || t.is_callback_request) && t.status !== 'resolved').length || 0}
+                  </p>
+                  <p className="text-[11px] font-bold text-amber-700 dark:text-amber-300 mt-0.5">
+                    Farmers on waitlist
+                  </p>
+                </div>
+                <div className="p-2.5 rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/30 group-hover:scale-110 transition-transform">
+                  <PhoneCall className="w-5 h-5 animate-bounce" />
+                </div>
               </div>
             </button>
 
-            {/* Stat 4: Resolved Tickets */}
+            {/* Stat 4: Resolved Cases */}
             <button
               onClick={() => setSupportStatusFilter('resolved')}
-              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportStatusFilter === 'resolved' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800'} hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer`}
+              className={`p-5 rounded-3xl bg-white dark:bg-slate-900 border ${supportStatusFilter === 'resolved' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800'} border-t-4 border-t-emerald-500 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden`}
             >
               <div className="flex items-center justify-between w-full">
-                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
-                  Resolved
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Resolved Cases
+                </span>
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60">
+                  Done
                 </span>
               </div>
-              <div className="mt-4">
-                <p className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                  {supportStats.resolved || supportTickets.filter(t => t.status === 'resolved').length || 0}
-                </p>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-1">
-                  Resolved Cases
-                </p>
+
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <p className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
+                    {supportStats.resolved || supportTickets.filter(t => t.status === 'resolved').length || 0}
+                  </p>
+                  <p className="text-[11px] font-bold text-emerald-600/80 mt-0.5">
+                    Issues resolved
+                  </p>
+                </div>
+                {/* SVG Mini Sparkline Uptrend */}
+                <div className="w-16 h-8 shrink-0 text-emerald-500 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <svg viewBox="0 0 64 32" className="w-full h-full fill-none stroke-current stroke-2 stroke-linecap-round stroke-linejoin-round">
+                    <path d="M 0,28 L 24,18 L 42,22 L 64,4" />
+                  </svg>
+                </div>
               </div>
             </button>
           </div>
 
           {/* Helpdesk WhatsApp & Hotline Settings Card */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-[#25D366]/15 text-[#25D366]">
-                  <MessageCircle className="w-5 h-5" />
+          <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-[#25D366]/15 text-[#25D366] flex items-center justify-center shadow-xs">
+                  <MessageCircle className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <span>Helpdesk WhatsApp & Hotline Settings</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span>Helpdesk WhatsApp & Hotline Configuration</span>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                       Live Dynamic Config
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Set your real WhatsApp number and hotline phone. When farmers tap "Chat on WhatsApp" or "Call Helpdesk", they will be connected directly to these numbers.
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Set your real WhatsApp number and hotline phone. When farmers tap "Chat on WhatsApp" or "Call Helpdesk", they connect directly to your device.
                   </p>
                 </div>
               </div>
@@ -2176,30 +2212,30 @@ export default function AdminPage() {
                   href={`https://wa.me/${(supportConfig.whatsapp_number || '').replace(/[^0-9]/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#25D366] font-extrabold text-xs transition-all self-start sm:self-auto cursor-pointer"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] font-black text-xs transition-all self-start sm:self-auto cursor-pointer border border-[#25D366]/30"
                 >
-                  <MessageCircle className="w-3.5 h-3.5" />
+                  <MessageCircle className="w-4 h-4" />
                   <span>Test WhatsApp Link ↗</span>
                 </a>
               )}
             </div>
 
-            <form onSubmit={handleSaveSupportConfig} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <form onSubmit={handleSaveSupportConfig} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {/* WhatsApp Support Number */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
                   <span>Your WhatsApp Phone Number</span>
                   <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-bold">💬</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-[#25D366] font-bold">💬</span>
                   <input
                     type="text"
                     required
                     placeholder="e.g. +91 98765 43210 or 9876543210"
                     value={supportConfig.whatsapp_number}
                     onChange={(e) => setSupportConfig({ ...supportConfig, whatsapp_number: e.target.value })}
-                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full pl-10 pr-3 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400">Include country code (e.g. +91). Cleaned automatically for wa.me.</p>
@@ -2207,19 +2243,19 @@ export default function AdminPage() {
 
               {/* Calling Hotline */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
                   <span>Support Hotline Phone</span>
                   <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-bold">📞</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-emerald-600 font-bold">📞</span>
                   <input
                     type="text"
                     required
                     placeholder="e.g. 1800-180-1551 or mobile"
                     value={supportConfig.support_phone}
                     onChange={(e) => setSupportConfig({ ...supportConfig, support_phone: e.target.value })}
-                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full pl-10 pr-3 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400">Displayed on the farmer emergency helpline banner.</p>
@@ -2227,28 +2263,28 @@ export default function AdminPage() {
 
               {/* Operating Hours */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
                   Support Operating Hours
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-bold">⏰</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-amber-500 font-bold">⏰</span>
                   <input
                     type="text"
                     placeholder="e.g. 24x7 Emergency Assistance"
                     value={supportConfig.support_hours}
                     onChange={(e) => setSupportConfig({ ...supportConfig, support_hours: e.target.value })}
-                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full pl-10 pr-3 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400">Shown to farmers on the support overview.</p>
               </div>
 
               {/* Submit Button */}
-              <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-end pt-2">
+              <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-end pt-1">
                 <button
                   type="submit"
                   disabled={savingSupportConfig}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-600/30 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   <CheckCircle className={`w-4 h-4 ${savingSupportConfig ? 'animate-spin' : ''}`} />
                   <span>{savingSupportConfig ? 'Saving Settings...' : 'Save WhatsApp & Contact Settings'}</span>
@@ -2280,21 +2316,21 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* Status Filter Buttons */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/70 p-1 rounded-2xl shrink-0 overflow-x-auto">
+              {/* Status Filter Tabs (Refined Style) */}
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl shrink-0 overflow-x-auto">
                 {[
-                  { id: 'all', label: 'All Statuses' },
-                  { id: 'open', label: 'Open' },
+                  { id: 'all', label: 'All Tickets' },
+                  { id: 'open', label: 'Needs Action' },
                   { id: 'in_progress', label: 'In Progress' },
                   { id: 'resolved', label: 'Resolved' },
                 ].map((st) => (
                   <button
                     key={st.id}
                     onClick={() => setSupportStatusFilter(st.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                       supportStatusFilter === st.id
-                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-md'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                   >
                     {st.label}
@@ -2307,7 +2343,7 @@ export default function AdminPage() {
                 <button
                   onClick={fetchSupportTickets}
                   disabled={supportLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-black transition-all disabled:opacity-50 cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${supportLoading ? 'animate-spin' : ''}`} />
                   <span>Refresh Queue</span>
@@ -2323,7 +2359,7 @@ export default function AdminPage() {
                 <select
                   value={supportCategoryFilter}
                   onChange={(e) => setSupportCategoryFilter(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs focus:outline-hidden focus:border-emerald-500 cursor-pointer"
                 >
                   <option value="all">All Categories</option>
                   <option value="urgent_callback">⚡ 15-Minute Emergency Callback</option>
@@ -2340,7 +2376,7 @@ export default function AdminPage() {
                 <select
                   value={supportPriorityFilter}
                   onChange={(e) => setSupportPriorityFilter(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs focus:outline-hidden focus:border-emerald-500 cursor-pointer"
                 >
                   <option value="all">All Priorities</option>
                   <option value="critical">Critical</option>
@@ -2396,22 +2432,28 @@ export default function AdminPage() {
                 return (
                   <div
                     key={ticket.id}
-                    className={`rounded-3xl bg-white dark:bg-slate-900 border transition-all duration-200 overflow-hidden shadow-sm hover:shadow-md ${
+                    className={`rounded-3xl bg-white dark:bg-slate-900 border transition-all duration-300 overflow-hidden shadow-sm hover:shadow-lg ${
                       isCallback
-                        ? 'border-amber-300 dark:border-amber-800 ring-1 ring-amber-400/20'
+                        ? 'border-amber-400 dark:border-amber-600/70 ring-1 ring-amber-400/30'
                         : 'border-slate-200 dark:border-slate-800'
                     }`}
                   >
-                    {/* Urgent 15-Minute Callback Banner */}
+                    {/* Urgent 15-Minute Callback Banner (Glow Amber to Coral Gradient) */}
                     {isCallback && (
-                      <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-amber-600 text-white px-5 py-2 text-xs font-black flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white px-6 py-2.5 text-xs font-black flex items-center justify-between tracking-wide shadow-xs">
+                        <div className="flex items-center gap-2.5">
                           <PhoneCall className="w-4 h-4 animate-bounce" />
-                          <span>⚡ URGENT 15-MINUTE CALLBACK REQUEST — FARMER WAITING FOR CALL</span>
+                          <span>⚡ URGENT 15-MINUTE CALLBACK REQUEST • CALL FARMER NOW</span>
                         </div>
-                        <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-mono uppercase">
-                          Priority Call
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-90"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                          </span>
+                          <span className="text-[10px] bg-black/20 px-2.5 py-0.5 rounded-full font-mono uppercase tracking-wider">
+                            Priority Call
+                          </span>
+                        </div>
                       </div>
                     )}
 
@@ -2419,12 +2461,12 @@ export default function AdminPage() {
                       {/* Top Meta Row */}
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          <span className="text-[11px] font-mono font-black px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                             #{ticket.id.slice(0, 8)}
                           </span>
 
                           {/* Category Badge */}
-                          <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             {ticket.category === 'hardware_iot' && 'Hardware & IoT'}
                             {ticket.category === 'crop_scan' && 'Crop Disease Scan'}
                             {ticket.category === 'maps_gis' && 'Maps & Coordinates'}
@@ -2435,8 +2477,8 @@ export default function AdminPage() {
 
                           {/* Priority Badge */}
                           <span
-                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                              ticket.priority === 'critical'
+                            className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                              ticket.priority === 'critical' || ticket.priority === 'urgent'
                                 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-300 dark:border-rose-800'
                                 : ticket.priority === 'high'
                                 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
@@ -2450,7 +2492,7 @@ export default function AdminPage() {
 
                           {/* Status Badge */}
                           <span
-                            className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                            className={`text-[11px] font-black px-3 py-1 rounded-full border ${
                               ticket.status === 'open'
                                 ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60'
                                 : ticket.status === 'in_progress'
@@ -2458,14 +2500,14 @@ export default function AdminPage() {
                                 : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60'
                             }`}
                           >
-                            {ticket.status === 'open' && 'Open'}
-                            {ticket.status === 'in_progress' && 'In Progress'}
-                            {ticket.status === 'resolved' && 'Resolved'}
+                            {ticket.status === 'open' && '🔴 Open'}
+                            {ticket.status === 'in_progress' && '🟡 In Progress'}
+                            {ticket.status === 'resolved' && '🟢 Resolved'}
                           </span>
                         </div>
 
                         {/* Timestamp */}
-                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
                           <Clock className="w-3.5 h-3.5" />
                           <span>{ticket.created_at ? formatDateTime(ticket.created_at) : 'Just now'}</span>
                         </div>
@@ -2473,10 +2515,10 @@ export default function AdminPage() {
 
                       {/* Subject & Description */}
                       <div className="space-y-2">
-                        <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">
                           {ticket.subject}
                         </h3>
-                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 leading-relaxed whitespace-pre-wrap">
+                        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 leading-relaxed whitespace-pre-wrap">
                           {ticket.description}
                         </p>
                       </div>
@@ -2499,40 +2541,47 @@ export default function AdminPage() {
                         </div>
                       )}
 
-                      {/* Farmer Contact Card & Direct Communication Buttons */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                        <div className="space-y-1">
-                          <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                            <User className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span>Farmer: {ticket.farmer_name || 'Registered Farmer'}</span>
-                          </p>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                            {farmerPhone ? (
-                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
-                                📞 {farmerPhone}
-                              </span>
-                            ) : (
-                              <span className="text-amber-600 dark:text-amber-400 font-medium">⚠️ No phone number provided</span>
-                            )}
-                            {(ticket.contact_email || ticket.farmer_email) && (
-                              <span>✉️ {ticket.contact_email || ticket.farmer_email}</span>
-                            )}
-                            {(ticket.district || ticket.state || ticket.location) && (
-                              <span>📍 {[ticket.district, ticket.state, ticket.location].filter(Boolean).join(', ')}</span>
-                            )}
-                            {ticket.preferred_time && (
-                              <span className="font-semibold text-sky-600 dark:text-sky-400">⏰ {ticket.preferred_time}</span>
-                            )}
+                      {/* Farmer Contact Card & Direct Communication Buttons (Elevated Look) */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-2xl bg-emerald-600/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <User className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm font-black text-slate-900 dark:text-slate-100">
+                              {ticket.farmer_name || 'Registered Farmer'}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
+                              {farmerPhone ? (
+                                <span className="font-mono font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                  📞 {farmerPhone}
+                                </span>
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">⚠️ No phone number</span>
+                              )}
+                              {(ticket.contact_email || ticket.farmer_email) && (
+                                <span>✉️ {ticket.contact_email || ticket.farmer_email}</span>
+                              )}
+                              {(ticket.district || ticket.state || ticket.location) && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-slate-400" />
+                                  <span>{[ticket.district, ticket.state, ticket.location].filter(Boolean).join(', ')}</span>
+                                </span>
+                              )}
+                              {ticket.preferred_time && (
+                                <span className="font-semibold text-sky-600 dark:text-sky-400">⏰ {ticket.preferred_time}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Direct One-Click Communication Actions */}
-                        <div className="flex flex-wrap items-center gap-2">
+                        {/* Direct One-Click Communication Actions (Lush Glow Buttons) */}
+                        <div className="flex flex-wrap items-center gap-2.5">
                           {farmerPhone ? (
                             <>
                               <a
                                 href={`tel:${farmerPhone}`}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all cursor-pointer"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-600/25 active:scale-95 transition-all cursor-pointer"
                               >
                                 <PhoneCall className="w-4 h-4 animate-pulse" />
                                 <span>Call {farmerPhone}</span>
@@ -2542,16 +2591,16 @@ export default function AdminPage() {
                                 href={`https://wa.me/${cleanedPhone}?text=${waMessage}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs shadow-md active:scale-95 transition-all cursor-pointer"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs shadow-lg shadow-green-500/25 active:scale-95 transition-all cursor-pointer"
                               >
                                 <MessageCircle className="w-4 h-4" />
-                                <span>WhatsApp Farmer</span>
+                                <span>WhatsApp Chat</span>
                               </a>
                             </>
                           ) : (ticket.contact_email || ticket.farmer_email) ? (
                             <a
                               href={`mailto:${ticket.contact_email || ticket.farmer_email}?subject=${encodeURIComponent(`AgriShield Support - Ticket #${ticket.id.slice(0, 8)}`)}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
                             >
                               <span>Email Farmer</span>
                             </a>
@@ -2561,7 +2610,7 @@ export default function AdminPage() {
 
                       {/* Resolution Summary if already resolved */}
                       {ticket.status === 'resolved' && ticket.resolution_notes && (
-                        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
+                        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1">
                           <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300">
                             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                             <span>Resolution Notes ({ticket.resolved_at ? formatDateTime(ticket.resolved_at) : 'Saved'}):</span>
@@ -2581,7 +2630,7 @@ export default function AdminPage() {
                             value={ticket.status}
                             disabled={updatingTicketId === ticket.id}
                             onChange={(e) => handleUpdateTicketStatus(ticket.id, e.target.value, currentResNote)}
-                            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
+                            className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500 cursor-pointer"
                           >
                             <option value="open">🔴 Open (Pending Action)</option>
                             <option value="in_progress">🟡 In Progress (Contacting Farmer)</option>
@@ -2596,12 +2645,12 @@ export default function AdminPage() {
                             placeholder="Add resolution details or advice notes..."
                             value={currentResNote}
                             onChange={(e) => setTicketResolutionInputs(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                            className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500"
+                            className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-emerald-500"
                           />
                           <button
                             onClick={() => handleUpdateTicketStatus(ticket.id, ticket.status, currentResNote)}
                             disabled={updatingTicketId === ticket.id}
-                            className="px-3 py-1.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white font-bold text-xs shrink-0 transition-all cursor-pointer disabled:opacity-50"
+                            className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-700 hover:bg-black dark:hover:bg-slate-600 text-white font-bold text-xs shrink-0 transition-all cursor-pointer disabled:opacity-50 shadow-xs"
                           >
                             {updatingTicketId === ticket.id ? 'Saving...' : 'Save Note'}
                           </button>

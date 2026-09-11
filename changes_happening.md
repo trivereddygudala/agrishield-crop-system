@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v115) - Modern SaaS Visual Redesign & Elevated Color System for Admin Helpdesk
+- **Summary:** Upgraded the visual styling, typography, color accents, and interactivity of the Farmer Support & Helpdesk Admin Hub (`frontend/src/pages/AdminPage.jsx`) to match the approved premium SaaS mockup:
+  1. 📊 **4 Elevated Metric KPI Cards (`AdminPage.jsx`):**
+     - Added colored top accent borders (`border-t-4 border-indigo-500`, `border-rose-500`, `border-amber-500`, `border-emerald-500`).
+     - Added inline SVG sparkline micro-charts (indigo wave and emerald 7-day uptrends) and real-time red ping indicator on Urgent Callbacks.
+     - Enhanced typography with subtle subtitles, badges, and smooth hover elevation (`hover:shadow-lg transition-all`).
+  2. 💬 **Dynamic Helpdesk WhatsApp & Hotline Settings Card:**
+     - Styled with WhatsApp brand green accents (`#25D366`), dark-accented input fields, and live test chat link.
+     - Added dedicated input group icons, focus rings, and glowing save button with spinner.
+  3. 🔍 **High-Contrast Filter Toolbar:**
+     - Search input with clear visual hierarchy, shortcut badge (`⌘K`), and rounded active pill tabs (`All Tickets`, `Needs Action`, `In Progress`, `Resolved`) with badge counters.
+  4. 🎫 **Vibrant Support Ticket Cards:**
+     - Glowing animated amber-to-rose callback banner: `⚡ URGENT 15-MINUTE CALLBACK REQUEST — FARMER WAITING FOR CALL`.
+     - Elevated farmer identification chip with initial avatar, bold name, and verified phone badge.
+     - High-visibility action buttons: emerald glowing **"📞 Call {phone}"** (`tel:`) and WhatsApp green **"💬 WhatsApp Chat"** (`wa.me`).
+     - Modern status transition select menu and diagnostic resolution notes area.
+- **Files modified**: `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v114) - Fix: Render Direct "Call Farmer" & "WhatsApp Farmer" Action Buttons on Admin Callback Tickets
 - **Summary:** Resolved the issue reported in user screenshot where the farmer's callback ticket was missing the phone number and one-click "Call Farmer" / "WhatsApp Farmer" action buttons:
   1. 🛠️ **Backend Ticket Document Formatter (`backend/app/routers/support.py`):**
