@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v118) - Feature: Complete AgriShield Software Suite (Features 1 to 5)
+- **Summary:** Implemented and integrated all 5 major software systems across the AgriShield web application:
+  1. 📄 **Clinical PDF Prescriptions & Audit Reports (Feature 1):**
+     - Upgraded `frontend/src/pages/ReportsPage.jsx` with an executive botanical audit generator: emerald medical banner, farm metadata box, verified pathology seal, alternating zebra rows, and ISO agronomy disclaimer.
+     - Enhanced `frontend/src/pages/HistoryPage.jsx` with instant 1-tap **"Rx PDF"** action buttons on both mobile cards and desktop cards, plus integrated direct PDF download in the inspection modal powered by `pdfPrescriptionGenerator.js`.
+  2. 📊 **Visual Crop Disease AI Analytics & Farm Health Index (Feature 2):**
+     - Upgraded `frontend/src/pages/AnalyticsPage.jsx` with a dual-domain switcher: **"🌾 Crop Disease AI Analytics"** vs **"📡 Field Sensor Telemetry"**.
+     - Built the Crop AI Analytics suite:
+       * **Farm Crop Health Index Gauge (0–100%)**: Dynamically evaluated from healthy vs diseased leaf ratios with vitality badges.
+       * **Top 4 Crop Metrics**: Total Scans, Healthy Leaves, Pathogens Detected, and Mean AI Model Confidence.
+       * **Disease Distribution Donut/Pie Chart**: Recharts Pie with custom palette, cell hover tooltips, and percentage breakdown.
+       * **Daily Outbreak Progression & Activity Bar Chart**: Stacked bars for Healthy vs Diseased crops over time.
+       * **Crop Species Health Breakdown**: Tomato, Potato, Pepper comparative vitality meters.
+       * **Dominant Pathogen Alert**: Actionable agronomic chemical & cultural prevention guidance for the #1 recurring pathogen.
+  3. 🔔 **Real-Time Notification Center & Audio Alerts (Feature 3):**
+     - In `frontend/src/pages/NotificationsPage.jsx`, added a native browser Web Audio API synthesizer (`playNotificationChime`) for crisp, offline-ready dual-tone alerts without external media file dependencies.
+     - Added a **"⚡ Simulate Alert"** testing button to trigger live disease warnings with audio chime, unread badges, and toast updates.
+  4. 🎙️ **Regional Voice AI Assistant / Dr. AgriShield Voice Chat (Feature 4):**
+     - Verified and hardened speech recognition in `frontend/src/pages/AIAssistantPage.jsx` with multi-lingual regional support for Telugu (`te-IN`), Hindi (`hi-IN`), and English (`en-IN`).
+  5. 🌐 **Zero-Internet PWA Offline Mode (Feature 5):**
+     - Upgraded `frontend/public/sw.js` with proactive precaching of core assets, network-first navigation with graceful fallback to `offline.html`, and dynamic caching of styles and scripts.
+     - Overhauled `frontend/public/offline.html` into a bilingual (Telugu + English) offline portal featuring 1-tap launch into the on-device **Offline Scan Center** (`/upload`), heartbeat reconnection polling, and local IndexedDB sync guidance.
+- **Files modified**: `frontend/src/pages/ReportsPage.jsx`, `frontend/src/pages/HistoryPage.jsx`, `frontend/src/pages/AnalyticsPage.jsx`, `frontend/src/pages/NotificationsPage.jsx`, `frontend/public/sw.js`, `frontend/public/offline.html`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v117) - Fix: Resolved Tab Filter Mismatch & 1-Tap Instant Status Actions on Helpdesk Tickets
 - **Summary:** Resolved the issue reported in user screenshot where clicking the "Resolved" filter tab still displayed an "Open" ticket, and made status updating foolproof with 1-tap quick action buttons:
   1. 🔍 **Client-Side Filtering Guardrail (`frontend/src/pages/AdminPage.jsx`):**

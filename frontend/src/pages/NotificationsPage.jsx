@@ -135,6 +135,41 @@ export default function NotificationsPage() {
     } catch { setToastMsg(t('notifications_page.toast.all_read_failed', 'Failed to mark all as read.')); }
   };
 
+  const playNotificationChime = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {
+      console.debug('Audio chime skipped:', e);
+    }
+  };
+
+  const handleSimulateAlert = () => {
+    playNotificationChime();
+    const simulated = {
+      notification_id: 'SIM-' + Date.now(),
+      title: '🚨 High Disease Vulnerability Alert',
+      message: 'Persistent canopy humidity (>88%) detected. High risk of Tomato Early Blight outbreak. Preventative copper or neem foliar spray strongly advised.',
+      category: 'disease',
+      priority: 'High',
+      created_at: new Date().toISOString(),
+      read: false
+    };
+    setNotifications(prev => [simulated, ...prev]);
+    setTotal(t => t + 1);
+    setToastMsg(t('notifications_page.toast.simulated', 'Simulated crop disease alert delivered with audio chime!'));
+  };
+
   const handleClear = async () => {
     if (!window.confirm(t('notifications_page.confirm_clear', 'Clear all notifications?'))) return;
     try {
@@ -206,6 +241,16 @@ export default function NotificationsPage() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Test/Simulate Disease Alert Button */}
+          <button
+            onClick={handleSimulateAlert}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 transition-all shadow-xs"
+            title="Simulate Real-Time Crop Warning"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span className="hidden sm:inline">Simulate Alert</span>
+          </button>
+
           {/* Notification Settings Button */}
           <button
             onClick={() => setSettingsOpen(true)}

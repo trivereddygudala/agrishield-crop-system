@@ -16,6 +16,7 @@ import { useHardwareMode } from '../hooks/useHardwareMode';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
 import { getSpeechLocale } from '../utils/regionalLocale';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
+import { generateAndDownloadPrescriptionPDF } from '../utils/pdfPrescriptionGenerator';
 import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
 import { parseServerDate, formatDateTime } from '../utils/dateUtils';
 import { Card, Button, Input, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Dialog, EmptyState, Skeleton, Progress } from '../components/ui/index';
@@ -88,6 +89,31 @@ const HistoryPage = () => {
       setIsOnline(nodes.some(n => n.status === 'online'));
     }).catch(() => setIsOnline(false));
   }, []);
+
+  const handleDirectDownloadPDF = (item) => {
+    if (!item) return;
+    try {
+      const details = getDiseaseDetails(item.disease_name);
+      const isHealthy = item.prediction_status === 'healthy' || item.disease_name?.toLowerCase().includes('healthy');
+      generateAndDownloadPrescriptionPDF({
+        cropName: item.displayCrop || item.crop_name || 'Crop',
+        diseaseName: item.displayDisease || item.disease_name || 'Foliar Infection',
+        confidence: Number((item.confidence || 0.95) * 100).toFixed(1),
+        severity: isHealthy ? 'Healthy' : 'Moderate',
+        chemicals: details?.chemicals || [],
+        organic: details?.organic || [],
+        prevention: details?.prevention || '',
+        acres: activeFarm?.total_area || 1.0,
+        farmLocation: activeFarm?.location || 'Pasupugallu Farm',
+        farmerName: user?.name || activeFarm?.farm_name || 'AgriShield Farmer',
+        language: i18n?.language || 'en'
+      });
+      setToastMsg(isTe ? 'ప్రిస్క్రిప్షన్ PDF డౌన్‌లోడ్ ప్రారంభమైంది' : 'Prescription PDF download initiated.');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      setToastMsg('Failed to download PDF prescription.');
+    }
+  };
 
   const fetchData = useCallback(async (isManual = false) => {
     if (!predictionData.length && !sensorData.length && !isManual) setLoading(true);
@@ -700,6 +726,13 @@ const HistoryPage = () => {
                       >
                         <Eye className="w-3.5 h-3.5" /> {t('history.table_headers.details', 'View Details')}
                       </button>
+                      <button
+                        onClick={() => handleDirectDownloadPDF(item)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition-all active:scale-95"
+                        title="Download Clinical PDF Prescription"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Rx PDF
+                      </button>
                       {isAdmin && (
                         <button
                           onClick={() => handleDeleteRecord(item.id)}
@@ -852,15 +885,27 @@ const HistoryPage = () => {
 
                         {/* Card Footer Actions */}
                         <div className="p-3 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-2">
-                          <Button 
-                            size="xs" 
-                            variant="ghost" 
-                            onClick={() => { setInspectRecord(item); setInspectModalOpen(true); }} 
-                            leftIcon={<Eye className="w-3.5 h-3.5" />}
-                            className="text-slate-600 dark:text-slate-300 font-semibold"
-                          >
-                            {t('history.table_headers.details', 'Details')}
-                          </Button>
+                          <div className="flex items-center gap-1.5">
+                            <Button 
+                              size="xs" 
+                              variant="ghost" 
+                              onClick={() => { setInspectRecord(item); setInspectModalOpen(true); }} 
+                              leftIcon={<Eye className="w-3.5 h-3.5" />}
+                              className="text-slate-600 dark:text-slate-300 font-semibold"
+                            >
+                              {t('history.table_headers.details', 'Details')}
+                            </Button>
+                            <Button 
+                              size="xs" 
+                              variant="outline" 
+                              onClick={() => handleDirectDownloadPDF(item)} 
+                              leftIcon={<FileText className="w-3.5 h-3.5 text-emerald-500" />}
+                              className="text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                              title="Download Clinical PDF Prescription"
+                            >
+                              Rx PDF
+                            </Button>
+                          </div>
                           {isAdmin && (
                             <Button 
                               size="xs" 
@@ -1271,6 +1316,16 @@ const HistoryPage = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
+                    onClick={() => handleDirectDownloadPDF(inspectRecord)}
+                    className="font-extrabold border-emerald-500/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 active:scale-95"
+                    leftIcon={<FileText className="w-4 h-4 text-emerald-500" />}
+                  >
+                    Download Rx (PDF)
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
                     onClick={() => {
                       printPrescriptionSlip({
                         cropName: inspectRecord.displayCrop || inspectRecord.crop_name,
@@ -1287,9 +1342,9 @@ const HistoryPage = () => {
                       });
                     }}
                     className="font-extrabold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 active:scale-95"
-                    leftIcon={<Printer className="w-4 h-4 text-emerald-500" />}
+                    leftIcon={<Printer className="w-4 h-4 text-slate-500" />}
                   >
-                    Prescription (PDF)
+                    Print Slip
                   </Button>
                 </div>
 

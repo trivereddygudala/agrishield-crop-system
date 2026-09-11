@@ -3,19 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offline — AgriShield AI</title>
+  <title>Offline Portal — AgriShield AI</title>
+  <link rel="icon" type="image/png" href="/icon-192.png">
   <style>
     :root {
       --bg: #090d16;
-      --card-bg: rgba(15, 23, 42, 0.8);
+      --card-bg: rgba(15, 23, 42, 0.9);
       --border: rgba(51, 65, 85, 0.6);
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --primary: #10b981;
+      --primary-hover: #059669;
     }
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+    body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg);
       color: var(--text);
@@ -23,83 +28,184 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      padding: 1rem;
       text-align: center;
     }
     .container {
-      max-width: 420px;
-      padding: 2.5rem;
+      max-width: 480px;
+      width: 100%;
+      padding: 2.25rem 1.75rem;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 1.5rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
     }
     .icon-box {
-      width: 4rem;
-      height: 4rem;
-      margin: 0 auto 1.5rem auto;
+      width: 4.5rem;
+      height: 4.5rem;
+      margin: 0 auto 1.25rem auto;
       border-radius: 1.25rem;
       background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-    .icon-box svg {
-      width: 2.25rem;
-      height: 2.25rem;
-      color: var(--primary);
+      font-size: 2.25rem;
     }
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 800;
-      margin: 0 0 0.5rem 0;
+      margin-bottom: 0.25rem;
+      color: #ffffff;
+    }
+    .telugu-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
     }
     p {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
-      line-height: 1.6;
-      margin: 0 0 1.5rem 0;
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
     }
-    .btn {
+    .status-pill {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      background-color: var(--primary);
-      color: #ffffff;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+    .status-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.25rem;
+      border-radius: 0.85rem;
       font-weight: 700;
       font-size: 0.875rem;
       border: none;
-      border-radius: 0.75rem;
       cursor: pointer;
       text-decoration: none;
-      transition: background-color 0.2s;
+      transition: all 0.2s ease;
     }
-    .btn:hover {
-      background-color: #059669;
+    .btn-primary {
+      background-color: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .guide-box {
+      text-align: left;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .guide-box strong {
+      color: #e2e8f0;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon-box">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m-2.828-2.828a5 5 0 010-7.071m-4.243 4.243a1 1 0 01-1.414 0l-4.243-4.243a1 1 0 011.414-1.414L10 10.586l3.536-3.536a1 1 0 011.414 1.414L11.414 12z"></path>
-      </svg>
+    <div class="icon-box">🌾</div>
+    <h1>Zero-Internet Mode Active</h1>
+    <div class="telugu-title">ఆఫ్‌లైన్ మోడ్ సిద్ధంగా ఉంది</div>
+    
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      <span>No Internet Connection / నెట్‌వర్క్ లేదు</span>
     </div>
-    <h1>You're Offline</h1>
-    <p>AgriShield AI is currently operating in offline mode. Please check your internet connection and try reconnecting.</p>
-    <button class="btn" onclick="window.location.reload()">
-      Try Reconnecting
-    </button>
+
+    <p>
+      Don't worry! AgriShield's on-device botanical engine works completely offline in your fields. You can continue taking leaf photos for instant diagnosis and treatment advice.
+    </p>
+
+    <div class="btn-group">
+      <a href="/upload" class="btn btn-primary">
+        <span>🌿</span> Open Offline Scan Center (ఆఫ్‌లైన్ స్కానర్)
+      </a>
+      <button class="btn btn-secondary" onclick="checkConnection()">
+        <span>🔄</span> Check Connection &amp; Sync (రీకనెక్ట్ చేయండి)
+      </button>
+    </div>
+
+    <div class="guide-box">
+      <strong>💡 Farmer Field Tip:</strong>
+      <p style="margin-top: 0.35rem; margin-bottom: 0;">
+        All offline scans are safely stored in your browser's IndexedDB and will automatically sync with the cloud server as soon as mobile signal returns.
+      </p>
+    </div>
   </div>
+
   <script>
-    // Automatically poll server every 2s and reload when online
+    function checkConnection() {
+      if (navigator.onLine) {
+        window.location.href = '/';
+      } else {
+        fetch('/api/v1/health', { method: 'HEAD', cache: 'no-store' })
+          .then(() => {
+            window.location.href = '/';
+          })
+          .catch(() => {
+            alert('Still offline. Check your WiFi or mobile data connection.');
+          });
+      }
+    }
+
+    // Auto-reload when network reconnects
+    window.addEventListener('online', () => {
+      window.location.href = '/';
+    });
+
+    // Heartbeat check every 3s
     setInterval(() => {
-      fetch('/api/v1/health', { method: 'HEAD' })
-        .then(() => window.location.reload())
-        .catch(() => {});
-    }, 2000);
+      if (navigator.onLine) {
+        fetch('/api/v1/health', { method: 'HEAD', cache: 'no-store' })
+          .then(() => window.location.href = '/')
+          .catch(() => {});
+      }
+    }, 3000);
   </script>
 </body>
 </html>
