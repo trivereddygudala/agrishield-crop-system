@@ -25,6 +25,12 @@ from backend.app.core.lockout_manager import (
 )
 from backend.app.core.rate_limiter import rate_limit, AUTH_LIMIT
 from backend.app.core.audit_logger import log_security_event
+from backend.app.core.security_walls import (
+    validate_bot_trap,
+    check_login_cooldown,
+    record_failed_login as wall_record_failed_login,
+    record_successful_login as wall_record_successful_login
+)
 from backend.app.models.schemas import UserRegister, UserLogin, UserResponse, TokenResponse, ProfileUpdate
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -89,6 +95,13 @@ async def register(request: Request, user_data: UserRegister, db = Depends(get_d
     """Register a new user (farmer) with simplified password policy."""
     client_ip = request.client.host if request.client else "127.0.0.1"
 
+    # Wall 4: Ghost Bot Trap Check
+    if not validate_bot_trap(user_data.model_dump(), client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Automated registration blocked by security defense."
+        )
+
     # Validate password strength (simplified: min 4 chars)
     is_valid, msg = validate_password_strength(user_data.password)
     if not is_valid:
@@ -148,6 +161,21 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
     login_key = credentials.email.lower().strip()
     login_as_email = login_key if "@" in login_key else f"{login_key}@agrishield.com"
 
+    # Wall 4: Ghost Bot Trap Check
+    if not validate_bot_trap(credentials.model_dump(), client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Automated submission blocked by security defense."
+        )
+
+    # Wall 2: Farmer-Friendly Soft Cooldown Check
+    in_cooldown, rem_sec = check_login_cooldown(client_ip)
+    if in_cooldown:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many attempts. For your account safety, please wait {rem_sec} seconds before trying again."
+        )
+
     # 1. Lockout Check
     if is_account_locked(client_ip) or is_account_locked(login_key) or is_account_locked(login_as_email):
         rem_sec = max(get_remaining_lockout_seconds(client_ip), get_remaining_lockout_seconds(login_key), get_remaining_lockout_seconds(login_as_email))
@@ -167,6 +195,7 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
         ]
     })
     if not user:
+        wall_record_failed_login(client_ip)
         attempts = record_failed_login(client_ip)
         record_failed_login(login_key)
         delay = get_progressive_delay(attempts)
@@ -180,6 +209,7 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
 
     # 2. Constant-time Password Verification
     if not verify_password(credentials.password, user["password_hash"]):
+        wall_record_failed_login(client_ip)
         attempts = record_failed_login(client_ip)
         record_failed_login(login_key)
         delay = get_progressive_delay(attempts)
@@ -192,6 +222,7 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
         )
 
     # Success: Reset failed attempts & lockouts
+    wall_record_successful_login(client_ip)
     record_successful_login(client_ip)
     record_successful_login(login_key)
     record_successful_login(login_as_email)

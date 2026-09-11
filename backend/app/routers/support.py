@@ -8,6 +8,7 @@ from bson import ObjectId
 from backend.app.db.mongodb import get_database
 from backend.app.routers.auth import get_current_user
 from backend.app.core.security import require_role
+from backend.app.core.security_walls import validate_bot_trap
 
 router = APIRouter(prefix="/api/support", tags=["Farmer Support & Helpdesk"])
 
@@ -23,6 +24,7 @@ class TicketCreateRequest(BaseModel):
     phone: Optional[str] = None
     language: Optional[str] = "en"
     attachments: Optional[List[str]] = []
+    bot_trap: Optional[str] = None
 
 class CallbackCreateRequest(BaseModel):
     phone: str
@@ -30,6 +32,7 @@ class CallbackCreateRequest(BaseModel):
     language: Optional[str] = "te"
     issue_summary: Optional[str] = "Requesting phone callback from agricultural/technical officer"
     preferred_time: Optional[str] = "Within 15 minutes"
+    bot_trap: Optional[str] = None
 
 class TicketUpdateRequest(BaseModel):
     status: Optional[str] = None # open, in_progress, resolved, closed
@@ -83,6 +86,12 @@ async def create_support_ticket(
     db = Depends(get_database)
 ):
     """Farmer submits a technical, hardware, disease diagnosis, or account issue."""
+    if not validate_bot_trap(payload.model_dump()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Automated submission blocked by security defense."
+        )
+
     now_utc = datetime.now(timezone.utc)
     ticket_num = f"AGRI-{random.randint(1000, 9999)}"
 
@@ -129,6 +138,12 @@ async def request_callback(
     db = Depends(get_database)
 ):
     """Emergency 15-minute phone callback request for urgent field issues."""
+    if not validate_bot_trap(payload.model_dump()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Automated submission blocked by security defense."
+        )
+
     now_utc = datetime.now(timezone.utc)
     ticket_num = f"CALL-{random.randint(1000, 9999)}"
 

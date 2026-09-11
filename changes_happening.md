@@ -2131,5 +2131,34 @@
      - Added staggered Leaflet `invalidateSize()` triggers (50ms, 150ms, 350ms, 600ms + window resize listener) ensuring map tiles immediately render across 100% of viewport without grey tiles or clipping.
 - **Verification:** Built with Vite (`✓ built in 19.24s`, 0 errors).
 
+9/11/2026: 5-Layer Cybersecurity Defensive Walls & Automated Threat Jail Architecture (v103):
+- **Problem & Requirement:** The user requested custom-built defensive "walls" programmatically engineered to protect the AgriShield application, database, and IoT infrastructure from automated hackers, vulnerability scanners, brute-force bots, and malicious injections, while ensuring legitimate farmers who mistype passwords never suffer permanent IP bans.
+- **Root Cause & Architectural Implementations:**
+  1. **Core Defensive Engine (`backend/app/core/security_walls.py`):**
+     - **Wall 1 (Honeypot Decoy Traps):** Monitored registry of 23 scanner decoys (`/.env`, `/wp-admin`, `/phpmyadmin`, `/.git`, `/config.json`, `/backup.sql`, `/.aws/credentials`, `/id_rsa`). Real farmers and browsers never visit these. Crawlers/scanners probing these paths are instantly intercepted and auto-jailed for 24 hours.
+     - **Wall 2 (Adaptive Dynamic IP Jail & Farmer Safety Net):** High-speed memory choke point backed by MongoDB collection `security_banned_ips`. Exempts local development/private network IPs. Implemented a Farmer-Friendly Soft Cooldown: mistyping passwords >= 5 times in 5 minutes triggers a gentle 60-second cooldown timer instead of a harsh permanent IP lock.
+     - **Wall 3 (Deep Request Inspection WAF):** Layer 7 deep packet filter inspecting URL paths, decoded queries, and payloads for Path Traversal (`../`, `%2e%2e`), Shell Command Injection (`; rm`, `| cat`, `whoami`), NoSQL injection (`$where`, `$regex`), and Cross-Site Scripting (`<script>`, `javascript:`). Tracks strikes per IP; 3 strikes within 2 minutes triggers automated 12-hour jailing.
+     - **Wall 4 (Ghost Honeypot Bot Traps):** Invisible form honeypots (`bot_trap`, `website_url`, etc.) placed on Login, Register, and Support forms. Invisible and inaccessible to human farmers; automated scraper bots fill them automatically and are instantly blocked.
+     - **Wall 5 (Cryptographic Anti-Replay Engine):** Microsecond timestamp tolerance window (90s) and single-use nonce tracking cache to prevent packet interception, Man-in-the-Middle eavesdropping, and re-transmission attacks.
+  2. **Security Middleware Choke Point (`backend/app/core/security_middleware.py`):**
+     - Integrated early IP jail checks (returning 403 Forbidden with remaining cooldown duration).
+     - Integrated Wall 1 decoy trap checking with instant 24h auto-ban.
+     - Integrated Wall 3 WAF deep threat inspection blocking malformed payloads with 400 Bad Request.
+  3. **Backend Startup DB Ban Sync (`backend/app/main.py`):**
+     - Synchronized active unexpired banned IPs from MongoDB into memory during backend background service initialization.
+  4. **Admin Security Management Endpoints (`backend/app/routers/admin.py`):**
+     - Added `GET /api/admin/firewall/status` to report real-time operational status across all 5 walls.
+     - Added `GET /api/admin/firewall/banned-ips` to retrieve active and historical jail records.
+     - Added `POST /api/admin/firewall/ban` and `POST /api/admin/firewall/unban` for manual administrator overrides.
+  5. **Form Bot Trap Guards & Farmer Soft Cooldown (`backend/app/routers/auth.py`, `support.py`):**
+     - Connected `validate_bot_trap` to registration, login, support tickets, and 15-minute callback submissions.
+     - Connected `check_login_cooldown` and `wall_record_failed_login` to authentication flow.
+  6. **Frontend Bot Trap Integration (`LoginPage.jsx`, `RegisterPage.jsx`, `HelpSupportPage.jsx`, `AuthContext.jsx`):**
+     - Added hidden honeypot inputs (`tabIndex={-1}`, off-screen positioning, `aria-hidden`) across all forms.
+  7. **Admin Defense Walls Command Center (`frontend/src/pages/AdminPage.jsx`):**
+     - Added dedicated 8th module: **Security Defense Walls** with live metrics, 5 active wall architectural overview cards, real-time table of currently jailed attacker IPs with remaining time, 1-click manual unban buttons, and manual IP jail override controls.
+- **Verification:** Both backend (`python -m py_compile`, exit code 0) and frontend (`npm run build`, exit code 0 in 38.77s) compiled cleanly with zero errors.
+
+
 
 

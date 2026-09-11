@@ -59,10 +59,12 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password, rememberMe = false) => {
+  const login = async (email, password, rememberMe = false, botTrap = '') => {
     setLoading(true);
     try {
-      const res = await API.post('/api/auth/login', { email: email.trim(), password, remember_me: rememberMe });
+      const payload = { email: email.trim(), password, remember_me: rememberMe };
+      if (botTrap) payload.bot_trap = botTrap;
+      const res = await API.post('/api/auth/login', payload);
       const { access_token, refresh_token, user: userData } = res.data;
 
       // Clear both storages to ensure clean state
@@ -99,11 +101,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, preferred_language = 'en') => {
+  const register = async (name, email, password, preferred_language = 'en', botTrap = '') => {
     setLoading(true);
     try {
-      const res = await API.post('/api/auth/register', { name, email, password, role: 'farmer', preferred_language });
-      return await login(email, password, false);
+      const payload = { name, email, password, role: 'farmer', preferred_language };
+      if (botTrap) payload.bot_trap = botTrap;
+      const res = await API.post('/api/auth/register', payload);
+      return await login(email, password, false, botTrap);
     } catch (error) {
       throw error;
     } finally {

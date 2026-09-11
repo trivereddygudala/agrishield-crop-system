@@ -27,7 +27,12 @@ async def init_background_services():
                 await db_instance.db["weather_cache"].delete_many({})
             except Exception:
                 pass
-            print("🚀 [Startup] MongoDB & Background Scheduler initialized successfully.")
+            try:
+                from backend.app.core.security_walls import sync_banned_ips_from_db
+                await sync_banned_ips_from_db()
+            except Exception as e:
+                print(f"⚠️ [Startup] Security Walls sync notice: {e}")
+            print("🚀 [Startup] MongoDB, Security Walls & Background Scheduler initialized successfully.")
     except Exception as e:
         print(f"⚠️ [Startup] MongoDB / Scheduler initialization notice: {e}")
 

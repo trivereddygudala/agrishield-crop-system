@@ -19,6 +19,7 @@ const RegisterPage = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [botTrap, setBotTrap] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [village, setVillage] = useState('');
@@ -108,7 +109,7 @@ const RegisterPage = () => {
     setLoading(true);
     
     try {
-      await register(trimmedName, email, password, preferredLanguage);
+      await register(trimmedName, email, password, preferredLanguage, botTrap);
       // Store village details in localStorage to save farmer metadata locally
       localStorage.setItem('farmer_village', village);
       toast.success(
@@ -268,6 +269,18 @@ const RegisterPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+            {/* Wall 4: Ghost Honeypot Bot Trap */}
+            <input
+              type="text"
+              name="bot_trap"
+              value={botTrap}
+              onChange={(e) => setBotTrap(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
+            />
+
             {errorMsg && (
               <div className="p-3.5 bg-rose-500/15 border border-rose-500/25 text-rose-450 text-xs font-bold rounded-2xl flex items-center gap-2">
                 <span>⚠️</span> {errorMsg}

@@ -30,11 +30,13 @@ class UserBase(BaseModel):
 
 class UserRegister(UserBase):
     password: str = Field(..., min_length=4)
+    bot_trap: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str = Field(..., min_length=2, max_length=120)
     password: str
     remember_me: Optional[bool] = False
+    bot_trap: Optional[str] = None
 
 class UserResponse(UserBase):
     id: str

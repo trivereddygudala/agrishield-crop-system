@@ -57,6 +57,7 @@ export default function HelpSupportPage() {
   const [ticketSubmitting, setTicketSubmitting] = useState(false);
   const [ticketSuccess, setTicketSuccess] = useState('');
   const [ticketError, setTicketError] = useState('');
+  const [botTrap, setBotTrap] = useState('');
 
   // My Tickets State
   const [myTickets, setMyTickets] = useState([]);
@@ -80,29 +81,43 @@ export default function HelpSupportPage() {
           setSupportConfig(res.data);
         }
       } catch (e) {
-        console.warn('Could not fetch support config:', e);
+        console.error("Failed to load dynamic support contacts, using defaults:", e);
       }
     };
     fetchSupportConfig();
   }, []);
 
-  // Auto-fetch tickets when tab changes
-  useEffect(() => {
-    if (activeSection === 'my-tickets') {
-      fetchMyTickets();
-    }
-  }, [activeSection]);
-
-  const fetchMyTickets = async () => {
+  const fetchMyTickets = useCallback(async () => {
     setLoadingTickets(true);
     try {
       const res = await API.get('/api/support/tickets/my');
-      setMyTickets(Array.isArray(res.data) ? res.data : []);
+      setMyTickets(res.data?.tickets || (Array.isArray(res.data) ? res.data : []));
     } catch (err) {
-      console.error('Failed to load support tickets:', err);
+      console.error("Failed to fetch tickets", err);
     } finally {
       setLoadingTickets(false);
     }
+  }, []);
+
+  // Auto-fetch tickets when tab changes
+  useEffect(() => {
+    if (activeSection === 'my-tickets' || activeSection === 'my_tickets') {
+      fetchMyTickets();
+    }
+  }, [activeSection, fetchMyTickets]);
+
+  const handleCallEmergency = () => {
+    window.location.href = `tel:${supportConfig.support_phone.replace(/[^0-9+]/g, '')}`;
+  };
+
+  const handleWhatsApp = (cropContext = '') => {
+    const cleanNum = supportConfig.whatsapp_number.replace(/[^0-9]/g, '');
+    const defaultMsg = isTe
+      ? `నమస్తే అగ్రిషీల్డ్ సపోర్ట్, నాకు పంట ఆరోగ్యం మరియు సాంకేతిక సహాయం కావాలి. (రైతు: ${user?.name || 'రైతు'})`
+      : `Hello AgriShield Support, I need assistance regarding crop health or hardware sensor readings. (Farmer: ${user?.name || 'Farmer'})`;
+    const message = cropContext ? `${defaultMsg} - సందర్భం: ${cropContext}` : defaultMsg;
+    const waUrl = `https://wa.me/${cleanNum}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
   };
 
   // 1-Tap WhatsApp Support Generator
@@ -151,13 +166,16 @@ export default function HelpSupportPage() {
     setCallbackSubmitting(true);
     setCallbackSuccess('');
     try {
-      const res = await API.post('/api/support/callback-request', {
+      const payload = {
         phone: callbackPhone.trim(),
         farmer_name: user?.name || 'Farmer',
         language: callbackLang,
         issue_summary: callbackIssue.trim() || 'Urgent 15-minute farmer callback request',
         preferred_time: 'Within 15 minutes'
-      });
+      };
+      if (botTrap) payload.bot_trap = botTrap;
+
+      const res = await API.post('/api/support/callback-request', payload);
 
       setCallbackSuccess(res.data?.message || (isTe ? 'కాల్‌బ్యాక్ అభ్యర్థన విజయవంతంగా నమోదయింది!' : 'Callback requested! Our officer will call you in 15 minutes.'));
       setCallbackIssue('');
@@ -185,7 +203,7 @@ export default function HelpSupportPage() {
     setTicketError('');
 
     try {
-      const res = await API.post('/api/support/tickets', {
+      const payload = {
         category: ticketCategory,
         priority: ticketPriority,
         subject: ticketSubject.trim(),
@@ -193,7 +211,10 @@ export default function HelpSupportPage() {
         device_id: ticketDeviceId.trim() || null,
         phone: ticketPhone.trim() || null,
         language: isTe ? 'te' : 'en'
-      });
+      };
+      if (botTrap) payload.bot_trap = botTrap;
+
+      const res = await API.post('/api/support/tickets', payload);
 
       setTicketSuccess(res.data?.message || (isTe ? 'సమస్య టికెట్ నమోదయింది! మా బృందం త్వరలో సంప్రదిస్తుంది.' : 'Ticket submitted successfully!'));
       setTicketSubject('');
@@ -460,6 +481,17 @@ export default function HelpSupportPage() {
             )}
 
             <form onSubmit={handleTicketSubmit} className="space-y-4 text-xs">
+              {/* Wall 4: Ghost Bot Trap */}
+              <input
+                type="text"
+                name="bot_trap"
+                value={botTrap}
+                onChange={(e) => setBotTrap(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Category Dropdown */}
                 <div className="space-y-1.5">
@@ -750,6 +782,17 @@ export default function HelpSupportPage() {
                 </div>
               ) : (
                 <form onSubmit={handleCallbackSubmit} className="space-y-3.5 text-xs">
+                  {/* Wall 4: Ghost Bot Trap */}
+                  <input
+                    type="text"
+                    name="bot_trap"
+                    value={botTrap}
+                    onChange={(e) => setBotTrap(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
+                  />
                   <div className="space-y-1.5">
                     <label className="font-extrabold text-slate-700 dark:text-slate-300">
                       {isTe ? 'మీ ఫోన్ నంబర్:' : 'Your Phone Number:'}

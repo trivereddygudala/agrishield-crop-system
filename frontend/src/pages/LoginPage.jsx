@@ -21,6 +21,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [botTrap, setBotTrap] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [langModalOpen, setLangModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -90,7 +91,7 @@ const LoginPage = () => {
     isLoggingInRef.current = true; // Lock redirection so overlay can play
 
     try {
-      const loggedUser = await login(email, password, rememberMe);
+      const loggedUser = await login(email, password, rememberMe, botTrap);
       setScanProgress(100);
       setSuccessUser(loggedUser);
       // Immediately display the full-screen cinematic overlay
@@ -260,6 +261,18 @@ const LoginPage = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
+              {/* Wall 4: Ghost Honeypot Bot Trap */}
+              <input
+                type="text"
+                name="bot_trap"
+                value={botTrap}
+                onChange={(e) => setBotTrap(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
+              />
+
               {/* Error message */}
               <AnimatePresence>
                 {errorMsg && (

@@ -168,6 +168,57 @@ export default function AdminPage() {
     }
   };
 
+  // Security Walls & Firewall Console State
+  const [firewallStatus, setFirewallStatus] = useState({ walls: [], active_bans_count: 0, jailed_ips: [] });
+  const [firewallLoading, setFirewallLoading] = useState(false);
+  const [manualBanIp, setManualBanIp] = useState('');
+  const [manualBanReason, setManualBanReason] = useState('Administrative Security Ban');
+  const [manualBanHours, setManualBanHours] = useState(24);
+  const [banningLoading, setBanningLoading] = useState(false);
+
+  const fetchFirewallStatus = async () => {
+    setFirewallLoading(true);
+    try {
+      const res = await API.get('/api/admin/firewall/status');
+      setFirewallStatus(res.data || { walls: [], active_bans_count: 0, jailed_ips: [] });
+    } catch (e) {
+      console.warn("Could not fetch firewall status:", e);
+    } finally {
+      setFirewallLoading(false);
+    }
+  };
+
+  const handleUnbanIp = async (ip) => {
+    if (!window.confirm(`Release IP ${ip} from security jail?`)) return;
+    try {
+      await API.post('/api/admin/firewall/unban', { ip });
+      setSuccessMsg(`IP ${ip} unbanned successfully.`);
+      fetchFirewallStatus();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Failed to unban IP.');
+    }
+  };
+
+  const handleManualBan = async (e) => {
+    e.preventDefault();
+    if (!manualBanIp.trim()) return;
+    setBanningLoading(true);
+    try {
+      await API.post('/api/admin/firewall/ban', {
+        ip: manualBanIp.trim(),
+        reason: manualBanReason.trim(),
+        duration_hours: Number(manualBanHours) || 24
+      });
+      setSuccessMsg(`IP ${manualBanIp} jailed for ${manualBanHours} hours.`);
+      setManualBanIp('');
+      fetchFirewallStatus();
+    } catch (e) {
+      setError(e.response?.data?.detail || 'Failed to jail IP.');
+    } finally {
+      setBanningLoading(false);
+    }
+  };
+
   const fetchSupportTickets = async () => {
     setSupportLoading(true);
     try {
@@ -551,21 +602,26 @@ export default function AdminPage() {
     fetchIoTIngestionStatus();
     fetchSupportTickets();
     fetchSupportConfig();
+    fetchFirewallStatus();
     
     const iotInterval = setInterval(fetchIotNodes, 10000);
     const auditInterval = setInterval(fetchAuditLogs, 15000);
     const supportInterval = setInterval(fetchSupportTickets, 20000);
+    const firewallInterval = setInterval(fetchFirewallStatus, 15000);
     return () => {
       clearInterval(iotInterval);
       clearInterval(auditInterval);
       clearInterval(supportInterval);
+      clearInterval(firewallInterval);
     };
   }, []);
 
-  // Fetch support tickets whenever support filters change
+  // Fetch data when activeTab changes
   useEffect(() => {
     if (activeTab === 'support') {
       fetchSupportTickets();
+    } else if (activeTab === 'firewall') {
+      fetchFirewallStatus();
     }
   }, [activeTab, supportStatusFilter, supportCategoryFilter, supportPriorityFilter]);
 
@@ -715,6 +771,14 @@ export default function AdminPage() {
       badgeColor: supportStats?.urgent_callbacks > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
     { 
+      id: 'firewall', 
+      label: 'Security Defense Walls', 
+      description: '5-Layer Active Defense: Honeypot Decoys, Dynamic IP Jail, Deep WAF, Bot Traps & Anti-Replay.',
+      icon: ShieldAlert, 
+      badge: (firewallStatus?.active_bans_count > 0 || (firewallStatus?.jailed_ips && firewallStatus.jailed_ips.length > 0)) ? `${firewallStatus.jailed_ips?.length || firewallStatus.active_bans_count} Jailed` : '5 Walls Active', 
+      badgeColor: (firewallStatus?.active_bans_count > 0 || (firewallStatus?.jailed_ips && firewallStatus.jailed_ips.length > 0)) ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
+    },
+    { 
       id: 'settings', 
       label: 'System Health & Specs', 
       description: 'Server CPU, memory, database latency, and API specs.',
@@ -843,13 +907,13 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* 7 Core Admin Control Modules (Interactive Box Grid) */}
+          {/* 8 Core Admin Control Modules (Interactive Box Grid) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  7 Core Administrative Modules
+                  8 Core Administrative Modules
                 </h3>
               </div>
               <span className="text-[11px] font-bold text-slate-400 hidden sm:inline">
@@ -922,11 +986,11 @@ export default function AdminPage() {
             </div>
 
             <button
-              onClick={() => { fetchUsers(); fetchIotNodes(); fetchAuditLogs(); fetchFirmwareData(); fetchSupportTickets(); }}
-              disabled={loading || supportLoading}
+              onClick={() => { fetchUsers(); fetchIotNodes(); fetchAuditLogs(); fetchFirmwareData(); fetchSupportTickets(); fetchFirewallStatus(); }}
+              disabled={loading || supportLoading || firewallLoading}
               className="self-end sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${(loading || supportLoading) ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${(loading || supportLoading || firewallLoading) ? 'animate-spin' : ''}`} />
               <span>Refresh Data</span>
             </button>
           </div>
@@ -943,6 +1007,7 @@ export default function AdminPage() {
                 {activeTab === 'logs' && <FileText className="w-3.5 h-3.5" />}
                 {activeTab === 'settings' && <Sliders className="w-3.5 h-3.5" />}
                 {activeTab === 'support' && <Headphones className="w-3.5 h-3.5" />}
+                {activeTab === 'firewall' && <ShieldAlert className="w-3.5 h-3.5" />}
                 <span>
                   {activeTab === 'users' && 'Farmer Directory & Roles'}
                   {activeTab === 'broadcast' && 'Emergency Broadcasting Service'}
@@ -952,6 +1017,7 @@ export default function AdminPage() {
                   {activeTab === 'logs' && 'Security & Access Logs'}
                   {activeTab === 'settings' && 'Platform Health & Specs'}
                   {activeTab === 'support' && 'Farmer Support & Emergency Helpdesk'}
+                  {activeTab === 'firewall' && '5-Layer Defensive Cybersecurity Walls & IP Jail'}
                 </span>
               </div>
               
@@ -968,6 +1034,7 @@ export default function AdminPage() {
                 {activeTab === 'logs' && 'Real-time security log stream of user logins, role modifications, and administrative operations.'}
                 {activeTab === 'settings' && 'Inspect core platform health, API status, database connectivity, and runtime configurations.'}
                 {activeTab === 'support' && 'Directly assist registered farmers, dispatch 15-minute phone callbacks, WhatsApp consultations, and resolve technical issues.'}
+                {activeTab === 'firewall' && 'Real-time monitoring of all 5 cybersecurity walls, 23 honeypot decoy traps, layer 7 WAF payload filter, and automated IP jail.'}
               </p>
             </div>
 
@@ -2816,6 +2883,309 @@ export default function AdminPage() {
                   </div>
                 );
               })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 8: SECURITY DEFENSE WALLS & ACTIVE FIREWALL          */}
+      {/* ======================================================== */}
+      {activeTab === 'firewall' && (
+        <div className="space-y-6">
+          {/* Top KPI Metrics Banner */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Defense Status</p>
+                <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">5 Walls Active</h3>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Currently Jailed IPs</p>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">{firewallStatus.active_bans_count || firewallStatus.jailed_ips?.length || 0} Blocked</h3>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                <Zap className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Decoy Honeypots</p>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">23 Traps Armed</h3>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+                <UserCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Farmer Safety Net</p>
+                <h3 className="text-2xl font-black text-sky-600 dark:text-sky-400">60s Soft Cooldown</h3>
+              </div>
+            </div>
+          </div>
+
+          {/* 5 Defensive Walls Architecture Grid */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Custom-Coded Multi-Layer Defensive Walls Architecture
+                </h3>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">
+                Real-Time Automated Threat Interception
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Wall 1 Card */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 1: Honeypot Decoy Traps</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  23 fake scanner traps placed across sensitive root paths (<code className="text-emerald-500 font-mono text-[11px]">/.env</code>, <code className="text-emerald-500 font-mono text-[11px]">/wp-admin</code>, <code className="text-emerald-500 font-mono text-[11px]">/phpmyadmin</code>, <code className="text-emerald-500 font-mono text-[11px]">/id_rsa</code>). Any crawler touching these is auto-jailed for 24 hours.
+                </p>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
+                  <span>Probes Monitored: 23</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">Instant 24h Ban</span>
+                </div>
+              </div>
+
+              {/* Wall 2 Card */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 2: Adaptive IP Jail & Tarpit</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Fast in-memory choke point backed by MongoDB (<code className="text-emerald-500 font-mono text-[11px]">security_banned_ips</code>). Includes a Farmer-Friendly Safety Net: mistyped passwords trigger a gentle 60s soft cooldown instead of a permanent IP lockout.
+                </p>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
+                  <span>Storage: Atlas MongoDB</span>
+                  <span className="text-sky-600 dark:text-sky-400">Farmer-Protected</span>
+                </div>
+              </div>
+
+              {/* Wall 3 Card */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 3: Deep Request WAF</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Layer 7 packet payload scanner inspecting every URL, query parameter, and body for Path Traversal (<code className="text-emerald-500 font-mono text-[11px]">../</code>), Shell Command Injection (<code className="text-emerald-500 font-mono text-[11px]">; rm / cat</code>), NoSQL injection, and XSS.
+                </p>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
+                  <span>Inspection: Layer 7 WAF</span>
+                  <span className="text-amber-600 dark:text-amber-400">3 Strikes = Auto-Jail</span>
+                </div>
+              </div>
+
+              {/* Wall 4 Card */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 4: Ghost Bot Traps</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Invisible form fields (<code className="text-emerald-500 font-mono text-[11px]">bot_trap</code>) rendered on Login, Registration, and Support forms. Invisible to human farmers; automated scraper bots fill them automatically and are instantly blocked.
+                </p>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
+                  <span>Forms Protected: 3</span>
+                  <span className="text-purple-600 dark:text-purple-400">Headless Scraper Trap</span>
+                </div>
+              </div>
+
+              {/* Wall 5 Card */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 5: Anti-Replay Nonce Engine</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Strict cryptographic timestamp window (90s tolerance) and single-use nonce tracking cache. Prevents packet sniffing, Man-in-the-Middle eavesdropping, and re-transmission attacks on sensitive mutations.
+                </p>
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
+                  <span>Tolerance: 90 Seconds</span>
+                  <span className="text-indigo-600 dark:text-indigo-400">Nonce Pruning Cache</span>
+                </div>
+              </div>
+
+              {/* Manual IP Enforcement Card */}
+              <div className="p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Lock className="w-4 h-4 text-amber-400" />
+                    <h4 className="font-extrabold text-sm text-slate-100">Manual Threat Jail Override</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Admin
+                  </span>
+                </div>
+                <form onSubmit={handleManualBan} className="space-y-2.5 text-xs">
+                  <input
+                    type="text"
+                    placeholder="Threat IP Address (e.g. 198.51.100.24)"
+                    value={manualBanIp}
+                    onChange={(e) => setManualBanIp(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none focus:border-amber-500"
+                    required
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Reason for Ban"
+                      value={manualBanReason}
+                      onChange={(e) => setManualBanReason(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none focus:border-amber-500"
+                    />
+                    <select
+                      value={manualBanHours}
+                      onChange={(e) => setManualBanHours(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none focus:border-amber-500"
+                    >
+                      <option value={1}>1 Hour</option>
+                      <option value={12}>12 Hours</option>
+                      <option value={24}>24 Hours</option>
+                      <option value={168}>7 Days</option>
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={banningLoading}
+                    className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>{banningLoading ? 'Jailing IP...' : 'Jail IP Immediately'}</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Currently Jailed Threat IPs Table */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 className="font-black text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <ShieldAlert className="w-5 h-5 text-rose-500" />
+                  <span>Currently Jailed Attacker IPs ({firewallStatus.jailed_ips?.length || 0})</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  IPs blocked by Honeypot traps, WAF malicious payloads, or administrator ban.
+                </p>
+              </div>
+              <button
+                onClick={fetchFirewallStatus}
+                disabled={firewallLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${firewallLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh Firewall</span>
+              </button>
+            </div>
+
+            {(!firewallStatus.jailed_ips || firewallStatus.jailed_ips.length === 0) ? (
+              <div className="p-8 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">All Defensive Perimeters Clear</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  No malicious IPs currently jailed. The 5 defensive walls are actively screening incoming requests and decoy probes.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-extrabold uppercase text-[10px]">
+                      <th className="py-3 px-4">Attacker IP</th>
+                      <th className="py-3 px-4">Interception Reason</th>
+                      <th className="py-3 px-4">Jailed At</th>
+                      <th className="py-3 px-4">Expires In</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                    {firewallStatus.jailed_ips.map((item, idx) => {
+                      const nowSec = Date.now() / 1000;
+                      const remainingSec = Math.max(0, Math.round(item.expires_at - nowSec));
+                      const hours = Math.floor(remainingSec / 3600);
+                      const mins = Math.floor((remainingSec % 3600) / 60);
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="py-3 px-4">
+                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded">
+                              {item.ip}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-800 dark:text-slate-200 font-semibold">
+                            {item.reason}
+                          </td>
+                          <td className="py-3 px-4 text-slate-500 text-[11px]">
+                            {item.banned_at_iso ? formatDateTime(item.banned_at_iso) : 'Recent'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                              <Clock className="w-3 h-3" />
+                              <span>{hours}h {mins}m</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              onClick={() => handleUnbanIp(item.ip)}
+                              className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                            >
+                              Release / Unban
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

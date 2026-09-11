@@ -405,3 +405,81 @@ async def toggle_iot_ingestion(
         "message": f"IoT telemetry ingestion is now {'ENABLED' if req_body.enabled else 'PAUSED'}."
     }
 
+
+# ─────────────────────────────────────────────────────────────
+# Security Firewall & Defense Walls Management
+# ─────────────────────────────────────────────────────────────
+from backend.app.core.security_walls import (
+    get_security_walls_status,
+    jail_ip,
+    unban_ip,
+    is_trusted_ip
+)
+
+class FirewallBanRequest(BaseModel):
+    ip: str
+    reason: str = "Administrative Security Ban"
+    duration_hours: float = 24.0
+
+class FirewallUnbanRequest(BaseModel):
+    ip: str
+
+@router.get("/firewall/status", dependencies=[Depends(require_role("admin"))])
+async def get_firewall_status():
+    """Returns real-time status, active walls configuration, and currently jailed IPs."""
+    return get_security_walls_status()
+
+@router.get("/firewall/banned-ips", dependencies=[Depends(require_role("admin"))])
+async def list_banned_ips(db = Depends(get_database)):
+    """List all active and historical IP ban records from MongoDB."""
+    cursor = db.security_banned_ips.find({}).sort("banned_at", -1).limit(100)
+    records = await cursor.to_list(100)
+    out = []
+    for r in records:
+        out.append({
+            "id": str(r["_id"]),
+            "ip": r.get("ip"),
+            "reason": r.get("reason"),
+            "banned_at": r.get("banned_at").isoformat() if r.get("banned_at") else None,
+            "expires_at": r.get("expires_at").isoformat() if r.get("expires_at") else None,
+            "active": r.get("active", False)
+        })
+    return out
+
+@router.post("/firewall/ban", dependencies=[Depends(require_role("admin"))])
+async def admin_ban_ip(
+    request: Request,
+    req_body: FirewallBanRequest,
+    current_user: dict = Depends(require_role("admin"))
+):
+    """Manually jail an IP address."""
+    if is_trusted_ip(req_body.ip):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot ban trusted local or loopback IP."
+        )
+    await jail_ip(req_body.ip, req_body.reason, req_body.duration_hours)
+    log_security_event(
+        "ADMIN_MANUAL_IP_BAN",
+        {"ip": req_body.ip, "reason": req_body.reason, "admin": current_user.get("email")},
+        level="WARNING",
+        client_ip=request.client.host if request.client else "127.0.0.1"
+    )
+    return {"status": "success", "message": f"IP {req_body.ip} jailed for {req_body.duration_hours} hours."}
+
+@router.post("/firewall/unban", dependencies=[Depends(require_role("admin"))])
+async def admin_unban_ip(
+    request: Request,
+    req_body: FirewallUnbanRequest,
+    current_user: dict = Depends(require_role("admin"))
+):
+    """Manually unban a previously jailed IP address."""
+    success = await unban_ip(req_body.ip)
+    log_security_event(
+        "ADMIN_MANUAL_IP_UNBAN",
+        {"ip": req_body.ip, "admin": current_user.get("email"), "success": success},
+        level="INFO",
+        client_ip=request.client.host if request.client else "127.0.0.1"
+    )
+    return {"status": "success", "message": f"IP {req_body.ip} unbanned successfully.", "modified": success}
+
