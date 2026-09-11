@@ -662,10 +662,10 @@ const FarmPage = () => {
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                      {isTe ? 'పొలం సరిహద్దు పిన్స్ & ఉపగ్రహ వీక్షణ' : 'Field Boundary Corner Pins & Satellite View'}
+                      {isTe ? 'పొలం సరిహద్దులు, బహుళ మళ్ళు & వాక్ మోడ్' : 'Field Boundaries, Multi-Plot & Walk Mode'}
                     </p>
                     <span className="text-[10px] text-slate-400 font-semibold">
-                      {isTe ? 'పిన్స్ లాగి సరిహద్దు సర్దుబాటు చేయండి' : 'Drag pins A, B, C, D to fit plot'}
+                      {isTe ? 'మలుపుల వద్ద (+) నొక్కండి, లేదా వాక్ మోడ్‌తో కొలవండి' : 'Click (+) on edges to bend, or use Walk Mode'}
                     </span>
                   </div>
 

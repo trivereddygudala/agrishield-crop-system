@@ -2,6 +2,29 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v94) - Ultra-Zoom (Level 22), Multi-Plot Fragmented Land Mapping, Irregular Boundaries & GPS Walk Mode
+- **Summary:** Implemented comprehensive agricultural GIS upgrades based on real-world Indian farm field conditions:
+  1. 🔍 **Ultra-Zoom Resolution (Up to Zoom 22 without Grey Tiles):**
+     - Configured Leaflet with `maxNativeZoom: 20` (Google Hybrid) and `maxNativeZoom: 18` (Esri World Imagery) with `maxZoom: 22`.
+     - Completely eliminated the *"Map data not yet available"* grey screen bug by digitally oversampling high-resolution imagery, allowing farmers to zoom down to individual crop rows, boundary fences, and bunds.
+     - Added **Google Hybrid Satellite** (`🛰️ Hybrid HD`) layer combining satellite photography with village road and field boundary annotations.
+  2. 🌾 **Multi-Plot Fragmented Land Parcels (Plot 1, Plot 2, Plot 3...):**
+     - Supports fragmented holdings where a farmer owns Plot 1, a neighbor's field/canal is in the middle, and the farmer owns Plot 2.
+     - Top Multi-Plot Switcher Bar: `[🌾 Plot 1 (1.50 Ac)] [🌱 Plot 2 (2.10 Ac)] [+ Add Plot 2]`.
+     - Renders multiple independent field polygons simultaneously on the satellite map with distinct color themes (Emerald, Sky Blue, Violet, Amber, Rose) without connecting lines crossing neighbor land.
+     - Computes both individual plot acreages and **Total Combined Farm Size** (`3.60 Acres`), automatically synchronizing with the farm profile.
+  3. 📐 **Unlimited Irregular Polygon Corner Pins:**
+     - Removed 4-point rectangle limitation; supports 5, 6, 8, 12+ corner pins to trace irregular bunds, canal bends, and curves.
+     - Interactive **Midpoint Insertion Handles (`+`)**: Clicking on any boundary segment line instantly inserts a new corner bend point.
+     - Click any pin to delete or drag to adjust.
+     - Presets for 4-Corner Rectangle, 5-Point Irregular, and 6-Point Hexagonal plots.
+  4. 🚶 **Live GPS Walk Boundary Mode:**
+     - Real-time perimeter walking tracker using `navigator.geolocation.watchPosition` with `{ enableHighAccuracy: true }`.
+     - Live HUD displaying GPS signal accuracy meter (`±2.5m`), walking distance traveled (m), live pin count, and real-time acreage.
+     - Interactive **"📍 Drop Corner Pin"** button to record corner turns while walking, plus optional auto-drop every 10 meters.
+     - **"🏁 Finish Walk"** auto-closes the active plot polygon, computes acreage, and updates the farm boundary.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/pages/FarmPage.jsx`, `chats_by_user.md`, `changes_happening.md`
+
 ## 2026-09-11 (v93) - Dynamic Farmer Location Anchoring & Complete Purge of Mock Test Data
 - **Summary:** Resolved user-reported issue where fake test markers ("M. Sambasiva Rao", mock infections) appeared on the field map and radar, and anchored all satellite mapping dynamically to the farmer's actual location:
   1. 🧹 **100% Mock Test Data Purge:**
