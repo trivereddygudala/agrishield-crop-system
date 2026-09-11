@@ -2,6 +2,17 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v98) - Cinematic Login / Logout / Splash Animations — Nature + Scan Theme
+- **Summary:** Implemented stunning wow-factor animations for Login, Logout, and App Boot screens:
+  1. 🌱 **`NatureParticles.jsx` (NEW):** Reusable animated background of 20+ floating leaf/spore SVG particles drifting upward with sway; used on Login and Register pages.
+  2. ✅ **`LoginSuccessOverlay.jsx` (NEW):** Full-screen 2.5s cinematic "scan success" overlay triggered after successful login. Features concentric scan rings, animated SVG checkmark drawing itself, typewriter "Field AI Connected 🌾" text, 3 status chip badges, and a sweeping green progress bar.
+  3. 🌅 **`LogoutOverlay.jsx` (NEW):** Beautiful farewell animation. Crop field silhouette rises from the bottom, a warm sunset glow blooms, a radiant wave pulses out, "Goodbye, Farmer 🌅" text appears with user's name. Runs 2.2s before logout completes.
+  4. 🎬 **`SplashScreen.jsx` (MODIFIED):** Full cinematic 4-second 5-phase boot: (1) Crop field + wheat stalks rise from bottom, (2) Sunrise glow blooms, (3) Emerald scan line sweeps screen top→bottom, (4) AgriShield logo spring-pops with typewriter brand name, (5) Three concentric scan rings pulse outward. Smooth fade-out at 4s.
+  5. 🔑 **`LoginPage.jsx` (MODIFIED):** Nature particles background + deep forest green theme, dual pulsing scan rings around the logo icon, interior scan line in the logo, smooth card entry animation, scanning progress bar under Submit button, and LoginSuccessOverlay triggered on success.
+  6. 📝 **`RegisterPage.jsx` (MODIFIED):** Same nature green theme, scan-ring animated logo, matching card animation.
+  7. 🚪 **`MorePage.jsx` + `AppLayout.jsx` (MODIFIED):** Both logout buttons (mobile More tab + desktop sidebar) now trigger `LogoutOverlay` for the beautiful animated goodbye instead of raw `window.confirm()`.
+- **Files modified**: `frontend/src/components/animations/NatureParticles.jsx` (NEW), `frontend/src/components/animations/LoginSuccessOverlay.jsx` (NEW), `frontend/src/components/animations/LogoutOverlay.jsx` (NEW), `frontend/src/components/SplashScreen.jsx`, `frontend/src/pages/LoginPage.jsx`, `frontend/src/pages/RegisterPage.jsx`, `frontend/src/pages/MorePage.jsx`, `frontend/src/components/AppLayout.jsx`
+
 ## 2026-09-11 (v95) - Automatic Village & Mandal Satellite Map Redirection
 - **Summary:** Added automatic satellite map zooming and redirection down to the specific Village and Mandal level when setting up or adding a farm:
   1. 📍 **Instant Mandal & Village Coordinates Resolver (`indiaLocations.js`):**

@@ -62,6 +62,7 @@ import { useWebSocket } from '../context/WebSocketContext';
 import { useHardwareMode } from '../hooks/useHardwareMode';
 import API from '../services/api';
 import Breadcrumbs from './Breadcrumbs';
+import LogoutOverlay from './animations/LogoutOverlay';
 
 // Import primitive UI helpers for backwards compatibility
 import { 
@@ -425,13 +426,27 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     } catch { /* ignore */ }
   };
 
+  const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
+
   const handleLogout = () => {
+    setShowLogoutOverlay(true);
+  };
+
+  const handleLogoutDone = () => {
+    setShowLogoutOverlay(false);
     logout();
     window.location.href = '/';
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full h-16 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-[#050911]/95 backdrop-blur-xl transition-colors">
+    <>
+      {showLogoutOverlay && (
+        <LogoutOverlay
+          userName={user?.name || 'Farmer'}
+          onDone={handleLogoutDone}
+        />
+      )}
+      <header className="fixed top-0 left-0 right-0 z-50 w-full h-16 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-[#050911]/95 backdrop-blur-xl transition-colors">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 w-full gap-4">
         
         {/* Left Section: Menu, Brand, Breadcrumb — Hamburger hidden on mobile layout */}
@@ -924,6 +939,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         )}
       </AnimatePresence>
     </header>
+    </>
   );
 };
 

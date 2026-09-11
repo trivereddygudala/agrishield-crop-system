@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
+import LogoutOverlay from '../components/animations/LogoutOverlay';
 
 const SectionHeader = ({ title, first = false }) => (
   <p className={`text-[10.5px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1 mb-2.5 ${first ? 'mt-0' : 'mt-6'}`}>
@@ -65,6 +66,7 @@ const MorePage = () => {
   const isAdmin = user?.role === 'admin';
   const [aboutOpen, setAboutOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
 
   const currentLang = getLanguageByCode(i18n.language);
 
@@ -196,8 +198,13 @@ const MorePage = () => {
     },
   ];
 
-  const handleLogout = async () => {
-    if (!window.confirm(t('common.confirm_logout', 'Are you sure you want to log out?'))) return;
+  const handleLogout = () => {
+    // Show beautiful goodbye animation, then actually logout
+    setShowLogoutOverlay(true);
+  };
+
+  const handleLogoutDone = async () => {
+    setShowLogoutOverlay(false);
     await logout?.();
     window.location.href = '/login';
   };
@@ -292,7 +299,16 @@ const MorePage = () => {
   ];
 
   return (
-    <div className="max-w-lg mx-auto w-full pb-28 animate-fade-in px-1 sm:px-0">
+    <>
+      {/* Logout goodbye animation overlay */}
+      {showLogoutOverlay && (
+        <LogoutOverlay
+          userName={user?.name || 'Farmer'}
+          onDone={handleLogoutDone}
+        />
+      )}
+
+      <div className="max-w-lg mx-auto w-full pb-28 animate-fade-in px-1 sm:px-0">
       {/* ─── CLEAN HEADER ─── */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
@@ -514,6 +530,7 @@ const MorePage = () => {
         onClose={() => setLanguageModalOpen(false)} 
       />
     </div>
+    </>
   );
 };
 

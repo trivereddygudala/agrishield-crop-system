@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Leaf, User, Lock, Eye, EyeOff, MapPin, ShieldCheck, Sparkles, Globe } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, MapPin, ShieldCheck, Sparkles, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/index';
 import { useToast } from '../components/ui/toast';
 import { useTranslation } from 'react-i18next';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
+import NatureParticles from '../components/animations/NatureParticles';
 
 const RegisterPage = () => {
   const { t, i18n } = useTranslation();
@@ -129,21 +130,32 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="dark relative min-h-screen bg-[#070b13] text-white flex items-center justify-center px-4 py-12 overflow-hidden select-none">
-      
-      {/* Background Matrix Grid Overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]" />
+    <div className="dark relative min-h-screen bg-[#030a06] text-white flex items-center justify-center px-4 py-12 overflow-hidden select-none">
 
-      {/* Pulsing Radar Scanning Line across screen background */}
-      <motion.div 
-        className="absolute left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent pointer-events-none z-0"
-        animate={{ y: ['-10vh', '110vh'] }}
-        transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+      {/* Nature particle background */}
+      <NatureParticles count={18} />
+
+      {/* Deep green radial background */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(5,30,14,0.85) 0%, rgba(3,10,6,1) 70%)',
+        }}
       />
 
-      {/* Decorative Neon Blur Orbs */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[450px] w-[450px] rounded-full bg-emerald-500/5 blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[450px] w-[450px] rounded-full bg-cyan-500/5 blur-3xl" />
+      {/* Grid overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(52,211,153,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(52,211,153,0.025)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)] pointer-events-none" />
+
+      {/* Slow radar scan line */}
+      <motion.div
+        className="absolute left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent pointer-events-none z-0"
+        animate={{ y: ['-10vh', '110vh'] }}
+        transition={{ repeat: Infinity, duration: 10, ease: 'linear' }}
+      />
+
+      {/* Ambient glow orbs */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[500px] w-[500px] rounded-full bg-emerald-500/6 blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[400px] w-[400px] rounded-full bg-teal-500/5 blur-3xl" />
 
       {/* Floating Language Switcher in Top-Right Corner */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
@@ -159,25 +171,41 @@ const RegisterPage = () => {
 
       <LanguageSelectModal isOpen={langModalOpen} onClose={() => setLangModalOpen(false)} />
 
-      <motion.div 
-        initial={{ opacity: 0, y: 25 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+      <motion.div
+        initial={{ opacity: 0, y: 35, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-md relative z-10"
       >
         <div className="text-center mb-8 flex flex-col items-center">
-          <Link to="/" className="inline-flex items-center gap-3 mb-4 group relative">
-            <div className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 p-3.5 rounded-2xl shadow-lg shadow-emerald-500/10 relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
-              <Leaf className="h-7 w-7 text-emerald-400" />
-              {/* Pulsating Scanner Line */}
-              <motion.div 
-                className="absolute left-0 right-0 h-[2px] bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,1)]"
-                animate={{ y: [0, 48, 0] }}
-                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          <Link to="/" className="inline-flex items-center gap-3 mb-5 group">
+            {/* Scan ring logo */}
+            <div className="relative">
+              <motion.div
+                className="absolute inset-0 rounded-2xl border border-emerald-500/40"
+                animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
               />
+              <motion.div
+                className="absolute inset-0 rounded-2xl border border-teal-400/25"
+                animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+              />
+              <div className="bg-gradient-to-br from-emerald-400 to-teal-600 p-3.5 rounded-2xl shadow-[0_0_40px_rgba(52,211,153,0.5)] relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                <motion.div
+                  className="absolute left-0 right-0 h-[2px] bg-white/60 shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                  animate={{ y: [0, 44, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+                  style={{ top: 0 }}
+                />
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 relative z-10">
+                  <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
+                  <path d="M2 22 C2 22 8 16 12 12" />
+                </svg>
+              </div>
             </div>
-            <span className="font-display font-black text-white tracking-tight text-2xl" style={{ fontFamily: 'var(--font-display)' }}>
-              AgriShield <span className="text-emerald-500 font-bold">AI</span>
+            <span className="font-black text-white tracking-tight text-2xl">
+              AgriShield <span className="text-emerald-400">AI</span>
             </span>
           </Link>
           
@@ -188,12 +216,25 @@ const RegisterPage = () => {
             {t('auth.register.subtitle', 'Start protecting your crops with machine intelligence')}
           </p>
         </div>
-        {/* Custom styled transparent card to bypass default light bg styles */}
-        <div 
-          className="p-8 border border-white/10 bg-[#0c1220]/60 backdrop-blur-xl relative overflow-hidden rounded-[24px] shadow-[0_0_50px_-12px_rgba(16,185,129,0.15)]"
+        {/* Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="p-8 border border-emerald-500/15 bg-[#040d07]/70 backdrop-blur-xl relative overflow-hidden rounded-[24px] shadow-[0_0_60px_-12px_rgba(52,211,153,0.2)]"
         >
-          {/* Laser scanning strip at top */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500" />
+          {/* Animated top accent line */}
+          <motion.div
+            className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500"
+            animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+          />
+          {/* Corner decoration */}
+          <div className="absolute top-3 right-4 opacity-10">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(52,211,153,1)">
+              <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
+            </svg>
+          </div>
           
           {/* Illustrated Picture-Based Onboarding Slides */}
           <div className="mb-6 bg-white/[0.03] border border-white/5 p-4 rounded-2xl overflow-hidden relative min-h-[90px] flex flex-col justify-center">
@@ -372,13 +413,13 @@ const RegisterPage = () => {
             <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" /> {t('auth.login.pytorch_diagnostic', 'PyTorch Diagnostic')}</span>
           </div>
 
-          <p className="text-center text-xs text-slate-400 mt-6 font-bold">
+          <p className="text-center text-xs text-slate-500 mt-5 font-bold">
             {t('auth.register.already_have_account', 'Already have an account?')}{' '}
-            <Link to="/login" className="font-extrabold text-emerald-500 hover:underline">
+            <Link to="/login" className="font-extrabold text-emerald-400 hover:text-emerald-300 hover:underline transition-colors">
               {t('auth.register.sign_in', 'Sign In')}
             </Link>
           </p>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
