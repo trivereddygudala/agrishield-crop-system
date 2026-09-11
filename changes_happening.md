@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v110) - Dedicated Field Area Calculator HUD, Dual On-Screen Visibility & Clean Separation from Farm/GPS Setup
+- **Summary:** Resolved user's inquiries regarding where measured area appears on screen and why the calculator interface resembled the Farm/GPS setup sector:
+  1. 📐 **Prominent Floating Live Area Measurement HUD on Map Canvas (`FieldBoundaryMap.jsx`):**
+     - **The Root Cause:** In mobile view, the top bar cramped `[ Back ]`, `[ Land / Plot Survey 🌾 0.00 Ac ]`, `[ Sat | Map ]`, and `[ Save ]` on a single line, causing the area badge to truncate into `Land / Plot ... 🌾`, hiding the numbers completely. Furthermore, the old guidance banner hid the area whenever pin mode was active.
+     - **The Solution:** Added a dedicated, glassmorphism **Floating Live Area HUD Card** directly at the top of the map canvas (below the header) in both full-screen and embedded views:
+       * **3+ Pins:** Displays large bold primary area (`1.45 Acres` / `58 Cents`), plus real-time Gunthas, Gajam/Sq.Yards, perimeter in meters & feet, and total corner pin count.
+       * **2 Pins:** Shows real-time fence/border segment distance (`48m (157 ft)`) with guidance to add a 3rd pin to calculate total area.
+       * **1 Pin / 0 Pins:** Shows immediate pinpoint guidance.
+  2. 🚜 **Decoupled Calculator Mode from Farm Sector / GPS Setup Sector (`FieldBoundaryMap.jsx` & `FieldAreaCalculatorPage.jsx`):**
+     - Added `mode = 'calculator'` prop to `FieldBoundaryMap`:
+       * **Eliminated `✓ Save` Button:** In calculator mode, the confusing `Save` button is completely removed (saving belongs to farm profile setup, not a land calculator). Replaced with direct `[ 💬 Share ]` or clean navigation.
+       * **Replaced Crop Icons:** Removed `🌾` farm crop icons; replaced with dedicated land survey ruler icon (`📐`).
+       * **Clean Title Badge:** Top header displays `📐 Land / Plot Survey` without truncation or squashed badges.
+  3. 📊 **Dual On-Screen Visibility in Field Area Calculator Page (`FieldAreaCalculatorPage.jsx`):**
+     - Added an **Immediate Live Measured Area Banner** directly between the Plot Name input and the Map. Farmers can now see their live measurements in two places at all times: directly on the page and floating on the live map canvas.
+     - Updated perimeter calculation to accurately handle 2-pin single-segment border distances without doubling.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/pages/FieldAreaCalculatorPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v109) - Software Mode vs Hardware Mode Gating: Enforce Zero ESP32 Mentions Unless IoT Node is Turned On or In-Field Hardware is Asked
 - **Summary:** Resolved the issue where the AI Chatbot cited in-field hardware telemetry (`Rain Sensor Alert: Your field sensor (ESP32-NODE-ALPHA) shows rain detected = 1`) when the user is operating in Software Mode without active field hardware:
   1. 🧠 **Software Mode vs Hardware Mode Intent & Live Status Verification (`backend/app/routers/ai.py`):**

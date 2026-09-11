@@ -157,6 +157,8 @@ export default function FieldAreaCalculatorPage() {
         isTelugu={isTe}
         interactive={true}
         isDedicated={true}
+        mode="calculator"
+        onShare={handleWhatsAppShare}
         onBack={() => setIsStudioOpen(false)}
         backLabel={isTe ? '← వెనుకకు' : '← Back'}
       />
@@ -197,16 +199,16 @@ export default function FieldAreaCalculatorPage() {
           </div>
         </div>
 
-        {/* Top Actions: Fullscreen Studio & WhatsApp Share */}
+        {/* Top Actions: Fullscreen & WhatsApp Share */}
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
             type="button"
             onClick={() => setIsStudioOpen(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm"
-            title={isTe ? 'పూర్తి స్క్రీన్ తెరవండి' : 'Open Fullscreen Studio'}
+            title={isTe ? 'పూర్తి స్క్రీన్ తెరవండి' : 'Open Fullscreen Map'}
           >
             <Maximize2 className="w-3.5 h-3.5" />
-            <span>{isTe ? 'పూర్తి స్క్రీన్' : 'Fullscreen'}</span>
+            <span>{isTe ? 'పూర్తి స్క్రీన్ మ్యాప్' : 'Full-Screen Map'}</span>
           </button>
 
           <button
@@ -248,6 +250,43 @@ export default function FieldAreaCalculatorPage() {
         )}
       </div>
 
+      {/* ═══════ 2.5 REAL-TIME MEASURED AREA BANNER (IMMEDIATELY VISIBLE ON SCREEN) ═══════ */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border-2 border-emerald-500/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-emerald-600 text-white shadow-xs shrink-0">
+            <Ruler className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+              {isTe ? 'కొలిచిన ప్రస్తుత విస్తీర్ణం (Live Measured Area)' : 'Current Measured Area'}
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">
+                {areaData.acres} {isTe ? 'ఎకరాలు' : 'Acres'}
+              </span>
+              <span className="text-sm sm:text-base font-extrabold text-teal-600 dark:text-teal-400">
+                ({areaData.cents} {isTe ? 'సెంట్లు' : 'Cents'})
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+          <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs">
+            {areaData.gunthas} {isTe ? 'గుంటలు' : 'Gunthas'}
+          </span>
+          <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs">
+            {areaData.gajam} {isTe ? 'గజాలు (Sq.Yds)' : 'Sq.Yds (Gajam)'}
+          </span>
+          <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs">
+            📏 {areaData.perimeterMeters}m ({areaData.perimeterFeet} ft)
+          </span>
+          <span className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-xs">
+            📍 {boundaryPins.length} {isTe ? 'మూలలు' : 'Corners'}
+          </span>
+        </div>
+      </div>
+
       {/* ═══════ 3. MEASURING MAP CONTAINER (OVERSCROLL LOCKED, TOUCH NONE) ═══════ */}
       <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xl overflow-hidden bg-slate-950 touch-none overscroll-none">
         <FieldBoundaryMap
@@ -259,6 +298,8 @@ export default function FieldAreaCalculatorPage() {
           onExpand={() => setIsStudioOpen(true)}
           isTelugu={isTe}
           interactive={true}
+          mode="calculator"
+          onShare={handleWhatsAppShare}
           height="480px"
         />
       </div>

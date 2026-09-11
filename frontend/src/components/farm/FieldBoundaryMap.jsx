@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
   MapPin, Trash2, Plus, Crosshair, X, Check,
-  Maximize2, Undo2, ChevronLeft, Footprints, Play, Pause, AlertCircle, ShieldCheck
+  Maximize2, Undo2, ChevronLeft, Footprints, Play, Pause, AlertCircle, ShieldCheck, Share2
 } from 'lucide-react';
 
 // Haversine distance in meters
@@ -56,6 +56,7 @@ export function calculatePerimeter(coordinates) {
   let totalDist = 0;
   const len = coordinates.length;
   for (let i = 0; i < len; i++) {
+    if (len === 2 && i === 1) break; // If only 2 pins, only calculate distance between pin 0 and pin 1
     const p1 = coordinates[i];
     const p2 = coordinates[(i + 1) % len];
     totalDist += haversineDistanceMeters(p1[0], p1[1], p2[0], p2[1]);
@@ -113,7 +114,9 @@ export default function FieldBoundaryMap({
   onExpand,
   onBack,
   backLabel,
-  isDedicated = false
+  isDedicated = false,
+  mode = 'farm',
+  onShare = null
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -169,7 +172,13 @@ export default function FieldBoundaryMap({
   // Compute live acreage for the single field
   const area = useMemo(() => {
     const sqM = calculateGeodesicArea(pins);
-    return formatAcreage(sqM);
+    const perimeterM = calculatePerimeter(pins);
+    const formatted = formatAcreage(sqM);
+    return {
+      ...formatted,
+      perimeterMeters: perimeterM,
+      perimeterFeet: Math.round(perimeterM * 3.28084)
+    };
   }, [pins]);
 
   // Sync with incoming boundaryCoordinates from parent
@@ -188,8 +197,13 @@ export default function FieldBoundaryMap({
   const notifyChange = useCallback((updatedPins) => {
     if (onBoundaryChange) {
       const sqM = calculateGeodesicArea(updatedPins);
+      const perimeterM = calculatePerimeter(updatedPins);
       const formatted = formatAcreage(sqM);
-      onBoundaryChange(updatedPins, formatted);
+      onBoundaryChange(updatedPins, {
+        ...formatted,
+        perimeterMeters: perimeterM,
+        perimeterFeet: Math.round(perimeterM * 3.28084)
+      });
     }
   }, [onBoundaryChange]);
 
@@ -709,7 +723,7 @@ export default function FieldBoundaryMap({
           ? 'bg-slate-900 text-white border-b border-slate-800 shadow-md'
           : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800'
       }`}>
-        {/* Left: ONLY ONE Prominent Back Button + Farm Area Badge */}
+        {/* Left: ONLY ONE Prominent Back Button + Title Badge */}
         <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
           {(isFullScreenView || onBack) && (
             <button
@@ -719,25 +733,29 @@ export default function FieldBoundaryMap({
               title={isTelugu ? 'వెనుకకు' : 'Back'}
             >
               <ChevronLeft className="w-4 h-4 stroke-[3]" />
-              <span className="font-extrabold truncate max-w-[120px]">
+              <span className="font-extrabold truncate max-w-[100px] xs:max-w-[130px]">
                 {backLabel || (isTelugu ? '← వెనుకకు' : '← Back')}
               </span>
             </button>
           )}
 
-          {/* Farm Name & Area Badge */}
-          <div className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold shrink-0">
+          {/* Title Badge: Differentiates Calculator Mode from Farm Sector */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="truncate max-w-[80px] xs:max-w-[110px] text-slate-900 dark:text-white font-bold">
-              {farmName}
+            <span className="truncate max-w-[120px] xs:max-w-[160px] text-slate-900 dark:text-white font-black">
+              {mode === 'calculator' 
+                ? (farmName ? `📐 ${farmName}` : (isTelugu ? '📐 భూమి సర్వే' : '📐 Land Survey'))
+                : farmName}
             </span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold ml-0.5">
-              🌾 {area.acres} {isTelugu ? 'ఎక' : 'Ac'}
-            </span>
+            {mode !== 'calculator' && (
+              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold ml-0.5">
+                🌾 {area.acres} {isTelugu ? 'ఎక' : 'Ac'}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Right: Satellite/Street Toggle & Save/Studio Button */}
+        {/* Right: Satellite/Street Toggle & Action Button */}
         <div className="flex items-center gap-1.5 shrink-0">
           <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs">
             <button
@@ -766,7 +784,20 @@ export default function FieldBoundaryMap({
             </button>
           </div>
 
-          {isFullScreenView ? (
+          {/* Mode-Gated Action Button: No confusing "Save" in Calculator Mode */}
+          {mode === 'calculator' ? (
+            isFullScreenView && onShare ? (
+              <button
+                type="button"
+                onClick={onShare}
+                className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
+                title={isTelugu ? 'వాట్సాప్ ద్వారా షేర్ చేయండి' : 'Share via WhatsApp'}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="font-extrabold">{isTelugu ? 'షేర్' : 'Share'}</span>
+              </button>
+            ) : null
+          ) : isFullScreenView ? (
             <button
               type="button"
               onClick={handleBackNavigation}
@@ -798,22 +829,70 @@ export default function FieldBoundaryMap({
 
       {/* ═══════ 2. MAP CANVAS AREA: ZERO OVERFLOW, ABSOLUTE LEAFLET CONTAINER ═══════ */}
       <div className="flex-1 w-full relative z-0 min-h-0 overflow-hidden touch-none">
-        {/* Friendly Farmer Guidance Banner (Top Center of Map - Clean & Unobstructed) */}
+        {/* 📐 PROMINENT FLOATING LIVE AREA MEASUREMENT HUD (ALWAYS VISIBLE & PROMINENT ON SCREEN) */}
         {interactive && !isWalkMode && (
-          <div className="absolute top-3 inset-x-0 z-20 flex justify-center pointer-events-none px-3">
-            <div className="pointer-events-auto bg-slate-900/90 text-white backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-700 shadow-xl text-xs flex items-center gap-2 max-w-sm text-center">
-              {isPinMode ? (
-                <span className="font-bold text-emerald-300 animate-pulse">
-                  📍 {isTelugu ? 'మ్యాప్‌పై మీ పొలం మూలలను తాకండి' : 'Tap the corners of your field on the map'}
-                </span>
-              ) : pins.length >= 3 ? (
-                <span className="font-bold text-slate-100">
-                  🌾 {isTelugu ? `విస్తీర్ణం: ${area.acres} ఎకరాలు (${pins.length} మూలలు)` : `Area: ${area.acres} Acres (${pins.length} corners)`}
-                </span>
+          <div className="absolute top-2.5 inset-x-2.5 sm:inset-x-8 z-20 pointer-events-none flex justify-center">
+            <div className="pointer-events-auto w-full max-w-md bg-slate-900/95 text-white backdrop-blur-xl px-3.5 py-2 rounded-2xl border border-emerald-500/50 shadow-2xl flex flex-col gap-1 transition-all">
+              {pins.length >= 3 ? (
+                <>
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-1">
+                    <div className="flex items-baseline gap-2 min-w-0">
+                      <span className="text-lg sm:text-2xl font-black text-emerald-400 tracking-tight">
+                        {area.acres} {isTelugu ? 'ఎకరాలు' : 'Acres'}
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-teal-300">
+                        ({area.cents} {isTelugu ? 'సెంట్లు' : 'Cents'})
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[11px] font-black text-emerald-300/90">
+                        {area.gunthas} {isTelugu ? 'గుంటలు' : 'Gunthas'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-300 font-semibold pt-0.5">
+                    <span className="flex items-center gap-1">
+                      📏 <strong className="text-white">{area.perimeterMeters}m</strong> ({area.perimeterFeet} ft)
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      📐 <strong className="text-white">{area.gajam}</strong> {isTelugu ? 'గజాలు' : 'Gajam'}
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      📍 <strong className="text-emerald-400">{pins.length}</strong> {isTelugu ? 'పిన్స్' : 'Pins'}
+                    </span>
+                  </div>
+                </>
+              ) : pins.length === 2 ? (
+                <div className="flex items-center justify-between gap-2 py-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                    <span className="text-xs font-bold text-amber-300">
+                      📍 2 {isTelugu ? 'పిన్స్' : 'pins'} • 📏 {area.perimeterMeters}m ({area.perimeterFeet} ft)
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-300">
+                    {isTelugu ? 'విస్తీర్ణం కోసం మరో 1 పిన్ వేయండి' : 'Add 1 more pin for area'}
+                  </span>
+                </div>
+              ) : pins.length === 1 ? (
+                <div className="flex items-center gap-2 py-0.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                  <span className="text-xs font-bold text-emerald-300">
+                    📍 1 {isTelugu ? 'వ పిన్ నమోదయింది — తదుపరి మూల తాకండి' : 'pin dropped — Tap next corner of field'}
+                  </span>
+                </div>
               ) : (
-                <span className="text-slate-300">
-                  ℹ️ {isTelugu ? 'క్రింద "+ పిన్ వేయి" లేదా "వాక్ మోడ్" ఎంచుకోండి' : 'Select "+ Add Pin" or "Walk Mode" below'}
-                </span>
+                <div className="flex items-center justify-between gap-2 py-0.5">
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    📍 {isTelugu ? 'క్రింద "+ పిన్ వేయి" లేదా "వాక్ మోడ్" తాకండి' : 'Tap "+ Add Pin" or "Walk Mode" below'}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 shrink-0">
+                    {isTelugu ? '100% ఖచ్చితం' : 'Pinpoint GPS'}
+                  </span>
+                </div>
               )}
             </div>
           </div>
@@ -821,8 +900,8 @@ export default function FieldBoundaryMap({
 
         {/* 🚶 Pinpoint GPS Walking HUD Floating Overlay */}
         {isWalkMode && (
-          <div className="absolute inset-x-3 top-3 z-30 pointer-events-auto max-w-lg mx-auto">
-            <div className="p-3.5 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border border-sky-500/50 shadow-2xl flex flex-col gap-2.5">
+          <div className="absolute inset-x-3 top-2.5 z-30 pointer-events-auto max-w-lg mx-auto">
+            <div className="p-3 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border border-sky-500/50 shadow-2xl flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
@@ -834,7 +913,7 @@ export default function FieldBoundaryMap({
                       <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold">1m Accuracy</span>
                     </h4>
                     <p className="text-[11px] text-slate-300 font-medium">
-                      {walkDistance}m {isTelugu ? 'నడిచారు' : 'walked'} • {pins.length} {isTelugu ? 'కార్నర్స్' : 'corners'} • 🌾 {area.acres} {isTelugu ? 'ఎకరాలు' : 'Acres'}
+                      {walkDistance}m {isTelugu ? 'నడిచారు' : 'walked'} • {pins.length} {isTelugu ? 'కార్నర్స్' : 'corners'} • 🌾 {area.acres} {isTelugu ? 'ఎకరాలు' : 'Acres'} ({area.cents} {isTelugu ? 'సెంట్లు' : 'Cents'})
                     </p>
                   </div>
                 </div>

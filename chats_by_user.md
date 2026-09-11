@@ -6,6 +6,23 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 47
+* **User Input:**
+  > "while i using the field area calculator where i see the are measured on the scrrenn and why the interface of field area calculator looks like same issue in the farm sector and ggps coordinates sector also."
+* **Machine Summary Solution:**
+  * Analyzed user's two mobile screenshots (Picture 1: Fullscreen map with top bar containing `< Back`, `Land / Plot ... 🌾`, `Sat / Map`, `✓ Save`; Picture 2: Normal page with `Fullscreen`, `Share`, `Plot Name`, and embedded map).
+  * **Answered & Resolved Issue 1: "Where do I see the area measured on the screen?":**
+    - **Root Cause Identified:** On mobile screen width (~360px), having Back, Title badge, Sat/Map toggle, and Save all in the 56px header squeezed the badge so it was truncated to `Land / Plot ... 🌾`, hiding the measured acreage numbers completely. Also, the previous status banner changed to "Tap the corners..." whenever Pin Mode was active, hiding the area while pinning.
+    - **Fix Implemented:**
+      1. Added a prominent, dark-glass **Floating Live Area Measurement HUD** on the map canvas itself (visible in both fullscreen and embedded views). When 3+ pins are placed, it shows large bold primary area (`1.45 Acres` / `58 Cents`), Gunthas, Gajam/Sq.Yards, perimeter in meters & feet, and corner pin count in real time.
+      2. Added an **Immediate Live Area Summary Banner** directly below the Plot Name input on the main page, giving farmers immediate dual visibility.
+  * **Answered & Resolved Issue 2: "Why does the interface look like the farm sector and gps coordinates sector?":**
+    - **Root Cause Identified:** `FieldAreaCalculatorPage` was reusing `FieldBoundaryMap` without a dedicated mode flag, causing it to render `✓ Save` (which belongs to farm field registration), crop icons (`🌾`), and duplicate fullscreen buttons.
+    - **Fix Implemented:**
+      1. Added `mode = 'calculator'` to `FieldBoundaryMap`: completely eliminated the `✓ Save` button in calculator mode, replaced crop icons with land survey ruler icon (`📐`), and hooked direct WhatsApp share (`[ 💬 Share ]`).
+      2. Renamed full-screen toggle to **Full-Screen Map** (`పూర్తి స్క్రీన్ మ్యాప్`) consistently.
+  * Tested build: `npm run build` completed with 0 errors in 20.76s.
+
 ### Chat Entry 46
 * **User Input:**
   > "why the esp32 comesiam using the software mode telll the ai chat when evr the smart iot node turn on only or the user asks about the in field hardware in that time only give about the esp32 node data ok . do you understand what i try to tell make it more clearly"
