@@ -228,8 +228,8 @@ class NVIDIAService:
         self,
         messages: list,
         temperature: float = 0.2,
-        max_tokens: int = 450,
-        timeout: float = 4.0
+        max_tokens: int = 1500,
+        timeout: float = 20.0
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Executes a chat completion across configured AI providers with automatic failover.
@@ -239,15 +239,18 @@ class NVIDIAService:
         if not providers:
             return None, None
 
-        # Allow sufficient tokens for complete structured agronomic JSON
-        safe_tokens = min(max_tokens, 2048)
-        safe_timeout = min(timeout, 12.0)
+        # Allow sufficient tokens for complete structured responses without truncation
+        safe_tokens = min(max_tokens, 4096)
+        safe_timeout = min(max(timeout, 15.0), 45.0)
 
         for name, client, model in providers:
             try:
-                # For Groq Cloud on-demand tier, cap max_tokens to 700 to strictly respect the 1000 OTPM rate limit
-                call_tokens = min(safe_tokens, 700) if "Groq" in name else safe_tokens
-                logger.info(f"Attempting AI completion via {name} ({model})...")
+                # Groq on-demand free tier enforces 1000 OTPM on qwen/qwen3.8-27b; cap to 900 for that model to prevent 429
+                if "Groq" in name and "qwen3.8" in str(model):
+                    call_tokens = min(safe_tokens, 900)
+                else:
+                    call_tokens = safe_tokens
+                logger.info(f"Attempting AI completion via {name} ({model}) [max_tokens={call_tokens}, timeout={safe_timeout}]...")
                 response = await asyncio.wait_for(
                     client.chat.completions.create(
                         model=model,
@@ -256,10 +259,26 @@ class NVIDIAService:
                         max_tokens=call_tokens,
                         timeout=safe_timeout
                     ),
-                    timeout=safe_timeout + 1.0
+                    timeout=safe_timeout + 2.0
                 )
-                content = response.choices[0].message.content.strip()
-                logger.info(f"AI completion succeeded via {name} ({model})")
+                choice = response.choices[0]
+                content = choice.message.content.strip()
+                finish_reason = getattr(choice, 'finish_reason', None)
+                if finish_reason == "length":
+                    logger.warning(f"AI completion reached token length limit ({call_tokens}) for {name} ({model}).")
+                    # Cleanly trim any dangling incomplete sentence or trailing header
+                    sentence_ends = [i for i, ch in enumerate(content) if ch in ('.', '!', '?', '।', ')', '🌱')]
+                    if sentence_ends:
+                        last_good = sentence_ends[-1]
+                        if len(content) - last_good < 160:
+                            content = content[:last_good + 1].strip()
+                    # Strip any trailing orphaned heading or bullet point
+                    content = re.sub(r'\n+\s*(\*\*.*?\*\*|#+.*?|[-*]\s*)$', '', content).strip()
+                    if content.count("**") % 2 != 0:
+                        content += "**"
+                    if content.count("*") % 2 != 0:
+                        content += "*"
+                logger.info(f"AI completion succeeded via {name} ({model}) [finish_reason={finish_reason}]")
                 return content, name
             except Exception as ex:
                 logger.warning(f"Provider {name} ({model}) failed or timed out: {ex}. Checking for fallback...")
@@ -1345,7 +1364,13 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
     - If asked whether it is safe to spray today:
       * Enforce the **4-Hour Rain-Free Rule**: Never spray if rainfall or showers are expected within 4 hours, as chemical will wash off into soil and waste money.
       * Enforce the **Wind Drift Rule**: Spray only when wind speed is under 12 km/h to prevent chemical drift onto non-target crops or neighboring fields.
-      * Advise spraying during calm hours: Early morning (6:00 AM – 9:00 AM) or late evening (4:30 PM – 6:30 PM) to avoid sun scorch.
+15. 🛑 **Critical Completion & Crisp Delivery Mandate:**
+    - You MUST generate a complete, fully-finished response. Never cut off mid-thought, mid-sentence, or mid-list.
+    - Structure your response concisely (under 200 words):
+      1) Direct Diagnosis / Solution (1-2 sentences)
+      2) Medicine to Buy (Option A Bio with 16L pump mix, Option B Chemical with 16L pump mix)
+      3) 3-Step Field Instructions (Buy genuine with GST bill, Dilute in 16L knapsack pump, Spray in early morning/late evening)
+    - Always finish all sentences and bullet points completely before concluding with encouraging farmer advice.
 
 ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, numbered steps). Keep explanations clear, encouraging, and farmer-friendly.{lang_instruction}
 {context_str}"""
@@ -1413,7 +1438,7 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                     "content": f"FINAL REMINDER: You MUST write your entire response in {lang_meta['name']} ({lang_meta['native']}). Do NOT respond in English."
                 })
 
-            content, provider = await self._execute_completion(messages, temperature=0.3, max_tokens=1024, timeout=25.0)
+            content, provider = await self._execute_completion(messages, temperature=0.3, max_tokens=3000, timeout=35.0)
             if content:
                 # Script Verification Guardrail: Check if non-English language was requested but output lacks Indic script
                 if lang_meta and target_lang_code != "en":
@@ -1433,7 +1458,7 @@ ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet 
                                 "content": content
                             }
                         ]
-                        translated_content, _ = await self._execute_completion(trans_prompt, temperature=0.2, max_tokens=1024, timeout=15.0)
+                        translated_content, _ = await self._execute_completion(trans_prompt, temperature=0.2, max_tokens=3000, timeout=30.0)
                         if translated_content and len(re.findall(lang_meta["pattern"], translated_content)) >= 15:
                             return translated_content
                 return content

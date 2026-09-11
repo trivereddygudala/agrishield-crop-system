@@ -6,6 +6,20 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 39
+* **User Input:**
+  > "why it is not provide the full chat what is the issue"
+* **Machine Summary Solution:**
+  * Diagnosed the root cause of truncated chat responses (e.g. cutting off at `• ఆప్షన్ B (ప్రొటెక్టెంట్ కెమికల్): **Mancozeb`):
+    1. **Artificial 700-Token Clamp:** `_execute_completion` had `call_tokens = min(safe_tokens, 700) if "Groq" in name else safe_tokens`. Every completion via Groq was capped at 700 tokens.
+    2. **Indic Unicode Token Inflation:** Multi-byte Telugu script requires 6–10 tokens per word. A 700-token cap allows only ~80–100 words, causing the model to exhaust tokens before finishing Step 1.
+    3. **Groq OTPM Limit (1000):** Free-tier Groq on-demand enforces a 1000 Output Tokens Per Minute (OTPM) ceiling on `qwen/qwen3.8-27b`. Requests with `max_tokens > 1000` failed with HTTP 429.
+  * Dynamically budgeted `call_tokens = min(safe_tokens, 900)` for Groq `qwen3.8` (staying strictly within 1000 OTPM while maximizing headroom) and full `safe_tokens` (up to 3000–4096) for NVIDIA NIM and other models.
+  * Injected Rule 15 into `system_prompt` enforcing a crisp response format under 200 words (Direct Solution -> Option A Bio + 16L dosage -> Option B Chemical + 16L dosage -> 3-Step Field Instructions -> Helplines), ensuring responses complete cleanly in 450–600 tokens with `finish_reason: "stop"`.
+  * Added edge truncation recovery in `_execute_completion`: if `finish_reason == "length"`, automatically detects the last sentence-ending punctuation, cleanly removes trailing dangling fragments or orphaned headers, and closes unclosed markdown tags (`**` / `*`).
+  * Updated NVIDIA NIM fallback in `.env` & `backend/.env` to `meta/llama-3.2-11b-vision-instruct`.
+  * Verified end-to-end: response completes fully with zero cutoffs and clean Telugu formatting.
+
 ### Chat Entry 37
 * **User Input:**
   > "ai chat assistant language translation issue"

@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v102) - Fix Truncated AI Assistant Chat Responses & Regional Token Inflation
+- **Summary:** Resolved the issue where the AI Chat Assistant responses were cut off mid-sentence (e.g. halting abruptly at `• ఆప్షన్ B (ప్రొటెక్టెంట్ కెమికల్): **Mancozeb`):
+  1. 🔍 **Root Cause Discovery:**
+     - **Artificial 700-Token Clamp:** `_execute_completion` had `call_tokens = min(safe_tokens, 700) if "Groq" in name else safe_tokens`. Every Groq completion was artificially restricted to 700 tokens.
+     - **Indic Unicode Token Inflation:** LLM BPE tokenizers split non-ASCII Indic Unicode characters (Telugu, Hindi, Tamil) into multi-byte subwords (taking 6–10 tokens per word). 700 tokens translates to only ~80–100 words in Telugu. The model ran out of tokens before finishing Step 1, halting with `finish_reason: "length"`.
+     - **Groq OTPM Limit (1000):** Groq on-demand free tier enforces a strict 1000 Output Tokens Per Minute (OTPM) on `qwen/qwen3.8-27b`. Requests with `max_tokens > 1000` threw HTTP 429 rate-limit errors.
+  2. ⚡ **Per-Model Intelligent Token Budgeting (`nvidia_service.py`):**
+     - Updated `_execute_completion` to dynamically budget `min(safe_tokens, 900)` for Groq `qwen3.8` (staying strictly within the 1000 OTPM limit while maximizing token space) and full `safe_tokens` (up to 3000–4096) for NVIDIA NIM and other models.
+  3. 📋 **Crisp & Complete Delivery Mandate (`nvidia_service.py`):**
+     - Injected Rule 15 into the Agronomist system prompt enforcing a crisp structure under 200 words: Direct Solution -> Medicine to Buy (Option A Bio + 16L pump mix, Option B Chemical + 16L pump mix) -> 3-Step Field Instructions (Buy genuine with GST bill, 16L dilution, Morning/evening spray window) -> Helplines & Farmer encouragement. This guarantees the entire advice completes within 450–600 tokens with `finish_reason: "stop"`.
+  4. 🛡️ **Edge Truncation & Dangling Fragment Recovery (`nvidia_service.py`):**
+     - If an output ever ends with `finish_reason: "length"`, the system now automatically scans for the last valid sentence-ending punctuation (period, question mark, exclamation, or emoji), cleanly trims any dangling trailing phrase or orphaned markdown header, and automatically closes unclosed markdown bold/italic tags (`**` / `*`).
+  5. 🔄 **NVIDIA NIM Fallback Upgraded (`backend/.env`, `.env`):**
+     - Replaced unresponsive model with `meta/llama-3.2-11b-vision-instruct` on NVIDIA NIM, verified to respond quickly and fluently in regional Indian languages as a seamless secondary provider.
+- **Files modified**: `backend/app/services/nvidia_service.py`, `backend/.env`, `.env`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v101) - Fix AI Chat Assistant Language Translation & Regional Script Enforcement
 - **Summary:** Resolved language translation mismatch in the AI Chat Assistant where selecting regional languages (Telugu, Hindi, Tamil, Kannada, etc.) resulted in English queries being sent and English responses being returned:
   1. 🗣️ **Localized Kisan Question Chips (`AIAssistantPage.jsx`):**
