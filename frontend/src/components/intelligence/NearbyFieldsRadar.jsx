@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { 
   Radio, AlertTriangle, ShieldCheck, Wind, MapPin, Eye, 
-  ChevronRight, RefreshCw, Sparkles, Droplets, Info, Compass, Users
+  ChevronRight, RefreshCw, Sparkles, Droplets, Info, Compass, Users, Maximize2
 } from 'lucide-react';
 import API from '../../services/api';
 import FieldBoundaryMap from '../farm/FieldBoundaryMap';
@@ -17,7 +17,8 @@ export default function NearbyFieldsRadar({
   centerLat = 16.5062,
   centerLng = 80.6480,
   boundaryCoordinates = [],
-  onBoundaryUpdate
+  onBoundaryUpdate,
+  onExpandStudio
 }) {
   const { t, i18n } = useTranslation();
   const isTe = i18n.language === 'te';
@@ -74,21 +75,21 @@ export default function NearbyFieldsRadar({
   const isWarning = alertLevel === 'WARNING';
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 w-full max-w-full min-w-0 overflow-hidden">
       {/* Header & Radius Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
             <Radio className="w-5 h-5 animate-pulse" />
           </div>
-          <div>
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              {isTe ? 'సమీప పొలాలు & వ్యాధి నిఘా రాడార్' : 'Nearby Fields & Crop Disease Surveillance Radar'}
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex flex-wrap items-center gap-2">
+              <span>{isTe ? 'సమీప పొలాలు & వ్యాధి నిఘా రాడార్' : 'Nearby Fields & Disease Surveillance Radar'}</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 shrink-0">
                 LIVE 5 KM
               </span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {isTe 
                 ? 'మీ పొలం చుట్టూ ఉన్న రైతులు, వారి పంటలు & గాలి ద్వారా వ్యాపించే వ్యాధి హెచ్చరికలు' 
                 : 'Surrounding neighboring farms, crops & early airborne spore transmission warnings'}
@@ -97,7 +98,7 @@ export default function NearbyFieldsRadar({
         </div>
 
         {/* Radius Filter Pills */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto shrink-0">
           {[1.0, 3.0, 5.0].map((r) => (
             <button
               key={r}
@@ -128,7 +129,7 @@ export default function NearbyFieldsRadar({
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs ${
+        className={`p-3.5 sm:p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs w-full max-w-full min-w-0 ${
           isCritical
             ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60 text-rose-900 dark:text-rose-200'
             : isWarning
@@ -136,7 +137,7 @@ export default function NearbyFieldsRadar({
             : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60 text-emerald-900 dark:text-emerald-200'
         }`}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 min-w-0">
           <div className="p-2 rounded-xl bg-white/70 dark:bg-slate-900/80 shadow-xs shrink-0 mt-0.5">
             {isCritical || isWarning ? (
               <AlertTriangle className={`w-5 h-5 ${isCritical ? 'text-rose-600' : 'text-amber-600'}`} />
@@ -144,8 +145,8 @@ export default function NearbyFieldsRadar({
               <ShieldCheck className="w-5 h-5 text-emerald-600" />
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <h4 className="text-sm font-black">
                 {isCritical
                   ? (isTe ? '🚨 అత్యవసర హెచ్చరిక: సమీపంలో తీవ్ర వ్యాధి వ్యాప్తి!' : '🚨 Critical Threat: Active Nearby Outbreaks Detected!')
@@ -153,10 +154,10 @@ export default function NearbyFieldsRadar({
                   ? (isTe ? '⚠️ అప్రమత్తత: సమీప పొలాల్లో శిలీంధ్ర వ్యాధులు గుర్తించబడ్డాయి' : '⚠️ Warning: Fungal Pathogens Reported Nearby')
                   : (isTe ? '✅ సురక్షిత జోన్: సమీప పొలాలన్నీ ఆరోగ్యంగా ఉన్నాయి' : '✅ Safe Perimeter: All Nearby Farms Reporting Healthy')}
               </h4>
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase shrink-0 ${
                 isCritical ? 'bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200' : isWarning ? 'bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200' : 'bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
               }`}>
-                {radarData?.infected_count || 0} {isTe ? 'సోకిన పొలాలు' : 'Infected Plots'} / {radarData?.total_nearby || 0} {isTe ? 'మొత్తం' : 'Total'}
+                {radarData?.infected_count || 0} {isTe ? 'సోకిన పొలాలు' : 'Infected'} / {radarData?.total_nearby || 0} {isTe ? 'మొత్తం' : 'Total'}
               </span>
             </div>
             <p className="text-xs opacity-90 mt-1 leading-relaxed">
@@ -165,7 +166,7 @@ export default function NearbyFieldsRadar({
           </div>
         </div>
 
-        <div className="shrink-0 flex sm:flex-col items-end gap-1">
+        <div className="shrink-0 flex sm:flex-col items-end gap-1 self-end sm:self-auto">
           <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
             {isTe ? 'గాలి స్పోర్ రిస్క్' : 'Airborne Spore Risk'}
           </span>
@@ -177,6 +178,26 @@ export default function NearbyFieldsRadar({
         </div>
       </motion.div>
 
+      {/* Quick Expand Button Banner */}
+      {onExpandStudio && (
+        <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/20">
+          <div className="flex items-center gap-2 min-w-0">
+            <Radio className="w-4 h-4 text-emerald-600 shrink-0 animate-pulse" />
+            <p className="text-xs font-black text-emerald-950 dark:text-emerald-200 truncate">
+              {isTe ? 'పూర్తి స్క్రీన్ రాడార్ స్టూడియో' : 'Dedicated Full-Screen Radar Studio'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onExpandStudio}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1 shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all"
+          >
+            <Maximize2 className="w-3 h-3" />
+            <span>{isTe ? 'స్టూడియో తెరవండి' : 'Open Studio'}</span>
+          </button>
+        </div>
+      )}
+
       {/* Interactive Satellite & Street Boundary Map */}
       <FieldBoundaryMap
         centerLat={centerLat}
@@ -185,12 +206,13 @@ export default function NearbyFieldsRadar({
         cropName={cropName}
         boundaryCoordinates={boundaryCoordinates}
         onBoundaryChange={onBoundaryUpdate}
+        onExpand={onExpandStudio}
         nearbyFarms={nearbyFarms}
         showRadarRings={true}
         radarRadius={radiusKm}
         isTelugu={isTe}
         interactive={true}
-        height="460px"
+        height="360px"
       />
 
       {/* Nearby Farmers, Crops & Outbreak Intelligence Feed */}

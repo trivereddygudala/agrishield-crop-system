@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v100) - Fix Mobile Map Screen Overflow, Dedicated Studio Pages & Backward Navigation
+- **Summary:** Resolved mobile screen limit overflow and created dedicated full-screen studio pages with top-left backward navigation:
+  1. 📱 **Mobile Screen Limit Overflow Fixed (`FieldBoundaryMap.jsx`, `FarmPage.jsx`, `NearbyFieldsRadar.jsx`):**
+     - Root cause: Long side-by-side header text (`Field Boundaries, Multi-Plot & Walk Mode` and `Click (+) on edges to bend, or use Walk Mode`) and unconstrained top-bar controls inside `FieldBoundaryMap` had intrinsic widths exceeding 400px+, forcing mobile containers to widen and clip off-screen.
+     - Solution: Added `w-full max-w-full min-w-0 overflow-hidden` across map wrappers and cards. Made headers responsive with `flex-col sm:flex-row`, `truncate`, and compact responsive button paddings. Adjusted floating compass needle, rotator, and tile layer switchers (`top-13 right-2` and `top-13 left-2`) to never collide or exceed screen edges. Reconfigured bottom dock with `flex-wrap sm:flex-nowrap` for small smartphone screens (320px–360px).
+  2. 🗺️ **Dedicated Separate Page for Field Boundary Studio (`FarmPage.jsx`, `FieldBoundaryMap.jsx`):**
+     - Tapping the expand icon (`Maximize2`) on the map or tapping the new *"Dedicated Full-Screen Map Studio"* banner now opens a dedicated separate view (`activeTab === 'boundary-studio'`).
+     - Features a prominent top-left backward button: `← Back to Field Setup` (`← పొలం సెటప్‌కు తిరిగి`) to seamlessly return to the Field Setup tab.
+     - Includes a top-right `Done` (`పూర్తయింది`) action button, plot name pill, and edge-to-edge canvas with responsive touch dock.
+  3. 📡 **Dedicated Disease Radar Studio & Overflow Cleanup (`NearbyFieldsRadar.jsx`, `FarmPage.jsx`):**
+     - Tapping the expand icon or *"Dedicated Full-Screen Radar Studio"* banner in the Nearby Fields tab opens a dedicated full-screen radar page (`activeTab === 'radar-studio'`).
+     - Features a top-left backward button: `← Back to Disease Radar` (`← వ్యాధి రాడార్‌కు తిరిగి`) to return to the radar dashboard.
+     - Cleaned up Nearby Fields & Disease Radar layout with responsive flex wrappers on live outbreak alert banners, radius filters, and farmer status cards.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/components/intelligence/NearbyFieldsRadar.jsx`, `frontend/src/pages/FarmPage.jsx`, `changes_happening.md`
+
 ## 2026-09-11 (v99) - Fix Login Animation Timing & Full Multilingual TTS Speech Engine
 - **Summary:** Resolved two critical user issues:
   1. 🔑 **Login Cinematic Animation Fixed (`LoginPage.jsx`):**

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   Sprout, MapPin, Droplets, Cpu, Bell, Save, Navigation, 
   Check, AlertCircle, RefreshCw, ShieldCheck, Thermometer, Radio, Archive, Layers,
-  Calendar, Leaf, ScanLine, Clock, ChevronRight, Sun, CloudRain, TrendingUp, Eye
+  Calendar, Leaf, ScanLine, Clock, ChevronRight, Sun, CloudRain, TrendingUp, Eye, Maximize2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
@@ -500,7 +500,7 @@ const FarmPage = () => {
           </button>
 
           <form onSubmit={handleSaveFarm} className="space-y-5">
-            <Card glass className="p-5 space-y-5">
+            <Card glass className="p-3.5 sm:p-5 space-y-5 w-full max-w-full min-w-0 overflow-hidden">
               <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">
                 <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   <Sprout className="w-5 h-5" />
@@ -683,15 +683,33 @@ const FarmPage = () => {
                 </div>
 
                 {/* Boundary Pins & Satellite Map */}
-                <div className="pt-2 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                      {isTe ? 'పొలం సరిహద్దులు, బహుళ మళ్ళు & వాక్ మోడ్' : 'Field Boundaries, Multi-Plot & Walk Mode'}
+                <div className="pt-2 space-y-2 w-full max-w-full min-w-0 overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 w-full max-w-full min-w-0">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 min-w-0">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate">{isTe ? 'పొలం సరిహద్దులు, బహుళ మళ్ళు & వాక్ మోడ్' : 'Field Boundaries, Multi-Plot & Walk Mode'}</span>
                     </p>
-                    <span className="text-[10px] text-slate-400 font-semibold">
+                    <span className="text-[10px] text-slate-400 font-semibold truncate">
                       {isTe ? 'మలుపుల వద్ద (+) నొక్కండి, లేదా వాక్ మోడ్‌తో కొలవండి' : 'Click (+) on edges to bend, or use Walk Mode'}
                     </span>
+                  </div>
+
+                  {/* Dedicated Full-Screen Map Studio Banner */}
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/20">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Maximize2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <p className="text-xs font-black text-emerald-950 dark:text-emerald-200 truncate">
+                        {isTe ? 'ప్రత్యేక పూర్తి స్క్రీన్ మ్యాప్ స్టూడియో' : 'Dedicated Full-Screen Map Studio'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('boundary-studio')}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1 shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all"
+                    >
+                      <Maximize2 className="w-3 h-3" />
+                      <span>{isTe ? 'స్టూడియో తెరవండి' : 'Open Studio'}</span>
+                    </button>
                   </div>
 
                   <FieldBoundaryMap
@@ -706,6 +724,7 @@ const FarmPage = () => {
                         setFarmSize(formattedArea.acres);
                       }
                     }}
+                    onExpand={() => setActiveTab('boundary-studio')}
                     isTelugu={isTe}
                     interactive={true}
                     showRadarRings={false}
@@ -809,6 +828,7 @@ const FarmPage = () => {
             centerLat={effectiveLat}
             centerLng={effectiveLng}
             boundaryCoordinates={boundaryCoordinates}
+            onExpandStudio={() => setActiveTab('radar-studio')}
             onBoundaryUpdate={async (newPins, formattedArea) => {
               setBoundaryCoordinates(newPins);
               if (formattedArea && formattedArea.rawAcres > 0) {
@@ -826,6 +846,115 @@ const FarmPage = () => {
               }
             }}
           />
+        </motion.div>
+      )}
+
+      {/* ═══════ DEDICATED SEPARATE PAGE: Field Boundary Studio ═══════ */}
+      {activeTab === 'boundary-studio' && (
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="space-y-3 w-full max-w-full min-w-0">
+          {/* Top Navigation Bar with Prominent Back Button */}
+          <div className="flex items-center justify-between gap-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab('field-setup')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all cursor-pointer shadow-xs active:scale-95"
+            >
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              <span>{isTe ? '← పొలం సెటప్‌కు తిరిగి' : '← Back to Field Setup'}</span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{farmName || 'My Farm'}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('field-setup')}
+                className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-95 transition-all cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                <span>{isTe ? 'పూర్తయింది (Done)' : 'Done'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Dedicated Full-Height Studio Map */}
+          <div className="w-full rounded-2xl overflow-hidden shadow-lg border border-slate-200/90 dark:border-slate-800 bg-slate-900">
+            <FieldBoundaryMap
+              centerLat={effectiveLat}
+              centerLng={effectiveLng}
+              farmName={farmName || 'My Farm'}
+              cropName={cropName || 'Tomato'}
+              boundaryCoordinates={boundaryCoordinates}
+              onBoundaryChange={(newPins, formattedArea) => {
+                setBoundaryCoordinates(newPins);
+                if (formattedArea && formattedArea.rawAcres > 0) {
+                  setFarmSize(formattedArea.acres);
+                }
+              }}
+              isTelugu={isTe}
+              interactive={true}
+              showRadarRings={false}
+              height="calc(100dvh - 12rem)"
+              isDedicated={true}
+              onBack={() => setActiveTab('field-setup')}
+              backLabel={isTe ? '← పొలం సెటప్' : '← Field Setup'}
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* ═══════ DEDICATED SEPARATE PAGE: Disease Radar Studio ═══════ */}
+      {activeTab === 'radar-studio' && (
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }} className="space-y-3 w-full max-w-full min-w-0">
+          {/* Top Navigation Bar with Prominent Back Button */}
+          <div className="flex items-center justify-between gap-2 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab('nearby-radar')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all cursor-pointer shadow-xs active:scale-95"
+            >
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              <span>{isTe ? '← వ్యాధి రాడార్‌కు తిరిగి' : '← Back to Disease Radar'}</span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('nearby-radar')}
+                className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-95 transition-all cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                <span>{isTe ? 'పూర్తయింది (Done)' : 'Done'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Dedicated Full-Height Radar Studio Map */}
+          <div className="w-full rounded-2xl overflow-hidden shadow-lg border border-slate-200/90 dark:border-slate-800 bg-slate-900">
+            <FieldBoundaryMap
+              centerLat={effectiveLat}
+              centerLng={effectiveLng}
+              farmName={farmName || 'My Farm'}
+              cropName={cropName || 'Tomato'}
+              boundaryCoordinates={boundaryCoordinates}
+              onBoundaryChange={(newPins, formattedArea) => {
+                setBoundaryCoordinates(newPins);
+                if (formattedArea && formattedArea.rawAcres > 0) {
+                  setFarmSize(formattedArea.acres);
+                }
+              }}
+              showRadarRings={true}
+              radarRadius={5}
+              isTelugu={isTe}
+              interactive={true}
+              height="calc(100dvh - 12rem)"
+              isDedicated={true}
+              onBack={() => setActiveTab('nearby-radar')}
+              backLabel={isTe ? '← వ్యాధి రాడార్' : '← Disease Radar'}
+            />
+          </div>
         </motion.div>
       )}
 

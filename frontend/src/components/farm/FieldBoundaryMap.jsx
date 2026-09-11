@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { 
   Layers, MapPin, Trash2, Plus, RefreshCw, Compass, ShieldAlert, Sparkles, 
   Check, Info, Footprints, Play, Square, Navigation, Crosshair, X, AlertTriangle,
-  Maximize2, Minimize2, RotateCw, RotateCcw, Undo2, Redo2, ChevronDown, CheckCircle2
+  Maximize2, Minimize2, RotateCw, RotateCcw, Undo2, Redo2, ChevronDown, CheckCircle2, ChevronLeft
 } from 'lucide-react';
 
 // Plot Palette Colors (high contrast, distinct for fragmented multi-plots)
@@ -95,7 +95,11 @@ export default function FieldBoundaryMap({
   radarRadius = 5,
   isTelugu = false,
   interactive = true,
-  height = '420px'
+  height = '420px',
+  onExpand,
+  onBack,
+  backLabel,
+  isDedicated = false
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -263,14 +267,26 @@ export default function FieldBoundaryMap({
     };
   }, []);
 
-  // Invalidate map size when fullscreen toggles
+  // Invalidate map size when fullscreen toggles or dimensions change
   useEffect(() => {
     if (mapInstanceRef.current) {
       setTimeout(() => {
         mapInstanceRef.current.invalidateSize();
       }, 150);
     }
-  }, [isFullscreen]);
+  }, [isFullscreen, isDedicated, height]);
+
+  // Handle container resizing smoothly
+  useEffect(() => {
+    if (!mapContainerRef.current || !window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    ro.observe(mapContainerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // Apply Rotation to Leaflet Map Pane
   useEffect(() => {
@@ -787,34 +803,47 @@ export default function FieldBoundaryMap({
 
   return (
     <div
-      className={`relative overflow-hidden transition-all duration-300 ${
+      className={`relative overflow-hidden transition-all duration-300 w-full max-w-full min-w-0 ${
         isFullscreen
           ? 'fixed inset-0 z-[9999] w-screen h-screen bg-slate-950 flex flex-col'
-          : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900'
+          : isDedicated
+          ? 'w-full h-full rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 flex flex-col'
+          : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 flex flex-col'
       }`}
     >
-      {/* ═══════ 1. SLEEK COMPACT TOP BAR (SINGLE LINE, ZERO MAP BLOCKING) ═══════ */}
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 flex items-center justify-between gap-2 z-20 shrink-0">
-        {/* Left: Plot Selector Pill */}
-        <div className="flex items-center gap-2">
+      {/* ═══════ 1. SLEEK COMPACT TOP BAR ═══════ */}
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-2.5 py-2 flex items-center justify-between gap-1.5 z-20 shrink-0 min-w-0 max-w-full">
+        {/* Left: Optional Back button & Plot Selector Pill */}
+        <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="text-[11px] font-bold truncate max-w-[110px]">{backLabel || (isTelugu ? 'తిరిగి' : 'Back')}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowPlotDrawer(!showPlotDrawer)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200/80 dark:border-slate-700 cursor-pointer shadow-xs"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all border border-slate-200/80 dark:border-slate-700 cursor-pointer shadow-xs shrink-0"
           >
             <span
               className="w-2.5 h-2.5 rounded-full shrink-0"
               style={{ background: activePlot.color || PLOT_COLORS[0].stroke }}
             />
-            <span>{activePlot.name}</span>
+            <span className="truncate max-w-[65px] xs:max-w-[90px]">{activePlot.name}</span>
             <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
               ({plotsAcreage[activePlot.id]?.acres || '0.00'} Ac)
             </span>
-            <ChevronDown className="w-3.5 h-3.5 opacity-60 ml-0.5" />
+            <ChevronDown className="w-3 h-3 opacity-60 ml-0.5 shrink-0" />
           </button>
 
-          {/* Quick Plot Switch Buttons (Compact) */}
-          <div className="hidden sm:flex items-center gap-1">
+          {/* Quick Plot Switch Buttons (Desktop) */}
+          <div className="hidden md:flex items-center gap-1">
             {plots.map((plot, idx) => (
               <button
                 key={plot.id}
@@ -836,18 +865,24 @@ export default function FieldBoundaryMap({
           </div>
         </div>
 
-        {/* Center / Right: Total Acreage Badge & Fullscreen Toggle */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-black">
+        {/* Center / Right: Total Acreage Badge & Studio Toggle */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[11px] font-black shrink-0">
             <span className="hidden sm:inline">{isTelugu ? 'మొత్తం:' : 'Total:'}</span>
-            <span>{totalAcreage.acres} {isTelugu ? 'ఎకరాలు' : 'Ac'}</span>
+            <span>{totalAcreage.acres} {isTelugu ? 'ఎక' : 'Ac'}</span>
           </div>
 
           {/* ⛶ Fullscreen / Studio Toggle Button */}
           <button
             type="button"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+            onClick={() => {
+              if (onExpand) {
+                onExpand();
+              } else {
+                setIsFullscreen(!isFullscreen);
+              }
+            }}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer ${
               isFullscreen
                 ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-md'
                 : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 shadow-xs'
@@ -855,7 +890,7 @@ export default function FieldBoundaryMap({
             title={isFullscreen ? (isTelugu ? 'స్టూడియో ముగించు' : 'Exit Studio') : (isTelugu ? 'పూర్తి స్క్రీన్ స్టూడియో' : 'Full-Screen Studio')}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span className="hidden xs:inline">{isFullscreen ? (isTelugu ? 'మూసివేయి' : 'Exit') : (isTelugu ? 'పూర్తి స్క్రీన్' : 'Fullscreen')}</span>
+            <span className="text-[11px] font-bold">{isFullscreen ? (isTelugu ? 'మూసివేయి' : 'Exit') : (isTelugu ? 'స్టూడియో' : 'Studio')}</span>
           </button>
         </div>
       </div>
@@ -940,31 +975,31 @@ export default function FieldBoundaryMap({
       )}
 
       {/* ═══════ FLOATING COMPASS & ROTATION HEAD (TOP RIGHT OVERLAY) ═══════ */}
-      <div className="absolute top-14 right-3 z-20 flex flex-col items-end gap-1.5 pointer-events-auto">
+      <div className="absolute top-13 right-2 z-20 flex flex-col items-end gap-1 pointer-events-auto">
         {/* Compass Needle (Click resets directly to True North) */}
         <button
           type="button"
           onClick={handleResetNorth}
-          className="w-9 h-9 rounded-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-md border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-emerald-600 transition-transform cursor-pointer group"
+          className="w-8 h-8 rounded-xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-md border border-slate-200/80 dark:border-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-emerald-600 transition-transform cursor-pointer group"
           title={isTelugu ? 'ఉత్తర దిశకు రీసెట్ చేయండి (True North)' : 'Reset rotation to True North (0°)'}
         >
           <Compass
-            className="w-5 h-5 text-rose-500 transition-transform duration-300"
+            className="w-4 h-4 text-rose-500 transition-transform duration-300"
             style={{ transform: `rotate(${-rotationAngle}deg)` }}
           />
         </button>
 
         {/* Rotate +45° / -45° Buttons */}
-        <div className="flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[10px]">
+        <div className="flex items-center gap-0.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-xl shadow-md border border-slate-200/80 dark:border-slate-800 text-[10px]">
           <button
             type="button"
             onClick={() => handleRotateStep(-45)}
             className="p-1 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-100"
             title="Rotate Left 45°"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3 h-3" />
           </button>
-          <span className="font-mono font-bold px-1 text-slate-700 dark:text-slate-300 min-w-[28px] text-center">
+          <span className="font-mono font-bold px-0.5 text-slate-700 dark:text-slate-300 min-w-[24px] text-center text-[10px]">
             {rotationAngle}°
           </span>
           <button
@@ -973,18 +1008,18 @@ export default function FieldBoundaryMap({
             className="p-1 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-100"
             title="Rotate Right 45°"
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            <RotateCw className="w-3 h-3" />
           </button>
         </div>
       </div>
 
       {/* ═══════ FLOATING TILE LAYER SWITCHER (TOP LEFT OVERLAY) ═══════ */}
-      <div className="absolute top-14 left-3 z-20 pointer-events-auto">
-        <div className="flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-xl shadow-md border border-slate-200/80 dark:border-slate-800 text-xs">
+      <div className="absolute top-13 left-2 z-20 pointer-events-auto">
+        <div className="flex items-center gap-0.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-xl shadow-md border border-slate-200/80 dark:border-slate-800 text-xs">
           <button
             type="button"
             onClick={() => switchMapType('hybrid')}
-            className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
               mapType === 'hybrid'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -996,7 +1031,7 @@ export default function FieldBoundaryMap({
           <button
             type="button"
             onClick={() => switchMapType('satellite')}
-            className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
               mapType === 'satellite'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -1007,7 +1042,7 @@ export default function FieldBoundaryMap({
           <button
             type="button"
             onClick={() => switchMapType('street')}
-            className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+            className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
               mapType === 'street'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -1108,23 +1143,23 @@ export default function FieldBoundaryMap({
 
       {/* ═══════ 2. BOTTOM FLOATING THUMB DOCK (CLEAN & NON-BLOCKING) ═══════ */}
       {interactive && !isWalkMode && (
-        <div className="absolute bottom-3 inset-x-3 z-20 flex items-center justify-between gap-1.5 pointer-events-none">
+        <div className="absolute bottom-2 inset-x-1.5 sm:inset-x-2 z-20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-1 pointer-events-none">
           {/* Left Controls: Pin Tool & Walk Mode */}
-          <div className="flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 pointer-events-auto">
+          <div className="flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 pointer-events-auto">
             <button
               type="button"
               onClick={startWalkMode}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-sky-600 to-teal-600 text-white shadow-sm transition-all active:scale-[0.97]"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-sky-600 to-teal-600 text-white shadow-sm transition-all active:scale-[0.97]"
               title={isTelugu ? 'నడక మోడ్' : 'Walk Field Boundary'}
             >
               <Footprints className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">{isTelugu ? 'వాక్ మోడ్' : 'Walk Mode'}</span>
+              <span className="hidden xs:inline">{isTelugu ? 'వాక్ మోడ్' : 'Walk'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsPinMode(!isPinMode)}
-              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black transition-all ${
                 isPinMode
                   ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-sm'
                   : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1137,7 +1172,7 @@ export default function FieldBoundaryMap({
             <button
               type="button"
               onClick={() => handleAutoGenerateBoundary(4)}
-              className="flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
               title="Auto 4-Corner Box"
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -1146,16 +1181,16 @@ export default function FieldBoundaryMap({
           </div>
 
           {/* Right Controls: Undo / Redo / Clear / Center */}
-          <div className="flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 pointer-events-auto">
+          <div className="flex items-center gap-0.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 pointer-events-auto">
             {/* ↩️ Undo Pin */}
             <button
               type="button"
               onClick={handleUndo}
               disabled={historyIndex <= 0}
-              className="p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all"
               title={isTelugu ? 'రద్దు చేయి (Undo)' : 'Undo last pin change'}
             >
-              <Undo2 className="w-4 h-4" />
+              <Undo2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             {/* ↪️ Redo Pin */}
@@ -1163,10 +1198,10 @@ export default function FieldBoundaryMap({
               type="button"
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
-              className="p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all"
               title={isTelugu ? 'మళ్ళీ చేయి (Redo)' : 'Redo pin change'}
             >
-              <Redo2 className="w-4 h-4" />
+              <Redo2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             {/* Clear Active Plot Pins */}
@@ -1174,10 +1209,10 @@ export default function FieldBoundaryMap({
               <button
                 type="button"
                 onClick={handleClearActivePlot}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-600 transition-colors"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-rose-600 transition-colors"
                 title={isTelugu ? 'ఈ మడి పిన్స్ తొలగించు' : 'Clear active plot'}
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
 
@@ -1185,10 +1220,10 @@ export default function FieldBoundaryMap({
             <button
               type="button"
               onClick={centerMap}
-              className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-600 transition-colors"
               title={isTelugu ? 'పొలం కేంద్రం' : 'Center on farm'}
             >
-              <Crosshair className="w-4 h-4" />
+              <Crosshair className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>

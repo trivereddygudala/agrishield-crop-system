@@ -6,6 +6,15 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 36
+* **User Input:**
+  > "issue with the map it is exceeds the screen limit and update this as the when the user or farmer tap the expand symbol it wants go to seperate page and make it neat, and give the backwaard button at the top left side to return to the field setup tab, make it neatly . and make it neatly in the near by fields and disease radar tab also"
+* **Machine Summary Solution:**
+  * Fixed mobile screen width overflow in `FieldBoundaryMap.jsx`, `FarmPage.jsx`, and `NearbyFieldsRadar.jsx` by adding `w-full max-w-full min-w-0 overflow-hidden`, making headers flex-wrap responsive, and adjusting floating overlays and bottom controls.
+  * Created dedicated full-screen page for Field Boundary Studio (`activeTab === 'boundary-studio'`) when tapping the expand icon or Studio banner, equipped with a prominent top-left backward button: `← Back to Field Setup` (`← పొలం సెటప్‌కు తిరిగి`).
+  * Created dedicated full-screen page for Disease Radar Studio (`activeTab === 'radar-studio'`) with top-left backward button: `← Back to Disease Radar` (`← వ్యాధి రాడార్‌కు తిరిగి`).
+  * Ensured zero horizontal overflow in `NearbyFieldsRadar.jsx` with responsive wrappers on alerts, radius pills, and neighboring farm cards.
+
 ### Chat Entry 35
 * **User Input:**
   > "make the login and logout animations neatly, user friendly with the nature and the scans in 4 seconds animation neatly i give the responsible to you when the user sees wow the what the amazing animation is wants to give the expression like that."
