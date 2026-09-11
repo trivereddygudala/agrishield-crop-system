@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v107) - General-Purpose Land & Field Area Calculator (No Crops/Registration) & React Portal Zero-Movement Map Studio
+- **Summary:** Delivered the requested redesign of the Field Area Calculator and resolved the root-cause CSS transform issue that caused upward movement when touching maps:
+  1. 📐 **Field Area Calculator Redesigned as a Pure General Land Measurement Tool (`FieldAreaCalculatorPage.jsx`):**
+     - **Removed All Crop Dependencies:** Completely eliminated the crop selector dropdown (`Tomato`, `Paddy`, `Cotton`, `Chili`, `Maize`, `Groundnut`) and the agronomic inputs estimator (`seeds needed`, `16L spray pumps`, `water liters`, `urea fertilizer`).
+     - **Removed Farm Registration Hooks:** Removed `useFarm()`, `saveFarmEdit`, and the active farm requirement. The tool is now 100% general-purpose for any farmer to measure any field, plot, or parcel of land without needing an existing account profile or farm registration.
+     - **Dynamic GPS Positioning:** Automatically centers the map on the farmer's real-world GPS coordinates on load using `navigator.geolocation.getCurrentPosition`.
+     - **Custom Plot Name:** Added a clean plot name input field (`Plot / Survey Name:`) with easy Telugu/English default (`భూమి సర్వే` / `Land Survey`).
+     - **Side-by-Side Border Segment Lengths:** Added a real-time border distance calculator showing the exact length in meters and feet for every side of the field (e.g., `Side 1 ➔ 2: 45m (148ft)`).
+     - **General Land Survey WhatsApp Report:** Cleaned the shareable survey report of all crop/spray mentions, providing a certified land measurement summary (Acres, Gunthas, Cents, Gajam, Sq. Ft, Sq. M, Ha, Bigha, Perimeter, Corner count, and Side lengths).
+  2. 🗺️ **Eliminated Upward Map Movement via React Portals & Body Scroll Locking (`FieldBoundaryMap.jsx` & `FarmPage.jsx`):**
+     - **Identified Root Cause:** The layout used `<motion.div animate={{ opacity: 1, y: 0, scale: 1 }}>` from Framer Motion. In standard CSS specification, any `transform` on an ancestor element breaks `position: fixed` on descendants, making them relative to the animated div inside the scrollable document. When users touched or dragged the map, mobile browser touch-panning caused the parent page to scroll, pushing the top header off the top edge of the screen.
+     - **React Portal Implementation:** Updated `FieldBoundaryMap` to render full-screen studio modes via `createPortal(mapContent, document.body)`. This attaches the studio directly to `document.body`, physically outside `motion.div` and completely immune to ancestor CSS transforms.
+     - **Body Scroll Locking:** When the studio or full-screen view is active, `document.body` is locked with `overflow: hidden; position: fixed; width: 100%; height: 100%; touch-action: none;`. This ensures that touching, pinching, or panning the map can never scroll the window or cause any upward jumping.
+- **Files modified**: `frontend/src/pages/FieldAreaCalculatorPage.jsx`, `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/pages/FarmPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v106) - Fix Full-Screen Map Studio Double Back Buttons, Overlapping Guidance Banner & Scroll Jump; Clean Redundant Tools from More Tab
 - **Summary:** Addressed two major mobile UX and design issues based on user screenshots and feedback:
   1. 🗺️ **Full-Screen Field Boundary Map Studio UX Overhaul (`FieldBoundaryMap.jsx` & `FarmPage.jsx`):**

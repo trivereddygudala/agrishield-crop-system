@@ -253,67 +253,63 @@ const FarmPage = () => {
   // ═══════ FULL-SCREEN GOOGLE MAPS STUDIO: FIELD BOUNDARY ═══════
   if (activeTab === 'boundary-studio') {
     return (
-      <div className="fixed inset-0 z-[9999] w-full h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none">
-        <FieldBoundaryMap
-          centerLat={effectiveLat}
-          centerLng={effectiveLng}
-          farmName={farmName || 'My Farm'}
-          cropName={cropName || 'Tomato'}
-          boundaryCoordinates={boundaryCoordinates}
-          onBoundaryChange={(newPins, formattedArea) => {
-            setBoundaryCoordinates(newPins);
-            if (formattedArea && formattedArea.rawAcres > 0) {
-              setFarmSize(formattedArea.acres);
-              if (activeFarm?.id) {
-                saveFarmEdit(activeFarm.id, {
-                  farm_size: parseFloat(formattedArea.acres),
-                  boundary_coordinates: newPins
-                }).catch(err => console.error('Failed to sync boundary:', err));
-              }
+      <FieldBoundaryMap
+        centerLat={effectiveLat}
+        centerLng={effectiveLng}
+        farmName={farmName || 'My Farm'}
+        cropName={cropName || 'Tomato'}
+        boundaryCoordinates={boundaryCoordinates}
+        onBoundaryChange={(newPins, formattedArea) => {
+          setBoundaryCoordinates(newPins);
+          if (formattedArea && formattedArea.rawAcres > 0) {
+            setFarmSize(formattedArea.acres);
+            if (activeFarm?.id) {
+              saveFarmEdit(activeFarm.id, {
+                farm_size: parseFloat(formattedArea.acres),
+                boundary_coordinates: newPins
+              }).catch(err => console.error('Failed to sync boundary:', err));
             }
-          }}
-          isTelugu={isTe}
-          interactive={true}
-          showRadarRings={false}
-          isDedicated={true}
-          onBack={() => setActiveTab('field-setup')}
-          backLabel={isTe ? '← వెనుకకు' : '← Back'}
-        />
-      </div>
+          }
+        }}
+        isTelugu={isTe}
+        interactive={true}
+        showRadarRings={false}
+        isDedicated={true}
+        onBack={() => setActiveTab('field-setup')}
+        backLabel={isTe ? '← వెనుకకు' : '← Back'}
+      />
     );
   }
 
   // ═══════ FULL-SCREEN GOOGLE MAPS STUDIO: DISEASE RADAR ═══════
   if (activeTab === 'radar-studio') {
     return (
-      <div className="fixed inset-0 z-[9999] w-full h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none">
-        <FieldBoundaryMap
-          centerLat={effectiveLat}
-          centerLng={effectiveLng}
-          farmName={farmName || 'My Farm'}
-          cropName={cropName || 'Tomato'}
-          boundaryCoordinates={boundaryCoordinates}
-          onBoundaryChange={(newPins, formattedArea) => {
-            setBoundaryCoordinates(newPins);
-            if (formattedArea && formattedArea.rawAcres > 0) {
-              setFarmSize(formattedArea.acres);
-              if (activeFarm?.id) {
-                saveFarmEdit(activeFarm.id, {
-                  farm_size: parseFloat(formattedArea.acres),
-                  boundary_coordinates: newPins
-                }).catch(err => console.error('Failed to sync boundary:', err));
-              }
+      <FieldBoundaryMap
+        centerLat={effectiveLat}
+        centerLng={effectiveLng}
+        farmName={farmName || 'My Farm'}
+        cropName={cropName || 'Tomato'}
+        boundaryCoordinates={boundaryCoordinates}
+        onBoundaryChange={(newPins, formattedArea) => {
+          setBoundaryCoordinates(newPins);
+          if (formattedArea && formattedArea.rawAcres > 0) {
+            setFarmSize(formattedArea.acres);
+            if (activeFarm?.id) {
+              saveFarmEdit(activeFarm.id, {
+                farm_size: parseFloat(formattedArea.acres),
+                boundary_coordinates: newPins
+              }).catch(err => console.error('Failed to sync boundary:', err));
             }
-          }}
-          showRadarRings={true}
-          radarRadius={5}
-          isTelugu={isTe}
-          interactive={true}
-          isDedicated={true}
-          onBack={() => setActiveTab('nearby-radar')}
-          backLabel={isTe ? '← వెనుకకు' : '← Back'}
-        />
-      </div>
+          }
+        }}
+        showRadarRings={true}
+        radarRadius={5}
+        isTelugu={isTe}
+        interactive={true}
+        isDedicated={true}
+        onBack={() => setActiveTab('nearby-radar')}
+        backLabel={isTe ? '← వెనుకకు' : '← Back'}
+      />
     );
   }
 

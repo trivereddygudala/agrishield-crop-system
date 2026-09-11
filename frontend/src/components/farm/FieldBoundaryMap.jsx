@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
@@ -100,7 +101,7 @@ export default function FieldBoundaryMap({
   centerLat = 15.5057,
   centerLng = 80.0499,
   farmName = 'My Farm',
-  cropName = 'Tomato',
+  cropName = '',
   boundaryCoordinates = [],
   onBoundaryChange,
   nearbyFarms = [],
@@ -552,7 +553,7 @@ export default function FieldBoundaryMap({
         <div style="font-family: inherit; padding: 4px; text-align: center;">
           <strong style="color: #047857; font-size: 13px;">🌾 ${farmName}</strong>
           <p style="margin: 3px 0 0 0; font-size: 11px; color: #475569; font-weight: bold;">
-            ${cropName} • ${area.acres} ${isTelugu ? 'ఎకరాలు' : 'Acres'}
+            ${cropName ? `${cropName} • ` : ''}${area.acres} ${isTelugu ? 'ఎకరాలు' : 'Acres'}
           </p>
         </div>
       `);
@@ -670,6 +671,31 @@ export default function FieldBoundaryMap({
 
   const isFullScreenView = isFullscreen || isDedicated;
 
+  // Lock body scroll when in fullscreen studio to completely eliminate background window scrolling and top-bar jump
+  useEffect(() => {
+    if (isFullScreenView && typeof document !== 'undefined') {
+      const originalOverflow = document.body.style.overflow;
+      const originalPosition = document.body.style.position;
+      const originalWidth = document.body.style.width;
+      const originalHeight = document.body.style.height;
+      const originalTouchAction = document.body.style.touchAction;
+
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.style.touchAction = 'none';
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.width = originalWidth;
+        document.body.style.height = originalHeight;
+        document.body.style.touchAction = originalTouchAction;
+      };
+    }
+  }, [isFullScreenView]);
+
   const handleBackNavigation = () => {
     if (onBack) {
       onBack();
@@ -678,11 +704,11 @@ export default function FieldBoundaryMap({
     }
   };
 
-  return (
+  const mapContent = (
     <div
       className={`relative w-full max-w-full min-w-0 flex flex-col ${
         isFullScreenView
-          ? 'fixed inset-0 z-[9999] w-full h-[100dvh] max-h-[100dvh] bg-slate-950 overflow-hidden overscroll-none touch-none select-none'
+          ? 'fixed inset-0 z-[99999] w-screen h-[100dvh] max-h-[100dvh] bg-slate-950 overflow-hidden overscroll-none touch-none select-none'
           : 'rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden'
       }`}
       style={{
@@ -952,4 +978,10 @@ export default function FieldBoundaryMap({
       </div>
     </div>
   );
+
+  if (isFullScreenView && typeof document !== 'undefined') {
+    return createPortal(mapContent, document.body);
+  }
+
+  return mapContent;
 }
