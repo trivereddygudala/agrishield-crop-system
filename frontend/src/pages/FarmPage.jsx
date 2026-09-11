@@ -10,10 +10,12 @@ import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
 import { Card, Button, Input, Select, Switch, Badge, Skeleton } from '../components/ui/index';
 import API from '../services/api';
-import { INDIA_STATES, getDistricts, getMandals, getVillages } from '../data/indiaLocations';
+import { INDIA_STATES, getDistricts, getMandals, getVillages, getCoordinatesForLocation } from '../data/indiaLocations';
 import { getSoilOptions, getLocalizedSoilName, SOIL_TYPES_DATABASE } from '../data/indiaSoilTypes';
 import { useTranslation } from 'react-i18next';
 import { translateCrop } from '../utils/diseaseAdvisoryData';
+import NearbyFieldsRadar from '../components/intelligence/NearbyFieldsRadar';
+import FieldBoundaryMap from '../components/farm/FieldBoundaryMap';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -37,6 +39,7 @@ const FarmPage = () => {
   const [farmSize, setFarmSize] = useState('');
   const [farmUnit, setFarmUnit] = useState('acres');
   const [fieldsCount, setFieldsCount] = useState(1);
+  const [boundaryCoordinates, setBoundaryCoordinates] = useState([]);
   const [state, setState] = useState('');
   const [district, setDistrict] = useState('');
   const [mandal, setMandal] = useState('');
@@ -86,16 +89,33 @@ const FarmPage = () => {
       setCropVariety(activeFarm.crop_variety || '');
       setGrowthStage(activeFarm.growth_stage || 'Vegetative');
       setPlantingDate(activeFarm.planting_date || '');
-      setState(activeFarm.state || '');
-      setDistrict(activeFarm.district || '');
+      const farmState = activeFarm.state || '';
+      const farmDist = activeFarm.district || '';
+      setState(farmState);
+      setDistrict(farmDist);
       setMandal(activeFarm.mandal || '');
       setVillage(activeFarm.village || '');
-      setLatitude(activeFarm.latitude !== undefined && activeFarm.latitude !== null ? activeFarm.latitude.toString() : '');
-      setLongitude(activeFarm.longitude !== undefined && activeFarm.longitude !== null ? activeFarm.longitude.toString() : '');
+
+      let initialLat = activeFarm.latitude !== undefined && activeFarm.latitude !== null ? activeFarm.latitude.toString() : '';
+      let initialLng = activeFarm.longitude !== undefined && activeFarm.longitude !== null ? activeFarm.longitude.toString() : '';
+
+      // If coordinates are missing or legacy default (16.5062, 80.6480) and district is not Vijayawada, map to actual district coords
+      const isLegacyDefault = initialLat && initialLng && Math.abs(parseFloat(initialLat) - 16.5062) < 0.001 && Math.abs(parseFloat(initialLng) - 80.6480) < 0.001;
+      if ((!initialLat || !initialLng || isLegacyDefault) && (farmDist || farmState)) {
+        if (farmDist !== 'NT R' && farmDist !== 'Krishna') {
+          const [dLat, dLng] = getCoordinatesForLocation(farmState, farmDist);
+          initialLat = dLat.toFixed(6);
+          initialLng = dLng.toFixed(6);
+        }
+      }
+
+      setLatitude(initialLat);
+      setLongitude(initialLng);
       setIrrigationMethod(activeFarm.irrigation_method || 'Manual');
       setWaterSource(activeFarm.water_source || 'Rain Water');
       setSoilType(activeFarm.soil_type || 'red_loamy');
       setDeviceId(activeFarm.device_id || '');
+      setBoundaryCoordinates(activeFarm.boundary_coordinates || []);
     }
   }, [activeFarm]);
 
@@ -111,26 +131,25 @@ const FarmPage = () => {
     fetchDevices();
   }, []);
 
+  // Compute dynamic farmer center coordinates: use manual/GPS coordinates if valid, else resolve from district/state
+  const [districtDefaultLat, districtDefaultLng] = getCoordinatesForLocation(state, district);
+  const effectiveLat = latitude && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : districtDefaultLat;
+  const effectiveLng = longitude && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : districtDefaultLng;
+
   const handleFetchGeolocation = () => {
     if (!navigator.geolocation) {
       setErrorMsg('Geolocation is not supported by your browser.');
       return;
     }
-
     setGeoLoading(true);
     setErrorMsg('');
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const lat = position.coords.latitude.toFixed(4);
-        const lon = position.coords.longitude.toFixed(4);
-        setLatitude(lat);
-        setLongitude(lon);
+        setLatitude(position.coords.latitude.toFixed(6));
+        setLongitude(position.coords.longitude.toFixed(6));
         setGeoLoading(false);
-        setToastMsg(`Live coordinates detected: ${lat}°N, ${lon}°E`);
       },
       (err) => {
-        console.warn(err);
         setGeoLoading(false);
         setErrorMsg('Unable to retrieve location. Please grant location permission.');
       },
@@ -158,12 +177,13 @@ const FarmPage = () => {
         district: district || 'Anantapur',
         mandal: mandal || '',
         village: village || 'Sector 1',
-        latitude: latitude ? parseFloat(latitude) : 16.5062,
-        longitude: longitude ? parseFloat(longitude) : 80.6480,
+        latitude: effectiveLat,
+        longitude: effectiveLng,
         irrigation_method: irrigationMethod || 'Manual',
         water_source: waterSource || 'Rain Water',
         soil_type: soilType || 'red_loamy',
-        device_id: deviceId || ''
+        device_id: deviceId || '',
+        boundary_coordinates: boundaryCoordinates && boundaryCoordinates.length >= 3 ? boundaryCoordinates : undefined
       };
 
       if (activeFarm && activeFarm.id) {
@@ -193,7 +213,13 @@ const FarmPage = () => {
     { 
       id: 'field-setup', 
       title: isTe ? 'పొలం సెటప్ & లొకేషన్' : 'Field Setup & Location', 
-      subtitle: isTe ? 'ఎకరాలు, గ్రామం, నేల రకం, GPS' : 'Acreage, village, soil type, GPS',
+      subtitle: isTe ? 'ఎకరాలు, సరిహద్దు పిన్స్, నేల రకం, GPS' : 'Acreage, boundary pins, soil type, GPS',
+      action: 'inline'
+    },
+    { 
+      id: 'nearby-radar', 
+      title: isTe ? 'సమీప పొలాలు & వ్యాధి నిఘా రాడార్' : 'Nearby Fields & Disease Radar', 
+      subtitle: isTe ? 'సమీప రైతులు, పంటలు, దూరం & క్రియాశీల వ్యాధి హెచ్చరికలు' : 'Nearby farmers, crops, distance & active disease alerts',
       action: 'inline'
     },
     { 
@@ -538,7 +564,17 @@ const FarmPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('farm_page.info.state', 'State / UT')} <span className="text-rose-500">*</span></label>
-                    <select value={state} onChange={(e) => { setState(e.target.value); setDistrict(''); setMandal(''); }}
+                    <select value={state} onChange={(e) => {
+                      const newState = e.target.value;
+                      setState(newState);
+                      setDistrict('');
+                      setMandal('');
+                      if (newState) {
+                        const [sLat, sLng] = getCoordinatesForLocation(newState, '');
+                        setLatitude(sLat.toFixed(6));
+                        setLongitude(sLng.toFixed(6));
+                      }
+                    }}
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all" required>
                       <option value="">{t('farm_page.info.select_state', '-- Select State / UT --')}</option>
                       {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -546,7 +582,16 @@ const FarmPage = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">{t('farm_page.info.district', 'District')} <span className="text-rose-500">*</span></label>
-                    <select value={district} onChange={(e) => { setDistrict(e.target.value); setMandal(''); }}
+                    <select value={district} onChange={(e) => {
+                      const newDist = e.target.value;
+                      setDistrict(newDist);
+                      setMandal('');
+                      if (newDist) {
+                        const [dLat, dLng] = getCoordinatesForLocation(state, newDist);
+                        setLatitude(dLat.toFixed(6));
+                        setLongitude(dLng.toFixed(6));
+                      }
+                    }}
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-50" disabled={!state} required>
                       <option value="">{state ? t('farm_page.info.select_district', '-- Select District --') : t('farm_page.info.select_state_first', '-- Select State first --')}</option>
                       {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
@@ -610,6 +655,37 @@ const FarmPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <Input label={t('farm_page.info.latitude', 'Latitude (°N)')} placeholder="e.g. 16.5062" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
                   <Input label={t('farm_page.info.longitude', 'Longitude (°E)')} placeholder="e.g. 80.6480" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
+                </div>
+
+                {/* Boundary Pins & Satellite Map */}
+                <div className="pt-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                      {isTe ? 'పొలం సరిహద్దు పిన్స్ & ఉపగ్రహ వీక్షణ' : 'Field Boundary Corner Pins & Satellite View'}
+                    </p>
+                    <span className="text-[10px] text-slate-400 font-semibold">
+                      {isTe ? 'పిన్స్ లాగి సరిహద్దు సర్దుబాటు చేయండి' : 'Drag pins A, B, C, D to fit plot'}
+                    </span>
+                  </div>
+
+                  <FieldBoundaryMap
+                    centerLat={effectiveLat}
+                    centerLng={effectiveLng}
+                    farmName={farmName || 'My Farm'}
+                    cropName={cropName || 'Tomato'}
+                    boundaryCoordinates={boundaryCoordinates}
+                    onBoundaryChange={(newPins, formattedArea) => {
+                      setBoundaryCoordinates(newPins);
+                      if (formattedArea && formattedArea.rawAcres > 0) {
+                        setFarmSize(formattedArea.acres);
+                      }
+                    }}
+                    isTelugu={isTe}
+                    interactive={true}
+                    showRadarRings={false}
+                    height="320px"
+                  />
                 </div>
               </div>
 
@@ -689,6 +765,42 @@ const FarmPage = () => {
               </Button>
             </div>
           </form>
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Nearby Fields & Disease Radar ═══════ */}
+      {activeTab === 'nearby-radar' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <button type="button" onClick={() => setActiveTab('modules')}
+            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1 cursor-pointer">
+            <ChevronRight className="w-4 h-4 rotate-180" />
+            {isTe ? '← ఫీల్డ్‌కు తిరిగి' : '← Back to Field'}
+          </button>
+
+          <NearbyFieldsRadar
+            farmId={activeFarm?.id || 'current'}
+            farmName={activeFarm?.farm_name || farmName || 'My Farm'}
+            cropName={activeFarm?.crop_name || cropName || 'Tomato'}
+            centerLat={effectiveLat}
+            centerLng={effectiveLng}
+            boundaryCoordinates={boundaryCoordinates}
+            onBoundaryUpdate={async (newPins, formattedArea) => {
+              setBoundaryCoordinates(newPins);
+              if (formattedArea && formattedArea.rawAcres > 0) {
+                setFarmSize(formattedArea.acres);
+                if (activeFarm?.id) {
+                  try {
+                    await saveFarmEdit(activeFarm.id, {
+                      farm_size: parseFloat(formattedArea.acres),
+                      boundary_coordinates: newPins
+                    });
+                  } catch (err) {
+                    console.error('Failed to sync boundary coordinates:', err);
+                  }
+                }
+              }
+            }}
+          />
         </motion.div>
       )}
 

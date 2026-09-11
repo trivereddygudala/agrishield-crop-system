@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, List, Any
 from datetime import datetime
 
 class FarmProfileBase(BaseModel):
@@ -18,9 +18,10 @@ class FarmProfileBase(BaseModel):
     district: Optional[str] = Field(default="Anantapur", max_length=100)
     mandal: Optional[str] = Field(default=None, max_length=100, description="Mandal / Taluka / Block")
     village: Optional[str] = Field(default="Sector 1", max_length=100)
-    latitude: Optional[float] = Field(default=16.5062, ge=-90.0, le=90.0)
-    longitude: Optional[float] = Field(default=80.6480, ge=-180.0, le=180.0)
+    latitude: Optional[float] = Field(default=14.6819, ge=-90.0, le=90.0)
+    longitude: Optional[float] = Field(default=77.6006, ge=-180.0, le=180.0)
     device_id: Optional[str] = Field(default=None, max_length=100)
+    boundary_coordinates: Optional[List[Any]] = Field(default=None, description="Array of [lat, lng] boundary pin coordinates")
     is_archived: bool = Field(default=False, description="Soft delete flag")
 
 class FarmProfileCreate(FarmProfileBase):
@@ -44,6 +45,7 @@ class FarmProfileUpdate(BaseModel):
     village: Optional[str] = Field(None, min_length=1, max_length=100)
     latitude: Optional[float] = Field(None, ge=-90.0, le=90.0)
     longitude: Optional[float] = Field(None, ge=-180.0, le=180.0)
+    boundary_coordinates: Optional[List[Any]] = Field(None, description="Array of [lat, lng] boundary pin coordinates")
     device_id: Optional[str] = Field(None, max_length=100)
 
 class FarmProfileResponse(FarmProfileBase):

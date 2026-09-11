@@ -2,6 +2,40 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v93) - Dynamic Farmer Location Anchoring & Complete Purge of Mock Test Data
+- **Summary:** Resolved user-reported issue where fake test markers ("M. Sambasiva Rao", mock infections) appeared on the field map and radar, and anchored all satellite mapping dynamically to the farmer's actual location:
+  1. 🧹 **100% Mock Test Data Purge:**
+     - Removed all hardcoded dummy neighbor records (`seed_neighbors = [...]`) from `backend/app/routers/farm_profiles.py`.
+     - Removed mock fallback data from `NearbyFieldsRadar.jsx`.
+     - The radar and field boundary map now strictly display authentic database records from MongoDB. If there are no active outbreaks near the farmer, it displays an authentic "Safe Perimeter — No Nearby Outbreaks" status with zero artificial red warning markers.
+  2. 📍 **Dynamic Farmer Location Anchoring (`indiaLocations.js`, `FarmPage.jsx`, `FieldBoundaryMap.jsx`):**
+     - Built comprehensive `DISTRICT_COORDINATES` lookup table covering Indian states and agricultural districts (Anantapur, Kurnool, Guntur, Warangal, Hyderabad, etc.).
+     - Added dynamic `getCoordinatesForLocation(state, district)` resolver.
+     - In `FarmPage.jsx`, selecting a State or District immediately updates `latitude` and `longitude` and re-centers the map directly on the farmer's district/village.
+     - Live device GPS button captures exact GPS coordinates from the farmer's device and centers the field map on their plot.
+     - Added reactive `useEffect` in `FieldBoundaryMap.jsx` to smoothly pan and zoom (`map.setView`) to the farmer's coordinates whenever they change.
+     - Updated `/nearby-radar` endpoint in backend to accept dynamic `lat` and `lng` query parameters so proximity scanning anchors to the farmer's actual coordinates.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/components/intelligence/NearbyFieldsRadar.jsx`, `frontend/src/pages/FarmPage.jsx`, `frontend/src/data/indiaLocations.js`, `backend/app/routers/farm_profiles.py`, `backend/app/models/farm_profile.py`, `chats_by_user.md`, `changes_happening.md`
+
+## 2026-09-11 (v92) - Step 2: Interactive Field Boundary Pin Mapping & Nearby Disease Radar
+- **Summary:** Completed full implementation of Step 2 requested by the user:
+  1. 🗺️ **Dual-Mode Interactive Field Boundary Map (`FieldBoundaryMap.jsx`):**
+     - Supports **Satellite View** (Esri World Imagery) and **Street/Terrain View** (OpenStreetMap) without requiring paid API keys.
+     - Interactive corner pin placement (Pins A, B, C, D) with drag-to-fit boundary adjustments.
+     - Live **Geodesic Acreage & Hectare Calculator** (spherical polygon formula) dynamically updating and syncing with `farm_size`.
+     - 1-tap "Auto Boundary" box generator around GPS coordinates and "Reset Pins" tool.
+     - Embedded inside "Field Setup & Location" in `FarmPage.jsx`.
+  2. 📡 **Dedicated "Nearby Fields & Disease Radar" Module (`NearbyFieldsRadar.jsx`):**
+     - Added new 5th module card into `FIELD_MODULES` on `FarmPage.jsx` ("Nearby Fields & Disease Radar" / "సమీప పొలాలు & వ్యాధి రాడార్").
+     - 1 km, 3 km, 5 km proximity surveillance rings around the farm centroid.
+     - Real-time Haversine distance and bearing calculation (`backend/app/routers/farm_profiles.py`).
+     - Live outbreak detection banner (e.g. "⚠️ Warning: Fungal Pathogens Reported Nearby") with airborne spore spread warnings and preventive spraying directives (Mancozeb / Trichoderma).
+     - Filterable feed displaying neighboring farmers, plots, crop varieties, distance in km, and disease status badges.
+  3. 💾 **Backend & Database Model Integration (`farm_profile.py`, `farm_profiles.py`):**
+     - Added `boundary_coordinates` to `FarmProfileBase` and `FarmProfileUpdate` models.
+     - Added `GET /api/farms/{farm_id}/nearby-radar` endpoint computing distances, bearings, and epidemic risks.
+- **Files modified**: `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/components/intelligence/NearbyFieldsRadar.jsx`, `frontend/src/pages/FarmPage.jsx`, `backend/app/models/farm_profile.py`, `backend/app/routers/farm_profiles.py`, `chats_by_user.md`, `changes_happening.md`
+
 ## 2026-09-11 (v91) - Backward Navigation & Bottom Nav Field Routing Fix
 - **Summary:** Resolved two navigation issues reported by user:
   1. 🔙 **Backward Navigation Buttons:** Added clean, prominent `← Back to Field` (`← పొలం పేజీకి తిరిగి వెళ్ళు`) navigation buttons at the top of:

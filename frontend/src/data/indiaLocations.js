@@ -233,3 +233,76 @@ export const getVillages = (stateName, districtName, mandalName) => {
   return VILLAGE_DATA[mandalName] ? [...VILLAGE_DATA[mandalName]].sort() : [];
 };
 
+export const DISTRICT_COORDINATES = {
+  // Andhra Pradesh
+  "Anantapur": [14.6819, 77.6006],
+  "Chittoor": [13.2172, 79.1003],
+  "East Godavari": [16.9891, 82.2475],
+  "Guntur": [16.3067, 80.4365],
+  "Krishna": [16.1809, 81.1303],
+  "Kurnool": [15.8281, 78.0373],
+  "Prakasam": [15.5057, 80.0499],
+  "Srikakulam": [18.2969, 83.8968],
+  "Visakhapatnam": [17.6868, 83.2185],
+  "Vizianagaram": [18.1067, 83.3956],
+  "West Godavari": [16.7107, 81.0952],
+  "YSR Kadapa": [14.4674, 78.8241],
+  "Nellore": [14.4426, 79.9865],
+  "Tirupati": [13.6288, 79.4192],
+  "Nandyal": [15.4776, 78.4836],
+  "Bapatla": [15.9042, 80.4672],
+  "Palnadu": [16.2348, 80.0441],
+  "Konaseema": [16.5787, 82.0061],
+  "Eluru": [16.7107, 81.0952],
+  "Kakinada": [16.9891, 82.2475],
+  "Anakapalli": [17.6913, 83.0039],
+  "Alluri Sitharama Raju": [18.3273, 82.8808],
+  "Sri Sathya Sai": [14.1670, 77.8114],
+  "NT R": [16.5062, 80.6480],
+  // Telangana
+  "Hyderabad": [17.3850, 78.4867],
+  "Warangal": [17.9689, 79.5941],
+  "Hanamkonda": [17.9689, 79.5941],
+  "Karimnagar": [18.4386, 79.1288],
+  "Khammam": [17.2473, 80.1514],
+  "Nalgonda": [17.0575, 79.2684],
+  "Nizamabad": [18.6725, 78.0941],
+  "Mahbubnagar": [16.7488, 77.9942],
+  "Adilabad": [19.6641, 78.5320],
+  "Medak": [18.0458, 78.2612],
+  "Rangareddy": [17.2543, 78.4312],
+  "Sangareddy": [17.6190, 78.0814],
+  "Siddipet": [18.1018, 78.8520],
+  "Suryapet": [17.1439, 79.6239],
+  "Jagtial": [18.7964, 78.9137],
+  "Jangaon": [17.7254, 79.1674],
+  "Mancherial": [18.8679, 79.4639],
+  "Peddapalli": [18.6163, 79.3807],
+  // States Centroids
+  "Andhra Pradesh": [15.9129, 79.7400],
+  "Telangana": [17.8749, 78.1808],
+  "Punjab": [30.9010, 75.8573],
+  "Haryana": [29.0588, 76.0856],
+  "Uttar Pradesh": [26.8467, 80.9462],
+  "Maharashtra": [19.7515, 75.7139],
+  "Madhya Pradesh": [22.9734, 78.6569],
+  "Karnataka": [15.3173, 75.7139],
+  "Tamil Nadu": [11.1271, 78.6569],
+  "Gujarat": [22.2587, 71.1924],
+  "Rajasthan": [27.0238, 74.2179],
+  "West Bengal": [22.9868, 87.8550],
+  "Bihar": [25.0961, 85.3131],
+  "Odisha": [20.9517, 85.0985],
+  "Assam": [26.2006, 92.9376]
+};
+
+export function getCoordinatesForLocation(state, district) {
+  if (district && DISTRICT_COORDINATES[district]) {
+    return DISTRICT_COORDINATES[district];
+  }
+  if (state && DISTRICT_COORDINATES[state]) {
+    return DISTRICT_COORDINATES[state];
+  }
+  return [14.6819, 77.6006]; // Default to Indian agricultural district (Anantapur)
+}
+
