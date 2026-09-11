@@ -125,6 +125,39 @@ export default function AdminPage() {
   const [supportSearchTerm, setSupportSearchTerm] = useState('');
   const [updatingTicketId, setUpdatingTicketId] = useState(null);
   const [ticketResolutionInputs, setTicketResolutionInputs] = useState({});
+  const [supportConfig, setSupportConfig] = useState({
+    whatsapp_number: '+91 98765 43210',
+    support_phone: '1800-180-1551',
+    support_hours: '24x7 Emergency Assistance',
+    auto_reply_enabled: true
+  });
+  const [savingSupportConfig, setSavingSupportConfig] = useState(false);
+
+  const fetchSupportConfig = async () => {
+    try {
+      const res = await API.get('/api/support/config');
+      if (res.data && res.data.whatsapp_number) {
+        setSupportConfig(res.data);
+      }
+    } catch (e) {
+      console.warn('Could not fetch support config:', e);
+    }
+  };
+
+  const handleSaveSupportConfig = async (e) => {
+    if (e) e.preventDefault();
+    setSavingSupportConfig(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      await API.put('/api/support/admin/config', supportConfig);
+      setSuccessMsg('Helpdesk contact & WhatsApp settings saved! All farmer app buttons updated in real-time.');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update helpdesk configuration.');
+    } finally {
+      setSavingSupportConfig(false);
+    }
+  };
 
   const fetchSupportTickets = async () => {
     setSupportLoading(true);
@@ -444,6 +477,7 @@ export default function AdminPage() {
     fetchFirmwareData();
     fetchIoTIngestionStatus();
     fetchSupportTickets();
+    fetchSupportConfig();
     
     const iotInterval = setInterval(fetchIotNodes, 10000);
     const auditInterval = setInterval(fetchAuditLogs, 15000);
@@ -2115,6 +2149,112 @@ export default function AdminPage() {
                 </p>
               </div>
             </button>
+          </div>
+
+          {/* Helpdesk WhatsApp & Hotline Settings Card */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-[#25D366]/15 text-[#25D366]">
+                  <MessageCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span>Helpdesk WhatsApp & Hotline Settings</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                      Live Dynamic Config
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Set your real WhatsApp number and hotline phone. When farmers tap "Chat on WhatsApp" or "Call Helpdesk", they will be connected directly to these numbers.
+                  </p>
+                </div>
+              </div>
+
+              {supportConfig.whatsapp_number && (
+                <a
+                  href={`https://wa.me/${(supportConfig.whatsapp_number || '').replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#25D366] font-extrabold text-xs transition-all self-start sm:self-auto cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Test WhatsApp Link ↗</span>
+                </a>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveSupportConfig} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* WhatsApp Support Number */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <span>Your WhatsApp Phone Number</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-bold">💬</span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. +91 98765 43210 or 9876543210"
+                    value={supportConfig.whatsapp_number}
+                    onChange={(e) => setSupportConfig({ ...supportConfig, whatsapp_number: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">Include country code (e.g. +91). Cleaned automatically for wa.me.</p>
+              </div>
+
+              {/* Calling Hotline */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <span>Support Hotline Phone</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-bold">📞</span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 1800-180-1551 or mobile"
+                    value={supportConfig.support_phone}
+                    onChange={(e) => setSupportConfig({ ...supportConfig, support_phone: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">Displayed on the farmer emergency helpline banner.</p>
+              </div>
+
+              {/* Operating Hours */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Support Operating Hours
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-bold">⏰</span>
+                  <input
+                    type="text"
+                    placeholder="e.g. 24x7 Emergency Assistance"
+                    value={supportConfig.support_hours}
+                    onChange={(e) => setSupportConfig({ ...supportConfig, support_hours: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">Shown to farmers on the support overview.</p>
+              </div>
+
+              {/* Submit Button */}
+              <div className="sm:col-span-2 lg:col-span-3 flex items-center justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={savingSupportConfig}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  <CheckCircle className={`w-4 h-4 ${savingSupportConfig ? 'animate-spin' : ''}`} />
+                  <span>{savingSupportConfig ? 'Saving Settings...' : 'Save WhatsApp & Contact Settings'}</span>
+                </button>
+              </div>
+            </form>
           </div>
 
           {/* Filters and Search Bar */}

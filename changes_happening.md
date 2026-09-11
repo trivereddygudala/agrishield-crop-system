@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-11 (v113) - Live Dynamic Helpdesk WhatsApp & Hotline Configuration in Admin Dashboard
+- **Summary:** Built dynamic, database-backed support contact settings enabling administrators to set and update their real WhatsApp number, hotline phone, and operating hours directly from the Admin Hub without touching any code:
+  1. 🛠️ **Backend Support Config Endpoints (`backend/app/routers/support.py`):**
+     - Added `GET /api/support/config`: Public/authenticated endpoint returning active WhatsApp number, calling hotline, and operating hours.
+     - Added `PUT /api/support/admin/config`: Admin-guarded endpoint storing contact settings into MongoDB `crop_disease_db.platform_settings` collection under `_id: "support_config"`.
+  2. 📱 **Dynamic Farmer WhatsApp Redirection (`frontend/src/pages/HelpSupportPage.jsx`):**
+     - Hooked `supportConfig` to automatically fetch live contact details on mount.
+     - Formatted WhatsApp URL to dynamically target `https://api.whatsapp.com/send?phone=${cleanNumber}&text=${encodedDiagnostics}`.
+     - Displayed active WhatsApp phone badge directly on the farmer support card.
+  3. 🛡️ **Admin Configuration Card in Admin Hub (`frontend/src/pages/AdminPage.jsx`):**
+     - Added **Helpdesk WhatsApp & Hotline Settings** card with input fields for WhatsApp Phone Number, Support Calling Hotline, and Operating Hours.
+     - Included 1-click **Test WhatsApp Link** (`wa.me`) to instantly verify chat connectivity.
+     - Linked "Save WhatsApp & Contact Settings" button with loading spinner and instant confirmation toast.
+- **Files modified**: `backend/app/routers/support.py`, `frontend/src/pages/HelpSupportPage.jsx`, `frontend/src/pages/AdminPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-11 (v112) - Complete Farmer Support Team & Helpdesk Management System (Backend, Farmer UI & Admin Helpdesk)
 - **Summary:** Built an end-to-end, multi-channel customer support system enabling farmers to easily contact helpdesk staff and empowering admins to manage tickets, phone callbacks, and WhatsApp consultations:
   1. 🛠️ **Backend Support & Callback Engine (`backend/app/routers/support.py` & `main.py`):**

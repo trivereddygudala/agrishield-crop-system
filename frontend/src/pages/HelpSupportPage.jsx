@@ -65,6 +65,27 @@ export default function HelpSupportPage() {
   // FAQ Accordion State
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
+  // Support Dynamic Config from Admin
+  const [supportConfig, setSupportConfig] = useState({
+    whatsapp_number: '+91 98765 43210',
+    support_phone: '1800-180-1551',
+    support_hours: '24x7 Emergency Assistance'
+  });
+
+  useEffect(() => {
+    const fetchSupportConfig = async () => {
+      try {
+        const res = await API.get('/api/support/config');
+        if (res.data && res.data.whatsapp_number) {
+          setSupportConfig(res.data);
+        }
+      } catch (e) {
+        console.warn('Could not fetch support config:', e);
+      }
+    };
+    fetchSupportConfig();
+  }, []);
+
   // Auto-fetch tickets when tab changes
   useEffect(() => {
     if (activeSection === 'my-tickets') {
@@ -108,8 +129,15 @@ export default function HelpSupportPage() {
         `💬 *Problem Summary:*\n` +
         `Hello AgriShield Support Team, I need technical/agronomic support regarding my farm setup.`;
 
-    // AgriShield Official Support WhatsApp Desk
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    // AgriShield Official Support WhatsApp Desk (Dynamic Admin configured)
+    const rawNumber = supportConfig.whatsapp_number || '';
+    const cleanDigits = rawNumber.replace(/[^0-9]/g, '');
+    const phoneWithCode = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
+    const waUrl = phoneWithCode
+      ? `https://api.whatsapp.com/send?phone=${phoneWithCode}&text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+    window.open(waUrl, '_blank');
   };
 
   // Submit 15-Minute Callback Request
@@ -361,6 +389,9 @@ export default function HelpSupportPage() {
                     ? 'మీ సమస్య వివరాలతో ఆటో-ఫిల్ అయిన వాట్సాప్ మెసేజ్ ద్వారా మా సపోర్ట్ ఆఫీసర్‌తో నేరుగా చాట్ చేయండి.'
                     : 'Chat directly with an AgriShield agronomist on WhatsApp with pre-filled farm diagnostics.'}
                 </p>
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
+                  <span>📱 WA: {supportConfig.whatsapp_number}</span>
+                </div>
               </div>
 
               <button

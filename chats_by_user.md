@@ -6,6 +6,25 @@
 
 ## Session Date: 2026-09-11
 
+### Chat Entry 50
+* **User Input:**
+  > "iam admin and how i put the real whatsapp number tell me" -> [User chose Option 2: Live Admin Dashboard Input]
+* **Machine Summary Solution:**
+  * Created dynamic, database-backed support contact settings so the admin can set and update their real WhatsApp number, calling hotline, and support hours directly from the Admin Hub without touching any code:
+    1. **Backend Endpoints (`backend/app/routers/support.py`):**
+       - Implemented `GET /api/support/config` to fetch active contact details.
+       - Implemented `PUT /api/support/admin/config` (admin-guarded) to save WhatsApp number, hotline, and operating hours in MongoDB `platform_settings` collection (`_id: "support_config"`).
+    2. **Farmer WhatsApp Connection (`frontend/src/pages/HelpSupportPage.jsx`):**
+       - Automatically loads the configured WhatsApp number from backend.
+       - Formats and sanitizes the phone digits with country code (`91...`), ensuring clicking "Chat on WhatsApp" opens a chat directly with the admin's personal or business WhatsApp number.
+       - Displays the configured WhatsApp number badge on the support card.
+    3. **Admin Dashboard Input Card (`frontend/src/pages/AdminPage.jsx`):**
+       - Added **Helpdesk WhatsApp & Hotline Settings** section in the Support tab.
+       - Added input fields for WhatsApp Phone Number, Support Calling Hotline, and Support Hours.
+       - Added instant **Test WhatsApp Link** (`wa.me`) to test chat connectivity.
+       - Added "Save WhatsApp & Contact Settings" button with loading state and success toast.
+  * Verified build: `npm run build` compiled 3140 modules successfully with 0 errors in 19.41s.
+
 ### Chat Entry 49
 * **User Input:**
   > (User voice audio): "How I create the support team like the support when the farmer having issue how to contact the support team. How I build can you suggest me?" -> [User approved implementation plan]

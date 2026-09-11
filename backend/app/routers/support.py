@@ -259,3 +259,58 @@ async def update_ticket_status(
         "message": "Ticket updated successfully",
         "ticket": format_ticket_doc(res)
     }
+
+# ─────────────────────────────────────────────────────────────
+# Helpdesk Contact & WhatsApp Dynamic Configuration
+# ─────────────────────────────────────────────────────────────
+class SupportConfigModel(BaseModel):
+    whatsapp_number: Optional[str] = "+91 98765 43210"
+    support_phone: Optional[str] = "1800-180-1551"
+    support_hours: Optional[str] = "24x7 Emergency Assistance"
+    auto_reply_enabled: Optional[bool] = True
+
+@router.get("/config")
+async def get_support_config(db = Depends(get_database)):
+    """Public/Farmer endpoint to retrieve active helpdesk WhatsApp & phone contact details."""
+    config_doc = await db.platform_settings.find_one({"_id": "support_config"})
+    if not config_doc:
+        return {
+            "whatsapp_number": "+91 98765 43210",
+            "support_phone": "1800-180-1551",
+            "support_hours": "24x7 Emergency Assistance",
+            "auto_reply_enabled": True
+        }
+    return {
+        "whatsapp_number": config_doc.get("whatsapp_number", "+91 98765 43210"),
+        "support_phone": config_doc.get("support_phone", "1800-180-1551"),
+        "support_hours": config_doc.get("support_hours", "24x7 Emergency Assistance"),
+        "auto_reply_enabled": config_doc.get("auto_reply_enabled", True)
+    }
+
+@router.put("/admin/config", dependencies=[Depends(require_role("admin"))])
+async def update_support_config(
+    payload: SupportConfigModel,
+    db = Depends(get_database),
+    current_user: dict = Depends(get_current_user)
+):
+    """Admin endpoint to update helpdesk WhatsApp phone number, hotline, and support hours."""
+    await db.platform_settings.update_one(
+        {"_id": "support_config"},
+        {
+            "$set": {
+                "whatsapp_number": payload.whatsapp_number,
+                "support_phone": payload.support_phone,
+                "support_hours": payload.support_hours,
+                "auto_reply_enabled": payload.auto_reply_enabled,
+                "updated_at": datetime.now(timezone.utc),
+                "updated_by": current_user.get("email")
+            }
+        },
+        upsert=True
+    )
+    return {
+        "success": True,
+        "message": "Helpdesk configuration saved successfully!",
+        "config": payload.dict()
+    }
+
