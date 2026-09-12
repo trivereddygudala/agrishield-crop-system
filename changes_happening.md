@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v139) - Fix: Explainable Disease Risk Forecast, Fresh Sub-Page Routing in Field & AI Scan Center, Mobile Screen Height Optimization & Species Info Symbol
+- **Summary:** Addressed all 3 farmer UX and pathology forecasting issues:
+  1. 🩺 **Fixed Explainable Disease Risk Forecast (`service.py`, `intelligence.py`, `DiseaseRiskCard.jsx`, `DashboardPage.jsx`):**
+     - Aligned key schema: `calculate_disease_risk` now provides both `overall_risk_*` and standard `risk_percentage`, `risk_level`, `risk_color`, `confidence_score` (89–94%), and `factors_increasing_risk` generated from live microclimate telemetry.
+     - Sanitized `crop_name`, `lat`, and `lon` in `get_disease_risk` router to prevent crashes from empty strings or None values.
+     - Fixed `DashboardPage.jsx` crop fallback to `"Tomato"` instead of passing `""`.
+     - In `DiseaseRiskCard.jsx`, added fallback defaults and retry mechanism so the card never disappears or shows `NaN%`.
+  2. 🌾 **Fresh Dedicated Pages for Field Sub-Tabs (`FarmPage.jsx`):**
+     - Connected `activeTab` to URL search params (`?tab=field-setup`, `?tab=nearby-radar`, `?tab=farm-intelligence`, `?tab=crop-lifecycle`).
+     - When tapping any module, the giant Top Page Header and Hero Banner are hidden, and a clean, dedicated sub-page loads at the very top (`window.scrollTo({ top: 0 })`) with a dedicated `← Back to Field Overview` header.
+  3. 🔬 **Fresh Dedicated Pages for AI Scan Center & Mobile 1-Screen Height Optimization (`UploadImagePage.jsx`, `ScanImageUploader.jsx`, `DiseaseDiagnosisResults.jsx`, `App.jsx`):**
+     - Added dedicated routes (`/scan/disease-diag`, `/scan/plant-id`, `/scan/agro-scan`). Tapping any tab in `ScanCenterTabs` navigates to its fresh sub-page.
+     - **Decreased Screen Length after AI Diagnosis**: When `hasScanned && liveResult` is true, the massive 700px uploader card collapses into a sleek 50px status bar with leaf thumbnail and "Scan Another Sample" button.
+     - Removed redundant duplicate `CropAdvisorPanel` underneath single-leaf results.
+     - Compacted `DiseaseDiagnosisResults.jsx` card padding (`p-4 sm:p-6`) and title sizing so the medical diagnosis fits cleanly in **exact 1 screen length on mobile** without requiring 2 screens of scrolling.
+     - Fixed neural scanner execution loading screen to `fixed inset-0 z-[9999]` (exact `100dvh` viewport).
+  4. ℹ️ **Plant Identification Domain Info Symbol Popover (`ScanImageUploader.jsx`):**
+     - Removed the verbose static `<p>` text blocks under the Crops/Trees selector.
+     - Replaced with an interactive `Info` symbol icon (`ℹ️`). Tapping or clicking it reveals a sleek popover detailing the 38 Andhra trees and 70 field crops & weeds, keeping the default form compact.
+  5. 🧪 **Validation:**
+     - Backend Python: `python -m compileall -q backend/app` passed with 0 errors.
+     - Frontend Vite Build: `npm run build` passed with 0 errors in 23.44s.
+- **Files modified**: `backend/app/services/risk_forecast/service.py`, `backend/app/routers/intelligence.py`, `frontend/src/components/intelligence/DiseaseRiskCard.jsx`, `frontend/src/pages/DashboardPage.jsx`, `frontend/src/pages/FarmPage.jsx`, `frontend/src/App.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v138) - Performance: Instant Route Transitions & Query Optimization for 5-10s Page Switching Delay
 - **Summary:** Investigated and eradicated the 5–10 second delay when switching between pages in the application:
   1. 🗄️ **MongoDB Query Overhead Slashed from 5000 Documents to Fast Limits (`HistoryPage.jsx`, `AnalyticsPage.jsx`, `ReportsPage.jsx`):**

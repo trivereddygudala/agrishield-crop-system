@@ -199,7 +199,7 @@ const DashboardPage = () => {
   };
 
   const farmId = activeFarm?.farm_id || activeFarm?.id;
-  const cropName = activeFarm?.crop_name || "";
+  const cropName = activeFarm?.crop_name || "Tomato";
   const growthStage = activeFarm?.growth_stage || "Vegetative";
   const farmSize = activeFarm?.farm_size || 1.0;
 

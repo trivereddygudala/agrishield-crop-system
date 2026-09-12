@@ -170,9 +170,10 @@ function App() {
                     <Route path="/helpdesk" element={<Navigate to="/support" replace />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/admin/*" element={<AdminPage />} />
-                    <Route path="/admin-panel" element={<Navigate to="/admin" replace />} />
-                    <Route path="/scan" element={<Navigate to="/upload" replace />} />
-                    <Route path="/ai-scan" element={<Navigate to="/upload" replace />} />
+                    <Route path="/scan" element={<UploadImagePage />} />
+                    <Route path="/scan/:tab" element={<UploadImagePage />} />
+                    <Route path="/ai-scan" element={<UploadImagePage />} />
+                    <Route path="/ai-scan/:tab" element={<UploadImagePage />} />
                   </Route>
 
                   {/* Error Pages */}

@@ -6,6 +6,33 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 83
+* **User Input:**
+  > "1. the explainable disease risk forecast is not working,when i tap the tabs inside the field tab is not going to fresh page when i tap on it( for example when i tap on field setup and locaction it shows in the field page i think do you understand). 
+2. make the ai scan center also like that when the farmer tap on the disease diagnosis,plantidentification, agrochemical scanner tabs it wants to open the open in fresh pages and decrease the size of the screen exact one while after execute ai diagnosis the proceess shows in 2 scrrens mobile length solve that one also.
+3. in the plant identification tab the identification domain having the extra paragraph remove and put that information in the symbol you know i think."
+* **Machine Summary Solution:**
+  * **1. Explainable Disease Risk Forecast Fix:**
+    - Aligned payload keys in `service.py`: returns `risk_percentage`, `overall_risk_percentage`, `risk_level`, `overall_risk_level`, `risk_color`, `overall_risk_color`, `confidence_score` (89–94%), and `factors_increasing_risk`.
+    - Protected `get_disease_risk` in `intelligence.py` from empty crop names and null coordinates.
+    - Defaulted `cropName` in `DashboardPage.jsx` to `"Tomato"`.
+    - In `DiseaseRiskCard.jsx`, added fallback key handling and retry so widget stays permanently visible and functional.
+  * **2. Fresh Sub-Pages for Field Tabs (`FarmPage.jsx`):**
+    - Linked `activeTab` to URL search params (`?tab=field-setup`, etc.).
+    - When selecting any module, the giant header and hero banner are hidden. It displays a clean, dedicated sub-page with a `← Back to Field Overview` header and scrolls to top.
+  * **3. AI Scan Center Fresh Pages & Result Height Optimization (`UploadImagePage.jsx`, `ScanImageUploader.jsx`, `DiseaseDiagnosisResults.jsx`, `App.jsx`):**
+    - Registered `/scan/:tab` routes (`/scan/disease-diag`, `/scan/plant-id`, `/scan/agro-scan`). Tapping tabs routes to dedicated fresh sub-pages.
+    - When `hasScanned && liveResult` is true, the massive 700px uploader collapses into a sleek 50px status bar with leaf thumbnail and "Scan Another Sample" button.
+    - Removed redundant duplicate `CropAdvisorPanel` stacked at the bottom.
+    - Reduced `DiseaseDiagnosisResults` mobile padding and header font sizing so the diagnosis result fits in **exact 1 screen length on mobile**.
+    - Locked the neural inference loading overlay to `fixed inset-0 z-[9999]` (`100dvh`).
+  * **4. Plant Identification Info Symbol Popover (`ScanImageUploader.jsx`):**
+    - Removed the long static paragraph text blocks under the Crops and Trees selector.
+    - Embedded the full list of 38 Andhra trees and 70 field crops & weeds inside an interactive `Info` symbol icon (`ℹ️`) popover.
+  * **Verification:**
+    - `python -m compileall -q backend/app` passed with 0 errors.
+    - `npm run build` passed with 0 errors in 23.44s.
+
 ### Chat Entry 82
 * **User Input:**
   > "while i switch one page to another page it takes time to load about 5 to 10 seconds some times more"

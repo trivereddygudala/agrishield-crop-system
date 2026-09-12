@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Sprout, MapPin, Droplets, Cpu, Bell, Save, Navigation, 
   Check, AlertCircle, RefreshCw, ShieldCheck, Thermometer, Radio, Archive, Layers,
-  Calendar, Leaf, ScanLine, Clock, ChevronRight, Sun, CloudRain, TrendingUp, Eye, Maximize2
+  Calendar, Leaf, ScanLine, Clock, ChevronRight, ChevronLeft, Sun, CloudRain, TrendingUp, Eye, Maximize2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
@@ -35,7 +35,25 @@ const FarmPage = () => {
   const [geoLoading, setGeoLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
-  const [activeTab, setActiveTab] = useState('modules');
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab') || 'modules';
+  const [activeTab, setActiveTabState] = useState(urlTab);
+
+  useEffect(() => {
+    const currentTab = searchParams.get('tab') || 'modules';
+    setActiveTabState(currentTab);
+  }, [searchParams]);
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    if (tab === 'modules') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ tab });
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   // Farm Info
   const [farmName, setFarmName] = useState('');
@@ -315,58 +333,84 @@ const FarmPage = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto w-full pb-16">
-      {/* Top Page Header */}
-      <div className="flex flex-col gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Sprout className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                {activeFarm?.farm_name || t('farm_page.title', 'My Farm')}
-                {activeFarm?.is_archived && (
-                  <Badge variant="warning">{t('farm_page.archived_badge', 'Archived')}</Badge>
-                )}
-              </h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  {farms.length} {farms.length === 1 ? t('farm_page.single_field', 'registered field sector') : t('farm_page.multi_field', 'registered field sectors')}
-                </span>
-                <span className="text-slate-300 dark:text-slate-700">•</span>
-                <Badge variant="outline" className="text-[10px]">
-                  {activeFarm?.crop_name ? `${translateCrop(activeFarm.crop_name, i18n.language)} (${activeFarm.growth_stage || 'Active'})` : t('farm_page.no_crop', 'No Crop Set')}
-                </Badge>
+      {/* Top Page Header — Rendered on Main Modules Overview */}
+      {activeTab === 'modules' && (
+        <div className="flex flex-col gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <Sprout className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  {activeFarm?.farm_name || t('farm_page.title', 'My Farm')}
+                  {activeFarm?.is_archived && (
+                    <Badge variant="warning">{t('farm_page.archived_badge', 'Archived')}</Badge>
+                  )}
+                </h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {farms.length} {farms.length === 1 ? t('farm_page.single_field', 'registered field sector') : t('farm_page.multi_field', 'registered field sectors')}
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                  <Badge variant="outline" className="text-[10px]">
+                    {activeFarm?.crop_name ? `${translateCrop(activeFarm.crop_name, i18n.language)} (${activeFarm.growth_stage || 'Active'})` : t('farm_page.no_crop', 'No Crop Set')}
+                  </Badge>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-            <Button 
-              type="button"
-              variant="outline"
-              onClick={async () => {
-                try {
-                  await createFarm({ 
-                    farm_name: `${t('farm_page.new_farm_prefix', 'New Farm Sector')} ${farms.length + 1}`,
-                    soil_type: 'red_loamy'
-                  });
-                } catch (e) { console.error(e); }
-              }} 
-              isLoading={loading} 
-              className="w-full sm:w-auto border-dashed border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
-            >
-              {t('farm_page.add_field', '+ Add New Field')}
-            </Button>
-            <Button onClick={handleSaveFarm} isLoading={loading} leftIcon={<Save className="w-4 h-4" />} className="w-full sm:w-auto">
-              {t('farm_page.save_changes', 'Save All Changes')}
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+              <Button 
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await createFarm({ 
+                      farm_name: `${t('farm_page.new_farm_prefix', 'New Farm Sector')} ${farms.length + 1}`,
+                      soil_type: 'red_loamy'
+                    });
+                  } catch (e) { console.error(e); }
+                }} 
+                isLoading={loading} 
+                className="w-full sm:w-auto border-dashed border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+              >
+                {t('farm_page.add_field', '+ Add New Field')}
+              </Button>
+              <Button onClick={handleSaveFarm} isLoading={loading} leftIcon={<Save className="w-4 h-4" />} className="w-full sm:w-auto">
+                {t('farm_page.save_changes', 'Save All Changes')}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            {t('farm_page.subtitle', 'Configure your farm sector coordinates, crop growth stages, and operational notification rules.')}
+          </p>
+        </div>
+      )}
+
+      {/* Dedicated Fresh Page Header for Sub-Tabs */}
+      {activeTab !== 'modules' && (
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4 mb-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('modules')}
+            className="flex items-center gap-2 text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors py-1 cursor-pointer"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            <span>{isTe ? '← ఫీల్డ్ డాష్‌బోర్డ్‌కు తిరిగి' : '← Back to Field Overview'}</span>
+          </button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[11px] font-bold">
+              {activeFarm?.farm_name || 'My Farm'}
+            </Badge>
+            {(activeTab === 'field-setup' || activeTab === 'crop-lifecycle') && (
+              <Button size="sm" onClick={handleSaveFarm} isLoading={loading} leftIcon={<Save className="w-3.5 h-3.5" />}>
+                {t('farm_page.save_changes', 'Save All Changes')}
+              </Button>
+            )}
           </div>
         </div>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-          {t('farm_page.subtitle', 'Configure your farm sector coordinates, crop growth stages, and operational notification rules.')}
-        </p>
-      </div>
+      )}
 
       {errorMsg && (
         <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
@@ -382,8 +426,8 @@ const FarmPage = () => {
         </div>
       )}
 
-      {/* ═══════ PREMIUM FARM HERO BANNER ═══════ */}
-      {activeFarm && (() => {
+      {/* ═══════ PREMIUM FARM HERO BANNER — Only on Overview Tab ═══════ */}
+      {activeTab === 'modules' && activeFarm && (() => {
         const plantDate = activeFarm.planting_date ? new Date(activeFarm.planting_date) : null;
         const today = new Date();
         const daysSincePlanting = plantDate ? Math.max(0, Math.floor((today - plantDate) / (1000 * 60 * 60 * 24))) : 0;

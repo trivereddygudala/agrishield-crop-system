@@ -138,9 +138,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   };
 
   return (
-    <div className="space-y-5">
-      {/* Medical-Grade Large Result Card */}
-      <Card className={`p-6 sm:p-8 border shadow-2xl text-white relative overflow-hidden ${
+    <div className="space-y-4">
+      {/* Medical-Grade Result Card — Compact for 1 Mobile Screen Fit */}
+      <Card className={`p-4 sm:p-6 border shadow-2xl text-white relative overflow-hidden ${
         status === 'healthy' 
           ? 'bg-gradient-to-br from-slate-950 via-emerald-950/90 to-slate-900 border-emerald-500/40 shadow-emerald-950/50' 
           : 'bg-gradient-to-br from-slate-950 via-rose-950/90 to-slate-900 border-rose-500/40 shadow-rose-950/50'
@@ -151,42 +151,42 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         }`} />
         <div className="pointer-events-none absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-teal-500/20 blur-3xl" />
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-3 flex-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Badge variant={status === 'healthy' ? 'glow-emerald' : 'glow-rose'} className="px-3.5 py-1 text-xs font-black uppercase tracking-wider">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+          <div className="space-y-2.5 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={status === 'healthy' ? 'glow-emerald' : 'glow-rose'} className="px-3 py-0.5 text-xs font-black uppercase tracking-wider">
                 {status.toUpperCase()}
               </Badge>
-              <Badge variant="glass" className="px-3.5 py-1 text-xs font-bold text-white bg-white/20 border-white/30 backdrop-blur-md">
+              <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-white bg-white/20 border-white/30 backdrop-blur-md">
                 🌾 {t('results.target_crop', 'Crop')}: {localizedCrop}
               </Badge>
               {liveResult?.is_offline ? (
-                <Badge variant="glow-amber" className="px-3.5 py-1 text-xs font-black text-amber-200 border-amber-400/60 bg-amber-500/30 animate-pulse">
+                <Badge variant="glow-amber" className="px-3 py-0.5 text-xs font-black text-amber-200 border-amber-400/60 bg-amber-500/30 animate-pulse">
                   📡 ZERO-INTERNET OFFLINE TRIAGE
                 </Badge>
               ) : (
-                <Badge variant="glow-purple" className="px-3.5 py-1 text-xs font-bold text-teal-200 border-teal-400/40 bg-teal-500/20">
+                <Badge variant="glow-purple" className="px-3 py-0.5 text-xs font-bold text-teal-200 border-teal-400/40 bg-teal-500/20">
                   ⚡ PyTorch EfficientNetV2
                 </Badge>
               )}
               {liveResult?.dual_model_consensus && (
-                <Badge variant="glow-emerald" className="px-3 py-1 text-xs font-black text-emerald-200 border-emerald-400/50 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
+                <Badge variant="glow-emerald" className="px-3 py-0.5 text-xs font-black text-emerald-200 border-emerald-400/50 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{currentLang === 'te' ? 'Dual-AI ధృవీకరించబడింది' : 'Dual-AI Verified (PyTorch + NVIDIA NIM)'}</span>
+                  <span>{currentLang === 'te' ? 'Dual-AI ధృవీకరించబడింది' : 'Dual-AI Verified'}</span>
                 </Badge>
               )}
             </div>
 
             {liveResult?.is_offline && (
-              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-semibold flex items-center gap-2">
+              <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-semibold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-amber-300" />
                 <span>
-                  {liveResult.triage_disclaimer || "📡 On-Device Field Triage: Calculated on your device without cellular internet. Saved to offline queue for cloud sync."}
+                  {liveResult.triage_disclaimer || "📡 On-Device Field Triage: Saved to offline queue for cloud sync."}
                 </span>
               </div>
             )}
 
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tight drop-shadow-md">
               {localizedDisease}
             </h2>
 

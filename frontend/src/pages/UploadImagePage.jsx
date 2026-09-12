@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import { RefreshCw, CheckCircle2, ChevronRight } from 'lucide-react';
 import API from '../services/api';
 import ScanCenterTabs from '../components/scanCenter/ScanCenterTabs';
 import ScanImageUploader from '../components/scanCenter/ScanImageUploader';
@@ -14,7 +15,7 @@ import FungalRiskAdvisor from '../components/intelligence/FungalRiskAdvisor';
 import MultiLeafUploader from '../components/scanCenter/MultiLeafUploader';
 import MultiLeafResults from '../components/scanCenter/MultiLeafResults';
 import { useFarm } from '../context/FarmContext';
-import { Badge } from '../components/ui/index';
+import { Badge, Button } from '../components/ui/index';
 import { compressImageForUpload, formatFileSize } from '../utils/imageCompression';
 import { queueOfflineScan } from '../utils/offlineQueue';
 import { diagnoseOfflineLeaf } from '../utils/offlineDiagnosticEngine';
@@ -56,6 +57,8 @@ const UploadImagePage = () => {
   const { user } = useAuth();
   const { activeFarm } = useFarm();
   const navigate = useNavigate();
+  const { tab: routeTab } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Subscribe to the global reactive store (persists across unmounts!)
   const state = React.useSyncExternalStore(scanStore.subscribe, scanStore.getSnapshot);
@@ -68,6 +71,20 @@ const UploadImagePage = () => {
     plantType = 'crop', selectedTreeFilter = ''
   } = state;
 
+  // Sync route and query params with active tab to ensure fresh dedicated pages
+  useEffect(() => {
+    const rawTab = routeTab || searchParams.get('tab');
+    if (rawTab) {
+      const normalized = (rawTab === 'disease' || rawTab === 'disease-diag' || rawTab === 'disease-diagnosis') ? 'disease-diag'
+        : (rawTab === 'plant' || rawTab === 'plant-id' || rawTab === 'plantidentification' || rawTab === 'plant-identification') ? 'plant-id'
+        : (rawTab === 'agro' || rawTab === 'agro-scan' || rawTab === 'agrochemical' || rawTab === 'agrochemical-scanner') ? 'agro-scan'
+        : rawTab;
+      if (['disease-diag', 'plant-id', 'agro-scan'].includes(normalized) && normalized !== scanStore.state.activeTab) {
+        scanStore.setState({ activeTab: normalized, errorMsg: '' });
+      }
+    }
+  }, [routeTab, searchParams]);
+
   // Auto-link active farm crop to scanner to boost accuracy to 98%+
   React.useEffect(() => {
     if (activeFarm?.crop_name && !scanStore.state.selectedCropFilter) {
@@ -75,7 +92,11 @@ const UploadImagePage = () => {
     }
   }, [activeFarm?.crop_name]);
 
-  const setActiveTab = (tab) => scanStore.setState({ activeTab: tab });
+  const handleTabChange = (tab) => {
+    scanStore.setState({ activeTab: tab, errorMsg: '' });
+    navigate(`/scan/${tab}`);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   const validateFile = (file) => {
     if (!file) return false;
@@ -497,7 +518,7 @@ const UploadImagePage = () => {
       {/* Primary 3 Navigation Tabs */}
       <ScanCenterTabs
         activeTab={activeTab}
-        onTabChange={(tabId) => scanStore.setState({ activeTab: tabId, errorMsg: '' })}
+        onTabChange={handleTabChange}
       />
 
       {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
@@ -563,62 +584,86 @@ const UploadImagePage = () => {
         )
       ) : (
         <>
-          <ScanImageUploader
-            tabId={activeTab}
-            selectedFile={selectedFile}
-            previewUrl={previewUrl}
-            compressionInfo={compressionInfo}
-            onFileSelect={handleFileSelect}
-            onClear={clearSelection}
-            onStartScan={handleStartScan}
-            onLoadSample={loadSampleImage}
-            loading={loading}
-            errorMsg={errorMsg}
-            liveResult={liveResult}
-            selectedCropFilter={selectedCropFilter}
-            onCropFilterChange={handleCropFilterChange}
-            activeFarmCrop={activeFarm?.crop_name}
-            plantType={plantType}
-            onPlantTypeChange={handlePlantTypeChange}
-            selectedTreeFilter={selectedTreeFilter}
-            onTreeFilterChange={handleTreeFilterChange}
-          />
-
-          {/* Results Section for Single Leaf Scan */}
-          {hasScanned && (
+          {hasScanned && liveResult ? (
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="pt-4"
+              transition={{ duration: 0.3 }}
+              className="space-y-4 pt-1"
             >
+              {/* Compact Quick-Action Bar Replacing Full-Screen Uploader */}
+              <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md">
+                <div className="flex items-center gap-3 min-w-0">
+                  {previewUrl ? (
+                    <img 
+                      src={previewUrl} 
+                      alt="Scanned sample" 
+                      className="w-12 h-12 rounded-xl object-cover border border-emerald-500/40 shadow-xs shrink-0" 
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                      ✓ {t('scan_page.scan_complete', 'Analysis Completed')}
+                    </span>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                      {liveResult?.disease_name || liveResult?.crop_name || liveResult?.product_name || 'AI Analysis Report'}
+                    </h3>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearSelection}
+                  leftIcon={<RefreshCw className="w-3.5 h-3.5 text-emerald-600" />}
+                  className="shrink-0 text-xs font-bold border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                >
+                  {t('scan_page.scan_another', 'Scan Another Sample')}
+                </Button>
+              </div>
+
               {activeTab === 'plant-id' && (
                 <PlantIdResults liveResult={liveResult} />
               )}
 
               {activeTab === 'disease-diag' && (
-                <>
-                  <DiseaseDiagnosisResults
-                    liveResult={liveResult}
-                    previewUrl={previewUrl}
-                    onDownloadPDF={handleDownloadPDF}
-                    onSaveScan={() => navigate('/history')}
-                  />
-                  <div className="mt-8">
-                    <CropAdvisorPanel 
-                      cropName={liveResult?.crop_name} 
-                      diseaseName={liveResult?.disease_name} 
-                      confidence={liveResult?.confidence} 
-                      advisor={liveResult?.advisor}
-                    />
-                  </div>
-                </>
+                <DiseaseDiagnosisResults
+                  liveResult={liveResult}
+                  previewUrl={previewUrl}
+                  onDownloadPDF={handleDownloadPDF}
+                  onSaveScan={() => navigate('/history')}
+                />
               )}
 
               {activeTab === 'agro-scan' && (
                 <AgrochemicalResults liveResult={liveResult} />
               )}
             </motion.div>
+          ) : (
+            <ScanImageUploader
+              tabId={activeTab}
+              selectedFile={selectedFile}
+              previewUrl={previewUrl}
+              compressionInfo={compressionInfo}
+              onFileSelect={handleFileSelect}
+              onClear={clearSelection}
+              onStartScan={handleStartScan}
+              onLoadSample={loadSampleImage}
+              loading={loading}
+              errorMsg={errorMsg}
+              liveResult={liveResult}
+              selectedCropFilter={selectedCropFilter}
+              onCropFilterChange={handleCropFilterChange}
+              activeFarmCrop={activeFarm?.crop_name}
+              plantType={plantType}
+              onPlantTypeChange={handlePlantTypeChange}
+              selectedTreeFilter={selectedTreeFilter}
+              onTreeFilterChange={handleTreeFilterChange}
+            />
           )}
         </>
       )}

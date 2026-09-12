@@ -22,7 +22,8 @@ import {
   Compass,
   MapPin,
   Grid,
-  Trees
+  Trees,
+  Info
 } from 'lucide-react';
 import { Button, Card, Dialog, Badge } from '../ui/index';
 import API from '../../services/api';
@@ -129,6 +130,7 @@ const ScanImageUploader = ({
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isLowRes, setIsLowRes] = useState(false);
   const [showGradcam, setShowGradcam] = useState(false);
+  const [showSpeciesInfo, setShowSpeciesInfo] = useState(false);
 
   // Real-Time Camera HUD & Leaf Ratio State
   const [leafRatio, setLeafRatio] = useState(0);
@@ -848,11 +850,59 @@ const ScanImageUploader = ({
             <span className="flex items-center gap-2 text-xs font-black text-emerald-900 dark:text-emerald-300">
               <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{t('uploader.plant_category_select', 'Identification Domain / విభాగం ఎంచుకోండి')}</span>
+              <button
+                type="button"
+                onClick={() => setShowSpeciesInfo(prev => !prev)}
+                className={`p-1 rounded-full transition-all cursor-pointer ${
+                  showSpeciesInfo 
+                    ? 'bg-emerald-600 text-white shadow-xs' 
+                    : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900'
+                }`}
+                title="View coverage information (38 Andhra Trees & 70 Crops)"
+                aria-label="Toggle species info"
+              >
+                <Info className="w-3.5 h-3.5" />
+              </button>
             </span>
             <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/70 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
               {plantType === 'tree' ? '🌳 Normal Trees' : '🌾 Crops & Weeds'}
             </span>
           </div>
+
+          {/* Interactive Info Popover triggered by the Info symbol */}
+          <AnimatePresence>
+            {showSpeciesInfo && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-3 p-3 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/60 text-[11px] text-emerald-950 dark:text-emerald-200 space-y-1.5 overflow-hidden"
+              >
+                <div className="flex items-center justify-between font-black text-xs text-emerald-800 dark:text-emerald-300 pb-1 border-b border-emerald-200 dark:border-emerald-800">
+                  <span>ℹ️ {plantType === 'tree' ? '38 Andhra Normal & Big Trees Coverage' : '70 Andhra Field Crops & Weeds Coverage'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSpeciesInfo(false)}
+                    className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 font-bold px-1 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {plantType === 'tree' ? (
+                  <p className="leading-relaxed font-medium">
+                    🌳 <strong>Big Trees & Timber:</strong> Neem (వేప), Tamarind (చింత), Banyan (మర్రి), Peepal (రావి), Teak (టేకు), Red Sanders (ఎర్రచందనం), Jamun (నేరేడు), Rosewood, Babool (తుమ్మ), Subabul, Eucalyptus, Casuarina (సర్వి), Pongamia (కానుగ), Palmyra Palm (తాటి).<br/>
+                    🥭 <strong>Fruit Trees:</strong> Mango (మామిడి), Guava (జామ), Coconut (కొబ్బరి), Cashew (జీడిమామిడి), Oil Palm, Sapota, Papaya, Banana, Sweet Orange (బత్తాయి), Acid Lime (నిమ్మ), Pomegranate, Custard Apple (సీతాఫలం), Jackfruit, Amla (ఉసిరి), Dragon Fruit.
+                  </p>
+                ) : (
+                  <p className="leading-relaxed font-medium">
+                    🌾 <strong>Field Crops:</strong> Paddy (వరి), Chilli (మిరప), Cotton (ప్రత్తి), Maize, Groundnut, Tobacco, Pulses (కందులు, మినుములు, పెసలు, శనగలు), Millets (రాగులు, సజ్జలు, జొన్నలు, కొర్రలు).<br/>
+                    🥬 <strong>Vegetables:</strong> Brinjal (వంకాయ), Bhendi (బెండకాయ), Bitter Gourd (కాకర), Bottle Gourd (సొర), Ridge Gourd (బీర), Ivy Gourd (దొండ), Gongura (గోంగూర), Turmeric, Ginger, Tulasi, Aloevera, Ashwagandha.<br/>
+                    🌱 <strong>Weeds:</strong> Nut Grass (తుంగ), Bermuda Grass (గరిక), Parthenium (వయ్యారి భామ), Barnyard Grass (ఊర గడ్డి), Trianthema (గలిజేరు), Achyranthes (ఉత్తరేణి), Eclipta (గుంటగలగరాకు).
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Segmented 2-Option Pill Buttons */}
           <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10">
@@ -907,9 +957,6 @@ const ScanImageUploader = ({
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                🌳 Identifies all 38 Andhra trees: Neem (వేప), Tamarind (చింత), Banyan (మర్రి), Peepal (రావి), Teak (టేకు), Red Sanders (ఎర్రచందనం), Jamun, Rosewood, Babool (తుమ్మ), Subabul, Eucalyptus, Casuarina (సర్వి), Pongamia (కానుగ), Palmyra Palm (తాటి చెట్టు), Mango, Guava, Coconut, Cashew (జీడిమామిడి), Oil Palm, Sapota, Papaya, Banana, Sweet Orange (బత్తాయి), Acid Lime, Pomegranate, Custard Apple, Jackfruit, Amla, Dragon Fruit, etc.
-              </p>
             </div>
           ) : (
             <div className="mt-3.5 space-y-2">
@@ -928,9 +975,6 @@ const ScanImageUploader = ({
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                🌾 Identifies 70 Andhra agricultural species: Paddy (వరి), Chilli (మిరప), Cotton (ప్రత్తి), Maize, Groundnut, Tobacco, Pulses (కందులు, మినుములు, పెసలు, శనగలు), Millets (రాగులు, సజ్జలు, జొన్నలు, కొర్రలు), Vegetables (వంకాయ, బెండకాయ, కాకర, సొర, బీర, దొండ), Gongura (గోంగూర), Turmeric, Ginger, Sacred/Medicinal (తులసి, కలబంద, అశ్వగంధ), and Weeds (తుంగ, గరిక, వయ్యారి భామ, ఊర గడ్డి, గలిజేరు, ఉత్తరేణి, గుంటగలగరాకు).
-              </p>
             </div>
           )}
         </div>
@@ -951,26 +995,27 @@ const ScanImageUploader = ({
         </Button>
       </div>
 
-      {/* Neural Scanner Overlay Loading Screen */}
+      {/* Neural Scanner Overlay Loading Screen — Exact 1 mobile screen viewport height */}
       <AnimatePresence>
         {loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[82] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white"
+            className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white"
+            style={{ height: '100dvh', width: '100vw' }}
           >
             <div className="relative mb-6">
-              <div className="w-24 h-24 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Cpu className="w-10 h-10 text-emerald-400 animate-pulse" />
+                <Cpu className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400 animate-pulse" />
               </div>
             </div>
 
-            <h3 className="text-lg font-black text-white" style={{ fontFamily: 'var(--font-display)' }}>PyTorch Inference Active</h3>
-            <p className="text-xs text-white/50 mt-1 max-w-xs">{TIMELINE_STEPS[currentStepIdx]}</p>
+            <h3 className="text-base sm:text-lg font-black text-white" style={{ fontFamily: 'var(--font-display)' }}>PyTorch Inference Active</h3>
+            <p className="text-xs text-white/60 mt-1 max-w-xs">{TIMELINE_STEPS[currentStepIdx]}</p>
 
-            <div className="w-full max-w-xs bg-white/5 h-1.5 rounded-full overflow-hidden mt-6 border border-white/5">
+            <div className="w-full max-w-xs bg-white/10 h-1.5 rounded-full overflow-hidden mt-6 border border-white/5">
               <motion.div
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-400"
                 animate={{ width: `${((currentStepIdx + 1) / TIMELINE_STEPS.length) * 100}%` }}

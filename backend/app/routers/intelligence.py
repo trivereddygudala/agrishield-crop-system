@@ -62,14 +62,17 @@ async def get_irrigation(
 @router.get("/disease-risk", summary="Get Explainable Disease Risk Forecast")
 async def get_disease_risk(
     farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
-    crop_name: str = Query("Tomato", description="Crop Name"),
-    lat: float = Query(16.5062, description="Latitude"),
-    lon: float = Query(80.6480, description="Longitude"),
+    crop_name: Optional[str] = Query("Tomato", description="Crop Name"),
+    lat: Optional[float] = Query(16.5062, description="Latitude"),
+    lon: Optional[float] = Query(80.6480, description="Longitude"),
     hardware_mode: bool = Query(False, description="Enable Dual-Stream Hardware Sensor Mode"),
     canopy_temp: Optional[float] = Query(None, description="ESP32 Canopy Temp (°C)"),
     canopy_humidity: Optional[float] = Query(None, description="ESP32 Canopy Humidity (%)"),
     soil_moisture: Optional[float] = Query(None, description="ESP32 Soil Moisture (%)")
 ):
+    safe_crop = (crop_name or "").strip() or "Tomato"
+    safe_lat = float(lat) if lat is not None else 16.5062
+    safe_lon = float(lon) if lon is not None else 80.6480
     hardware_telemetry = None
     if hardware_mode and (canopy_temp is not None or canopy_humidity is not None):
         hardware_telemetry = {
@@ -79,9 +82,9 @@ async def get_disease_risk(
         }
     return await risk_service.calculate_disease_risk(
         farm_id=farm_id,
-        crop_name=crop_name,
-        lat=lat,
-        lon=lon,
+        crop_name=safe_crop,
+        lat=safe_lat,
+        lon=safe_lon,
         hardware_mode=hardware_mode,
         hardware_telemetry=hardware_telemetry
     )
