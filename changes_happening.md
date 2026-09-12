@@ -2,6 +2,15 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v141) - UX Refinement: Removed Quick Test Benchmark Samples from Plant ID & Agrochemical Scanner
+- **Summary:** Removed the "Quick Test Benchmark Samples" section and "Load Sample" button from the **Plant Identification** and **Agrochemical Scanner** tools:
+  1. 🔬 **Restricted to Disease Diagnosis Only (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**
+     - Gated both the top header `[ Load Sample ]` button and the 4-card `[ Quick Test Benchmark Samples ]` grid (Chilli Leaf Spot, Corn Blight, Apple Scab, Healthy Foliage) with `{tabId === 'disease-diag' && ( ... )}`.
+     - In **Plant Identification** (`plant-id`) and **Agrochemical Scanner** (`agro-scan`), the benchmark samples and sample loader buttons are now 100% removed, eliminating irrelevant crop disease demo cards from species and bottle OCR workflows.
+  2. 🧪 **Validation:**
+     - Frontend Vite Build: `npm run build` compiled with 0 errors in 22.09s.
+- **Files modified**: `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v140) - Performance: Slashing App Load Time via RAM Cache & Vite Rollup Code-Splitting; Scan Center Modules Overview & Dedicated Fresh Sub-Pages
 - **Summary:** Fulfilled the user's requirements to further decrease load time and remodel the Scan Center so tapping any tool opens a dedicated fresh page (mirroring the Field Modules behavior in `/farm`):
   1. ⚡ **Further Decreased App Load Time:**

@@ -6,6 +6,16 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 85
+* **User Input:**
+  > "and also remove the quick test bench mark samples for both agrochemical scanner and plant identification"
+* **Machine Summary Solution:**
+  * **Quick Test Benchmark Samples Removed from Plant ID & Agrochemical Scanner:**
+    - In `ScanImageUploader.jsx`, conditioned both the top header `[ Load Sample ]` button and the 4-card `[ Quick Test Benchmark Samples ]` gallery on `{tabId === 'disease-diag' && ( ... )}`.
+    - When viewing **Plant Identification** (`plant-id`) or **Agrochemical Scanner** (`agro-scan`), benchmark demo cards and sample loader buttons are now completely omitted, giving farmers a clean, unencumbered interface tailored strictly to species identification and pesticide/fertilizer label OCR.
+  * **Verification:**
+    - `npm run build` compiled with 0 errors in 22.09s.
+
 ### Chat Entry 84
 * **User Input:**
   > "the load time is more decrease that 

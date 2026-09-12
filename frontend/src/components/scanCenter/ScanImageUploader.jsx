@@ -557,15 +557,17 @@ const ScanImageUploader = ({
           </div>
         </div>
 
-        <Button 
-          variant="glass" 
-          size="sm" 
-          onClick={() => onLoadSample?.('/samples/chilli_leaf_spot.jpg', 'Chilli')} 
-          leftIcon={<Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />}
-          className="border border-slate-200 dark:border-white/10 shrink-0 self-start sm:self-auto text-xs py-1.5 px-3"
-        >
-          {t('uploader.load_sample', 'Load Sample')}
-        </Button>
+        {tabId === 'disease-diag' && (
+          <Button 
+            variant="glass" 
+            size="sm" 
+            onClick={() => onLoadSample?.('/samples/chilli_leaf_spot.jpg', 'Chilli')} 
+            leftIcon={<Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />}
+            className="border border-slate-200 dark:border-white/10 shrink-0 self-start sm:self-auto text-xs py-1.5 px-3"
+          >
+            {t('uploader.load_sample', 'Load Sample')}
+          </Button>
+        )}
       </div>
 
       {/* Hidden inputs */}
@@ -645,52 +647,54 @@ const ScanImageUploader = ({
             </div>
           </motion.div>
 
-          {/* Quick Demo Benchmark Samples */}
-          <div className="pt-2">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                {t('uploader.benchmark_samples', 'Quick Test Benchmark Samples')}
-              </span>
-              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-extrabold tracking-wide">
-                ⚡ 1-Click Live Test
-              </span>
-            </div>
+          {/* Quick Demo Benchmark Samples - Only displayed for Disease Diagnosis */}
+          {tabId === 'disease-diag' && (
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  {t('uploader.benchmark_samples', 'Quick Test Benchmark Samples')}
+                </span>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-extrabold tracking-wide">
+                  ⚡ 1-Click Live Test
+                </span>
+              </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {[
-                { title: 'Chilli Leaf Spot', path: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli', icon: '🌶️', desc: 'మిరప ఆకుమచ్చ తెగులు' },
-                { title: 'Corn Blight', path: '/samples/corn_leaf_blight.jpg', crop: 'Maize', icon: '🌽', desc: 'మొక్కజొన్న మాడ తెగులు' },
-                { title: 'Apple Scab', path: '/samples/apple_scab.jpg', crop: 'Apple', icon: '🍎', desc: 'యాపిల్ గజ్జి తెగులు' },
-                { title: 'Healthy Foliage', path: '/samples/chilli_healthy.jpg', crop: 'Chilli', icon: '🌿', desc: 'ఆరోగ్యకరమైన పంట' }
-              ].map((sample, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => onLoadSample?.(sample.path, sample.crop)}
-                  className="group relative flex flex-col items-start p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.03] hover:border-emerald-500/50 hover:bg-emerald-500/[0.04] transition-all text-left shadow-xs hover:shadow-md cursor-pointer active:scale-98"
-                >
-                  <div className="w-full h-20 rounded-xl overflow-hidden mb-2 bg-slate-200 dark:bg-slate-800 relative">
-                    <img
-                      src={sample.path}
-                      alt={sample.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[10px] font-extrabold text-white shadow-xs">
-                      {sample.icon} {sample.crop}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { title: 'Chilli Leaf Spot', path: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli', icon: '🌶️', desc: 'మిరప ఆకుమచ్చ తెగులు' },
+                  { title: 'Corn Blight', path: '/samples/corn_leaf_blight.jpg', crop: 'Maize', icon: '🌽', desc: 'మొక్కజొన్న మాడ తెగులు' },
+                  { title: 'Apple Scab', path: '/samples/apple_scab.jpg', crop: 'Apple', icon: '🍎', desc: 'యాపిల్ గజ్జి తెగులు' },
+                  { title: 'Healthy Foliage', path: '/samples/chilli_healthy.jpg', crop: 'Chilli', icon: '🌿', desc: 'ఆరోగ్యకరమైన పంట' }
+                ].map((sample, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => onLoadSample?.(sample.path, sample.crop)}
+                    className="group relative flex flex-col items-start p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.03] hover:border-emerald-500/50 hover:bg-emerald-500/[0.04] transition-all text-left shadow-xs hover:shadow-md cursor-pointer active:scale-98"
+                  >
+                    <div className="w-full h-20 rounded-xl overflow-hidden mb-2 bg-slate-200 dark:bg-slate-800 relative">
+                      <img
+                        src={sample.path}
+                        alt={sample.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[10px] font-extrabold text-white shadow-xs">
+                        {sample.icon} {sample.crop}
+                      </span>
+                    </div>
+                    <span className="text-xs font-black text-slate-800 dark:text-white truncate w-full block">
+                      {sample.title}
                     </span>
-                  </div>
-                  <span className="text-xs font-black text-slate-800 dark:text-white truncate w-full block">
-                    {sample.title}
-                  </span>
-                  <span className="text-[10px] text-slate-500 dark:text-white/40 truncate w-full block mt-0.5 font-medium">
-                    {sample.desc}
-                  </span>
-                </button>
-              ))}
+                    <span className="text-[10px] text-slate-500 dark:text-white/40 truncate w-full block mt-0.5 font-medium">
+                      {sample.desc}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       ) : (
         /* Image Selected / Preview Card */
