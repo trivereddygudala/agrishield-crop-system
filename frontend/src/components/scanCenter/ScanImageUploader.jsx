@@ -213,6 +213,8 @@ const ScanImageUploader = ({
   useEffect(() => {
     let interval;
     if (loading) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       setCurrentStepIdx(0);
       interval = setInterval(() => {
         setCurrentStepIdx((prev) => {
@@ -220,10 +222,13 @@ const ScanImageUploader = ({
           return prev;
         });
       }, 600);
+      return () => {
+        clearInterval(interval);
+        document.body.style.overflow = prevOverflow;
+      };
     } else {
       setCurrentStepIdx(0);
     }
-    return () => clearInterval(interval);
   }, [loading]);
 
   // Real-time camera viewfinder frame sampler for leaf ratio & crop detection
@@ -999,56 +1004,64 @@ const ScanImageUploader = ({
         </Button>
       </div>
 
-      {/* Neural Scanner Overlay Loading Screen — 90% Screen Ratio HUD Card */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 text-center text-white"
-            style={{ height: '100dvh', width: '100vw' }}
-          >
+      {/* Neural Scanner Overlay Loading Screen — Positioned strictly between Top Navbar and Bottom Navigation Bar with safe gap */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {loading && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-[90%] max-w-md rounded-3xl bg-slate-900/95 border border-emerald-500/40 p-6 sm:p-8 shadow-2xl shadow-emerald-950/60 flex flex-col items-center justify-center relative overflow-hidden"
-              style={{ minHeight: '280px' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed left-0 right-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 text-center text-white pointer-events-auto"
+              style={{
+                top: 'calc(4rem + 8px)',
+                bottom: 'calc(4rem + 8px + env(safe-area-inset-bottom, 0px))',
+              }}
             >
-              {/* Ambient scan glow */}
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
-              <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-teal-500/20 rounded-full blur-2xl pointer-events-none" />
+              <motion.div
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.92, opacity: 0 }}
+                className="w-[90%] max-w-sm sm:max-w-md rounded-3xl bg-slate-900/95 border border-emerald-500/40 p-5 sm:p-6 shadow-2xl shadow-emerald-950/60 flex flex-col items-center justify-center relative overflow-hidden my-auto"
+                style={{
+                  maxHeight: 'calc(100% - 16px)',
+                }}
+              >
+                {/* Ambient scan glow */}
+                <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-teal-500/20 rounded-full blur-2xl pointer-events-none" />
 
-              <div className="relative mb-5 z-10">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Cpu className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-400 animate-pulse" />
+                <div className="relative mb-4 z-10">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Cpu className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-400 animate-pulse" />
+                  </div>
                 </div>
-              </div>
 
-              <h3 className="text-base sm:text-lg font-black text-white z-10" style={{ fontFamily: 'var(--font-display)' }}>
-                PyTorch Inference Active
-              </h3>
-              <p className="text-xs sm:text-sm text-emerald-400 font-semibold mt-1 max-w-xs z-10 truncate w-full px-2">
-                {TIMELINE_STEPS[currentStepIdx] || 'Analyzing neural features...'}
-              </p>
+                <h3 className="text-base sm:text-lg font-black text-white z-10" style={{ fontFamily: 'var(--font-display)' }}>
+                  PyTorch Inference Active
+                </h3>
+                <p className="text-xs sm:text-sm text-emerald-400 font-semibold mt-1 max-w-xs z-10 truncate w-full px-2">
+                  {TIMELINE_STEPS[currentStepIdx] || 'Analyzing neural features...'}
+                </p>
 
-              <div className="w-full max-w-xs sm:max-w-sm bg-white/10 h-2 rounded-full overflow-hidden mt-5 border border-white/10 z-10">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300"
-                  animate={{ width: `${((currentStepIdx + 1) / TIMELINE_STEPS.length) * 100}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
+                <div className="w-full max-w-xs sm:max-w-sm bg-white/10 h-2 rounded-full overflow-hidden mt-4 border border-white/10 z-10">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300"
+                    animate={{ width: `${((currentStepIdx + 1) / TIMELINE_STEPS.length) * 100}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
 
-              <span className="text-[10px] text-slate-400 mt-4 font-mono z-10">
-                AI Diagnostic Engine • 90% Screen Ratio HUD
-              </span>
+                <span className="text-[10px] text-slate-400 mt-3 font-mono z-10">
+                  AI Diagnostic Engine • Inference Processing
+                </span>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Immersive Full-Screen Live AI Camera Viewfinder mounted directly to body to bypass layout clipping */}
       {typeof document !== 'undefined' && createPortal(

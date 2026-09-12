@@ -6,6 +6,18 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 90
+* **User Input:**
+  > "why it is still there more than the screen it wwant to adjust between the top navigation barr and bottom navigation bar with some gap ok"
+* **Machine Summary Solution:**
+  * **Loading HUD Portal & Strict Inset Between Top & Bottom Navigation Bars:**
+    - Root cause: The loading overlay was rendered inside `<main>` which has `pt-16` (64px) and CSS transforms. A `height: 100dvh` element inside that context pushed the card 64px beyond the viewport bottom, underneath the bottom navigation bar and causing page overflow.
+    - Solution: Mounted the overlay via `createPortal(..., document.body)` with explicit bounds:
+      `top: calc(4rem + 8px)` (gap below top navbar) and `bottom: calc(4rem + 8px + env(safe-area-inset-bottom, 0px))` (gap above bottom navbar).
+    - Restricted card max height to `calc(100% - 16px)` and added body scroll locking while loading.
+  * **Verification:**
+    - `npm run build` completed with 0 errors in 24.33s.
+
 ### Chat Entry 89
 * **User Input:**
   > "i ask to change to 90 percent for picture one but you put the 70 percent to the results what is the wrong with you why you donot follow my requests and do errors at last right"

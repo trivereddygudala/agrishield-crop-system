@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v146) - UI/UX: Positioned AI Execution HUD Strictly Between Top & Bottom Navigation Bars with Safe Margins
+- **Summary:** Resolved the issue where the loading overlay card extended beyond the screen height and overflowed below the bottom navigation bar:
+  1. 🎯 **Root Cause:**
+     - Previously, the loading overlay was rendered inside `<main>` which had `pt-16` (64px) and internal transforms. Applying `height: 100dvh` forced the overlay 64px below the viewport, causing vertical scroll and spilling beyond the bottom navigation bar.
+  2. ⚓ **Direct Portal & Strict Boundary Pinning (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**
+     - Mounted the loading overlay directly to `document.body` via `createPortal`.
+     - Explicitly pinned top and bottom bounds between the navbars:
+       - `top: calc(4rem + 8px)` (8px below the 64px top navigation bar).
+       - `bottom: calc(4rem + 8px + env(safe-area-inset-bottom, 0px))` (8px above the 64px bottom navigation bar).
+     - Set `maxHeight: calc(100% - 16px)` on the HUD card so it is guaranteed never to exceed the viewport height or overlap either navigation bar.
+     - Added a background scroll lock (`document.body.style.overflow = 'hidden'`) while loading is active.
+  3. 🧪 **Validation:**
+     - `npm run build` compiled with 0 errors in 24.33s.
+- **Files modified**: `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v145) - UX Correction: Loading HUD Card (Picture 1) Set to 90% Screen Ratio; 70% Constraint Removed from Results (Picture 2)
 - **Summary:** Corrected the application of screen sizing according to the user's specific photos:
   1. ⚡ **Picture 1 - Execution HUD Loading Card (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**
