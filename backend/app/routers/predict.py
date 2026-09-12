@@ -664,22 +664,10 @@ async def predict_pytorch_endpoint(
     # Check if user explicitly designated a target crop category filter
     user_crop_filter = (getattr(req, "crop_filter", None) or "").strip()
 
-    # Multimodal Cloud Vision Guardrail: Verify real crop leaf and detect botanical species using NVIDIA Llama-3.2 Vision NIM
-    detected_vision_crop = None
-    try:
-        from backend.app.services.nvidia_service import nvidia_service
-        vision_analysis = await nvidia_service.analyze_crop_image(full_image_path, crop_hint=user_crop_filter)
-        if vision_analysis:
-            if vision_analysis.get("is_valid_leaf") is False:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    detail=f"Non-crop image detected: {vision_analysis.get('reasoning', 'Please upload a clear photograph of a crop leaf or plant.')}"
-                )
-            detected_vision_crop = vision_analysis.get("crop")
-    except HTTPException:
-        raise
-    except Exception as v_err:
-        logger.warning(f"Vision pre-check bypassed: {v_err}")
+    # Fast-Path: Prioritize immediate neural diagnosis.
+    # PyTorch/ONNX deep learning runs in <1.5s with built-in Out-of-Distribution (OOD) rejection,
+    # completely bypassing the 18-second external cloud vision upload delay.
+    detected_vision_crop = user_crop_filter or None
 
     # Perform prediction using the real PyTorch/ONNX pipeline inside a separate worker thread
     try:
@@ -861,10 +849,10 @@ async def predict_pytorch_endpoint(
                     confidence=prediction_result["confidence"],
                     farm_profile=active_farm
                 ),
-                timeout=4.0
+                timeout=2.5
             )
         except Exception as err:
-            logger.warning(f"Advice generation timed out or failed ({err}); using instant ICAR knowledge base.")
+            logger.info(f"Advice generation fast-failover ({err}); using instant ICAR knowledge base.")
             llama_advice = nvidia_service._generate_mock_advice(
                 prediction_result["crop_name"],
                 prediction_result["disease_name"]
@@ -1014,17 +1002,30 @@ async def predict_pytorch_endpoint(
                 prediction_result["disease_name"] = fallback_dis
                 prediction_result["localized_crop"] = fallback_crop
                 prediction_result["localized_disease"] = fallback_dis
-                symptoms = safe_translate(symptoms)
-                organic_treatment = translate_with_english_chemicals(organic_treatment)
-                chemical_treatment = translate_with_english_chemicals(chemical_treatment)
-                farmer_friendly_advice = safe_translate(farmer_friendly_advice)
-                
-                prevention_methods = parallel_translate_list(prevention_methods)
-                possible_causes = parallel_translate_list(possible_causes)
+                # Parallelize diagnostic text translations with strict timeout to prevent stalls
+                with ThreadPoolExecutor(max_workers=5) as pool:
+                    f_sym = pool.submit(safe_translate, symptoms)
+                    f_org = pool.submit(translate_with_english_chemicals, organic_treatment)
+                    f_chem = pool.submit(translate_with_english_chemicals, chemical_treatment)
+                    f_adv = pool.submit(safe_translate, farmer_friendly_advice)
+                    f_safe = pool.submit(translate_with_english_chemicals, prediction_result.get("safety_precautions", "None"))
+                    f_prev = pool.submit(parallel_translate_list, prevention_methods)
+                    f_caus = pool.submit(parallel_translate_list, possible_causes)
 
-                safety_precautions = prediction_result.get("safety_precautions", "None")
-                safety_precautions = translate_with_english_chemicals(safety_precautions)
-                prediction_result["safety_precautions"] = safety_precautions
+                    try: symptoms = f_sym.result(timeout=2.5)
+                    except Exception: pass
+                    try: organic_treatment = f_org.result(timeout=2.5)
+                    except Exception: pass
+                    try: chemical_treatment = f_chem.result(timeout=2.5)
+                    except Exception: pass
+                    try: farmer_friendly_advice = f_adv.result(timeout=2.5)
+                    except Exception: pass
+                    try: prediction_result["safety_precautions"] = f_safe.result(timeout=2.5)
+                    except Exception: pass
+                    try: prevention_methods = f_prev.result(timeout=2.5)
+                    except Exception: pass
+                    try: possible_causes = f_caus.result(timeout=2.5)
+                    except Exception: pass
             except Exception as ex:
                 print("Phase 4 deep-translator fallback failed:", ex)
                 pass

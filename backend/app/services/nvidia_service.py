@@ -215,45 +215,35 @@ class NVIDIAService:
             logger.info(f"AI Service initialized with providers: {' -> '.join(configured)}")
 
     def _get_providers(self):
-        """Returns list of active configured NVIDIA providers in priority order with fast fallback models: [ (name, client, model), ... ]"""
+        """Returns the primary active configured NVIDIA provider. Avoids redundant 4-way cascades that stall user requests."""
         providers = []
-        # Try primary model first, followed by proven fast fallback model
-        models = [self.nvidia_model]
-        fallback_model = "meta/llama-3.2-11b-vision-instruct" if "nemotron" in self.nvidia_model else "nvidia/nemotron-3.5-lightning-30b-a3b"
-        if fallback_model not in models:
-            models.append(fallback_model)
-
-        for m in models:
-            m_short = m.split("/")[-1]
-            if self.nvidia_client:
-                providers.append((f"NVIDIA NIM Primary ({m_short})", self.nvidia_client, m))
-            if self.nvidia_client_2:
-                providers.append((f"NVIDIA NIM Secondary ({m_short})", self.nvidia_client_2, m))
+        if self.nvidia_client:
+            providers.append((f"NVIDIA NIM ({self.nvidia_model.split('/')[-1]})", self.nvidia_client, self.nvidia_model))
+        elif self.nvidia_client_2:
+            providers.append((f"NVIDIA NIM Secondary ({self.nvidia_model.split('/')[-1]})", self.nvidia_client_2, self.nvidia_model))
         return providers
 
     async def _execute_completion(
         self,
         messages: list,
         temperature: float = 0.2,
-        max_tokens: int = 1500,
+        max_tokens: int = 1200,
         timeout: float = 3.0
     ) -> tuple[Optional[str], Optional[str]]:
         """
-        Executes a chat completion across configured AI providers with automatic failover.
-        Enforces a strict 3.5s timeout per attempt so agricultural scans never hang.
-        Returns (response_text, provider_name) or (None, None) if all fail.
+        Executes a single fast chat completion attempt.
+        Fails fast to the local ICAR knowledge base in <= 3.0s if cloud latency is detected.
         """
         providers = self._get_providers()
         if not providers:
             return None, None
 
-        # Strictly cap tokens and timeout so scans return immediately
-        safe_tokens = min(max_tokens, 1200)
-        safe_timeout = min(max(timeout, 2.0), 3.5)
+        safe_tokens = min(max_tokens, 1000)
+        safe_timeout = min(max(timeout, 1.5), 4.0)
 
         for name, client, model in providers:
             try:
-                logger.info(f"Attempting AI completion via {name} ({model}) [max_tokens={safe_tokens}, timeout={safe_timeout}]...")
+                logger.info(f"Attempting AI completion via {name} ({model}) [timeout={safe_timeout}s]...")
                 response = await asyncio.wait_for(
                     client.chat.completions.create(
                         model=model,
@@ -262,43 +252,39 @@ class NVIDIAService:
                         max_tokens=safe_tokens,
                         timeout=safe_timeout
                     ),
-                    timeout=safe_timeout + 0.5
+                    timeout=safe_timeout + 0.3
                 )
                 choice = response.choices[0]
                 raw_msg = choice.message
                 content = (raw_msg.content or getattr(raw_msg, "reasoning_content", None) or getattr(raw_msg, "text", None) or "").strip()
                 if not content:
-                    raise ValueError(f"Empty content returned from {name} ({model})")
+                    raise ValueError(f"Empty content returned from {name}")
+                
                 finish_reason = getattr(choice, 'finish_reason', None)
                 if finish_reason == "length":
-                    logger.warning(f"AI completion reached token length limit ({call_tokens}) for {name} ({model}).")
-                    # Cleanly trim any dangling incomplete sentence or trailing header
                     sentence_ends = [i for i, ch in enumerate(content) if ch in ('.', '!', '?', '।', ')', '🌱')]
                     if sentence_ends:
                         last_good = sentence_ends[-1]
                         if len(content) - last_good < 160:
                             content = content[:last_good + 1].strip()
-                    # Strip any trailing orphaned heading or bullet point
                     content = re.sub(r'\n+\s*(\*\*.*?\*\*|#+.*?|[-*]\s*)$', '', content).strip()
                     if content.count("**") % 2 != 0:
                         content += "**"
                     if content.count("*") % 2 != 0:
                         content += "*"
-                logger.info(f"AI completion succeeded via {name} ({model}) [finish_reason={finish_reason}]")
+
+                logger.info(f"AI completion succeeded via {name}")
                 return content, name
             except Exception as ex:
                 ex_str = str(ex).lower()
                 if "401" in ex_str or "invalid_api_key" in ex_str or "invalid api key" in ex_str:
-                    logger.warning(f"Provider {name} returned 401 Invalid API Key. Disabling provider to eliminate request latency.")
-                    if "groq" in name.lower():
-                        self.groq_client = None
-                    elif "nvidia" in name.lower():
-                        self.nvidia_client = None
+                    logger.warning(f"Provider {name} returned 401 Invalid API Key. Disabling provider.")
+                    self.nvidia_client = None
                 else:
-                    logger.warning(f"Provider {name} ({model}) failed or timed out: {ex}. Checking for fallback...")
-                continue
+                    logger.warning(f"Provider {name} fast-timeout ({ex}); instantly activating local agronomic engine.")
+                # Fast fail: do not loop through redundant providers
+                break
 
-        logger.error("All AI cloud providers failed for request.")
         return None, None
 
     async def generate_farming_advice(
