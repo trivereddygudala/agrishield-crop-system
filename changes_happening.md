@@ -2,6 +2,15 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v133) - Documentation: Developer-Grade Upgrades Blueprint Saved to Technical Roadmap
+- **Summary:** Archived 5 complete architectural upgrade specifications in `docs/future_ai_roadmap.md` for on-demand implementation:
+  1. 📱 **Offline Edge-AI Vision Scanner:** In-browser ONNX/TFLite quantized inference via Web Worker for instant offline scans in rural dead-zones with 0 MB Render RAM usage.
+  2. 📈 **Real-Time APMC Mandi Price Arbitrage & Profit Radar:** Daily market price integration and transport net profit calculator across regional mandis (Guntur, Warangal, etc.).
+  3. 💬 **Autonomous 2-Way WhatsApp Bot Gateway:** FastAPI webhook for WhatsApp voice memo & leaf photo diagnosis with automated Telugu audio prescription replies.
+  4. 🛰️ **Sentinel-2 Satellite Field NDVI & Stress Index:** Copernicus satellite telemetry for multispectral NDVI canopy vigor checks 4–7 days before visible symptoms appear.
+  5. 🎙️ **1-Tap Walkie-Talkie Voice Crop Doctor:** Dialect-tolerant Indic speech recognition (Whisper/Bhashini) coupled with fast NVIDIA NIM agronomic reasoning.
+- **Files modified**: `docs/future_ai_roadmap.md`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v132) - Feature: In-Message Voice Audio Readout in Google Messages SMS Reader
 - **Summary:** Added voice narration to the Google Messages SMS reader (`GoogleMessageReader.jsx`) so farmers can listen out loud to notifications in fluent Telugu or their selected regional language:
   1. 🔊 **Integrated Web Speech Synthesis (`frontend/src/components/common/GoogleMessageReader.jsx`):**
