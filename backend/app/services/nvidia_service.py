@@ -205,6 +205,9 @@ class NVIDIAService:
                 timeout=5.0
             )
 
+        # Adaptive circuit breaker: trips if cloud LLM times out to prevent chained delays
+        self._circuit_broken_until = 0.0
+
         self.client = self.nvidia_client or self.nvidia_client_2
         if not self.client:
             logger.warning("No NVIDIA_API_KEY configured. AI Service running in local intelligence mode.")
@@ -216,6 +219,9 @@ class NVIDIAService:
 
     def _get_providers(self):
         """Returns the primary active configured NVIDIA provider. Avoids redundant 4-way cascades that stall user requests."""
+        import time
+        if time.time() < self._circuit_broken_until:
+            return []
         providers = []
         if self.nvidia_client:
             providers.append((f"NVIDIA NIM ({self.nvidia_model.split('/')[-1]})", self.nvidia_client, self.nvidia_model))
@@ -239,7 +245,7 @@ class NVIDIAService:
             return None, None
 
         safe_tokens = min(max_tokens, 1000)
-        safe_timeout = min(max(timeout, 1.5), 4.0)
+        safe_timeout = min(max(timeout, 1.5), 3.0)
 
         for name, client, model in providers:
             try:
@@ -277,11 +283,14 @@ class NVIDIAService:
                 return content, name
             except Exception as ex:
                 ex_str = str(ex).lower()
+                import time
+                # Trip circuit breaker for 180s so subsequent steps in this scan and immediate future scans execute instantly
+                self._circuit_broken_until = time.time() + 180.0
                 if "401" in ex_str or "invalid_api_key" in ex_str or "invalid api key" in ex_str:
                     logger.warning(f"Provider {name} returned 401 Invalid API Key. Disabling provider.")
                     self.nvidia_client = None
                 else:
-                    logger.warning(f"Provider {name} fast-timeout ({ex}); instantly activating local agronomic engine.")
+                    logger.warning(f"Provider {name} fast-timeout ({ex}); tripping circuit breaker for 3m to activate instant local agronomy.")
                 # Fast fail: do not loop through redundant providers
                 break
 

@@ -64,7 +64,7 @@ class AIClusterDispatcher:
             target_endpoint = f"{worker_url}/api/worker/predict"
             try:
                 logger.info(f"⚡ [AI Cluster] Dispatching scan to worker: {worker_url}")
-                async with httpx.AsyncClient(timeout=35.0) as client:
+                async with httpx.AsyncClient(timeout=8.0) as client:
                     files = {"file": (filename, image_bytes, "image/jpeg")}
                     data = {
                         "explainer_type": explainer_type,

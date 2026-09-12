@@ -786,17 +786,24 @@ async def predict_pytorch_endpoint(
             except Exception:
                 pass
 
-            refinement = await nvidia_service.refine_prediction(
-                crop_name=prediction_result["crop_name"],
-                top_predictions=top_preds,
-                sensor_data=latest_telemetry or {
-                    "temperature": 28.0,
-                    "humidity": 60.0,
-                    "soil_moisture": 50.0,
-                    "rain_sensor": 0
-                },
-                farm_profile=active_farm
-            )
+            refinement = None
+            try:
+                refinement = await asyncio.wait_for(
+                    nvidia_service.refine_prediction(
+                        crop_name=prediction_result["crop_name"],
+                        top_predictions=top_preds,
+                        sensor_data=latest_telemetry or {
+                            "temperature": 28.0,
+                            "humidity": 60.0,
+                            "soil_moisture": 50.0,
+                            "rain_sensor": 0
+                        },
+                        farm_profile=active_farm
+                    ),
+                    timeout=2.0
+                )
+            except Exception as ref_to:
+                print(f"[NVIDIA REFINEMENT FAST-BYPASS] Skipped: {ref_to}")
 
             if refinement and refinement.get("refined"):
                 # Safety check: make sure the refined disease actually corresponds to one of the vision candidates
