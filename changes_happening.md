@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v137) - Performance & Stability: Fix Slow Application Loading, Render Polling Storm & WebSocket 403 Reconnect Loop
+- **Summary:** Investigated Render production logs and addressed all root causes behind sluggish application loading, request waterfalls, and CPU saturation:
+  1. ⚡ **WebSocket 403 Forbidden Reconnect Storm Neutralized (`WebSocketContext.jsx`):**
+     - Handshake rejections (e.g. expired session tokens, code 4001, 4003, or 1008) previously triggered rapid, unthrottled reconnects every 1–2 seconds, bombarding the backend with duplicate handshakes.
+     - Enforced non-empty token validation before dialing socket.
+     - Added explicit auth-rejection handling to halt automated reconnect storms.
+     - Capped maximum reconnection attempts to 5 with progressive backoff (3s, 6s, 12s, 24s, 30s) before falling back cleanly to offline state.
+  2. 🛑 **Device Status Polling Throttling & Stampede Elimination (`AppLayout.jsx`):**
+     - Eliminated the rapid 5-second polling timer that re-fired on every WebSocket connection state change.
+     - Added an 8-second throttle lock (`lastFetchNodeRef`) preventing concurrent/back-to-back `/api/v1/devices/status` bursts.
+     - Relaxed offline adaptive REST fallback interval from 5s to 25s.
+  3. 🌾 **Deduplicated Farm Context Initialization (`FarmContext.jsx`):**
+     - Keyed farm loading strictly to `userId` with an `isFetchingRef` in-flight guard, eliminating the 6-request duplicate burst (`/api/farms`, `/api/farms/archived`, `/api/farms/current`) caused by `AuthContext` profile re-renders.
+  4. 📊 **Dashboard Background Query Optimization (`DashboardPage.jsx`):**
+     - Reduced initial history fetch from `limit=100` to `limit=10` (the dashboard only renders the top 5 recent scans), drastically cutting MongoDB document serialization overhead and response payload sizes.
+     - Relaxed background dashboard telemetry polling from 10s to 30s.
+  5. 🚀 **Initial Bundle Code Splitting & Chunk Optimization (`App.jsx`):**
+     - Converted heavy pages (`DashboardPage` and `UploadImagePage` with the entire Scan Center and botanical datasets) to lazy-loaded chunks via `lazyWithRetry`.
+     - Reduced initial entry JS bundle by ~500 KB (from 1,598 KB down to 1,102 KB), drastically accelerating First Contentful Paint (FCP) and Time to Interactive (TTI).
+  6. 💤 **Render Cold Start Diagnosis & Keep-Alive Guidance:**
+     - Identified that Render's free tier spins down containers after 15 minutes of inactivity (causing 50-90s initial boot delays).
+     - Verified ultra-fast `<2ms` response from `/health` and `/api/v1/health` for free external cron pingers (e.g., cron-job.org / UptimeRobot) to prevent container sleep.
+- **Files modified**: `frontend/src/context/WebSocketContext.jsx`, `frontend/src/context/FarmContext.jsx`, `frontend/src/components/AppLayout.jsx`, `frontend/src/pages/DashboardPage.jsx`, `frontend/src/App.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v136) - Feature: Full 108 Andhra Pradesh Regional Species Integration (Trees, Crops, Vegetables & Weeds) in Plant Identifier
 - **Summary:** Expanded the Plant Identifier to support all 108 regional plant, tree, crop, and weed species across Coastal Andhra, Rayalaseema, and the Krishna/Godavari deltas:
   1. 🌳 **Normal Trees Master Selector (`ANDHRA_NORMAL_TREES` - 38 Species):**

@@ -12,16 +12,16 @@ import OfflineStatusBar from './components/common/OfflineStatusBar';
 import { useColorTheme } from './hooks/useColorTheme';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// Critical-path pages — loaded eagerly for instant first-paint
+// Critical-path authentication pages — loaded eagerly for instant first-paint
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import UploadImagePage from './pages/UploadImagePage';
 import NotFoundPage from './pages/NotFoundPage';
 import ServerErrorPage from './pages/ServerErrorPage';
 
 // Lazily loaded pages (with auto-recovery on new deployment chunk hash mismatch)
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
+const UploadImagePage = lazyWithRetry(() => import('./pages/UploadImagePage'));
 const PredictionResultPage = lazyWithRetry(() => import('./pages/PredictionResultPage'));
 const HistoryPage = lazyWithRetry(() => import('./pages/HistoryPage'));
 const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'));

@@ -84,7 +84,7 @@ const DashboardPage = () => {
   const fetchDashboardData = useCallback(async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      const statsRes = await API.get('/api/history?limit=100');
+      const statsRes = await API.get('/api/history?limit=10');
       const list = statsRes.data.predictions || [];
       const total = statsRes.data.total || 0;
       let healthy = 0;
@@ -126,7 +126,7 @@ const DashboardPage = () => {
     fetchDashboardData(false);
     const intervalId = setInterval(() => {
       fetchDashboardData(true);
-    }, 10000);
+    }, 30000);
     return () => clearInterval(intervalId);
   }, [coordinates, fetchDashboardData]);
 

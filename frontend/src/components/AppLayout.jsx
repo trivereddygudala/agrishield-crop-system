@@ -317,8 +317,12 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     ? { online: false, rssi: null, bluetoothConnected: false, batteryPercent: 14, batteryCharging: false }
     : nodeStatus;
 
+  const lastFetchNodeRef = React.useRef(0);
   const fetchNodeStatus = useCallback(async () => {
     if (!user) return;
+    const now = Date.now();
+    if (now - lastFetchNodeRef.current < 8000) return;
+    lastFetchNodeRef.current = now;
     try {
       const res = await API.get('/api/v1/devices/status');
       if (res.data && res.data.length > 0) {
@@ -340,11 +344,11 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     } catch { /* silently ignore */ }
   }, [user]);
 
-  // STEP 5 - FALLBACK: Adaptive REST polling ONLY when WebSocket is offline/reconnecting
+  // STEP 5 - FALLBACK: Adaptive REST polling ONLY when WebSocket is offline (25s interval)
   useEffect(() => {
     fetchNodeStatus();
     if (connectionStatus !== 'connected') {
-      const timer = setInterval(fetchNodeStatus, 5000);
+      const timer = setInterval(fetchNodeStatus, 25000);
       return () => clearInterval(timer);
     }
   }, [fetchNodeStatus, connectionStatus]);

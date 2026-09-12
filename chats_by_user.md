@@ -6,6 +6,24 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 81
+* **User Input:**
+  > "1.see the last logs and why the application takes so much time to load and 2. i have the design changes also there first see 1 and do the corrections [Screenshot of Render live logs showing WebSocket 403 Forbidden loop and excessive /api/devices/status bursts]"
+* **Machine Summary Solution:**
+  * **Render Logs Analysis:**
+    - Root cause 1: WebSocket 403 reconnect storm. When an expired token was used, `WebSocketContext.jsx` rapidly reconnected in an infinite loop every 1–2s, repeatedly triggering Uvicorn 403 Forbidden handshake rejections.
+    - Root cause 2: Polling stampede. `AppLayout.jsx` re-fetched `/api/devices/status` on every WebSocket connection status transition, plus `DashboardPage.jsx` fetched 100 history documents and devices every 10 seconds.
+    - Root cause 3: Render Free Tier cold start spin-down (50–90 second boot delay after 15 min of inactivity, noted in purple on Render banner).
+  * **Corrections Implemented:**
+    - `WebSocketContext.jsx`: Stopped reconnecting on auth error codes (4001, 4003, 1008), capped max attempts to 5 with progressive backoff (3s, 6s, 12s, 24s, 30s).
+    - `AppLayout.jsx`: Added 8-second throttle lock on `fetchNodeStatus` and relaxed fallback interval from 5s to 25s.
+    - `FarmContext.jsx`: Deduplicated farm context fetches on user login.
+    - `DashboardPage.jsx`: Reduced initial history query from `limit=100` to `limit=10`, relaxed interval from 10s to 30s.
+    - `App.jsx`: Code-split `DashboardPage` and `UploadImagePage` with `lazyWithRetry`, reducing initial bundle size by ~500 KB (1,598 KB down to 1,102 KB).
+  * **Build Verification:**
+    - `python -m compileall -q backend/app` passed with 0 errors.
+    - `npm run build` completed in 34.89s with 0 errors.
+
 ### Chat Entry 80
 * **User Input:**
   > "how many normal trees you add ... [Comprehensive list of all 108 Andhra Pradesh regional species: 20 Big Native & Timber Trees, 18 Commercial Fruit Trees, 19 Primary Field Crops, 24 Vegetables & Spices, 17 Medicinal & Flowers, 19 Weeds & Field Grasses]"

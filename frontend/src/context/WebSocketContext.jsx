@@ -126,7 +126,13 @@ export const WebSocketProvider = ({ children }) => {
       host = window.location.host;
     }
 
-    const authToken = token || localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+    const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
+    const authToken = storage.getItem('token') || token || '';
+    if (!authToken) {
+      setConnectionStatus('offline');
+      return;
+    }
+
     const wsUrl = `${protocol}//${host}/api/v1/notifications/ws/${userId}?token=${encodeURIComponent(authToken)}&client=react_spa`;
 
     try {
@@ -288,10 +294,24 @@ export const WebSocketProvider = ({ children }) => {
           return;
         }
 
+        // Stop infinite retry storm on auth rejections
+        if (event.code === 4001 || event.code === 4003 || event.code === 1008) {
+          console.warn(`WebSocket closed due to auth rejection (${event.code}). Ceasing automatic reconnect.`);
+          setConnectionStatus('offline');
+          return;
+        }
+
+        // Limit maximum reconnection attempts to 5
+        if (reconnectAttemptRef.current >= 5) {
+          console.warn('Max WebSocket reconnect attempts reached (5). Switching to offline/REST fallback.');
+          setConnectionStatus('offline');
+          return;
+        }
+
         setConnectionStatus('reconnecting');
         const attempt = reconnectAttemptRef.current++;
-        // Exponential backoff: 1s, 2s, 4s, 8s, 16s, capped at 30s
-        const delay = Math.min(Math.pow(2, attempt) * 1000, 30000);
+        // Exponential backoff: 3s, 6s, 12s, 24s, capped at 30s
+        const delay = Math.min(Math.pow(2, attempt) * 3000, 30000);
         
         reconnectTimeoutRef.current = setTimeout(() => {
           if (!isUnmountedRef.current && user) {

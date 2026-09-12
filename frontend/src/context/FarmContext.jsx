@@ -10,13 +10,17 @@ export const FarmProvider = ({ children }) => {
   const [archivedFarms, setArchivedFarms] = useState([]);
   const [activeFarm, setActiveFarmState] = useState(null);
   const [loading, setLoading] = useState(false);
+  const userId = user?.id || user?._id;
+  const isFetchingRef = React.useRef(false);
 
   const refreshFarms = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setFarms([]);
       setActiveFarmState(null);
       return;
     }
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setLoading(true);
     try {
       // Parallel fetch all farms, archived farms, and active farm
@@ -32,13 +36,16 @@ export const FarmProvider = ({ children }) => {
       console.error("Error refreshing farms context:", error);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [user]);
+  }, [userId]);
 
-  // Load farms when user shifts
+  // Load farms once when user shifts
   useEffect(() => {
-    refreshFarms();
-  }, [user, refreshFarms]);
+    if (userId) {
+      refreshFarms();
+    }
+  }, [userId, refreshFarms]);
 
   const selectActiveFarm = async (farmId) => {
     setLoading(true);
