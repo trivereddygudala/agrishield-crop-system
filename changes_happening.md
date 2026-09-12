@@ -2,6 +2,16 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v123) - Fix: Missing Query Import in Backend Auth Router (Render Deployment Error)
+- **Summary:** Resolved the Render production deployment crash:
+  1. 🐛 **Render Deployment Failure Resolution (`backend/app/routers/auth.py`):**
+     - Fixed `NameError: name 'Query' is not defined` on line 451 of `backend/app/routers/auth.py`.
+     - Added `Query` to `from fastapi import APIRouter, Depends, HTTPException, status, Request, Query`.
+  2. 🧪 **Validation:**
+     - Verified FastAPI module initialization via `python -c "import backend.app.main; print('FastAPI app imported successfully!')"`.
+     - Confirmed clean startup with 0 errors.
+- **Files modified**: `backend/app/routers/auth.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v122) - Fix: Android Passkey "No Passkeys Available" & Biometric Cancellation Errors
 - **Summary:** Completely diagnosed and eliminated the root cause of Android's Google Credential Manager modal (*"No passkeys available - There aren't any passkeys for agrishield-crop-system-rust.vercel.app on this device"*) and the resulting red *"Biometric authentication was cancelled or timed out"* error toast:
   1. 🔍 **Root Cause Elimination:**
