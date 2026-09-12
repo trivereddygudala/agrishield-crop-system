@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v122) - Fix: Android Passkey "No Passkeys Available" & Biometric Cancellation Errors
+- **Summary:** Completely diagnosed and eliminated the root cause of Android's Google Credential Manager modal (*"No passkeys available - There aren't any passkeys for agrishield-crop-system-rust.vercel.app on this device"*) and the resulting red *"Biometric authentication was cancelled or timed out"* error toast:
+  1. 🔍 **Root Cause Elimination:**
+     - When tapping "Sign in with Biometrics" on a device before setting up a passkey, invoking `navigator.credentials.get()` without credential ID constraints forces Android / Google Play Services to search for discoverable passkeys. When none exist for the domain, Android pops up the system modal "No passkeys available" and dismissing it throws `NotAllowedError`.
+  2. 🛡️ **Backend Pre-Flight Account Verification (`backend/app/routers/auth.py`):**
+     - Added `GET /api/auth/biometric/check?account=<username_or_email>`.
+     - Checks if the user exists and has `biometric_enabled: true` with valid `credential_ids` registered.
+     - Returns `{ "exists": true, "biometric_enabled": bool, "credential_ids": [...] }`.
+  3. 📱 **Frontend Smart Pre-Flight Flow (`frontend/src/pages/LoginPage.jsx`):**
+     - Before invoking WebAuthn hardware sensors, `handleBiometricSignIn` queries `/api/auth/biometric/check`.
+     - If biometrics is not yet enrolled on that account: Prevents calling `navigator.credentials.get()` entirely, displaying a helpful instruction instead of triggering Android's system dialog:
+       *(EN: "Biometric sign-in is not yet set up for this account. Please sign in with your password first, then enable Fingerprint / Face ID in Settings.")*
+       *(TE: "ఈ ఖాతాలో బయోమెట్రిక్ ఇంకా సక్రియం చేయబడలేదు. దయచేసి ముందుగా పాస్‌వర్డ్‌తో లాగిన్ అయ్యి సెట్టింగ్స్‌లో మీ వేలిముద్ర లేదా ఫేస్ లాక్‌ని ప్రారంభించండి.")*
+     - If biometrics is enrolled: Retrieves the registered `credential_ids` and passes them directly to `authenticateWithBiometrics(targetCredentialId)` so Android targets the exact passkey directly.
+     - Gracefully catches user cancellations and explains clearly if the passkey was enrolled on another device.
+  4. 🔑 **WebAuthn Credential Handling & Passkey Resident Keys (`frontend/src/utils/biometricAuth.js`):**
+     - Guarded `authenticateWithBiometrics`: If no credential ID is available, returns `{ success: false, noCredential: true }` without making unconstrained calls.
+     - Removed unsafe fallback retry without `allowCredentials` that was causing the Android passkey popup.
+     - In `registerBiometricCredential`, configured `residentKey: 'preferred'` following WebAuthn L2/L3 standards for modern Android / Google Passkeys.
+- **Files modified**: `backend/app/routers/auth.py`, `frontend/src/utils/biometricAuth.js`, `frontend/src/pages/LoginPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v121) - Fix: Biometric Account-Oriented Authentication & Language Consistency
 - **Summary:** Resolved the language mismatch and aligned biometric authentication directly to the user's account rather than tying it to a single device:
   1. 🌐 **Strict Language Alignment (`frontend/src/pages/LoginPage.jsx`):**

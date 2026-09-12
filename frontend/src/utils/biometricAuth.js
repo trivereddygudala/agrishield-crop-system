@@ -86,7 +86,7 @@ export async function registerBiometricCredential(user) {
     authenticatorSelection: {
       authenticatorAttachment: 'platform', // Enforce local hardware (Touch ID, Fingerprint, Windows Hello)
       userVerification: 'preferred',
-      requireResidentKey: false
+      residentKey: 'preferred'
     },
     timeout: 60000,
     attestation: 'none'
@@ -156,6 +156,17 @@ export async function authenticateWithBiometrics(preferredCredentialId = null) {
 
   const storedCid = preferredCredentialId || localStorage.getItem('agrishield_biometric_cid');
 
+  // CRITICAL: If no credential ID is available anywhere, do NOT invoke navigator.credentials.get() without allowCredentials!
+  // Doing so causes Android / Google Credential Manager to display:
+  // "No passkeys available - There aren't any passkeys for [domain] on this device"
+  if (!storedCid) {
+    return {
+      success: false,
+      noCredential: true,
+      error: 'No biometric passkey registered on this device yet.'
+    };
+  }
+
   const challenge = new Uint8Array(32);
   window.crypto.getRandomValues(challenge);
 
@@ -163,46 +174,25 @@ export async function authenticateWithBiometrics(preferredCredentialId = null) {
     challenge: challenge,
     rpId: window.location.hostname,
     userVerification: 'preferred',
-    timeout: 60000
+    timeout: 60000,
+    allowCredentials: [
+      {
+        id: base64UrlToBuffer(storedCid),
+        type: 'public-key',
+        transports: ['internal', 'hybrid']
+      }
+    ]
   };
 
-  if (storedCid) {
-    try {
-      publicKeyCredentialRequestOptions.allowCredentials = [
-        {
-          id: base64UrlToBuffer(storedCid),
-          type: 'public-key',
-          transports: ['internal', 'hybrid']
-        }
-      ];
-    } catch (e) {
-      console.warn('Could not parse stored credential ID:', e);
-    }
-  }
-
   try {
-    let assertion = null;
-    try {
-      assertion = await navigator.credentials.get({
-        publicKey: publicKeyCredentialRequestOptions
-      });
-    } catch (innerErr) {
-      // If allowCredentials failed because credential ID wasn't found on this device,
-      // retry without allowCredentials to allow discoverable credentials
-      if (publicKeyCredentialRequestOptions.allowCredentials) {
-        const fallbackOptions = { ...publicKeyCredentialRequestOptions };
-        delete fallbackOptions.allowCredentials;
-        assertion = await navigator.credentials.get({
-          publicKey: fallbackOptions
-        });
-      } else {
-        throw innerErr;
-      }
-    }
+    const assertion = await navigator.credentials.get({
+      publicKey: publicKeyCredentialRequestOptions
+    });
 
     if (!assertion) {
       return {
         success: false,
+        cancelled: true,
         error: 'Biometric authentication was cancelled.'
       };
     }
@@ -220,7 +210,8 @@ export async function authenticateWithBiometrics(preferredCredentialId = null) {
     if (err.name === 'NotAllowedError') {
       return {
         success: false,
-        error: 'Biometric authentication was cancelled or timed out.'
+        cancelled: true,
+        error: 'Biometric authentication was cancelled or no matching passkey found on this device.'
       };
     }
     return {

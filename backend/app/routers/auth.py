@@ -446,6 +446,38 @@ class BiometricLoginRequest(BaseModel):
     credential_id: str
     email: Optional[str] = None
 
+@router.get("/biometric/check")
+async def check_account_biometric(
+    account: str = Query(..., description="Username or Email to check for biometric enrollment"),
+    db = Depends(get_database)
+):
+    """Public check to see if an account has enrolled biometrics, returning public credential IDs."""
+    raw_account = account.strip().lower()
+    if not raw_account:
+        return {"biometric_enabled": False, "message": "Account identifier required"}
+
+    account_queries = [
+        {"email": raw_account},
+        {"email": f"{raw_account}@agrishield.com" if "@" not in raw_account else raw_account},
+        {"name": {"$regex": f"^{re.escape(raw_account)}$", "$options": "i"}},
+        {"username": raw_account.split("@")[0]}
+    ]
+
+    user_doc = await db.users.find_one({"$or": account_queries})
+    if not user_doc:
+        return {"biometric_enabled": False, "exists": False, "message": "Account not found"}
+
+    is_enabled = bool(user_doc.get("biometric_enabled", False))
+    credentials = user_doc.get("biometric_credentials", [])
+    clean_creds = [c.get("credential_id") for c in credentials if c.get("credential_id")]
+
+    return {
+        "exists": True,
+        "account": user_doc.get("email", raw_account),
+        "biometric_enabled": is_enabled and len(clean_creds) > 0,
+        "credential_ids": clean_creds
+    }
+
 @router.get("/biometric/status")
 async def get_biometric_status(current_user: dict = Depends(get_current_user), db = Depends(get_database)):
     """Retrieve enrolled biometric credentials status for the current user."""

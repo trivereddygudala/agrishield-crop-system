@@ -6,6 +6,23 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 59
+* **User Input:**
+  > "fix these errors" [with 2 attached mobile screenshots from Android showing: (1) Google Credential Manager modal: "No passkeys available - There aren't any passkeys for agrishield-crop-system-rust.vercel.app on this device", (2) "Biometric Sign-In: Biometric authentication was cancelled or timed out." error toast]
+* **Machine Summary Solution:**
+  * Diagnosed and eliminated the underlying WebAuthn flow issue:
+    1. **Identified Root Cause:** On Android, invoking `navigator.credentials.get()` without an explicit credential ID (`allowCredentials`) forces Google Play Services / Credential Manager to query for discoverable passkeys. When no passkey is registered on that device for the domain, Android pops up the system modal *"No passkeys available"*, and tapping OK or dismissing throws a `NotAllowedError`.
+    2. **Backend Account Pre-Flight Endpoint (`backend/app/routers/auth.py`):** Added `GET /api/auth/biometric/check?account=<username_or_email>` returning `{ "exists": true, "biometric_enabled": bool, "credential_ids": [...] }`.
+    3. **Frontend Smart Pre-Flight (`frontend/src/pages/LoginPage.jsx`):**
+       - Before launching hardware WebAuthn, `LoginPage.jsx` checks the account with the backend.
+       - If the account does not yet have biometrics registered: Completely blocks invoking `navigator.credentials.get()`, preventing the Android system dialog from appearing. Informs the user cleanly: *"Biometric sign-in is not yet set up for this account. Please sign in with your password first, then enable Fingerprint / Face ID in Settings."*
+       - If the account has registered credentials: Uses the registered credential ID directly in `allowCredentials`, allowing Android to target the specific passkey.
+       - Gracefully handles cancellations without noisy error toasts.
+    4. **WebAuthn Utility Protection (`frontend/src/utils/biometricAuth.js`):**
+       - Guarded `authenticateWithBiometrics` so it never invokes unconstrained WebAuthn when no credential ID is present.
+       - Added `residentKey: 'preferred'` to `registerBiometricCredential` to support modern Android & Google Passkey storage.
+  * Verified: Frontend build (`npm run build`) succeeded with 0 errors (3148 modules transformed in 19.81s). Backend Python compilation succeeded with code 0.
+
 ### Chat Entry 58
 * **User Input:**
   > "why it happens like this what i tell to you give the biometric for the account not for the device , the biometric is for the account ok not for the device. and one more is why it shows in telugu rest of things show in english see the small mistakes can make big errors." [with attached mobile screenshot showing "Biometric Sign-In: Biometric authentication was cancelled." toast, hardcoded Telugu "వేలిముద్ర లేదా ఫేస్ లాగిన్" on an English page, and fixed "Sign in as adireddy@agrishield.com" label]

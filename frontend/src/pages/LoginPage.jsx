@@ -153,17 +153,78 @@ const LoginPage = () => {
 
     setBiometricLoading(true);
     setErrorMsg('');
+
     try {
-      const result = await authenticateWithBiometrics(savedBiometricUser?.credentialId || null);
-      if (!result.success) {
-        toast.error(
-          isTe ? 'బయోమెట్రిక్ లాగిన్' : 'Biometric Sign-In',
-          result.error || (isTe ? 'బయోమెట్రిక్ ధృవీకరణ రద్దు చేయబడింది.' : 'Biometric authentication was cancelled.')
-        );
+      // 1. Pre-flight check: Verify if this account has enrolled biometrics on the server
+      let targetCredentialId = savedBiometricUser?.credentialId || null;
+      try {
+        const checkRes = await API.get('/api/auth/biometric/check', {
+          params: { account: accountToUse }
+        });
+        const bioInfo = checkRes.data;
+
+        if (bioInfo && !bioInfo.biometric_enabled) {
+          // Account does not have biometrics enabled yet
+          const setupNeededMsg = isTe
+            ? `ఈ ఖాతా (${accountToUse}) లో బయోమెట్రిక్ ఇంకా సక్రియం చేయబడలేదు. దయచేసి ముందుగా పాస్‌వర్డ్‌తో లాగిన్ అయ్యి సెట్టింగ్స్‌లో మీ వేలిముద్ర లేదా ఫేస్ లాక్‌ని ప్రారంభించండి.`
+            : `Biometric sign-in is not yet enabled for this account (${accountToUse}). Please sign in with your password first, then enable Fingerprint / Face ID in Settings.`;
+          setErrorMsg(setupNeededMsg);
+          toast.info(
+            isTe ? 'బయోమెట్రిక్ ఇంకా ప్రారంభం కాలేదు' : 'Biometric Setup Required',
+            setupNeededMsg
+          );
+          setBiometricLoading(false);
+          return;
+        }
+
+        if (bioInfo?.credential_ids?.length > 0) {
+          targetCredentialId = bioInfo.credential_ids[0];
+        }
+      } catch (checkErr) {
+        console.warn('Biometric account check failed, trying local credential:', checkErr);
+      }
+
+      // If no credential ID is known from either server or localStorage, avoid triggering Google prompt
+      if (!targetCredentialId) {
+        const noCredMsg = isTe
+          ? 'ఈ ఖాతాకి నమోదు చేసిన బయోమెట్రిక్ కీ కనుగొనబడలేదు. దయచేసి పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి.'
+          : 'No registered biometric passkey found for this account. Please sign in with your password.';
+        setErrorMsg(noCredMsg);
+        toast.info(isTe ? 'పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి' : 'Password Login Required', noCredMsg);
         setBiometricLoading(false);
         return;
       }
 
+      // 2. Hardware scan via WebAuthn
+      const result = await authenticateWithBiometrics(targetCredentialId);
+      
+      if (!result.success) {
+        setBiometricLoading(false);
+        if (result.noCredential) {
+          const noCredMsg = isTe
+            ? 'ఈ పరికరంలో బయోమెట్రిక్ కనుగొనబడలేదు. దయచేసి పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి.'
+            : 'No passkey found on this device. Please sign in with your password to set up biometrics on this phone.';
+          setErrorMsg(noCredMsg);
+          toast.warning(isTe ? 'బయోమెట్రిక్ అందుబాటులో లేదు' : 'No Passkey Found', noCredMsg);
+          return;
+        }
+
+        if (result.cancelled) {
+          const cancelMsg = isTe
+            ? 'బయోమెట్రిక్ ధృవీకరణ రద్దు చేయబడింది లేదా ఈ ఫోన్ ఇంకా ఖాతాకి లింక్ కాలేదు. దయచేసి పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి.'
+            : 'Biometric scan was cancelled or this phone is not yet enrolled with this account. Please sign in with your password.';
+          toast.info(isTe ? 'ధృవీకరణ రద్దు' : 'Authentication Cancelled', cancelMsg);
+          return;
+        }
+
+        toast.error(
+          isTe ? 'బయోమెట్రిక్ లాగిన్' : 'Biometric Sign-In',
+          result.error || (isTe ? 'బయోమెట్రిక్ ధృవీకరణ విఫలమైంది.' : 'Biometric authentication failed.')
+        );
+        return;
+      }
+
+      // 3. Complete authentication on backend
       isLoggingInRef.current = true;
       const loggedUser = await biometricLogin(accountToUse, result.credential_id);
       setSuccessUser(loggedUser);
