@@ -6,6 +6,13 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 65
+* **User Input:**
+  > "how i add rhe ai worker 2 in the main render environment"
+* **Machine Summary Solution:**
+  * Provided step-by-step guidance on navigating to the Render Dashboard for Account 1 (Main Server), opening the Environment settings, and adding the environment variable `AI_WORKER_2_URL` with value `https://agrishield-ai-worker-2.onrender.com`.
+
+
 ### Chat Entry 64
 * **User Input:**
   > "i want to create 2nd one right now give fastly" -> "[https://agrishield-ai-worker-2.onrender.com](https://agrishield-ai-worker-2.onrender.com/)"
