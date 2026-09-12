@@ -368,7 +368,22 @@ const UploadImagePage = () => {
 
     scanStore.setState({ loading: true, errorMsg: '' });
 
-    const fileToUpload = selectedFile;
+    let fileToUpload = selectedFile;
+    try {
+      if (selectedFile && (selectedFile.type?.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(selectedFile.name || ''))) {
+        const compressionResult = await compressImageForUpload(selectedFile, {
+          maxDimension: 1280,
+          quality: 0.82,
+          maxSizeKB: 350
+        });
+        if (compressionResult?.file) {
+          fileToUpload = compressionResult.file;
+        }
+      }
+    } catch (compressErr) {
+      console.warn("Client-side compression fallback to original file:", compressErr);
+    }
+
     const formData = new FormData();
     formData.append('file', fileToUpload);
 

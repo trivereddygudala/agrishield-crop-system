@@ -84,9 +84,19 @@ const DashboardPage = () => {
   const fetchDashboardData = useCallback(async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      const statsRes = await API.get('/api/history?limit=10');
-      const list = statsRes.data.predictions || [];
-      const total = statsRes.data.total || 0;
+      const [statsRes, devicesRes] = await Promise.all([
+        API.get('/api/history?limit=10').catch(err => {
+          console.warn("Stats load failed:", err);
+          return { data: { predictions: [], total: 0 } };
+        }),
+        API.get('/api/v1/devices/status').catch(err => {
+          console.warn("Devices status load failed:", err);
+          return { data: [] };
+        })
+      ]);
+
+      const list = statsRes.data?.predictions || [];
+      const total = statsRes.data?.total || 0;
       let healthy = 0;
       let diseased = 0;
       
@@ -97,7 +107,6 @@ const DashboardPage = () => {
 
       setStats({ total, healthy, diseased, recent: list.slice(0, 5) });
 
-      const devicesRes = await API.get('/api/v1/devices/status');
       const deviceList = devicesRes.data || [];
       setDevices(deviceList);
       

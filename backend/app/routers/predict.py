@@ -31,6 +31,9 @@ def predict_crop_disease(*args, **kwargs):
     from model.predict_pytorch import predict_crop_disease as _real_predict
     return _real_predict(*args, **kwargs)
 
+# In-memory LRU/RAM cache for translation strings to eliminate 10s GoogleTranslator latency
+_TRANSLATION_CACHE: Dict[str, str] = {}
+
 def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
     if not crop_name:
         return ""
@@ -955,12 +958,18 @@ async def predict_pytorch_endpoint(
         if not translated_via_nvidia:
             try:
                 from deep_translator import GoogleTranslator
+                from concurrent.futures import ThreadPoolExecutor
                 translator = GoogleTranslator(source='auto', target=target_lang[:2])
                 
                 def safe_translate(text):
                     if not text or text == "None": return text
+                    cache_key = f"{target_lang[:2]}:{str(text).strip()}"
+                    if cache_key in _TRANSLATION_CACHE:
+                        return _TRANSLATION_CACHE[cache_key]
                     try:
-                        return translator.translate(text)
+                        res = translator.translate(str(text))
+                        _TRANSLATION_CACHE[cache_key] = res
+                        return res
                     except Exception:
                         return text
 
@@ -973,10 +982,20 @@ async def predict_pytorch_endpoint(
                         "Tetracycline", "Carbendazim", "Captan", "Thiram", "Bordeaux", 
                         "Sulfur", "Imidacloprid", "Thiamethoxam", "Spinosad", "Fungicide", "Pesticide", "Insecticide"
                     ]
-                    found = [c for c in chemicals if c.lower() in text.lower()]
+                    found = [c for c in chemicals if c.lower() in str(text).lower()]
                     if found:
                         translated += f" ({', '.join(found)})"
                     return translated
+
+                def parallel_translate_list(items):
+                    if not items: return []
+                    if not isinstance(items, list):
+                        return safe_translate(items)
+                    uncached = [it for it in items if it and f"{target_lang[:2]}:{str(it).strip()}" not in _TRANSLATION_CACHE]
+                    if uncached:
+                        with ThreadPoolExecutor(max_workers=min(len(uncached), 5)) as pool:
+                            list(pool.map(safe_translate, uncached))
+                    return [safe_translate(it) for it in items]
 
                 # Fallback translation for crop and disease names
                 fallback_crop = get_farmer_crop_translation(safe_translate(prediction_result.get("crop_name", "")), target_lang)
@@ -990,15 +1009,8 @@ async def predict_pytorch_endpoint(
                 chemical_treatment = translate_with_english_chemicals(chemical_treatment)
                 farmer_friendly_advice = safe_translate(farmer_friendly_advice)
                 
-                if isinstance(prevention_methods, list):
-                    prevention_methods = [safe_translate(m) for m in prevention_methods]
-                else:
-                    prevention_methods = safe_translate(prevention_methods)
-
-                if isinstance(possible_causes, list):
-                    possible_causes = [safe_translate(c) for c in possible_causes]
-                else:
-                    possible_causes = safe_translate(possible_causes)
+                prevention_methods = parallel_translate_list(prevention_methods)
+                possible_causes = parallel_translate_list(possible_causes)
 
                 safety_precautions = prediction_result.get("safety_precautions", "None")
                 safety_precautions = translate_with_english_chemicals(safety_precautions)
@@ -1055,6 +1067,7 @@ async def predict_pytorch_endpoint(
             if not translated_advisor_via_nvidia:
                 try:
                     from deep_translator import GoogleTranslator
+                    from concurrent.futures import ThreadPoolExecutor
                     
                     organic_texts = advisor_data.get("treatment", {}).get("organic", [])
                     chemical_texts = advisor_data.get("treatment", {}).get("chemical", [])
@@ -1063,42 +1076,43 @@ async def predict_pytorch_endpoint(
                     
                     translator = GoogleTranslator(source='auto', target=target_lang[:2])
                     
-                    def translate_array(arr):
-                        if not arr: return []
-                        translated = []
-                        for text in arr:
-                            if not text: continue
-                            try:
-                                translated.append(translator.translate(text))
-                            except Exception:
-                                translated.append(text)
-                        return translated
-
-                    if organic_texts:
-                        advisor_data["treatment"]["organic"] = translate_array(organic_texts)
-                    if chemical_texts:
-                        advisor_data["treatment"]["chemical"] = translate_array(chemical_texts)
-                    if prevention_texts:
-                        advisor_data["prevention"] = translate_array(prevention_texts)
-                    if tips_texts:
-                        advisor_data["tips"] = translate_array(tips_texts)
-                        
-                    # Fallback translate severity and spray fields
-                    def translate_safe(text):
+                    def safe_adv_translate(text):
                         if not text: return ""
+                        cache_key = f"{target_lang[:2]}:{str(text).strip()}"
+                        if cache_key in _TRANSLATION_CACHE:
+                            return _TRANSLATION_CACHE[cache_key]
                         try:
-                            return translator.translate(text)
+                            res = translator.translate(str(text))
+                            _TRANSLATION_CACHE[cache_key] = res
+                            return res
                         except Exception:
                             return text
 
+                    def parallel_translate_adv(arr):
+                        if not arr: return []
+                        uncached = [t for t in arr if t and f"{target_lang[:2]}:{str(t).strip()}" not in _TRANSLATION_CACHE]
+                        if uncached:
+                            with ThreadPoolExecutor(max_workers=min(len(uncached), 5)) as pool:
+                                list(pool.map(safe_adv_translate, uncached))
+                        return [safe_adv_translate(t) for t in arr if t]
+
+                    if organic_texts:
+                        advisor_data["treatment"]["organic"] = parallel_translate_adv(organic_texts)
+                    if chemical_texts:
+                        advisor_data["treatment"]["chemical"] = parallel_translate_adv(chemical_texts)
+                    if prevention_texts:
+                        advisor_data["prevention"] = parallel_translate_adv(prevention_texts)
+                    if tips_texts:
+                        advisor_data["tips"] = parallel_translate_adv(tips_texts)
+                        
                     if "level" in advisor_data.get("severity", {}):
-                        advisor_data["severity"]["level"] = translate_safe(advisor_data["severity"]["level"])
+                        advisor_data["severity"]["level"] = safe_adv_translate(advisor_data["severity"]["level"])
                     if "description" in advisor_data.get("severity", {}):
-                        advisor_data["severity"]["description"] = translate_safe(advisor_data["severity"]["description"])
+                        advisor_data["severity"]["description"] = safe_adv_translate(advisor_data["severity"]["description"])
                     if "best_time" in advisor_data.get("spray", {}):
-                        advisor_data["spray"]["best_time"] = translate_safe(advisor_data["spray"]["best_time"])
+                        advisor_data["spray"]["best_time"] = safe_adv_translate(advisor_data["spray"]["best_time"])
                     if "wind_warning" in advisor_data.get("spray", {}):
-                        advisor_data["spray"]["wind_warning"] = translate_safe(advisor_data["spray"]["wind_warning"])
+                        advisor_data["spray"]["wind_warning"] = safe_adv_translate(advisor_data["spray"]["wind_warning"])
                 except Exception as ex:
                     print("Deep-translator fallback failed:", ex)
                     pass
