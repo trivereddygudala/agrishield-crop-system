@@ -9,6 +9,7 @@ from backend.app.services.recommendations import DailyRecommendationsService
 from backend.app.services.crop_calendar import CropCalendarService
 from backend.app.services.farm_health import FarmHealthService
 from backend.app.services.farm_timeline import FarmTimelineService
+from backend.app.services.economics import CropEconomicsService
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api/intelligence", tags=["Intelligence System"])
 weather_service = WeatherIntelligenceService()
 irrigation_service = SmartIrrigationService(weather_service=weather_service)
 risk_service = DiseaseRiskForecastService(weather_service=weather_service)
+economics_service = CropEconomicsService()
 recommendations_service = DailyRecommendationsService(
     weather_service=weather_service,
     irrigation_service=irrigation_service,
@@ -62,10 +64,69 @@ async def get_disease_risk(
     farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
     crop_name: str = Query("Tomato", description="Crop Name"),
     lat: float = Query(16.5062, description="Latitude"),
-    lon: float = Query(80.6480, description="Longitude")
+    lon: float = Query(80.6480, description="Longitude"),
+    hardware_mode: bool = Query(False, description="Enable Dual-Stream Hardware Sensor Mode"),
+    canopy_temp: Optional[float] = Query(None, description="ESP32 Canopy Temp (°C)"),
+    canopy_humidity: Optional[float] = Query(None, description="ESP32 Canopy Humidity (%)"),
+    soil_moisture: Optional[float] = Query(None, description="ESP32 Soil Moisture (%)")
 ):
+    hardware_telemetry = None
+    if hardware_mode and (canopy_temp is not None or canopy_humidity is not None):
+        hardware_telemetry = {
+            "canopy_temperature": canopy_temp,
+            "canopy_humidity": canopy_humidity,
+            "soil_moisture": soil_moisture
+        }
     return await risk_service.calculate_disease_risk(
-        farm_id=farm_id, crop_name=crop_name, lat=lat, lon=lon
+        farm_id=farm_id,
+        crop_name=crop_name,
+        lat=lat,
+        lon=lon,
+        hardware_mode=hardware_mode,
+        hardware_telemetry=hardware_telemetry
+    )
+
+@router.get("/pathogen-radar", summary="Get Hyperlocal Weather & Pathogen Outbreak Forecast Radar")
+async def get_pathogen_radar(
+    farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
+    crop_name: str = Query("Tomato", description="Crop Name"),
+    lat: float = Query(16.5062, description="Latitude"),
+    lon: float = Query(80.6480, description="Longitude"),
+    hardware_mode: bool = Query(False, description="Enable Dual-Stream Hardware Sensor Mode"),
+    canopy_temp: Optional[float] = Query(None, description="ESP32 Canopy Temp (°C)"),
+    canopy_humidity: Optional[float] = Query(None, description="ESP32 Canopy Humidity (%)"),
+    soil_moisture: Optional[float] = Query(None, description="ESP32 Soil Moisture (%)")
+):
+    hardware_telemetry = None
+    if hardware_mode and (canopy_temp is not None or canopy_humidity is not None):
+        hardware_telemetry = {
+            "canopy_temperature": canopy_temp,
+            "canopy_humidity": canopy_humidity,
+            "soil_moisture": soil_moisture
+        }
+    return await risk_service.calculate_disease_risk(
+        farm_id=farm_id,
+        crop_name=crop_name,
+        lat=lat,
+        lon=lon,
+        hardware_mode=hardware_mode,
+        hardware_telemetry=hardware_telemetry
+    )
+
+@router.get("/economic-loss", summary="Get AI Crop Yield Loss & Financial Impact Estimator in ₹")
+async def get_economic_loss(
+    crop_name: str = Query("Tomato", description="Crop Name"),
+    disease_name: str = Query("Early Blight", description="Diagnosed Disease"),
+    severity_stage: str = Query("moderate", description="Severity (early, moderate, severe, critical)"),
+    farm_size_acres: float = Query(1.0, description="Farm Size in Acres"),
+    custom_market_price: Optional[float] = Query(None, description="Custom Market Price per Quintal (₹)")
+):
+    return economics_service.calculate_economic_impact(
+        crop_name=crop_name,
+        disease_name=disease_name,
+        severity_stage=severity_stage,
+        farm_size_acres=farm_size_acres,
+        custom_market_price=custom_market_price
     )
 
 @router.get("/recommendations", summary="Get Daily AI Recommendations")

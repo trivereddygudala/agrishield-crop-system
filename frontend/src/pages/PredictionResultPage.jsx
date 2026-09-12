@@ -29,6 +29,7 @@ import { useFarm } from '../context/FarmContext';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
 import { generateAndDownloadPrescriptionPDF } from '../utils/pdfPrescriptionGenerator';
 import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
+import CropYieldLossEstimator from '../components/intelligence/CropYieldLossEstimator';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
 import { useSpeechReader } from '../hooks/useSpeechReader';
 import VoiceCropDoctorModal from '../components/intelligence/VoiceCropDoctorModal';
@@ -548,14 +549,22 @@ const PredictionResultPage = () => {
 
       {/* Field Acreage Chemical Dosage & Spray Tank Calculator */}
       {!isHealthy && result && !result.is_agrochemical && (
-        <AcreageDosageCalculator 
-          cropName={localizedCrop || result.crop_name}
-          diseaseName={localizedDisease || result.disease_name}
-          chemicalName={diseaseKb.chemicals?.[0]?.split('@')[0]?.trim() || result.chemical_treatment?.split('@')[0]?.trim() || "Mancozeb 75% WP"}
-          dosagePerLiter={2.5}
-          unit="g"
-          initialAcres={activeFarm?.total_area || 1.0}
-        />
+        <div className="space-y-4">
+          <AcreageDosageCalculator 
+            cropName={localizedCrop || result.crop_name}
+            diseaseName={localizedDisease || result.disease_name}
+            chemicalName={diseaseKb.chemicals?.[0]?.split('@')[0]?.trim() || result.chemical_treatment?.split('@')[0]?.trim() || "Mancozeb 75% WP"}
+            dosagePerLiter={2.5}
+            unit="g"
+            initialAcres={activeFarm?.total_area || 1.0}
+          />
+          <CropYieldLossEstimator
+            cropName={result.crop_name || 'Tomato'}
+            diseaseName={result.disease_name || 'Early Blight'}
+            initialSeverity={result.severity || 'moderate'}
+            initialAcres={activeFarm?.total_area || 1.0}
+          />
+        </div>
       )}
 
       {/* Agrochemical Product Details */}

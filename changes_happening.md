@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v120) - Feature: Hyperlocal Weather Outbreak Radar & AI Crop Yield Loss Estimator
+- **Summary:** Implemented two major agronomic decision-support systems for farmers:
+  1. 🌦️ **Hyperlocal Weather & Pathogen Outbreak Forecast Radar (Option 3):**
+     - **Software-Only Mode:** Pulls live meteorological telemetry from the OpenWeatherMap API and runs biological fungal/bacterial infection algorithms across major crops (*Late Blight*, *Early Blight*, *Powdery Mildew*, *Bacterial Spot*).
+     - **Hardware Dual-Stream Mode:** Fuses on-field ESP32 sensor telemetry (canopy temperature, DHT22 canopy humidity, soil moisture) with OpenWeatherMap satellite predictions to calculate the **Microclimate Canopy Delta** and detect hidden moisture condensation traps inside plant foliage.
+     - Computes the **Agronomic Spray Window** based on rain probability and wind velocity to prevent chemical washout.
+     - Created `frontend/src/components/intelligence/PathogenWeatherRadar.jsx` with real-time mode indicator, threat dials, and pathogen germination breakdown cards.
+  2. 💰 **AI Crop Yield Loss & Economic Impact Estimator (Option 2):**
+     - Built `backend/app/services/economics/service.py` and client-side utility `frontend/src/utils/cropEconomics.js` calibrated to Indian APMC Mandi wholesale prices (₹/quintal) for Tomato, Potato, Pepper/Chilli, Cotton, Rice, Maize, Onion, etc.
+     - Calculates projected financial loss (₹), protected harvest value, total treatment investment (chemical + sprayer labor), and **Return on Investment (ROI)** (e.g. 68x ROI).
+     - Includes a **48-Hour Urgency Curve** demonstrating how prompt spraying avoids an extra ~₹14,500 in harvest loss compared to delaying action by 2 days.
+     - Created `frontend/src/components/intelligence/CropYieldLossEstimator.jsx` with interactive plot acreage slider and disease severity stages.
+     - Integrated directly into the **Prediction Result Page (`PredictionResultPage.jsx`)** and **Crop Advisory Page (`CropAdvisoryPage.jsx`)**.
+  3. 🔌 **Backend Intelligence Endpoints (`backend/app/routers/intelligence.py`):**
+     - Added `GET /api/intelligence/pathogen-radar` with `hardware_mode` query toggle and sensor telemetry support.
+     - Added `GET /api/intelligence/economic-loss` for real-time commodity valuation.
+- **Files modified**: `backend/app/services/risk_forecast/service.py`, `backend/app/services/economics/service.py`, `backend/app/routers/intelligence.py`, `frontend/src/utils/cropEconomics.js`, `frontend/src/components/intelligence/CropYieldLossEstimator.jsx`, `frontend/src/components/intelligence/PathogenWeatherRadar.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `frontend/src/pages/CropAdvisoryPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v119) - Feature: Biometric Authentication (Fingerprint & Face ID 1-Tap Sign-In)
 - **Summary:** Added WebAuthn biometric authentication (Fingerprint, Touch ID, Face ID, Windows Hello) enabling registered farmers to sign in instantly with a single touch or face scan:
   1. 🔐 **Backend Biometric Authentication API (`backend/app/routers/auth.py`):**
