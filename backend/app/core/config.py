@@ -42,9 +42,9 @@ class Settings(BaseSettings):
     MONGO_URI: str = ""
     DATABASE_NAME: str = "agrishield_db"
 
-    # Distributed AI Prediction Cluster
-    AI_WORKER_1_URL: str = ""
-    AI_WORKER_2_URL: str = ""
+    # Distributed AI Prediction Cluster (Render Multi-Account)
+    AI_WORKER_1_URL: str = "https://agrishield-ai-worker-1.onrender.com"
+    AI_WORKER_2_URL: str = "https://agrishield-ai-worker-2.onrender.com"
     IS_PREDICTION_WORKER: bool = False
 
     @property

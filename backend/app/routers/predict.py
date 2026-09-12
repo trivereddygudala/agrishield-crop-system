@@ -3,10 +3,10 @@ import sys
 import uuid
 import shutil
 import logging
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query, Form
 
 logger = logging.getLogger("predict")
 
@@ -300,6 +300,51 @@ async def get_ai_model_status():
 
 from backend.app.core.upload_validator import validate_image_upload
 from backend.app.core.rate_limiter import rate_limit, PREDICT_LIMIT
+
+@router.post("/worker/predict")
+async def worker_predict_endpoint(
+    file: UploadFile = File(...),
+    explainer_type: str = Form("gradcam++"),
+    crop_filter: Optional[str] = Form(None)
+):
+    """Internal cluster endpoint executed on dedicated AI workers to run PyTorch/ONNX inference."""
+    temp_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "uploads", "cluster_temp"
+    )
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_filename = f"worker_{uuid.uuid4().hex[:8]}_{os.path.basename(file.filename or 'leaf.jpg')}"
+    temp_path = os.path.join(temp_dir, temp_filename)
+    
+    try:
+        content = await file.read()
+        with open(temp_path, "wb") as f:
+            f.write(content)
+
+        import asyncio
+        import inspect
+        sig = inspect.signature(predict_crop_disease)
+        kwargs = {}
+        if crop_filter:
+            kwargs["crop_filter"] = crop_filter.strip()
+
+        result = await asyncio.to_thread(
+            predict_crop_disease,
+            temp_path,
+            explainer_type or "gradcam++",
+            **kwargs
+        )
+        return {"success": True, "result": result}
+    except Exception as e:
+        logger.error(f"Worker prediction failed: {e}")
+        return {"success": False, "error": str(e)}
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(PREDICT_LIMIT, 60))])
 async def upload_image(
@@ -641,12 +686,29 @@ async def predict_pytorch_endpoint(
         elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
             kwargs["crop_filter"] = active_crop_filter
 
-        prediction_result = await asyncio.to_thread(
-            predict_crop_disease,
-            full_image_path, 
-            req.explainer_type or "gradcam++",
-            **kwargs
-        )
+        # Check if we should offload to AI Worker Cluster (Worker 1 / Worker 2)
+        prediction_result = None
+        try:
+            from backend.app.services.ai_cluster import ai_cluster
+            with open(full_image_path, "rb") as img_f:
+                img_bytes = img_f.read()
+            prediction_result = await ai_cluster.offload_prediction(
+                image_bytes=img_bytes,
+                filename=os.path.basename(full_image_path),
+                explainer_type=req.explainer_type or "gradcam++",
+                crop_filter=active_crop_filter
+            )
+        except Exception as cluster_err:
+            logger.warning(f"Cluster offload attempt bypassed: {cluster_err}")
+
+        # If not offloaded or workers offline, execute locally on server threadpool
+        if not prediction_result:
+            prediction_result = await asyncio.to_thread(
+                predict_crop_disease,
+                full_image_path, 
+                req.explainer_type or "gradcam++",
+                **kwargs
+            )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1269,12 +1331,27 @@ async def predict_batch_endpoint(
             elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
                 kwargs["crop_filter"] = user_crop_filter
 
-            res = await asyncio.to_thread(
-                predict_crop_disease,
-                full_path,
-                "gradcam++",
-                **kwargs
-            )
+            res = None
+            try:
+                from backend.app.services.ai_cluster import ai_cluster
+                with open(full_path, "rb") as img_f:
+                    img_bytes = img_f.read()
+                res = await ai_cluster.offload_prediction(
+                    image_bytes=img_bytes,
+                    filename=os.path.basename(full_path),
+                    explainer_type="gradcam++",
+                    crop_filter=user_crop_filter
+                )
+            except Exception as cluster_err:
+                logger.warning(f"Batch cluster offload bypassed: {cluster_err}")
+
+            if not res:
+                res = await asyncio.to_thread(
+                    predict_crop_disease,
+                    full_path,
+                    "gradcam++",
+                    **kwargs
+                )
 
             raw_disease = res.get("disease_name", "Healthy")
             raw_crop = res.get("crop_name", user_crop_filter or "Crop")

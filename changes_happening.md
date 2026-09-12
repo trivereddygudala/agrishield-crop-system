@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v127) - Architecture: Dual AI Worker Cluster Live & Round-Robin Load Balancer Activated
+- **Summary:** Successfully deployed and integrated the 3-node distributed AI prediction cluster across 3 separate Render accounts to handle 20+ simultaneous crop leaf scans without memory crashes:
+  1. 🚀 **AI Worker 2 Deployment Verified Live (`https://agrishield-ai-worker-2.onrender.com`):**
+     - Confirmed `agrishield-ai-worker-2` on Render Account 3 is live, healthy, and responsive with status code 200.
+     - Confirmed `agrishield-ai-worker-1` on Render Account 2 is live, healthy, and responsive with status code 200.
+  2. ⚖️ **AI Cluster Dispatcher & Round-Robin Load Balancer (`backend/app/services/ai_cluster.py`):**
+     - Implemented `AIClusterDispatcher` distributing incoming image scans between Worker 1 and Worker 2 in alternating sequence.
+     - Features 35-second async HTTP client timeout, automatic failover between nodes, and graceful local inference fallback if workers are in Render spin-up/cold sleep.
+     - Protected against loop recursion using `IS_PREDICTION_WORKER` guard.
+  3. 🔌 **Backend Prediction Router Integration (`backend/app/routers/predict.py`):**
+     - Added dedicated microservice endpoint `@router.post("/worker/predict")` to execute PyTorch/ONNX inference safely on worker instances.
+     - Integrated cluster offloading into `predict_pytorch_endpoint` (single scan) and batch prediction endpoint.
+     - Fixed typing imports (`Optional, List, Dict, Any`).
+  4. 📊 **Cluster Health & Monitoring Endpoint (`backend/app/main.py`):**
+     - Added `/cluster/status` and `/api/v1/cluster/status` returning role, worker list, and cluster status.
+- **Files modified**: `backend/app/services/ai_cluster.py`, `backend/app/routers/predict.py`, `backend/app/core/config.py`, `backend/app/main.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v126) - Architecture: AI Worker 1 Live & Cluster Environment Configuration
 - **Summary:** Verified and linked the dedicated AI prediction microservice cluster:
   1. 🚀 **AI Worker 1 Deployment Verified (`https://agrishield-ai-worker-1.onrender.com/`):**

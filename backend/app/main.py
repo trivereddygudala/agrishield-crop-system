@@ -195,3 +195,18 @@ async def current_weather_endpoint():
             "weather": [{"main": "Clear", "description": "clear sky"}],
             "wind": {"speed": 3.2}
         }
+
+@app.get("/cluster/status")
+@app.get("/api/cluster/status")
+@app.get("/api/v1/cluster/status")
+async def cluster_status_endpoint():
+    """Returns status of the distributed multi-account AI prediction cluster."""
+    from backend.app.services.ai_cluster import ai_cluster
+    nodes = ai_cluster.get_worker_nodes()
+    is_worker = getattr(settings, "IS_PREDICTION_WORKER", False) or os.environ.get("IS_PREDICTION_WORKER", "").lower() == "true"
+    return {
+        "role": "worker" if is_worker else "primary_load_balancer",
+        "worker_nodes": nodes,
+        "worker_count": len(nodes),
+        "cluster_enabled": len(nodes) > 0 and not is_worker
+    }
