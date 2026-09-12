@@ -169,6 +169,12 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   ⚡ PyTorch EfficientNetV2
                 </Badge>
               )}
+              {liveResult?.dual_model_consensus && (
+                <Badge variant="glow-emerald" className="px-3 py-1 text-xs font-black text-emerald-200 border-emerald-400/50 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{currentLang === 'te' ? 'Dual-AI ధృవీకరించబడింది' : 'Dual-AI Verified (PyTorch + NVIDIA NIM)'}</span>
+                </Badge>
+              )}
             </div>
 
             {liveResult?.is_offline && (

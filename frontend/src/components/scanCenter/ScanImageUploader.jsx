@@ -103,9 +103,11 @@ const ScanImageUploader = ({
   liveResult,
   selectedCropFilter = '',
   onCropFilterChange,
+  activeFarmCrop = '',
   compressionInfo = null
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
   const fileInputRef = useRef(null);
   const nativeCameraInputRef = useRef(null);
   const videoRef = useRef(null);
@@ -279,32 +281,47 @@ const ScanImageUploader = ({
     avgG /= totalCenterPixels;
     avgB /= totalCenterPixels;
 
+    const luminance = 0.299 * avgR + 0.587 * avgG + 0.114 * avgB;
     const computedRatio = Math.min(100, Math.round((greenVegPixels / totalCenterPixels) * 100));
     setLeafRatio(computedRatio);
 
-    // Determine Framing Status & Guidance Message based purely on leaf coverage ratio
-    if (computedRatio < 18) {
+    const isTelugu = (i18n.language || '').toLowerCase().startsWith('te');
+
+    // 1. Lighting quality check
+    if (luminance < 38) {
+      setFramingStatus('too_dark');
+      setGuidanceMessage(isTelugu ? '☀️ వెలుతురు తక్కువగా ఉంది — పగటి వెలుతురులో తీయండి' : '☀️ Lighting too dark — Move to daylight or turn on torch');
+      setDetectedCropLive(null);
+      setDetectedConfidenceLive(0);
+    } else if (luminance > 230) {
+      setFramingStatus('too_bright');
+      setGuidanceMessage(isTelugu ? '☀️ అధిక కాంతి — ప్రత్యక్ష ఎండ తీవ్రతను నివారించండి' : '☀️ Too bright / harsh glare — Shield from direct glare');
+      setDetectedCropLive(null);
+      setDetectedConfidenceLive(0);
+    }
+    // 2. Leaf distance and framing check
+    else if (computedRatio < 18) {
       setFramingStatus('no_leaf');
-      setGuidanceMessage('⚠️ No crop leaf detected — Hold leaf inside reticle');
+      setGuidanceMessage(isTelugu ? '⚠️ ఆకు కనపడలేదు — ఆకును ఫ్రేమ్ మధ్యలో ఉంచండి' : '⚠️ No crop leaf detected — Hold leaf inside reticle');
       setDetectedCropLive(null);
       setDetectedConfidenceLive(0);
     } else if (computedRatio < 40) {
       setFramingStatus('too_far');
-      setGuidanceMessage('📐 Leaf detected! Move camera closer');
+      setGuidanceMessage(isTelugu ? '📐 ఆకు గుర్తించబడింది! కెమెరాను కొద్దిగా దగ్గరకు తీసుకురండి' : '📐 Leaf detected! Move camera closer (10–15 cm)');
       setDetectedCropLive(null);
       setDetectedConfidenceLive(0);
     } else if (computedRatio <= 88) {
       setFramingStatus('optimal');
-      setGuidanceMessage('✓ Perfect Leaf Distance & Framing — Ready!');
+      setGuidanceMessage(isTelugu ? '✓ సరైన దూరం & ఫోకస్ — ఫోటో తీయడానికి సిద్ధం!' : '✓ Perfect Leaf Distance & Framing — Ready!');
       setDetectedCropLive(null);
       setDetectedConfidenceLive(0);
     } else {
       setFramingStatus('too_close');
-      setGuidanceMessage('⚠️ Move back slightly to capture full leaf margins');
+      setGuidanceMessage(isTelugu ? '⚠️ కెమెరాను కొద్దిగా వెనక్కి జరపండి' : '⚠️ Move back slightly to capture full leaf margins');
       setDetectedCropLive(null);
       setDetectedConfidenceLive(0);
     }
-  }, [cameraModalOpen]);
+  }, [cameraModalOpen, i18n.language]);
 
   // Start live frame analysis loop when camera is open
   useEffect(() => {
@@ -495,6 +512,7 @@ const ScanImageUploader = ({
   // Reticle color styles
   const isOptimal = framingStatus === 'optimal';
   const isNoLeaf = framingStatus === 'no_leaf';
+  const isLightingIssue = framingStatus === 'too_dark' || framingStatus === 'too_bright';
   
   let reticleColor = 'border-slate-500/50 shadow-none';
   let guidanceBadgeBg = 'bg-slate-900/90 text-slate-200 border-white/10';
@@ -502,9 +520,12 @@ const ScanImageUploader = ({
   if (isOptimal) {
     reticleColor = 'border-emerald-400 shadow-emerald-500/50';
     guidanceBadgeBg = 'bg-emerald-500/90 text-white border-emerald-400';
+  } else if (isLightingIssue) {
+    reticleColor = 'border-amber-400 shadow-amber-500/40';
+    guidanceBadgeBg = 'bg-amber-950/90 text-amber-200 border-amber-500/50';
   } else if (!isNoLeaf) {
-    reticleColor = 'border-amber-400 shadow-amber-500/30';
-    guidanceBadgeBg = 'bg-slate-900/90 text-amber-300 border-amber-500/40';
+    reticleColor = 'border-sky-400 shadow-sky-500/30';
+    guidanceBadgeBg = 'bg-slate-900/90 text-sky-300 border-sky-500/40';
   }
 
   const safeDeviceIdx = typeof currentDeviceIdx === 'number' ? currentDeviceIdx : 0;
@@ -792,8 +813,9 @@ const ScanImageUploader = ({
               <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>{t('uploader.target_crop_category', 'Target Crop Category')}</span>
               {selectedCropFilter && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wide shadow-xs">
-                  Active: {selectedCropFilter}
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wide shadow-xs flex items-center gap-1">
+                  <span>{activeFarmCrop && activeFarmCrop.toLowerCase() === selectedCropFilter.toLowerCase() ? '🌾 Farm Crop:' : 'Active:'}</span>
+                  <span>{selectedCropFilter}</span>
                 </span>
               )}
             </span>
