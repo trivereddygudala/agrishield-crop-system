@@ -34,13 +34,15 @@ const HistoryPage = () => {
   const subscribe = wsCtx?.subscribe;
   const isAdmin = user?.role === 'admin';
   const [activeTab, setActiveTab] = useState('prediction');
-  const [loading, setLoading] = useState(true);
+  
+  // In-memory module cache across page navigation
+  const [loading, setLoading] = useState(!window._cachedPredictionHistory);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const backendBaseUrl = import.meta.env.VITE_API_URL || '';
 
-  const [predictionData, setPredictionData] = useState([]);
-  const [sensorData, setSensorData] = useState([]);
+  const [predictionData, setPredictionData] = useState(() => window._cachedPredictionHistory || []);
+  const [sensorData, setSensorData] = useState(() => window._cachedSensorHistory || []);
 
   const [search, setSearch] = useState('');
   const [layoutMode, setLayoutMode] = useState('grid'); // Default to grid for visual farmer-first aesthetic
@@ -116,7 +118,7 @@ const HistoryPage = () => {
   };
 
   const fetchData = useCallback(async (isManual = false) => {
-    if (!predictionData.length && !sensorData.length && !isManual) setLoading(true);
+    if (!window._cachedPredictionHistory && !window._cachedSensorHistory && !isManual) setLoading(true);
     if (isManual) setIsRefreshing(true);
     try {
       const res = await API.get('/api/history', { params: { limit: 150, page: 1 } });
@@ -130,6 +132,7 @@ const HistoryPage = () => {
           displayTime: pTs && !isNaN(pTs.getTime()) ? pTs.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : (p.prediction_time || 'N/A')
         };
       });
+      window._cachedPredictionHistory = formattedPreds;
       setPredictionData(formattedPreds);
       
       if (hardwareMode) {
@@ -176,7 +179,6 @@ const HistoryPage = () => {
               const day = String(ts.getDate()).padStart(2, '0');
               isoDateStr = `${year}-${month}-${day}`;
             }
-
             return {
               id: n.id || `sens-${i}`,
               rawDate: isoDateStr,
@@ -195,6 +197,7 @@ const HistoryPage = () => {
               is_night_mode: n.is_night_mode ?? null,
             };
           });
+          window._cachedSensorHistory = rows;
           setSensorData(rows);
           if (isManual) {
             setToastMsg('✅ Sensor telemetry and logs refreshed!');

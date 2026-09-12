@@ -170,17 +170,22 @@ export const WeatherAlerts = ({ recommendations = [] }) => {
   );
 };
 
+// In-memory weather cache across component unmounts/remounts
+const _weatherCacheMap = new Map();
+
 export const WeatherDashboard = React.memo(({ farmId, lat, lon }) => {
   const { activeFarm } = useFarm();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const targetFarmId = farmId || (activeFarm ? activeFarm.id : 'default');
+  const cacheKey = `${targetFarmId}_${lat || ''}_${lon || ''}`;
+  const initialCached = _weatherCacheMap.get(cacheKey) || _weatherCacheMap.get('latest');
+
+  const [data, setData] = useState(initialCached || null);
+  const [loading, setLoading] = useState(!initialCached);
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState(lat && lon ? { lat, lon } : null);
 
-  const targetFarmId = farmId || (activeFarm ? activeFarm.id : 'default');
-
   const fetchWeather = useCallback(async (customCoords = null, forceSync = false, targetId = null) => {
-    setLoading(true);
+    if (!initialCached && !data) setLoading(true);
     try {
       const activeCoords = customCoords || coords;
       let query = "";
@@ -196,13 +201,17 @@ export const WeatherDashboard = React.memo(({ farmId, lat, lon }) => {
       if (forceSync) query += `&bypass_cache=true`;
 
       const res = await API.get(`/api/intelligence/weather?${query}`);
-      setData(res.data);
+      if (res.data) {
+        _weatherCacheMap.set(cacheKey, res.data);
+        _weatherCacheMap.set('latest', res.data);
+        setData(res.data);
+      }
     } catch {
       /* fallback */
     } finally {
       setLoading(false);
     }
-  }, [coords, targetFarmId]);
+  }, [coords, targetFarmId, cacheKey, initialCached, data]);
 
   const handleFarmLocation = useCallback(() => {
     setCoords(null);
@@ -229,7 +238,7 @@ export const WeatherDashboard = React.memo(({ farmId, lat, lon }) => {
         setLocating(false);
         fetchWeather(null, true);
       },
-      { timeout: 8000, enableHighAccuracy: true }
+      { timeout: 4000, enableHighAccuracy: false }
     );
   }, [fetchWeather]);
 

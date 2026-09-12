@@ -23,6 +23,11 @@ import { IrrigationAdvisor } from '../components/intelligence/IrrigationAdvisor'
 import { DiseaseRiskCard } from '../components/intelligence/DiseaseRiskCard';
 import { translateCrop, translateStage, translateDisease } from '../utils/diseaseAdvisoryData';
 
+// In-memory module-level cache to enable instantaneous (0ms) page transitions
+let cachedDashboardStats = null;
+let cachedDashboardDevices = null;
+let cachedActiveDevice = null;
+
 const DashboardPage = () => {
   const { user } = useAuth();
   const { activeFarm } = useFarm();
@@ -30,7 +35,9 @@ const DashboardPage = () => {
   const { hardwareMode } = useHardwareMode();
   const navigate = useNavigate();
   const toast = useToast();
-  const [loading, setLoading] = useState(true);
+  
+  // Instant load: If cache exists from this session, do NOT show skeleton
+  const [loading, setLoading] = useState(!cachedDashboardStats);
 
   useEffect(() => {
     const userRole = user?.role?.toLowerCase() || 'farmer';
@@ -51,15 +58,15 @@ const DashboardPage = () => {
     return () => clearTimeout(timer);
   }, [toast, user]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState(() => cachedDashboardStats || {
     total: 0,
     healthy: 0,
     diseased: 0,
     recent: [],
   });
 
-  const [devices, setDevices] = useState([]);
-  const [activeDevice, setActiveDevice] = useState(null);
+  const [devices, setDevices] = useState(() => cachedDashboardDevices || []);
+  const [activeDevice, setActiveDevice] = useState(() => cachedActiveDevice || null);
 
   // Default Delhi coordinates or active farm coordinates
   const [coordinates, setCoordinates] = useState(() => {
@@ -82,7 +89,7 @@ const DashboardPage = () => {
   }, [activeFarm]);
 
   const fetchDashboardData = useCallback(async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
+    if (!isBackground && !cachedDashboardStats) setLoading(true);
     try {
       const [statsRes, devicesRes] = await Promise.all([
         API.get('/api/history?limit=10').catch(err => {
@@ -105,9 +112,12 @@ const DashboardPage = () => {
         else diseased++;
       });
 
-      setStats({ total, healthy, diseased, recent: list.slice(0, 5) });
+      const newStats = { total, healthy, diseased, recent: list.slice(0, 5) };
+      cachedDashboardStats = newStats;
+      setStats(newStats);
 
       const deviceList = devicesRes.data || [];
+      cachedDashboardDevices = deviceList;
       setDevices(deviceList);
       
       if (deviceList.length > 0) {
@@ -117,6 +127,7 @@ const DashboardPage = () => {
           return (a.seconds_since_seen ?? 999999) - (b.seconds_since_seen ?? 999999);
         });
         const onlineDev = sorted[0];
+        cachedActiveDevice = onlineDev;
         setActiveDevice(prev => {
           if (prev && prev.device_id === onlineDev.device_id) {
             return { ...onlineDev, latest_telemetry: onlineDev.latest_telemetry || prev.latest_telemetry };
@@ -127,12 +138,14 @@ const DashboardPage = () => {
     } catch (error) {
       console.error("Dashboard data load error:", error);
     } finally {
-      if (!isBackground) setLoading(false);
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchDashboardData(false);
+    // If cached data exists, refresh silently in the background (stale-while-revalidate)
+    const isBackground = !!cachedDashboardStats;
+    fetchDashboardData(isBackground);
     const intervalId = setInterval(() => {
       fetchDashboardData(true);
     }, 30000);

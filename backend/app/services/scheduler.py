@@ -147,10 +147,13 @@ async def scheduler_loop(db):
 async def render_keepalive_loop():
     """
     Pings all Render cluster nodes (Main Gateway, AI Worker 1, AI Worker 2, and any extras)
-    every 8 minutes to generate inbound HTTP traffic and prevent any free-tier container
+    every 6 minutes to generate inbound HTTP traffic and prevent any free-tier container
     from spinning down or sleeping.
+
+    Render Free Tier spins down after ~15 minutes of inactivity.
+    Pinging every 6 minutes (360s) gives a comfortable 9-minute safety margin.
     """
-    await asyncio.sleep(45)
+    await asyncio.sleep(5)  # Short initial delay — activate almost immediately on startup
     while True:
         # Discover all cluster targets to keep permanently awake
         target_urls = set()
@@ -189,8 +192,9 @@ async def render_keepalive_loop():
                         logger.debug(f"[CLUSTER KEEPALIVE] Node {base_url} ping notice: {err2}")
 
         # Render free-tier spins down after 15 minutes of inactivity.
-        # Ping every 8 minutes (480s) to keep all 3 accounts active 24/7.
-        await asyncio.sleep(480)
+        # Ping every 6 minutes (360s) — gives 9-minute safety buffer above the 15-min threshold.
+        await asyncio.sleep(360)
+
 
 def start_scheduler(db):
     """Initialize and run the background scheduler task thread."""

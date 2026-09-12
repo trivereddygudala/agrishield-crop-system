@@ -134,17 +134,27 @@ export const WaterRecommendationCard = ({ data, onRefresh }) => {
 };
 
 
+// In-memory module cache for instant hydration
+const _irrigationCacheMap = new Map();
+
 export const IrrigationAdvisor = React.memo(({ farmId, cropName = "Tomato", growthStage = "Vegetative", farmSize = 1.0 }) => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${farmId || 'default'}_${cropName}_${growthStage}_${farmSize}`;
+  const initialCached = _irrigationCacheMap.get(cacheKey) || _irrigationCacheMap.get('latest');
+
+  const [data, setData] = useState(initialCached || null);
+  const [loading, setLoading] = useState(!initialCached);
 
   const fetchIrrigation = async () => {
-    setLoading(true);
+    if (!initialCached && !data) setLoading(true);
     try {
       const res = await API.get('/api/intelligence/irrigation', {
         params: { farm_id: farmId, crop_name: cropName, growth_stage: growthStage, farm_size: farmSize }
       });
-      setData(res.data);
+      if (res.data) {
+        _irrigationCacheMap.set(cacheKey, res.data);
+        _irrigationCacheMap.set('latest', res.data);
+        setData(res.data);
+      }
     } catch (err) {
       console.warn("Irrigation fetch error:", err);
     } finally {

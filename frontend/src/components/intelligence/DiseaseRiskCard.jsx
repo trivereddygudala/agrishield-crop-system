@@ -35,19 +35,27 @@ export const RiskGauge = ({ percentage, level, color }) => {
   );
 };
 
+// In-memory module cache for instant hydration
+const _riskCacheMap = new Map();
+
 export const DiseaseRiskCard = React.memo(({ farmId, cropName = "Tomato" }) => {
   const { t } = useTranslation();
   const safeCrop = (cropName && String(cropName).trim()) ? String(cropName).trim() : "Tomato";
-  const [riskData, setRiskData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${farmId || 'default'}_${safeCrop}`;
+  const initialCached = _riskCacheMap.get(cacheKey) || _riskCacheMap.get('latest');
+
+  const [riskData, setRiskData] = useState(initialCached || null);
+  const [loading, setLoading] = useState(!initialCached);
 
   const fetchRisk = async () => {
-    setLoading(true);
+    if (!initialCached && !riskData) setLoading(true);
     try {
       const res = await API.get('/api/intelligence/disease-risk', {
         params: { farm_id: farmId, crop_name: safeCrop }
       });
       if (res.data) {
+        _riskCacheMap.set(cacheKey, res.data);
+        _riskCacheMap.set('latest', res.data);
         setRiskData(res.data);
       }
     } catch (err) {
