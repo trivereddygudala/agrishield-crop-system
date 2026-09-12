@@ -2,6 +2,16 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v125) - Fix: Root requirements.txt for Render Worker Deployment
+- **Summary:** Resolved the Render deployment failure on `agrishield-ai-worker-1`:
+  1. 🐛 **Missing Root Requirements Resolution:**
+     - Render's default build command `pip install -r requirements.txt` failed because the requirements file resided in `backend/requirements.txt`.
+     - Created root-level `requirements.txt` referencing `-r backend/requirements.txt`.
+     - Ensures compatibility with both `pip install -r requirements.txt` and `pip install -r backend/requirements.txt`.
+  2. ⚙️ **Worker Configuration Alignment:**
+     - Recommended `python backend/run.py` as the worker start command to benefit from single-thread CPU bounds (`OMP_NUM_THREADS=1`) designed for the Free Tier.
+- **Files modified**: `requirements.txt`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v124) - Feature: Farmer-Friendly Biometric Guidance, SHA-256 Digital Hash Storage & Multi-Device Sync
 - **Summary:** Upgraded the biometric enrollment and sign-in flow into an intuitive, farmer-friendly experience that guides rural farmers through Google's Android passkey prompt, converts credentials into secure digital SHA-256 hash formats, and enables seamless cross-device account sign-in:
   1. 🌾 **Farmer-Friendly Visual Biometric Modal (`frontend/src/components/common/FarmerBiometricModal.jsx`):**
