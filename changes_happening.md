@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v147) - Fix: Resolved 'ReferenceError: useCallback is not defined' Crash in Help & Support Page
+- **Summary:** Fixed the crash shown in the user's screenshot when opening the Help & Support Team page:
+  1. 🐛 **Root Cause:**
+     - `frontend/src/pages/HelpSupportPage.jsx` invoked `useCallback` at line 90 (`const fetchMyTickets = useCallback(...)`), but line 1 only imported `{ useState, useEffect }` from `'react'`.
+     - This threw `ReferenceError: useCallback is not defined` immediately upon mounting, causing the page error boundary to display "Something went wrong".
+  2. 🛠️ **Fix (`frontend/src/pages/HelpSupportPage.jsx`):**
+     - Updated import statement to `import React, { useState, useEffect, useCallback } from 'react';`.
+     - Scanned the entire frontend codebase using automated AST analysis to ensure no other missing React hook imports exist across any file.
+  3. 🧪 **Validation:**
+     - `npm run build` compiled with 0 errors in 25.35s.
+- **Files modified**: `frontend/src/pages/HelpSupportPage.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v146) - UI/UX: Positioned AI Execution HUD Strictly Between Top & Bottom Navigation Bars with Safe Margins
 - **Summary:** Resolved the issue where the loading overlay card extended beyond the screen height and overflowed below the bottom navigation bar:
   1. 🎯 **Root Cause:**

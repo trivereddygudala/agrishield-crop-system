@@ -6,6 +6,17 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 91
+* **User Input:**
+  > "it happens when i open the help and support team when i try to open the other tabs it will show like that [Image: ReferenceError: useCallback is not defined]"
+* **Machine Summary Solution:**
+  * **Fixed Missing `useCallback` Hook Import in `HelpSupportPage.jsx`:**
+    - Root cause: Line 90 of `HelpSupportPage.jsx` used `useCallback` to memoize `fetchMyTickets`, but line 1 only imported `{ useState, useEffect }` from `'react'`. This threw a runtime `ReferenceError: useCallback is not defined` whenever the page mounted, triggering the React Error Boundary.
+    - Solution: Added `useCallback` to the `'react'` import in `HelpSupportPage.jsx`.
+    - Scanned the entire frontend repository to confirm no other component had undeclared React hook imports.
+  * **Verification:**
+    - `npm run build` completed with 0 errors in 25.35s.
+
 ### Chat Entry 90
 * **User Input:**
   > "why it is still there more than the screen it wwant to adjust between the top navigation barr and bottom navigation bar with some gap ok"
