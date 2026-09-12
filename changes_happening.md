@@ -2,6 +2,16 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v144) - UX Fix: Removed Duplicate Module Tabs from Dedicated Scanner Sub-Pages
+- **Summary:** Answered user question ("why the tabs are appear after i open the first onr disease diagnosis in the second picture") and eliminated the redundant tabs:
+  1. 🔬 **Clean Dedicated Sub-Page (`frontend/src/pages/UploadImagePage.jsx`):**
+     - Previously, `<ScanCenterTabs />` was rendered inside the dedicated sub-page right below the `← Back to AI Scan Center` button, causing all 3 massive module cards ("Disease Diagnosis", "Plant Identification", "Agrochemical Scanner") to appear again before the uploader.
+     - Removed `<ScanCenterTabs />` from the sub-page.
+     - Now, tapping "Disease Diagnosis" opens a clean, uncluttered dedicated page with ONLY the top back button, the mode selector (Single Leaf / Multi-Leaf), and the scanner directly—matching the clean behavior of `/farm`.
+  2. 🧪 **Validation:**
+     - `npm run build` compiled with 0 errors in 43.33s.
+- **Files modified**: `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v143) - Fix: Blank White Screen Caused by Circular Vendor Chunks & Lazy Public Routes
 - **Summary:** Resolved the blank white screen issue reported in user screenshot:
   1. 🛠️ **Eliminated Fragile Rollup `manualChunks` (`frontend/vite.config.js`):**

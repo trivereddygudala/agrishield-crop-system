@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { RefreshCw, CheckCircle2, ChevronRight, ChevronLeft, Bug, Sprout, FlaskConical, ScanLine, Leaf } from 'lucide-react';
 import API from '../services/api';
-import ScanCenterTabs from '../components/scanCenter/ScanCenterTabs';
 import ScanImageUploader from '../components/scanCenter/ScanImageUploader';
 import PlantIdResults from '../components/scanCenter/PlantIdResults';
 import DiseaseDiagnosisResults from '../components/scanCenter/DiseaseDiagnosisResults';
@@ -679,13 +678,7 @@ const UploadImagePage = () => {
             </div>
           </div>
 
-          {/* Quick Sub-Navigation Tabs (Switch between tools seamlessly) - Hidden when reviewing results to fit within 70% screen ratio */}
-          {!hasScanned && (
-            <ScanCenterTabs
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-            />
-          )}
+
 
           {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
           {activeTab === 'disease-diag' && (

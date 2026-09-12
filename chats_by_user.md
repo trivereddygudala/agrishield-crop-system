@@ -6,6 +6,16 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 88
+* **User Input:**
+  > "why the tabs are appear after i open the first onr disease diagnosis in the second picture"
+* **Machine Summary Solution:**
+  * **Removed Redundant Tabs from Dedicated Scanner Sub-Pages:**
+    - Root cause: `<ScanCenterTabs />` was still being rendered right below the `← Back to AI Scan Center` button inside `UploadImagePage.jsx`, causing all 3 module cards to be displayed a second time on the sub-page.
+    - Removed `<ScanCenterTabs />` from the sub-page view so that tapping "Disease Diagnosis" opens a clean, fresh page showing ONLY the top back button, mode selector, and the uploader directly without duplicate cards above it.
+  * **Verification:**
+    - `npm run build` completed with 0 errors in 43.33s.
+
 ### Chat Entry 87
 * **User Input:**
   > "see this [Image showing blank white screen]"
