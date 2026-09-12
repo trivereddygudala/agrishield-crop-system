@@ -6,6 +6,18 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 70
+* **User Input:**
+  > "now tell how it will work and how it distribute and which one use for which purpose"
+* **Machine Summary Solution & Architectural Breakdown:**
+  * Detailed the 3-tier microservice architecture, role assignments, and distribution pipeline:
+    1. **Main Server (`agrishield-crop-system.onrender.com`):** Acts as the central Gateway and Database orchestrator. Handles user login, biometric verification, MongoDB persistence, weather APIs, farm profiles, and dispatches prediction jobs via round-robin.
+    2. **AI Worker 1 (`agrishield-ai-worker-1.onrender.com`):** Dedicated compute node #1 running PyTorch/ONNX inference, leaf disease segmentation, and Grad-CAM++ saliency mapping.
+    3. **AI Worker 2 (`agrishield-ai-worker-2.onrender.com`):** Dedicated compute node #2 running in parallel to share heavy neural model inference.
+    4. **Load Balancing Mechanism (`ai_cluster.py`):** Uses alternating round-robin queue ($i \pmod 2$). Offloads heavy tensors from the main server memory into worker RAM, shielding the main server from 512 MB memory exhaustion and enabling 20+ concurrent scans.
+    5. **Failover Safety:** If any worker is sleeping or times out, it instantly fails over to the next worker, or executes locally on the main server threadpool so the user never sees an error.
+
+
 ### Chat Entry 69
 * **User Input:**
   > "hii iam back now what i do can you check the previous ones that will implement correctly or not"
