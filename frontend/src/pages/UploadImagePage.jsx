@@ -118,6 +118,40 @@ const UploadImagePage = () => {
   const currentModule = SCAN_MODULES.find(m => m.id === activeTab);
   const currentModuleTitle = isTe ? currentModule?.teluguTitle : (currentModule?.titleKey ? t(currentModule.titleKey, currentModule.defaultTitle) : currentModule?.defaultTitle);
 
+  // Dynamic Screen Ratio Logic to adjust post-execution diagnosis to exact 70% of screen height
+  const [screenMetrics, setScreenMetrics] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const h = window.innerHeight;
+      const w = window.innerWidth;
+      const ratio = w / (h || 1);
+      return {
+        ratio,
+        isMobile: w < 768,
+        height70: Math.round(h * 0.70)
+      };
+    }
+    return { ratio: 0.5, isMobile: true, height70: 560 };
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const h = window.innerHeight;
+      const w = window.innerWidth;
+      const ratio = w / (h || 1);
+      setScreenMetrics({
+        ratio,
+        isMobile: w < 768,
+        height70: Math.round(h * 0.70)
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
   // Sync route and query params with active tab to ensure fresh dedicated pages
   useEffect(() => {
     const rawTab = routeTab || searchParams.get('tab');
@@ -645,11 +679,13 @@ const UploadImagePage = () => {
             </div>
           </div>
 
-          {/* Quick Sub-Navigation Tabs (Switch between tools seamlessly) */}
-          <ScanCenterTabs
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-          />
+          {/* Quick Sub-Navigation Tabs (Switch between tools seamlessly) - Hidden when reviewing results to fit within 70% screen ratio */}
+          {!hasScanned && (
+            <ScanCenterTabs
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+            />
+          )}
 
           {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
           {activeTab === 'disease-diag' && (
@@ -705,12 +741,19 @@ const UploadImagePage = () => {
                 onCropFilterChange={handleCropFilterChange}
               />
             ) : (
-              <MultiLeafResults
-                result={batchResult}
-                onReset={handleClearBatch}
-                farmName={activeFarm?.farm_name || "Field Plot"}
-                user={user}
-              />
+              <div
+                style={{
+                  maxHeight: screenMetrics.isMobile ? `${screenMetrics.height70}px` : undefined
+                }}
+                className="max-h-[70dvh] sm:max-h-none overflow-y-auto overscroll-contain pr-1 custom-scrollbar"
+              >
+                <MultiLeafResults
+                  result={batchResult}
+                  onReset={handleClearBatch}
+                  farmName={activeFarm?.farm_name || "Field Plot"}
+                  user={user}
+                />
+              </div>
             )
           ) : (
             <>
@@ -719,27 +762,30 @@ const UploadImagePage = () => {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-4 pt-1"
+                  style={{
+                    maxHeight: screenMetrics.isMobile ? `${screenMetrics.height70}px` : undefined
+                  }}
+                  className="space-y-3 max-h-[70dvh] sm:max-h-none overflow-y-auto overscroll-contain pr-1 custom-scrollbar"
                 >
-                  {/* Compact Quick-Action Bar Replacing Full-Screen Uploader */}
-                  <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md">
-                    <div className="flex items-center gap-3 min-w-0">
+                  {/* Compact 44px Quick-Action Bar Replacing Full-Screen Uploader */}
+                  <div className="flex items-center justify-between gap-2.5 p-2 sm:p-3 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md sticky top-0 z-20">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       {previewUrl ? (
                         <img 
                           src={previewUrl} 
                           alt="Scanned sample" 
-                          className="w-12 h-12 rounded-xl object-cover border border-emerald-500/40 shadow-xs shrink-0" 
+                          className="w-10 h-10 rounded-xl object-cover border border-emerald-500/40 shadow-xs shrink-0" 
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-6 h-6" />
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-5 h-5" />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block leading-tight">
                           ✓ {t('scan_page.scan_complete', 'Analysis Completed')}
                         </span>
-                        <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                        <h3 className="text-xs font-black text-slate-900 dark:text-white truncate">
                           {liveResult?.disease_name || liveResult?.crop_name || liveResult?.product_name || 'AI Analysis Report'}
                         </h3>
                       </div>
@@ -750,9 +796,9 @@ const UploadImagePage = () => {
                       size="sm"
                       onClick={clearSelection}
                       leftIcon={<RefreshCw className="w-3.5 h-3.5 text-emerald-600" />}
-                      className="shrink-0 text-xs font-bold border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                      className="shrink-0 text-xs py-1 px-2.5 font-bold border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
                     >
-                      {t('scan_page.scan_another', 'Scan Another Sample')}
+                      {t('scan_page.scan_another', 'Scan Another')}
                     </Button>
                   </div>
 

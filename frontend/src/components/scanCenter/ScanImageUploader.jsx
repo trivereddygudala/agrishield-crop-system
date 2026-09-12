@@ -999,33 +999,53 @@ const ScanImageUploader = ({
         </Button>
       </div>
 
-      {/* Neural Scanner Overlay Loading Screen — Exact 1 mobile screen viewport height */}
+      {/* Neural Scanner Overlay Loading Screen — Capped to 70% Mobile Screen Ratio HUD Card */}
       <AnimatePresence>
         {loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white"
+            className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 text-center text-white"
             style={{ height: '100dvh', width: '100vw' }}
           >
-            <div className="relative mb-6">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Cpu className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400 animate-pulse" />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-sm rounded-3xl bg-slate-900/95 border border-emerald-500/40 p-5 sm:p-6 shadow-2xl shadow-emerald-950/50 flex flex-col items-center justify-center relative overflow-hidden"
+              style={{ maxHeight: '70dvh', minHeight: '260px' }}
+            >
+              {/* Subtle ambient scan glow */}
+              <div className="absolute -top-12 -right-12 w-36 h-36 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-teal-500/20 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="relative mb-4 z-10">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Cpu className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400 animate-pulse" />
+                </div>
               </div>
-            </div>
 
-            <h3 className="text-base sm:text-lg font-black text-white" style={{ fontFamily: 'var(--font-display)' }}>PyTorch Inference Active</h3>
-            <p className="text-xs text-white/60 mt-1 max-w-xs">{TIMELINE_STEPS[currentStepIdx]}</p>
+              <h3 className="text-sm sm:text-base font-black text-white z-10" style={{ fontFamily: 'var(--font-display)' }}>
+                PyTorch Inference Active
+              </h3>
+              <p className="text-xs text-emerald-400 font-semibold mt-1 max-w-xs z-10 truncate w-full px-2">
+                {TIMELINE_STEPS[currentStepIdx] || 'Analyzing neural features...'}
+              </p>
 
-            <div className="w-full max-w-xs bg-white/10 h-1.5 rounded-full overflow-hidden mt-6 border border-white/5">
-              <motion.div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400"
-                animate={{ width: `${((currentStepIdx + 1) / TIMELINE_STEPS.length) * 100}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
+              <div className="w-full max-w-xs bg-white/10 h-1.5 rounded-full overflow-hidden mt-4 border border-white/10 z-10">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-300"
+                  animate={{ width: `${((currentStepIdx + 1) / TIMELINE_STEPS.length) * 100}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+
+              <span className="text-[10px] text-slate-400 mt-3 font-mono z-10">
+                AI Diagnostic Engine • 70% Ratio HUD
+              </span>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

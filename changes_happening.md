@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v142) - UI/UX: Dynamic Screen Ratio Logic Capping Execution & Post-Diagnosis Results to 70% Viewport Height
+- **Summary:** Built dynamic screen ratio logic so that both the loading overlay while executing AI analysis and the post-execution results container adjust according to the device's screen ratio and fit within 70% of the mobile screen height:
+  1. 📱 **Dynamic Screen Ratio Calculation (`frontend/src/pages/UploadImagePage.jsx`):**
+     - Added `screenMetrics` reactive state monitoring `window.innerHeight`, `window.innerWidth`, aspect ratio, and dynamically computing `height70 = Math.round(window.innerHeight * 0.70)`.
+     - Attached `resize` and `orientationchange` event listeners to dynamically re-evaluate the target 70% height upon device rotation or viewport change.
+  2. 🔬 **70% Screen Ratio Result Container (`UploadImagePage.jsx`):**
+     - When `hasScanned && liveResult` (or `batchResult`) is true, the results container applies `style={{ maxHeight: screenMetrics.isMobile ? `${screenMetrics.height70}px` : undefined }}` and `max-h-[70dvh] overflow-y-auto overscroll-contain pr-1 custom-scrollbar`.
+     - Completely hides the redundant 90px `ScanCenterTabs` during result inspection so the medical diagnosis report fits within the 70% mobile viewport fold.
+     - Slimmed the sticky quick-action bar to a sleek 44px banner with leaf thumbnail, verified title, and quick "Scan Another" button.
+  3. ⚡ **70% HUD Card While Executing Analysis (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**
+     - Replaced the full-bleed `100dvh` loading screen with a centered glassmorphic HUD card capped at `maxHeight: '70dvh'`, `max-w-sm`, and `minHeight: '260px'`.
+     - The neural inference animation (spinner, PyTorch step timeline, progress bar) fits neatly within 70% of the mobile screen.
+  4. 🧪 **Validation:**
+     - Frontend Vite Build: `npm run build` compiled with 0 errors in 22.29s.
+- **Files modified**: `frontend/src/pages/UploadImagePage.jsx`, `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v141) - UX Refinement: Removed Quick Test Benchmark Samples from Plant ID & Agrochemical Scanner
 - **Summary:** Removed the "Quick Test Benchmark Samples" section and "Load Sample" button from the **Plant Identification** and **Agrochemical Scanner** tools:
   1. 🔬 **Restricted to Disease Diagnosis Only (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**

@@ -6,6 +6,18 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 86
+* **User Input:**
+  > "decrease the size of the thing while after executing the ai diagnostic analysis will more than the mobile screen adjust the size and fit it for 70 percent is good. Make a logic to adjust according to the scrren ratio"
+* **Machine Summary Solution:**
+  * **Dynamic Screen Ratio Logic & 70% Viewport Height Fitting:**
+    - In `UploadImagePage.jsx`, added a reactive `screenMetrics` state listener that dynamically calculates `window.innerHeight * 0.70` based on the device's width, height, and aspect ratio.
+    - Post-execution results containers (`Single Leaf / Batch`) now use `style={{ maxHeight: screenMetrics.isMobile ? `${screenMetrics.height70}px` : undefined }}` and `max-h-[70dvh] overflow-y-auto overscroll-contain pr-1 custom-scrollbar`.
+    - Redundant `ScanCenterTabs` are hidden while reviewing diagnosis results, and the sticky quick-action bar is streamlined to 44px.
+    - In `ScanImageUploader.jsx`, updated the neural analysis loading overlay while executing to a centered HUD card capped at `maxHeight: '70dvh'`, fitting comfortably within 70% of the mobile viewport.
+  * **Verification:**
+    - `npm run build` compiled with 0 errors in 22.29s.
+
 ### Chat Entry 85
 * **User Input:**
   > "and also remove the quick test bench mark samples for both agrochemical scanner and plant identification"
