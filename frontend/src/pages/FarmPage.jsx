@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { 
   Sprout, MapPin, Droplets, Cpu, Bell, Save, Navigation, 
   Check, AlertCircle, RefreshCw, ShieldCheck, Thermometer, Radio, Archive, Layers,
-  Calendar, Leaf, ScanLine, Clock, ChevronRight, ChevronLeft, Sun, CloudRain, TrendingUp, Eye, Maximize2
+  Calendar, Leaf, ScanLine, Clock, ChevronRight, ChevronLeft, Sun, CloudRain, TrendingUp, Eye, Maximize2,
+  Plus, Trash2, Settings
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
@@ -28,6 +29,7 @@ const FarmPage = () => {
   const { 
     activeFarm, farms, archivedFarms, createFarm, 
     updateFarm: saveFarmEdit, deleteFarm, unarchiveFarm,
+    setActiveFarm: selectActiveFarm,
     loading: contextLoading 
   } = useFarm();
   
@@ -232,6 +234,14 @@ const FarmPage = () => {
 
   const FIELD_MODULES = [
     { 
+      id: 'my-fields', 
+      title: isTe ? 'నా రిజిస్టర్డ్ పొలాలు' : 'My Fields & Sectors', 
+      subtitle: isTe 
+        ? `${farms.length} రిజిస్టర్డ్ పొలాల జాబితా, క్రియాశీల మార్పిడి & నిర్వహణ` 
+        : `Switch between & manage all ${farms.length} registered field sectors`,
+      action: 'inline'
+    },
+    { 
       id: 'field-setup', 
       title: isTe ? 'పొలం సెటప్ & లొకేషన్' : 'Field Setup & Location', 
       subtitle: isTe ? 'ఎకరాలు, సరిహద్దు పిన్స్, నేల రకం, GPS' : 'Acreage, boundary pins, soil type, GPS',
@@ -426,6 +436,48 @@ const FarmPage = () => {
         </div>
       )}
 
+      {/* ═══════ QUICK FIELD SECTOR SWITCHER (If multiple fields registered) ═══════ */}
+      {activeTab === 'modules' && farms.length > 1 && (
+        <div className="flex items-center justify-between gap-2 p-2.5 px-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              {isTe ? 'క్రియాశీల పొలం:' : 'Active Field:'}
+            </span>
+            {farms.map((f) => {
+              const isSelected = f.id === activeFarm?.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={async () => {
+                    if (selectActiveFarm && !isSelected) {
+                      await selectActiveFarm(f.id);
+                      setToastMsg(isTe ? `${f.farm_name} క్రియాశీల పొలంగా మార్చబడింది!` : `Switched to ${f.farm_name}!`);
+                      setTimeout(() => setToastMsg(''), 3000);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                      : 'bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400'
+                  }`}
+                >
+                  <span>{f.farm_name || 'Field'}</span>
+                  {isSelected && <Check className="w-3.5 h-3.5" />}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('my-fields')}
+            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 ml-2 cursor-pointer"
+          >
+            {isTe ? 'అన్నీ చూడండి →' : 'View All →'}
+          </button>
+        </div>
+      )}
+
       {/* ═══════ PREMIUM FARM HERO BANNER — Only on Overview Tab ═══════ */}
       {activeTab === 'modules' && activeFarm && (() => {
         const plantDate = activeFarm.planting_date ? new Date(activeFarm.planting_date) : null;
@@ -597,15 +649,205 @@ const FarmPage = () => {
         </div>
       )}
 
+      {/* ═══════ DRILL: My Fields & Sectors ═══════ */}
+      {activeTab === 'my-fields' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Sprout className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                {isTe ? 'నా రిజిస్టర్డ్ పొలాలు' : 'My Registered Fields & Sectors'}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {isTe 
+                  ? `మీ వద్ద మొత్తం ${farms.length} రిజిస్టర్డ్ పొలాలు ఉన్నాయి. కావలసిన పొలంపై క్లిక్ చేసి మార్చండి.` 
+                  : `You have ${farms.length} registered field sectors. Tap any field to switch active profile.`}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
+              onClick={async () => {
+                try {
+                  await createFarm({
+                    farm_name: `${t('farm_page.new_farm_prefix', 'New Farm Sector')} ${farms.length + 1}`,
+                    soil_type: 'red_loamy'
+                  });
+                  setToastMsg(isTe ? 'కొత్త పొలం సృష్టించబడింది!' : 'New field sector created!');
+                  setTimeout(() => setToastMsg(''), 3000);
+                } catch (e) {
+                  console.error(e);
+                  setErrorMsg('Failed to create new field');
+                }
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 cursor-pointer"
+            >
+              {isTe ? '+ కొత్త పొలం జోడించండి' : '+ Add New Field'}
+            </Button>
+          </div>
+
+          {/* List of Registered Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {farms.map((farm) => {
+              const isActive = farm.id === activeFarm?.id;
+              const farmCropEmoji = {
+                'Tomato': '🍅', 'Potato': '🥔', 'Corn': '🌽', 'Rice': '🌾', 'Wheat': '🌾',
+                'Cotton': '🧶', 'Chilli': '🌶️', 'Sugarcane': '🎋', 'Soybean': '🫘',
+                'Onion': '🧅', 'Grape': '🍇', 'Apple': '🍎', 'Mango': '🥭', 'Banana': '🍌',
+                'Citrus': '🍊', 'Strawberry': '🍓', 'Peach': '🍑', 'Cucumber': '🥒'
+              }[farm.crop_name] || '🌱';
+
+              return (
+                <Card
+                  key={farm.id}
+                  glass
+                  className={`p-4 sm:p-5 relative transition-all duration-200 ${
+                    isActive 
+                      ? 'border-2 border-emerald-500 dark:border-emerald-400 ring-4 ring-emerald-500/10 shadow-md shadow-emerald-500/10' 
+                      : 'border border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-xl flex items-center justify-center shrink-0">
+                        {farmCropEmoji}
+                      </div>
+                      <div>
+                        <h3 className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                          {farm.farm_name || 'Unnamed Field'}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {farm.village ? `${farm.village}, ` : ''}{farm.district || 'Location pending'}
+                        </p>
+                      </div>
+                    </div>
+                    {isActive ? (
+                      <Badge variant="glow-emerald" className="text-[11px] font-black shrink-0 px-2.5 py-1">
+                        ✓ {isTe ? 'క్రియాశీలం' : 'Active Field'}
+                      </Badge>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (selectActiveFarm) {
+                            await selectActiveFarm(farm.id);
+                            setToastMsg(isTe ? `${farm.farm_name} క్రియాశీల పొలంగా మార్చబడింది!` : `Switched active field to ${farm.farm_name}!`);
+                            setTimeout(() => setToastMsg(''), 3000);
+                          }
+                        }}
+                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-1 rounded-xl hover:bg-emerald-100 transition-colors cursor-pointer shrink-0"
+                      >
+                        {isTe ? 'దీనికి మారండి' : 'Switch Active'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Field Specs Grid */}
+                  <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-xs mb-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'పంట' : 'Crop'}</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200 truncate block">
+                        {farm.crop_name || 'Not set'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'విస్తీర్ణం' : 'Area'}</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200 block">
+                        {farm.farm_size ? `${farm.farm_size} ${farm.farm_unit || 'acres'}` : 'Not set'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'నేల' : 'Soil'}</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200 truncate block">
+                        {farm.soil_type ? getLocalizedSoilName(farm.soil_type, i18n.language) : 'Red Loamy'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!isActive && selectActiveFarm) {
+                          await selectActiveFarm(farm.id);
+                        }
+                        setActiveTab('field-setup');
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      <span>{isTe ? 'సెటప్ & కాన్ఫిగర్' : 'Setup & GPS'}</span>
+                    </button>
+                    {farms.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(isTe ? `ఖచ్చితంగా "${farm.farm_name}" పొలాన్ని తొలగించాలా?` : `Are you sure you want to delete "${farm.farm_name}"?`)) {
+                            try {
+                              await deleteFarm(farm.id);
+                              setToastMsg(isTe ? 'పొలం తొలగించబడింది.' : 'Field deleted.');
+                              setTimeout(() => setToastMsg(''), 3000);
+                            } catch (e) {
+                              console.error(e);
+                              setErrorMsg('Failed to delete farm');
+                            }
+                          }
+                        }}
+                        className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                        title={isTe ? 'తొలగించు' : 'Delete'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Archived Fields Section (if any) */}
+          {archivedFarms && archivedFarms.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Archive className="w-4 h-4" />
+                <span>{isTe ? 'ఆర్కైవ్ చేసిన పొలాలు' : 'Archived Fields'}</span>
+                <Badge variant="outline" className="text-[10px]">{archivedFarms.length}</Badge>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {archivedFarms.map((af) => (
+                  <div key={af.id} className="p-3.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">{af.farm_name}</span>
+                      <span className="text-[11px] text-slate-400">{af.crop_name || 'No crop'} • {af.village || 'No village'}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await unarchiveFarm(af.id);
+                          setToastMsg(isTe ? 'పొలం పునరుద్ధరించబడింది!' : 'Field restored!');
+                          setTimeout(() => setToastMsg(''), 3000);
+                        } catch (e) {
+                          console.error(e);
+                        }
+                      }}
+                    >
+                      {isTe ? 'పునరుద్ధరించు' : 'Restore'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
       {/* ═══════ DRILL: Field Setup & Location ═══════ */}
       {activeTab === 'field-setup' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <button type="button" onClick={() => setActiveTab('modules')}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1">
-            <ChevronRight className="w-4 h-4 rotate-180" />
-            {isTe ? '← ఫీల్డ్‌కు తిరిగి' : '← Back to Field'}
-          </button>
-
           <form onSubmit={handleSaveFarm} className="space-y-5">
             <Card glass className="p-3.5 sm:p-5 space-y-5 w-full max-w-full min-w-0 overflow-hidden">
               <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">
@@ -922,12 +1164,6 @@ const FarmPage = () => {
       {/* ═══════ DRILL: Nearby Fields & Disease Radar ═══════ */}
       {activeTab === 'nearby-radar' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <button type="button" onClick={() => setActiveTab('modules')}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1 cursor-pointer">
-            <ChevronRight className="w-4 h-4 rotate-180" />
-            {isTe ? '← ఫీల్డ్‌కు తిరిగి' : '← Back to Field'}
-          </button>
-
           <NearbyFieldsRadar
             farmId={activeFarm?.id || 'current'}
             farmName={activeFarm?.farm_name || farmName || 'My Farm'}
@@ -959,12 +1195,6 @@ const FarmPage = () => {
       {/* ═══════ DRILL: Farm Intelligence & Routine ═══════ */}
       {activeTab === 'farm-intelligence' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <button type="button" onClick={() => setActiveTab('modules')}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1 cursor-pointer">
-            <ChevronRight className="w-4 h-4 rotate-180" />
-            {isTe ? '← ఫీల్డ్‌కు తిరిగి' : '← Back to Field'}
-          </button>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="lg:col-span-2">
               <FarmRoutineWidget />
@@ -978,12 +1208,6 @@ const FarmPage = () => {
       {/* ═══════ DRILL: Crop Lifecycle & Spray Calendar ═══════ */}
       {activeTab === 'crop-lifecycle' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <button type="button" onClick={() => setActiveTab('modules')}
-            className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1">
-            <ChevronRight className="w-4 h-4 rotate-180" />
-            {isTe ? '← ఫీల్డ్‌కు తిరిగి' : '← Back to Field'}
-          </button>
-
           <form onSubmit={handleSaveFarm} className="space-y-5">
             <Card glass className="p-5 space-y-5">
               <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">

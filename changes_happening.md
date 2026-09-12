@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v153) - UI/UX: Removed Duplicate Back Button & Added Dedicated "My Fields & Sectors" Management Tab
+- **Summary:** Addressed user feedback regarding dual back buttons on sub-tabs and lack of visibility for registered field sectors in the Field Hub:
+  1. 🔙 **Eliminated Redundant Back Buttons (`FarmPage.jsx`):**
+     - Retained the clean, feature-rich top header button: `← Back to Field Overview` (`← ఫీల్డ్ డాష్‌బోర్డ్‌కు తిరిగి`) with active farm badge and contextual save button.
+     - Removed all inner redundant `<button>← Back to Field</button>` elements across `field-setup`, `nearby-radar`, `farm-intelligence`, and `crop-lifecycle` sub-views, resolving the stacked dual-button display shown in Picture 1.
+  2. 🌾 **Dedicated "My Fields & Sectors" Tab (`FarmPage.jsx`):**
+     - Added a dedicated 1st module to `FIELD_MODULES`: `My Fields & Sectors` (`నా రిజిస్టర్డ్ పొలాలు`).
+     - Tapping it opens a dedicated fresh sub-page showing all registered fields in rich glassmorphic cards:
+       - Displays active vs inactive badges (`✓ Active Field` vs `Switch Active` button).
+       - Shows crop emoji, crop name, variety, land size/units, soil type, and location.
+       - Quick action buttons on each card: `Setup & GPS` and `Delete Field` (with confirmation).
+       - Prominent `+ Add New Field` action button and archived fields section with restoration.
+  3. ⚡ **Instant Quick Field Switcher Bar (`FarmPage.jsx`):**
+     - When a farmer has multiple registered fields (`farms.length > 1`), rendered a sleek horizontal chip bar directly on the modules overview page allowing 1-tap switching between active fields with an instant toast notification and a `View All →` shortcut.
+- **Files modified**: `frontend/src/pages/FarmPage.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v152) - Performance & Reliability: Fixed Cloud AI Timeout Causing "Zero-Internet Offline Triage" Fallback
 - **Summary:** Investigated and resolved the issue where scanning a leaf caused a 60-second hang on Render followed by the frontend falling back to "Zero-Internet Offline Triage":
   1. 🔍 **Root Cause Identified:**
