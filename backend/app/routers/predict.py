@@ -726,19 +726,18 @@ async def predict_pytorch_endpoint(
         threshold = 0.35
 
     confidence = float(prediction_result.get("confidence", 0.0))
-    if confidence < threshold:
+    top_preds = prediction_result.get("top_predictions", [])
+
+    # Strict Confidence Safety Gate:
+    # If confidence is below 40% and no crop filter was specified, reject the ambiguous image to protect farmers from wrong pesticide advice
+    if confidence < 0.40:
         if user_crop_filter:
-            # User manually designated the crop; keep confidence viable
             prediction_result["confidence"] = max(confidence, 0.70)
             prediction_result["crop_name"] = user_crop_filter.title()
-        elif detected_vision_crop:
-            # The vision model confirmed this is a valid agricultural crop leaf; adjust confidence
-            prediction_result["confidence"] = max(confidence, 0.65)
-            prediction_result["crop_name"] = detected_vision_crop
         else:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"Low confidence ({confidence * 100:.1f}%) - Unsupported crop or unknown input. Please upload a supported crop leaf image."
+                detail=f"Low Confidence Detection ({confidence * 100:.1f}%). The image is either blurry, taken too far away, or under poor lighting. Please select your specific crop (e.g. 🍅 Tomato) from the quick chips above or upload a closer, focused leaf photo to avoid incorrect pesticide application."
             )
 
     # Harmonize predicted crop: ALWAYS strictly lock to user_crop_filter if specified
@@ -747,22 +746,51 @@ async def predict_pytorch_endpoint(
     elif detected_vision_crop and prediction_result.get("crop_name") != detected_vision_crop:
         prediction_result["crop_name"] = detected_vision_crop
 
-    # Dual-Model Consensus & Refinement Logic
     confidence = float(prediction_result.get("confidence", 0.0))
     top_preds = prediction_result.get("top_predictions", [])
-    
-    # Initialize Dual-Model Consensus metadata
+
+    # Evaluate Ambiguity & Build Top-2 Differential Candidates
+    is_ambiguous = (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
+    prediction_result["is_ambiguous"] = is_ambiguous
+
+    differential_candidates = []
+    if len(top_preds) >= 2:
+        for p in top_preds[:2]:
+            d_name = p.get("disease_name", "")
+            d_lower = d_name.lower()
+            if "blight" in d_lower:
+                hallmark = "Dark necrotic lesions with concentric target rings; rapid leaf yellowing."
+            elif "spot" in d_lower or "tikka" in d_lower:
+                hallmark = "Small circular spots with yellow chlorotic halos and brown centers."
+            elif "rust" in d_lower:
+                hallmark = "Reddish-brown or orange powdery pustules on leaf undersides."
+            elif "mildew" in d_lower or "mold" in d_lower:
+                hallmark = "White/gray powdery patches covering the leaf surface."
+            elif "rot" in d_lower or "anthracnose" in d_lower:
+                hallmark = "Dark sunken circular lesions; drying twigs dying from top downwards."
+            elif "healthy" in d_lower:
+                hallmark = "Vibrant green foliage with normal turgidity and no lesions."
+            elif "virus" in d_lower or "curl" in d_lower or "mosaic" in d_lower:
+                hallmark = "Leaf curling, stunting, and mosaic yellow-green mottling."
+            else:
+                hallmark = "Inspect leaf lesion shape, margin texture, and underside spore growth."
+            
+            differential_candidates.append({
+                "disease_name": d_name,
+                "crop_name": p.get("crop_name", prediction_result.get("crop_name")),
+                "confidence": round(float(p.get("confidence", 0.0)) * 100, 1),
+                "visual_hallmark": hallmark
+            })
+    prediction_result["differential_candidates"] = differential_candidates
+
+    # Dual-Model Consensus & Refinement Logic
     prediction_result["dual_model_consensus"] = False
     prediction_result["consensus_details"] = ""
 
-    # If PyTorch vision confidence is high (>= 0.85), mark high-precision neural consensus
     if confidence >= 0.85:
         prediction_result["dual_model_consensus"] = True
         prediction_result["consensus_details"] = "High Precision Neural Alignment (>85% Model Confidence)"
 
-    # Check if there is genuine ambiguity between top 2 candidate predictions or borderline confidence
-    is_ambiguous = len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.15
-    
     if (is_ambiguous or (0.40 <= confidence < 0.85)) and top_preds:
         try:
             from backend.app.services.nvidia_service import nvidia_service
@@ -1258,7 +1286,9 @@ async def predict_pytorch_endpoint(
         "prescription_calendar": prescription_calendar,
         "financial_metrics": financial_metrics,
         "dual_model_consensus": prediction_result.get("dual_model_consensus", False),
-        "consensus_details": prediction_result.get("consensus_details", "")
+        "consensus_details": prediction_result.get("consensus_details", ""),
+        "is_ambiguous": prediction_result.get("is_ambiguous", False),
+        "differential_candidates": prediction_result.get("differential_candidates", [])
     }
 
     result = await db.predictions.insert_one(prediction_record)

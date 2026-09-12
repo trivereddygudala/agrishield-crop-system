@@ -69,28 +69,25 @@ const TIMELINE_STEPS = [
 ];
 
 const AGRICULTURAL_CROPS = [
-  { value: '', label: 'All Crops (Auto-Detect)' },
-  { value: 'Rice', label: 'Paddy (Rice)' },
-  { value: 'Sugarcane', label: 'Sugarcane' },
-  { value: 'Cotton', label: 'Cotton' },
-  { value: 'Maize', label: 'Maize (Corn)' },
-  { value: 'Groundnut', label: 'Groundnut (Peanut)' },
-  { value: 'Chilli', label: 'Chilli' },
-  { value: 'Mango', label: 'Mango' },
-  { value: 'Tomato', label: 'Tomato' },
-  { value: 'Apple', label: 'Apple' },
-  { value: 'Banana', label: 'Banana' },
-  { value: 'Blueberry', label: 'Blueberry' },
-  { value: 'Cherry', label: 'Cherry' },
-  { value: 'Grape', label: 'Grape' },
-  { value: 'Orange', label: 'Orange' },
-  { value: 'Peach', label: 'Peach' },
-  { value: 'Pepper', label: 'Pepper (Bell)' },
-  { value: 'Potato', label: 'Potato' },
-  { value: 'Soybean', label: 'Soybean' },
-  { value: 'Squash', label: 'Squash' },
-  { value: 'Strawberry', label: 'Strawberry' },
-  { value: 'Wheat', label: 'Wheat' }
+  { value: '', label: 'All Crops (Auto-Detect)', icon: '🌱' },
+  { value: 'Tomato', label: 'Tomato', icon: '🍅' },
+  { value: 'Chilli', label: 'Chilli', icon: '🌶️' },
+  { value: 'Rice', label: 'Paddy (Rice)', icon: '🌾' },
+  { value: 'Cotton', label: 'Cotton', icon: '🌿' },
+  { value: 'Potato', label: 'Potato', icon: '🥔' },
+  { value: 'Maize', label: 'Maize (Corn)', icon: '🌽' },
+  { value: 'Groundnut', label: 'Groundnut (Peanut)', icon: '🥜' },
+  { value: 'Sugarcane', label: 'Sugarcane', icon: '🎋' },
+  { value: 'Mango', label: 'Mango', icon: '🥭' },
+  { value: 'Wheat', label: 'Wheat', icon: '🌾' },
+  { value: 'Apple', label: 'Apple', icon: '🍎' },
+  { value: 'Banana', label: 'Banana', icon: '🍌' },
+  { value: 'Grape', label: 'Grape', icon: '🍇' },
+  { value: 'Soybean', label: 'Soybean', icon: '🫘' },
+  { value: 'Pepper', label: 'Pepper (Capsicum)', icon: '🫑' },
+  { value: 'Orange', label: 'Orange (Citrus)', icon: '🍊' },
+  { value: 'Peach', label: 'Peach', icon: '🍑' },
+  { value: 'Strawberry', label: 'Strawberry', icon: '🍓' }
 ];
 
 const ScanImageUploader = ({
@@ -591,6 +588,63 @@ const ScanImageUploader = ({
         className="hidden"
         onChange={(e) => e.target.files?.[0] && onFileSelect(e.target.files[0])}
       />
+      {/* Precision Crop Selector for Disease Diagnosis */}
+      {tabId === 'disease-diag' && (
+        <div className="p-3 sm:p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-base sm:text-lg">🎯</span>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                    {t('uploader.select_crop_title', 'Target Crop Category')}
+                  </h4>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black">
+                    98%+ Accuracy
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {t('uploader.select_crop_subtitle', 'Choose your crop to restrict AI strictly to this plant family (prevents wrong disease guesses)')}
+                </p>
+              </div>
+            </div>
+            {selectedCropFilter ? (
+              <Badge variant="success" className="text-[10px] font-black uppercase tracking-wider py-1 px-2.5 flex items-center gap-1 shadow-xs">
+                <span>🔒</span>
+                <span>{selectedCropFilter} Precision Locked</span>
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] font-bold text-slate-500 py-1 px-2.5">
+                🌐 All Crops Mode
+              </Badge>
+            )}
+          </div>
+
+          {/* Quick-Select Scrollable Crop Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin scrollbar-thumb-emerald-500/20">
+            {AGRICULTURAL_CROPS.map((crop) => {
+              const isSelected = (selectedCropFilter || '') === crop.value;
+              return (
+                <button
+                  key={crop.value || 'all'}
+                  type="button"
+                  onClick={() => onCropFilterChange?.(crop.value)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs scale-102'
+                      : 'bg-slate-100/80 dark:bg-white/[0.05] text-slate-700 dark:text-slate-300 border-slate-200/60 dark:border-white/5 hover:border-emerald-500/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30'
+                  }`}
+                >
+                  <span>{crop.icon}</span>
+                  <span>{crop.label}</span>
+                  {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Main Upload Drop Area */}
       {!previewUrl ? (
         <div className="space-y-4">

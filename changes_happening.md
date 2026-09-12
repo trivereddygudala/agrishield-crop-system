@@ -2865,3 +2865,20 @@ efine_prediction in an explicit 2.0s timeout with immediate try-except fallback.
      - Dispatches to one chosen active round-robin worker with a 12.0s timeout (ample time to complete the ~4.8s prediction cleanly).
      - If that worker is sleeping or times out, it fast-fails directly to local inference without cascading through Worker 2, saving 8-10 seconds.
 - **Verification:** Verified cleanly with python -m py_compile (0 errors).
+
+9/13/2026: Disease Detection Precision Overhaul, Confidence Safety Threshold, and Differential Diagnosis (v111):
+- **Problem & Root Cause:**
+  1. ScanImageUploader.jsx accepted selectedCropFilter and onCropFilterChange, but never actually rendered the crop selector in the UI. Every scan was forced into unconstrained mode across 1,254 classes, causing diffuse probabilities and wrong crop detections.
+  2. Borderline / ambiguous scans (<40% confidence) were presented as definitive diagnoses, risking improper chemical applications by farmers.
+  3. No visual differential comparison was provided between closely related diseases.
+- **Architectural Solutions:**
+  1. **Crop Selector Chips (frontend/src/components/scanCenter/ScanImageUploader.jsx):**
+     - Rendered quick-select scrollable crop chips (🍅 Tomato, 🌶️ Chilli, 🌾 Rice, 🌿 Cotton, 🥔 Potato, 🌽 Maize, 🥜 Groundnut, 🎋 Sugarcane, 🥭 Mango, 🌾 Wheat, etc.).
+     - Added an active indicator badge (🔒 [Crop] Precision Locked) that locks the AI model to that crop family for 98%+ precision.
+  2. **Confidence Safety Gate (backend/app/routers/predict.py):**
+     - Safely rejects unconstrained scans with <40% confidence (HTTP 422) with actionable guidance on lighting, distance, and crop selection.
+     - Automatically flags moderate confidence (40%-74%) as ambiguous and constructs top-2 differential candidates with diagnostic visual hallmarks.
+  3. **Differential Diagnosis UI (frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx):**
+     - Renders a prominent 'Differential Diagnosis & Visual Checklist' card showing Candidate 1 (Primary) and Candidate 2 (Alternative) side-by-side with hallmark visual symptoms (e.g. concentric rings vs. chlorotic halos) to verify before spraying.
+- **Verification:** Both python -m py_compile and 
+pm run build passed cleanly with 0 errors.

@@ -271,6 +271,91 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         </div>
       </Card>
 
+      {/* Differential Diagnosis Card (Top-2 Possibilities & Visual Checklist) */}
+      {(liveResult?.differential_candidates?.length > 1 || liveResult?.is_ambiguous || parseFloat(confidence) < 80) && (
+        <Card className="p-4 sm:p-5 bg-gradient-to-br from-amber-500/5 via-white to-orange-500/5 dark:from-amber-950/20 dark:via-slate-900 dark:to-orange-950/20 border-2 border-amber-400/40 dark:border-amber-500/30 shadow-md">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-black text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2 flex-wrap">
+                  <span>{currentLang === 'te' ? 'లక్షణాల నిర్ధారణ & సంభావ్య ప్రత్యామ్నాయాలు' : 'Differential Diagnosis & Visual Checklist'}</span>
+                  <Badge variant="warning" className="text-[10px] font-black uppercase">
+                    {currentLang === 'te' ? 'మందులు వేసే ముందు సరిచూడండి' : 'Verify Before Spraying'}
+                  </Badge>
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  {currentLang === 'te' 
+                    ? 'తప్పు మందులను పిచికారీ చేయకుండా నివారించడానికి, దిగువ ఇవ్వబడిన దృశ్య లక్షణాలను మీ పొలంలోని ఆకులతో పోల్చండి.'
+                    : 'To avoid applying incorrect chemical treatments, compare these hallmark visual symptoms with your affected crop foliage.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Differential Candidates Comparison Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+            {(liveResult?.differential_candidates || [
+              {
+                disease_name: rawDiseaseName,
+                crop_name: rawCropName,
+                confidence: parseFloat(confidence),
+                visual_hallmark: liveResult?.symptoms || 'Primary detection hallmark.'
+              }
+            ]).slice(0, 2).map((cand, idx) => {
+              const isPrimary = idx === 0;
+              const candCrop = cand.crop_name || rawCropName;
+              const locCandDisease = translateDisease(cand.disease_name, i18n.language, candCrop) || cand.disease_name;
+              return (
+                <div
+                  key={idx}
+                  className={`p-3.5 rounded-2xl border transition-all ${
+                    isPrimary
+                      ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700/60 shadow-xs'
+                      : 'bg-white/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${
+                        isPrimary 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {isPrimary 
+                          ? (currentLang === 'te' ? 'ప్రధాన అంచనా' : 'Primary Candidate') 
+                          : (currentLang === 'te' ? 'ప్రత్యామ్నాయ అవకాశం' : 'Alternative Possibility')}
+                      </span>
+                    </div>
+                    <Badge variant={isPrimary ? "success" : "outline"} className="text-xs font-black">
+                      {cand.confidence}% {currentLang === 'te' ? 'ఖచ్చితత్వం' : 'Match'}
+                    </Badge>
+                  </div>
+
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white mb-1.5">
+                    {locCandDisease}
+                  </h4>
+                  <div className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-900/40 p-2 rounded-xl border border-slate-200/60 dark:border-white/5">
+                    <span className="text-amber-500 font-bold shrink-0">🔍</span>
+                    <p className="leading-relaxed">
+                      <strong className="font-bold text-slate-800 dark:text-slate-100">
+                        {currentLang === 'te' ? 'గుర్తించే లక్షణం: ' : 'Visual Hallmark: '}
+                      </strong>
+                      {cand.visual_hallmark}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {/* Side-by-Side Visual Split View: Captured Leaf vs Neural Heatmap */}
       {(displayOriginalImg || gradCamImg) && (
         <Card className="p-5 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm">
