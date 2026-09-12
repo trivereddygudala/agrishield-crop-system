@@ -853,12 +853,22 @@ async def predict_pytorch_endpoint(
         active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
         if active_farm and "_id" in active_farm:
             active_farm["_id"] = str(active_farm["_id"])
-        llama_advice = await nvidia_service.generate_farming_advice(
-            crop_name=prediction_result["crop_name"],
-            disease_name=prediction_result["disease_name"],
-            confidence=prediction_result["confidence"],
-            farm_profile=active_farm
-        )
+        try:
+            llama_advice = await asyncio.wait_for(
+                nvidia_service.generate_farming_advice(
+                    crop_name=prediction_result["crop_name"],
+                    disease_name=prediction_result["disease_name"],
+                    confidence=prediction_result["confidence"],
+                    farm_profile=active_farm
+                ),
+                timeout=4.0
+            )
+        except Exception as err:
+            logger.warning(f"Advice generation timed out or failed ({err}); using instant ICAR knowledge base.")
+            llama_advice = nvidia_service._generate_mock_advice(
+                prediction_result["crop_name"],
+                prediction_result["disease_name"]
+            )
         if llama_advice:
             def force_str(val, depth=0):
                 if isinstance(val, str):

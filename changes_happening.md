@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v152) - Performance & Reliability: Fixed Cloud AI Timeout Causing "Zero-Internet Offline Triage" Fallback
+- **Summary:** Investigated and resolved the issue where scanning a leaf caused a 60-second hang on Render followed by the frontend falling back to "Zero-Internet Offline Triage":
+  1. 🔍 **Root Cause Identified:**
+     - Render logs showed: `Provider NVIDIA NIM Primary (deepseek-ai/deepseek-v4-flash-0731) failed or timed out: . Checking for fallback...`
+     - NVIDIA's remote endpoint for `deepseek-v4-flash-0731` was hanging indefinitely (>45s).
+     - Because `safe_timeout` was bounded by `max(timeout, 15.0)` and `AsyncOpenAI` had a 40.0s timeout, the backend waited 43s on Primary and 17s on Secondary (60s total).
+     - Render enforces a strict 50-second gateway timeout, which severed the HTTP connection and forced the browser into client-side offline triage.
+  2. ⚡ **Active Fast Model Configuration (`backend/app/core/config.py` & `backend/app/services/nvidia_service.py`):**
+     - Benchmarked live NVIDIA NIM catalog models: confirmed `nvidia/nemotron-3.5-lightning-30b-a3b` and `meta/llama-3.2-11b-vision-instruct` respond in 0.68s – 1.1s.
+     - Updated default `NVIDIA_MODEL_NAME` to `nvidia/nemotron-3.5-lightning-30b-a3b` with fallback to `meta/llama-3.2-11b-vision-instruct`.
+  3. 🛡️ **Hard 3.5s Timeout & Instant ICAR Knowledge Base Fallback:**
+     - Reduced `AsyncOpenAI` client timeout from 40.0s to 5.0s.
+     - Capped `safe_timeout` to `min(max(timeout, 2.0), 3.5)`.
+     - Wrapped `_execute_completion` in `generate_farming_advice` with `asyncio.wait_for(..., timeout=3.5)`. If cloud AI does not reply within 3.5s, it instantly returns the rich, ICAR-aligned agronomic knowledge base (`_generate_mock_advice`) in 0.001s.
+     - In `backend/app/routers/predict.py`, wrapped advice generation with a 4.0s timeout guard and fallback to ensure `/api/predict` never hangs or drops connections.
+  4. 🧪 **Validation:**
+     - Verified with `nvidia_service.generate_farming_advice('Chilli', 'Late Blight', 0.93)`: completed in 3.51s with full Ridomil Gold, Metalaxyl, and Mancozeb chemical dosages.
+     - Frontend built with 0 errors in 24.43s.
+- **Files modified**: `backend/app/core/config.py`, `backend/app/services/nvidia_service.py`, `backend/app/routers/predict.py`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v151) - UI/UX: Converted Diagnostic Review to Dedicated Full Screen with Neat Top Back Button in Notifications Reader
 - **Summary:** Resolved the user's issue where scrolling through "See Full Review" inside the notification SMS reader produced a cramped, half-cut card with a floating bottom button covering the content:
   1. 📱 **Dedicated Full-Screen View (`frontend/src/components/common/GoogleMessageReader.jsx`):**

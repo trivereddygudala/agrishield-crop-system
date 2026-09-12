@@ -178,7 +178,7 @@ class NVIDIAService:
         self.nvidia_api_key = getattr(settings, "NVIDIA_API_KEY", "") or os.getenv("NVIDIA_API_KEY", "")
         self.nvidia_api_key_2 = getattr(settings, "NVIDIA_API_KEY_2", "") or os.getenv("NVIDIA_API_KEY_2", "")
         self.nvidia_base_url = getattr(settings, "NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1") or os.getenv("NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1")
-        self.nvidia_model = getattr(settings, "NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731") or os.getenv("NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731")
+        self.nvidia_model = getattr(settings, "NVIDIA_MODEL_NAME", "nvidia/nemotron-3.5-lightning-30b-a3b") or os.getenv("NVIDIA_MODEL_NAME", "nvidia/nemotron-3.5-lightning-30b-a3b")
         self.vision_model = "meta/llama-3.2-11b-vision-instruct"
 
         # Compatibility properties
@@ -194,7 +194,7 @@ class NVIDIAService:
             self.nvidia_client = AsyncOpenAI(
                 api_key=self.nvidia_api_key,
                 base_url=self.nvidia_base_url,
-                timeout=40.0
+                timeout=5.0
             )
 
         self.nvidia_client_2 = None
@@ -202,7 +202,7 @@ class NVIDIAService:
             self.nvidia_client_2 = AsyncOpenAI(
                 api_key=self.nvidia_api_key_2,
                 base_url=self.nvidia_base_url,
-                timeout=40.0
+                timeout=5.0
             )
 
         self.client = self.nvidia_client or self.nvidia_client_2
@@ -215,12 +215,20 @@ class NVIDIAService:
             logger.info(f"AI Service initialized with providers: {' -> '.join(configured)}")
 
     def _get_providers(self):
-        """Returns list of active configured NVIDIA providers in priority order: [ (name, client, model), ... ]"""
+        """Returns list of active configured NVIDIA providers in priority order with fast fallback models: [ (name, client, model), ... ]"""
         providers = []
-        if self.nvidia_client:
-            providers.append(("NVIDIA NIM Primary", self.nvidia_client, self.nvidia_model))
-        if self.nvidia_client_2:
-            providers.append(("NVIDIA NIM Secondary", self.nvidia_client_2, self.nvidia_model))
+        # Try primary model first, followed by proven fast fallback model
+        models = [self.nvidia_model]
+        fallback_model = "meta/llama-3.2-11b-vision-instruct" if "nemotron" in self.nvidia_model else "nvidia/nemotron-3.5-lightning-30b-a3b"
+        if fallback_model not in models:
+            models.append(fallback_model)
+
+        for m in models:
+            m_short = m.split("/")[-1]
+            if self.nvidia_client:
+                providers.append((f"NVIDIA NIM Primary ({m_short})", self.nvidia_client, m))
+            if self.nvidia_client_2:
+                providers.append((f"NVIDIA NIM Secondary ({m_short})", self.nvidia_client_2, m))
         return providers
 
     async def _execute_completion(
@@ -228,37 +236,33 @@ class NVIDIAService:
         messages: list,
         temperature: float = 0.2,
         max_tokens: int = 1500,
-        timeout: float = 20.0
+        timeout: float = 3.0
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Executes a chat completion across configured AI providers with automatic failover.
+        Enforces a strict 3.5s timeout per attempt so agricultural scans never hang.
         Returns (response_text, provider_name) or (None, None) if all fail.
         """
         providers = self._get_providers()
         if not providers:
             return None, None
 
-        # Allow sufficient tokens for complete structured responses without truncation
-        safe_tokens = min(max_tokens, 4096)
-        safe_timeout = min(max(timeout, 15.0), 45.0)
+        # Strictly cap tokens and timeout so scans return immediately
+        safe_tokens = min(max_tokens, 1200)
+        safe_timeout = min(max(timeout, 2.0), 3.5)
 
         for name, client, model in providers:
             try:
-                # Groq on-demand free tier enforces 1000 OTPM on qwen/qwen3.8-27b; cap to 900 for that model to prevent 429
-                if "Groq" in name and "qwen3.8" in str(model):
-                    call_tokens = min(safe_tokens, 900)
-                else:
-                    call_tokens = safe_tokens
-                logger.info(f"Attempting AI completion via {name} ({model}) [max_tokens={call_tokens}, timeout={safe_timeout}]...")
+                logger.info(f"Attempting AI completion via {name} ({model}) [max_tokens={safe_tokens}, timeout={safe_timeout}]...")
                 response = await asyncio.wait_for(
                     client.chat.completions.create(
                         model=model,
                         messages=messages,
                         temperature=temperature,
-                        max_tokens=call_tokens,
+                        max_tokens=safe_tokens,
                         timeout=safe_timeout
                     ),
-                    timeout=safe_timeout + 2.0
+                    timeout=safe_timeout + 0.5
                 )
                 choice = response.choices[0]
                 raw_msg = choice.message
@@ -361,7 +365,16 @@ JSON Schema:
             {"role": "user", "content": prompt}
         ]
 
-        content, provider_name = await self._execute_completion(messages, temperature=0.2, max_tokens=650, timeout=8.0)
+        content = None
+        provider_name = None
+        try:
+            content, provider_name = await asyncio.wait_for(
+                self._execute_completion(messages, temperature=0.2, max_tokens=500, timeout=3.0),
+                timeout=3.5
+            )
+        except Exception as ex:
+            logger.warning(f"AI cloud advice query timed out or failed ({ex}); instantly using local agronomic database.")
+            content, provider_name = None, None
         
         if content:
             parsed_data = safe_parse_json(content)
