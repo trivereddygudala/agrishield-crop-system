@@ -43,7 +43,7 @@ const Dialog = ({ isOpen, onClose, title, description, children, maxWidth = "max
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className={cn(
-              "relative w-full rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 z-10 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100",
+              "relative w-full rounded-3xl bg-white p-6 shadow-2xl border border-slate-200 z-10 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100",
               maxWidth,
               className
             )}

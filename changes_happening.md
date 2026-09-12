@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v134) - System Audit: Light Mode Color Harmonization, Rounded Box UI Standardization & Sliding Screen Transitions
+- **Summary:** Executed full system code audit across backend and frontend, standardizing aesthetics, eliminating dead duplicates, and adding native app sliding transitions:
+  1. 🧹 **Duplicate & Dead Code Elimination:**
+     - Removed unreferenced, incomplete copy `frontend/src/pages/PredictionHistoryPage.jsx` to prevent import collisions with the active, comprehensive `HistoryPage.jsx`.
+     - Verified backend Python compilation across all routers, services, and modules (`python -m compileall -q backend/app`) with 0 errors.
+  2. 🔀 **Screen-to-Screen Sliding Transitions (`frontend/src/App.jsx`):**
+     - Integrated `AnimatePresence mode="wait"` into `DashboardLayout` for authentic mobile horizontal sliding navigation between pages (`initial={{ opacity: 0, x: 20 }}`, `animate={{ opacity: 1, x: 0 }}`, `exit={{ opacity: 0, x: -20 }}`).
+  3. ☀️ **Light Mode Color Harmonization (`frontend/src/components/common/GoogleMessageReader.jsx`):**
+     - Converted hardcoded dark backgrounds to dynamic theme tokens (`bg-white dark:bg-slate-900`, `text-slate-900 dark:text-slate-100`, `border-slate-200 dark:border-slate-800`).
+     - Standardized top app bar, conversation stream, message bubbles, and bottom reply prompt for high-contrast visibility in both light and dark modes.
+  4. 🔲 **Rounded Box Geometry Standardization (`frontend/src/components/ui/input.jsx` & `dialog.jsx`):**
+     - Upgraded `Input` and `Textarea` elements to `rounded-2xl` for smooth form ergonomics.
+     - Upgraded `Dialog` modal containers to `rounded-3xl` matching card surfaces across the app.
+- **Files modified**: `frontend/src/App.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/components/ui/input.jsx`, `frontend/src/components/ui/dialog.jsx`, deleted `frontend/src/pages/PredictionHistoryPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v133) - Documentation: Developer-Grade Upgrades Blueprint Saved to Technical Roadmap
 - **Summary:** Archived 5 complete architectural upgrade specifications in `docs/future_ai_roadmap.md` for on-demand implementation:
   1. 📱 **Offline Edge-AI Vision Scanner:** In-browser ONNX/TFLite quantized inference via Web Worker for instant offline scans in rural dead-zones with 0 MB Render RAM usage.

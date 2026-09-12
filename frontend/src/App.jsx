@@ -1,6 +1,6 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { FarmProvider } from './context/FarmContext';
 import { WebSocketProvider } from './context/WebSocketContext';
@@ -91,15 +91,18 @@ const DashboardLayout = () => {
           <div className={isAssistant ? 'p-0 h-full max-h-full flex flex-col flex-1 min-h-0 overflow-hidden' : 'p-3 sm:p-6 lg:p-8 pb-28 lg:pb-8 w-full flex-1'}>
             <ErrorBoundary>
               <Suspense fallback={<PageSkeleton />}>
-                <motion.div
-                  key={location.pathname}
-                  initial={{ opacity: 0, y: 16, scale: 0.995 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  className={`w-full ${isAssistant ? 'h-full max-h-full flex-1 flex flex-col min-h-0 overflow-hidden' : ''}`}
-                >
-                  <Outlet />
-                </motion.div>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={location.pathname}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.28, ease: [0.25, 1, 0.5, 1] }}
+                    className={`w-full ${isAssistant ? 'h-full max-h-full flex-1 flex flex-col min-h-0 overflow-hidden' : ''}`}
+                  >
+                    <Outlet />
+                  </motion.div>
+                </AnimatePresence>
               </Suspense>
             </ErrorBoundary>
           </div>

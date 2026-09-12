@@ -74,14 +74,14 @@ export default function GoogleMessageReader({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.2 }}
-      className="flex flex-col h-[calc(100vh-140px)] min-h-[550px] max-w-3xl mx-auto bg-slate-900 text-slate-100 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden"
+      className="flex flex-col h-[calc(100vh-140px)] min-h-[550px] max-w-3xl mx-auto bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
     >
       {/* ─── GOOGLE MESSAGES TOP APP BAR ─── */}
-      <div className="flex items-center justify-between px-4 py-3.5 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/90 shrink-0">
+      <div className="flex items-center justify-between px-4 py-3.5 bg-slate-50/95 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={handleBack}
-            className="p-2 -ml-1 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+            className="p-2 -ml-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
             title={isTelugu ? "వెనుకకు" : "Back"}
           >
             <ArrowLeft className="w-5 h-5" />
@@ -92,20 +92,20 @@ export default function GoogleMessageReader({
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white font-black shadow-md">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-slate-950" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-950" />
           </div>
 
           {/* Contact Details */}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-black text-white truncate">
+              <h2 className="text-sm font-black text-slate-900 dark:text-white truncate">
                 {isTelugu ? 'AgriShield హెచ్చరికలు' : 'AgriShield Alerts'}
               </h2>
-              <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                 ✓ {isTelugu ? 'ధృవీకరించబడింది' : 'Verified'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 truncate">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
               {isTelugu ? 'అధికారిక SMS గేట్‌వే • కిసాన్ హెల్ప్‌లైన్' : 'Official SMS Gateway • Kisan Helpline'}
             </p>
           </div>
@@ -118,8 +118,8 @@ export default function GoogleMessageReader({
             onClick={handleToggleSpeech}
             className={`p-2.5 rounded-full transition-all ${
               isSpeaking
-                ? 'bg-amber-500/20 text-amber-400 ring-2 ring-amber-400/60 animate-pulse'
-                : 'hover:bg-slate-800 text-amber-400 hover:text-amber-300'
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-2 ring-amber-400/60 animate-pulse'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
             }`}
             title={
               isSpeaking
@@ -132,21 +132,21 @@ export default function GoogleMessageReader({
 
           <a
             href="tel:18001801551"
-            className="p-2.5 rounded-full hover:bg-slate-800 text-emerald-400 hover:text-emerald-300 transition-colors"
+            className="p-2.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
             title={isTelugu ? "కిసాన్ కాల్ సెంటర్ (1800-180-1551)" : "Call Kisan Helpline"}
           >
             <Phone className="w-4 h-4" />
           </a>
           <button
             onClick={handleShareWhatsApp}
-            className="p-2.5 rounded-full hover:bg-slate-800 text-emerald-400 hover:text-emerald-300 transition-colors"
+            className="p-2.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
             title={isTelugu ? "వాట్సాప్‌లో షేర్ చేయండి" : "Share via WhatsApp"}
           >
             <Share2 className="w-4 h-4" />
           </button>
           <button
             onClick={handleDelete}
-            className="p-2.5 rounded-full hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 transition-colors"
+            className="p-2.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
             title={isTelugu ? "సందేశాన్ని తొలగించండి" : "Delete Message"}
           >
             <Trash2 className="w-4 h-4" />
@@ -155,16 +155,16 @@ export default function GoogleMessageReader({
       </div>
 
       {/* ─── CHAT CONVERSATION STREAM ─── */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-gradient-to-b from-slate-950 to-slate-900">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-950 dark:to-slate-900">
         {/* Date Stamp Pill */}
         <div className="flex justify-center">
-          <div className="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] font-bold text-slate-400 shadow-xs">
+          <div className="px-3 py-1 rounded-full bg-white/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-[11px] font-bold text-slate-600 dark:text-slate-400 shadow-xs">
             {formatDateTime(message.lifecycle?.created_at || message.created_at)}
           </div>
         </div>
 
         {/* End-to-End Encryption Note */}
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-500 font-medium">
+        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
           <span>🔒</span>
           <span>
             {isTelugu
@@ -175,31 +175,31 @@ export default function GoogleMessageReader({
 
         {/* ─── GOOGLE MESSAGES SPEECH BUBBLE ─── */}
         <div className="flex items-start gap-2.5 max-w-xl">
-          <div className="w-8 h-8 rounded-full bg-emerald-900/60 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 mt-1">
+          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-500/40 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0 mt-1 shadow-xs">
             <ShieldCheck className="w-4 h-4" />
           </div>
 
-          <div className="relative bg-slate-800/90 text-slate-100 rounded-3xl rounded-tl-sm p-4 sm:p-5 border border-slate-700/80 shadow-lg space-y-3">
+          <div className="relative bg-white dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 rounded-3xl rounded-tl-sm p-4 sm:p-5 border border-slate-200 dark:border-slate-700/80 shadow-md space-y-3">
             {/* Header / Category & Priority */}
-            <div className="flex items-center justify-between gap-3 border-b border-slate-700/60 pb-2.5">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">
+                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                   {message.category || 'System'}
                 </span>
-                <span className="text-slate-600">•</span>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
                   {message.priority || 'Normal'} Priority
                 </span>
               </div>
             </div>
 
             {/* Title */}
-            <h3 className="text-base sm:text-lg font-black text-white leading-snug">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug">
               {translatedTitle || message.title}
             </h3>
 
             {/* Body Text (Farmer Readable) */}
-            <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-normal whitespace-pre-wrap">
+            <p className="text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed font-normal whitespace-pre-wrap">
               {translatedBody || message.message}
             </p>
 
@@ -210,34 +210,34 @@ export default function GoogleMessageReader({
                 onClick={handleToggleSpeech}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition-all active:scale-[0.98] shadow-sm ${
                   isSpeaking
-                    ? 'bg-gradient-to-r from-amber-500/25 via-emerald-500/20 to-teal-500/25 border-amber-400/70 text-amber-200 ring-1 ring-amber-400/40'
-                    : 'bg-slate-900/80 hover:bg-slate-700/80 border-slate-700 text-slate-200 hover:text-white'
+                    ? 'bg-gradient-to-r from-amber-500/20 via-emerald-500/15 to-teal-500/20 border-amber-400/80 text-amber-900 dark:text-amber-200 ring-1 ring-amber-400/50'
+                    : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
                       isSpeaking
-                        ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30 animate-pulse'
-                        : 'bg-slate-800 text-amber-400 border border-slate-700'
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-400/30 animate-pulse'
+                        : 'bg-amber-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-slate-700'
                     }`}
                   >
                     {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                   </div>
                   <div className="text-left">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs sm:text-sm font-black text-white">
+                      <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                         {isSpeaking
                           ? (isTelugu ? '🔊 చదువుతోంది... (ఆపడానికి నొక్కండి)' : '🔊 Reading Out Loud (Tap to Stop)')
                           : (isTelugu ? '🔊 బిగ్గరగా వినండి (వాయిస్ ఆడియో)' : '🔊 Listen Out Loud (Voice Audio)')}
                       </span>
                       {isSpeaking && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
                           {isTelugu ? 'ప్లే అవుతోంది' : 'Playing'}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400 line-clamp-1">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
                       {isSpeaking
                         ? (isTelugu ? 'రైతుకు పూర్తి వివరాలు స్పష్టంగా వినిపిస్తున్నాయి...' : 'Playing narration in selected language...')
                         : (isTelugu ? 'ఈ సందేశాన్ని పూర్తి తెలుగు ఆడియోలో వినండి' : 'Tap to hear this message spoken in your language')}
@@ -248,13 +248,13 @@ export default function GoogleMessageReader({
                 {/* Sound waves animation when active */}
                 {isSpeaking ? (
                   <div className="flex items-end gap-1 h-5 px-1">
-                    <span className="w-1 bg-amber-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-3" />
-                    <span className="w-1 bg-amber-300 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-5" />
-                    <span className="w-1 bg-amber-400 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-4" />
-                    <span className="w-1 bg-amber-300 rounded-full animate-[pulse_0.3s_ease-in-out_infinite] h-2" />
+                    <span className="w-1 bg-amber-500 dark:bg-amber-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-3" />
+                    <span className="w-1 bg-amber-500 dark:bg-amber-300 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-5" />
+                    <span className="w-1 bg-amber-500 dark:bg-amber-400 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-4" />
+                    <span className="w-1 bg-amber-500 dark:bg-amber-300 rounded-full animate-[pulse_0.3s_ease-in-out_infinite] h-2" />
                   </div>
                 ) : (
-                  <span className="text-[11px] font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-lg border border-amber-400/20 hidden sm:inline-block">
+                  <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-400/15 px-2 py-1 rounded-lg border border-amber-400/30 hidden sm:inline-block">
                     {isTelugu ? 'వాయిస్ ప్లే' : 'Play Voice'}
                   </span>
                 )}
@@ -266,7 +266,7 @@ export default function GoogleMessageReader({
               {isDisease && (
                 <button
                   onClick={() => navigate('/upload')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all active:scale-95"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95"
                 >
                   <span>🌿</span>
                   <span>{isTelugu ? 'స్కాన్ & నివారణ మందులు చూడండి' : 'View AI Treatment & Remedies'}</span>
@@ -276,7 +276,7 @@ export default function GoogleMessageReader({
               {isWeather && (
                 <button
                   onClick={() => navigate('/crop-advisory')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all active:scale-95"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95"
                 >
                   <span>🌦️</span>
                   <span>{isTelugu ? 'వాతావరణ నివేదిక చూడండి' : 'View Weather Advisory'}</span>
@@ -285,7 +285,7 @@ export default function GoogleMessageReader({
 
               <a
                 href="tel:18001801551"
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-700/80 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm border border-slate-600 transition-all active:scale-95"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs sm:text-sm border border-slate-200 dark:border-slate-600 transition-all active:scale-95 shadow-xs"
               >
                 <span>📞</span>
                 <span>{isTelugu ? 'కిసాన్ హెల్ప్‌లైన్: 1800-180-1551' : 'Call Kisan Helpline'}</span>
@@ -293,12 +293,12 @@ export default function GoogleMessageReader({
             </div>
 
             {/* Message Delivery Status & Receipt */}
-            <div className="flex items-center justify-end gap-1.5 pt-1 text-[11px] text-slate-400 font-medium">
+            <div className="flex items-center justify-end gap-1.5 pt-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               <span>{timeAgo(message.lifecycle?.created_at || message.created_at)}</span>
               <span>•</span>
               <span>SMS 1</span>
               <span>•</span>
-              <span className="flex items-center text-emerald-400 font-bold">
+              <span className="flex items-center text-emerald-600 dark:text-emerald-400 font-bold">
                 <CheckCheck className="w-3.5 h-3.5 inline mr-0.5" />
                 {isTelugu ? 'చదివారు' : 'Read'}
               </span>
@@ -308,7 +308,7 @@ export default function GoogleMessageReader({
       </div>
 
       {/* ─── GOOGLE MESSAGES BOTTOM REPLY / ASK AI BAR ─── */}
-      <div className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 shrink-0">
+      <div className="p-3 sm:p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 shrink-0">
         <form onSubmit={handleSendToAI} className="flex items-center gap-2">
           <div className="relative flex-1">
             <input
@@ -320,14 +320,14 @@ export default function GoogleMessageReader({
                   ? 'ఈ హెచ్చరికపై AI నిపుణుడిని ప్రశ్న అడగండి...'
                   : 'Ask AI Assistant about this crop alert...'
               }
-              className="w-full pl-4 pr-10 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full pl-4 pr-10 py-3 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
             />
-            <Sparkles className="w-4 h-4 text-emerald-400 absolute right-3.5 top-3.5 pointer-events-none" />
+            <Sparkles className="w-4 h-4 text-emerald-500 dark:text-emerald-400 absolute right-3.5 top-3.5 pointer-events-none" />
           </div>
 
           <button
             type="submit"
-            className="p-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black transition-all active:scale-95 flex items-center justify-center shrink-0 shadow-md"
+            className="p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all active:scale-95 flex items-center justify-center shrink-0 shadow-md"
             title={isTelugu ? "ప్రశ్నించండి" : "Send to AI"}
           >
             <Send className="w-4 h-4" />
