@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     MONGO_URI: str = ""
     DATABASE_NAME: str = "agrishield_db"
 
+    # Distributed AI Prediction Cluster
+    AI_WORKER_1_URL: str = ""
+    AI_WORKER_2_URL: str = ""
+    IS_PREDICTION_WORKER: bool = False
+
     @property
     def mongo_connection_url(self) -> str:
         env_uri = os.environ.get("MONGODB_URI") or os.environ.get("MONGO_URI") or self.MONGODB_URI or self.MONGO_URI

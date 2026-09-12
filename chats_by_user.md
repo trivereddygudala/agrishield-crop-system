@@ -6,6 +6,16 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 63
+* **User Input:**
+  > "iadd only ai worker 1 url to the main render account save the chat in the chat file i continue in the evening ok"
+* **Machine Summary Solution:**
+  * Verified that `https://agrishield-ai-worker-1.onrender.com/` is deployed, active, and returning `{ "status": "healthy" }`.
+  * Updated `backend/app/core/config.py` to declare `AI_WORKER_1_URL`, `AI_WORKER_2_URL`, and `IS_PREDICTION_WORKER` in Settings schema.
+  * Verified that user linked `AI_WORKER_1_URL` in the main Render backend environment.
+  * Documented full state in `changes_happening.md` (v126) and `chats_by_user.md` (Entry 63) ready to resume in the evening:
+    - Next steps for the evening: Set up `agrishield-ai-worker-2` on Account 3, add `AI_WORKER_2_URL`, and activate the round-robin load balancer.
+
 ### Chat Entry 62
 * **User Input:**
   > "error for ai worker 1" [with attached screenshot from Render deploy log of `agrishield-ai-worker-1` showing: `ERROR: Could not open requirements file: [Errno 2] No such file or directory: 'requirements.txt' ==> Build failed`]

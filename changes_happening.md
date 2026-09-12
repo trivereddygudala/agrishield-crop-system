@@ -2,6 +2,17 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v126) - Architecture: AI Worker 1 Live & Cluster Environment Configuration
+- **Summary:** Verified and linked the dedicated AI prediction microservice cluster:
+  1. 🚀 **AI Worker 1 Deployment Verified (`https://agrishield-ai-worker-1.onrender.com/`):**
+     - Confirmed `agrishield-ai-worker-1` is online, responsive, and returning health status code 200.
+  2. ⚙️ **Main Server Configuration (`backend/app/core/config.py`):**
+     - Configured `AI_WORKER_1_URL`, `AI_WORKER_2_URL`, and `IS_PREDICTION_WORKER` flags in Settings schema.
+     - User added `AI_WORKER_1_URL` (`https://agrishield-ai-worker-1.onrender.com`) into main Render environment variables.
+  3. 📋 **Ready for Evening Resumption:**
+     - Saved full state and logs for adding `agrishield-ai-worker-2` and activating round-robin prediction balancing.
+- **Files modified**: `backend/app/core/config.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v125) - Fix: Root requirements.txt for Render Worker Deployment
 - **Summary:** Resolved the Render deployment failure on `agrishield-ai-worker-1`:
   1. 🐛 **Missing Root Requirements Resolution:**
