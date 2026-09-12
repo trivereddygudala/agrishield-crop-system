@@ -2,6 +2,19 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v143) - Fix: Blank White Screen Caused by Circular Vendor Chunks & Lazy Public Routes
+- **Summary:** Resolved the blank white screen issue reported in user screenshot:
+  1. 🛠️ **Eliminated Fragile Rollup `manualChunks` (`frontend/vite.config.js`):**
+     - The experimental `manualChunks` separated `recharts` into `vendor-charts` and `react` into `vendor-react`. Rollup loaded `vendor-charts` before React exports were fully initialized, throwing `TypeError: Cannot read properties of undefined (reading 'useState')` and crashing the React root before mount.
+     - Removed `manualChunks` to let Vite manage dependency chunking natively without circular dependency hazards.
+  2. 🚪 **Restored Critical Authentication Pages to Eager Loading (`frontend/src/App.jsx`):**
+     - Restored `LandingPage`, `LoginPage`, `RegisterPage`, `NotFoundPage`, and `ServerErrorPage` to eager imports.
+     - Eliminates lazy suspense promise throwing on public routes, guaranteeing that the entry landing and login pages render instantly with 0 delay.
+  3. 🧪 **Validation:**
+     - `npm run build` compiled with 0 errors in 26.76s.
+     - Verified with Headless Browser subagent running on live preview: application booted immediately, loaded the complete header, hero navigation, and authentication links with zero console errors.
+- **Files modified**: `frontend/vite.config.js`, `frontend/src/App.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v142) - UI/UX: Dynamic Screen Ratio Logic Capping Execution & Post-Diagnosis Results to 70% Viewport Height
 - **Summary:** Built dynamic screen ratio logic so that both the loading overlay while executing AI analysis and the post-execution results container adjust according to the device's screen ratio and fit within 70% of the mobile screen height:
   1. 📱 **Dynamic Screen Ratio Calculation (`frontend/src/pages/UploadImagePage.jsx`):**
