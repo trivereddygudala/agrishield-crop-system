@@ -1000,6 +1000,17 @@ PLANT_DATABASE = {
     }
 }
 
+# Merge complete Andhra Pradesh regional trees, crops, fruits, vegetables, and weeds
+try:
+    from backend.app.services.plant_identifier.andhra_species import ANDHRA_SPECIES_DATABASE
+except ImportError:
+    try:
+        from app.services.plant_identifier.andhra_species import ANDHRA_SPECIES_DATABASE
+    except ImportError:
+        from andhra_species import ANDHRA_SPECIES_DATABASE
+
+PLANT_DATABASE.update(ANDHRA_SPECIES_DATABASE)
+
 def get_plant_info(plant_key: str) -> dict:
     """
     Looks up plant information dictionary by key/name.

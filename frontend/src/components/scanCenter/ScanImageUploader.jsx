@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Button, Card, Dialog, Badge } from '../ui/index';
 import API from '../../services/api';
+import { ANDHRA_NORMAL_TREES, ANDHRA_CROPS_AND_WEEDS } from '../../data/andhraBotanicalData';
 
 const TAB_CONFIGS = {
   'disease-diag': {
@@ -89,21 +90,6 @@ const AGRICULTURAL_CROPS = [
   { value: 'Squash', label: 'Squash' },
   { value: 'Strawberry', label: 'Strawberry' },
   { value: 'Wheat', label: 'Wheat' }
-];
-
-const ANDHRA_TREES = [
-  { value: '', label: 'All Normal Trees (Auto-Detect)', telugu: 'అన్ని సాధారణ చెట్లు' },
-  { value: 'neem', label: 'Neem Tree (Azadirachta indica)', telugu: 'వేప చెట్టు' },
-  { value: 'mango', label: 'Mango Tree (Mangifera indica)', telugu: 'మామిడి చెట్టు' },
-  { value: 'guava', label: 'Guava Tree (Psidium guajava)', telugu: 'జామ చెట్టు' },
-  { value: 'tamarind', label: 'Tamarind Tree (Tamarindus indica)', telugu: 'చింత చెట్టు' },
-  { value: 'coconut', label: 'Coconut Palm (Cocos nucifera)', telugu: 'కొబ్బరి చెట్టు' },
-  { value: 'teak', label: 'Teak Tree (Tectona grandis)', telugu: 'టేకు చెట్టు' },
-  { value: 'banyan', label: 'Banyan Tree (Ficus benghalensis)', telugu: 'మర్రి చెట్టు' },
-  { value: 'peepal', label: 'Peepal Tree (Ficus religiosa)', telugu: 'రావి చెట్టు' },
-  { value: 'jamun', label: 'Jamun Tree (Syzygium cumini)', telugu: 'నేరేడు చెట్టు' },
-  { value: 'sapota', label: 'Sapota / Chikoo (Manilkara zapota)', telugu: 'సపోటా చెట్టు' },
-  { value: 'drumstick', label: 'Drumstick / Moringa (Moringa oleifera)', telugu: 'మునగ చెట్టు' }
 ];
 
 const ScanImageUploader = ({
@@ -908,26 +894,43 @@ const ScanImageUploader = ({
             <div className="mt-3.5 space-y-2">
               <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
                 <span>{t('uploader.select_tree_target', 'Select Tree Species / చెట్టు రకం (Optional Filter):')}</span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Andhra Pradesh Regional Trees</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">38 Andhra Big & Fruit Trees</span>
               </label>
               <select
                 value={selectedTreeFilter}
                 onChange={(e) => onTreeFilterChange && onTreeFilterChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-colors appearance-none cursor-pointer"
               >
-                {ANDHRA_TREES.map((tree) => (
+                {ANDHRA_NORMAL_TREES.map((tree) => (
                   <option key={tree.value} value={tree.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                     {tree.label} {tree.telugu ? `— ${tree.telugu}` : ''}
                   </option>
                 ))}
               </select>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                🌳 Identifies big trees across Andhra: Neem (వేప), Mango (మామిడి), Guava (జామ), Tamarind (చింత), Coconut (కొబ్బరి), Teak (టేకు), Banyan (మర్రి), Peepal (రావి), Jamun (నేరేడు), Sapota (సపోటా), Drumstick (మునగ).
+                🌳 Identifies all 38 Andhra trees: Neem (వేప), Tamarind (చింత), Banyan (మర్రి), Peepal (రావి), Teak (టేకు), Red Sanders (ఎర్రచందనం), Jamun, Rosewood, Babool (తుమ్మ), Subabul, Eucalyptus, Casuarina (సర్వి), Pongamia (కానుగ), Palmyra Palm (తాటి చెట్టు), Mango, Guava, Coconut, Cashew (జీడిమామిడి), Oil Palm, Sapota, Papaya, Banana, Sweet Orange (బత్తాయి), Acid Lime, Pomegranate, Custard Apple, Jackfruit, Amla, Dragon Fruit, etc.
               </p>
             </div>
           ) : (
-            <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
-              <span className="font-black">🌾 Agricultural Crops & Common Field Weeds:</span> Identifies Paddy, Cotton, Chilli, Groundnut, Maize, Vegetables, and Andhra weeds (గలిజేరు, ఉత్తరేణి, గుంటగలగరాకు, వెన్నెదేవి కూర, బ్రహ్మదండి, గడ్డి చామంతి, మురిపిండ, చెంచలి కూర, తుమ్మి, ముళ్ల తోటకూర).
+            <div className="mt-3.5 space-y-2">
+              <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                <span>{t('uploader.select_crop_target', 'Target Crop / Weed / పంట లేదా కలుపు రకం (Optional Filter):')}</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">70 Andhra Crops & Weeds</span>
+              </label>
+              <select
+                value={selectedCropFilter}
+                onChange={(e) => onCropFilterChange && onCropFilterChange(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-colors appearance-none cursor-pointer"
+              >
+                {ANDHRA_CROPS_AND_WEEDS.map((crop) => (
+                  <option key={crop.value} value={crop.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                    {crop.label} {crop.telugu ? `— ${crop.telugu}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                🌾 Identifies 70 Andhra agricultural species: Paddy (వరి), Chilli (మిరప), Cotton (ప్రత్తి), Maize, Groundnut, Tobacco, Pulses (కందులు, మినుములు, పెసలు, శనగలు), Millets (రాగులు, సజ్జలు, జొన్నలు, కొర్రలు), Vegetables (వంకాయ, బెండకాయ, కాకర, సొర, బీర, దొండ), Gongura (గోంగూర), Turmeric, Ginger, Sacred/Medicinal (తులసి, కలబంద, అశ్వగంధ), and Weeds (తుంగ, గరిక, వయ్యారి భామ, ఊర గడ్డి, గలిజేరు, ఉత్తరేణి, గుంటగలగరాకు).
+              </p>
             </div>
           )}
         </div>

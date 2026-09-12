@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v136) - Feature: Full 108 Andhra Pradesh Regional Species Integration (Trees, Crops, Vegetables & Weeds) in Plant Identifier
+- **Summary:** Expanded the Plant Identifier to support all 108 regional plant, tree, crop, and weed species across Coastal Andhra, Rayalaseema, and the Krishna/Godavari deltas:
+  1. 🌳 **Normal Trees Master Selector (`ANDHRA_NORMAL_TREES` - 38 Species):**
+     - **Big Native & Timber Trees (20)**: Neem (వేప), Tamarind (చింత), Banyan (మర్రి), Peepal (రావి), Teak (టేకు), Red Sanders (ఎర్రచందనం - Seshachalam endemic), Jamun (నేరేడు), Indian Rosewood (ఇరుగుడు), Babool (నల్ల తుమ్మ), Subabul (సుబాబుల్), Eucalyptus (నీలగిరి), Casuarina (సర్వి చెట్టు), Pongamia (కానుగ), Flame of the Forest (మోదుగ), Gulmohar (తురాయి), Copperpod (కొండ చింత), Alstonia (ఏడాకుల పాల), Rain Tree (నిద్రగన్నేరు), Sandalwood (శ్రీగంధం), and Palmyra Palm (తాటి చెట్టు - AP State Tree).
+     - **Commercial Fruit Trees & Plantations (18)**: Mango (మామిడి), Guava (జామ), Coconut (కొబ్బరి), Cashew (జీడిమామిడి - Palasa), African Oil Palm (ఆయిల్ పామ్ - Godavari/Krishna delta), Sapota (సపోటా), Papaya (బొప్పాయి), Banana (అరటి), Sweet Orange (బత్తాయి - Rayalaseema/Prakasam), Acid Lime (నిమ్మ - Gudur/Nellore), Pomegranate (దానిమ్మ - Anantapur Bhagwa), Custard Apple (సీతాఫలం), Jackfruit (పనస), Indian Gooseberry / Amla (ఉసిరి), Wood Apple (వెలగ), Fig (అత్తి / అంజీర్), Dragon Fruit (డ్రాగన్ ఫ్రూట్), and Indian Jujube / Ber (రేగు).
+  2. 🌾 **Crops, Vegetables, Flowers & Field Weeds Selector (`ANDHRA_CROPS_AND_WEEDS` - 70 Species):**
+     - **Primary Field Crops (19)**: Paddy/Rice (వరి), Chilli (మిరప), Cotton (ప్రత్తి), Maize/Corn (మొక్కజొన్న), Groundnut (వేరుశనగ), Sugarcane (చెరకు), Tobacco (పొగాకు FCV), Red Gram (కందులు), Black Gram (మినుములు - Delta rice fallow), Green Gram (పెసలు), Bengal Gram (శనగలు), Finger Millet (రాగులు / చోడులు), Pearl Millet (సజ్జలు), Sorghum (జొన్నలు), Foxtail Millet (కొర్రలు), Sesame (నువ్వులు), Sunflower (పొద్దుతిరుగుడు), Soybean (సోయాబీన్), and Castor (ఆముదం).
+     - **Iconic Vegetables & Spices (24)**: Tomato, Brinjal (వంకాయ - Gutti Vankaya), Okra (బెండకాయ), Bitter Gourd (కాకరకాయ), Bottle Gourd (సొరకాయ), Ridge Gourd (బీరకాయ), Snake Gourd (పొట్లకాయ), Ivy Gourd (దొండకాయ), Drumstick (మునగ), Onion (ఉల్లి), Garlic (వెల్లుల్లి), Ginger (అల్లం), Turmeric (పసుపు - Duggirala export hub), Curry Leaf (కరివేపాకు), Coriander (కొత్తిమీర), Cluster Beans (గోరుచిక్కుడు), Cowpea (అలసందలు), Spinach (పాలకూర), Amaranth (తోటకూర), Roselle / Gongura (గోంగూర - Pride of Andhra), Fenugreek (మెంతికూర), Malabar Spinach (బచ్చలికూర), Elephant Foot Yam (కంద), and Colocasia (చామదుంప).
+     - **Medicinal, Aromatic & Flowers (17)**: Tulsi (తులసి), Aloe Vera (కలబంద), Ashwagandha (అశ్వగంధ), Henna (గోరింటాకు), Calotropis (జిల్లేడు), Datura (ఉమ్మెత్త), Brahmi (బ్రాహ్మి), Bael (మారేడు / బిల్వ), Nux Vomica (ముషిణి), Betel Vine (తమలపాకు), Jasmine (మల్లె), Crossandra (కనకాంబరం), Marigold (బంతి), Chrysanthemum (చామంతి), Hibiscus (మందార), Oleander (గన్నేరు), and Champak (సంపంగి).
+     - **Common Weeds & Field Grasses (19)**: Nut Grass (తుంగ గడ్డి / తుంగ ముస్తలు), Bermuda Grass (గరిక గడ్డి), Congress Grass / Parthenium (వయ్యారి భామ), Barnyard Grass (ఊర గడ్డి), Crabgrass (నరి గడ్డి), Water Hyacinth (గుర్రపు డెక్క), Touch-Me-Not (అత్తిపత్తి), Wild Indigo (వేంపలి), Goosegrass (కోడికాలి గడ్డి), Spiny Amaranth (ముళ్ల తోటకూర), Galijeru (గలిజేరు), Uttareni (ఉత్తరేణి), Guntagalagara (గుంటగలగరాకు), Vennedevi (వెన్నెదేవి కూర), Brahmadandi (బ్రహ్మదండి), Gaddi Chamanti (గడ్డి చామంతి), Muripinda (మురిపిండ), Chenchali (చెంచలి కూర), and Thummi (తుమ్మి మొక్క).
+  3. 🗄️ **Modular Backend Database (`andhra_species.py` & `plant_information.py`):**
+     - Created standalone `andhra_species.py` with full botanical profiles (descriptions, Telugu regional names, soils, seasons, irrigation, fertilizer recommendations, common diseases and pests).
+     - Merged `ANDHRA_SPECIES_DATABASE` directly into `PLANT_DATABASE`.
+     - In `identifier.py`, expanded `keywords` dictionary to recognize English common names, Telugu phonetic transliterations (e.g. *errachandanam*, *palmyra*, *thati*, *sarvi*, *moduga*, *kanuga*, *gongura*, *kandulu*, *minumulu*, *pesalu*, *vankaya*, *bendakaya*, *tunga*, *garika*), and scientific botanical names.
+  4. 🛡️ **Zero Interference Guarantee:**
+     - Verified that Disease Diagnosis and Agrochemical Scanner remain 100% untouched.
+  5. 🧪 **Validation:**
+     - Backend compilation checked via `python -m compileall -q backend/app` (0 errors).
+     - Frontend production build passed cleanly via `npm run build` (0 errors).
+- **Files modified**: `backend/app/services/plant_identifier/andhra_species.py`, `backend/app/services/plant_identifier/plant_information.py`, `backend/app/services/plant_identifier/identifier.py`, `frontend/src/data/andhraBotanicalData.js`, `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v135) - Feature: Dual Plant Identification Mode (Crops vs Normal Trees) with Full Andhra Pradesh Botanical & Weed Database
 - **Summary:** Added dedicated dual-domain identification options strictly within the Plant Identification tab (`plant-id`), leaving Disease Diagnosis (`disease-diag`) and Agrochemical Scanner (`agro-scan`) completely unaffected:
   1. 🌿 **Dual Segmented Domain Selector (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**

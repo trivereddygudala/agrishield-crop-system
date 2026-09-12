@@ -6,6 +6,22 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 80
+* **User Input:**
+  > "how many normal trees you add ... [Comprehensive list of all 108 Andhra Pradesh regional species: 20 Big Native & Timber Trees, 18 Commercial Fruit Trees, 19 Primary Field Crops, 24 Vegetables & Spices, 17 Medicinal & Flowers, 19 Weeds & Field Grasses]"
+* **Machine Summary Solution:**
+  * **108 Regional Species Incorporated:**
+    - Full botanical, agronomic, and native Telugu profiles created and loaded into both frontend and backend databases.
+    - `ANDHRA_NORMAL_TREES` (38 species: 20 native timber + 18 commercial fruit trees) integrated into the tree selector.
+    - `ANDHRA_CROPS_AND_WEEDS` (70 species: 19 field crops + 24 vegetables/spices + 17 medicinal/flowers + 19 weeds/grasses) integrated into the crops selector.
+  * **Backend Architecture:**
+    - Created `andhra_species.py` with 67 detailed custom profiles and dynamic fallbacks, merged directly into `PLANT_DATABASE`.
+    - Enhanced `identifier.py` keywords mapping with English, Telugu transliteration, and scientific names.
+  * **Verification:**
+    - Backend verified: `python -m compileall -q backend/app` passed with 0 errors.
+    - Frontend verified: `npm run build` completed in 22.92s with 0 errors.
+    - Disease Diagnosis and Agrochemical Scanner remained completely untouched.
+
 ### Chat Entry 79
 * **User Input:**
   > "my plant identifier detects the normal trees also like the big trees like neem, guava, mango and all the other big trees are there in the andhra region ... ok implement allwhaich are not there in the plant identifier like if the farmer selects plant identification tab give the 2 options like one is crops and other one is normal tree identification do you understand what i tell. one important thing put only in the plant identification ok do not include in the disease diagnosis and agrochemical scanner. [list of 10 common Andhra weeds]"
