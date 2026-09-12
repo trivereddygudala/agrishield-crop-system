@@ -602,7 +602,12 @@ async def identify_plant_endpoint(
 
     try:
         from backend.app.services.plant_identifier import plant_identifier_service
-        result = await plant_identifier_service.identify_plant(full_image_path)
+        result = await plant_identifier_service.identify_plant(
+            image_path=full_image_path,
+            plant_type=req.plant_type or "crop",
+            tree_filter=req.tree_filter,
+            crop_filter=req.crop_filter
+        )
         if not result.get("success", False):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

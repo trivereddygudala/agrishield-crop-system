@@ -21,7 +21,8 @@ import {
   Check,
   Compass,
   MapPin,
-  Grid
+  Grid,
+  Trees
 } from 'lucide-react';
 import { Button, Card, Dialog, Badge } from '../ui/index';
 import API from '../../services/api';
@@ -90,6 +91,21 @@ const AGRICULTURAL_CROPS = [
   { value: 'Wheat', label: 'Wheat' }
 ];
 
+const ANDHRA_TREES = [
+  { value: '', label: 'All Normal Trees (Auto-Detect)', telugu: 'అన్ని సాధారణ చెట్లు' },
+  { value: 'neem', label: 'Neem Tree (Azadirachta indica)', telugu: 'వేప చెట్టు' },
+  { value: 'mango', label: 'Mango Tree (Mangifera indica)', telugu: 'మామిడి చెట్టు' },
+  { value: 'guava', label: 'Guava Tree (Psidium guajava)', telugu: 'జామ చెట్టు' },
+  { value: 'tamarind', label: 'Tamarind Tree (Tamarindus indica)', telugu: 'చింత చెట్టు' },
+  { value: 'coconut', label: 'Coconut Palm (Cocos nucifera)', telugu: 'కొబ్బరి చెట్టు' },
+  { value: 'teak', label: 'Teak Tree (Tectona grandis)', telugu: 'టేకు చెట్టు' },
+  { value: 'banyan', label: 'Banyan Tree (Ficus benghalensis)', telugu: 'మర్రి చెట్టు' },
+  { value: 'peepal', label: 'Peepal Tree (Ficus religiosa)', telugu: 'రావి చెట్టు' },
+  { value: 'jamun', label: 'Jamun Tree (Syzygium cumini)', telugu: 'నేరేడు చెట్టు' },
+  { value: 'sapota', label: 'Sapota / Chikoo (Manilkara zapota)', telugu: 'సపోటా చెట్టు' },
+  { value: 'drumstick', label: 'Drumstick / Moringa (Moringa oleifera)', telugu: 'మునగ చెట్టు' }
+];
+
 const ScanImageUploader = ({
   tabId,
   selectedFile,
@@ -104,7 +120,11 @@ const ScanImageUploader = ({
   selectedCropFilter = '',
   onCropFilterChange,
   activeFarmCrop = '',
-  compressionInfo = null
+  compressionInfo = null,
+  plantType = 'crop',
+  onPlantTypeChange,
+  selectedTreeFilter = '',
+  onTreeFilterChange
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -832,6 +852,84 @@ const ScanImageUploader = ({
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {/* Dual Identification Options STRICTLY for Plant Identification Tab */}
+      {tabId === 'plant-id' && (
+        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-b from-emerald-500/[0.07] to-teal-500/[0.02] border border-emerald-500/20 shadow-xs">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className="flex items-center gap-2 text-xs font-black text-emerald-900 dark:text-emerald-300">
+              <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>{t('uploader.plant_category_select', 'Identification Domain / విభాగం ఎంచుకోండి')}</span>
+            </span>
+            <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/70 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+              {plantType === 'tree' ? '🌳 Normal Trees' : '🌾 Crops & Weeds'}
+            </span>
+          </div>
+
+          {/* Segmented 2-Option Pill Buttons */}
+          <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10">
+            <button
+              type="button"
+              onClick={() => onPlantTypeChange && onPlantTypeChange('crop')}
+              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg transition-all cursor-pointer ${
+                plantType === 'crop'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
+              }`}
+            >
+              <Sprout className="w-4 h-4 shrink-0" />
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-xs font-black tracking-wide">🌾 Crops</span>
+                <span className="text-[9px] opacity-85 font-semibold">వ్యవసాయ పంటలు & గడ్డి</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onPlantTypeChange && onPlantTypeChange('tree')}
+              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg transition-all cursor-pointer ${
+                plantType === 'tree'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
+              }`}
+            >
+              <Trees className="w-4 h-4 shrink-0" />
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-xs font-black tracking-wide">🌳 Normal Trees</span>
+                <span className="text-[9px] opacity-85 font-semibold">సాధారణ / పెద్ద చెట్లు</span>
+              </div>
+            </button>
+          </div>
+
+          {/* Dynamic contextual guidance & species selector */}
+          {plantType === 'tree' ? (
+            <div className="mt-3.5 space-y-2">
+              <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                <span>{t('uploader.select_tree_target', 'Select Tree Species / చెట్టు రకం (Optional Filter):')}</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Andhra Pradesh Regional Trees</span>
+              </label>
+              <select
+                value={selectedTreeFilter}
+                onChange={(e) => onTreeFilterChange && onTreeFilterChange(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-colors appearance-none cursor-pointer"
+              >
+                {ANDHRA_TREES.map((tree) => (
+                  <option key={tree.value} value={tree.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                    {tree.label} {tree.telugu ? `— ${tree.telugu}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                🌳 Identifies big trees across Andhra: Neem (వేప), Mango (మామిడి), Guava (జామ), Tamarind (చింత), Coconut (కొబ్బరి), Teak (టేకు), Banyan (మర్రి), Peepal (రావి), Jamun (నేరేడు), Sapota (సపోటా), Drumstick (మునగ).
+              </p>
+            </div>
+          ) : (
+            <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+              <span className="font-black">🌾 Agricultural Crops & Common Field Weeds:</span> Identifies Paddy, Cotton, Chilli, Groundnut, Maize, Vegetables, and Andhra weeds (గలిజేరు, ఉత్తరేణి, గుంటగలగరాకు, వెన్నెదేవి కూర, బ్రహ్మదండి, గడ్డి చామంతి, మురిపిండ, చెంచలి కూర, తుమ్మి, ముళ్ల తోటకూర).
+            </div>
+          )}
         </div>
       )}
 

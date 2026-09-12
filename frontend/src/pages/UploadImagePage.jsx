@@ -33,7 +33,9 @@ const scanStore = {
     loading: false,
     errorMsg: '',
     selectedCropFilter: '',
-    compressionInfo: null
+    compressionInfo: null,
+    plantType: 'crop', // 'crop' | 'tree' (for Plant ID tab)
+    selectedTreeFilter: ''
   },
   listeners: new Set(),
   subscribe(listener) {
@@ -62,7 +64,8 @@ const UploadImagePage = () => {
     activeTab, scanMode = 'single', batchSamples = [], batchResult,
     selectedFile, previewUrl, 
     hasScanned, liveResult, loading, errorMsg,
-    selectedCropFilter, compressionInfo
+    selectedCropFilter, compressionInfo,
+    plantType = 'crop', selectedTreeFilter = ''
   } = state;
 
   // Auto-link active farm crop to scanner to boost accuracy to 98%+
@@ -150,6 +153,14 @@ const UploadImagePage = () => {
 
   const handleCropFilterChange = useCallback((crop) => {
     scanStore.setState({ selectedCropFilter: crop });
+  }, []);
+
+  const handlePlantTypeChange = useCallback((type) => {
+    scanStore.setState({ plantType: type });
+  }, []);
+
+  const handleTreeFilterChange = useCallback((tree) => {
+    scanStore.setState({ selectedTreeFilter: tree });
   }, []);
 
   const handleAddBatchSample = (sample) => {
@@ -300,11 +311,20 @@ const UploadImagePage = () => {
         endpoint = '/api/predict';
       }
 
-      const predictRes = await API.post(endpoint, {
+      const payload = {
         image_path: imagePath,
         language: activeLang,
         crop_filter: selectedCropFilter || undefined
-      });
+      };
+
+      if (activeTab === 'plant-id') {
+        payload.plant_type = plantType || 'crop';
+        if (plantType === 'tree') {
+          payload.tree_filter = selectedTreeFilter || undefined;
+        }
+      }
+
+      const predictRes = await API.post(endpoint, payload);
       scanStore.setState({
         liveResult: predictRes.data,
         hasScanned: true
@@ -558,6 +578,10 @@ const UploadImagePage = () => {
             selectedCropFilter={selectedCropFilter}
             onCropFilterChange={handleCropFilterChange}
             activeFarmCrop={activeFarm?.crop_name}
+            plantType={plantType}
+            onPlantTypeChange={handlePlantTypeChange}
+            selectedTreeFilter={selectedTreeFilter}
+            onTreeFilterChange={handleTreeFilterChange}
           />
 
           {/* Results Section for Single Leaf Scan */}

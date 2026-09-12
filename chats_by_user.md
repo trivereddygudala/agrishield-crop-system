@@ -6,6 +6,18 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 79
+* **User Input:**
+  > "my plant identifier detects the normal trees also like the big trees like neem, guava, mango and all the other big trees are there in the andhra region ... ok implement allwhaich are not there in the plant identifier like if the farmer selects plant identification tab give the 2 options like one is crops and other one is normal tree identification do you understand what i tell. one important thing put only in the plant identification ok do not include in the disease diagnosis and agrochemical scanner. [list of 10 common Andhra weeds]"
+* **Machine Summary Solution:**
+  * **Strict Scope Isolation:** Maintained strict isolation; Disease Diagnosis (`disease-diag`) and Agrochemical Scanner (`agro-scan`) tabs are completely untouched.
+  * **Dual Option UI (`ScanImageUploader.jsx`):** Rendered exclusively in `tabId === 'plant-id'`:
+    - `[ 🌾 Crops (వ్యవసాయ పంటలు & గడ్డి) ]`
+    - `[ 🌳 Normal Trees (సాధారణ / పెద్ద చెట్లు) ]`
+  * **Andhra Big Trees & Weeds Knowledge Base:** Expanded backend (`plant_information.py`) and frontend (`andhraBotanicalData.js`) with 11 major Andhra big trees (*Neem, Mango, Guava, Tamarind, Coconut, Teak, Banyan, Peepal, Jamun, Sapota, Drumstick*) and all 10 common Andhra field weeds with regional Telugu names (*గలిజేరు, ఉత్తరేణి, గుంటగలగరాకు, వెన్నెదేవి కూర, బ్రహ్మదండి, గడ్డి చామంతి, మురిపిండ, చెంచలి కూర, తుమ్మి, ముళ్ల తోటకూర*).
+  * **Backend & Pipeline Upgrades (`schemas.py`, `predict.py`, `identifier.py`, `online_provider.py`):** Added `plant_type` and `tree_filter` parameters, updated tree keywords, avoided PyTorch crop misclassifications on forest trees, enriched LLM botanical prompts for trees, and updated domain cache keys.
+  * **Build Verification:** Backend compiled cleanly with `python -m compileall -q backend/app` (0 errors) and frontend compiled cleanly with `npm run build` (0 errors).
+
 ### Chat Entry 78
 * **User Input:**
   > "ok now check for the errors and do the whole system full code audit and check the round boxes put them if any of them donot have. check the coloura are there correctly or not in light mode . check each and every thing remove the duplicate ones that are there in the application make it neatly with the colours and sliding animations while switching one scrren to another screen."

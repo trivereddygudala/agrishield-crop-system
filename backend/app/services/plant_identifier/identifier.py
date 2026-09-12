@@ -27,29 +27,117 @@ class PlantIdentifier:
     def __init__(self):
         self.online_provider = get_online_provider()
 
-    def _attempt_local_identification(self, image_path: str) -> dict:
+    def _attempt_local_identification(self, image_path: str, plant_type: str = "crop", tree_filter: str = None, crop_filter: str = None) -> dict:
         """
-        Attempts local plant identification using filename heuristics, color features,
-        and local botanical knowledge base.
-        Future local trained model hooks integrate directly here.
+        Attempts local plant identification using tree/crop filter, filename heuristics,
+        color features, and local botanical knowledge base.
         """
+        # 1. Direct filter selection override
+        if plant_type == "tree" and tree_filter and tree_filter.lower() != "all":
+            selected_tree = tree_filter.lower().strip()
+            tree_info = get_plant_info(selected_tree)
+            if tree_info:
+                return {
+                    "success": True,
+                    "source": "local",
+                    "plant_type": "tree",
+                    "confidence": 98.5,
+                    "plant": tree_info
+                }
+
+        if plant_type == "crop" and crop_filter and crop_filter.lower() != "all":
+            selected_crop = crop_filter.lower().strip()
+            crop_info = get_plant_info(selected_crop)
+            if crop_info:
+                return {
+                    "success": True,
+                    "source": "local",
+                    "plant_type": "crop",
+                    "confidence": 98.0,
+                    "plant": crop_info
+                }
+
         filename = os.path.basename(image_path).lower()
         
-        # Local keyword match checks
+        # Local keyword match checks covering Crops, Andhra Trees, and Weeds
         keywords = {
+            # Crops
             "tomato": "tomato",
             "potato": "potato",
             "corn": "corn",
             "maize": "corn",
             "rice": "rice",
             "apple": "apple",
+            "cherry": "cherry",
+            "grape": "grape",
+            "peach": "peach",
+            "pepper": "pepper",
+            "strawberry": "strawberry",
+            "sugarcane": "sugarcane",
+            "cotton": "cotton",
+            "groundnut": "groundnut",
+            "chilli": "chilli",
+            "onion": "onion",
+            "garlic": "garlic",
+            # Andhra Normal / Big Trees
             "neem": "neem",
+            "vepa": "neem",
+            "azadirachta": "neem",
+            "mango": "mango",
+            "mamidi": "mango",
+            "mangifera": "mango",
+            "guava": "guava",
+            "jama": "guava",
+            "psidium": "guava",
+            "tamarind": "tamarind",
+            "chintha": "tamarind",
+            "chinta": "tamarind",
+            "tamarindus": "tamarind",
+            "coconut": "coconut",
+            "kobbari": "coconut",
+            "cocos": "coconut",
+            "teak": "teak",
+            "teku": "teak",
+            "tectona": "teak",
+            "banyan": "banyan",
+            "marri": "banyan",
+            "peepal": "peepal",
+            "ravi": "peepal",
+            "jamun": "jamun",
+            "neredu": "jamun",
+            "syzygium": "jamun",
+            "sapota": "sapota",
+            "chikoo": "sapota",
+            "drumstick": "drumstick",
+            "munaga": "drumstick",
+            "moringa": "drumstick",
+            # Common Andhra Weeds & Herbs
             "tulsi": "tulsi",
             "basil": "tulsi",
             "parthenium": "parthenium",
             "weed": "parthenium",
-            "onion": "onion",
-            "garlic": "garlic"
+            "trianthema": "trianthema",
+            "galijeru": "trianthema",
+            "achyranthes": "achyranthes",
+            "uttareni": "achyranthes",
+            "eclipta": "eclipta",
+            "guntagalagara": "eclipta",
+            "bhringraj": "eclipta",
+            "commelina": "commelina",
+            "vennedevi": "commelina",
+            "argemone": "argemone",
+            "brahmadandi": "argemone",
+            "tridax": "tridax",
+            "chamanti": "tridax",
+            "acalypha": "acalypha",
+            "muripinda": "acalypha",
+            "digera": "digera",
+            "chenchali": "digera",
+            "leucas": "leucas",
+            "thummi": "leucas",
+            "tummi": "leucas",
+            "amaranthus": "amaranthus_spinosus",
+            "thotakura": "amaranthus_spinosus"
         }
 
         matched_key = None
@@ -63,42 +151,43 @@ class PlantIdentifier:
             return {
                 "success": True,
                 "source": "local",
+                "plant_type": plant_type,
                 "confidence": 97.5,
                 "plant": plant_info
             }
 
-        # PyTorch Model Fallback: 
-        # Since the configured NVIDIA model is a text-only LLM (llama-3.1-8b-instruct) 
-        # and lacks vision capabilities, we restore the PyTorch fallback for supported crops.
-        try:
-            from model.predict_pytorch import predict_crop_disease
-            py_res = predict_crop_disease(image_path)
-            if py_res and "crop_name" in py_res:
-                crop_name = py_res["crop_name"].lower()
-                
-                # Try to find a matching key in our plant info database
-                fallback_key = None
-                for key in ["corn", "maize", "tomato", "potato", "rice", "apple", "cherry", "grape", "peach", "pepper", "strawberry"]:
-                    if key in crop_name:
-                        fallback_key = "corn" if key == "maize" else key
-                        break
-                
-                if fallback_key:
-                    plant_info = get_plant_info(fallback_key)
-                    conf = py_res.get("confidence", 0.95)
-                    return {
-                        "success": True,
-                        "source": "local",
-                        "model": "PyTorch EfficientNetV2",
-                        "confidence": round(conf * 100, 1),
-                        "plant": plant_info
-                    }
-        except Exception as e:
-            logger.warning(f"PyTorch local identification fallback failed: {e}")
+        # PyTorch Model Fallback (Only for Crops, not for Trees)
+        if plant_type != "tree":
+            try:
+                from model.predict_pytorch import predict_crop_disease
+                py_res = predict_crop_disease(image_path)
+                if py_res and "crop_name" in py_res:
+                    crop_name = py_res["crop_name"].lower()
+                    
+                    # Try to find a matching key in our plant info database
+                    fallback_key = None
+                    for key in ["corn", "maize", "tomato", "potato", "rice", "apple", "cherry", "grape", "peach", "pepper", "strawberry"]:
+                        if key in crop_name:
+                            fallback_key = "corn" if key == "maize" else key
+                            break
+                    
+                    if fallback_key:
+                        plant_info = get_plant_info(fallback_key)
+                        conf = py_res.get("confidence", 0.95)
+                        return {
+                            "success": True,
+                            "source": "local",
+                            "model": "PyTorch EfficientNetV2",
+                            "plant_type": "crop",
+                            "confidence": round(conf * 100, 1),
+                            "plant": plant_info
+                        }
+            except Exception as e:
+                logger.warning(f"PyTorch local identification fallback failed: {e}")
 
         return None
 
-    async def identify_plant(self, image_path: str) -> dict:
+    async def identify_plant(self, image_path: str, plant_type: str = "crop", tree_filter: str = None, crop_filter: str = None) -> dict:
         """
         Main Plant Identification Pipeline Workflow:
         Image -> Validate -> Cache Check -> Local Attempt -> Online Provider -> Format Result
@@ -117,34 +206,50 @@ class PlantIdentifier:
                 ]
             }
 
-        # 2. Check Cache
+        # 2. Check Cache with domain scope
         image_hash = compute_image_hash(image_path)
-        cached_res = plant_cache.get(image_hash)
+        cache_key = f"{image_hash}_{plant_type}_{tree_filter or 'none'}_{crop_filter or 'none'}"
+        cached_res = plant_cache.get(cache_key)
         if cached_res:
             return cached_res
 
         # 3. Attempt Local Identification
-        local_result = self._attempt_local_identification(image_path)
+        local_result = self._attempt_local_identification(
+            image_path=image_path,
+            plant_type=plant_type,
+            tree_filter=tree_filter,
+            crop_filter=crop_filter
+        )
         crop_hint = None
         if local_result and local_result.get("plant"):
             crop_hint = local_result["plant"].get("common_name")
 
         if local_result and local_result.get("confidence", 0) >= LOCAL_CONFIDENCE_THRESHOLD:
-            # Enrich local results with online-generated regional names and custom fertilizer stats
+            # Enrich local results with online-generated regional names and custom stats
             try:
-                online_data = await self.online_provider.identify(image_path, crop_name=crop_hint)
+                online_data = await self.online_provider.identify(
+                    image_path=image_path,
+                    crop_name=crop_hint,
+                    plant_type=plant_type,
+                    tree_filter=tree_filter
+                )
                 if online_data:
                     local_result["plant"] = online_data
                     local_result["confidence"] = max(local_result["confidence"], online_data.get("confidence", 98.4))
             except Exception as enrich_err:
                 logger.warning(f"Failed to enrich local plant info via online LLM: {enrich_err}")
             
-            plant_cache.set(image_hash, local_result)
+            plant_cache.set(cache_key, local_result)
             return local_result
 
         # 4. Attempt Online Provider Identification
         try:
-            online_data = await self.online_provider.identify(image_path, crop_name=crop_hint)
+            online_data = await self.online_provider.identify(
+                image_path=image_path,
+                crop_name=crop_hint,
+                plant_type=plant_type,
+                tree_filter=tree_filter
+            )
             if online_data and isinstance(online_data, dict):
                 confidence = float(online_data.get("confidence", 92.0))
                 
@@ -178,7 +283,7 @@ class PlantIdentifier:
                         "confidence": round(confidence, 1),
                         "plant": plant_obj
                     }
-                    plant_cache.set(image_hash, result)
+                    plant_cache.set(cache_key, result)
                     return result
         except Exception as e:
             logger.warning(f"Online identification provider failed: {e}")

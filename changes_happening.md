@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v135) - Feature: Dual Plant Identification Mode (Crops vs Normal Trees) with Full Andhra Pradesh Botanical & Weed Database
+- **Summary:** Added dedicated dual-domain identification options strictly within the Plant Identification tab (`plant-id`), leaving Disease Diagnosis (`disease-diag`) and Agrochemical Scanner (`agro-scan`) completely unaffected:
+  1. 🌿 **Dual Segmented Domain Selector (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**
+     - Exclusively rendered when `tabId === 'plant-id'`:
+       - `[ 🌾 Crops (వ్యవసాయ పంటలు & గడ్డి) ]`
+       - `[ 🌳 Normal Trees (సాధారణ / పెద్ద చెట్లు) ]`
+     - When `Normal Trees` is selected, renders an Andhra tree dropdown selector:
+       *Neem (వేప)*, *Mango (మామిడి)*, *Guava (జామ)*, *Tamarind (చింత)*, *Coconut (కొబ్బరి)*, *Teak (టేకు)*, *Banyan (మర్రి)*, *Peepal (రావి)*, *Jamun (నేరేడు)*, *Sapota (సపోటా)*, *Drumstick (మునగ)*.
+     - When `Crops` is selected, displays guidance badge highlighting agricultural crops and all 10 native Andhra weeds.
+  2. 🌳 **Full Andhra Big Trees & Agricultural Weeds Database (`backend/app/services/plant_identifier/plant_information.py` & `frontend/src/data/andhraBotanicalData.js`):**
+     - Added comprehensive botanical, medicinal, agronomic and regional Telugu profiles for all 11 major Andhra big trees (*వేప, మామిడి, జామ, చింత, కొబ్బరి, టేకు, మర్రి, రావి, నేరేడు, సపోటా, మునగ*).
+     - Added all 10 common field weeds with authentic Telugu names: *గలిజేరు (Trianthema)*, *ఉత్తరేణి (Achyranthes)*, *గుంటగలగరాకు (Eclipta)*, *వెన్నెదేవి కూర (Commelina)*, *బ్రహ్మదండి (Argemone)*, *గడ్డి చామంతి (Tridax)*, *మురిపిండ (Acalypha)*, *చెంచలి కూర (Digera)*, *తుమ్మి మొక్క (Leucas)*, *ముళ్ల తోటకూర (Amaranthus spinosus)*.
+  3. ⚙️ **Backend & Model Routing (`backend/app/models/schemas.py`, `routers/predict.py`, `identifier.py`, `online_provider.py`):**
+     - Updated `PredictRequest` schema with `plant_type` ("crop" | "tree") and optional `tree_filter`.
+     - In `identifier.py`, added tree and weed keyword matching, prevented PyTorch crop model false positives on big trees, and scoped the caching key (`cache_key = f"{hash}_{plant_type}_{tree_filter}_{crop_filter}"`).
+     - In `online_provider.py`, updated NVIDIA NIM LLM prompt to dynamically generate tree-focused botanical profiles when `plant_type == "tree"`.
+  4. 🏷️ **UI Domain Badges (`frontend/src/components/scanCenter/PlantIdResults.jsx`):**
+     - Displays `🌳 Normal Tree Species / పెద్ద చెట్టు / వృక్ష జాతి` for trees and `🌾 Field Crop / Weed / వ్యవసాయ పంట / కలుపు` for crops and field plants.
+- **Files modified**: `backend/app/models/schemas.py`, `backend/app/routers/predict.py`, `backend/app/services/plant_identifier/identifier.py`, `backend/app/services/plant_identifier/online_provider.py`, `backend/app/services/plant_identifier/plant_information.py`, `frontend/src/data/andhraBotanicalData.js`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v134) - System Audit: Light Mode Color Harmonization, Rounded Box UI Standardization & Sliding Screen Transitions
 - **Summary:** Executed full system code audit across backend and frontend, standardizing aesthetics, eliminating dead duplicates, and adding native app sliding transitions:
   1. 🧹 **Duplicate & Dead Code Elimination:**

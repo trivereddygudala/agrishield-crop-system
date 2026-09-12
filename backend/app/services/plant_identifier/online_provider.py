@@ -14,7 +14,7 @@ class BaseOnlinePlantProvider(ABC):
     """
 
     @abstractmethod
-    async def identify(self, image_path: str) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None) -> dict:
         """
         Identifies plant from image path.
         Must return structured plant dict or raise Exception.
@@ -31,7 +31,7 @@ class NVIDIAOnlinePlantProvider(BaseOnlinePlantProvider):
         from backend.app.services.nvidia_service import nvidia_service
         self.nvidia_service = nvidia_service
 
-    async def identify(self, image_path: str, crop_name: str = None) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None) -> dict:
         """
         Calls NVIDIA LLM to perform botanical classification and extract metadata.
         """
@@ -39,37 +39,49 @@ class NVIDIAOnlinePlantProvider(BaseOnlinePlantProvider):
             logger.info("NVIDIA client offline/unconfigured. Falling back to local botanical lookup.")
             return None
 
-        # Extract plant hint from crop_name or filename
+        # Extract plant hint from tree_filter, crop_name, or filename
         plant_hint = crop_name or ""
-        if not plant_hint:
-            filename = os.path.basename(image_path).lower()
-            for key in ["tomato", "potato", "corn", "maize", "rice", "apple", "cherry", "grape", "peach", "pepper", "strawberry", "sugarcane", "cotton", "groundnut", "chilli", "mango"]:
-                if key in filename:
-                    plant_hint = key
-                    break
-        
-        if not plant_hint:
-            plant_hint = "Agricultural Crop"
+        if plant_type == "tree":
+            if tree_filter and tree_filter.lower() != "all":
+                plant_hint = f"{tree_filter} Tree (Andhra Pradesh regional tree)"
+            elif not plant_hint:
+                filename = os.path.basename(image_path).lower()
+                for key in ["neem", "mango", "guava", "tamarind", "coconut", "teak", "banyan", "peepal", "jamun", "sapota", "drumstick"]:
+                    if key in filename:
+                        plant_hint = f"{key} Tree"
+                        break
+            if not plant_hint:
+                plant_hint = "Common shade / forest / horticultural tree of Andhra Pradesh (e.g. Neem, Mango, Guava, Tamarind, Banyan, Teak)"
+        else:
+            if not plant_hint:
+                filename = os.path.basename(image_path).lower()
+                for key in ["tomato", "potato", "corn", "maize", "rice", "apple", "cherry", "grape", "peach", "pepper", "strawberry", "sugarcane", "cotton", "groundnut", "chilli", "mango"]:
+                    if key in filename:
+                        plant_hint = key
+                        break
+            if not plant_hint:
+                plant_hint = "Agricultural Crop"
 
         # Prepare prompt for LLM identification
-        prompt = f"""Generate a detailed botanical profile for this plant: "{plant_hint}"
+        domain_desc = "tree species found in the Andhra Pradesh / Indian subcontinent region" if plant_type == "tree" else "agricultural crop, weed, or plant"
+        prompt = f"""Generate a detailed botanical profile for this {domain_desc}: "{plant_hint}"
 Provide the response as pure JSON matching this exact structure:
 {{
-    "common_name": "<Common name, e.g. Tomato Plant>",
-    "scientific_name": "<Scientific botanical name, e.g. Solanum lycopersicum>",
-    "family": "<Botanical family, e.g. Solanaceae>",
-    "category": "<Crop/Weed/Tree/etc>",
+    "common_name": "<Common name, e.g. Neem Tree / వేప చెట్టు>",
+    "scientific_name": "<Scientific botanical name, e.g. Azadirachta indica>",
+    "family": "<Botanical family, e.g. Meliaceae>",
+    "category": "{'Normal Tree (పెద్ద చెట్లు / వృక్ష జాతి)' if plant_type == 'tree' else 'Agricultural Crop / Plant'}",
     "description": "<Short description of the identified plant.>",
-    "native_region": "<Native region>",
-    "growth_stage": "<Probable Growth Stage>",
+    "native_region": "<Native region, e.g. Indian Subcontinent>",
+    "growth_stage": "<Probable Growth Stage, e.g. Mature Canopy / Perennial Tree>",
     "growing_season": "<Season>",
-    "harvest_season": "<Harvest timeframe>",
+    "harvest_season": "<Harvest / Fruiting timeframe>",
     "soil_type": "<Preferred soil>",
     "temperature_range": "<Optimal temperature>",
     "water_requirement": "<Water needs>",
     "sunlight_requirement": "<Sunlight needs>",
-    "fertilizer_recommendation": "<NPK fertilizer recommendation>",
-    "economic_importance": "<Economic significance>",
+    "fertilizer_recommendation": "<NPK or organic manure recommendation>",
+    "economic_importance": "<Economic, timber, or medicinal significance>",
     "common_uses": ["<Use 1>", "<Use 2>"],
     "common_diseases": ["<Disease 1>", "<Disease 2>"],
     "common_pests": ["<Pest 1>", "<Pest 2>"],
@@ -90,7 +102,7 @@ Do not include any conversational text or markdown blocks. Only output the raw J
             response_text = await self.nvidia_service.chat_with_assistant(
                 message=prompt,
                 history=[],
-                context={"task": "plant_identification", "plant": plant_hint}
+                context={"task": "plant_identification", "domain": plant_type, "plant": plant_hint}
             )
 
             # Parse JSON
@@ -112,24 +124,56 @@ class MockOnlinePlantProvider(BaseOnlinePlantProvider):
     Fallback Online Provider for offline / testing environments.
     """
 
-    async def identify(self, image_path: str) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None) -> dict:
         filename = os.path.basename(image_path).lower()
-        if "tomato" in filename:
-            key = "tomato"
-        elif "potato" in filename:
-            key = "potato"
-        elif "corn" in filename or "maize" in filename:
-            key = "corn"
-        elif "rice" in filename:
-            key = "rice"
-        elif "apple" in filename:
-            key = "apple"
-        elif "tulsi" in filename or "basil" in filename:
-            key = "tulsi"
-        elif "neem" in filename:
-            key = "neem"
+        if plant_type == "tree":
+            if tree_filter and tree_filter.lower() in ["neem", "mango", "guava", "tamarind", "coconut", "teak", "banyan", "peepal", "jamun", "sapota", "drumstick"]:
+                key = tree_filter.lower()
+            elif "mango" in filename:
+                key = "mango"
+            elif "guava" in filename:
+                key = "guava"
+            elif "tamarind" in filename:
+                key = "tamarind"
+            elif "coconut" in filename:
+                key = "coconut"
+            elif "teak" in filename:
+                key = "teak"
+            elif "banyan" in filename:
+                key = "banyan"
+            elif "peepal" in filename:
+                key = "peepal"
+            elif "jamun" in filename:
+                key = "jamun"
+            elif "sapota" in filename:
+                key = "sapota"
+            elif "drumstick" in filename:
+                key = "drumstick"
+            else:
+                key = "neem"
         else:
-            key = "tomato"
+            if "potato" in filename:
+                key = "potato"
+            elif "corn" in filename or "maize" in filename:
+                key = "corn"
+            elif "rice" in filename:
+                key = "rice"
+            elif "apple" in filename:
+                key = "apple"
+            elif "tulsi" in filename or "basil" in filename:
+                key = "tulsi"
+            elif "neem" in filename:
+                key = "neem"
+            elif "mango" in filename:
+                key = "mango"
+            elif "trianthema" in filename or "galijeru" in filename:
+                key = "trianthema"
+            elif "achyranthes" in filename or "uttareni" in filename:
+                key = "achyranthes"
+            elif "eclipta" in filename or "guntagalagara" in filename:
+                key = "eclipta"
+            else:
+                key = "tomato"
 
         plant_dict = get_plant_info(key)
         plant_dict["confidence"] = 96.8

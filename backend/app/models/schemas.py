@@ -134,6 +134,8 @@ class PredictRequest(BaseModel):
     explainer_type: Optional[str] = Field(default="gradcam++", description="Visual explainer type: 'gradcam', 'gradcam++', or 'scorecam'")
     language: Optional[str] = Field(default="en", description="ISO language code for translated diagnosis output (en, hi, te, ta)")
     crop_filter: Optional[str] = Field(default=None, description="Optional crop category to filter prediction search space")
+    plant_type: Optional[str] = Field(default="crop", description="Plant identification domain: 'crop' or 'tree'")
+    tree_filter: Optional[str] = Field(default=None, description="Optional tree species category to filter identification search space")
 
 class PredictBatchRequest(BaseModel):
     image_paths: List[str] = Field(..., min_length=1, max_length=10, description="List of image paths for multi-leaf field plot scan")

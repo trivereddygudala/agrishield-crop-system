@@ -6,8 +6,9 @@ import { Card, Button } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { buildPlantSpeech } from '../../utils/regionalLocale';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
+import { ANDHRA_BOTANICAL_BASE } from '../../data/andhraBotanicalData';
 
-const PLANT_KNOWLEDGE_BASE = {
+const BASE_CROPS_KNOWLEDGE = {
   onion: {
     commonName: "Onion Crop",
     family: "Vegetable Bulb Crop",
@@ -205,6 +206,11 @@ const PLANT_KNOWLEDGE_BASE = {
   }
 };
 
+const PLANT_KNOWLEDGE_BASE = {
+  ...BASE_CROPS_KNOWLEDGE,
+  ...ANDHRA_BOTANICAL_BASE
+};
+
 const getPlantDetails = (liveResult) => {
   if (!liveResult) {
     return PLANT_KNOWLEDGE_BASE["onion"]; // Default view
@@ -304,8 +310,19 @@ const PlantIdResults = ({ liveResult, data }) => {
               <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-400/30">
                 Species Match
               </span>
+              {(info.isTree || info.category?.toLowerCase().includes('tree') || info.commonName?.toLowerCase().includes('tree') || liveResult?.plant_type === 'tree') ? (
+                <span className="text-xs font-black text-emerald-300 bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
+                  <span>🌳</span>
+                  <span>{currentLang === 'te' ? 'పెద్ద చెట్టు / వృక్ష జాతి' : 'Normal Tree Species'}</span>
+                </span>
+              ) : (
+                <span className="text-xs font-black text-amber-300 bg-amber-950/90 px-3 py-1 rounded-full border border-amber-500/40 flex items-center gap-1.5 shadow-sm">
+                  <span>🌾</span>
+                  <span>{currentLang === 'te' ? 'వ్యవసాయ పంట / కలుపు' : 'Field Crop / Weed'}</span>
+                </span>
+              )}
               <span className="text-xs font-mono text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500/30">
-                Engine: {liveResult?.model || 'PyTorch Species Net'}
+                Engine: {liveResult?.model || (liveResult?.source === 'online' ? 'NVIDIA Multimodal Nim' : 'PyTorch Botanical Net')}
               </span>
             </div>
 
