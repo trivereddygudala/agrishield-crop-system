@@ -580,7 +580,7 @@ const SettingsPage = () => {
           </div>
         </Card>
 
-        {/* Biometric Quick Sign-In (Fingerprint / Face ID) */}
+        {/* Account Biometric Quick Sign-In (Fingerprint / Face ID) */}
         <Card glass className="p-6 space-y-5 border border-emerald-500/20 bg-gradient-to-br from-white/70 via-emerald-500/[0.02] to-white/70 dark:from-[#040d07]/80 dark:via-emerald-950/20 dark:to-[#040d07]/80 backdrop-blur-md shadow-lg shadow-emerald-500/5">
           <div className="flex items-start sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
             <div className="flex items-center gap-3">
@@ -590,20 +590,20 @@ const SettingsPage = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
-                    {isTe ? '🌾 వేలిముద్ర & ఫేస్ లాగిన్' : 'Biometric Quick Sign-In'}
+                    {isTe ? '🌾 ఖాతా బయోమెట్రిక్ లాగిన్' : 'Account Biometric Sign-In'}
                   </h2>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     biometricEnabled
                       ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                       : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-white/50'
                   }`}>
-                    {biometricEnabled ? (isTe ? '✓ సక్రియంలో ఉంది (Active)' : 'Active') : (isTe ? 'నిష్క్రియం (Disabled)' : 'Not Enabled')}
+                    {biometricEnabled ? (isTe ? '✓ సక్రియం' : '✓ Enabled for Account') : (isTe ? 'నిష్క్రియం' : 'Disabled')}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-white/45 mt-0.5">
                   {isTe
-                    ? 'పాస్‌వర్డ్ టైప్ చేయకుండా మొబైల్ ఫింగర్‌ప్రింట్ లేదా ఫేస్ లాక్‌తో 1-ట్యాప్‌లో లాగిన్ అవ్వండి.'
-                    : 'Sign in instantly using your phone or laptop fingerprint, Face ID, or Windows Hello.'}
+                    ? 'పాస్‌వర్డ్ లేకుండా మీ ఖాతాలోకి వేలిముద్ర లేదా ఫేస్ ఐడీతో 1-ట్యాప్‌లో లాగిన్ అవ్వండి.'
+                    : 'Sign in to your account with 1-tap using your device fingerprint sensor, Face ID, or Windows Hello.'}
                 </p>
               </div>
             </div>
@@ -622,13 +622,13 @@ const SettingsPage = () => {
             )}
           </div>
 
-          {/* Enrolled Devices & Status */}
+          {/* Enrolled Credentials & Status */}
           <div className="space-y-3">
             {biometricDevices.length > 0 ? (
               <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 space-y-2">
                 <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                   <Smartphone className="w-3.5 h-3.5" />
-                  {isTe ? 'నమోదైన బయోమెట్రిక్ పరికరాలు:' : 'Enrolled Biometric Devices:'}
+                  {isTe ? 'ఖాతాలో నమోదు చేయబడిన బయోమెట్రిక్ కీలు:' : 'Active Account Biometric Keys:'}
                 </p>
                 <div className="space-y-1.5">
                   {biometricDevices.map((dev, idx) => (
@@ -646,7 +646,7 @@ const SettingsPage = () => {
               </div>
             ) : (
               <p className="text-xs text-slate-500 dark:text-white/40 italic">
-                {isTe ? 'ప్రస్తుతం మీ ఖాతాలో బయోమెట్రిక్ నమోదు కాలేదు.' : 'No biometric sensor currently enrolled for this account.'}
+                {isTe ? 'ప్రస్తుతం మీ ఖాతాలో బయోమెట్రిక్ నమోదు కాలేదు.' : 'No biometric credentials currently active on this account.'}
               </p>
             )}
 
@@ -656,8 +656,8 @@ const SettingsPage = () => {
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>
                   {isTe
-                    ? 'మీ వేలిముద్ర డేటా మీ పరికరం సెక్యూర్ చిప్‌లోనే భద్రంగా ఉంటుంది.'
-                    : 'Biometric data remains encrypted inside your device hardware security enclave.'}
+                    ? 'మీ బయోమెట్రిక్ డేటా మీ పరికరం సెక్యూర్ ఎన్‌క్లేవ్‌లోనే భద్రంగా ఉంటుంది.'
+                    : 'Biometric cryptographic keys remain protected inside your hardware security enclave.'}
                 </span>
               </div>
 
@@ -669,8 +669,8 @@ const SettingsPage = () => {
                 className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-md shadow-emerald-500/20 text-xs font-bold shrink-0"
               >
                 {biometricEnabled
-                  ? (isTe ? 'మరో పరికరాన్ని జోడించు (+ Add Device)' : '+ Add Another Device')
-                  : (isTe ? 'ఇప్పుడే వేలిముద్రను ప్రారంభించు' : 'Enable Biometric Sign-In')}
+                  ? (isTe ? 'బయోమెట్రిక్ కీని నవీకరించు' : 'Update Account Biometrics')
+                  : (isTe ? 'ఖాతాకు బయోమెట్రిక్ ప్రారంభించు' : 'Enable Account Biometrics')}
               </Button>
             </div>
           </div>

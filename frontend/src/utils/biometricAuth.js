@@ -148,7 +148,10 @@ export async function registerBiometricCredential(user) {
  */
 export async function authenticateWithBiometrics(preferredCredentialId = null) {
   if (!window.PublicKeyCredential) {
-    throw new Error('Biometrics not supported on this browser.');
+    return {
+      success: false,
+      error: 'Biometric hardware is not supported on this browser.'
+    };
   }
 
   const storedCid = preferredCredentialId || localStorage.getItem('agrishield_biometric_cid');
@@ -164,35 +167,65 @@ export async function authenticateWithBiometrics(preferredCredentialId = null) {
   };
 
   if (storedCid) {
-    publicKeyCredentialRequestOptions.allowCredentials = [
-      {
-        id: base64UrlToBuffer(storedCid),
-        type: 'public-key',
-        transports: ['internal']
-      }
-    ];
+    try {
+      publicKeyCredentialRequestOptions.allowCredentials = [
+        {
+          id: base64UrlToBuffer(storedCid),
+          type: 'public-key',
+          transports: ['internal', 'hybrid']
+        }
+      ];
+    } catch (e) {
+      console.warn('Could not parse stored credential ID:', e);
+    }
   }
 
   try {
-    const assertion = await navigator.credentials.get({
-      publicKey: publicKeyCredentialRequestOptions
-    });
+    let assertion = null;
+    try {
+      assertion = await navigator.credentials.get({
+        publicKey: publicKeyCredentialRequestOptions
+      });
+    } catch (innerErr) {
+      // If allowCredentials failed because credential ID wasn't found on this device,
+      // retry without allowCredentials to allow discoverable credentials
+      if (publicKeyCredentialRequestOptions.allowCredentials) {
+        const fallbackOptions = { ...publicKeyCredentialRequestOptions };
+        delete fallbackOptions.allowCredentials;
+        assertion = await navigator.credentials.get({
+          publicKey: fallbackOptions
+        });
+      } else {
+        throw innerErr;
+      }
+    }
 
     if (!assertion) {
-      throw new Error('Biometric verification cancelled.');
+      return {
+        success: false,
+        error: 'Biometric authentication was cancelled.'
+      };
     }
 
     const credentialId = bufferToBase64Url(assertion.rawId);
     const email = localStorage.getItem('agrishield_biometric_email') || '';
 
     return {
+      success: true,
       credential_id: credentialId,
       email: email
     };
   } catch (err) {
+    console.warn('Biometric assertion failed:', err);
     if (err.name === 'NotAllowedError') {
-      throw new Error('Biometric authentication cancelled or biometric sensor timed out.');
+      return {
+        success: false,
+        error: 'Biometric authentication was cancelled or timed out.'
+      };
     }
-    throw err;
+    return {
+      success: false,
+      error: err.message || 'Biometric authentication failed on this device.'
+    };
   }
 }

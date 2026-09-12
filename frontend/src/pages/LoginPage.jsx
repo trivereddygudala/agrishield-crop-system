@@ -14,6 +14,7 @@ import { authenticateWithBiometrics, isBiometricSupported } from '../utils/biome
 
 const LoginPage = () => {
   const { t, i18n } = useTranslation();
+  const isTe = i18n.language === 'te';
   const { login, biometricLogin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,39 +139,46 @@ const LoginPage = () => {
   // Biometric 1-Tap sign-in handler (WebAuthn)
   const handleBiometricSignIn = async () => {
     if (loading || biometricLoading || showSuccess) return;
+    
+    // Check if account username or email is provided
+    const accountToUse = (email || savedBiometricUser?.email || '').trim();
+    if (!accountToUse) {
+      const msg = isTe 
+        ? 'దయచేసి మీ యూజర్‌నేమ్ లేదా ఈమెయిల్ పైన నమోదు చేయండి.' 
+        : 'Please enter your username or email above first.';
+      setErrorMsg(msg);
+      toast.warning(isTe ? 'ఖాతా వివరాలు అవసరం' : 'Account Identifier Required', msg);
+      return;
+    }
+
     setBiometricLoading(true);
     setErrorMsg('');
     try {
       const result = await authenticateWithBiometrics(savedBiometricUser?.credentialId || null);
       if (!result.success) {
-        toast.error('Biometric Sign-In', result.error || 'Biometric authentication was cancelled.');
-        setBiometricLoading(false);
-        return;
-      }
-
-      const emailToUse = email || savedBiometricUser?.email || '';
-      if (!emailToUse) {
-        toast.warning(
-          'Email Required',
-          'Please enter your username or email first to link your biometric key.'
+        toast.error(
+          isTe ? 'బయోమెట్రిక్ లాగిన్' : 'Biometric Sign-In',
+          result.error || (isTe ? 'బయోమెట్రిక్ ధృవీకరణ రద్దు చేయబడింది.' : 'Biometric authentication was cancelled.')
         );
         setBiometricLoading(false);
         return;
       }
 
       isLoggingInRef.current = true;
-      const loggedUser = await biometricLogin(emailToUse, result.credentialId);
+      const loggedUser = await biometricLogin(accountToUse, result.credential_id);
       setSuccessUser(loggedUser);
       setShowSuccess(true);
       toast.success(
         t('auth.login.welcome_back_toast', 'Welcome Back!'),
-        'వేలిముద్ర ధృవీకరణ విజయవంతమైంది (Biometric authenticated).'
+        isTe ? 'ఖాతా బయోమెట్రిక్ ధృవీకరణ విజయవంతమైంది.' : 'Account biometric authenticated successfully.'
       );
     } catch (err) {
       isLoggingInRef.current = false;
       console.error('Biometric sign-in error:', err);
       const raw = err.response?.data?.detail;
-      const detail = typeof raw === 'string' ? raw : (raw?.[0]?.msg || 'Biometric authentication failed. Please use your password.');
+      const detail = typeof raw === 'string'
+        ? raw
+        : (raw?.[0]?.msg || (isTe ? 'బయోమెట్రిక్ లాగిన్ విఫలమైంది. దయచేసి పాస్‌వర్డ్ ఉపయోగించండి.' : 'Biometric authentication failed. Please use your password.'));
       setErrorMsg(detail);
       toast.error(t('auth.login.login_failed', 'Login Failed'), detail);
     } finally {
@@ -345,16 +353,18 @@ const LoginPage = () => {
                     <div className="text-left">
                       <div className="flex items-center gap-1.5">
                         <span className="text-white font-extrabold text-xs tracking-tight">
-                          {biometricLoading ? 'ధృవీకరిస్తోంది (Scanning...)' : 'వేలిముద్ర లేదా ఫేస్ లాగిన్'}
+                          {biometricLoading
+                            ? (isTe ? 'ధృవీకరిస్తోంది...' : 'Verifying Biometrics...')
+                            : (isTe ? 'వేలిముద్ర లేదా ఫేస్ లాగిన్' : 'Sign in with Biometrics')}
                         </span>
                         <span className="text-[9px] bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.2 rounded-full font-black tracking-wider uppercase">
-                          1-Tap
+                          {isTe ? '1-ట్యాప్' : '1-Tap'}
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                        {savedBiometricUser?.email
-                          ? `Sign in as ${savedBiometricUser.email}`
-                          : 'Sign in with Fingerprint / Face ID'}
+                        {isTe
+                          ? 'ఖాతా కోసం వేలిముద్ర లేదా ఫేస్ ఐడీతో లాగిన్ అవ్వండి'
+                          : 'Touch fingerprint or Face ID to unlock account'}
                       </p>
                     </div>
                   </div>
@@ -367,7 +377,7 @@ const LoginPage = () => {
                     <div className="w-full border-t border-white/10" />
                   </div>
                   <span className="relative px-3 bg-[#040d07] text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    లేదా పాస్‌వర్డ్ (Or with password)
+                    {isTe ? 'లేదా పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి' : 'OR SIGN IN WITH PASSWORD'}
                   </span>
                 </div>
               </div>

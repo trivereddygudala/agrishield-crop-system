@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v121) - Fix: Biometric Account-Oriented Authentication & Language Consistency
+- **Summary:** Resolved the language mismatch and aligned biometric authentication directly to the user's account rather than tying it to a single device:
+  1. 🌐 **Strict Language Alignment (`frontend/src/pages/LoginPage.jsx`):**
+     - Eliminated hardcoded Telugu text on English screens.
+     - The biometric sign-in button, badge, subtitle, and divider now strictly honor `i18n.language`.
+     - In English: *"Sign in with Biometrics"*, *"Touch fingerprint or Face ID to unlock account"*, *"OR SIGN IN WITH PASSWORD"*.
+     - In Telugu: *"వేలిముద్ర లేదా ఫేస్ లాగిన్"*, *"ఖాతా కోసం వేలిముద్ర లేదా ఫేస్ ఐడీతో లాగిన్ అవ్వండి"*, *"లేదా పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి"*.
+  2. 👤 **Account-Oriented Biometric Sign-In:**
+     - Shifted biometrics from a fixed device prefill to an **Account-Level** verification method.
+     - The login flow checks the account entered in the `USERNAME OR EMAIL` field (or remembered account) and verifies the user's biometric credential against that specific account.
+     - In `backend/app/routers/auth.py`, enhanced `biometric_login` to authenticate by credential ID or account identifier (`email`, `username`, or `name`) with graceful credential linking and informative errors if biometrics is not yet activated on that account.
+  3. 🛠️ **WebAuthn Return Structure & Fallback Retries (`frontend/src/utils/biometricAuth.js`):**
+     - Resolved `result.success` undefined check bug where `authenticateWithBiometrics` previously returned raw payload without `success: true`, which erroneously triggered "Biometric authentication was cancelled" toasts.
+     - Added automatic discoverable retry if `allowCredentials` with a stored ID fails due to cross-origin or device mismatch.
+  4. ⚙️ **Account Biometrics Settings Overhaul (`frontend/src/pages/SettingsPage.jsx`):**
+     - Re-labeled all card copy to **"Account Biometric Sign-In (ఖాతా బయోమెట్రిక్ లాగిన్)"** to reinforce that biometrics protects and unlocks the farmer's personal account.
+- **Files modified**: `frontend/src/pages/LoginPage.jsx`, `frontend/src/pages/SettingsPage.jsx`, `frontend/src/utils/biometricAuth.js`, `backend/app/routers/auth.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v120) - Feature: Hyperlocal Weather Outbreak Radar & AI Crop Yield Loss Estimator
 - **Summary:** Implemented two major agronomic decision-support systems for farmers:
   1. 🌦️ **Hyperlocal Weather & Pathogen Outbreak Forecast Radar (Option 3):**

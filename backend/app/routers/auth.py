@@ -554,23 +554,54 @@ async def biometric_login(
             detail="Biometric credential identifier is missing"
         )
 
-    # Find the user by credential_id, optionally matching email if provided
-    query = {
+    account_id = (payload.email or "").strip().lower()
+
+    # Strategy 1: Find by matching enrolled credential_id
+    user = await db.users.find_one({
         "biometric_enabled": True,
         "biometric_credentials.credential_id": cid
-    }
-    if payload.email:
-        query["email"] = payload.email.strip().lower()
+    })
 
-    user = await db.users.find_one(query)
-
-    # Fallback search by email if credential was stored in a device mapping
-    if not user and payload.email:
-        fallback_user = await db.users.find_one({"email": payload.email.strip().lower(), "biometric_enabled": True})
-        if fallback_user and fallback_user.get("biometric_credentials"):
-            user = fallback_user
+    # Strategy 2: If not found by credential ID alone, look up by account username/email
+    if not user and account_id:
+        account_queries = [
+            {"email": account_id},
+            {"email": f"{account_id}@agrishield.com" if "@" not in account_id else account_id},
+            {"name": {"$regex": f"^{re.escape(account_id)}$", "$options": "i"}},
+            {"username": account_id.split("@")[0]}
+        ]
+        user = await db.users.find_one({
+            "biometric_enabled": True,
+            "$or": account_queries
+        })
+        if user:
+            # Add this credential to the user's account credentials
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$addToSet": {"biometric_credentials": {
+                    "credential_id": cid,
+                    "registered_at": datetime.now(timezone.utc).isoformat() + "Z",
+                    "device_name": "Active Biometric Authenticator"
+                }}}
+            )
 
     if not user:
+        # Check if the account exists but doesn't have biometrics enabled
+        if account_id:
+            existing_account = await db.users.find_one({
+                "$or": [
+                    {"email": account_id},
+                    {"email": f"{account_id}@agrishield.com" if "@" not in account_id else account_id},
+                    {"name": {"$regex": f"^{re.escape(account_id)}$", "$options": "i"}},
+                    {"username": account_id.split("@")[0]}
+                ]
+            })
+            if existing_account and not existing_account.get("biometric_enabled"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Biometric sign-in is not enabled for this account. Please sign in with your password and enable biometrics in System Settings."
+                )
+
         log_security_event(
             "BIOMETRIC_LOGIN_FAILED",
             {"credential_id": cid, "email": payload.email},
@@ -579,7 +610,7 @@ async def biometric_login(
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Biometric authentication failed. Fingerprint or Face ID not enrolled on this account."
+            detail="Biometric authentication failed. Fingerprint or Face ID not enrolled for this account."
         )
 
     # Check lockouts

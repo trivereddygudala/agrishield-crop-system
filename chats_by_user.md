@@ -6,6 +6,21 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 58
+* **User Input:**
+  > "why it happens like this what i tell to you give the biometric for the account not for the device , the biometric is for the account ok not for the device. and one more is why it shows in telugu rest of things show in english see the small mistakes can make big errors." [with attached mobile screenshot showing "Biometric Sign-In: Biometric authentication was cancelled." toast, hardcoded Telugu "వేలిముద్ర లేదా ఫేస్ లాగిన్" on an English page, and fixed "Sign in as adireddy@agrishield.com" label]
+* **Machine Summary Solution:**
+  * Diagnosed and corrected both issues identified by the user:
+    1. **Language Consistency (English vs Telugu):** Removed hardcoded Telugu text from `LoginPage.jsx`. Integrated strict dynamic language switching via `isTe = i18n.language === 'te'`. On English screens, the button now reads *"Sign in with Biometrics"*, *"Touch fingerprint or Face ID to unlock account"*, and divider reads *"OR SIGN IN WITH PASSWORD"*.
+    2. **Account-Oriented Biometrics (Not Fixed to Device):**
+       - Removed the fixed device-specific "Sign in as [email]" label. The biometric button is now an account-level sign-in action that authenticates whichever account is entered in the Username/Email field.
+       - Upgraded backend `POST /api/auth/biometric/login` in `backend/app/routers/auth.py` to match user by account identifiers (`email`, `username`, `name`) and dynamically link new verified credentials. Added explicit feedback if biometrics has not yet been activated on that account.
+       - Overhauled `SettingsPage.jsx` copy to **"Account Biometric Sign-In (ఖాతా బయోమెట్రిక్ లాగిన్)"**.
+    3. **Resolved "Biometric authentication was cancelled" False Alarm:**
+       - Identified that `authenticateWithBiometrics` in `biometricAuth.js` returned an object without a `success: true` flag, causing `if (!result.success)` in `LoginPage.jsx` to immediately evaluate `!undefined` as true and trigger the cancellation toast.
+       - Fixed `authenticateWithBiometrics` to return `{ success: true, credential_id, email }` and handle fallbacks gracefully without false cancel errors.
+  * Verified: `npm run build` compiled 3148 modules with 0 errors in 20.85s.
+
 ### Chat Entry 57
 * **User Input:**
   > "the already there are option1, option4 right for option 3 take the data from the open weather map api when it is in only software mode when it is in hardware mode analyze booth the hardware and software data for that ok. if option2 is good make it perfectly with out any errors ok"
