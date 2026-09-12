@@ -55,35 +55,32 @@ class AIClusterDispatcher:
         if not workers:
             return None
 
-        # Order candidate workers starting from current round-robin choice
-        start_idx = self._index % len(workers)
+        # Select active worker using round-robin
+        chosen_worker = workers[self._index % len(workers)]
         self._index += 1
-        candidate_order = [workers[(start_idx + i) % len(workers)] for i in range(len(workers))]
 
-        for worker_url in candidate_order:
-            target_endpoint = f"{worker_url}/api/worker/predict"
-            try:
-                logger.info(f"⚡ [AI Cluster] Dispatching scan to worker: {worker_url}")
-                async with httpx.AsyncClient(timeout=8.0) as client:
-                    files = {"file": (filename, image_bytes, "image/jpeg")}
-                    data = {
-                        "explainer_type": explainer_type,
-                        "crop_filter": crop_filter or ""
-                    }
-                    response = await client.post(target_endpoint, files=files, data=data)
-                    
-                    if response.status_code == 200:
-                        res_json = response.json()
-                        if res_json.get("success"):
-                            logger.info(f"✅ [AI Cluster] Worker {worker_url} finished prediction successfully!")
-                            return res_json.get("result")
-                    else:
-                        logger.warning(f"⚠️ [AI Cluster] Worker {worker_url} returned HTTP {response.status_code}: {response.text[:120]}")
-            except Exception as e:
-                logger.warning(f"⚠️ [AI Cluster] Worker {worker_url} request failed: {e}. Trying next node...")
-                continue
+        target_endpoint = f"{chosen_worker}/api/worker/predict"
+        try:
+            logger.info(f"⚡ [AI Cluster] Dispatching scan to worker: {chosen_worker}")
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                files = {"file": (filename, image_bytes, "image/jpeg")}
+                data = {
+                    "explainer_type": explainer_type,
+                    "crop_filter": crop_filter or ""
+                }
+                response = await client.post(target_endpoint, files=files, data=data)
+                
+                if response.status_code == 200:
+                    res_json = response.json()
+                    if res_json.get("success"):
+                        logger.info(f"✅ [AI Cluster] Worker {chosen_worker} finished prediction successfully!")
+                        return res_json.get("result")
+                else:
+                    logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} returned HTTP {response.status_code}: {response.text[:120]}")
+        except Exception as e:
+            logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} request failed: {e}. Fast-failing to local inference.")
 
-        logger.info("ℹ️ [AI Cluster] All external workers busy or sleeping. Falling back to local inference.")
+        logger.info("ℹ️ [AI Cluster] External worker node unavailable. Executing local inference immediately.")
         return None
 
 ai_cluster = AIClusterDispatcher()

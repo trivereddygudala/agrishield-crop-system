@@ -2855,3 +2855,13 @@ efine_prediction in an explicit 2.0s timeout with immediate try-except fallback.
   3. **Tightened Cluster Timeout (backend/app/services/ai_cluster.py):**
      - Reduced worker dispatch timeout from 35.0s to 8.0s so sleeping/stalled nodes failover instantly.
 - **Verification:** Verified cleanly with python -m py_compile (0 errors). Total scan execution drops to <3 seconds.
+
+9/13/2026: Streamlined AI Cluster Single-Worker Dispatch with 12s Grace Period (v110):
+- **Problem & Root Cause Identified from Render Logs:**
+  1. **Multi-Worker Sequential Cascade:** When i_cluster.py had an 8.0s timeout, if Worker 1 took 8.1s during a cold start or network jitter, it was killed at 8s, and then Worker 2 was tried for another 8s (16s wasted), before falling back to local 13s inference.
+  2. **Render Deploy Concurrency:** The previous scan occurred during the exact second Render was binding port 10000 on service reboot.
+- **Architectural Solution:**
+  1. **Single-Worker Dispatch (backend/app/services/ai_cluster.py):**
+     - Dispatches to one chosen active round-robin worker with a 12.0s timeout (ample time to complete the ~4.8s prediction cleanly).
+     - If that worker is sleeping or times out, it fast-fails directly to local inference without cascading through Worker 2, saving 8-10 seconds.
+- **Verification:** Verified cleanly with python -m py_compile (0 errors).
