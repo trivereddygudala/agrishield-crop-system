@@ -11,6 +11,7 @@ import { getLanguageByCode } from '../data/languages';
 import NatureParticles from '../components/animations/NatureParticles';
 import LoginSuccessOverlay from '../components/animations/LoginSuccessOverlay';
 import { authenticateWithBiometrics, isBiometricSupported } from '../utils/biometricAuth';
+import FarmerBiometricModal from '../components/common/FarmerBiometricModal';
 
 const LoginPage = () => {
   const { t, i18n } = useTranslation();
@@ -37,6 +38,10 @@ const LoginPage = () => {
   const [biometricSupported, setBiometricSupported] = useState(false);
   const [savedBiometricUser, setSavedBiometricUser] = useState(null);
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const [showBioLoginModal, setShowBioLoginModal] = useState(false);
+  const [bioModalTargetCid, setBioModalTargetCid] = useState(null);
+  const [bioModalAccount, setBioModalAccount] = useState('');
+  const [bioModalError, setBioModalError] = useState('');
 
   useEffect(() => {
     const checkBio = async () => {
@@ -195,36 +200,48 @@ const LoginPage = () => {
         return;
       }
 
-      // 2. Hardware scan via WebAuthn
-      const result = await authenticateWithBiometrics(targetCredentialId);
+      // Open guidance modal and execute scan
+      setBioModalAccount(accountToUse);
+      setBioModalTargetCid(targetCredentialId);
+      setBioModalError('');
+      setShowBioLoginModal(true);
+      await executeBiometricAuth(accountToUse, targetCredentialId);
+    } catch (err) {
+      console.error(err);
+      setBiometricLoading(false);
+    }
+  };
+
+  const executeBiometricAuth = async (accountToUse, targetCid) => {
+    setBiometricLoading(true);
+    setBioModalError('');
+    try {
+      const result = await authenticateWithBiometrics(targetCid);
       
       if (!result.success) {
         setBiometricLoading(false);
         if (result.noCredential) {
           const noCredMsg = isTe
             ? 'ఈ పరికరంలో బయోమెట్రిక్ కనుగొనబడలేదు. దయచేసి పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి.'
-            : 'No passkey found on this device. Please sign in with your password to set up biometrics on this phone.';
-          setErrorMsg(noCredMsg);
-          toast.warning(isTe ? 'బయోమెట్రిక్ అందుబాటులో లేదు' : 'No Passkey Found', noCredMsg);
+            : 'No passkey found on this device. Please sign in with your password.';
+          setBioModalError(noCredMsg);
           return;
         }
 
         if (result.cancelled) {
           const cancelMsg = isTe
-            ? 'బయోమెట్రిక్ ధృవీకరణ రద్దు చేయబడింది లేదా ఈ ఫోన్ ఇంకా ఖాతాకి లింక్ కాలేదు. దయచేసి పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి.'
-            : 'Biometric scan was cancelled or this phone is not yet enrolled with this account. Please sign in with your password.';
-          toast.info(isTe ? 'ధృవీకరణ రద్దు' : 'Authentication Cancelled', cancelMsg);
+            ? 'బయోమెట్రిక్ ధృవీకరణ రద్దు చేయబడింది లేదా ఈ ఫోన్ ఇంకా ఖాతాకి లింక్ కాలేదు. గూగుల్ బాక్స్‌లో Continue నొక్కి వేలిని సెన్సార్‌పై ఉంచండి.'
+            : 'Biometric scan was cancelled. Tap Continue on the Google prompt and touch your fingerprint sensor.';
+          setBioModalError(cancelMsg);
           return;
         }
 
-        toast.error(
-          isTe ? 'బయోమెట్రిక్ లాగిన్' : 'Biometric Sign-In',
-          result.error || (isTe ? 'బయోమెట్రిక్ ధృవీకరణ విఫలమైంది.' : 'Biometric authentication failed.')
-        );
+        setBioModalError(result.error || (isTe ? 'బయోమెట్రిక్ ధృవీకరణ విఫలమైంది.' : 'Biometric authentication failed.'));
         return;
       }
 
       // 3. Complete authentication on backend
+      setShowBioLoginModal(false);
       isLoggingInRef.current = true;
       const loggedUser = await biometricLogin(accountToUse, result.credential_id);
       setSuccessUser(loggedUser);
@@ -240,8 +257,8 @@ const LoginPage = () => {
       const detail = typeof raw === 'string'
         ? raw
         : (raw?.[0]?.msg || (isTe ? 'బయోమెట్రిక్ లాగిన్ విఫలమైంది. దయచేసి పాస్‌వర్డ్ ఉపయోగించండి.' : 'Biometric authentication failed. Please use your password.'));
+      setBioModalError(detail);
       setErrorMsg(detail);
-      toast.error(t('auth.login.login_failed', 'Login Failed'), detail);
     } finally {
       setBiometricLoading(false);
     }
@@ -582,6 +599,17 @@ const LoginPage = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* ── Farmer Biometric Guidance Modal for 1-Tap Sign-In ── */}
+      <FarmerBiometricModal
+        isOpen={showBioLoginModal}
+        onClose={() => setShowBioLoginModal(false)}
+        mode="login"
+        accountName={bioModalAccount}
+        onStartScan={() => executeBiometricAuth(bioModalAccount, bioModalTargetCid)}
+        isScanning={biometricLoading}
+        errorMsg={bioModalError}
+      />
     </>
   );
 };

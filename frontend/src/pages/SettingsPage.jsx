@@ -11,6 +11,7 @@ import { useHardwareMode } from '../hooks/useHardwareMode';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Input, Select } from '../components/ui/index';
 import { isBiometricSupported, registerBiometricCredential } from '../utils/biometricAuth';
+import FarmerBiometricModal from '../components/common/FarmerBiometricModal';
 
 const SettingsPage = () => {
   const { user, logout, updateProfile } = useAuth();
@@ -72,21 +73,38 @@ const SettingsPage = () => {
     });
   }, []);
 
-  const handleEnrollBiometric = async () => {
+  const [showBiometricModal, setShowBiometricModal] = useState(false);
+  const [modalSuccessData, setModalSuccessData] = useState(null);
+  const [modalError, setModalError] = useState('');
+
+  const handleOpenEnrollModal = () => {
+    setShowBiometricModal(true);
+    setModalSuccessData(null);
+    setModalError('');
+  };
+
+  const handleExecuteEnroll = async () => {
     setEnrollingBiometric(true);
-    setErrorMsg('');
+    setModalError('');
     try {
       const cred = await registerBiometricCredential(user);
-      await API.post('/api/auth/biometric/register', cred);
+      const res = await API.post('/api/auth/biometric/register', cred);
       localStorage.setItem('agrishield_biometric_enabled', 'true');
       localStorage.setItem('agrishield_biometric_cid', cred.credential_id);
       localStorage.setItem('agrishield_biometric_email', user?.email || user?.username || '');
       setBiometricEnabled(true);
       setBiometricDevices(prev => [{ device_name: cred.device_name, registered_at: new Date().toISOString() }, ...prev]);
+      setModalSuccessData({
+        digital_key: res.data?.digital_key,
+        biometric_hash: res.data?.biometric_hash,
+        device_name: cred.device_name
+      });
       setToastMsg(isTe ? 'వేలిముద్ర / ఫేస్ లాగిన్ విజయవంతంగా సక్రియం చేయబడింది!' : 'Fingerprint / Face ID sign-in successfully enabled on this device!');
     } catch (err) {
       console.error('Biometric registration failed:', err);
-      setErrorMsg(err.message || 'Failed to enroll biometric sensor.');
+      const msg = err.message || (isTe ? 'సెన్సార్ నమోదు విఫలమైంది.' : 'Failed to enroll biometric sensor.');
+      setModalError(msg);
+      setErrorMsg(msg);
     } finally {
       setEnrollingBiometric(false);
     }
@@ -381,7 +399,7 @@ const SettingsPage = () => {
               ) : (
                 <Button
                   size="sm"
-                  onClick={handleEnrollBiometric}
+                  onClick={handleOpenEnrollModal}
                   disabled={enrollingBiometric}
                   leftIcon={<Fingerprint className="w-4 h-4" />}
                   className="font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-95"
@@ -395,15 +413,15 @@ const SettingsPage = () => {
           </div>
 
           {/* Enrolled devices list / hardware support badge */}
-          <div className="pt-3 border-t border-slate-200/60 dark:border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-white/40">
+          <div className="pt-3 border-t border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-white/40">
             <span className="flex items-center gap-1.5 font-medium">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               {isTe 
-                ? "హార్డ్‌వేర్ సెక్యూర్ ఎన్‌క్లేవ్ ద్వారా సురక్షితం • మీ వేలిముద్ర ఫోన్ పరిధి దాటి వెళ్ళదు."
-                : "Protected by Hardware TPM / Secure Enclave • Your biometrics never leave your physical device."}
+                ? "హార్డ్‌వేర్ సెక్యూర్ ఎన్‌క్లేవ్ & SHA-256 డిజిటల్ హాష్ • క్లౌడ్ ద్వారా ఇతర పరికరాల్లో కూడా పని చేస్తుంది."
+                : "Hardware TPM & SHA-256 Digital Hash • Cloud synced for multi-device login."}
             </span>
             {biometricDevices.length > 0 && (
-              <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+              <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
                 {biometricDevices.length} registered device{biometricDevices.length > 1 ? 's' : ''} ({biometricDevices[0]?.device_name})
               </span>
             )}
@@ -663,7 +681,7 @@ const SettingsPage = () => {
 
               <Button
                 type="button"
-                onClick={handleEnrollBiometric}
+                onClick={handleOpenEnrollModal}
                 isLoading={enrollingBiometric}
                 leftIcon={<Fingerprint className="w-4 h-4 text-white" />}
                 className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-md shadow-emerald-500/20 text-xs font-bold shrink-0"
@@ -699,6 +717,25 @@ const SettingsPage = () => {
           </Button>
         </div>
       </form>
+
+      {/* ── Farmer-Friendly Biometric Guidance & Scanner Modal ── */}
+      <FarmerBiometricModal
+        isOpen={showBiometricModal}
+        onClose={() => {
+          setShowBiometricModal(false);
+          setModalSuccessData(null);
+        }}
+        mode="enroll"
+        accountName={user?.email || user?.username || 'Farmer'}
+        onStartScan={handleExecuteEnroll}
+        isScanning={enrollingBiometric}
+        errorMsg={modalError}
+        successData={modalSuccessData}
+        onSuccessDone={() => {
+          setShowBiometricModal(false);
+          setModalSuccessData(null);
+        }}
+      />
     </motion.div>
   );
 };

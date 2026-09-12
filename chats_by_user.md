@@ -6,6 +6,27 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 61
+* **User Input:**
+  > "when it gives like this when i give the website to the farmer how they rigister their fingerprint like this tell me correct this one as farmer friendly also put like as oldone when the farmer taps on account biometrics shows the fingerprint scanner after success convert it in to hashformats and stored in the digital form it helps the user login in another device also wants to work" [with attached mobile screenshot of Android Google Credential Manager modal: "Create a passkey... gvtr1103@gmail.com... Continue"]
+* **Machine Summary Solution:**
+  * Addressed user requirements for farmer-friendly UX, digital SHA-256 hash storage, and cross-device functionality:
+    1. **Clarified Android Google Passkey Sheet:** Explained that Android 14+ displays "Create a passkey" to link the biometric to the farmer's Google Account so it automatically syncs across the farmer's other phones/tablets. Tapping "Continue" immediately opens the physical phone fingerprint sensor.
+    2. **Built Farmer-Friendly Biometric Guidance Modal (`frontend/src/components/common/FarmerBiometricModal.jsx`):**
+       - Features an animated glowing green scanner with laser line, pulsing radar rings, and clear Telugu/English instructions.
+       - Explains in 2 simple steps: (Step 1) Tap "Continue" on Google's popup, (Step 2) Touch phone's fingerprint sensor.
+       - Eliminates confusion for rural farmers before the Android prompt appears.
+    3. **Cryptographic SHA-256 Digital Hash Storage (`backend/app/routers/auth.py`):**
+       - Converted credentials upon enrollment into cryptographic digital hashes (`hashlib.sha256`) and assigned a `digital_key` (e.g. `BIO-SHA256-78A4E91C3F`).
+       - Stored directly on the MongoDB user account in `biometric_credentials` and `biometric_hash`.
+       - Updated `biometric_login` to authenticate by hardware ID or cryptographic hash.
+    4. **Cross-Device Sync:**
+       - Automatic via Google Passkey Sync across devices sharing the Google account.
+       - Multi-device linking in MongoDB allows adding secondary devices/tablets under the same account.
+    5. **Integrated into Settings & Login Pages:**
+       - Wired up `SettingsPage.jsx` and `LoginPage.jsx` to launch `FarmerBiometricModal`.
+  * Verified: Production build (`npm run build`) succeeded with 0 errors (3149 modules in 19.79s). Backend startup check passed with code 0.
+
 ### Chat Entry 60
 * **User Input:**
   > "deploy failed" [with attached screenshot from Render deploy log showing: `File "/opt/render/project/src/backend/app/routers/auth.py", line 451, in <module> account: str = Query(...) NameError: name 'Query' is not defined. ==> Exited with status 1`]

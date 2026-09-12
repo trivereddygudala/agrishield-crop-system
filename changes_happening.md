@@ -2,6 +2,25 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v124) - Feature: Farmer-Friendly Biometric Guidance, SHA-256 Digital Hash Storage & Multi-Device Sync
+- **Summary:** Upgraded the biometric enrollment and sign-in flow into an intuitive, farmer-friendly experience that guides rural farmers through Google's Android passkey prompt, converts credentials into secure digital SHA-256 hash formats, and enables seamless cross-device account sign-in:
+  1. 🌾 **Farmer-Friendly Visual Biometric Modal (`frontend/src/components/common/FarmerBiometricModal.jsx`):**
+     - Designed an in-app visual biometric scanner with glowing emerald radar ripples, real-time laser scanning bar, and bilingual Telugu/English instructions.
+     - Demystifies Android's Google modal with two clear steps:
+       *(Step 1: "Google Popup: Tap 'Continue' (గూగుల్ బాక్స్ వచ్చినప్పుడు 'Continue' నొక్కండి)")*
+       *(Step 2: "Touch Your Fingerprint Sensor (మీ ఫోన్ వేలిముద్ర సెన్సార్‌పై వేలిని తాకండి)")*.
+     - Displays real-time scanning progress and celebration state with cryptographic digital key details.
+  2. 🔐 **Cryptographic SHA-256 Digital Hash Conversion (`backend/app/routers/auth.py`):**
+     - In `register_biometric_credential`: Computes `hashlib.sha256(credential_id).hexdigest()`, creating a permanent `digital_key` (e.g. `BIO-SHA256-78A4E91C3F`) and `digital_format` stored directly on the MongoDB user account (`biometric_hash` and `biometric_credentials`).
+     - In `biometric_login`: Upgraded matching logic to verify users by hardware `credential_id` OR cryptographic `biometric_hash`.
+  3. 📱 **Multi-Device Account Cross-Login:**
+     - Google Cloud Sync: The passkey enrolled on Android is automatically synced by Google to all devices sharing the farmer's Google account.
+     - Multi-Device Linking: Farmers can register additional devices (e.g., family phones, field tablets) under the same account; each new device credential and digital hash is appended to `biometric_credentials` in MongoDB.
+  4. ⚙️ **Integrated into Settings & Login Pages (`SettingsPage.jsx` & `LoginPage.jsx`):**
+     - "Enable on This Device" opens the FarmerBiometricModal before launching the sensor, ensuring farmers are never confused by Google's native system dialog.
+     - Login page 1-tap sign-in opens the guidance modal for smooth biometric unlocking.
+- **Files modified**: `frontend/src/components/common/FarmerBiometricModal.jsx`, `frontend/src/pages/SettingsPage.jsx`, `frontend/src/pages/LoginPage.jsx`, `backend/app/routers/auth.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v123) - Fix: Missing Query Import in Backend Auth Router (Render Deployment Error)
 - **Summary:** Resolved the Render production deployment crash:
   1. 🐛 **Render Deployment Failure Resolution (`backend/app/routers/auth.py`):**

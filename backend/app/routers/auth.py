@@ -1,5 +1,6 @@
 import asyncio
 import re
+import hashlib
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -510,8 +511,15 @@ async def register_biometric_credential(
     if not payload.credential_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Credential ID is required")
     
+    clean_cid = payload.credential_id.strip()
+    bio_hash = hashlib.sha256(clean_cid.encode('utf-8')).hexdigest()
+    digital_key = f"BIO-SHA256-{bio_hash[:12].upper()}"
+
     cred_doc = {
-        "credential_id": payload.credential_id.strip(),
+        "credential_id": clean_cid,
+        "biometric_hash": bio_hash,
+        "digital_key": digital_key,
+        "digital_format": f"SHA256:{bio_hash[:16]}...{bio_hash[-8:]}",
         "public_key": payload.public_key,
         "device_name": payload.device_name or "Farmer Device",
         "transports": payload.transports or ["internal"],
@@ -521,7 +529,7 @@ async def register_biometric_credential(
     # Avoid duplicate credential registrations
     await db.users.update_one(
         {"_id": ObjectId(current_user["id"])},
-        {"$pull": {"biometric_credentials": {"credential_id": payload.credential_id.strip()}}}
+        {"$pull": {"biometric_credentials": {"credential_id": clean_cid}}}
     )
 
     await db.users.update_one(
@@ -529,6 +537,8 @@ async def register_biometric_credential(
         {
             "$set": {
                 "biometric_enabled": True,
+                "biometric_hash": bio_hash,
+                "biometric_digital_key": digital_key,
                 "biometric_updated_at": datetime.now(timezone.utc)
             },
             "$push": {"biometric_credentials": cred_doc}
@@ -537,14 +547,17 @@ async def register_biometric_credential(
 
     log_security_event(
         "BIOMETRIC_REGISTER_SUCCESS",
-        {"user_id": current_user["id"], "device": payload.device_name},
+        {"user_id": current_user["id"], "device": payload.device_name, "digital_key": digital_key},
         level="INFO"
     )
 
     return {
         "status": "success",
-        "message": "Fingerprint / Face ID biometric credential enrolled successfully!",
-        "biometric_enabled": True
+        "message": "Fingerprint / Face ID biometric credential enrolled and cryptographically hashed successfully!",
+        "biometric_enabled": True,
+        "biometric_hash": bio_hash,
+        "digital_key": digital_key,
+        "device_name": cred_doc["device_name"]
     }
 
 @router.delete("/biometric/disable")
@@ -576,7 +589,7 @@ async def biometric_login(
     payload: BiometricLoginRequest,
     db = Depends(get_database)
 ):
-    """Authenticate registered farmer via hardware biometric token / credential."""
+    """Authenticate registered farmer via hardware biometric token / credential or digital hash format."""
     client_ip = request.client.host if request.client else "127.0.0.1"
     cid = payload.credential_id.strip()
 
@@ -586,15 +599,21 @@ async def biometric_login(
             detail="Biometric credential identifier is missing"
         )
 
+    cid_hash = hashlib.sha256(cid.encode('utf-8')).hexdigest()
     account_id = (payload.email or "").strip().lower()
 
-    # Strategy 1: Find by matching enrolled credential_id
+    # Strategy 1: Find by matching enrolled credential_id OR digital SHA-256 hash
     user = await db.users.find_one({
         "biometric_enabled": True,
-        "biometric_credentials.credential_id": cid
+        "$or": [
+            {"biometric_credentials.credential_id": cid},
+            {"biometric_credentials.biometric_hash": cid},
+            {"biometric_credentials.biometric_hash": cid_hash},
+            {"biometric_hash": cid_hash}
+        ]
     })
 
-    # Strategy 2: If not found by credential ID alone, look up by account username/email
+    # Strategy 2: If not found by credential/hash alone, look up by account username/email
     if not user and account_id:
         account_queries = [
             {"email": account_id},
@@ -607,11 +626,14 @@ async def biometric_login(
             "$or": account_queries
         })
         if user:
-            # Add this credential to the user's account credentials
+            # Add this new device credential and digital hash to the user's account
+            digital_key = f"BIO-SHA256-{cid_hash[:12].upper()}"
             await db.users.update_one(
                 {"_id": user["_id"]},
                 {"$addToSet": {"biometric_credentials": {
                     "credential_id": cid,
+                    "biometric_hash": cid_hash,
+                    "digital_key": digital_key,
                     "registered_at": datetime.now(timezone.utc).isoformat() + "Z",
                     "device_name": "Active Biometric Authenticator"
                 }}}
