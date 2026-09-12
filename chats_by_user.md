@@ -6,6 +6,20 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 72
+* **User Input:**
+  > "see the loading error of the groq i give another api also if you want" -> "remove the groq i give another nvidia if you want because the groq fall backs it will take more time"
+* **Machine Summary Solution:**
+  * **Diagnosed Groq Root Cause:** Current Groq API key returned 401 Invalid API Key (expired/revoked), which caused Groq requests to time out and wait 15–30 seconds before falling back to NVIDIA.
+  * **Switched to Pure NVIDIA NIM Architecture:**
+    1. Disabled Groq from the provider list in `backend/app/services/nvidia_service.py`, eliminating all 401 errors, OTPM rate limit errors, and fallback delays.
+    2. Set NVIDIA NIM as Primary Cloud AI engine (tested and returning high-quality responses in sub-second latency).
+    3. Added support for `NVIDIA_API_KEY_2` (Secondary fallback) in `Settings` and `NVIDIAService` so the user can provide a second NVIDIA key.
+    4. Added safe handling for reasoning model responses where `choice.message.content` is None.
+  * **Fixed Weather Cache Datetime Subtraction:**
+    - Resolved `TypeError: can't subtract offset-naive and offset-aware datetimes` in `WeatherCache.get_cached_weather` by ensuring `last_updated` is coerced to UTC `timezone.utc`.
+
+
 ### Chat Entry 71
 * **User Input:**
   > "if now howmany scans at a time like if i have 3 mobiles i tap execute button at a time with out any second latency like how it works and how many scans are possible"

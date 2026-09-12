@@ -174,54 +174,53 @@ LANGUAGE_CONFIG = {
 
 class NVIDIAService:
     def __init__(self):
-        # 1. Groq Cloud Configuration (Primary Fast Engine)
-        self.groq_api_key = getattr(settings, "GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
-        self.groq_base_url = getattr(settings, "GROQ_API_BASE_URL", "https://api.groq.com/openai/v1") or os.getenv("GROQ_API_BASE_URL", "https://api.groq.com/openai/v1")
-        self.groq_model = getattr(settings, "GROQ_MODEL_NAME", "qwen/qwen3.8-27b") or os.getenv("GROQ_MODEL_NAME", "qwen/qwen3.8-27b")
-
-        # 2. NVIDIA NIM Configuration (Secondary High-Reliability Fallback)
+        # 1. NVIDIA NIM Primary Configuration
         self.nvidia_api_key = getattr(settings, "NVIDIA_API_KEY", "") or os.getenv("NVIDIA_API_KEY", "")
+        self.nvidia_api_key_2 = getattr(settings, "NVIDIA_API_KEY_2", "") or os.getenv("NVIDIA_API_KEY_2", "")
         self.nvidia_base_url = getattr(settings, "NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1") or os.getenv("NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1")
         self.nvidia_model = getattr(settings, "NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731") or os.getenv("NVIDIA_MODEL_NAME", "deepseek-ai/deepseek-v4-flash-0731")
         self.vision_model = "meta/llama-3.2-11b-vision-instruct"
 
         # Compatibility properties
-        self.api_key = self.groq_api_key or self.nvidia_api_key
-        self.base_url = self.groq_base_url if self.groq_api_key else self.nvidia_base_url
-        self.model = self.groq_model if self.groq_api_key else self.nvidia_model
+        self.api_key = self.nvidia_api_key
+        self.base_url = self.nvidia_base_url
+        self.model = self.nvidia_model
 
+        # Groq client disabled to eliminate fallback latency
         self.groq_client = None
-        if self.groq_api_key and "mock-api-key" not in self.groq_api_key and "PASTE" not in self.groq_api_key:
-            self.groq_client = AsyncOpenAI(
-                api_key=self.groq_api_key,
-                base_url=self.groq_base_url,
-                timeout=45.0
-            )
 
         self.nvidia_client = None
         if self.nvidia_api_key and "mock-api-key" not in self.nvidia_api_key and "PASTE" not in self.nvidia_api_key:
             self.nvidia_client = AsyncOpenAI(
                 api_key=self.nvidia_api_key,
                 base_url=self.nvidia_base_url,
-                timeout=90.0
+                timeout=40.0
             )
 
-        self.client = self.groq_client or self.nvidia_client
+        self.nvidia_client_2 = None
+        if self.nvidia_api_key_2 and "mock-api-key" not in self.nvidia_api_key_2 and "PASTE" not in self.nvidia_api_key_2:
+            self.nvidia_client_2 = AsyncOpenAI(
+                api_key=self.nvidia_api_key_2,
+                base_url=self.nvidia_base_url,
+                timeout=40.0
+            )
+
+        self.client = self.nvidia_client or self.nvidia_client_2
         if not self.client:
-            logger.warning("Neither GROQ_API_KEY nor NVIDIA_API_KEY is configured. AI Service running in local intelligence mode.")
+            logger.warning("No NVIDIA_API_KEY configured. AI Service running in local intelligence mode.")
         else:
             configured = []
-            if self.groq_client: configured.append(f"Groq ({self.groq_model})")
-            if self.nvidia_client: configured.append(f"NVIDIA NIM ({self.nvidia_model})")
+            if self.nvidia_client: configured.append(f"NVIDIA NIM Primary ({self.nvidia_model})")
+            if self.nvidia_client_2: configured.append(f"NVIDIA NIM Secondary ({self.nvidia_model})")
             logger.info(f"AI Service initialized with providers: {' -> '.join(configured)}")
 
     def _get_providers(self):
-        """Returns list of active configured providers in priority order: [ (name, client, model), ... ]"""
+        """Returns list of active configured NVIDIA providers in priority order: [ (name, client, model), ... ]"""
         providers = []
-        if self.groq_client:
-            providers.append(("Groq Cloud", self.groq_client, self.groq_model))
         if self.nvidia_client:
-            providers.append(("NVIDIA NIM", self.nvidia_client, self.nvidia_model))
+            providers.append(("NVIDIA NIM Primary", self.nvidia_client, self.nvidia_model))
+        if self.nvidia_client_2:
+            providers.append(("NVIDIA NIM Secondary", self.nvidia_client_2, self.nvidia_model))
         return providers
 
     async def _execute_completion(
@@ -262,7 +261,10 @@ class NVIDIAService:
                     timeout=safe_timeout + 2.0
                 )
                 choice = response.choices[0]
-                content = choice.message.content.strip()
+                raw_msg = choice.message
+                content = (raw_msg.content or getattr(raw_msg, "reasoning_content", None) or getattr(raw_msg, "text", None) or "").strip()
+                if not content:
+                    raise ValueError(f"Empty content returned from {name} ({model})")
                 finish_reason = getattr(choice, 'finish_reason', None)
                 if finish_reason == "length":
                     logger.warning(f"AI completion reached token length limit ({call_tokens}) for {name} ({model}).")

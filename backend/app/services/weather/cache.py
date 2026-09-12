@@ -21,6 +21,8 @@ class WeatherCache:
             if doc:
                 last_updated = doc.get("last_updated")
                 if last_updated:
+                    if getattr(last_updated, "tzinfo", None) is None:
+                        last_updated = last_updated.replace(tzinfo=timezone.utc)
                     age_seconds = (datetime.now(timezone.utc) - last_updated).total_seconds()
                     if age_seconds < CACHE_TTL_SECONDS:
                         logger.info(f"Serving weather payload from cache (age: {age_seconds:.1f}s)")

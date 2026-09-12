@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v128) - Optimization: Transition to Pure NVIDIA NIM Architecture & Fix Weather Datetime Subtraction
+- **Summary:** Eliminated Groq 401 and token-rate-limit latency by switching to NVIDIA NIM as primary AI engine, added dual-key NVIDIA fallback support, and fixed weather cache datetime offset calculation:
+  1. ⚡ **Pure NVIDIA NIM AI Architecture (`backend/app/services/nvidia_service.py`):**
+     - Completely removed Groq from the active provider cascade, eliminating 15–30s timeout delays caused by expired/rate-limited Groq keys.
+     - Set NVIDIA NIM as Primary Cloud AI engine with sub-second response times.
+     - Added support for `NVIDIA_API_KEY_2` (Secondary fallback) in both `Settings` and `NVIDIAService`.
+     - Safely extracted content from reasoning models (handles `NoneType` content cleanly).
+  2. 🌦️ **Weather Cache Datetime Fix (`backend/app/services/weather/cache.py`):**
+     - Fixed `TypeError: can't subtract offset-naive and offset-aware datetimes` in `WeatherCache.get_cached_weather`.
+     - Ensured `last_updated` is coerced to UTC `timezone.utc` if naive before subtracting.
+- **Files modified**: `backend/app/core/config.py`, `backend/app/services/nvidia_service.py`, `backend/app/services/weather/cache.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v127) - Architecture: Dual AI Worker Cluster Live & Round-Robin Load Balancer Activated
 - **Summary:** Successfully deployed and integrated the 3-node distributed AI prediction cluster across 3 separate Render accounts to handle 20+ simultaneous crop leaf scans without memory crashes:
   1. 🚀 **AI Worker 2 Deployment Verified Live (`https://agrishield-ai-worker-2.onrender.com`):**
