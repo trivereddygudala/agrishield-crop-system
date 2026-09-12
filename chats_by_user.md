@@ -6,6 +6,24 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 82
+* **User Input:**
+  > "while i switch one page to another page it takes time to load about 5 to 10 seconds some times more"
+* **Machine Summary Solution:**
+  * **Root Causes Identified:**
+    1. Massive Database Query Limits: `HistoryPage.jsx` and `AnalyticsPage.jsx` were requesting up to `5000` full prediction documents and `5000` raw sensor telemetry documents on every mount, transferring multiple megabytes of JSON over Render.
+    2. Missing Database Index: The `predictions` MongoDB collection lacked a compound index on `("user_id", "created_at")`, causing unindexed collection scans (COLLSCAN).
+    3. Route Transition Latency: `AnimatePresence` had a 280ms blocking exit animation delaying page mount.
+  * **Fixes Applied:**
+    - `HistoryPage.jsx`: Reduced prediction query from `limit: 5000` to `limit: 150`, and telemetry query from `5000` to `150`.
+    - `AnalyticsPage.jsx`: Reduced history query from `limit=5000` to `limit=150`.
+    - `ReportsPage.jsx`: Reduced history query from `limit=500` to `limit=100`.
+    - `mongodb.py`: Created compound indexes on `predictions` collection (`[("user_id", 1), ("created_at", -1)]` and `[("created_at", -1)]`).
+    - `App.jsx`: Optimized page transition to a snappy 160ms ease-out animation.
+  * **Verification:**
+    - `python -m compileall -q backend/app` passed with 0 errors.
+    - `npm run build` passed with 0 errors in 22.48s.
+
 ### Chat Entry 81
 * **User Input:**
   > "1.see the last logs and why the application takes so much time to load and 2. i have the design changes also there first see 1 and do the corrections [Screenshot of Render live logs showing WebSocket 403 Forbidden loop and excessive /api/devices/status bursts]"

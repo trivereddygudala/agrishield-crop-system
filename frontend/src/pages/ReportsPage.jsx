@@ -22,7 +22,7 @@ const ReportsPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await API.get('/api/history?limit=500');
+        const res = await API.get('/api/history?limit=100');
         setPredictionData(res.data.predictions || []);
         // Fetch real sensor data from devices
         try {

@@ -119,7 +119,7 @@ const HistoryPage = () => {
     if (!predictionData.length && !sensorData.length && !isManual) setLoading(true);
     if (isManual) setIsRefreshing(true);
     try {
-      const res = await API.get('/api/history', { params: { limit: 5000, page: 1 } });
+      const res = await API.get('/api/history', { params: { limit: 150, page: 1 } });
       const rawPreds = res.data.predictions || [];
       const formattedPreds = rawPreds.map(p => {
         const pDate = p.created_at || p.prediction_date;
@@ -134,7 +134,7 @@ const HistoryPage = () => {
       
       if (hardwareMode) {
         try {
-          const telRes = await API.get('/api/v1/iot/telemetry/history', { params: { limit: 5000, timeframe: 'raw' } });
+          const telRes = await API.get('/api/v1/iot/telemetry/history', { params: { limit: 150, timeframe: 'raw' } });
           let rawData = telRes.data || [];
           
           const parseDateTime = (raw) => {

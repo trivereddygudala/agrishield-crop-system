@@ -94,10 +94,10 @@ const DashboardLayout = () => {
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
                     key={location.pathname}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.28, ease: [0.25, 1, 0.5, 1] }}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
                     className={`w-full ${isAssistant ? 'h-full max-h-full flex-1 flex flex-col min-h-0 overflow-hidden' : ''}`}
                   >
                     <Outlet />

@@ -72,6 +72,10 @@ async def connect_to_mongo():
         # Ensure compound index on iot_telemetry for analytics querying
         await db_instance.db["iot_telemetry"].create_index([("device_id", 1), ("received_at", -1)])
         
+        # Ensure compound indexes on predictions for instant history queries
+        await db_instance.db["predictions"].create_index([("user_id", 1), ("created_at", -1)])
+        await db_instance.db["predictions"].create_index([("created_at", -1)])
+        
         # Ensure notifications indexes
         await db_instance.db["notifications"].create_index([("user_id", 1), ("status", 1), ("created_at", -1)])
         await db_instance.db["notifications"].create_index([("device_id", 1), ("category", 1), ("created_at", -1)])

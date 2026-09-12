@@ -55,7 +55,7 @@ const AnalyticsPage = () => {
     const fetchCrops = async () => {
       try {
         setLoadingCrops(true);
-        const res = await API.get('/api/history?limit=5000');
+        const res = await API.get('/api/history?limit=150');
         setCropPredictions(res.data.predictions || []);
       } catch (err) {
         console.warn('Failed to load crop history:', err);
