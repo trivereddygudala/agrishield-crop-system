@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v150) - Infrastructure: Automated 24/7 Cluster Keep-Alive for All 3 Render Accounts (Main Server + Worker 1 + Worker 2)
+- **Summary:** Fulfilled the user's request to keep all 3 Render accounts permanently awake without falling asleep:
+  1. 🔄 **Multi-Node Cluster Keep-Alive Loop (`backend/app/services/scheduler.py`):**
+     - Upgraded `render_keepalive_loop()` to discover and ping all 3 Render services every 8 minutes (before Render's 15-minute free-tier spin-down threshold):
+       - `RENDER_EXTERNAL_URL` (Main Gateway: `https://agrishield-crop-system.onrender.com`)
+       - `AI_WORKER_1_URL` (Dedicated Worker 1: `https://agrishield-ai-worker-1.onrender.com`)
+       - `AI_WORKER_2_URL` (Dedicated Worker 2: `https://agrishield-ai-worker-2.onrender.com`)
+       - `EXTRA_KEEPALIVE_URLS` (Any additional custom accounts specified by the user)
+     - Automatically logs response codes and uses fallback `/` probing if `/health` is not matched.
+  2. 🌐 **Frontend Cluster Warmup Probe (`frontend/src/App.jsx`):**
+     - Added background probe on initial website visit to `/health` and `/cluster/status` to wake the cluster immediately when a farmer opens the page.
+  3. 🧪 **Validation:**
+     - `python -m compileall -q backend/app/services/scheduler.py` passed with 0 errors.
+     - `npm run build` compiled with 0 errors in 22.23s.
+- **Files modified**: `backend/app/services/scheduler.py`, `frontend/src/App.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v149) - Performance: Solved Slow Dashboard & Scan Latency via Client Compression, Parallel APIs & In-Memory Translation Cache
 - **Summary:** Investigated and resolved the critical performance bottlenecks causing slow dashboard load and delayed AI scan doctor results:
   1. 📱 **Client-Side Image Compression Enabled (`frontend/src/pages/UploadImagePage.jsx`):**

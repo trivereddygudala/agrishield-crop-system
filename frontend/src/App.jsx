@@ -118,6 +118,15 @@ const DashboardLayout = () => {
 
 function ThemeInitializer({ children }) {
   useColorTheme(); // Initialize site-wide theme on html tag inside AuthProvider context
+
+  React.useEffect(() => {
+    // Proactively pre-warm cluster nodes and backend services on initial page load
+    try {
+      fetch('/health').catch(() => {});
+      fetch('/cluster/status').catch(() => {});
+    } catch (_) {}
+  }, []);
+
   return <>{children}</>;
 }
 

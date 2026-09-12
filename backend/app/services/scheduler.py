@@ -146,21 +146,51 @@ async def scheduler_loop(db):
 
 async def render_keepalive_loop():
     """
-    Pings self via public Render URL every 9 minutes to generate inbound HTTP traffic
-    and prevent the Render free-tier container from spinning down.
+    Pings all Render cluster nodes (Main Gateway, AI Worker 1, AI Worker 2, and any extras)
+    every 8 minutes to generate inbound HTTP traffic and prevent any free-tier container
+    from spinning down or sleeping.
     """
-    public_url = os.getenv("RENDER_EXTERNAL_URL", "https://agrishield-crop-system.onrender.com")
-    health_url = f"{public_url.rstrip('/')}/health"
     await asyncio.sleep(45)
     while True:
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(health_url)
-                logger.info(f"[KEEPALIVE] Sent keep-alive ping to {health_url}, status: {resp.status_code}")
-        except Exception as e:
-            logger.debug(f"[KEEPALIVE] Keep-alive ping notice: {e}")
-        # Render spins down after 15 minutes of inactivity; ping every 9 minutes
-        await asyncio.sleep(540)
+        # Discover all cluster targets to keep permanently awake
+        target_urls = set()
+        
+        main_url = (os.getenv("RENDER_EXTERNAL_URL", "https://agrishield-crop-system.onrender.com") or "").strip().rstrip("/")
+        if main_url:
+            target_urls.add(main_url)
+            
+        w1_url = (os.getenv("AI_WORKER_1_URL", "https://agrishield-ai-worker-1.onrender.com") or "").strip().rstrip("/")
+        if w1_url:
+            target_urls.add(w1_url)
+            
+        w2_url = (os.getenv("AI_WORKER_2_URL", "https://agrishield-ai-worker-2.onrender.com") or "").strip().rstrip("/")
+        if w2_url:
+            target_urls.add(w2_url)
+            
+        extra_urls = os.getenv("EXTRA_KEEPALIVE_URLS", "")
+        if extra_urls:
+            for u in extra_urls.split(","):
+                clean = u.strip().rstrip("/")
+                if clean:
+                    target_urls.add(clean)
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            for base_url in target_urls:
+                health_url = f"{base_url}/health"
+                try:
+                    resp = await client.get(health_url)
+                    logger.info(f"[CLUSTER KEEPALIVE] Pinged node {health_url} -> HTTP {resp.status_code}")
+                except Exception as e:
+                    # Fallback to root path if /health is not defined on that node
+                    try:
+                        resp_root = await client.get(base_url)
+                        logger.info(f"[CLUSTER KEEPALIVE] Pinged node root {base_url} -> HTTP {resp_root.status_code}")
+                    except Exception as err2:
+                        logger.debug(f"[CLUSTER KEEPALIVE] Node {base_url} ping notice: {err2}")
+
+        # Render free-tier spins down after 15 minutes of inactivity.
+        # Ping every 8 minutes (480s) to keep all 3 accounts active 24/7.
+        await asyncio.sleep(480)
 
 def start_scheduler(db):
     """Initialize and run the background scheduler task thread."""

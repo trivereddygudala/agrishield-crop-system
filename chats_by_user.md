@@ -6,6 +6,18 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 94
+* **User Input:**
+  > "make them the remaining the 2 new accounts always wake like the main render account"
+* **Machine Summary Solution:**
+  * **Configured Automated Keep-Alive for All 3 Render Accounts (Main Server + Worker 1 + Worker 2):**
+    - Root cause: The background keepalive in `backend/app/services/scheduler.py` was previously only pinging the main gateway (`RENDER_EXTERNAL_URL`). The two dedicated AI Worker accounts (`AI_WORKER_1_URL` and `AI_WORKER_2_URL`) were receiving no periodic traffic, causing Render to spin them down into sleep mode after 15 minutes of inactivity. When a scan was offloaded, it was hit with a 50–90 second cold start.
+    - Solution: Upgraded `render_keepalive_loop()` in `scheduler.py` to concurrently ping all 3 cluster endpoints (`Main Server`, `AI Worker 1`, `AI Worker 2`, plus any `EXTRA_KEEPALIVE_URLS`) every 8 minutes. Because Render receives inbound HTTP traffic before the 15-minute mark, all 3 Render accounts stay permanently awake 24/7.
+    - Added frontend warmup probe in `App.jsx` on initial page load to trigger immediate cluster readiness.
+  * **Verification:**
+    - `python -m compileall -q backend/app/services/scheduler.py` passed with 0 errors.
+    - `npm run build` compiled with 0 errors in 22.23s.
+
 ### Chat Entry 93
 * **User Input:**
   > "why the system takes so much of time to load and as well as to get the results while using ai scan doctore we are using 3 render accounts why this happens and can you optimize that one , and tell the reason why it takes so much of time to both load load the dashboard and the results to get"
