@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v145) - UX Correction: Loading HUD Card (Picture 1) Set to 90% Screen Ratio; 70% Constraint Removed from Results (Picture 2)
+- **Summary:** Corrected the application of screen sizing according to the user's specific photos:
+  1. ⚡ **Picture 1 - Execution HUD Loading Card (`frontend/src/components/scanCenter/ScanImageUploader.jsx`):**
+     - Updated the PyTorch Inference loading overlay card to `w-[90%] max-w-md` with `p-6 sm:p-8`, min-height of 280px, and balanced 90% screen ratio framing.
+     - Changed subtitle to `AI Diagnostic Engine • 90% Screen Ratio HUD`.
+  2. 🔬 **Picture 2 - Post-Execution Results Container (`frontend/src/pages/UploadImagePage.jsx`):**
+     - Completely removed the artificial 70% height cap (`height70` / `max-h-[70dvh]` scroll box) from the results page so the full diagnosis report, severity indicators, and plant details render naturally across the viewport without forced internal scrolling.
+     - Removed unused `screenMetrics` reactive calculation from `UploadImagePage.jsx`.
+  3. 🧪 **Validation:**
+     - `npm run build` compiled with 0 errors in 1m 3s.
+- **Files modified**: `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v144) - UX Fix: Removed Duplicate Module Tabs from Dedicated Scanner Sub-Pages
 - **Summary:** Answered user question ("why the tabs are appear after i open the first onr disease diagnosis in the second picture") and eliminated the redundant tabs:
   1. 🔬 **Clean Dedicated Sub-Page (`frontend/src/pages/UploadImagePage.jsx`):**

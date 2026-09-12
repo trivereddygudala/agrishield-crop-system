@@ -117,40 +117,6 @@ const UploadImagePage = () => {
   const currentModule = SCAN_MODULES.find(m => m.id === activeTab);
   const currentModuleTitle = isTe ? currentModule?.teluguTitle : (currentModule?.titleKey ? t(currentModule.titleKey, currentModule.defaultTitle) : currentModule?.defaultTitle);
 
-  // Dynamic Screen Ratio Logic to adjust post-execution diagnosis to exact 70% of screen height
-  const [screenMetrics, setScreenMetrics] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const h = window.innerHeight;
-      const w = window.innerWidth;
-      const ratio = w / (h || 1);
-      return {
-        ratio,
-        isMobile: w < 768,
-        height70: Math.round(h * 0.70)
-      };
-    }
-    return { ratio: 0.5, isMobile: true, height70: 560 };
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      const h = window.innerHeight;
-      const w = window.innerWidth;
-      const ratio = w / (h || 1);
-      setScreenMetrics({
-        ratio,
-        isMobile: w < 768,
-        height70: Math.round(h * 0.70)
-      });
-    };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
-
   // Sync route and query params with active tab to ensure fresh dedicated pages
   useEffect(() => {
     const rawTab = routeTab || searchParams.get('tab');
@@ -734,19 +700,12 @@ const UploadImagePage = () => {
                 onCropFilterChange={handleCropFilterChange}
               />
             ) : (
-              <div
-                style={{
-                  maxHeight: screenMetrics.isMobile ? `${screenMetrics.height70}px` : undefined
-                }}
-                className="max-h-[70dvh] sm:max-h-none overflow-y-auto overscroll-contain pr-1 custom-scrollbar"
-              >
-                <MultiLeafResults
-                  result={batchResult}
-                  onReset={handleClearBatch}
-                  farmName={activeFarm?.farm_name || "Field Plot"}
-                  user={user}
-                />
-              </div>
+              <MultiLeafResults
+                result={batchResult}
+                onReset={handleClearBatch}
+                farmName={activeFarm?.farm_name || "Field Plot"}
+                user={user}
+              />
             )
           ) : (
             <>
@@ -755,14 +714,11 @@ const UploadImagePage = () => {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  style={{
-                    maxHeight: screenMetrics.isMobile ? `${screenMetrics.height70}px` : undefined
-                  }}
-                  className="space-y-3 max-h-[70dvh] sm:max-h-none overflow-y-auto overscroll-contain pr-1 custom-scrollbar"
+                  className="space-y-4 pt-1"
                 >
-                  {/* Compact 44px Quick-Action Bar Replacing Full-Screen Uploader */}
-                  <div className="flex items-center justify-between gap-2.5 p-2 sm:p-3 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md sticky top-0 z-20">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Compact Quick-Action Bar Replacing Full-Screen Uploader */}
+                  <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md">
+                    <div className="flex items-center gap-3 min-w-0">
                       {previewUrl ? (
                         <img 
                           src={previewUrl} 

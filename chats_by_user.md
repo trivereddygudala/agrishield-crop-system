@@ -6,6 +6,16 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 89
+* **User Input:**
+  > "i ask to change to 90 percent for picture one but you put the 70 percent to the results what is the wrong with you why you donot follow my requests and do errors at last right"
+* **Machine Summary Solution:**
+  * **Loading HUD Card (Picture 1) to 90% Screen Ratio; 70% Constraint Removed from Results (Picture 2):**
+    - Corrected the target of the sizing: In `ScanImageUploader.jsx` (Picture 1 - execution overlay), enlarged the PyTorch inference HUD card to `w-[90%] max-w-md` with `p-6 sm:p-8`, 280px min-height, and `90% Screen Ratio HUD` subtitle.
+    - In `UploadImagePage.jsx` (Picture 2 - results), removed the restrictive `height70` inline style and `max-h-[70dvh]` scroll container so the diagnosis report and plant details render naturally across the viewport.
+  * **Verification:**
+    - `npm run build` completed with 0 errors in 1m 3s.
+
 ### Chat Entry 88
 * **User Input:**
   > "why the tabs are appear after i open the first onr disease diagnosis in the second picture"
