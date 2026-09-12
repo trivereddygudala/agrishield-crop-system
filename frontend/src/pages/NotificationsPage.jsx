@@ -13,6 +13,9 @@ import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo, formatDateTime } from '../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
+import { translateNotification } from '../utils/notificationTranslator';
+import GoogleMessageReader from '../components/common/GoogleMessageReader';
+
 
 const PRIORITY_CONFIG = {
   Critical: { bg: 'bg-rose-100 dark:bg-rose-950/70', border: 'border-rose-300 dark:border-rose-800', dot: 'bg-rose-500', badge: 'diseased', text: 'text-rose-700 dark:text-rose-300', label: 'Critical' },
@@ -32,9 +35,10 @@ const CATEGORY_ICONS = {
 };
 
 export default function NotificationsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const currentLang = i18n.language || user?.preferred_language || localStorage.getItem('i18nextLng') || 'te';
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const [notifications, setNotifications] = useState([]);
   const [total, setTotal]     = useState(0);
@@ -186,8 +190,15 @@ export default function NotificationsPage() {
   const filteredNotifications = notifications.filter(n => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (n.title || '').toLowerCase().includes(q) || (n.message || '').toLowerCase().includes(q);
+    const { title: dt, message: dm } = translateNotification(n.title, n.message, currentLang);
+    return (
+      (n.title || '').toLowerCase().includes(q) ||
+      (n.message || '').toLowerCase().includes(q) ||
+      (dt || '').toLowerCase().includes(q) ||
+      (dm || '').toLowerCase().includes(q)
+    );
   });
+
 
   const FILTER_PILLS = [
     { id: 'All', label: 'All Messages', icon: MessageSquare },
@@ -212,8 +223,30 @@ export default function NotificationsPage() {
     );
   }
 
+  // ─── GOOGLE MESSAGES FULL SMS READER VIEW ───
+  if (selectedMessage) {
+    const { title: transTitle, message: transBody } = translateNotification(
+      selectedMessage.title,
+      selectedMessage.message,
+      currentLang
+    );
+    return (
+      <div className="max-w-3xl mx-auto w-full pb-20 px-2 sm:px-4 pt-1 animate-fade-in">
+        <GoogleMessageReader
+          message={selectedMessage}
+          translatedTitle={transTitle}
+          translatedBody={transBody}
+          lang={currentLang}
+          onBack={() => setSelectedMessage(null)}
+          onDelete={(id) => handleDelete(id)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto w-full pb-24 px-2 sm:px-4 space-y-4 animate-fade-in">
+
       {/* Toast Feedback */}
       {toastMsg && (
         <div className="fixed top-18 right-4 z-50 px-4 py-2.5 rounded-2xl bg-slate-900/90 text-white text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-2 border border-white/10">
@@ -343,6 +376,11 @@ export default function NotificationsPage() {
               const catObj = CATEGORY_ICONS[item.category] || CATEGORY_ICONS.system;
               const CatIcon = catObj.Icon;
               const isUnread = !item.read;
+              const { title: displayTitle, message: displayMessage } = translateNotification(
+                item.title,
+                item.message,
+                currentLang
+              );
 
               return (
                 <motion.div
@@ -374,7 +412,7 @@ export default function NotificationsPage() {
                       <h3 className={`text-xs sm:text-sm truncate font-black ${
                         isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'
                       }`}>
-                        {item.title}
+                        {displayTitle}
                       </h3>
                       <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold shrink-0">
                         {timeAgo(item.lifecycle?.created_at || item.created_at)}
@@ -382,8 +420,9 @@ export default function NotificationsPage() {
                     </div>
 
                     <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
-                      {item.message}
+                      {displayMessage}
                     </p>
+
 
                     <div className="flex items-center gap-2 pt-1">
                       <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${pc.bg} ${pc.text}`}>

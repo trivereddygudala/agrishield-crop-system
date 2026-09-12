@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v130) - Feature: Google Messages-Style Full SMS Reader & Bilingual Telugu Notification Translation
+- **Summary:** Resolved untranslated notification body matter and transformed notification inspection into an authentic Android Google Messages SMS experience:
+  1. 💬 **Google Messages Full SMS Reader (`frontend/src/components/common/GoogleMessageReader.jsx`):**
+     - When a farmer taps any notification in the list, it smoothly transitions into a full conversation view modeled directly on Android Google Messages.
+     - Features top app bar with back arrow (`←`), verified sender badge (`AgriShield హెచ్చరికలు ✓ ధృవీకరించబడింది`), official SMS gateway subtitle, direct 1-tap Kisan Call Center hotline (`📞 1800-180-1551`), WhatsApp share button, and delete action.
+     - Renders formatted message bubbles with category and priority badges, translated heading, clear translated Telugu body matter, in-message action buttons (`🌿 స్కాన్ & నివారణ మందులు చూడండి`, `🌦️ వాతావరణ నివేదిక చూడండి`), double blue ticks (`✓✓ చదివారు`), and bottom Ask AI prompt input.
+  2. 🌐 **Comprehensive Notification Translator (`frontend/src/utils/notificationTranslator.js`):**
+     - Built a client-side agricultural translator covering 40+ crop types and 40+ fungal/bacterial diseases with regex matching for historical and live notification formats.
+     - Retroactively translates both heading and the entire body ("matter") of English database records into fluent, natural Telugu (e.g., `మిరప పంటలో 66.1% ఖచ్చితత్వంతో ఆకు మచ్చ తెగులు గుర్తించబడింది...`).
+     - Applied to the notification inbox cards, search filtering, and the Google Messages SMS reader.
+  3. 📱 **Notifications Page Integration (`frontend/src/pages/NotificationsPage.jsx`):**
+     - Integrated `translateNotification` across notification cards and live search.
+     - Replaced standard popup modal with the full Google Messages reader view with back navigation.
+- **Files modified**: `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/utils/notificationTranslator.js`, `frontend/src/pages/NotificationsPage.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v129) - Fix: Real-Time Scan Diagnosis Notifications, String ID Support & Dual NVIDIA NIM Cascade
 - **Summary:** Resolved disease diagnosis notification delivery failures, fixed non-ObjectId crash when marking notifications as read, and configured the second NVIDIA NIM key:
   1. 🔔 **Instant Scan Diagnosis Notifications (`backend/app/routers/predict.py`):**

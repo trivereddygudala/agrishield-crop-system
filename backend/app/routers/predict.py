@@ -1226,14 +1226,28 @@ async def predict_pytorch_endpoint(
         is_healthy = "healthy" in disease.lower() or pred_status == "healthy"
 
         try:
-            if is_healthy:
-                title = f"🌱 Healthy Crop Verified: {crop}"
-                message = f"AI diagnosis complete: Your {crop} foliage is healthy with {confidence}% confidence. Maintain regular watering & nutrient schedules."
-                priority = "Low"
+            target_lang = (current_user.get("preferred_language") or "en").lower()[:2] if current_user else "en"
+            loc_crop = get_farmer_crop_translation(crop, target_lang) or crop
+            loc_disease = get_farmer_disease_translation(disease, target_lang) or disease
+
+            if target_lang == "te":
+                if is_healthy:
+                    title = f"🌱 ఆరోగ్యకరమైన పంట: {loc_crop}"
+                    message = f"AI పంట నిర్ధారణ పూర్తయింది: మీ {loc_crop} పంట ఆకులు {confidence}% ఖచ్చితత్వంతో సంపూర్ణ ఆరోగ్యంగా ఉన్నాయి. సాధారణ నీటిపారుదల & ఎరువుల షెడ్యూల్ కొనసాగించండి."
+                    priority = "Low"
+                else:
+                    title = f"🚨 రోగం గుర్తించబడింది: {loc_disease}"
+                    message = f"{loc_crop} పంటలో {confidence}% ఖచ్చితత్వంతో {loc_disease} గుర్తించబడింది. పంటను కాపాడటానికి వెంటనే నివారణ చర్యలు చేపట్టండి. పూర్తి వివరాల కోసం మీ AI స్కాన్ ఫలితాలను చూడండి."
+                    priority = "Critical"
             else:
-                title = f"🚨 Disease Alert: {disease} Detected"
-                message = f"{disease} identified on {crop} with {confidence}% confidence. Immediate treatment recommended. Check your AI scan results for treatment details."
-                priority = "Critical"
+                if is_healthy:
+                    title = f"🌱 Healthy Crop Verified: {crop}"
+                    message = f"AI diagnosis complete: Your {crop} foliage is healthy with {confidence}% confidence. Maintain regular watering & nutrient schedules."
+                    priority = "Low"
+                else:
+                    title = f"🚨 Disease Alert: {disease} Detected"
+                    message = f"{disease} identified on {crop} with {confidence}% confidence. Immediate treatment recommended. Check your AI scan results for treatment details."
+                    priority = "Critical"
 
             await NotificationService.create_notification(
                 db,
