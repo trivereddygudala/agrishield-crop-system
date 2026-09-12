@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v132) - Feature: In-Message Voice Audio Readout in Google Messages SMS Reader
+- **Summary:** Added voice narration to the Google Messages SMS reader (`GoogleMessageReader.jsx`) so farmers can listen out loud to notifications in fluent Telugu or their selected regional language:
+  1. 🔊 **Integrated Web Speech Synthesis (`frontend/src/components/common/GoogleMessageReader.jsx`):**
+     - Hooked up `useSpeechReader` (`frontend/src/hooks/useSpeechReader.js`) to read out both the translated title and full message body matter in the active language (`te-IN`, `hi-IN`, `en-US`).
+     - Added a dedicated, prominent voice button directly inside the SMS chat bubble: `🔊 బిగ్గరగా వినండి (వాయిస్ ఆడియో)` / `🔊 Listen Out Loud (Voice Audio)`.
+     - When active, the button displays real-time animated equalizer wave bars, glowing amber accents, and `"🔊 చదువుతోంది... (ఆపడానికి నొక్కండి)"`.
+  2. 📱 **Top App Bar Quick Speaker Control:**
+     - Added a quick speaker toggle icon (`Volume2` / `VolumeX`) in the top app bar next to the phone call and WhatsApp buttons for instant audio triggering.
+  3. 🛑 **Automatic Cancellation & Cleanup:**
+     - Speech is automatically cancelled whenever the farmer leaves the reader (`onBack`), deletes the message, or navigates away via component unmount cleanup.
+- **Files modified**: `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v131) - Feature: 3-Tier Accuracy Engine (Auto-Linked Farm Crop, In-Browser Camera Guidance & Dual-AI Consensus)
 - **Summary:** Implemented three precision upgrades across frontend and backend to boost disease classification accuracy to 98%+ with zero Render memory overhead:
   1. 🌾 **Auto-Linked Farm Crop Context (`frontend/src/pages/UploadImagePage.jsx` & `ScanImageUploader.jsx`):**

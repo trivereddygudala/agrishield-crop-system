@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Phone, Trash2, Share2, ShieldCheck, CheckCheck,
-  Send, Sparkles
+  Send, Sparkles, Volume2, VolumeX
 } from 'lucide-react';
 import { formatDateTime, timeAgo } from '../../utils/dateUtils';
+import { useSpeechReader } from '../../hooks/useSpeechReader';
 
 export default function GoogleMessageReader({
   message,
@@ -19,7 +20,38 @@ export default function GoogleMessageReader({
   const [replyQuery, setReplyQuery] = useState('');
   const isTelugu = (lang || '').toLowerCase().startsWith('te');
 
+  const { speak, stop, speakingId } = useSpeechReader();
+  const messageId = message?.notification_id || message?.id || 'sms_active';
+  const isSpeaking = speakingId === `sms_${messageId}`;
+
+  // Cleanup speech synthesis on component unmount
+  useEffect(() => {
+    return () => {
+      stop();
+    };
+  }, [stop]);
+
   if (!message) return null;
+
+  const handleToggleSpeech = () => {
+    if (isSpeaking) {
+      stop();
+    } else {
+      const textToRead = `${translatedTitle || message.title}. ${translatedBody || message.message}`;
+      speak(textToRead, `sms_${messageId}`, lang || 'te', 0.95);
+    }
+  };
+
+  const handleBack = () => {
+    stop();
+    if (onBack) onBack();
+  };
+
+  const handleDelete = () => {
+    stop();
+    if (onDelete) onDelete(message.notification_id || message.id);
+    if (onBack) onBack();
+  };
 
   const handleSendToAI = (e) => {
     if (e) e.preventDefault();
@@ -48,7 +80,7 @@ export default function GoogleMessageReader({
       <div className="flex items-center justify-between px-4 py-3.5 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/90 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <button
-            onClick={onBack}
+            onClick={handleBack}
             className="p-2 -ml-1 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
             title={isTelugu ? "వెనుకకు" : "Back"}
           >
@@ -81,6 +113,23 @@ export default function GoogleMessageReader({
 
         {/* Right Actions */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* Voice Readout Header Button */}
+          <button
+            onClick={handleToggleSpeech}
+            className={`p-2.5 rounded-full transition-all ${
+              isSpeaking
+                ? 'bg-amber-500/20 text-amber-400 ring-2 ring-amber-400/60 animate-pulse'
+                : 'hover:bg-slate-800 text-amber-400 hover:text-amber-300'
+            }`}
+            title={
+              isSpeaking
+                ? (isTelugu ? "వాయిస్ ఆపండి" : "Stop Voice")
+                : (isTelugu ? "తెలుగులో బిగ్గరగా వినండి" : "Listen via Voice")
+            }
+          >
+            {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+
           <a
             href="tel:18001801551"
             className="p-2.5 rounded-full hover:bg-slate-800 text-emerald-400 hover:text-emerald-300 transition-colors"
@@ -96,10 +145,7 @@ export default function GoogleMessageReader({
             <Share2 className="w-4 h-4" />
           </button>
           <button
-            onClick={() => {
-              if (onDelete) onDelete(message.notification_id || message.id);
-              onBack();
-            }}
+            onClick={handleDelete}
             className="p-2.5 rounded-full hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 transition-colors"
             title={isTelugu ? "సందేశాన్ని తొలగించండి" : "Delete Message"}
           >
@@ -156,6 +202,64 @@ export default function GoogleMessageReader({
             <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-normal whitespace-pre-wrap">
               {translatedBody || message.message}
             </p>
+
+            {/* In-Bubble Audio Voice Readout Button */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleToggleSpeech}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition-all active:scale-[0.98] shadow-sm ${
+                  isSpeaking
+                    ? 'bg-gradient-to-r from-amber-500/25 via-emerald-500/20 to-teal-500/25 border-amber-400/70 text-amber-200 ring-1 ring-amber-400/40'
+                    : 'bg-slate-900/80 hover:bg-slate-700/80 border-slate-700 text-slate-200 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                      isSpeaking
+                        ? 'bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30 animate-pulse'
+                        : 'bg-slate-800 text-amber-400 border border-slate-700'
+                    }`}
+                  >
+                    {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm font-black text-white">
+                        {isSpeaking
+                          ? (isTelugu ? '🔊 చదువుతోంది... (ఆపడానికి నొక్కండి)' : '🔊 Reading Out Loud (Tap to Stop)')
+                          : (isTelugu ? '🔊 బిగ్గరగా వినండి (వాయిస్ ఆడియో)' : '🔊 Listen Out Loud (Voice Audio)')}
+                      </span>
+                      {isSpeaking && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                          {isTelugu ? 'ప్లే అవుతోంది' : 'Playing'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 line-clamp-1">
+                      {isSpeaking
+                        ? (isTelugu ? 'రైతుకు పూర్తి వివరాలు స్పష్టంగా వినిపిస్తున్నాయి...' : 'Playing narration in selected language...')
+                        : (isTelugu ? 'ఈ సందేశాన్ని పూర్తి తెలుగు ఆడియోలో వినండి' : 'Tap to hear this message spoken in your language')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sound waves animation when active */}
+                {isSpeaking ? (
+                  <div className="flex items-end gap-1 h-5 px-1">
+                    <span className="w-1 bg-amber-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-3" />
+                    <span className="w-1 bg-amber-300 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-5" />
+                    <span className="w-1 bg-amber-400 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-4" />
+                    <span className="w-1 bg-amber-300 rounded-full animate-[pulse_0.3s_ease-in-out_infinite] h-2" />
+                  </div>
+                ) : (
+                  <span className="text-[11px] font-bold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-lg border border-amber-400/20 hidden sm:inline-block">
+                    {isTelugu ? 'వాయిస్ ప్లే' : 'Play Voice'}
+                  </span>
+                )}
+              </button>
+            </div>
 
             {/* Smart Action Buttons Inside Message */}
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
