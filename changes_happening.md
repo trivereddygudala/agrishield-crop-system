@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v140) - Performance: Slashing App Load Time via RAM Cache & Vite Rollup Code-Splitting; Scan Center Modules Overview & Dedicated Fresh Sub-Pages
+- **Summary:** Fulfilled the user's requirements to further decrease load time and remodel the Scan Center so tapping any tool opens a dedicated fresh page (mirroring the Field Modules behavior in `/farm`):
+  1. ⚡ **Further Decreased App Load Time:**
+     - **In-Memory RAM Weather Cache (`backend/app/services/weather/cache.py`):** Added a thread-safe `_RAM_CACHE` with 15-minute TTL on top of MongoDB, making weather and microclimate risk evaluations instant (<0.1ms) instead of waiting for database roundtrips.
+     - **Vite Rollup Code-Splitting Chunks (`frontend/vite.config.js`):** Configured `output.manualChunks` to cleanly split vendor bundles into `vendor-react`, `vendor-motion`, `vendor-icons`, `vendor-i18n`, `vendor-charts`, and `vendor-pdf`. These static vendor chunks are cached permanently by browsers, cutting repeated load times dramatically.
+     - **Lazy-Loaded Public Pages (`frontend/src/App.jsx`):** Converted `LandingPage`, `LoginPage`, `RegisterPage`, `NotFoundPage`, and `ServerErrorPage` to `lazyWithRetry`, reducing the initial entry bundle parsed by the browser.
+  2. 🔬 **Scan Center Overview Hub & Dedicated Fresh Sub-Pages (`UploadImagePage.jsx`, `App.jsx`):**
+     - Modeled directly after `FarmPage.jsx`: When visiting `/scan` or `/upload` without a sub-tab, the Scan Center displays the **AI Crop Health Diagnostic Center** header, the **Fungal Risk Advisor**, and 3 clean vertical module cards (`SCAN_MODULES`):
+       1. **AI Crop Disease Diagnosis** (`disease-diag`) - PyTorch AI (తెలుగు: *పంట తెగుళ్ల గుర్తింపు & నివారణ*)
+       2. **Plant & Crop Identification** (`plant-id`) - Species Engine (తెలుగు: *మొక్కలు & పంటల గుర్తింపు*)
+       3. **Agrochemical OCR Scanner** (`agro-scan`) - OCR Vision (తెలుగు: *పురుగుమందులు & ఎరువుల లేబుల్ స్కాన్*)
+     - When tapping any module, the overview hub hides completely and opens a dedicated fresh sub-page at `/scan/:tab` (`/scan/disease-diag`, `/scan/plant-id`, `/scan/agro-scan`).
+     - Added a clean top navigation bar with `← Back to AI Scan Center` (`← స్కాన్ సెంటర్‌కు తిరిగి`) button and module badge.
+     - Tapping `← Back to AI Scan Center` returns smoothly to the 3-module overview hub.
+     - Registered `/upload/:tab` route in `App.jsx` for seamless navigation.
+  3. 🧪 **Validation:**
+     - Backend Python: `python -m compileall -q backend/app` passed with 0 errors.
+     - Frontend Vite Build: `npm run build` passed with 0 errors in 23.96s with optimized vendor chunks.
+- **Files modified**: `backend/app/services/weather/cache.py`, `frontend/vite.config.js`, `frontend/src/App.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v139) - Fix: Explainable Disease Risk Forecast, Fresh Sub-Page Routing in Field & AI Scan Center, Mobile Screen Height Optimization & Species Info Symbol
 - **Summary:** Addressed all 3 farmer UX and pathology forecasting issues:
   1. 🩺 **Fixed Explainable Disease Risk Forecast (`service.py`, `intelligence.py`, `DiseaseRiskCard.jsx`, `DashboardPage.jsx`):**

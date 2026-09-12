@@ -12,12 +12,12 @@ import OfflineStatusBar from './components/common/OfflineStatusBar';
 import { useColorTheme } from './hooks/useColorTheme';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// Critical-path authentication pages — loaded eagerly for instant first-paint
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import NotFoundPage from './pages/NotFoundPage';
-import ServerErrorPage from './pages/ServerErrorPage';
+// Lazy loaded public pages with auto-retry
+const LandingPage = lazyWithRetry(() => import('./pages/LandingPage'));
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage'));
+const RegisterPage = lazyWithRetry(() => import('./pages/RegisterPage'));
+const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage'));
+const ServerErrorPage = lazyWithRetry(() => import('./pages/ServerErrorPage'));
 
 // Lazily loaded pages (with auto-recovery on new deployment chunk hash mismatch)
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
@@ -150,6 +150,7 @@ function App() {
                     <Route path="/market" element={<MarketPricesPage />} />
                     <Route path="/crop-prices" element={<Navigate to="/market" replace />} />
                     <Route path="/upload" element={<UploadImagePage />} />
+                    <Route path="/upload/:tab" element={<UploadImagePage />} />
                     <Route path="/result" element={<PredictionResultPage />} />
                     <Route path="/history" element={<HistoryPage />} />
                     <Route path="/devices" element={<DevicesPage />} />

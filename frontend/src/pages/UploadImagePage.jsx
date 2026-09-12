@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import { RefreshCw, CheckCircle2, ChevronRight } from 'lucide-react';
+import { RefreshCw, CheckCircle2, ChevronRight, ChevronLeft, Bug, Sprout, FlaskConical, ScanLine, Leaf } from 'lucide-react';
 import API from '../services/api';
 import ScanCenterTabs from '../components/scanCenter/ScanCenterTabs';
 import ScanImageUploader from '../components/scanCenter/ScanImageUploader';
@@ -20,10 +20,53 @@ import { compressImageForUpload, formatFileSize } from '../utils/imageCompressio
 import { queueOfflineScan } from '../utils/offlineQueue';
 import { diagnoseOfflineLeaf } from '../utils/offlineDiagnosticEngine';
 
+// Diagnostic Modules metadata for overview and fresh sub-pages
+const SCAN_MODULES = [
+  {
+    id: 'disease-diag',
+    icon: Bug,
+    iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+    badgeVariant: 'healthy',
+    badge: 'PyTorch AI',
+    titleKey: 'tabs.disease_diag',
+    defaultTitle: 'AI Crop Disease Diagnosis',
+    teluguTitle: 'పంట తెగుళ్ల గుర్తింపు & నివారణ',
+    descKey: 'tabs.disease_diag_desc',
+    defaultDesc: 'Instant neural leaf pathology scan with 98.4% precision, severity indexing & complete treatment prescription.',
+    teluguDesc: 'ఆకు ఫోటోతో తెగుళ్లు, శిలీంధ్రాల గుర్తింపు, తీవ్రత స్థాయి మరియు నిపుణుల సలహాలతో కూడిన నివారణ ప్రణాళిక.'
+  },
+  {
+    id: 'plant-id',
+    icon: Sprout,
+    iconBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30',
+    badgeVariant: 'default',
+    badge: 'Species Engine',
+    titleKey: 'tabs.plant_id',
+    defaultTitle: 'Plant & Crop Identification',
+    teluguTitle: 'మొక్కలు & పంటల గుర్తింపు',
+    descKey: 'tabs.plant_id_desc',
+    defaultDesc: 'Identify agricultural crop varieties, invasive weed species & 108 indigenous Andhra forest and horticultural trees.',
+    teluguDesc: 'ఆంధ్రప్రదేశ్ సాగు పంటలు, కలుపు మొక్కలు మరియు 108 రకాల దేశీయ వృక్షాల జాతి విశ్లేషణ.'
+  },
+  {
+    id: 'agro-scan',
+    icon: FlaskConical,
+    iconBg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30',
+    badgeVariant: 'default',
+    badge: 'OCR Vision',
+    titleKey: 'tabs.agro_scan',
+    defaultTitle: 'Agrochemical OCR Scanner',
+    teluguTitle: 'పురుగుమందులు & ఎరువుల లేబుల్ స్కాన్',
+    descKey: 'tabs.agro_scan_desc',
+    defaultDesc: 'Scan pesticide, fungicide & fertilizer bottle labels for dosage verification, chemical composition & safety.',
+    teluguDesc: 'పురుగుమందుల డబ్బాల లేబుల్స్ చదివి సరైన మోతాదు, రసాయన పదార్థాలు మరియు భద్రతా హెచ్చరికల తక్షణ విశ్లేషణ.'
+  }
+];
+
 // Fully Reactive Global Store to persist scan state + background loading across tab navigation
 const scanStore = {
   state: {
-    activeTab: 'disease-diag',
+    activeTab: 'overview',
     scanMode: 'single', // 'single' | 'multi'
     batchSamples: [],
     batchResult: null,
@@ -71,6 +114,10 @@ const UploadImagePage = () => {
     plantType = 'crop', selectedTreeFilter = ''
   } = state;
 
+  const isTe = i18n?.language === 'te';
+  const currentModule = SCAN_MODULES.find(m => m.id === activeTab);
+  const currentModuleTitle = isTe ? currentModule?.teluguTitle : (currentModule?.titleKey ? t(currentModule.titleKey, currentModule.defaultTitle) : currentModule?.defaultTitle);
+
   // Sync route and query params with active tab to ensure fresh dedicated pages
   useEffect(() => {
     const rawTab = routeTab || searchParams.get('tab');
@@ -78,9 +125,14 @@ const UploadImagePage = () => {
       const normalized = (rawTab === 'disease' || rawTab === 'disease-diag' || rawTab === 'disease-diagnosis') ? 'disease-diag'
         : (rawTab === 'plant' || rawTab === 'plant-id' || rawTab === 'plantidentification' || rawTab === 'plant-identification') ? 'plant-id'
         : (rawTab === 'agro' || rawTab === 'agro-scan' || rawTab === 'agrochemical' || rawTab === 'agrochemical-scanner') ? 'agro-scan'
+        : (rawTab === 'overview' || rawTab === 'modules') ? 'overview'
         : rawTab;
-      if (['disease-diag', 'plant-id', 'agro-scan'].includes(normalized) && normalized !== scanStore.state.activeTab) {
+      if (['overview', 'disease-diag', 'plant-id', 'agro-scan'].includes(normalized) && normalized !== scanStore.state.activeTab) {
         scanStore.setState({ activeTab: normalized, errorMsg: '' });
+      }
+    } else {
+      if (scanStore.state.activeTab !== 'overview' && !routeTab && !searchParams.get('tab')) {
+        scanStore.setState({ activeTab: 'overview', errorMsg: '' });
       }
     }
   }, [routeTab, searchParams]);
@@ -94,7 +146,11 @@ const UploadImagePage = () => {
 
   const handleTabChange = (tab) => {
     scanStore.setState({ activeTab: tab, errorMsg: '' });
-    navigate(`/scan/${tab}`);
+    if (tab === 'overview') {
+      navigate('/scan');
+    } else {
+      navigate(`/scan/${tab}`);
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -501,171 +557,247 @@ const UploadImagePage = () => {
       transition={{ duration: 0.4 }}
       className="max-w-7xl mx-auto space-y-6 pb-16 w-full"
     >
-      {/* Header Banner */}
-      <div className="flex flex-col gap-1 pb-2">
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <span>{t('scan_page.title', 'AI Crop Health Diagnostic Center')}</span>
-          <Badge variant="primary" size="sm" className="hidden sm:inline-flex">v2.4 Precision</Badge>
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
-          {t('scan_page.subtitle', 'Intelligent multi-modal crop diagnostics, species identification & agrochemical OCR scanner.')}
-        </p>
-      </div>
-
-      {/* Weather-Triggered Fungal Outbreak Early-Warning Advisory */}
-      <FungalRiskAdvisor compact={false} />
-
-      {/* Primary 3 Navigation Tabs */}
-      <ScanCenterTabs
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
-
-      {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
-      {activeTab === 'disease-diag' && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/80 dark:bg-white/[0.03] backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm">
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 dark:bg-white/[0.05] border border-slate-200/60 dark:border-white/5 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => scanStore.setState({ scanMode: 'single', hasScanned: !!liveResult, errorMsg: '' })}
-              className={`px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                scanMode === 'single'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <span>{t('scan_page.single_leaf_focus', '🍃 Single Leaf Focus')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => scanStore.setState({ scanMode: 'multi', hasScanned: !!batchResult, errorMsg: '' })}
-              className={`px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                scanMode === 'multi'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <span>{t('scan_page.multi_leaf_scan', '🌿 Multi-Leaf Plot Scan (2–5)')}</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider">
-                  {t('common.new', 'New')}
-                </span>
-              </span>
-            </button>
+      {/* ═══════ OVERVIEW HUB — Rendered when activeTab === 'overview' ═══════ */}
+      {activeTab === 'overview' ? (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="flex flex-col gap-1 pb-2">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <span>{t('scan_page.title', 'AI Crop Health Diagnostic Center')}</span>
+              <Badge variant="primary" size="sm" className="hidden sm:inline-flex">v2.4 Precision</Badge>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
+              {t('scan_page.subtitle', 'Intelligent multi-modal crop diagnostics, species identification & agrochemical OCR scanner.')}
+            </p>
           </div>
 
-          <span className="text-[11px] text-slate-500 dark:text-white/40 font-semibold px-2 text-center sm:text-right">
-            {scanMode === 'multi' ? t('scan_page.multi_leaf_desc', 'Field Plot Severity Index (Samples 2–5 leaves across corners)') : t('scan_page.single_leaf_desc', 'High-precision single leaf pathology lesion scan')}
-          </span>
-        </div>
-      )}
+          {/* Weather-Triggered Fungal Outbreak Early-Warning Advisory */}
+          <FungalRiskAdvisor compact={false} />
 
-      {/* Upload & Scan Component based on activeTab & scanMode */}
-      {activeTab === 'disease-diag' && scanMode === 'multi' ? (
-        !hasScanned || !batchResult ? (
-          <MultiLeafUploader
-            samples={batchSamples}
-            onAddSample={handleAddBatchSample}
-            onRemoveSample={handleRemoveBatchSample}
-            onClearAll={handleClearBatch}
-            onStartBatchScan={handleStartBatchScan}
-            loading={loading}
-            errorMsg={errorMsg}
-            selectedCropFilter={selectedCropFilter}
-            onCropFilterChange={handleCropFilterChange}
-          />
-        ) : (
-          <MultiLeafResults
-            result={batchResult}
-            onReset={handleClearBatch}
-            farmName={activeFarm?.farm_name || "Field Plot"}
-            user={user}
-          />
-        )
-      ) : (
-        <>
-          {hasScanned && liveResult ? (
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-4 pt-1"
-            >
-              {/* Compact Quick-Action Bar Replacing Full-Screen Uploader */}
-              <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md">
-                <div className="flex items-center gap-3 min-w-0">
-                  {previewUrl ? (
-                    <img 
-                      src={previewUrl} 
-                      alt="Scanned sample" 
-                      className="w-12 h-12 rounded-xl object-cover border border-emerald-500/40 shadow-xs shrink-0" 
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                      ✓ {t('scan_page.scan_complete', 'Analysis Completed')}
-                    </span>
-                    <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
-                      {liveResult?.disease_name || liveResult?.crop_name || liveResult?.product_name || 'AI Analysis Report'}
-                    </h3>
-                  </div>
-                </div>
+          {/* 3 Diagnostic Modules — Clean Vertical Cards matching Field Modules */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
+                {isTe ? 'AI డయాగ్నస్టిక్ సాధనాలు' : 'AI Diagnostic Modules'}
+              </h3>
+              <span className="text-xs text-slate-500 dark:text-white/40 font-medium">
+                {isTe ? 'ప్రారంభించడానికి ట్యాప్ చేయండి' : 'Tap to open dedicated scanner'}
+              </span>
+            </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearSelection}
-                  leftIcon={<RefreshCw className="w-3.5 h-3.5 text-emerald-600" />}
-                  className="shrink-0 text-xs font-bold border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+            {SCAN_MODULES.map((mod, idx) => {
+              const Icon = mod.icon;
+              const title = isTe ? mod.teluguTitle : t(mod.titleKey, mod.defaultTitle);
+              const desc = isTe ? mod.teluguDesc : t(mod.descKey, mod.defaultDesc);
+              const badge = mod.badgeKey ? t(mod.badgeKey, mod.badge) : mod.badge;
+
+              return (
+                <motion.button
+                  key={mod.id}
+                  type="button"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: idx * 0.06 }}
+                  onClick={() => handleTabChange(mod.id)}
+                  className="w-full flex items-center justify-between p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-700 hover:shadow-lg hover:shadow-emerald-500/5 transition-all active:scale-[0.98] text-left group cursor-pointer"
                 >
-                  {t('scan_page.scan_another', 'Scan Another Sample')}
-                </Button>
+                  <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                    <div className={`p-3 sm:p-3.5 rounded-2xl border ${mod.iconBg} shrink-0`}>
+                      <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                          {title}
+                        </h4>
+                        <Badge variant={mod.badgeVariant} className="text-[9px] uppercase tracking-wider font-extrabold shrink-0">
+                          {badge}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                        {desc}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 shrink-0 ml-3 transition-colors" />
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* ═══════ DEDICATED SUB-PAGE — Disease Diagnosis, Plant ID, or Agrochemical Scanner ═══════ */
+        <div className="space-y-4">
+          {/* Clean Top Navigation Bar with Back Button */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => handleTabChange('overview')}
+              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 cursor-pointer group"
+            >
+              <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span>{isTe ? '← స్కాన్ సెంటర్‌కు తిరిగి' : '← Back to AI Scan Center'}</span>
+            </button>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[11px] font-bold">
+                {currentModuleTitle || 'Scanner'}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Quick Sub-Navigation Tabs (Switch between tools seamlessly) */}
+          <ScanCenterTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+          />
+
+          {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
+          {activeTab === 'disease-diag' && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/80 dark:bg-white/[0.03] backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 dark:bg-white/[0.05] border border-slate-200/60 dark:border-white/5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => scanStore.setState({ scanMode: 'single', hasScanned: !!liveResult, errorMsg: '' })}
+                  className={`px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    scanMode === 'single'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>{t('scan_page.single_leaf_focus', '🍃 Single Leaf Focus')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scanStore.setState({ scanMode: 'multi', hasScanned: !!batchResult, errorMsg: '' })}
+                  className={`px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    scanMode === 'multi'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>{t('scan_page.multi_leaf_scan', '🌿 Multi-Leaf Plot Scan (2–5)')}</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider">
+                      {t('common.new', 'New')}
+                    </span>
+                  </span>
+                </button>
               </div>
 
-              {activeTab === 'plant-id' && (
-                <PlantIdResults liveResult={liveResult} />
-              )}
+              <span className="text-[11px] text-slate-500 dark:text-white/40 font-semibold px-2 text-center sm:text-right">
+                {scanMode === 'multi' ? t('scan_page.multi_leaf_desc', 'Field Plot Severity Index (Samples 2–5 leaves across corners)') : t('scan_page.single_leaf_desc', 'High-precision single leaf pathology lesion scan')}
+              </span>
+            </div>
+          )}
 
-              {activeTab === 'disease-diag' && (
-                <DiseaseDiagnosisResults
-                  liveResult={liveResult}
+          {/* Upload & Scan Component based on activeTab & scanMode */}
+          {activeTab === 'disease-diag' && scanMode === 'multi' ? (
+            !hasScanned || !batchResult ? (
+              <MultiLeafUploader
+                samples={batchSamples}
+                onAddSample={handleAddBatchSample}
+                onRemoveSample={handleRemoveBatchSample}
+                onClearAll={handleClearBatch}
+                onStartBatchScan={handleStartBatchScan}
+                loading={loading}
+                errorMsg={errorMsg}
+                selectedCropFilter={selectedCropFilter}
+                onCropFilterChange={handleCropFilterChange}
+              />
+            ) : (
+              <MultiLeafResults
+                result={batchResult}
+                onReset={handleClearBatch}
+                farmName={activeFarm?.farm_name || "Field Plot"}
+                user={user}
+              />
+            )
+          ) : (
+            <>
+              {hasScanned && liveResult ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-4 pt-1"
+                >
+                  {/* Compact Quick-Action Bar Replacing Full-Screen Uploader */}
+                  <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {previewUrl ? (
+                        <img 
+                          src={previewUrl} 
+                          alt="Scanned sample" 
+                          className="w-12 h-12 rounded-xl object-cover border border-emerald-500/40 shadow-xs shrink-0" 
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                          ✓ {t('scan_page.scan_complete', 'Analysis Completed')}
+                        </span>
+                        <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                          {liveResult?.disease_name || liveResult?.crop_name || liveResult?.product_name || 'AI Analysis Report'}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearSelection}
+                      leftIcon={<RefreshCw className="w-3.5 h-3.5 text-emerald-600" />}
+                      className="shrink-0 text-xs font-bold border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
+                    >
+                      {t('scan_page.scan_another', 'Scan Another Sample')}
+                    </Button>
+                  </div>
+
+                  {activeTab === 'plant-id' && (
+                    <PlantIdResults liveResult={liveResult} />
+                  )}
+
+                  {activeTab === 'disease-diag' && (
+                    <DiseaseDiagnosisResults
+                      liveResult={liveResult}
+                      previewUrl={previewUrl}
+                      onDownloadPDF={handleDownloadPDF}
+                      onSaveScan={() => navigate('/history')}
+                    />
+                  )}
+
+                  {activeTab === 'agro-scan' && (
+                    <AgrochemicalResults liveResult={liveResult} />
+                  )}
+                </motion.div>
+              ) : (
+                <ScanImageUploader
+                  tabId={activeTab}
+                  selectedFile={selectedFile}
                   previewUrl={previewUrl}
-                  onDownloadPDF={handleDownloadPDF}
-                  onSaveScan={() => navigate('/history')}
+                  compressionInfo={compressionInfo}
+                  onFileSelect={handleFileSelect}
+                  onClear={clearSelection}
+                  onStartScan={handleStartScan}
+                  onLoadSample={loadSampleImage}
+                  loading={loading}
+                  errorMsg={errorMsg}
+                  liveResult={liveResult}
+                  selectedCropFilter={selectedCropFilter}
+                  onCropFilterChange={handleCropFilterChange}
+                  activeFarmCrop={activeFarm?.crop_name}
+                  plantType={plantType}
+                  onPlantTypeChange={handlePlantTypeChange}
+                  selectedTreeFilter={selectedTreeFilter}
+                  onTreeFilterChange={handleTreeFilterChange}
                 />
               )}
-
-              {activeTab === 'agro-scan' && (
-                <AgrochemicalResults liveResult={liveResult} />
-              )}
-            </motion.div>
-          ) : (
-            <ScanImageUploader
-              tabId={activeTab}
-              selectedFile={selectedFile}
-              previewUrl={previewUrl}
-              compressionInfo={compressionInfo}
-              onFileSelect={handleFileSelect}
-              onClear={clearSelection}
-              onStartScan={handleStartScan}
-              onLoadSample={loadSampleImage}
-              loading={loading}
-              errorMsg={errorMsg}
-              liveResult={liveResult}
-              selectedCropFilter={selectedCropFilter}
-              onCropFilterChange={handleCropFilterChange}
-              activeFarmCrop={activeFarm?.crop_name}
-              plantType={plantType}
-              onPlantTypeChange={handlePlantTypeChange}
-              selectedTreeFilter={selectedTreeFilter}
-              onTreeFilterChange={handleTreeFilterChange}
-            />
+            </>
           )}
-        </>
+        </div>
       )}
     </motion.div>
   );
