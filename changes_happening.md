@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v151) - UI/UX: Converted Diagnostic Review to Dedicated Full Screen with Neat Top Back Button in Notifications Reader
+- **Summary:** Resolved the user's issue where scrolling through "See Full Review" inside the notification SMS reader produced a cramped, half-cut card with a floating bottom button covering the content:
+  1. 📱 **Dedicated Full-Screen View (`frontend/src/components/common/GoogleMessageReader.jsx`):**
+     - When the farmer taps "See Full Review", the app now opens a clean, unconstrained, dedicated full-screen page with edge-to-edge reading comfort and smooth single-scroll behavior.
+     - Removed the cramped inline card and removed the bottom floating collapse bar that was obstructing reading.
+  2. 🔙 **Neat Top & Bottom Back Buttons:**
+     - Added a prominent, neat back button at the top header: `← Back to Notification` (`← సందేశానికి తిరిగి`).
+     - Added a full-width bottom return button at the end of the advisory content so the farmer can return to the SMS view effortlessly from either top or bottom.
+  3. 🧪 **Validation:**
+     - `npm run build` compiled with 0 errors in 28.08s.
+- **Files modified**: `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v150) - Infrastructure: Automated 24/7 Cluster Keep-Alive for All 3 Render Accounts (Main Server + Worker 1 + Worker 2)
 - **Summary:** Fulfilled the user's request to keep all 3 Render accounts permanently awake without falling asleep:
   1. 🔄 **Multi-Node Cluster Keep-Alive Loop (`backend/app/services/scheduler.py`):**

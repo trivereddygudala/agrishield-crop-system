@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Phone, Trash2, Share2, ShieldCheck, CheckCheck,
-  FileText, Sparkles, Volume2, VolumeX, ChevronDown, ChevronUp,
+  FileText, Sparkles, Volume2, VolumeX, ChevronDown, ChevronUp, ChevronRight,
   X, CheckCircle2, Pill, Sprout, AlertTriangle, CloudRain, Droplets
 } from 'lucide-react';
 import { formatDateTime, timeAgo } from '../../utils/dateUtils';
@@ -120,6 +120,182 @@ export default function GoogleMessageReader({
     };
   }, [message, isTelugu]);
 
+  // ─── FULL SCREEN VIEW: DEDICATED DIAGNOSTIC REVIEW WITH NEAT TOP BACK BUTTON ───
+  if (showFullReview) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ duration: 0.2 }}
+        className="flex flex-col h-[calc(100vh-140px)] min-h-[550px] max-w-3xl mx-auto bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+      >
+        {/* ─── NEAT TOP HEADER & BACK BUTTON ─── */}
+        <div className="flex items-center justify-between px-4 py-3.5 bg-slate-50/95 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => setShowFullReview(false)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs sm:text-sm border border-emerald-500/30 transition-all cursor-pointer shadow-xs"
+              title={isTelugu ? "సందేశానికి తిరిగి వెళ్ళండి" : "Back to Notification"}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{isTelugu ? 'సందేశానికి తిరిగి' : 'Back to Notification'}</span>
+            </button>
+            <div className="min-w-0 hidden sm:block">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300 truncate block">
+                {isTelugu ? 'పూర్తి డయాగ్నస్టిక్ సమీక్ష' : 'Full Diagnostic Review'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <a
+              href="tel:18001801551"
+              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 transition-colors"
+              title={isTelugu ? "కిసాన్ కాల్ సెంటర్ (1800-180-1551)" : "Call Kisan Helpline"}
+            >
+              <Phone className="w-4 h-4" />
+            </a>
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer"
+              title={isTelugu ? "వాట్సాప్‌లో షేర్ చేయండి" : "Share via WhatsApp"}
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* ─── FULL SCREEN SCROLLABLE ADVISORY BODY ─── */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
+          {/* Header Title Card */}
+          <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black shrink-0 shadow-xs">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                {isTelugu ? 'పూర్తి సమీక్ష & AI నిర్ధారణ నివేదిక' : 'Full Diagnostic Review & Advisory'}
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isTelugu ? 'తక్షణ చర్యలు, పిచికారీ మోతాదులు మరియు నివారణ మార్గాలు' : 'Immediate actions, spray dosages & disease remedies'}
+              </p>
+            </div>
+          </div>
+
+          {/* Diagnosis Badges & Highlights */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+            {parsedInfo.crop && (
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-xs">
+                <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'పంట' : 'Crop'}</span>
+                <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{isTelugu ? parsedInfo.teluguCrop : parsedInfo.crop}</span>
+              </div>
+            )}
+            {parsedInfo.disease && (
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-xs">
+                <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'గుర్తించిన తెగులు' : 'Detected Issue'}</span>
+                <span className="text-sm font-black text-rose-600 dark:text-rose-400 block mt-0.5">{isTelugu ? parsedInfo.teluguDisease : parsedInfo.disease}</span>
+              </div>
+            )}
+            {parsedInfo.confidence && (
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-xs col-span-2 sm:col-span-1">
+                <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'ఖచ్చితత్వం' : 'Confidence'}</span>
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5">{parsedInfo.confidence}% Neural Match</span>
+              </div>
+            )}
+          </div>
+
+          {/* Overview / Pathology */}
+          {parsedInfo.advisory?.overview && (
+            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-emerald-500/20 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed shadow-xs">
+              <p className="font-bold text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1.5">
+                <span>🔬</span>
+                <span>{isTelugu ? 'వ్యాధి సమాచారం & లక్షణాలు (Pathology & Symptoms):' : 'Pathogen Pathology & Symptoms:'}</span>
+              </p>
+              <p className="leading-relaxed">{parsedInfo.advisory.overview}</p>
+            </div>
+          )}
+
+          {/* Chemical Treatments */}
+          {parsedInfo.advisory?.chemicals && parsedInfo.advisory.chemicals.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Pill className="w-4 h-4 text-emerald-600" />
+                <span>{isTelugu ? 'రసాయన మందుల పిచికారీ & మోతాదు (Chemical Spray Dosages)' : 'Recommended Chemical Spray & Dosages'}</span>
+              </h4>
+              <div className="space-y-2">
+                {parsedInfo.advisory.chemicals.map((chem, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm shadow-xs">
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-600 font-black flex items-center justify-center shrink-0 text-[11px] mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <span className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{chem}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Organic Treatments */}
+          {parsedInfo.advisory?.organic && parsedInfo.advisory.organic.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Sprout className="w-4 h-4 text-teal-600" />
+                <span>{isTelugu ? 'సేంద్రీయ & జీవ నియంత్రణ మార్గాలు (Organic Remedies)' : 'Organic & Biological Treatment Alternatives'}</span>
+              </h4>
+              <div className="space-y-2">
+                {parsedInfo.advisory.organic.map((org, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-teal-500/20 text-xs sm:text-sm shadow-xs">
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                    <span className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{org}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Prevention Advice */}
+          {parsedInfo.advisory?.prevention && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs sm:text-sm space-y-1.5 shadow-xs">
+              <span className="font-black text-amber-700 dark:text-amber-400 block">
+                {isTelugu ? '🛡️ భవిష్యత్తు నివారణ చర్యలు (Future Prevention):' : '🛡️ Long-term Field Prevention:'}
+              </span>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                {parsedInfo.advisory.prevention}
+              </p>
+            </div>
+          )}
+
+          {/* Kisan Support Dial Option */}
+          <div className="pt-2">
+            <a
+              href="tel:18001801551"
+              className="w-full py-3 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-emerald-500/30 transition-colors shadow-xs"
+            >
+              <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>{isTelugu ? 'వ్యవసాయ నిపుణుడిని సంప్రదించండి: 1800-180-1551' : 'Speak to Agronomist: 1800-180-1551'}</span>
+            </a>
+          </div>
+
+          {/* Bottom Back Button */}
+          <div className="pt-2 pb-6">
+            <button
+              type="button"
+              onClick={() => setShowFullReview(false)}
+              className="w-full py-3.5 px-4 rounded-2xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-black text-sm flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{isTelugu ? 'సందేశానికి తిరిగి వెళ్ళండి' : 'Back to Notification'}</span>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ─── STANDARD GOOGLE MESSAGE CONVERSATION VIEW ───
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -159,7 +335,7 @@ export default function GoogleMessageReader({
               </span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-              {isTelugu ? 'అధికారిక SMS గేట్‌వే • కిసాన్ హెల్ప్‌లైన్' : 'Official SMS Gateway • Kisan Helpline'}
+              {isTelugu ? 'అధికారిక SMS గేట్‌వే • 100% విశ్వసనీయం' : 'Official SMS Gateway • 100% Reliable'}
             </p>
           </div>
         </div>
@@ -172,8 +348,8 @@ export default function GoogleMessageReader({
             onClick={handleToggleSpeech}
             className={`p-2.5 rounded-full transition-all cursor-pointer ${
               isSpeaking
-                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-2 ring-amber-400/60 animate-pulse'
-                : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
+                ? 'bg-amber-500 text-white shadow-md animate-pulse'
+                : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400'
             }`}
             title={
               isSpeaking
@@ -249,43 +425,37 @@ export default function GoogleMessageReader({
               </div>
             </div>
 
-            {/* Title */}
+            {/* Notification Title */}
             <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug">
               {translatedTitle || message.title}
             </h3>
 
-            {/* Body Text (Farmer Readable) */}
-            <p className="text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed font-normal whitespace-pre-wrap">
+            {/* Notification Body Text */}
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line font-medium">
               {translatedBody || message.message}
             </p>
 
-            {/* In-Bubble Audio Voice Readout Button */}
-            <div className="pt-1">
+            {/* In-Bubble Voice Audio Bar */}
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={handleToggleSpeech}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl border transition-all active:scale-[0.98] shadow-sm cursor-pointer ${
+                className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
                   isSpeaking
-                    ? 'bg-gradient-to-r from-amber-500/20 via-emerald-500/15 to-teal-500/20 border-amber-400/80 text-amber-900 dark:text-amber-200 ring-1 ring-amber-400/50'
-                    : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/80 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-amber-500/15 dark:bg-amber-500/20 border-amber-500/40 shadow-sm'
+                    : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/70 hover:border-amber-400/50'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                      isSpeaking
-                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-400/30 animate-pulse'
-                        : 'bg-amber-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-slate-700'
-                    }`}
-                  >
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    isSpeaking ? 'bg-amber-500 text-white' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                  }`}>
                     {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                   </div>
                   <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                        {isSpeaking
-                          ? (isTelugu ? '🔊 చదువుతోంది... (ఆపడానికి నొక్కండి)' : '🔊 Reading Out Loud (Tap to Stop)')
-                          : (isTelugu ? '🔊 బిగ్గరగా వినండి (వాయిస్ ఆడియో)' : '🔊 Listen Out Loud (Voice Audio)')}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                        {isTelugu ? 'వాయిస్ సందేశం' : 'Voice Narration'}
                       </span>
                       {isSpeaking && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
@@ -295,29 +465,27 @@ export default function GoogleMessageReader({
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
                       {isSpeaking
-                        ? (isTelugu ? 'రైతుకు పూర్తి వివరాలు స్పష్టంగా వినిపిస్తున్నాయి...' : 'Playing narration in selected language...')
-                        : (isTelugu ? 'ఈ సందేశాన్ని పూర్తి తెలుగు ఆడియోలో వినండి' : 'Tap to hear this message spoken in your language')}
+                        ? (isTelugu ? 'ఆడియో ప్లే అవుతోంది...' : 'Playing narration...')
+                        : (isTelugu ? 'తెలుగులో వినడానికి నొక్కండి' : 'Tap to hear voice')}
                     </p>
                   </div>
                 </div>
 
-                {/* Sound waves animation when active */}
                 {isSpeaking ? (
-                  <div className="flex items-end gap-1 h-5 px-1">
-                    <span className="w-1 bg-amber-500 dark:bg-amber-400 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-3" />
-                    <span className="w-1 bg-amber-500 dark:bg-amber-300 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-5" />
-                    <span className="w-1 bg-amber-500 dark:bg-amber-400 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-4" />
-                    <span className="w-1 bg-amber-500 dark:bg-amber-300 rounded-full animate-[pulse_0.3s_ease-in-out_infinite] h-2" />
+                  <div className="flex items-end gap-1 h-4 px-1">
+                    <span className="w-1 bg-amber-500 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-2.5" />
+                    <span className="w-1 bg-amber-500 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-4" />
+                    <span className="w-1 bg-amber-500 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-3" />
                   </div>
                 ) : (
-                  <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-400/15 px-2 py-1 rounded-lg border border-amber-400/30 hidden sm:inline-block">
-                    {isTelugu ? 'వాయిస్ ప్లే' : 'Play Voice'}
+                  <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-400/15 px-2 py-1 rounded-lg border border-amber-400/30 hidden sm:inline-block">
+                    {isTelugu ? 'ప్లే' : 'Play'}
                   </span>
                 )}
               </button>
             </div>
 
-            {/* Smart Action Buttons Inside Message (Opens review in-page, no redirect) */}
+            {/* Smart Action Buttons Inside Message (Opens full review screen) */}
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
@@ -350,155 +518,18 @@ export default function GoogleMessageReader({
             </div>
           </div>
         </div>
-
-        {/* ─── FULL INLINE REVIEW & TREATMENT ADVISORY CARD (No Redirects) ─── */}
-        <AnimatePresence>
-          {showFullReview && (
-            <motion.div
-              ref={reviewRef}
-              initial={{ opacity: 0, y: 15, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 15, scale: 0.98 }}
-              transition={{ duration: 0.25 }}
-              className="rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-500/40 p-4 sm:p-6 shadow-2xl space-y-4 text-slate-900 dark:text-slate-100"
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black shrink-0 shadow-xs">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                      {isTelugu ? 'పూర్తి సమీక్ష & AI నిర్ధారణ నివేదిక' : 'Full Diagnostic Review & Advisory'}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {isTelugu ? 'తక్షణ చర్యలు, పిచికారీ మోతాదులు మరియు నివారణ మార్గాలు' : 'Immediate actions, spray dosages & disease remedies'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowFullReview(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                  title={isTelugu ? "సమీక్షను మూసివేయండి" : "Close Review"}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Diagnosis Badges & Highlights */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                {parsedInfo.crop && (
-                  <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
-                    <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'పంట' : 'Crop'}</span>
-                    <span className="font-extrabold text-slate-900 dark:text-white">{isTelugu ? parsedInfo.teluguCrop : parsedInfo.crop}</span>
-                  </div>
-                )}
-                {parsedInfo.disease && (
-                  <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
-                    <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'గుర్తించిన తెగులు' : 'Detected Issue'}</span>
-                    <span className="font-extrabold text-rose-600 dark:text-rose-400">{isTelugu ? parsedInfo.teluguDisease : parsedInfo.disease}</span>
-                  </div>
-                )}
-                {parsedInfo.confidence && (
-                  <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 col-span-2 sm:col-span-1">
-                    <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'ఖచ్చితత్వం' : 'Confidence'}</span>
-                    <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{parsedInfo.confidence}% Neural Match</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Overview */}
-              {parsedInfo.advisory?.overview && (
-                <div className="p-3 sm:p-4 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                  <p className="font-bold text-emerald-700 dark:text-emerald-300 mb-1">
-                    {isTelugu ? '🔬 వ్యాధి సమాచారం & లక్షణాలు:' : '🔬 Pathogen Pathology & Symptoms:'}
-                  </p>
-                  <p>{parsedInfo.advisory.overview}</p>
-                </div>
-              )}
-
-              {/* Chemical Treatments */}
-              {parsedInfo.advisory?.chemicals && parsedInfo.advisory.chemicals.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Pill className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{isTelugu ? 'రసాయన మందుల పిచికారీ & మోతాదు (Chemical Spray Dosages)' : 'Recommended Chemical Spray & Dosages'}</span>
-                  </h4>
-                  <div className="space-y-1.5">
-                    {parsedInfo.advisory.chemicals.map((chem, idx) => (
-                      <div key={idx} className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs">
-                        <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-600 font-bold flex items-center justify-center shrink-0 text-[10px]">
-                          {idx + 1}
-                        </span>
-                        <span className="text-slate-800 dark:text-slate-200 leading-snug">{chem}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Organic Treatments */}
-              {parsedInfo.advisory?.organic && parsedInfo.advisory.organic.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <Sprout className="w-3.5 h-3.5 text-teal-600" />
-                    <span>{isTelugu ? 'సేంద్రీయ & జీవ నియంత్రణ మార్గాలు (Organic Remedies)' : 'Organic & Biological Treatment Alternatives'}</span>
-                  </h4>
-                  <div className="space-y-1.5">
-                    {parsedInfo.advisory.organic.map((org, idx) => (
-                      <div key={idx} className="flex items-start gap-2 p-2.5 rounded-xl bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/20 text-xs">
-                        <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
-                        <span className="text-slate-800 dark:text-slate-200 leading-snug">{org}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Prevention Advice */}
-              {parsedInfo.advisory?.prevention && (
-                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs space-y-1">
-                  <span className="font-black text-amber-700 dark:text-amber-400 block">
-                    {isTelugu ? '🛡️ భవిష్యత్తు నివారణ చర్యలు (Future Prevention):' : '🛡️ Long-term Field Prevention:'}
-                  </span>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                    {parsedInfo.advisory.prevention}
-                  </p>
-                </div>
-              )}
-
-              {/* Kisan Support Dial Option */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-2">
-                <a
-                  href="tel:18001801551"
-                  className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition-colors"
-                >
-                  <Phone className="w-4 h-4 text-emerald-600" />
-                  <span>{isTelugu ? 'వ్యవసాయ నిపుణుడిని సంప్రదించండి: 1800-180-1551' : 'Speak to Agronomist: 1800-180-1551'}</span>
-                </a>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      {/* ─── GOOGLE MESSAGES BOTTOM ACTION BAR (See Full Review, No Redirect) ─── */}
+      {/* ─── GOOGLE MESSAGES BOTTOM ACTION BAR (See Full Review) ─── */}
       <div className="p-3 sm:p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 shrink-0">
         <button
           type="button"
-          onClick={() => setShowFullReview((prev) => !prev)}
+          onClick={() => setShowFullReview(true)}
           className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-600/25 transition-all active:scale-[0.98] cursor-pointer"
         >
           <FileText className="w-5 h-5 text-emerald-100" />
-          <span>
-            {showFullReview
-              ? (isTelugu ? 'పూర్తి సమీక్షను తగ్గించండి' : 'Collapse Full Review')
-              : (isTelugu ? 'పూర్తి సమీక్ష చూడండి' : 'See Full Review')}
-          </span>
-          {showFullReview ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+          <span>{isTelugu ? 'పూర్తి సమీక్ష చూడండి' : 'See Full Review'}</span>
+          <ChevronRight className="w-4 h-4 ml-1" />
         </button>
       </div>
     </motion.div>
