@@ -2,6 +2,25 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v148) - Feature: Replaced AI Assistant Input Bar with 'See Full Review' Button (In-Page Comprehensive Advisory, No Page Redirects)
+- **Summary:** Fulfilled the user's request on the Notifications page (`frontend/src/components/common/GoogleMessageReader.jsx`):
+  1. 🚫 **Removed External Redirects & Assistant Input Bar:**
+     - Removed the bottom `<form>` input bar ("Ask AI Assistant about this crop alert...") which previously navigated to `/assistant`.
+     - Updated in-bubble button `View AI Treatment & Remedies` to open the review directly in-page rather than redirecting to `/upload` or `/result`.
+  2. 📋 **Added 'See Full Review' Toggle Button & Rich In-Page Section:**
+     - Replaced the bottom bar with a primary full-width CTA: `See Full Review` (`పూర్తి సమీక్ష చూడండి`).
+     - Tapping `See Full Review` smoothly displays an inline comprehensive advisory card on the same page containing:
+       - Crop & Disease diagnosis with Telugu and English translation (e.g. Maize / మొక్కజొన్న, Leaf Blight / ఆకు ఎండు తెగులు).
+       - Confidence percentage score badge (e.g. `100.0% Neural Match`).
+       - Full pathogen pathology and symptoms overview from `diseaseAdvisoryData.js`.
+       - Chemical fungicide spray schedules and exact dilution dosages (Mancozeb, Azoxystrobin, etc.).
+       - Organic/biological remedies (Neem oil, Trichoderma viride, leaf sanitation).
+       - Long-term field prevention guidelines (drip irrigation, crop rotation).
+       - One-tap Kisan Helpline call link (1800-180-1551).
+  3. 🧪 **Validation:**
+     - `npm run build` compiled with 0 errors in 23.14s.
+- **Files modified**: `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v147) - Fix: Resolved 'ReferenceError: useCallback is not defined' Crash in Help & Support Page
 - **Summary:** Fixed the crash shown in the user's screenshot when opening the Help & Support Team page:
   1. 🐛 **Root Cause:**
