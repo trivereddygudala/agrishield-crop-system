@@ -73,7 +73,8 @@ class NotificationService:
             await db.notification_settings.insert_one(settings_doc)
 
         # Check category toggle (System broadcasts bypass this)
-        if category != "system":
+        cat_lower = str(category or "").lower()
+        if cat_lower != "system":
             cat_map = {
                 "soil": "soil_alerts",
                 "weather": "weather_alerts",
@@ -82,7 +83,7 @@ class NotificationService:
                 "disease": "disease_alerts",
                 "recommendation": "recommendation_alerts"
             }
-            pref_field = cat_map.get(category, "disease_alerts")
+            pref_field = cat_map.get(cat_lower, "disease_alerts")
             if not settings_doc.get(pref_field, True):
                 logger.info(f"Notification category '{category}' disabled for user {user_id}. Skipping alert.")
                 return {}
@@ -107,8 +108,12 @@ class NotificationService:
                 logger.info(f"Quiet hours active for user {user_id}. Non-critical alert '{notification.title}' suppressed.")
                 return {}
 
-        # Fetch user language preference
-        user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+        # Fetch user language preference safely
+        user_doc = None
+        if ObjectId.is_valid(user_id):
+            user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+        else:
+            user_doc = await db.users.find_one({"$or": [{"id": user_id}, {"username": user_id}]})
         preferred_lang = user_doc.get("preferred_language", "en") if user_doc else "en"
 
         # 3. Localize alert message
@@ -248,12 +253,31 @@ class NotificationService:
         return records
 
     @staticmethod
+    def _build_id_query(notification_id: str, user_id: str) -> dict:
+        """Builds a flexible query supporting both MongoDB ObjectId and string IDs (e.g. GEN-*, SIM-*)."""
+        base = {"user_id": user_id}
+        if ObjectId.is_valid(notification_id):
+            base["$or"] = [
+                {"_id": ObjectId(notification_id)},
+                {"notification_id": notification_id},
+                {"id": notification_id}
+            ]
+        else:
+            base["$or"] = [
+                {"notification_id": notification_id},
+                {"id": notification_id},
+                {"_id": notification_id}
+            ]
+        return base
+
+    @staticmethod
     async def mark_as_read(db, notification_id: str, user_id: str) -> bool:
         """Mark notification as read and register action opened."""
         try:
             now_utc = datetime.now(timezone.utc)
+            query = NotificationService._build_id_query(notification_id, user_id)
             result = await db.notifications.update_one(
-                {"_id": ObjectId(notification_id), "user_id": user_id},
+                query,
                 {
                     "$set": {
                         "read": True,
@@ -315,8 +339,9 @@ class NotificationService:
         """Acknowledge an active notification alert."""
         try:
             now_utc = datetime.now(timezone.utc)
+            query = NotificationService._build_id_query(notification_id, user_id)
             result = await db.notifications.update_one(
-                {"_id": ObjectId(notification_id), "user_id": user_id},
+                query,
                 {
                     "$set": {
                         "status": "acknowledged",
@@ -351,9 +376,8 @@ class NotificationService:
     async def delete_notification(db, notification_id: str, user_id: str) -> bool:
         """Delete notification log."""
         try:
-            result = await db.notifications.delete_one(
-                {"_id": ObjectId(notification_id), "user_id": user_id}
-            )
+            query = NotificationService._build_id_query(notification_id, user_id)
+            result = await db.notifications.delete_one(query)
             if result.deleted_count > 0 and active_websocket_manager:
                 count = await NotificationService.get_unread_count(db, user_id)
                 await active_websocket_manager.broadcast_to_user(user_id, {

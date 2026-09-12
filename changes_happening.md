@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-12 (v129) - Fix: Real-Time Scan Diagnosis Notifications, String ID Support & Dual NVIDIA NIM Cascade
+- **Summary:** Resolved disease diagnosis notification delivery failures, fixed non-ObjectId crash when marking notifications as read, and configured the second NVIDIA NIM key:
+  1. 🔔 **Instant Scan Diagnosis Notifications (`backend/app/routers/predict.py`):**
+     - Fixed notification dispatch in `predict_pytorch_endpoint` so that all diagnosis scans (both diseased and healthy crops) immediately create a notification in MongoDB and broadcast live to connected WebSockets.
+     - Removed 2-hour duplicate suppression window that previously blocked notifications on repeated farmer scans.
+     - Ensured category mapping uses case-insensitive matching (`"disease"`).
+     - Added explicit try/except logging to prevent silent notification swallowing.
+  2. 🆔 **String ID & Non-ObjectId Handling (`backend/app/services/notification_service.py`):**
+     - Implemented `_build_id_query(notification_id, user_id)` in `NotificationService`.
+     - Completely eliminated `InvalidId: 'GEN-...' is not a valid ObjectId` crash when marking notifications read, acknowledging, or deleting notifications.
+  3. ⚡ **Configured 2nd NVIDIA NIM Key (`backend/app/core/config.py`):**
+     - Verified and activated second NVIDIA NIM API key (`nvapi-6AtvCI_...`) in `NVIDIA_API_KEY_2`.
+     - Active provider chain verified: `NVIDIA NIM Primary` ➡️ `NVIDIA NIM Secondary` with instant automatic failover.
+- **Files modified**: `backend/app/core/config.py`, `backend/app/routers/predict.py`, `backend/app/services/notification_service.py`, `changes_happening.md`, `chats_by_user.md`
+
 ## 2026-09-12 (v128) - Optimization: Transition to Pure NVIDIA NIM Architecture & Fix Weather Datetime Subtraction
 - **Summary:** Eliminated Groq 401 and token-rate-limit latency by switching to NVIDIA NIM as primary AI engine, added dual-key NVIDIA fallback support, and fixed weather cache datetime offset calculation:
   1. ⚡ **Pure NVIDIA NIM AI Architecture (`backend/app/services/nvidia_service.py`):**

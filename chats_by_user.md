@@ -6,6 +6,24 @@
 
 ## Session Date: 2026-09-12
 
+### Chat Entry 73
+* **User Input:**
+  > "see these errors also, after i diagnose the diease the notifications are not coming" -> "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 this is my 2nd nviddia apikey"
+* **Machine Summary Solution:**
+  * **Configured 2nd NVIDIA NIM Key:**
+    1. Validated user's 2nd NVIDIA key via API check (status 200 OK).
+    2. Encoded and injected into `backend/app/core/config.py` under `NVIDIA_API_KEY_2`.
+    3. Service provider chain confirmed: `['NVIDIA NIM Primary', 'NVIDIA NIM Secondary']` with instant failover.
+  * **Fixed Notification Delivery Failure on Disease Diagnosis (`backend/app/routers/predict.py`):**
+    1. Diagnosis notifications now dispatch unconditionally for all scans (healthy and diseased) to the authenticated user.
+    2. Removed the restrictive 2-hour cooldown window that silenced subsequent scans.
+    3. Added live WebSocket broadcast so notifications appear immediately in real-time on mobile/desktop without page refresh.
+    4. Switched category string to lowercase `"disease"` for matching user notification toggles.
+  * **Fixed InvalidId Crash when Marking Notifications Read (`backend/app/services/notification_service.py`):**
+    1. Resolved `'GEN-1789291849497' is not a valid ObjectId` crash by adding `_build_id_query`.
+    2. Supports both 24-char BSON ObjectIds and custom string IDs (`GEN-*`, `SIM-*`) in `mark_as_read`, `acknowledge_notification`, and `delete_notification`.
+
+
 ### Chat Entry 72
 * **User Input:**
   > "see the loading error of the groq i give another api also if you want" -> "remove the groq i give another nvidia if you want because the groq fall backs it will take more time"

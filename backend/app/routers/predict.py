@@ -1216,30 +1216,39 @@ async def predict_pytorch_endpoint(
     if "_id" in prediction_record:
         del prediction_record["_id"]
 
-    # --- Disease Alert Notification ---
-    if prediction_result.get("prediction_status") == "diseased" and current_user and "id" in current_user:
+    # --- Real-Time Crop Scan Notification (Delivered via DB & WebSocket) ---
+    user_id_str = str(current_user.get("id") or current_user.get("_id") or "") if current_user else ""
+    if user_id_str:
         crop = prediction_result.get("crop_name", "Crop")
-        disease = prediction_result.get("disease_name", "Unknown disease")
+        disease = prediction_result.get("disease_name", "Unknown condition")
         confidence = round(float(prediction_result.get("confidence", 0)) * 100, 1)
+        pred_status = (prediction_result.get("prediction_status") or "").lower()
+        is_healthy = "healthy" in disease.lower() or pred_status == "healthy"
+
         try:
-            dup = await NotificationService.check_duplicate(
-                db, str(current_user["id"]), "Disease",
-                f"Disease Detected: {disease}", window_hours=2
-            )
-            if not dup:
-                await NotificationService.create_notification(db, NotificationCreate(
-                    user_id=str(current_user["id"]),
-                    title=f"Disease Detected: {disease}",
-                    message=(
-                        f"{disease} detected on {crop} with {confidence}% confidence. "
-                        "Immediate treatment is recommended. Check your AI scan results for details."
-                    ),
-                    category="Disease",
-                    priority="Critical",
+            if is_healthy:
+                title = f"🌱 Healthy Crop Verified: {crop}"
+                message = f"AI diagnosis complete: Your {crop} foliage is healthy with {confidence}% confidence. Maintain regular watering & nutrient schedules."
+                priority = "Low"
+            else:
+                title = f"🚨 Disease Alert: {disease} Detected"
+                message = f"{disease} identified on {crop} with {confidence}% confidence. Immediate treatment recommended. Check your AI scan results for treatment details."
+                priority = "Critical"
+
+            await NotificationService.create_notification(
+                db,
+                NotificationCreate(
+                    user_id=user_id_str,
+                    title=title,
+                    message=message,
+                    category="disease",
+                    priority=priority,
                     action_url="/result"
-                ))
-        except Exception:
-            pass
+                )
+            )
+            logger.info(f"✅ Scan notification created and broadcast for user {user_id_str}: '{title}'")
+        except Exception as notif_err:
+            logger.error(f"❌ Failed to dispatch scan notification: {notif_err}", exc_info=True)
 
         # --- Neighborhood Outbreak Alert Trigger ---
         is_contagious = any(k in disease.lower() for k in ["blight", "blast", "rust", "canker", "smut", "rot"])

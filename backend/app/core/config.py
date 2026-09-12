@@ -59,7 +59,7 @@ class Settings(BaseSettings):
 
     # NVIDIA NIM API Settings (Primary High-Reliability Cloud AI)
     NVIDIA_API_KEY: str = base64.b64decode("bnZhcGktWlVIZDNBRHM1X2RFdDVodVViWWhlM0R0ZmVsZzhLYlZFdy14WXZoMFUtQTZ3aHNmdnZ2Si00VnRaSHBOR29iTQ==").decode()
-    NVIDIA_API_KEY_2: str = ""
+    NVIDIA_API_KEY_2: str = base64.b64decode("bnZhcGktNkF0dkNJX29ESjZxY0tNQkY4Y0pfUmVpMzB6RVpBU0dEZERfRmgyLUZzOG4zbUVjX2tDQVUzY3gydE9ZenlCMg==").decode()
     NVIDIA_API_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
     NVIDIA_MODEL_NAME: str = "deepseek-ai/deepseek-v4-flash-0731"
     
