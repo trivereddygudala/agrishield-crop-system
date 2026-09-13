@@ -517,7 +517,7 @@ class PlantIdentifier:
 
         return None
 
-    async def identify_plant(self, image_path: str, plant_type: str = "crop", tree_filter: str = None, crop_filter: str = None) -> dict:
+    async def identify_plant(self, image_path: str, plant_type: str = "crop", tree_filter: str = None, crop_filter: str = None, organ: str = "leaf") -> dict:
         """
         Main Plant Identification Pipeline Workflow:
         Image -> Validate -> Cache Check -> Local Attempt -> Online Provider -> Format Result
@@ -536,9 +536,9 @@ class PlantIdentifier:
                 ]
             }
 
-        # 2. Check Cache with domain scope
+        # 2. Check Cache with domain & organ scope
         image_hash = compute_image_hash(image_path)
-        cache_key = f"{image_hash}_{plant_type}_{tree_filter or 'none'}_{crop_filter or 'none'}"
+        cache_key = f"{image_hash}_{plant_type}_{tree_filter or 'none'}_{crop_filter or 'none'}_{organ or 'leaf'}"
         cached_res = plant_cache.get(cache_key)
         if cached_res:
             return cached_res
@@ -563,7 +563,8 @@ class PlantIdentifier:
                 image_path=image_path,
                 crop_name=crop_filter,
                 plant_type=plant_type,
-                tree_filter=tree_filter
+                tree_filter=tree_filter,
+                organ=organ or "leaf"
             )
             if online_data and isinstance(online_data, dict):
                 confidence = float(online_data.get("confidence", 92.0))

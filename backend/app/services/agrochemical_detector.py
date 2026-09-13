@@ -520,8 +520,42 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
         extracted_text = " ".join(raw_lines).lower()
         logger.info(f"[AGROCHEMICAL OCR EXTRACTED]: {extracted_text}")
 
+        # Gemini Vision OCR Fallback: Activated when local EasyOCR yields fewer than 3 words or <15 chars
+        gemini_vision_used = False
+        gemini_vision_data = None
+        if len(extracted_text.strip().split()) < 3 or len(extracted_text.strip()) < 15:
+            try:
+                import asyncio
+                import concurrent.futures
+                from backend.app.services.gemini_vision import extract_agrochemical_label_vision
+
+                def _run_vision_sync():
+                    return asyncio.run(extract_agrochemical_label_vision(image_path))
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    gemini_vision_data = pool.submit(_run_vision_sync).result(timeout=6.5)
+
+                if gemini_vision_data and isinstance(gemini_vision_data, dict) and gemini_vision_data.get("brand_name"):
+                    gemini_vision_used = True
+                    b_name = gemini_vision_data.get("brand_name", "")
+                    m_name = gemini_vision_data.get("manufacturer", "")
+                    a_name = gemini_vision_data.get("active_ingredients", "")
+                    s_name = gemini_vision_data.get("extracted_text_summary", "")
+                    combined_vision = f"{b_name} {m_name} {a_name} {s_name}".strip().lower()
+                    extracted_text = f"{extracted_text} {combined_vision}".strip()
+                    logger.info(f"[AGROCHEMICAL GEMINI VISION OCR]: {combined_vision}")
+            except Exception as vis_ex:
+                logger.warning(f"Gemini Vision agrochemical OCR fallback bypassed: {vis_ex}")
+
         # Parse structured regex fields from label
         parsed_fields = extract_structured_ocr_fields(extracted_text)
+        if gemini_vision_data:
+            if gemini_vision_data.get("brand_name") and parsed_fields.get("brand_name") in [None, "", "Commercial Agrochemical"]:
+                parsed_fields["brand_name"] = gemini_vision_data.get("brand_name")
+            if gemini_vision_data.get("manufacturer") and parsed_fields.get("company") in [None, "", "Certified Agricultural Manufacturer"]:
+                parsed_fields["company"] = gemini_vision_data.get("manufacturer")
+            if gemini_vision_data.get("active_ingredients") and parsed_fields.get("active_ingredient") in [None, "", "Plant Protection Formulation"]:
+                parsed_fields["active_ingredient"] = gemini_vision_data.get("active_ingredients")
 
         # 1. Check against full 36 catalog commercial products
         catalog_products = get_catalog_products()
@@ -731,6 +765,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "storage_instructions": "Store sealed below 25°C in a dry, ventilated shed.",
             "disposal_instructions": "Puncture empty container and dispose per local agricultural waste rules.",
             "verification_source": source_type,
+            "gemini_vision_used": gemini_vision_used,
             # 3 Structured Blocks
             "product_details": product_details,
             "user_instructions": user_instructions,
@@ -743,6 +778,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "confidence": round(matched_confidence, 1),
             "matched_key": brand_name.lower().replace(" ", "_"),
             "source": source_type,
+            "gemini_vision_used": gemini_vision_used,
             "info": info,
             "product_details": product_details,
             "user_instructions": user_instructions,

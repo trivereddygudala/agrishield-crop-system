@@ -478,6 +478,7 @@ async def agrochemical_scan_endpoint(
             "compatibleProducts": info.get("compatible_products", []),
             "incompatibleProducts": info.get("incompatible_products", []),
             "extracted_text": extracted_text,
+            "gemini_vision_used": agro_res.get("gemini_vision_used", False),
             # 3 Structured Agrochemical Intelligence Sections
             "product_details": agro_res.get("product_details", info.get("product_details", {})),
             "user_instructions": agro_res.get("user_instructions", info.get("user_instructions", {})),
@@ -580,7 +581,8 @@ async def identify_plant_endpoint(
             image_path=full_image_path,
             plant_type=req.plant_type or "crop",
             tree_filter=req.tree_filter,
-            crop_filter=req.crop_filter
+            crop_filter=req.crop_filter,
+            organ=getattr(req, "organ", "leaf") or "leaf"
         )
         if not result.get("success", False):
             raise HTTPException(
@@ -640,6 +642,15 @@ async def predict_pytorch_endpoint(
     # completely bypassing the 18-second external cloud vision upload delay.
     detected_vision_crop = user_crop_filter or None
 
+    # OpenCV Preprocessing: Glare/Shadow Neutralization + Leaf Contour Auto-Crop
+    effective_image_path = full_image_path
+    try:
+        from backend.app.services.image_preprocessor import preprocess_leaf_image
+        effective_image_path = await asyncio.to_thread(preprocess_leaf_image, full_image_path)
+    except Exception as prep_ex:
+        logger.warning(f"Leaf image preprocessing fallback: {prep_ex}")
+        effective_image_path = full_image_path
+
     # Perform prediction using the real PyTorch/ONNX pipeline inside a separate worker thread
     try:
         import asyncio
@@ -657,11 +668,11 @@ async def predict_pytorch_endpoint(
         prediction_result = None
         try:
             from backend.app.services.ai_cluster import ai_cluster
-            with open(full_image_path, "rb") as img_f:
+            with open(effective_image_path, "rb") as img_f:
                 img_bytes = img_f.read()
             prediction_result = await ai_cluster.offload_prediction(
                 image_bytes=img_bytes,
-                filename=os.path.basename(full_image_path),
+                filename=os.path.basename(effective_image_path),
                 explainer_type=req.explainer_type or "gradcam++",
                 crop_filter=active_crop_filter
             )
@@ -672,7 +683,7 @@ async def predict_pytorch_endpoint(
         if not prediction_result:
             prediction_result = await asyncio.to_thread(
                 predict_crop_disease,
-                full_image_path, 
+                effective_image_path, 
                 req.explainer_type or "gradcam++",
                 **kwargs
             )
@@ -723,6 +734,40 @@ async def predict_pytorch_endpoint(
     # Evaluate Ambiguity & Build Top-2 Differential Candidates
     is_ambiguous = (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
     prediction_result["is_ambiguous"] = is_ambiguous
+
+    # Dual AI Ensemble: If confidence is below 75% or ambiguous, cross-verify with Google Gemini Flash Vision
+    ensemble_used = False
+    ensemble_provider = None
+    ensemble_notes = None
+
+    if is_ambiguous or confidence < 0.75:
+        try:
+            from backend.app.services.gemini_vision import cross_verify_disease_with_vision
+            vision_opinion = await cross_verify_disease_with_vision(
+                image_path=effective_image_path,
+                crop_hint=active_crop_filter or prediction_result.get("crop_name")
+            )
+            if vision_opinion and isinstance(vision_opinion, dict):
+                ensemble_used = True
+                ensemble_provider = "Google Gemini Flash Vision"
+                v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
+                ensemble_notes = f"Dual AI Consensus: {v_reasoning}"
+                v_conf = float(vision_opinion.get("confidence", 0.0))
+                if v_conf > confidence:
+                    prediction_result["confidence"] = min(max(v_conf, confidence), 0.96)
+                
+                v_dis = vision_opinion.get("disease_name")
+                if v_dis and v_dis.lower() not in ["unknown", "n/a", "none"]:
+                    prediction_result["disease_explanation"] = (
+                        (prediction_result.get("disease_explanation") or "") +
+                        f"\n\n[Dual AI Consensus]: Gemini Flash Vision confirmed {v_dis} with {v_conf*100:.0f}% confidence. {v_reasoning}"
+                    ).strip()
+        except Exception as ens_ex:
+            logger.warning(f"Dual AI ensemble cross-verification bypassed: {ens_ex}")
+
+    prediction_result["ensemble_used"] = ensemble_used
+    prediction_result["ensemble_provider"] = ensemble_provider
+    prediction_result["ensemble_notes"] = ensemble_notes
 
     differential_candidates = []
     if len(top_preds) >= 2:
@@ -1259,7 +1304,10 @@ async def predict_pytorch_endpoint(
         "dual_model_consensus": prediction_result.get("dual_model_consensus", False),
         "consensus_details": prediction_result.get("consensus_details", ""),
         "is_ambiguous": prediction_result.get("is_ambiguous", False),
-        "differential_candidates": prediction_result.get("differential_candidates", [])
+        "differential_candidates": prediction_result.get("differential_candidates", []),
+        "ensemble_used": prediction_result.get("ensemble_used", False),
+        "ensemble_provider": prediction_result.get("ensemble_provider"),
+        "ensemble_notes": prediction_result.get("ensemble_notes")
     }
 
     result = await db.predictions.insert_one(prediction_record)

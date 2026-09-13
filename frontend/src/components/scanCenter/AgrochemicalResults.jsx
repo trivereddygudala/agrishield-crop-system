@@ -60,6 +60,7 @@ const AgrochemicalResults = ({ data = {} }) => {
   // Determine detection source
   const isWebSearch = data?.source === 'live_web_search' || productDetails?.verification_source === 'live_web_search';
   const isCatalog = data?.source === 'catalog' || productDetails?.verification_source === 'catalog';
+  const isGeminiVision = data?.gemini_vision_used || productDetails?.gemini_vision_used || data?.source === 'gemini_vision_ocr';
 
   // Build high-clarity speech summary
   const agroSpeech = currentLang === 'te'
@@ -89,6 +90,11 @@ const AgrochemicalResults = ({ data = {} }) => {
               ) : (
                 <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-indigo-300 border-indigo-400/40 bg-indigo-950/70 flex items-center gap-1">
                   ✓ OCR Packaging Analysis
+                </Badge>
+              )}
+              {isGeminiVision && (
+                <Badge variant="glass" className="px-3 py-0.5 text-xs font-black text-cyan-200 border-cyan-400/50 bg-cyan-950/80 flex items-center gap-1 shadow-sm">
+                  👁️ Gemini Vision OCR Assist
                 </Badge>
               )}
               {productDetails.company && (

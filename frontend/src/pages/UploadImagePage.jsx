@@ -82,6 +82,7 @@ const scanStore = {
     selectedCropFilter: '',
     plantType: 'crop', // 'crop' | 'tree' (for Plant ID tab)
     selectedTreeFilter: '',
+    selectedOrgan: 'leaf', // 'leaf' | 'flower' | 'fruit' | 'bark' (Pl@ntNet organ focus)
     tabs: {
       'disease-diag': defaultTabState(),
       'plant-id': defaultTabState(),
@@ -450,6 +451,7 @@ const UploadImagePage = () => {
 
       if (activeTab === 'plant-id') {
         payload.plant_type = plantType || 'crop';
+        payload.organ = state.selectedOrgan || 'leaf';
         if (plantType === 'tree') {
           payload.tree_filter = selectedTreeFilter || undefined;
         }
@@ -845,6 +847,8 @@ const UploadImagePage = () => {
                   onPlantTypeChange={handlePlantTypeChange}
                   selectedTreeFilter={selectedTreeFilter}
                   onTreeFilterChange={handleTreeFilterChange}
+                  selectedOrgan={state.selectedOrgan || 'leaf'}
+                  onOrganChange={(organ) => scanStore.setState({ selectedOrgan: organ })}
                 />
               )}
             </>

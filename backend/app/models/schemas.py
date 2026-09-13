@@ -118,6 +118,9 @@ class PredictionResponse(PredictionBase):
     farmer_friendly_advice: Optional[str] = None
     prescription_calendar: Optional[List[Dict[str, Any]]] = None
     financial_metrics: Optional[Dict[str, Any]] = None
+    ensemble_used: Optional[bool] = False
+    ensemble_provider: Optional[str] = None
+    ensemble_notes: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow", arbitrary_types_allowed=True)
 
@@ -136,6 +139,7 @@ class PredictRequest(BaseModel):
     crop_filter: Optional[str] = Field(default=None, description="Optional crop category to filter prediction search space")
     plant_type: Optional[str] = Field(default="crop", description="Plant identification domain: 'crop' or 'tree'")
     tree_filter: Optional[str] = Field(default=None, description="Optional tree species category to filter identification search space")
+    organ: Optional[str] = Field(default="leaf", description="Plant organ for identification: 'leaf', 'flower', 'fruit', or 'bark'")
 
 class PredictBatchRequest(BaseModel):
     image_paths: List[str] = Field(..., min_length=1, max_length=10, description="List of image paths for multi-leaf field plot scan")

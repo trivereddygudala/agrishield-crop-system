@@ -193,6 +193,12 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   <span>{currentLang === 'te' ? 'Dual-AI ధృవీకరించబడింది' : 'Dual-AI Verified'}</span>
                 </Badge>
               )}
+              {liveResult?.ensemble_used && (
+                <Badge variant="glow-cyan" className="px-3 py-0.5 text-xs font-black text-cyan-200 border-cyan-400/60 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>{currentLang === 'te' ? 'ద్వంద్వ AI ధృవీకరణ (Gemini Vision)' : 'Dual AI Consensus: PyTorch + Gemini Vision'}</span>
+                </Badge>
+              )}
             </div>
 
             {liveResult?.is_offline && (
@@ -201,6 +207,13 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                 <span>
                   {liveResult.triage_disclaimer || "📡 On-Device Field Triage: Saved to offline queue for cloud sync."}
                 </span>
+              </div>
+            )}
+
+            {liveResult?.ensemble_notes && (
+              <div className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-200 text-xs font-medium flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+                <span>{liveResult.ensemble_notes}</span>
               </div>
             )}
 

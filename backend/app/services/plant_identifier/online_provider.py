@@ -14,7 +14,7 @@ class BaseOnlinePlantProvider(ABC):
     """
 
     @abstractmethod
-    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None, organ: str = "leaf") -> dict:
         """
         Identifies plant from image path.
         Must return structured plant dict or raise Exception.
@@ -31,7 +31,7 @@ class NVIDIAOnlinePlantProvider(BaseOnlinePlantProvider):
         from backend.app.services.nvidia_service import nvidia_service
         self.nvidia_service = nvidia_service
 
-    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None, organ: str = "leaf") -> dict:
         """
         Calls NVIDIA LLM to perform botanical classification and extract metadata.
         """
@@ -124,7 +124,7 @@ class MockOnlinePlantProvider(BaseOnlinePlantProvider):
     Fallback Online Provider for offline / testing environments.
     """
 
-    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None, organ: str = "leaf") -> dict:
         filename = os.path.basename(image_path).lower()
         if plant_type == "tree":
             if tree_filter and tree_filter.lower() in ["neem", "mango", "guava", "tamarind", "coconut", "teak", "banyan", "peepal", "jamun", "sapota", "drumstick"]:
@@ -190,16 +190,20 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
         self.api_key = api_key
         self.base_url = "https://my-api.plantnet.org/v2/identify/all"
 
-    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None) -> dict:
+    async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None, organ: str = "leaf") -> dict:
         import asyncio
         import requests
         from backend.app.services.plant_identifier.plant_information import get_plant_info
+
+        valid_organ = (organ or "leaf").lower().strip()
+        if valid_organ not in ["leaf", "flower", "fruit", "bark"]:
+            valid_organ = "leaf"
 
         def _sync_plantnet_call():
             try:
                 with open(image_path, "rb") as f:
                     files = [("images", (os.path.basename(image_path), f, "image/jpeg"))]
-                    data = {"organs": ["leaf"]}
+                    data = {"organs": [valid_organ]}
                     url = f"{self.base_url}?api-key={self.api_key}&lang=en"
                     resp = requests.post(url, files=files, data=data, timeout=12.0)
                     if resp.status_code == 200:
