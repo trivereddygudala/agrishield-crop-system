@@ -90,5 +90,7 @@ backend/logs/*
 scratch/
 *.timestamp*
 TODAY_CHAT_HISTORY*.md
+chat by user.md
+chats_by_user.md
 check_steps.py
 
