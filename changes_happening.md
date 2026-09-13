@@ -2,6 +2,13 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-17 (v167) - Agent Protocol: Enforced Two-Way Chat History & Changelog Persistence in `.agents/AGENTS.md`
+- **Summary:** Formalized the permanent workspace rule in `.agents/AGENTS.md` to ensure zero loss of dialogues and actions across any conversation:
+  1. 📝 **Before Entering Process:** Immediately log user input with timestamps into local `chats_by_user.md` and `chat by user.md`.
+  2. ⚡ **After Execution:** Immediately append the full system answer, machine solution, files modified, and test verification results.
+  3. 🛡️ **Local Privacy Safeguard:** Both `chat by user.md` and `chats_by_user.md` remain strictly in `.gitignore` to prevent secret leaks and keep private chats local.
+- **Files modified**: `.agents/AGENTS.md`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-17 (v166) - Core Accuracy Upgrades: Dual AI Ensemble, OpenCV Leaf Preprocessing, Multi-Organ Selection & Gemini Vision OCR Fallback
 - **Summary:** Implemented the 4 major accuracy upgrades across disease diagnosis, botanical identification, and agrochemical scanning with zero additional free-tier cost:
   1. ⚡ **Dual AI Ensemble for Disease Diagnosis (`gemini_vision.py`, `predict.py`, `schemas.py`, `DiseaseDiagnosisResults.jsx`):**
