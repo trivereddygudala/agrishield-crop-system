@@ -1214,10 +1214,22 @@ def get_plant_info(plant_key: str) -> dict:
     """
     normalized_key = plant_key.lower().strip()
     
-    # Direct match check
+    # 1. Exact key match priority (prevents 'apple' matching 'custard_apple' or 'rose' matching 'rosewood')
+    if normalized_key in PLANT_DATABASE:
+        return PLANT_DATABASE[normalized_key].copy()
+    
+    # 2. Case-insensitive / whitespace-normalized exact check
     for key, data in PLANT_DATABASE.items():
-        if key in normalized_key or normalized_key in key:
+        if key == normalized_key:
             return data.copy()
+
+    # 3. Substring match: key in normalized_key (e.g. 'tomato_leaf.jpg' contains 'tomato')
+    # Sort keys by length descending so longer/more specific keys match first!
+    import re
+    for key in sorted(PLANT_DATABASE.keys(), key=lambda k: len(k), reverse=True):
+        pattern = rf"\b{re.escape(key)}\b"
+        if re.search(pattern, normalized_key) or key in normalized_key:
+            return PLANT_DATABASE[key].copy()
 
     # Dynamic fallback structured plant profile
     display_title = plant_key.replace('_', ' ').title()
