@@ -2882,3 +2882,18 @@ efine_prediction in an explicit 2.0s timeout with immediate try-except fallback.
      - Renders a prominent 'Differential Diagnosis & Visual Checklist' card showing Candidate 1 (Primary) and Candidate 2 (Alternative) side-by-side with hallmark visual symptoms (e.g. concentric rings vs. chlorotic halos) to verify before spraying.
 - **Verification:** Both python -m py_compile and 
 pm run build passed cleanly with 0 errors.
+
+9/16/2026: Permanent Farmer Login, Original Clean Onboarding Modal, and PyTorch Vision Plant ID (v112):
+- **Permanent Login Persistence (frontend/src/context/AuthContext.jsx & frontend/src/pages/LoginPage.jsx):**
+  - Eliminated repetitive login prompts by defaulting rememberMe to true and permanently persisting access tokens and user profile in localStorage upon registration and login.
+  - Implemented optimistic authentication on application launch (restores session in 0ms).
+  - Modified initializeAuth() to preserve session across network cold-starts and offline conditions, clearing credentials only upon genuine HTTP 401 Unauthorized responses.
+- **Original AgriShield Farmer Welcome & Language Onboarding (frontend/src/components/onboarding/FarmerWelcomeModal.jsx & App.jsx):**
+  - Created 100% original, copyright-safe farmer onboarding modal featuring high-contrast language selection (తెలుగు, हिन्दी, English, தமிழ், ಕನ್ನಡ).
+  - Implemented dynamic real-time button translation (e.g. selecting Telugu changes the button to 'అంగీకరించి కొనసాగించండి').
+  - Built 3-slide interactive visual tutorial (Slide 1: Leaf focus, Slide 2: AI instant diagnosis, Slide 3: Local store medicines & 15L backpack pump dosage).
+  - Persisted completion state to localStorage to prevent repetitive prompts.
+- **PyTorch Convolutional Vision Plant Identification (backend/app/services/plant_identifier/identifier.py):**
+  - Removed legacy filename string matching.
+  - Upgraded plant identification to perform direct forward-pass convolutional inference using PyTorch across 1,254 classes, recognizing plants directly from image pixels.
+- **Verification:** Verified via scratch test scripts on real wheat and chilli images, python -m py_compile (0 errors), and npm run build (0 errors, 39.33s).

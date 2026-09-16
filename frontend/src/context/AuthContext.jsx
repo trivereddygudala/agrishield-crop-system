@@ -9,48 +9,62 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize authentication state on load
+  // Initialize authentication state on load with permanent persistence
   useEffect(() => {
     const initializeAuth = async () => {
-      const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
-      const savedToken = storage.getItem('token');
-      const savedUser = storage.getItem('user');
+      // Check localStorage first, fallback to sessionStorage
+      const savedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
 
       if (savedToken && savedUser) {
         try {
+          const parsedUser = JSON.parse(savedUser);
+          // 1. Optimistic Auth: set state immediately so the user never sees login screen
           setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          setUser(parsedUser);
           
-          // Verify token validity with backend
-          const res = await API.get('/api/auth/profile');
-          setUser(res.data);
-          
-          if (res.data.preferred_language) {
-            i18n.changeLanguage(res.data.preferred_language);
+          if (parsedUser.preferred_language) {
+            i18n.changeLanguage(parsedUser.preferred_language);
           }
-          
-          if (res.data.farmer_mode) {
+          if (parsedUser.farmer_mode) {
             document.body.classList.add('farmer-mode');
           } else {
             document.body.classList.remove('farmer-mode');
           }
-          
-          // Save updated profile to active storage
-          if (sessionStorage.getItem('token')) {
-            sessionStorage.setItem('user', JSON.stringify(res.data));
-          } else {
-            localStorage.setItem('user', JSON.stringify(res.data));
+
+          // Always ensure persisted in localStorage so closing the browser never logs the user out
+          localStorage.setItem('token', savedToken);
+          localStorage.setItem('user', JSON.stringify(parsedUser));
+
+          // 2. Validate in background with backend
+          try {
+            const res = await API.get('/api/auth/profile');
+            if (res.data) {
+              setUser(res.data);
+              localStorage.setItem('user', JSON.stringify(res.data));
+              if (res.data.preferred_language) {
+                i18n.changeLanguage(res.data.preferred_language);
+              }
+            }
+          } catch (profileErr) {
+            // ONLY log out if the backend explicitly rejected the token as 401 Unauthorized
+            if (profileErr.response && profileErr.response.status === 401) {
+              console.warn("Token expired or revoked by server. Clearing session.");
+              localStorage.removeItem('token');
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('user');
+              sessionStorage.removeItem('token');
+              sessionStorage.removeItem('refresh_token');
+              sessionStorage.removeItem('user');
+              setToken(null);
+              setUser(null);
+            } else {
+              // Network error, backend cold-start, or offline: KEEP USER LOGGED IN!
+              console.info("Offline / server spin-up: retaining authenticated farmer session.");
+            }
           }
-        } catch (error) {
-          console.error("Token verification failed:", error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
-          sessionStorage.removeItem('token');
-          sessionStorage.removeItem('refresh_token');
-          sessionStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
+        } catch (parseErr) {
+          console.error("Failed to parse saved user credentials:", parseErr);
         }
       }
       setLoading(false);
@@ -59,10 +73,10 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const login = async (email, password, rememberMe = false, botTrap = '') => {
+  const login = async (email, password, rememberMe = true, botTrap = '') => {
     setLoading(true);
     try {
-      const payload = { email: email.trim(), password, remember_me: rememberMe };
+      const payload = { email: email.trim(), password, remember_me: true };
       if (botTrap) payload.bot_trap = botTrap;
       const res = await API.post('/api/auth/login', payload);
       const { access_token, refresh_token, user: userData } = res.data;
@@ -88,10 +102,10 @@ export const AuthProvider = ({ children }) => {
         document.body.classList.remove('farmer-mode');
       }
 
-      const storage = rememberMe ? localStorage : sessionStorage;
-      storage.setItem('token', access_token);
-      if (refresh_token) storage.setItem('refresh_token', refresh_token);
-      storage.setItem('user', JSON.stringify(userData));
+      // Permanent persistent storage in localStorage by default
+      localStorage.setItem('token', access_token);
+      if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('user', JSON.stringify(userData));
       
       return userData;
     } catch (error) {
@@ -146,7 +160,8 @@ export const AuthProvider = ({ children }) => {
       const payload = { name, email, password, role: 'farmer', preferred_language };
       if (botTrap) payload.bot_trap = botTrap;
       const res = await API.post('/api/auth/register', payload);
-      return await login(email, password, false, botTrap);
+      // Auto-login with permanent persistence (rememberMe = true)
+      return await login(email, password, true, botTrap);
     } catch (error) {
       throw error;
     } finally {

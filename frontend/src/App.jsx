@@ -18,6 +18,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ServerErrorPage from './pages/ServerErrorPage';
+import FarmerWelcomeModal from './components/onboarding/FarmerWelcomeModal';
 
 // Lazily loaded pages (with auto-recovery on new deployment chunk hash mismatch)
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
@@ -138,7 +139,8 @@ function App() {
           <WebSocketProvider>
             <ToastProvider>
               <BrowserRouter>
-              <ErrorBoundary>
+                <FarmerWelcomeModal />
+                <ErrorBoundary>
                 <Routes>
                   {/* Public Views */}
                   <Route path="/" element={<LandingPage />} />
