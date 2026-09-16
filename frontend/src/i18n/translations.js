@@ -53,8 +53,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -132,7 +132,7 @@ export const resources = {
           "optimal": "Optimal",
           "adequate": "Adequate",
           "needs_water": "Needs Water",
-          "mandi_rate_label": "Mandi Rate:",
+          "mandi_rate_label": "Market Rate:",
           "today": "today"
         },
         "quick_tools": {
@@ -142,12 +142,12 @@ export const resources = {
           "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
           "agronomist": "AI Agronomist",
           "agronomist_desc": "Ask farming advice in your voice or language.",
-          "mandi_prices": "Mandi Prices",
+          "mandi_prices": "Market",
           "mandi_prices_desc": "Track daily live agricultural mandi rates.",
           "my_farm": "My Farm",
           "my_farm_desc": "View field GPS boundaries & crop setup.",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "more": "More Hub",
@@ -274,7 +274,7 @@ export const resources = {
         }
       },
       "market_page": {
-        "title": "Mandi & Crop Market Price Intelligence",
+        "title": "Market Price Intelligence",
         "badge": "Official Agmarknet Live Grid",
         "subtitle": "Real daily APMC wholesale auction rates, crop variety premiums, Govt MSP comparisons & trade advisories for",
         "msp_table_btn": "Govt MSP Table",
@@ -298,7 +298,7 @@ export const resources = {
         },
         "table": {
           "commodity": "Crop / Commodity",
-          "market": "Market / Mandi",
+          "market": "Market",
           "state": "State & District",
           "modal_price": "Modal Price",
           "min_max": "Min - Max",
@@ -777,7 +777,7 @@ export const resources = {
         "devices": "Sensors / Devices",
         "scan_crop": "AI Crop Doctor",
         "farm": "My Farm",
-        "market": "Mandi & Crop Prices",
+        "market": "Market",
         "crop_advisory": "Crop Advisory",
         "farm_analytics": "Farm Analytics",
         "notifications": "Notifications",
@@ -905,7 +905,7 @@ export const resources = {
             "desc": "Farm sectors, soil types, and field boundaries"
           },
           "mandi": {
-            "label": "Live Mandi Prices",
+            "label": "Market",
             "desc": "Today’s APMC rates, commodity arrivals & trends"
           },
           "advisory": {
@@ -1041,7 +1041,7 @@ export const resources = {
             "active_crop_label": "Active Crop:",
             "leaf_scans_label": "Leaf Scans:",
             "soil_water_label": "Soil Water:",
-            "mandi_rate_label": "Mandi Rate:",
+            "mandi_rate_label": "Market Rate:",
             "stage": "Stage",
             "healthy": "Healthy",
             "treated": "Treated",
@@ -1057,7 +1057,7 @@ export const resources = {
             "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
             "agronomist": "AI Agronomist",
             "agronomist_desc": "Ask farming advice in your voice or language.",
-            "mandi_prices": "Mandi Prices",
+            "mandi_prices": "Market",
             "mandi_prices_desc": "Track daily live agricultural mandi rates.",
             "my_farm": "My Farm",
             "my_farm_desc": "View field GPS boundaries & crop setup."
@@ -2155,7 +2155,7 @@ export const resources = {
           "optimal": "అనుకూలం",
           "adequate": "సరిపడా",
           "needs_water": "నీరు అవసరం",
-          "mandi_rate_label": "మండీ ధర:",
+          "mandi_rate_label": "మార్కెట్ ధర:",
           "today": "నేడు",
           "stage": "దశ"
         },
@@ -2166,7 +2166,7 @@ export const resources = {
           "leaf_doctor_desc": "తక్షణ వ్యాధి గుర్తింపు కోసం ఆకును స్కాన్ చేయండి.",
           "agronomist": "AI వ్యవసాయ నిపుణుడు",
           "agronomist_desc": "తెలుగులో వాయిస్ లేదా టెక్స్ట్‌లో సలహా పొందండి.",
-          "mandi_prices": "మండీ ధరలు",
+          "mandi_prices": "మార్కెట్",
           "mandi_prices_desc": "రోజువారీ ప్రత్యక్ష వ్యవసాయ మండి ధరలు అనుసరించండి.",
           "my_farm": "నా పొలం",
           "my_farm_desc": "పొలం GPS సరిహద్దులు & పంట సెటప్ చూడండి.",
@@ -2324,7 +2324,7 @@ export const resources = {
         },
         "table": {
           "commodity": "పంట / వస్తువు",
-          "market": "మార్కెట్ / మండి",
+          "market": "మార్కెట్",
           "state": "రాష్ట్రం & జిల్లా",
           "modal_price": "మోడల్ ధర",
           "min_max": "కనిష్ట - గరిష్ట",
@@ -2810,7 +2810,7 @@ export const resources = {
         "devices": "సెన్సార్లు / పరికరాలు",
         "scan_crop": "AI పంట డాక్టర్",
         "farm": "నా పొలం",
-        "market": "మండీ ధరలు",
+        "market": "మార్కెట్",
         "crop_advisory": "పంట సలహాలు",
         "farm_analytics": "వ్యవసాయ విశ్లేషణ",
         "notifications": "నోటిఫికేషన్‌లు",
@@ -3080,7 +3080,7 @@ export const resources = {
             "active_crop_label": "ప్రస్తుత పంట:",
             "leaf_scans_label": "ఆకు స్కాన్‌లు:",
             "soil_water_label": "నేల తేమ:",
-            "mandi_rate_label": "మండీ ధర:",
+            "mandi_rate_label": "మార్కెట్ ధర:",
             "stage": "దశ",
             "healthy": "ఆరోగ్యకరమైనవి",
             "treated": "చికిత్స చేయబడినవి",
@@ -3096,7 +3096,7 @@ export const resources = {
             "leaf_doctor_desc": "తక్షణ వ్యాధి గుర్తింపు కోసం ఆకును స్కాన్ చేయండి.",
             "agronomist": "AI వ్యవసాయ నిపుణుడు",
             "agronomist_desc": "తెలుగులో వాయిస్ లేదా టెక్స్ట్‌లో సలహా పొందండి.",
-            "mandi_prices": "మండీ ధరలు",
+            "mandi_prices": "మార్కెట్",
             "mandi_prices_desc": "రోజువారీ ప్రత్యక్ష వ్యవసాయ మండి ధరలు అనుసరించండి.",
             "my_farm": "నా పొలం",
             "my_farm_desc": "పొలం GPS సరిహద్దులు & పంట సెటప్ చూడండి."
@@ -3920,8 +3920,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -4558,8 +4558,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -4921,7 +4921,7 @@ export const resources = {
             "desc": "Farm sectors, soil types, and field boundaries"
           },
           "mandi": {
-            "label": "Live Mandi Prices",
+            "label": "Market",
             "desc": "Today’s APMC rates, commodity arrivals & trends"
           },
           "advisory": {
@@ -5178,8 +5178,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -5963,8 +5963,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -6326,7 +6326,7 @@ export const resources = {
             "desc": "Farm sectors, soil types, and field boundaries"
           },
           "mandi": {
-            "label": "Live Mandi Prices",
+            "label": "Market",
             "desc": "Today’s APMC rates, commodity arrivals & trends"
           },
           "advisory": {
@@ -6583,8 +6583,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -6946,7 +6946,7 @@ export const resources = {
             "desc": "Farm sectors, soil types, and field boundaries"
           },
           "mandi": {
-            "label": "Live Mandi Prices",
+            "label": "Market",
             "desc": "Today’s APMC rates, commodity arrivals & trends"
           },
           "advisory": {
@@ -7203,8 +7203,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -7566,7 +7566,7 @@ export const resources = {
             "desc": "Farm sectors, soil types, and field boundaries"
           },
           "mandi": {
-            "label": "Live Mandi Prices",
+            "label": "Market",
             "desc": "Today’s APMC rates, commodity arrivals & trends"
           },
           "advisory": {
@@ -7823,8 +7823,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -8186,7 +8186,7 @@ export const resources = {
             "desc": "Farm sectors, soil types, and field boundaries"
           },
           "mandi": {
-            "label": "Live Mandi Prices",
+            "label": "Market",
             "desc": "Today’s APMC rates, commodity arrivals & trends"
           },
           "advisory": {
@@ -8443,8 +8443,8 @@ export const resources = {
         "quick_tools": {
           "title": "Quick Farming Tools",
           "see_all": "See all tools",
-          "mandi": "Mandi Prices",
-          "mandi_desc": "Live crop rates",
+          "mandi": "Market",
+          "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
           "agronomist": "AI Agronomist",
@@ -8806,7 +8806,7 @@ export const resources = {
             "desc": "Farm sectors, soil types, and field boundaries"
           },
           "mandi": {
-            "label": "Live Mandi Prices",
+            "label": "Market",
             "desc": "Today’s APMC rates, commodity arrivals & trends"
           },
           "advisory": {

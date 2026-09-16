@@ -490,7 +490,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                     if (path === '/upload' || path === '/result') return t('nav.scan_crop', 'AI Crop Doctor');
                     if (path === '/history') return t('nav.scan_history', 'Scan History');
                     if (path === '/analytics') return t('nav.analytics', 'Sensor Analytics');
-                    if (path === '/market') return t('nav.market', 'Mandi Prices');
+                    if (path === '/market') return t('nav.market', 'Market');
                     if (path === '/farm') return t('nav.farm', 'My Farm');
                     if (path === '/notifications') return t('nav.notifications', 'Alerts');
                     if (path === '/settings') return t('nav.settings', 'Settings');
@@ -1046,7 +1046,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         { key: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, label: "Home", color: "text-emerald-500" },
         { key: "nav.scan_crop", path: "/upload", icon: Camera, label: "AI Crop Doctor", color: "text-teal-500" },
         { key: "nav.farm", path: "/farm", icon: Sprout, label: "My Farm", color: "text-emerald-500" },
-        { key: "nav.market", path: "/market", icon: TrendingUp, label: "Mandi Prices", color: "text-amber-500" },
+        { key: "nav.market", path: "/market", icon: TrendingUp, label: "Market", color: "text-amber-500" },
       ]
     },
     ...(hardwareMode ? [{

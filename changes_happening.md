@@ -2911,3 +2911,12 @@ pm run build passed cleanly with 0 errors.
     4. Multilingual Voice Doctor (native Telugu and Hindi audio playback).
   - Embedded the showcase into a responsive two-column layout on both LoginPage.jsx and RegisterPage.jsx.
 - **Verification:** Verified frontend build with npm run build (0 errors, 20.75s).
+
+9/17/2026: Renamed Mandi & Crop Prices to Market (v114):
+- Renamed 'Mandi Prices' and 'Mandi & Crop Prices' across navigation, routes, and translations to 'Market':
+  - frontend/src/components/AppLayout.jsx: Navigation header title and sidebar menu entry updated from 'Mandi Prices' to 'Market'.
+  - frontend/src/pages/MorePage.jsx: Tools hub card label updated from 'Live Mandi Prices' to 'Market'.
+  - frontend/src/pages/DashboardPage.jsx: KPI card label updated to 'Market Rate:' and quick tools card updated to 'Market'.
+  - frontend/src/pages/MarketPricesPage.jsx: Page header updated from 'Mandi & Crop Market Price Intelligence' to 'Market Price Intelligence'.
+  - frontend/src/i18n/translations.js: Updated nav.market, quick_tools.mandi, and regional translations across all languages to cleanly reflect 'Market' / 'మార్కెట్'.
+- Verification: Ran npm run build (0 errors, 34.62s).

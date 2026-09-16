@@ -408,12 +408,12 @@ const DashboardPage = () => {
           </p>
         </Card>
 
-        {/* KPI 4: Mandi Rate */}
+        {/* KPI 4: Market Rate */}
         <Link to="/market" className="block">
           <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between h-full group">
             <div>
               <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-                {t('dashboard.kpi.mandi_rate_label', 'Mandi Rate:')}
+                {t('dashboard.kpi.mandi_rate_label', 'Market Rate:')}
               </span>
               <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                 ₹2,150/Qtl
@@ -481,10 +481,10 @@ const DashboardPage = () => {
                   <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                 </div>
                 <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {t('dashboard.quick_tools.mandi_prices', 'Mandi Prices')}
+                  {t('dashboard.quick_tools.mandi_prices', 'Market')}
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                  {t('dashboard.quick_tools.mandi_prices_desc', 'Track daily live agricultural mandi rates.')}
+                  {t('dashboard.quick_tools.mandi_prices_desc', 'Track daily live agricultural market rates.')}
                 </p>
               </div>
             </Card>

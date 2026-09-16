@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -85,8 +86,8 @@ const MorePage = () => {
     },
     { 
       icon: TrendingUp,
-      label: t('more.tools.mandi.label', 'Live Mandi Prices'),    
-      description: t('more.tools.mandi.desc', 'Today’s APMC rates, commodity arrivals & trends'), 
+      label: t('more.tools.mandi.label', 'Market'),    
+      description: t('more.tools.mandi.desc', 'Today’s market rates, commodity arrivals & trends'), 
       path: '/market',        
       iconColor: 'text-amber-600 dark:text-amber-400',   
       iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',     

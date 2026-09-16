@@ -256,7 +256,7 @@ const MarketPricesPage = () => {
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              {t('market_page.title', 'Mandi & Crop Market Price Intelligence')}
+              {t('market_page.title', 'Market Price Intelligence')}
             </h1>
             <Badge variant="healthy" className="px-3 py-1 text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
