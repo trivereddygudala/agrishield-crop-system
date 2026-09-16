@@ -27,7 +27,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   // Spray Calculator states
   const [fieldArea, setFieldArea] = useState(1.0);
   const [waterPerAcre, setWaterPerAcre] = useState(200);
-  const [tankSize, setTankSize] = useState(15); // 15L or 20L backpack pump
+  const [tankSize, setTankSize] = useState(20); // 20L is the Indian field standard
+  const [isCustomTank, setIsCustomTank] = useState(false);
+  const [customTankInput, setCustomTankInput] = useState('25');
   const [selectedChemicalIdx, setSelectedChemicalIdx] = useState(0);
 
   const rawDiseaseName = liveResult?.disease_name || liveResult?.predicted_class || 'Crop Health Condition';
@@ -670,22 +672,60 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                 </p>
               </div>
 
-              {/* Tank Size Selector (15L / 16L / 20L) */}
-              <div className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/90 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs self-start sm:self-auto">
-                {[15, 16, 20].map((litres) => (
+              {/* Tank Size Selector (10L / 15L / 20L Default / Custom) */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-slate-800/90 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs self-start sm:self-auto">
+                {[10, 15, 20].map((litres) => (
                   <button
                     key={litres}
                     type="button"
-                    onClick={() => setTankSize(litres)}
+                    onClick={() => {
+                      setIsCustomTank(false);
+                      setTankSize(litres);
+                    }}
                     className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      tankSize === litres 
+                      !isCustomTank && tankSize === litres 
                         ? 'bg-teal-600 text-white shadow-xs' 
                         : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    {litres} {TANK_GUIDE_TEXTS.tank_label[currentLang] || 'L Tank'}
+                    {litres} {TANK_GUIDE_TEXTS.tank_label[currentLang] || 'L'} {litres === 20 ? (currentLang === 'te' ? '(ప్రధానం)' : '(Standard)') : ''}
                   </button>
                 ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomTank(true);
+                    const val = parseFloat(customTankInput) || 25;
+                    setTankSize(val);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    isCustomTank 
+                      ? 'bg-teal-600 text-white shadow-xs' 
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {currentLang === 'te' ? 'కస్టమ్ (ఇతర పరిమాణం)' : 'Custom Tank'}
+                </button>
+
+                {isCustomTank && (
+                  <div className="flex items-center gap-1 pl-1">
+                    <input
+                      type="number"
+                      min="5"
+                      max="500"
+                      value={customTankInput}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCustomTankInput(val);
+                        const num = parseFloat(val);
+                        if (!isNaN(num) && num > 0) setTankSize(num);
+                      }}
+                      className="w-14 px-2 py-0.5 text-xs font-black bg-white dark:bg-slate-900 border border-teal-500 rounded text-center text-slate-900 dark:text-white focus:outline-none"
+                    />
+                    <span className="text-[10px] font-bold text-slate-500">L</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -737,6 +777,47 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
                   {TANK_GUIDE_TEXTS.step4.sub[currentLang] || 'Recommended standard'}
                 </span>
+              </div>
+            </div>
+
+            {/* 1-Acre Field Requirement Reference Card */}
+            <div className="p-3.5 rounded-2xl bg-teal-500/10 dark:bg-teal-950/30 border border-teal-500/30 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-teal-900 dark:text-teal-200 flex items-center gap-1.5">
+                  🌾 {currentLang === 'te' ? '1 ఎకరానికి పిచికారీ కొలతలు (Acreage Guide):' : 'Spray Requirements for 1 Acre (Field Standard):'}
+                </span>
+                <Badge variant="success" className="text-[10px] font-bold">
+                  200L / Acre Standard
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-800/70 border border-teal-500/20">
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-bold">
+                    {currentLang === 'te' ? 'ఎకరానికి నీరు' : 'Water for 1 Acre'}
+                  </span>
+                  <span className="font-extrabold text-slate-900 dark:text-white text-sm">
+                    200 {currentLang === 'te' ? 'లీటర్లు' : 'Litres'}
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/80 dark:bg-slate-800/70 border border-teal-500/20">
+                  <span className="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-bold">
+                    {currentLang === 'te' ? 'ఎకరానికి అవసరమయ్యే ట్యాంకులు' : 'Pumps Needed (1 Acre)'}
+                  </span>
+                  <span className="font-extrabold text-teal-700 dark:text-teal-300 text-sm">
+                    {(200 / (tankSize || 20)).toFixed(1)} {currentLang === 'te' ? `ట్యాంకులు (${tankSize}L పంపు)` : `Tanks (${tankSize}L Pump)`}
+                  </span>
+                </div>
+
+                <div className="p-2 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-500/30">
+                  <span className="text-emerald-700 dark:text-emerald-300 block text-[10px] uppercase font-bold">
+                    {currentLang === 'te' ? 'ఎకరానికి మొత్తం మందు' : 'Total Medicine (1 Acre)'}
+                  </span>
+                  <span className="font-extrabold text-emerald-800 dark:text-emerald-200 text-sm">
+                    {(200 * currentDosage.rate).toFixed(0)} {currentDosage.displayUnit}
+                  </span>
+                </div>
               </div>
             </div>
 

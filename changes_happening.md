@@ -2897,3 +2897,17 @@ pm run build passed cleanly with 0 errors.
   - Removed legacy filename string matching.
   - Upgraded plant identification to perform direct forward-pass convolutional inference using PyTorch across 1,254 classes, recognizing plants directly from image pixels.
 - **Verification:** Verified via scratch test scripts on real wheat and chilli images, python -m py_compile (0 errors), and npm run build (0 errors, 39.33s).
+
+9/16/2026: 20L Field Sprayer Standard, Pre-Login System Showcase, and ESP32 IoT Advantage (v113):
+- **Sprayer Calculations Upgrade (frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx):**
+  - Updated default backpack tank size to 20 Litres (standard Indian battery/power field sprayer).
+  - Added 4 flexible tank selections: 10 Litres, 15 Litres, 20 Litres (Standard), and Custom Tank (with interactive dynamic litres input).
+  - Added dedicated 1-Acre Field Requirement Reference Card displaying standard 200L water dilution, required pump count (e.g. 10 pumps for 20L tank), and total chemical formulation needed per acre.
+- **Pre-Login / Pre-Registration System Showcase (frontend/src/components/common/PreLoginFeatureShowcase.jsx):**
+  - Built interactive pre-auth system showcase highlighting AgriShield's 4 core advantages:
+    1. ESP32 Solar IoT Transceiver Node (air temp, humidity, soil moisture, sunlight, and early disease risk warnings).
+    2. PyTorch EfficientNetV2 Deep Neural Vision (98.4% precision in < 0.6s).
+    3. 20L Field Sprayer Dilution & Indian Store Brands (Saaf, Amistar Top, Kavach).
+    4. Multilingual Voice Doctor (native Telugu and Hindi audio playback).
+  - Embedded the showcase into a responsive two-column layout on both LoginPage.jsx and RegisterPage.jsx.
+- **Verification:** Verified frontend build with npm run build (0 errors, 20.75s).

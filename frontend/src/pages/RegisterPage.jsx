@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
 import NatureParticles from '../components/animations/NatureParticles';
+import PreLoginFeatureShowcase from '../components/common/PreLoginFeatureShowcase';
 
 const RegisterPage = () => {
   const { t, i18n } = useTranslation();
@@ -172,12 +173,21 @@ const RegisterPage = () => {
 
       <LanguageSelectModal isOpen={langModalOpen} onClose={() => setLangModalOpen(false)} />
 
-      <motion.div
-        initial={{ opacity: 0, y: 35, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md relative z-10"
-      >
+      {/* ── Responsive Two-Column Layout: System Showcase (Left) + Register Card (Right) ── */}
+      <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 relative z-10 py-6">
+        {/* Left Column: Interactive Pre-Login Interface & IoT Showcase */}
+        <div className="w-full lg:w-7/12">
+          <PreLoginFeatureShowcase />
+        </div>
+
+        {/* Right Column: Main Registration Card */}
+        <div className="w-full lg:w-5/12 max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 35, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full relative"
+          >
         <div className="text-center mb-8 flex flex-col items-center">
           <Link to="/" className="inline-flex items-center gap-3 mb-5 group">
             {/* Scan ring logo */}
@@ -434,6 +444,8 @@ const RegisterPage = () => {
           </p>
         </motion.div>
       </motion.div>
+        </div>
+      </div>
     </div>
   );
 };
