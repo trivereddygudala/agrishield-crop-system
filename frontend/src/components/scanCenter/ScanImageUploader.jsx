@@ -187,8 +187,8 @@ const ScanImageUploader = ({
           };
           setLastCapturedMeta(meta);
 
-          // Auto-select the true detected crop in dropdown
-          if (onCropFilterChange && detected) {
+          // In Disease Diagnosis mode, auto-suggest detected crop if farmer hasn't manually selected one
+          if (tabId === 'disease-diag' && onCropFilterChange && detected && !selectedCropFilter) {
             onCropFilterChange(detected);
           }
         }

@@ -100,6 +100,19 @@ const BASE_CROPS_KNOWLEDGE = {
     fertilizer: "Balanced NPK 10-10-10",
     micronutrients: "Boron & Calcium for fruit firmness"
   },
+  chilli: {
+    commonName: "Chilli Crop",
+    family: "Commercial Spice & Vegetable Crop",
+    nativeRegion: "Americas & Deccan Plateau",
+    growthHabit: "Branching Subshrub / Annual Herb",
+    leafType: "Simple Ovate Dark Green Leaves",
+    sunlight: "Full Sun (6 to 8 hours daily)",
+    soilpH: "6.0 - 7.5 (Well-drained Black Cotton or Red Loamy Soil)",
+    waterNeed: "Moderate (Drip irrigation recommended)",
+    temperature: "20°C - 35°C",
+    fertilizer: "NPK 150:60:60 with split Nitrogen and Neem Cake",
+    micronutrients: "Calcium, Boron & Zinc for flower retention and fruit quality"
+  },
   pepper: {
     commonName: "Bell Pepper Plant",
     family: "Fruiting Vegetable Crop",
