@@ -2,6 +2,12 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-17 (v165) - Documentation: User Chat Archive & Technical Decision Log (`chat by user.md`)
+- **Summary:** Created comprehensive user conversation and technical reference archive `chat by user.md`:
+  1. 📝 **Complete User Interaction Log:** Preserved all dialogues regarding API keys (Pl@ntNet, Gemini Flash, Tavily, AgroMonitoring), quota and token capacity math for 50 users (100–200 scans/day), GitHub Push Protection secret masking resolution, and technical upgrade benefits.
+  2. 🔮 **Accuracy Upgrades Roadmap Deferred:** Documented the 4 planned accuracy enhancements (Dual AI Ensemble, OpenCV Leaf Auto-Crop, Multi-Organ Selection, and Gemini Vision OCR Fallback) along with their free-tier impact analysis, ready for implementation when the user instructs.
+- **Files modified**: `chat by user.md`, `changes_happening.md`.
+
 ## 2026-09-17 (v164) - Integration of 4 Free API Keys: Pl@ntNet, Gemini Flash, Tavily & AgroMonitoring
 - **Summary:** Configured and integrated the 4 user-provided free API keys across botanical vision, AI chat, agrochemical search, and satellite telemetry:
   1. 🌿 **Pl@ntNet Research Botanical Identification Provider (`online_provider.py` & `config.py`):**
