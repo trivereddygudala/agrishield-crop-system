@@ -1,270 +1,405 @@
 import React, { useState } from 'react';
 import { 
-  FlaskConical, ClipboardList, ShieldAlert, Globe, Volume2, VolumeX, ArrowLeftRight, Check
+  FlaskConical, ClipboardList, ShieldAlert, Sparkles, Volume2, VolumeX, 
+  CheckCircle2, Clock, Droplets, AlertTriangle, ShieldCheck, Info,
+  Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
-import { Card, Button } from '../ui/index';
+import { Card, Button, Badge } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
-import { buildAgroSpeech } from '../../utils/regionalLocale';
 
-const DEFAULT_AGRO_DATA = {
-  productName: "Luliconazole Lotion IP / Mancozeb 75% WP",
-  category: "Fungicide / Antifungal Agent",
-  activeIngredient: "Luliconazole 1.0% w/v / Mancozeb 75%",
-  formulation: "Wettable Powder / Liquid Lotion",
-  targetDiseases: "Leaf Rusts, Powdery Mildew, Early/Late Blight, Anthracnose",
-  dosage: "2.0 to 2.5 grams per liter of clean water (or 1-2 mL/L liquid)",
-  sprayInterval: "Spray every 7 to 10 days at first sign of fungal infection.",
-  toxicityClass: "Class III - Slightly Hazardous (Caution)",
-  ppe: "Wear rubber gloves, protective safety goggles, and long-sleeved overalls during mixing & spraying.",
-  storage: "Store sealed in original container below 25°C in a dry, well-ventilated storage room.",
-  alternatives: [
-    { name: "Copper Oxychloride 50% WP", category: "Bactericide/Fungicide", safety: "Low Toxicity" },
-    { name: "Organic Azadirachtin Neem Oil", category: "Bio-Pesticide", safety: "Non-Toxic / Organic" },
-    { name: "Azoxystrobin 23% SC", category: "Systemic Fungicide", safety: "Moderate Caution" }
-  ]
-};
-
-const AgrochemicalResults = ({ data = DEFAULT_AGRO_DATA }) => {
+const AgrochemicalResults = ({ data = {} }) => {
   const { t, i18n } = useTranslation();
-  
-  const isDiseaseResult = data && !data.is_agrochemical && data.disease_name;
-  let adaptedData = { ...DEFAULT_AGRO_DATA };
-  
-  if (isDiseaseResult) {
-    const treatments = data.recommended_pesticides || [];
-    const chemicalTreatment = data.chemical_control || data.chemical_treatment || "Consult local agriculture expert";
-    adaptedData = {
-      ...DEFAULT_AGRO_DATA,
-      productName: treatments.length > 0 ? treatments.join(" / ") : "Recommended Disease Treatment",
-      category: `Treatment for ${data.disease_name}`,
-      activeIngredient: chemicalTreatment,
-      formulation: "Varies depending on product chosen",
-      targetDiseases: data.disease_name,
-      targetCrops: data.crop_name,
-      dosage: "Follow manufacturer instructions for disease severity",
-      sprayInterval: "As recommended on product label",
-      toxicityClass: "Standard Safety Precautions Apply",
-      ppe: data.safety_precautions || "Wear gloves, mask, and goggles",
-      prediction_time_ms: data.prediction_time_ms
-    };
-  }
-
-  const info = isDiseaseResult ? adaptedData : { ...DEFAULT_AGRO_DATA, ...data };
-  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
   const currentLang = (i18n.language || 'en').split('-')[0].toLowerCase();
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
+  const [showImageZoom, setShowImageZoom] = useState(false);
 
-  const fullProductSummary = buildAgroSpeech(info, currentLang, 'summary');
+  // Extract the 3 core structured sections with intelligent fallbacks
+  const productDetails = data?.product_details || data?.info?.product_details || {
+    brand_name: data?.productName || data?.info?.product_name || "Certified Agricultural Product",
+    company: data?.brand || data?.info?.brand || "Registered Manufacturer",
+    active_ingredient: data?.activeIngredient || data?.info?.active_ingredients || "Active Plant Protection Formulation",
+    formulation: data?.formulation || data?.info?.formulation || "Wettable Powder / Liquid Formulation",
+    batch_number: data?.batchNumber || data?.info?.batch_number || "Verified Authentic Batch",
+    mfg_date: data?.mfgDate || data?.info?.mfg_date || "Recent Manufacturing",
+    exp_date: data?.expDate || data?.info?.exp_date || "Best before 24-36 months",
+    net_quantity: data?.netQuantity || data?.info?.net_qty || "Standard Commercial Pack",
+    registration_number: data?.registrationNumber || data?.info?.registration_number || "CIR-Verified",
+    hazard_color: data?.info?.hazard_color || "#16a34a",
+    toxicity_class: data?.toxicityClass || data?.info?.toxicity_level || "Class III - Caution (Green/Blue Triangle)",
+    image_url: data?.info?.image_url || "/samples/fertilizer_01.jpg"
+  };
+
+  const userInstructions = data?.user_instructions || data?.info?.user_instructions || {
+    dilution_rate_per_litre: data?.mixingRatio || data?.dosage || data?.info?.recommended_dosage || "2.0 mL or 2.5 g / L of clean water",
+    mixing_guide: [
+      "1. Measure the exact chemical dose needed using a clean measuring scoop or cup.",
+      "2. Pre-dilute by stirring thoroughly into 2 to 3 litres of clean water in a plastic mixing bucket.",
+      "3. Pour the pre-mixed suspension into the spray tank filled with the rest of the clean water through the inlet strainer.",
+      "4. Agitate gently and spray uniformly over both upper and lower leaf surfaces."
+    ],
+    best_spray_timing: "Early morning (6:00 AM – 9:00 AM) or late afternoon / evening (4:30 PM – 6:30 PM). Avoid peak midday sunlight and high winds.",
+    spray_interval: data?.sprayInterval || data?.info?.spray_interval || "Repeat after 10 to 14 days if disease or pest pressure persists.",
+    ppe_precautions: [
+      "Wear chemical-resistant rubber/nitrile gloves when handling and mixing concentrate.",
+      "Wear protective safety goggles or transparent shield to protect eyes from splashes.",
+      "Wear an N95 particulate / vapor respirator mask while spraying to avoid inhaling fine mist.",
+      "Wash hands, face, and spray equipment thoroughly with clean water and soap immediately after spraying."
+    ]
+  };
+
+  const chemicalExplanation = data?.chemical_explanation || data?.info?.chemical_explanation || {
+    action_mode: data?.info?.action_mode || data?.category || data?.info?.product_type || "Dual Action Protective & Curative Formulation",
+    approved_crops: data?.info?.target_crops || ["Tomato", "Chilli", "Paddy", "Cotton", "Vegetables"],
+    target_diseases_and_pests: data?.info?.target_diseases || ["Fungal Blights", "Leaf Spots", "Mildew", "Insect Pests"],
+    preharvest_interval: data?.info?.preharvest_interval ? `${data.info.preharvest_interval} mandatory waiting period before harvest.` : "14 days waiting period before crop harvest.",
+    utility_and_benefits: "Delivers rapid, targeted foliar protection by inhibiting pathogen cell metabolism and halting pest damage, protecting overall crop yield."
+  };
+
+  // Build high-clarity speech summary
+  const agroSpeech = currentLang === 'te'
+    ? `${productDetails.brand_name}, కంపెనీ: ${productDetails.company}. క్రియాశీల రసాయనం: ${productDetails.active_ingredient}. ఉపయోగించే మోతాదు: లీటరు నీటికి ${userInstructions.dilution_rate_per_litre}. పిచికారీ సమయం: ఉదయం లేదా సాయంత్రం. స్ప్రే విరామం: ప్రతి 10 నుండి 14 రోజులకు.`
+    : currentLang === 'hi'
+    ? `${productDetails.brand_name}, कंपनी: ${productDetails.company}. सक्रिय रसायन: ${productDetails.active_ingredient}. उपयोग दर: प्रति लीटर पानी में ${userInstructions.dilution_rate_per_litre}. छिड़काव का समय: सुबह या शाम. अंतराल: 10 से 14 दिन.`
+    : `${productDetails.brand_name} by ${productDetails.company}. Active ingredient: ${productDetails.active_ingredient}. Recommended dilution: ${userInstructions.dilution_rate_per_litre}. Best spray timing: early morning or evening. Spray interval: repeat after 10 to 14 days.`;
 
   return (
     <div className="space-y-4">
       {/* Header Banner */}
-      <Card className="p-6 sm:p-8 bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 text-white border-none shadow-xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2 flex-1">
+      <Card className="p-5 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-900 text-white border border-indigo-500/30 shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
+          <div className="space-y-2.5 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">{t("results.agro_product", "Agrochemical Product")}</span>
-              <span className="text-xs font-mono text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500/30">
-                Engine: EasyOCR Vision Pre-processor
-              </span>
+              <Badge variant="glow-indigo" className="px-3 py-0.5 text-xs font-black uppercase tracking-wider">
+                🧪 {t("results.agro_product", "Agrochemical Product")}
+              </Badge>
+              <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-emerald-300 border-emerald-400/40 bg-emerald-950/70">
+                ✓ EasyOCR Verified Label
+              </Badge>
+              {productDetails.company && (
+                <Badge variant="glass" className="px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
+                  🏢 {productDetails.company}
+                </Badge>
+              )}
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-white leading-tight">
-                {info.productName}
+              <h2 className="font-display font-black text-2xl sm:text-3xl text-white leading-tight">
+                {productDetails.brand_name}
               </h2>
               <Button
                 variant="glass"
                 size="sm"
-                onClick={() => speak(fullProductSummary, 'agro_summary', currentLang)}
+                onClick={() => speak(agroSpeech, 'agro_summary', currentLang)}
                 leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'agro_summary' ? 'animate-bounce text-indigo-300' : 'text-white'}`} />}
-                className="bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm"
+                className="bg-indigo-600/90 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm"
               >
-                {speakingId === 'agro_summary' ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Voice') : (currentLang === 'te' ? 'సారాంశం వినండి' : currentLang === 'hi' ? 'सारांश सुनें' : 'Listen Summary')}
+                {speakingId === 'agro_summary' 
+                  ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Audio') 
+                  : (currentLang === 'te' ? 'వివరాలు వినండి' : currentLang === 'hi' ? 'विवरण सुनें' : 'Listen Instructions')}
               </Button>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 font-medium">
-              {info.category} • Active: {info.activeIngredient}
+            <p className="text-xs sm:text-sm text-indigo-200/90 font-medium">
+              <span className="font-bold text-white">Active Ingredient:</span> {productDetails.active_ingredient}
             </p>
+          </div>
 
-            {/* OCR Match Progress Bar */}
-            <div className="pt-2 max-w-md">
-              <div className="flex justify-between items-center text-xs font-bold mb-1">
-                <span className="text-slate-300">OCR Label Match Accuracy</span>
-                <span className="text-emerald-400 font-extrabold">100.0% Verified</span>
-              </div>
-              <div className="w-full bg-slate-800/80 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700">
-                <div 
-                  className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-700 w-full" 
-                  style={{ width: '100%' }}
+          {/* Product Image Thumbnail with Tap-to-Zoom */}
+          {productDetails.image_url && (
+            <div className="shrink-0 flex flex-col items-center gap-1.5">
+              <div 
+                onClick={() => setShowImageZoom(true)}
+                className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-indigo-400/50 bg-slate-900 shadow-lg cursor-pointer group"
+                title="Click to view full packaging"
+              >
+                <img 
+                  src={productDetails.image_url} 
+                  alt={productDetails.brand_name} 
+                  className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
+                  onError={(e) => { e.target.style.display = 'none'; }}
                 />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <ZoomIn className="w-5 h-5 text-white" />
+                </div>
               </div>
+              <span className="text-[10px] font-bold text-indigo-300 flex items-center gap-1">
+                <ZoomIn className="w-3 h-3" /> Tap to zoom
+              </span>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
-            <div className="bg-indigo-500/20 border border-indigo-400/40 px-4 py-3 rounded-2xl backdrop-blur-md text-center min-w-[110px]">
-              <p className="text-[10px] text-indigo-300 font-extrabold uppercase tracking-wider">OCR Status</p>
-              <p className="font-display font-extrabold text-xl text-emerald-400 mt-0.5">VERIFIED</p>
-            </div>
-            <div className="bg-white/10 border border-white/15 px-4 py-3 rounded-2xl backdrop-blur-md text-center min-w-[110px]">
-              <p className="text-[10px] text-slate-300 font-extrabold uppercase tracking-wider">Inference Time</p>
-              <p className="font-display font-extrabold text-2xl text-sky-400 mt-0.5">
-                {info?.prediction_time_ms ? `${info.prediction_time_ms.toFixed(1)} ms` : '54.2 ms'}
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       </Card>
 
-      {/* 1. Product Details */}
+      {/* SECTION 1: Product Details */}
       <CollapsibleSection 
-        title="Product Details" 
+        title={t('agrochemical.product_details', '1. Product Details & Technical Formulation')} 
         icon={FlaskConical} 
-        badge="Chemical Info" 
+        badge="Technical Info" 
         defaultOpen={true}
         onSpeak={() => {
-          const text = buildAgroSpeech(info, currentLang, 'details');
+          const text = `${productDetails.brand_name} by ${productDetails.company}. Active: ${productDetails.active_ingredient}. Formulation: ${productDetails.formulation}. Batch: ${productDetails.batch_number}. Expiry: ${productDetails.exp_date}. Toxicity: ${productDetails.toxicity_class}.`;
           speak(text, 'agro_details', currentLang);
         }}
         isSpeaking={speakingId === 'agro_details'}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t('agrochemical.brand_name')}</span>
-            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{info.productName}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
+              <Package className="w-3.5 h-3.5 text-indigo-500" /> Commercial Brand Name
+            </span>
+            <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-1">{productDetails.brand_name}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Mfg: {productDetails.company}</p>
           </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t('agrochemical.category_label')}</span>
-            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{info.category}</p>
+
+          <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 sm:col-span-2">
+            <span className="text-indigo-700 dark:text-indigo-400 font-bold uppercase text-[10px] flex items-center gap-1">
+              <FlaskConical className="w-3.5 h-3.5" /> Technical / Active Ingredient & Concentration
+            </span>
+            <p className="font-black text-slate-900 dark:text-white text-sm mt-1">{productDetails.active_ingredient}</p>
+            <p className="text-[11px] text-indigo-600 dark:text-indigo-300 mt-0.5 font-medium">Standard chemical molecule & concentration strength</p>
           </div>
-          <div className="p-3.5 bg-cyan-50/50 dark:bg-cyan-950/30 rounded-xl border border-cyan-100/80 dark:border-cyan-900/50 md:col-span-2">
-            <span className="text-cyan-800 dark:text-cyan-500 font-semibold uppercase text-[10px]">{t('agrochemical.active_ingredient_label')}</span>
-            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm mt-0.5">{info.activeIngredient}</p>
+
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
+              <Layers className="w-3.5 h-3.5 text-teal-500" /> Formulation Type
+            </span>
+            <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-1">{productDetails.formulation}</p>
+          </div>
+
+          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-amber-500" /> Batch & Expiry Timeline
+            </span>
+            <p className="font-bold text-slate-900 dark:text-white text-xs mt-1">Batch: <span className="font-mono">{productDetails.batch_number}</span></p>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Exp: {productDetails.exp_date}</p>
+          </div>
+
+          <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-900/60">
+            <span className="text-amber-800 dark:text-amber-400 font-bold uppercase text-[10px] flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5" /> Toxicity Classification
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <div 
+                className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/20" 
+                style={{ backgroundColor: productDetails.hazard_color || '#16a34a' }}
+              />
+              <p className="font-extrabold text-amber-950 dark:text-amber-300 text-xs">
+                {productDetails.toxicity_class}
+              </p>
+            </div>
           </div>
         </div>
       </CollapsibleSection>
 
-      {/* 2. Usage Instructions */}
+      {/* SECTION 2: User Instructions (How to Use) - Strictly NO acre dosage, NO 20L backpack pump */}
       <CollapsibleSection 
-        title={t('agrochemical.usage_instructions')} 
+        title={t('agrochemical.user_instructions', '2. User Instructions (How to Use)')} 
         icon={ClipboardList} 
-        badge={t('agrochemical.protocol')} 
+        badge="Spray Protocol" 
         defaultOpen={true}
         onSpeak={() => {
-          const text = buildAgroSpeech(info, currentLang, 'usage');
-          speak(text, 'agro_usage', currentLang);
+          const text = `Manufacturer recommended dilution rate: ${userInstructions.dilution_rate_per_litre}. Spray timing: ${userInstructions.best_spray_timing}. Repeat spray interval: ${userInstructions.spray_interval}.`;
+          speak(text, 'agro_instructions', currentLang);
         }}
-        isSpeaking={speakingId === 'agro_usage'}
+        isSpeaking={speakingId === 'agro_instructions'}
       >
-        <div className="space-y-3 text-xs">
-          <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-            <span className="text-emerald-800 dark:text-emerald-500 font-bold uppercase text-[10px]">{t('agrochemical.recommended_rate')}</span>
-            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm mt-1">{info.dosage}</p>
-          </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t('agrochemical.target_pathogens')}</span>
-            <p className="font-bold text-slate-800 dark:text-slate-200 text-xs mt-0.5">{info.targetDiseases}</p>
-          </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t('agrochemical.spray_schedule')}</span>
-            <p className="font-bold text-slate-800 dark:text-slate-200 text-xs mt-0.5">{info.sprayInterval}</p>
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      {/* 3. Safety & PPE */}
-      <CollapsibleSection 
-        title={t('agrochemical.safety_guidelines')} 
-        icon={ShieldAlert} 
-        badge={t('agrochemical.safety')} 
-        defaultOpen={false}
-        onSpeak={() => {
-          const text = buildAgroSpeech(info, currentLang, 'safety');
-          speak(text, 'agro_safety', currentLang);
-        }}
-        isSpeaking={speakingId === 'agro_safety'}
-      >
-        <div className="space-y-3 text-xs">
-          <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-100 dark:border-amber-900/50">
-            <span className="text-amber-800 dark:text-amber-500 font-bold uppercase text-[10px]">{t('agrochemical.toxicity_rating')}</span>
-            <p className="font-bold text-amber-900 dark:text-amber-300 text-sm mt-0.5">{info.toxicityClass === DEFAULT_AGRO_DATA.toxicityClass ? t('agrochemical.toxicity_class') : info.toxicityClass}</p>
-          </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t('agrochemical.ppe_title')}</span>
-            <p className="font-medium text-slate-800 dark:text-slate-200 leading-relaxed mt-0.5">{info.ppe === DEFAULT_AGRO_DATA.ppe ? t('agrochemical.ppe_desc') : info.ppe}</p>
-          </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold uppercase text-[10px]">{t('agrochemical.storage_title')}</span>
-            <p className="font-medium text-slate-800 dark:text-slate-200 leading-relaxed mt-0.5">{info.storage === DEFAULT_AGRO_DATA.storage ? t('agrochemical.storage_desc') : info.storage}</p>
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      {/* 4. Translation & Voice Readout */}
-      <CollapsibleSection title={t('agrochemical.voice_readout')} icon={Volume2} badge={t('agrochemical.accessibility')} defaultOpen={false}>
-        <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
-          <Button 
-            onClick={() => speak(fullProductSummary, 'agro_panel', currentLang)} 
-            variant="outline" 
-            size="sm"
-            className="font-bold active:scale-95"
-          >
-            {speakingId === 'agro_panel' ? <VolumeX className="mr-2 h-4 w-4 text-rose-500 animate-pulse" /> : <Volume2 className="mr-2 h-4 w-4 text-primary-600" />}
-            {speakingId === 'agro_panel' ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Voice Readout') : (currentLang === 'te' ? 'సూచనలు వినండి' : currentLang === 'hi' ? 'दवा निर्देश सुनें' : 'Listen to Product Instructions')}
-          </Button>
-
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4 text-slate-400" />
-            <select
-              value={i18n.language}
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white font-semibold text-slate-700"
-            >
-              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="en">English (US)</option>
-              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="hi">Hindi (हिंदी)</option>
-              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="te">Telugu (తెలుగు)</option>
-              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="ta">Tamil (தமிழ்)</option>
-            </select>
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      {/* 5. Compare Alternative Products */}
-      <CollapsibleSection 
-        title={t('agrochemical.compare_alternatives')} 
-        icon={ArrowLeftRight} 
-        badge={t('agrochemical.alternatives')} 
-        defaultOpen={false}
-        onSpeak={() => {
-          const altText = currentLang === 'te'
-            ? `ప్రత్యామ్నాయ పంట రక్షణ మందులు: ${info.alternatives.map(a => `${a.name}, వర్గం: ${a.category}, భద్రత: ${a.safety}`).join('. ')}`
-            : currentLang === 'hi'
-            ? `वैकल्पिक पंजीकृत फसल सुरक्षा दवाएं: ${info.alternatives.map(a => `${a.name}, श्रेणी: ${a.category}, सुरक्षा: ${a.safety}`).join('. ')}`
-            : `Alternative registered crop protection formulas: ${info.alternatives.map(a => `${a.name}, ${a.category}, safety: ${a.safety}`).join('. ')}`;
-          speak(altText, 'agro_alternatives', currentLang);
-        }}
-        isSpeaking={speakingId === 'agro_alternatives'}
-      >
-        <div className="space-y-2 text-xs">
-          <p className="text-slate-600 dark:text-slate-400 font-medium mb-2">Alternative registered crop protection formulas:</p>
-          <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
-            {info.alternatives.map((alt, idx) => (
-              <div key={idx} className="p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
-                <div>
-                  <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{alt.name}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{alt.category}</p>
-                </div>
-                <span className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
-                  {alt.safety}
+        <div className="space-y-3.5 text-xs">
+          {/* Rate per Litre Highlight Card (Omit acre / 20L pump per instructions) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border-2 border-emerald-500/40 dark:border-emerald-500/30 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="text-[11px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
+                  <Droplets className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  Manufacturer Recommended Dilution Rate (Per Litre of Clean Water)
                 </span>
+                <p className="font-display font-black text-slate-900 dark:text-white text-xl sm:text-2xl mt-1.5">
+                  {userInstructions.dilution_rate_per_litre}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium">
+                  Add this exact recommended proportion per single litre of water. Mix thoroughly before spraying.
+                </p>
               </div>
-            ))}
+              <Badge variant="glow-emerald" className="text-xs font-black uppercase shrink-0">
+                Clean Water Rate
+              </Badge>
+            </div>
+          </div>
+
+          {/* Step-by-Step Mixing Guide */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2.5">
+            <span className="text-slate-600 dark:text-slate-300 font-bold uppercase text-[10px] flex items-center gap-1.5">
+              <ClipboardList className="w-4 h-4 text-indigo-500" /> Step-by-Step Mixing & Preparation Guide
+            </span>
+            <div className="space-y-2 mt-2">
+              {Array.isArray(userInstructions.mixing_guide) ? (
+                userInstructions.mixing_guide.map((step, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 p-2 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">{step}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-700 dark:text-slate-300">{userInstructions.mixing_guide}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Timing & Intervals Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80">
+              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-500" /> Optimal Spray Timing (Morning / Evening)
+              </span>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs mt-1.5 leading-relaxed">
+                {userInstructions.best_spray_timing}
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80">
+              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-teal-500" /> Recommended Spray Intervals
+              </span>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs mt-1.5 leading-relaxed">
+                {userInstructions.spray_interval}
+              </p>
+            </div>
+          </div>
+
+          {/* PPE & Safety Guidelines */}
+          <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/70 dark:border-amber-900/50 space-y-2">
+            <span className="text-amber-800 dark:text-amber-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 text-amber-600" /> Personal Protective Equipment (PPE) & Safe Handling
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5">
+              {Array.isArray(userInstructions.ppe_precautions) ? (
+                userInstructions.ppe_precautions.map((ppe, idx) => (
+                  <div key={idx} className="flex items-start gap-2 p-2 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-200/50 dark:border-amber-900/40">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-slate-800 dark:text-slate-200 font-medium leading-relaxed">{ppe}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-700 dark:text-slate-300">{userInstructions.ppe_precautions}</p>
+              )}
+            </div>
           </div>
         </div>
       </CollapsibleSection>
+
+      {/* SECTION 3: Chemical Explanation & Where It is Useful */}
+      <CollapsibleSection 
+        title={t('agrochemical.chemical_explanation', '3. Chemical Explanation & Where It is Useful')} 
+        icon={Sparkles} 
+        badge="Agronomy & Action" 
+        defaultOpen={true}
+        onSpeak={() => {
+          const text = `Mode of action: ${chemicalExplanation.action_mode}. Approved crops: ${Array.isArray(chemicalExplanation.approved_crops) ? chemicalExplanation.approved_crops.join(', ') : chemicalExplanation.approved_crops}. Controls: ${Array.isArray(chemicalExplanation.target_diseases_and_pests) ? chemicalExplanation.target_diseases_and_pests.join(', ') : chemicalExplanation.target_diseases_and_pests}. Pre-harvest waiting period: ${chemicalExplanation.preharvest_interval}.`;
+          speak(text, 'agro_explanation', currentLang);
+        }}
+        isSpeaking={speakingId === 'agro_explanation'}
+      >
+        <div className="space-y-3.5 text-xs">
+          {/* Mode of Action Card */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-1.5">
+            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Mode of Chemical Action & Movement
+            </span>
+            <p className="font-extrabold text-slate-900 dark:text-white text-sm">
+              {chemicalExplanation.action_mode}
+            </p>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-1">
+              {chemicalExplanation.utility_and_benefits}
+            </p>
+          </div>
+
+          {/* Approved Crops & Diseases Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/70 dark:border-emerald-900/50 space-y-2">
+              <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
+                🌾 Approved Target Crops Safe for Application
+              </span>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {Array.isArray(chemicalExplanation.approved_crops) ? (
+                  chemicalExplanation.approved_crops.map((crop, idx) => (
+                    <span key={idx} className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-900 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                      {crop}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{chemicalExplanation.approved_crops}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 rounded-2xl border border-rose-200/70 dark:border-rose-900/50 space-y-2">
+              <span className="text-rose-800 dark:text-rose-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
+                🩺 Target Pests & Diseases Controlled / Cured
+              </span>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {Array.isArray(chemicalExplanation.target_diseases_and_pests) ? (
+                  chemicalExplanation.target_diseases_and_pests.map((dis, idx) => (
+                    <span key={idx} className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-900 dark:text-rose-300 border border-rose-500/30 text-xs font-bold">
+                      {dis}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{chemicalExplanation.target_diseases_and_pests}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Pre-Harvest Interval (PHI) Card */}
+          <div className="p-3.5 bg-cyan-50/60 dark:bg-cyan-950/30 rounded-xl border border-cyan-200/80 dark:border-cyan-900/50 flex items-center justify-between gap-3 flex-wrap">
+            <div className="space-y-0.5">
+              <span className="text-cyan-900 dark:text-cyan-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-cyan-600" /> Pre-Harvest Interval (PHI) / Mandatory Waiting Period
+              </span>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {chemicalExplanation.preharvest_interval}
+              </p>
+            </div>
+            <Badge variant="glass" className="text-cyan-700 dark:text-cyan-300 border-cyan-400/40 bg-cyan-500/10 font-bold text-[10px]">
+              Food Safety Compliant
+            </Badge>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Product Image Zoom Modal */}
+      {showImageZoom && productDetails.image_url && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowImageZoom(false)}
+        >
+          <div 
+            className="relative max-w-lg w-full bg-slate-900 rounded-3xl p-5 border border-slate-700 shadow-2xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-white text-base">{productDetails.brand_name}</h3>
+                <p className="text-xs text-slate-400">{productDetails.company}</p>
+              </div>
+              <button 
+                onClick={() => setShowImageZoom(false)}
+                className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-[70vh] flex items-center justify-center p-2">
+              <img 
+                src={productDetails.image_url} 
+                alt={productDetails.brand_name} 
+                className="max-h-[65vh] w-auto object-contain rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

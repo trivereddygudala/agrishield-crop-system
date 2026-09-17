@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   Bug, Stethoscope, CloudSun, Volume2, Globe, Download, Save, Check, RefreshCw, 
   AlertTriangle, ShieldCheck, Share2, TrendingUp, Landmark, Phone, FileText, Sparkles,
-  Layers, FlaskConical, Info, Eye, Image as ImageIcon
+  Layers, FlaskConical, Info, Eye, Image as ImageIcon, ZoomIn, X, CheckCircle2
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress } from '../ui/index';
@@ -21,6 +21,8 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [showHeatmapOverlay, setShowHeatmapOverlay] = useState(true);
   const [previewProductModal, setPreviewProductModal] = useState(null);
+  const [zoomImageModal, setZoomImageModal] = useState(null);
+  const [referenceImages, setReferenceImages] = useState([]);
 
   // Speech reader hook
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
@@ -29,6 +31,51 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
 
   const rawDiseaseName = liveResult?.disease_name || liveResult?.predicted_class || 'Crop Health Condition';
   const rawCropName = liveResult?.crop_name || 'Agricultural Crop';
+
+  // Load matching authentic pathology comparison photos from dataset catalog
+  useEffect(() => {
+    let isMounted = true;
+    const loadCatalog = async () => {
+      try {
+        const res = await fetch('/samples/dataset_catalog.json');
+        if (!res.ok) return;
+        const catalog = await res.json();
+        if (!Array.isArray(catalog) || !isMounted) return;
+
+        const cNorm = (rawCropName || '').toLowerCase().trim();
+        const dNorm = (rawDiseaseName || '').toLowerCase().trim();
+
+        // Match by crop and disease keywords
+        const matches = catalog.filter(item => {
+          const itemCrop = (item.crop || '').toLowerCase().trim();
+          const itemDisease = (item.disease || '').toLowerCase().trim();
+          const cropMatches = itemCrop.includes(cNorm) || cNorm.includes(itemCrop);
+          if (!cropMatches) return false;
+
+          const dWords = dNorm.split(/[\s_]+/).filter(w => w.length > 3 && !['leaf', 'spot', 'rot', 'blight', 'virus', 'mold'].includes(w));
+          if (dWords.length > 0) {
+            return dWords.some(w => itemDisease.includes(w));
+          }
+          return itemDisease.includes(dNorm) || dNorm.includes(itemDisease);
+        });
+
+        if (matches.length > 0) {
+          setReferenceImages(matches.slice(0, 3));
+        } else {
+          // Fallback: match by crop
+          const cropMatches = catalog.filter(item => {
+            const itemCrop = (item.crop || '').toLowerCase().trim();
+            return itemCrop.includes(cNorm) || cNorm.includes(itemCrop);
+          });
+          setReferenceImages(cropMatches.slice(0, 3));
+        }
+      } catch (err) {
+        console.debug('Could not load disease reference catalog:', err);
+      }
+    };
+    loadCatalog();
+    return () => { isMounted = false; };
+  }, [rawCropName, rawDiseaseName]);
   
   const localizedCrop = translateCrop(rawCropName, i18n.language) || rawCropName;
   const localizedDisease = translateDisease(rawDiseaseName, i18n.language, rawCropName) || rawDiseaseName;
@@ -442,49 +489,66 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Captured Leaf Photo */}
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Captured Leaf Photo with Responsive Sizing & Tap-to-Zoom */}
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 px-1">
                 <span className="flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
                   {t('results.original_photo', 'Original Field Photo')}
                 </span>
-                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">{t('results.captured_leaf', 'Captured Leaf')}</span>
+                <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                  <ZoomIn className="w-3 h-3" /> Tap to zoom
+                </span>
               </div>
-              <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center">
+              <div 
+                onClick={() => displayOriginalImg && setZoomImageModal({ src: displayOriginalImg, title: `${localizedCrop} - Captured Field Leaf` })}
+                className="relative max-h-44 sm:max-h-52 aspect-[16/10] rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center cursor-pointer group"
+                title="Tap to zoom"
+              >
                 {displayOriginalImg ? (
                   <img 
                     src={displayOriginalImg} 
                     alt="Captured crop leaf" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
                   <div className="text-center p-4 text-slate-400 text-xs">
                     Original photo ready
                   </div>
                 )}
-                <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-bold text-white border border-white/20">
+                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <span className="px-2.5 py-1 rounded-lg bg-black/70 text-[11px] font-bold text-white flex items-center gap-1">
+                    <ZoomIn className="w-3.5 h-3.5" /> Tap to view full size
+                  </span>
+                </div>
+                <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white border border-white/20">
                   {localizedCrop} {t('results.leaf', 'Leaf')}
                 </div>
               </div>
             </div>
 
-            {/* Neural Heatmap (Grad-CAM X-Ray) */}
-            <div className="space-y-2">
+            {/* Neural Heatmap (Grad-CAM X-Ray) with Responsive Sizing & Tap-to-Zoom */}
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 px-1">
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-rose-500" />
                   {t('results.heatmap_focus', 'AI Attention Focus (Heatmap)')}
                 </span>
-                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">{t('results.necrosis_highlight', 'Necrosis Highlight')}</span>
+                <span className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-0.5">
+                  <ZoomIn className="w-3 h-3" /> Tap to zoom
+                </span>
               </div>
-              <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center">
+              <div 
+                onClick={() => gradCamImg && setZoomImageModal({ src: gradCamImg, title: `${localizedCrop} - AI Attention Focus Heatmap` })}
+                className="relative max-h-44 sm:max-h-52 aspect-[16/10] rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner flex items-center justify-center cursor-pointer group"
+                title="Tap to zoom"
+              >
                 {gradCamImg ? (
                   <img 
                     src={gradCamImg} 
                     alt="Neural network Grad-CAM activation heatmap" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
                   <div className="text-center p-6 text-slate-400 space-y-1">
@@ -493,11 +557,71 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                     <p className="text-[11px] text-slate-500">Lesion hotspots identified across leaf veins</p>
                   </div>
                 )}
+                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <span className="px-2.5 py-1 rounded-lg bg-black/70 text-[11px] font-bold text-white flex items-center gap-1">
+                    <ZoomIn className="w-3.5 h-3.5" /> Tap to view full size
+                  </span>
+                </div>
                 <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-rose-950/80 backdrop-blur-md text-[10px] font-bold text-rose-200 border border-rose-400/30">
                   {t('results.deep_vision_xray', 'Deep Vision X-Ray')}
                 </div>
               </div>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Verified Pathology Reference Gallery (Authentic Field Comparison from Curated Dataset) */}
+      {referenceImages.length > 0 && (
+        <Card className="p-4 sm:p-5 bg-gradient-to-r from-slate-950/90 via-slate-900 to-slate-950 border border-slate-700/80 shadow-md space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-xs sm:text-sm flex items-center gap-1.5">
+                  <span>{currentLang === 'te' ? 'ధృవీకరించబడిన పాథాలజీ పోలిక చిత్రాలు' : 'Verified Pathology Reference Cases'}</span>
+                  <Badge variant="glow-emerald" className="text-[10px] font-black uppercase">
+                    {currentLang === 'te' ? 'ప్రామాణిక డేటాసెట్' : 'Research Benchmark'}
+                  </Badge>
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  {currentLang === 'te' 
+                    ? 'మీ పంట ఆకును ధృవీకరించబడిన పరిశోధనా చిత్రాలతో పోల్చి నిర్ధారించుకోండి.' 
+                    : 'Cross-examine your scanned leaf against verified research reference cases for this disease.'}
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-indigo-300">
+              {referenceImages.length} {currentLang === 'te' ? 'కేసులు సరిపోలినవి' : 'Reference Cases'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {referenceImages.map((refImg, idx) => (
+              <div 
+                key={idx}
+                onClick={() => setZoomImageModal({ src: refImg.image_url, title: `${refImg.crop} - ${refImg.disease}` })}
+                className="group relative max-h-36 aspect-[16/10] rounded-xl overflow-hidden bg-slate-950 border border-slate-700 hover:border-emerald-400 cursor-pointer shadow-sm transition-all"
+                title="Tap to zoom"
+              >
+                <img 
+                  src={refImg.image_url} 
+                  alt={refImg.disease} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent flex flex-col justify-end p-2">
+                  <p className="text-[10px] font-bold text-white leading-tight truncate">
+                    {currentLang === 'te' && refImg.disease_te ? refImg.disease_te : refImg.disease}
+                  </p>
+                  <p className="text-[9px] text-emerald-300 font-semibold flex items-center gap-0.5 mt-0.5">
+                    <ZoomIn className="w-2.5 h-2.5" /> Tap to zoom
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </Card>
       )}
@@ -785,6 +909,39 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 pt-1 px-1">
               <span>Standard (20L Tank): <strong className="font-extrabold text-teal-700 dark:text-teal-400">{previewProductModal.dosagePer20L}</strong></span>
               <span>Price: <strong className="text-emerald-700 dark:text-emerald-400 font-extrabold">{previewProductModal.approxPrice}</strong></span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Tap-to-Zoom Modal for Leaf, Heatmap, and Reference Cases */}
+      {zoomImageModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setZoomImageModal(null)}
+        >
+          <div 
+            className="relative max-w-2xl w-full bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-700 shadow-2xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-emerald-400" />
+                {zoomImageModal.title || 'Diagnostic Visual Inspection'}
+              </h3>
+              <button 
+                onClick={() => setZoomImageModal(null)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[70vh] p-2">
+              <img 
+                src={zoomImageModal.src} 
+                alt="Zoomed view" 
+                className="max-h-[66vh] w-auto object-contain rounded-xl"
+              />
             </div>
           </div>
         </div>

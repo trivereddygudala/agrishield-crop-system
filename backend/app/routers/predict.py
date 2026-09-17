@@ -511,6 +511,10 @@ async def agrochemical_scan_endpoint(
             "compatibleProducts": info.get("compatible_products", []),
             "incompatibleProducts": info.get("incompatible_products", []),
             "extracted_text": extracted_text,
+            # 3 Structured Agrochemical Intelligence Sections
+            "product_details": agro_res.get("product_details", info.get("product_details", {})),
+            "user_instructions": agro_res.get("user_instructions", info.get("user_instructions", {})),
+            "chemical_explanation": agro_res.get("chemical_explanation", info.get("chemical_explanation", {})),
             # Structured AI Assistant Breakdown
             "product_overview": f"{info.get('product_name')} by {info.get('brand')}. {info.get('product_type')}.",
             "suitable_crops": target_crops,
