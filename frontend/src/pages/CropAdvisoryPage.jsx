@@ -7,7 +7,6 @@ import { useFarm } from '../context/FarmContext';
 import WidgetErrorBoundary from '../components/WidgetErrorBoundary';
 import FungalRiskAdvisor from '../components/intelligence/FungalRiskAdvisor';
 import PathogenWeatherRadar from '../components/intelligence/PathogenWeatherRadar';
-import CropYieldLossEstimator from '../components/intelligence/CropYieldLossEstimator';
 import { DailyRecommendations } from '../components/intelligence/DailyRecommendations';
 import { FarmTimeline } from '../components/intelligence/FarmTimeline';
 import { FarmHealthScore2 } from '../components/intelligence/FarmHealthScore2';
@@ -70,14 +69,7 @@ const CropAdvisoryPage = () => {
         />
       </WidgetErrorBoundary>
 
-      {/* AI Crop Yield Loss & Economic Estimator (₹ per acre) */}
-      <WidgetErrorBoundary name="AI Crop Yield Loss Estimator">
-        <CropYieldLossEstimator 
-          cropName={cropName}
-          diseaseName={`${cropName} Blight / Leaf Spot`}
-          initialAcres={activeFarm?.total_area || 1.0}
-        />
-      </WidgetErrorBoundary>
+
 
       {/* Agro-Weather & Spore Germination Risk */}
       <WidgetErrorBoundary name="Fungal Spore Risk Advisory">

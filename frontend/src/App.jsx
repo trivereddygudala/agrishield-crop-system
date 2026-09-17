@@ -11,6 +11,7 @@ import { Sidebar, Navbar, BottomNav, Footer, Skeleton, ToastProvider } from './c
 import OfflineStatusBar from './components/common/OfflineStatusBar';
 import { useColorTheme } from './hooks/useColorTheme';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+import { getApiBaseUrl } from './services/api';
 
 // Critical-path authentication pages — loaded eagerly for instant first-paint
 import LandingPage from './pages/LandingPage';
@@ -121,11 +122,26 @@ function ThemeInitializer({ children }) {
   useColorTheme(); // Initialize site-wide theme on html tag inside AuthProvider context
 
   React.useEffect(() => {
-    // Proactively pre-warm cluster nodes and backend services on initial page load
-    try {
-      fetch('/health').catch(() => {});
-      fetch('/cluster/status').catch(() => {});
-    } catch (_) {}
+    // Proactively pre-warm cluster nodes and backend services on initial page load & keep them hot
+    const warmUp = () => {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const mainHealth = baseUrl ? `${baseUrl}/health` : '/health';
+        const mainCluster = baseUrl ? `${baseUrl}/cluster/status` : '/cluster/status';
+
+        fetch(mainHealth).catch(() => {});
+        fetch(mainCluster).catch(() => {});
+
+        // Proactively wake up Worker 1 and Worker 2 in the background using no-cors
+        fetch('https://agrishield-ai-worker-1.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
+        fetch('https://agrishield-ai-worker-2.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
+      } catch (_) {}
+    };
+
+    warmUp();
+    // Keep alive pulse every 4 minutes while farmer tab is open
+    const interval = setInterval(warmUp, 240000);
+    return () => clearInterval(interval);
   }, []);
 
   return <>{children}</>;

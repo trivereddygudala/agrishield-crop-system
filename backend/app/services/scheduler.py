@@ -192,8 +192,8 @@ async def render_keepalive_loop():
                         logger.debug(f"[CLUSTER KEEPALIVE] Node {base_url} ping notice: {err2}")
 
         # Render free-tier spins down after 15 minutes of inactivity.
-        # Ping every 6 minutes (360s) — gives 9-minute safety buffer above the 15-min threshold.
-        await asyncio.sleep(360)
+        # Ping every 4 minutes (240s) — ensures Worker 1 and Worker 2 are actively kept hot.
+        await asyncio.sleep(240)
 
 
 def start_scheduler(db):

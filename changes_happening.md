@@ -2,6 +2,127 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-17 (v159) - UI/UX Refactor: Streamlined Diagnostic Results by Removing 6 Deprecated Sections
+- **Summary:** Removed 6 complex/verbose sections from disease scan results, diagnosis views, and historical details per farmer feedback to ensure an uncluttered, fast, and actionable diagnostic report:
+  1. 🌿 **Prescriptive Treatment & Foliar Recovery Simulator (`TreatmentRecoverySimulator.jsx`):**
+     - Fully removed the unused 20-day foliar recovery timeline and lesion progression stage simulator.
+  2. 💧 **Spray Volume & Dosage Calculator:**
+     - Removed the backpack tank glance card, custom tank size selector (10L/15L/20L/Custom), acreage calculator, pump counts, and dilution metrics from `DiseaseDiagnosisResults.jsx`.
+     - Removed `<AcreageDosageCalculator />` from `PredictionResultPage.jsx` and `HistoryPage.jsx`.
+     - Retained direct formulation cards (Option A, Option B) with standard recommended rates per litre of water.
+  3. 💰 **Crop Economic Impact & Mandi Price Match:**
+     - Removed `<CropYieldLossEstimator />` from `PredictionResultPage.jsx` and `CropAdvisoryPage.jsx`.
+  4. 📅 **7-Day Day-by-Day Prescriptive Treatment Calendar:**
+     - Removed Section 4 ("7-Day Day-by-Day Prescriptive Treatment Calendar") from `DiseaseDiagnosisResults.jsx`.
+  5. 🌤️ **Environmental Triggers & Causes:**
+     - Removed "Identified Environmental Causes & Vectors" list (`possible_causes`) from `DiseaseDiagnosisResults.jsx` (Section 1) and `PredictionResultPage.jsx` (Symptoms card).
+  6. 🛡️ **Prevention & Future Mitigation:**
+     - Removed "Prevention & Future Mitigation" / "Prevention & Precautions" card (`prevention_methods`) from `PredictionResultPage.jsx`.
+     - Retained vital PPE and application safety protocols (`results.safety_precautions`).
+  7. 🧪 **Validation:**
+     - Cleaned up unneeded component imports and state hooks.
+     - Production bundle compiled with 0 errors via `npm run build` in 20.65s.
+- **Files modified**: `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `frontend/src/pages/HistoryPage.jsx`, `frontend/src/pages/CropAdvisoryPage.jsx`, `frontend/src/components/scanCenter/TreatmentRecoverySimulator.jsx` (deleted), `changes_happening.md`.
+
+## 2026-09-17 (v158) - Datasets & Intelligence: Downloaded & Seeded Extended Agrochemical Dataset (36 Products: Fungicides, Insecticides, Fertilizers) into MongoDB
+- **Summary:** Expanded the agricultural chemical database from 24 to 36 commercial certified products with authentic photographic packaging and technical active formulations:
+  1. 🌿 **12 Additional Premier Agricultural Products Downloaded & Integrated:**
+     - **Fungicides (4 new, 14 total):**
+       - **Score (Syngenta)**: Difenoconazole 25% EC (Scab, Anthracnose, Leaf Spot, Powdery Mildew).
+       - **Aliette (Bayer)**: Fosetyl-Al 80% WP (Two-way systemic for Downy Mildew, Phytophthora).
+       - **Contaf Plus (Tata Rallis)**: Hexaconazole 5% SC (Sheath Blight, Tikka, Rust).
+       - **Indofil M-45 (Indofil)**: Mancozeb 75% WP (Gold standard contact protectant).
+     - **Pesticides / Insecticides (4 new, 11 total):**
+       - **Proclaim (Syngenta)**: Emamectin Benzoate 5% SG (Bollworm, Fruit/Shoot Borer, FAW).
+       - **Pegasus (Syngenta)**: Diafenthiuron 50% WP (Vapor action against Whitefly & Mites).
+       - **Benevia (FMC)**: Cyantraniliprole 10.26% OD (Cross-spectrum sucking & chewing).
+       - **Admire (Bayer)**: Imidacloprid 70% WG (High concentration against Paddy BPH & Jassids).
+     - **Fertilizers & Micronutrients (4 new, 11 total):**
+       - **Mahadhan MKP 00:52:34**: 100% Water soluble Phosphorus surge for flowering and root growth.
+       - **Mahadhan 13:00:45 (KNO3)**: Water soluble Potassium Nitrate for fruit enlargement, shine, and brix.
+       - **Muriate of Potash (MOP 60% K2O)**: Primary soil potash for lodging resistance and grain filling.
+       - **Ferrous Sulphate 19% (Fe)**: High-efficacy foliar treatment for Iron chlorosis reversal.
+  2. 💾 **MongoDB Database Sync (`agrochemical_products` collection):**
+     - All 36 products seeded into MongoDB with verified base64 image strings, dosages per 20L tank, acre rates, waiting periods (PHI), and safety classifications.
+  3. 📦 **Dataset Packaging (`package_all_datasets.py`):**
+     - Re-packaged `frontend/public/datasets/agrochemical_catalog.json` (36 products, 26 KB -> 40 KB).
+     - Re-generated `frontend/public/datasets/agrishield_agrochemical_products_dataset.zip` (1.04 MB archive).
+  4. 📱 **Frontend Integration (`commercialProducts.js`):**
+     - Mapped all 36 products into `COMMERCIAL_PRODUCTS` and diagnosis lookup functions with real photo zoom modals.
+  5. 🧪 **Validation:**
+     - `verify_db_products.py` verified 36/36 products in MongoDB with `Real Photo: True`.
+     - `npm run build` compiled with 0 errors in 25.69s.
+- **Files modified**: `backend/scripts/seed_agrochemical_products.py`, `backend/scripts/download_and_seed_extended_products.py`, `frontend/src/utils/commercialProducts.js`, `frontend/public/datasets/agrochemical_catalog.json`, `frontend/public/datasets/agrishield_agrochemical_products_dataset.zip`, `changes_happening.md`.
+
+## 2026-09-17 (v157) - UI Navigation & Render Cold-Start Status Verification
+- **Summary:** Verified and finalized UI navigation improvements and Render free-tier operational status:
+  1. 🔙 **Single Back Navigation Clean-up:**
+     - Verified removal of redundant secondary back button on the scan result / diagnosis view, leaving only one clear, consistent top-left navigation button.
+  2. 🌾 **Dedicated "My Fields" Navigation:**
+     - Confirmed dedicated "My Fields" tab/view in the application interface, allowing farmers to easily inspect all registered plots, soil data, and crop history directly.
+  3. ⚡ **Render Free-Tier Wake-Up Status Explained & Optimized:**
+     - Clarified why free-tier Render instances sleep after 15 minutes of zero traffic and take 20-30s on cold start.
+     - Confirmed client-side warm-up pings and reduced cluster connect timeout (3.5s) ensure fast failover without hanging user requests.
+  4. 🧪 **Validation:**
+     - Verified frontend build passes cleanly with zero errors.
+- **Files modified**: `changes_happening.md`.
+
+## 2026-09-17 (v156) - Performance & Infrastructure: Render Service Cold-Start Analysis & Fast Failover Optimization
+- **Summary:** Investigated Render service sleep behavior causing 20-30s initial delays and optimized backend cluster timeouts:
+  1. 🔍 **Render Free-Tier Sleep Behavior Analyzed:**
+     - On Render Free tier, web services automatically spin down (hibernate) after 15 minutes of zero HTTP traffic.
+     - When a new scan is initiated after inactivity, Render must wake up the container, load the Python environment, and start FastAPI. This cold-start sequence takes 20 to 30 seconds.
+     - Once awake, subsequent requests respond in under 1.5 seconds.
+  2. ⚡ **Cluster Connect Fast Failover (`backend/app/services/ai_cluster.py`):**
+     - Replaced 12-second hanging connection timeout with `httpx.Timeout(connect=3.5, read=14.0, write=10.0, pool=3.5)`.
+     - If an external worker node on Render is sleeping or cold, the dispatcher fails fast in 3.5 seconds and immediately tries the secondary worker or falls back to local inference without stalling the farmer for 20-30 seconds.
+  3. ⏱️ **Tightened Cluster Keepalive (`backend/app/services/scheduler.py`):**
+     - Reduced keepalive interval from 6 minutes to 4 minutes (240s) so worker nodes remain awake while the gateway is active.
+  4. 🌐 **24/7 Zero-Cold-Start Recommendation:**
+     - Documented setting up free external 5-minute health pings (via Cron-job.org or UptimeRobot) pointing to `https://agrishield-crop-system.onrender.com/health` to prevent Render from ever going to sleep.
+- **Files modified**: `backend/app/services/ai_cluster.py`, `backend/app/services/scheduler.py`, `changes_happening.md`.
+
+## 2026-09-17 (v155) - Datasets: Extracted & Packaged 189 Crop Disease Samples + Complete Fertilizers, Pesticides & Fungicides Dataset with Authentic Photos
+- **Summary:** Extracted, prepared, and packaged comprehensive agricultural benchmark datasets with authentic photographic assets:
+  1. 🌿 **Crop Disease Leaf Samples Dataset (189 Images across 15 Crops):**
+     - Extracted 189 authentic disease symptom images directly from `combined_dataset.zip` spanning all 15 diagnostic crops: Tomato, Potato, Chilli, Rice, Corn, Cotton, Groundnut, Sugarcane, Banana, Apple, Grape, Citrus, Wheat, Mango, Soybean.
+     - Saved catalog metadata in `frontend/public/samples/dataset_catalog.json` and synchronized records into MongoDB collection `crop_disease_dataset_samples`.
+     - Created downloadable archive: `frontend/public/datasets/agrishield_crop_disease_dataset.zip` (6.93 MB).
+  2. 🧪 **Fertilizers, Pesticides & Fungicides Products Dataset:**
+     - Downloaded authentic high-resolution package and bottle photographs for all certified commercial brands (SAAF, Amistar Top, Kavach, Nativo, Ridomil Gold, Blitox 50, Tilt, Antracol, Custodia, Bavistin, Coragen, Confidor, Actara, Tracer, Regent, Alika, Neem Oil, IFFCO Nano Urea, IFFCO Nano DAP, 19:19:19 NPK, Paras 10:26:26, Chelated Zinc 12%, Solubor Boron 20%, Samras Humic Acid 98%).
+     - Synced all 24 authentic base64 product photographs into MongoDB collection `agrochemical_products`.
+     - Packaged technical catalog in `frontend/public/datasets/agrochemical_catalog.json` and downloadable ZIP in `frontend/public/datasets/agrishield_agrochemical_products_dataset.zip` (0.67 MB).
+  3. 🌐 **API Endpoints (`backend/app/routers/intelligence.py`):**
+     - Added `/api/intelligence/datasets` exposing download links, product counts, and format details for farmers, developers, and researchers.
+  4. 🧪 **Validation:**
+     - Both zip packages verified and confirmed valid.
+     - `package_all_datasets.py` exited with code 0.
+- **Files modified**: `backend/scripts/extract_and_download_crop_dataset.py`, `backend/scripts/package_all_datasets.py`, `backend/scripts/download_real_product_images.py`, `backend/app/routers/intelligence.py`, `changes_happening.md`.
+
+## 2026-09-17 (v154) - Product & Chemical Intelligence: Authentic Commercial Product Photos & Highlighted Chemical Formulations
+- **Summary:** Upgraded the commercial pesticide and fungicide recommendations in the diagnostic results screen (`DiseaseDiagnosisResults.jsx` & `commercialProducts.js`):
+  1. 📸 **Authentic Real Commercial Product Packaging Photos (`commercialProducts.js`):**
+     - Replaced Unsplash placeholders and SVG icons with real, authentic commercial packaging images of major Indian agrochemical brands:
+       - **Saaf Fungicide (UPL)**: Authentic blue and red packet of Mancozeb 64% + Carbendazim 12% WP.
+       - **Ridomil Gold (Syngenta)**: Authentic gold and green foil pouch of Metalaxyl-M 4% + Mancozeb 64% WP.
+       - **Kavach (Syngenta)**: Real packaging of Chlorothalonil 75% WP.
+       - **Bavistin (Crystal / BASF)**: Authentic bottle and label of Carbendazim 50% WP.
+       - **Tata Blitox-50 (Rallis Tata)**: Authentic pouch of Copper Oxychloride 50% WP.
+       - **Custodia (ADAMA)**: Authentic bottle of Azoxystrobin 11% + Tebuconazole 18.3% SC.
+       - **Nativo (Bayer CropScience)**: Authentic bottle of Tebuconazole 50% + Trifloxystrobin 25% WG.
+       - **Amistar Top (Syngenta)**: Authentic bottle of Difenoconazole + Azoxystrobin SC.
+       - **Tilt (Syngenta)**: Authentic bottle of Propiconazole 25% EC.
+       - **Aliette (Bayer)**: Authentic packet of Fosetyl-Al 80% WP.
+       - **Score (Syngenta)**: Authentic bottle of Difenoconazole 25% EC.
+  2. 🧪 **High-Visibility Chemical Composition Display (`DiseaseDiagnosisResults.jsx`):**
+     - Added a dedicated, styled high-contrast container for the technical active ingredients (`రసాయన ఫార్ములా / Active Chemical / Technical Name`).
+     - Displayed the formulation type (e.g. WP, SC, EC, WG) and action (e.g. Systemic, Broad-spectrum Contact) prominently right next to the brand name so farmers and shopkeepers know the exact active chemical needed.
+  3. 🔍 **Interactive Full-Resolution Photo Zoom Modal (`DiseaseDiagnosisResults.jsx`):**
+     - Clicking the product thumbnail now opens a full-screen high-resolution preview modal with the exact packet picture, manufacturer badge, dosage per 20L backpack tank, and approximate Indian market price.
+  4. 🧪 **Validation:**
+     - Verified with `npm run build`: built in 23.52s with 0 errors.
+- **Files modified**: `frontend/src/utils/commercialProducts.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `changes_happening.md`, `chats_by_user.md`.
+
 ## 2026-09-12 (v153) - UI/UX: Removed Duplicate Back Button & Added Dedicated "My Fields & Sectors" Management Tab
 - **Summary:** Addressed user feedback regarding dual back buttons on sub-tabs and lack of visibility for registered field sectors in the Field Hub:
   1. 🔙 **Eliminated Redundant Back Buttons (`FarmPage.jsx`):**

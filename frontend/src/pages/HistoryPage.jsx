@@ -17,7 +17,6 @@ import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/dis
 import { getSpeechLocale } from '../utils/regionalLocale';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
 import { generateAndDownloadPrescriptionPDF } from '../utils/pdfPrescriptionGenerator';
-import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
 import { parseServerDate, formatDateTime } from '../utils/dateUtils';
 import { Card, Button, Input, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Badge, Dialog, EmptyState, Skeleton, Progress } from '../components/ui/index';
 import jsPDF from 'jspdf';
@@ -1277,17 +1276,7 @@ const HistoryPage = () => {
                 </div>
               )}
 
-              {/* Field Spray & Chemical Dosage Calculator */}
-              {!isHealthy && (
-                <AcreageDosageCalculator 
-                  cropName={inspectRecord.displayCrop || inspectRecord.crop_name}
-                  diseaseName={inspectRecord.displayDisease || inspectRecord.disease_name}
-                  chemicalName={details.chemicals?.[0]?.split('@')[0]?.trim() || "Mancozeb 75% WP"}
-                  dosagePerLiter={2.5}
-                  unit="g"
-                  initialAcres={activeFarm?.total_area || 1.0}
-                />
-              )}
+
 
               {/* Action Buttons: WhatsApp, Prescription PDF, and Close */}
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5">

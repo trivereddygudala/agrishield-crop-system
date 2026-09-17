@@ -28,8 +28,6 @@ import { Card, Button, Badge, Progress, Skeleton } from '../components/ui/index'
 import { useFarm } from '../context/FarmContext';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/prescriptionShare';
 import { generateAndDownloadPrescriptionPDF } from '../utils/pdfPrescriptionGenerator';
-import { AcreageDosageCalculator } from '../components/intelligence/AcreageDosageCalculator';
-import CropYieldLossEstimator from '../components/intelligence/CropYieldLossEstimator';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
 import { useSpeechReader } from '../hooks/useSpeechReader';
 import VoiceCropDoctorModal from '../components/intelligence/VoiceCropDoctorModal';
@@ -445,13 +443,12 @@ const PredictionResultPage = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-amber-500" />
-                <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('results.symptoms', 'Symptoms & Causes')}</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('results.symptoms_title', 'Observed Symptoms')}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  const causes = (result.possible_causes || nvidiaAdvice?.possible_causes || []).join('. ');
-                  const text = `Symptoms: ${result.symptoms || nvidiaAdvice?.disease_explanation || 'Not available'}. Possible causes: ${causes}`;
+                  const text = `Symptoms: ${result.symptoms || nvidiaAdvice?.disease_explanation || 'Not available'}.`;
                   speak(text, 'card_symptoms_page', i18n.language || 'en');
                 }}
                 className={`p-1.5 rounded-lg border transition-colors ${
@@ -466,14 +463,6 @@ const PredictionResultPage = () => {
             </div>
             <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
               <p><strong>{t('results.symptoms', 'Symptoms:')}</strong> {result.symptoms || nvidiaAdvice?.disease_explanation || 'No details available.'}</p>
-              <div>
-                <strong>{t('results.causes', 'Possible Causes:')}</strong>
-                <ul className="list-disc pl-5 mt-1 space-y-1">
-                  {(result.possible_causes || nvidiaAdvice?.possible_causes || []).map((c, i) => (
-                    <li key={i}>{c}</li>
-                  ))}
-                </ul>
-              </div>
             </div>
           </Card>
 
@@ -505,65 +494,16 @@ const PredictionResultPage = () => {
             </div>
           </Card>
 
-          <Card className="p-5 border-l-4 border-l-blue-500 shadow-sm md:col-span-2">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-500" />
-                <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('results.prevention', 'Prevention & Precautions')}</h3>
+          {result.safety_precautions && (
+            <Card className="p-4 border-l-4 border-l-blue-500 shadow-sm md:col-span-2">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Activity className="w-4 h-4 text-blue-500" />
+                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm">{t('results.safety_precautions', 'Safety Precautions & PPE')}</h4>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const methods = (result.prevention_methods || nvidiaAdvice?.prevention_methods || fallbackAdvice.practices).join('. ');
-                  const text = `Prevention methods: ${methods}. ${nvidiaAdvice?.farmer_friendly_advice || ''}. ${result.safety_precautions || ''}`;
-                  speak(text, 'card_prevention_page', i18n.language || 'en');
-                }}
-                className={`p-1.5 rounded-lg border transition-colors ${
-                  speakingId === 'card_prevention_page'
-                    ? 'bg-blue-600 text-white border-blue-700 animate-pulse'
-                    : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                }`}
-                title="Listen prevention"
-              >
-                {speakingId === 'card_prevention_page' ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              </button>
-            </div>
-            <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-              <div>
-                <strong>{t('results.prevention_methods', 'Prevention Methods:')}</strong>
-                <ul className="list-disc pl-5 mt-1 space-y-1">
-                  {(result.prevention_methods || nvidiaAdvice?.prevention_methods || fallbackAdvice.practices).map((p, i) => (
-                    <li key={i}>{p}</li>
-                  ))}
-                </ul>
-              </div>
-              <p><strong>{t('results.farming_advice', 'Farming Advice:')}</strong> {nvidiaAdvice?.farmer_friendly_advice || nvidiaAdvice?.best_farming_practices?.join(' ') || 'Regularly monitor crop health.'}</p>
-              {result.safety_precautions && (
-                <p className="text-rose-600 dark:text-rose-400 mt-2"><strong>{t('results.safety_precautions', 'Safety Precautions:')}</strong> {result.safety_precautions}</p>
-              )}
-            </div>
-          </Card>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">{result.safety_precautions}</p>
+            </Card>
+          )}
 
-        </div>
-      )}
-
-      {/* Field Acreage Chemical Dosage & Spray Tank Calculator */}
-      {!isHealthy && result && !result.is_agrochemical && (
-        <div className="space-y-4">
-          <AcreageDosageCalculator 
-            cropName={localizedCrop || result.crop_name}
-            diseaseName={localizedDisease || result.disease_name}
-            chemicalName={diseaseKb.chemicals?.[0]?.split('@')[0]?.trim() || result.chemical_treatment?.split('@')[0]?.trim() || "Mancozeb 75% WP"}
-            dosagePerLiter={2.5}
-            unit="g"
-            initialAcres={activeFarm?.total_area || 1.0}
-          />
-          <CropYieldLossEstimator
-            cropName={result.crop_name || 'Tomato'}
-            diseaseName={result.disease_name || 'Early Blight'}
-            initialSeverity={result.severity || 'moderate'}
-            initialAcres={activeFarm?.total_area || 1.0}
-          />
         </div>
       )}
 

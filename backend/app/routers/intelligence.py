@@ -181,4 +181,74 @@ async def get_timeline(
         farm_id=farm_id, category=category, limit=limit
     )
 
+@router.get("/products", summary="Get Agrochemical Products from MongoDB")
+async def get_agrochemical_products(
+    category: Optional[str] = Query(None, description="Category: fungicide | pesticide | fertilizer"),
+    disease: Optional[str] = Query(None, description="Filter by disease name"),
+    crop: Optional[str] = Query(None, description="Filter by crop name"),
+    limit: int = Query(50, description="Max items to return")
+):
+    """Retrieve verified authentic agrochemical products with brand names, companies, and product images."""
+    from backend.app.db.mongodb import get_database
+    db = get_database()
+    query = {}
+    if category and category.lower() != "all":
+        query["category"] = category.lower()
+    if disease:
+        query["target_diseases"] = {"$regex": disease, "$options": "i"}
+    if crop:
+        query["target_crops"] = {"$regex": crop, "$options": "i"}
+    
+    if db is not None:
+        try:
+            cursor = db["agrochemical_products"].find(query, {"_id": 0}).limit(limit)
+            products = await cursor.to_list(length=limit)
+            if products:
+                return {"status": "success", "count": len(products), "products": products}
+        except Exception as e:
+            logger.warning(f"Error querying agrochemical_products in MongoDB: {e}")
+
+    try:
+        from backend.scripts.seed_agrochemical_products import PRODUCTS_DATA
+        filtered = PRODUCTS_DATA
+        if category and category.lower() != "all":
+            filtered = [p for p in filtered if p.get("category") == category.lower()]
+        if disease:
+            filtered = [p for p in filtered if any(disease.lower() in d.lower() for d in p.get("target_diseases", []))]
+        return {"status": "success", "count": len(filtered), "products": filtered[:limit]}
+    except Exception:
+        return {"status": "success", "count": 0, "products": []}
+
+@router.get("/datasets", summary="Get Downloadable Datasets Info and Links")
+async def get_datasets_info():
+    """Returns downloadable benchmark datasets for crop diseases and agrochemical products."""
+    return {
+        "status": "success",
+        "datasets": [
+            {
+                "id": "agrochemical-products",
+                "title": "AgriShield Agrochemical Products Dataset",
+                "description": "Complete dataset of certified Indian Fertilizers, Pesticides (Insecticides), and Fungicides with authentic package photos, dosages, PHI, and chemical compositions.",
+                "total_products": 24,
+                "categories": ["Fungicide", "Pesticide", "Fertilizer"],
+                "zip_download_url": "/datasets/agrishield_agrochemical_products_dataset.zip",
+                "json_catalog_url": "/datasets/agrochemical_catalog.json",
+                "format": "ZIP (JSON + High-Res Product Photos)",
+                "size": "670 KB"
+            },
+            {
+                "id": "crop-disease-benchmark",
+                "title": "AgriShield Crop Disease Benchmark Dataset",
+                "description": "Curated leaf symptom photos across 15 agricultural crops with diagnostic labels in English, Telugu, and Hindi.",
+                "total_samples": 189,
+                "crops_covered": 15,
+                "zip_download_url": "/datasets/agrishield_crop_disease_dataset.zip",
+                "json_catalog_url": "/samples/dataset_catalog.json",
+                "format": "ZIP (JSON + JPG Leaf Images)",
+                "size": "6.9 MB"
+            }
+        ]
+    }
+
+
 

@@ -55,32 +55,39 @@ class AIClusterDispatcher:
         if not workers:
             return None
 
-        # Select active worker using round-robin
-        chosen_worker = workers[self._index % len(workers)]
+        # Fast connect timeout (3.5s) ensures that if a Render worker instance is spun down or cold,
+        # we don't stall the farmer for 20-30 seconds waiting for connection.
+        cluster_timeout = httpx.Timeout(connect=3.5, read=14.0, write=10.0, pool=3.5)
+
+        # Select candidate workers starting with round-robin index
+        candidates = [workers[self._index % len(workers)]]
+        if len(workers) > 1:
+            candidates.append(workers[(self._index + 1) % len(workers)])
         self._index += 1
 
-        target_endpoint = f"{chosen_worker}/api/worker/predict"
-        try:
-            logger.info(f"⚡ [AI Cluster] Dispatching scan to worker: {chosen_worker}")
-            async with httpx.AsyncClient(timeout=12.0) as client:
-                files = {"file": (filename, image_bytes, "image/jpeg")}
-                data = {
-                    "explainer_type": explainer_type,
-                    "crop_filter": crop_filter or ""
-                }
-                response = await client.post(target_endpoint, files=files, data=data)
-                
-                if response.status_code == 200:
-                    res_json = response.json()
-                    if res_json.get("success"):
-                        logger.info(f"✅ [AI Cluster] Worker {chosen_worker} finished prediction successfully!")
-                        return res_json.get("result")
-                else:
-                    logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} returned HTTP {response.status_code}: {response.text[:120]}")
-        except Exception as e:
-            logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} request failed: {e}. Fast-failing to local inference.")
+        for chosen_worker in candidates:
+            target_endpoint = f"{chosen_worker}/api/worker/predict"
+            try:
+                logger.info(f"⚡ [AI Cluster] Dispatching scan to worker: {chosen_worker}")
+                async with httpx.AsyncClient(timeout=cluster_timeout) as client:
+                    files = {"file": (filename, image_bytes, "image/jpeg")}
+                    data = {
+                        "explainer_type": explainer_type,
+                        "crop_filter": crop_filter or ""
+                    }
+                    response = await client.post(target_endpoint, files=files, data=data)
+                    
+                    if response.status_code == 200:
+                        res_json = response.json()
+                        if res_json.get("success"):
+                            logger.info(f"✅ [AI Cluster] Worker {chosen_worker} finished prediction successfully!")
+                            return res_json.get("result")
+                    else:
+                        logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} returned HTTP {response.status_code}: {response.text[:120]}")
+            except Exception as e:
+                logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} unreachable or timed out ({e}). Trying next node or local fallback.")
 
-        logger.info("ℹ️ [AI Cluster] External worker node unavailable. Executing local inference immediately.")
+        logger.info("ℹ️ [AI Cluster] External worker nodes unavailable or sleeping. Executing local inference immediately.")
         return None
 
 ai_cluster = AIClusterDispatcher()
