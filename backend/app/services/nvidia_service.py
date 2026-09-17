@@ -239,6 +239,67 @@ class NVIDIAService:
             providers.append((f"NVIDIA NIM Secondary ({self.nvidia_model.split('/')[-1]})", self.nvidia_client_2, self.nvidia_model))
         return providers
 
+    async def _call_gemini_flash(
+        self,
+        messages: list,
+        max_tokens: int = 1000,
+        temperature: float = 0.2
+    ) -> Optional[str]:
+        """
+        Executes Google Gemini Flash completion using official GEMINI_API_KEY.
+        Features 1,000,000 TPM limit (166x higher than Groq) ensuring seamless, unblocked chat.
+        """
+        gemini_key = getattr(settings, "GEMINI_API_KEY", "")
+        if not gemini_key or "mock" in gemini_key or "PASTE" in gemini_key:
+            return None
+
+        try:
+            import httpx
+            contents = []
+            for msg in messages:
+                role = "user" if msg.get("role") in ["user", "system"] else "model"
+                text_content = msg.get("content", "")
+                if text_content:
+                    contents.append({
+                        "role": role,
+                        "parts": [{"text": str(text_content)}]
+                    })
+
+            if not contents:
+                return None
+
+            payload = {
+                "contents": contents,
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": max_tokens
+                }
+            }
+
+            models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest"]
+            async with httpx.AsyncClient(timeout=8.0) as http_client:
+                for model_name in models_to_try:
+                    try:
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+                        resp = await http_client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                if parts:
+                                    text = parts[0].get("text", "").strip()
+                                    if text:
+                                        logger.info(f"AI completion succeeded via Google Gemini ({model_name})")
+                                        return text
+                    except Exception as m_err:
+                        logger.debug(f"Gemini model {model_name} attempt: {m_err}")
+                        continue
+        except Exception as e:
+            logger.warning(f"Google Gemini Flash completion error: {e}")
+
+        return None
+
     async def _execute_completion(
         self,
         messages: list,
@@ -248,11 +309,9 @@ class NVIDIAService:
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Executes a single fast chat completion attempt.
-        Fails fast to the local ICAR knowledge base in <= 3.0s if cloud latency is detected.
+        Fails fast to NVIDIA -> Google Gemini Flash -> local ICAR knowledge base.
         """
         providers = self._get_providers()
-        if not providers:
-            return None, None
 
         safe_tokens = min(max_tokens, 1000)
         safe_timeout = min(max(timeout, 1.5), 3.0)
@@ -294,15 +353,18 @@ class NVIDIAService:
             except Exception as ex:
                 ex_str = str(ex).lower()
                 import time
-                # Trip circuit breaker for 180s so subsequent steps in this scan and immediate future scans execute instantly
                 self._circuit_broken_until = time.time() + 180.0
                 if "401" in ex_str or "invalid_api_key" in ex_str or "invalid api key" in ex_str:
                     logger.warning(f"Provider {name} returned 401 Invalid API Key. Disabling provider.")
                     self.nvidia_client = None
                 else:
-                    logger.warning(f"Provider {name} fast-timeout ({ex}); tripping circuit breaker for 3m to activate instant local agronomy.")
-                # Fast fail: do not loop through redundant providers
+                    logger.warning(f"Provider {name} fast-timeout ({ex}); tripping circuit breaker for 3m.")
                 break
+
+        # Fallback to Google Gemini Flash (1,000,000 TPM limit)
+        gemini_text = await self._call_gemini_flash(messages, max_tokens=safe_tokens, temperature=temperature)
+        if gemini_text:
+            return gemini_text, "Google Gemini Flash"
 
         return None, None
 
@@ -2862,6 +2924,18 @@ STRICT RULES:
                 except Exception as inner_ex:
                     logger.warning(f"Agro enrichment model {model} attempt failed: {inner_ex}")
                     continue
+
+            # Fallback to Google Gemini Flash for agrochemical enrichment
+            gemini_res = await self._call_gemini_flash([{"role": "user", "content": prompt}], max_tokens=700, temperature=0.1)
+            if gemini_res:
+                parsed = safe_parse_json(gemini_res)
+                if parsed and isinstance(parsed, dict) and parsed.get("brand_name"):
+                    dilution = str(parsed.get("dilution_rate_per_litre", "2.0 mL or 2.0 g / L of clean water"))
+                    dilution = re.sub(r'(?i)\bper\s+acre\b', '', dilution)
+                    dilution = re.sub(r'(?i)\b20\s*(?:l|litre|liter)\s*(?:backpack)?\s*(?:pump)?\b', '', dilution)
+                    parsed["dilution_rate_per_litre"] = dilution.strip()
+                    return parsed
+
         except Exception as ex:
             logger.warning(f"enrich_agrochemical_data exception: {ex}")
 

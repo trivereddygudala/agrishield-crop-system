@@ -445,13 +445,38 @@ def search_agrochemical_web(query: str, max_snippets: int = 4) -> str:
             headers=headers,
             timeout=5.0
         )
+        snippets = []
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, 'html.parser')
             snippets = [td.get_text().strip() for td in soup.find_all('td', class_='result-snippet')][:max_snippets]
-            if snippets:
-                joined = " | ".join(snippets)
-                logger.info(f"[AGROCHEMICAL WEB SEARCH RESULTS]: {joined[:250]}...")
-                return joined
+
+        # 2. If snippets are empty or sparse, use configured Tavily Search API
+        if not snippets:
+            try:
+                from backend.app.core.config import settings
+                tavily_key = getattr(settings, "TAVILY_API_KEY", "")
+                if tavily_key and "mock" not in tavily_key:
+                    logger.info(f"[AGROCHEMICAL TAVILY SEARCH]: Querying Tavily for '{clean_q}'...")
+                    t_resp = requests.post(
+                        "https://api.tavily.com/search",
+                        json={
+                            "api_key": tavily_key,
+                            "query": f"{clean_q} agriculture fungicide insecticide uses",
+                            "max_results": max_snippets
+                        },
+                        timeout=5.0
+                    )
+                    if t_resp.status_code == 200:
+                        t_data = t_resp.json()
+                        t_results = t_data.get("results", [])
+                        snippets = [r.get("content", "").strip() for r in t_results if r.get("content")]
+            except Exception as t_err:
+                logger.debug(f"Tavily search exception: {t_err}")
+
+        if snippets:
+            joined = " | ".join(snippets)
+            logger.info(f"[AGROCHEMICAL WEB SEARCH RESULTS]: {joined[:250]}...")
+            return joined
     except Exception as e:
         logger.warning(f"Agrochemical web search exception: {e}")
 

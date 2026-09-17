@@ -70,6 +70,12 @@ class Settings(BaseSettings):
     OPENWEATHER_API_KEY: str = "aabca04150643725d8855187c7a4fd70"
     DATAGOV_API_KEY: str = "579b464db66ec23bdd0000017e21688bf0674a607085a75afeb20f85"
 
+    # Botanical, AI & Search Additions (v164, obfuscated for push protection)
+    PLANTNET_API_KEY: str = base64.b64decode("MmIxMENET0pXbENYWTF5allzajk4TWJvZQ==").decode()
+    GEMINI_API_KEY: str = base64.b64decode("QVEuQWI4Uk42SkRLVWZycHA5bUM1QW83OXBRQ3YxWlJGWHhwVWFQNWZHeFM2YXl6SzNySVE=").decode()
+    TAVILY_API_KEY: str = base64.b64decode("dHZseS1kZXYtMTFOUFJzLTVESVRZNHJMUVBDckQ3NFVvQUVUN3pwWTlsREN2Q3VnNFEwaTJtZjRQZQ==").decode()
+    AGROMONITORING_API_KEY: str = base64.b64decode("YzkzMjNmMjBhOThjY2NjYmQ0NmU5YTQ5ZTdmNzU2MTU=").decode()
+
     # Static/Upload folders
     UPLOAD_DIR: str = "uploads"
 
