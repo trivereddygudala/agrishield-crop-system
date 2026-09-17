@@ -205,6 +205,16 @@ class NVIDIAService:
                 timeout=5.0
             )
 
+        # Dedicated higher-timeout client for deep agrochemical web intelligence analysis
+        self.enrichment_client = None
+        active_agro_key = self.nvidia_api_key or self.nvidia_api_key_2
+        if active_agro_key and "mock-api-key" not in active_agro_key and "PASTE" not in active_agro_key:
+            self.enrichment_client = AsyncOpenAI(
+                api_key=active_agro_key,
+                base_url=self.nvidia_base_url,
+                timeout=15.0
+            )
+
         # Adaptive circuit breaker: trips if cloud LLM times out to prevent chained delays
         self._circuit_broken_until = 0.0
 
@@ -2778,4 +2788,84 @@ CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
             logger.warning(f"Failed to fetch NVIDIA alert recommendation from model: {e}")
             return None
 
+    async def enrich_agrochemical_data(
+        self,
+        ocr_text: str,
+        web_context: str
+    ) -> Optional[dict]:
+        """
+        Enriches an unlisted market agrochemical by combining OCR label tokens with live web search context.
+        Synthesizes the data into the standard 3 sections while strictly avoiding dosage per acre / 20L backpack pump.
+        """
+        if not self.client:
+            return None
+
+        prompt = f"""You are a certified senior agricultural chemist and agronomist.
+A farmer has scanned an agrochemical packaging label. We extracted text via OCR and fetched live agricultural web context.
+Analyze the information and synthesize an accurate, comprehensive product profile.
+
+OCR Packaging Text:
+{ocr_text}
+
+Live Web Context:
+{web_context}
+
+Return a STRICT JSON object with these EXACT keys:
+{{
+  "brand_name": "Commercial brand name of the product",
+  "company": "Manufacturer or marketer company name",
+  "active_ingredients": "Technical active ingredient(s) and percentage concentrations (e.g. Azoxystrobin 18.2% + Difenoconazole 11.4% SC)",
+  "formulation_type": "Formulation type (e.g. SC, WP, EC, SL, WDG, Granules)",
+  "toxicity_level": "Toxicity hazard classification (Green triangle / Blue triangle / Yellow triangle / Red triangle / Organic Bio-Pesticide)",
+  "hazard_color": "#16a34a or #2563eb or #eab308 or #dc2626",
+  "dilution_rate_per_litre": "Precise dilution rate per single 1 Litre of clean water (e.g. '1.0 mL / L of clean water' or '2.0 g / L of clean water'). STRICT RULE: NEVER MENTION DOSAGE PER ACRE AND NEVER MENTION 20L BACKPACK PUMP.",
+  "spray_interval": "Recommended repeat interval (e.g. 'Repeat after 10 to 14 days if pest or disease symptoms persist')",
+  "action_mode": "Detailed mode of action (Systemic, Contact, Translaminar, Protective & Curative)",
+  "approved_crops": ["List of approved crops, e.g. Tomato, Chilli, Cotton, Rice, Vegetables"],
+  "target_diseases_and_pests": ["List of target diseases or insect pests controlled"],
+  "preharvest_interval_days": 14,
+  "utility_and_benefits": "Detailed explanation of why this chemical is useful, how it protects crops, and where it should be applied."
+}}
+
+STRICT RULES:
+1. ONLY return the raw JSON object. No explanation, no markdown backticks, no introductory text.
+2. DO NOT include dosage per acre or 20 litre backpack pump anywhere in the response.
+"""
+        try:
+            client = self.enrichment_client or self.client
+            if not client:
+                return None
+
+            models_to_try = [
+                getattr(self, "vision_model", "meta/llama-3.2-11b-vision-instruct"),
+                self.nvidia_model
+            ]
+
+            for model in models_to_try:
+                try:
+                    response = await client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "user", "content": prompt}
+                        ],
+                        max_tokens=700,
+                        temperature=0.1
+                    )
+                    content = response.choices[0].message.content.strip()
+                    parsed = safe_parse_json(content)
+                    if parsed and isinstance(parsed, dict) and parsed.get("brand_name"):
+                        dilution = str(parsed.get("dilution_rate_per_litre", "2.0 mL or 2.0 g / L of clean water"))
+                        dilution = re.sub(r'(?i)\bper\s+acre\b', '', dilution)
+                        dilution = re.sub(r'(?i)\b20\s*(?:l|litre|liter)\s*(?:backpack)?\s*(?:pump)?\b', '', dilution)
+                        parsed["dilution_rate_per_litre"] = dilution.strip()
+                        return parsed
+                except Exception as inner_ex:
+                    logger.warning(f"Agro enrichment model {model} attempt failed: {inner_ex}")
+                    continue
+        except Exception as ex:
+            logger.warning(f"enrich_agrochemical_data exception: {ex}")
+
+        return None
+
 nvidia_service = NVIDIAService()
+

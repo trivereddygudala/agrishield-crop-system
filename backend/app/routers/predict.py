@@ -418,40 +418,7 @@ async def agrochemical_scan_endpoint(
         info = agro_res.get("info", {})
         extracted_text = agro_res.get("extracted_text", "")
 
-        from backend.app.services.nvidia_service import nvidia_service
-        if agro_res.get("matched_key") == "generic" and nvidia_service.client:
-            try:
-                llm_parsed = await nvidia_service.parse_agrochemical_ocr(extracted_text)
-                if llm_parsed:
-                    info = {
-                        "product_name": llm_parsed.get("productName", info.get("product_name")),
-                        "brand": llm_parsed.get("brand", info.get("brand")),
-                        "active_ingredients": llm_parsed.get("activeIngredient", info.get("active_ingredients")),
-                        "product_type": llm_parsed.get("category", info.get("product_type")),
-                        "formulation": llm_parsed.get("formulation", info.get("formulation")),
-                        "batch_number": llm_parsed.get("batchNumber", info.get("batch_number")),
-                        "mfg_date": llm_parsed.get("mfgDate", info.get("mfg_date")),
-                        "exp_date": llm_parsed.get("expDate", info.get("exp_date")),
-                        "net_qty": llm_parsed.get("netQuantity", info.get("net_qty")),
-                        "registration_number": llm_parsed.get("registrationNumber", info.get("registration_number")),
-                        "target_crops": [c.strip() for c in llm_parsed.get("targetCrops", "").split(",") if c.strip()],
-                        "target_diseases": [d.strip() for d in llm_parsed.get("targetDiseases", "").split(",") if d.strip()],
-                        "target_pests": [p.strip() for p in llm_parsed.get("targetPests", "").split(",") if p.strip()],
-                        "recommended_dosage": llm_parsed.get("dosage", info.get("recommended_dosage")),
-                        "mixing_ratio": llm_parsed.get("mixingRatio", info.get("mixing_ratio")),
-                        "spray_interval": llm_parsed.get("sprayInterval", info.get("spray_interval")),
-                        "reentry_interval": llm_parsed.get("reentryInterval", info.get("reentry_interval")),
-                        "preharvest_interval": llm_parsed.get("preharvestInterval", info.get("preharvest_interval")),
-                        "safety_category": llm_parsed.get("toxicityClass", info.get("safety_category")),
-                        "protective_equipment": llm_parsed.get("ppe", info.get("protective_equipment")),
-                        "storage_instructions": llm_parsed.get("storage", info.get("storage_instructions")),
-                        "disposal_instructions": llm_parsed.get("disposal", info.get("disposal_instructions")),
-                        "compatible_products": llm_parsed.get("compatibleProducts", []),
-                        "incompatible_products": llm_parsed.get("incompatibleProducts", [])
-                    }
-                    agro_res["confidence"] = 95.0
-            except Exception as ocr_err:
-                print(f"[NVIDIA OCR PARSER WARNING] LLM OCR parsing failed: {ocr_err}")
+        # agro_res is now enriched directly via live web search & NVIDIA Cloud AI inside detect_agrochemical
 
         now = datetime.now(timezone.utc)
 

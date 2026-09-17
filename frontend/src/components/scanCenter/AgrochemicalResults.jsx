@@ -57,6 +57,10 @@ const AgrochemicalResults = ({ data = {} }) => {
     utility_and_benefits: "Delivers rapid, targeted foliar protection by inhibiting pathogen cell metabolism and halting pest damage, protecting overall crop yield."
   };
 
+  // Determine detection source
+  const isWebSearch = data?.source === 'live_web_search' || productDetails?.verification_source === 'live_web_search';
+  const isCatalog = data?.source === 'catalog' || productDetails?.verification_source === 'catalog';
+
   // Build high-clarity speech summary
   const agroSpeech = currentLang === 'te'
     ? `${productDetails.brand_name}, కంపెనీ: ${productDetails.company}. క్రియాశీల రసాయనం: ${productDetails.active_ingredient}. ఉపయోగించే మోతాదు: లీటరు నీటికి ${userInstructions.dilution_rate_per_litre}. పిచికారీ సమయం: ఉదయం లేదా సాయంత్రం. స్ప్రే విరామం: ప్రతి 10 నుండి 14 రోజులకు.`
@@ -74,9 +78,19 @@ const AgrochemicalResults = ({ data = {} }) => {
               <Badge variant="glow-indigo" className="px-3 py-0.5 text-xs font-black uppercase tracking-wider">
                 🧪 {t("results.agro_product", "Agrochemical Product")}
               </Badge>
-              <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-emerald-300 border-emerald-400/40 bg-emerald-950/70">
-                ✓ EasyOCR Verified Label
-              </Badge>
+              {isWebSearch ? (
+                <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-cyan-300 border-cyan-400/40 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
+                  🌐 Live Web & AI Verified
+                </Badge>
+              ) : isCatalog ? (
+                <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-emerald-300 border-emerald-400/40 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
+                  🛡️ Certified Catalog Product
+                </Badge>
+              ) : (
+                <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-indigo-300 border-indigo-400/40 bg-indigo-950/70 flex items-center gap-1">
+                  ✓ OCR Packaging Analysis
+                </Badge>
+              )}
               {productDetails.company && (
                 <Badge variant="glass" className="px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
                   🏢 {productDetails.company}

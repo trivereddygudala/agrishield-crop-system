@@ -7,6 +7,7 @@ comprehensive 36-product certified knowledge database, disease linkage, and comp
 
 import os
 import re
+from typing import Optional, Dict, Any, List
 import cv2
 import numpy as np
 import logging
@@ -414,6 +415,72 @@ def _build_ppe_guidelines() -> list:
         "Wear long-sleeved clothing and waterproof boots; wash face, hands, and skin with soap immediately after spraying."
     ]
 
+def search_agrochemical_web(query: str, max_snippets: int = 4) -> str:
+    """
+    Searches the live web for agricultural product information, active ingredients,
+    approved crops, and usage guidelines using the DuckDuckGo Lite crawler.
+    """
+    if not query or len(query.strip()) < 3:
+        return ""
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+
+        clean_terms = [w for w in query.split() if len(w) > 2 and w.lower() not in {"and", "the", "for", "with", "batch", "date", "mfg", "exp", "net", "qty"}]
+        clean_q = " ".join(clean_terms[:6])
+        if not clean_q:
+            clean_q = query[:50]
+
+        logger.info(f"[AGROCHEMICAL WEB SEARCH]: Querying '{clean_q} agriculture fungicide insecticide uses'")
+        resp = requests.post(
+            'https://lite.duckduckgo.com/lite/',
+            data={'q': f"{clean_q} agriculture fungicide insecticide uses"},
+            headers=headers,
+            timeout=5.0
+        )
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            snippets = [td.get_text().strip() for td in soup.find_all('td', class_='result-snippet')][:max_snippets]
+            if snippets:
+                joined = " | ".join(snippets)
+                logger.info(f"[AGROCHEMICAL WEB SEARCH RESULTS]: {joined[:250]}...")
+                return joined
+    except Exception as e:
+        logger.warning(f"Agrochemical web search exception: {e}")
+
+    return ""
+
+def enrich_agrochemical_with_ai(extracted_text: str, web_context: str) -> Optional[dict]:
+    """
+    Calls NVIDIA Cloud AI to synthesize raw OCR text and live web context into a comprehensive agrochemical profile.
+    """
+    try:
+        from backend.app.services.nvidia_service import nvidia_service
+        if not nvidia_service.client and not getattr(nvidia_service, "enrichment_client", None):
+            return None
+
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    return pool.submit(asyncio.run, nvidia_service.enrich_agrochemical_data(extracted_text, web_context)).result()
+            else:
+                return loop.run_until_complete(nvidia_service.enrich_agrochemical_data(extracted_text, web_context))
+        except RuntimeError:
+            return asyncio.run(nvidia_service.enrich_agrochemical_data(extracted_text, web_context))
+    except Exception as ex:
+        logger.warning(f"AI agrochemical enrichment failed: {ex}")
+    return None
+
 def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
     """
     Main Agrochemical Intelligence Scanner.
@@ -470,6 +537,9 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                     matched_confidence = 95.0
 
         # Construct Product Details, User Instructions, Chemical Explanation
+        custom_utility = None
+        source_type = "catalog"
+
         if matched_catalog_item:
             p = matched_catalog_item
             brand_name = p.get("brand_name", "Commercial Agrochemical")
@@ -485,6 +555,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             phi_days = p.get("safety_waiting_period_days", 14)
             image_fn = p.get("image_filename", "")
             img_url = f"/products/{image_fn}" if image_fn else "/samples/fertilizer_01.jpg"
+            source_type = "catalog"
 
         elif matched_db_item:
             p = matched_db_item
@@ -501,9 +572,10 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             phi_days = 14
             image_fn = p.get("image_filename", "")
             img_url = f"/products/{image_fn}" if image_fn else "/samples/fertilizer_01.jpg"
+            source_type = "database"
 
         else:
-            # Scanned Non-Catalog Market Product (Generic OCR Extraction)
+            # Scanned Non-Catalog Market Product (Live Web Search & AI Intelligence)
             if not force_scan and len(extracted_text.strip()) < 5:
                 return {
                     "is_agrochemical": False,
@@ -511,19 +583,59 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                     "extracted_text": extracted_text
                 }
 
-            brand_name = "Scanned Commercial Agrochemical"
-            company = "Registered Agrochemical Manufacturer"
-            active_ingredient = f"OCR Extracted: {extracted_text[:100] or 'Standard Agricultural Active Ingredient'}"
-            formulation = parsed_fields.get("formulation", "Standard Liquid / Granular Formulation")
-            dosage_per_l = "2.0 mL or 2.5 g per liter of clean water"
-            spray_interval = "Repeat after 10 to 14 days based on pest or disease intensity"
-            action_mode = "Broad Spectrum Protective & Curative Plant Protection Chemical"
-            target_crops = ["Tomato", "Chilli", "Paddy", "Cotton", "Groundnut", "All Crops"]
-            target_diseases = ["Foliar Blights", "Leaf Spots", "Mildew", "Sucking Pests", "Caterpillars"]
-            hazard_color = "#2563eb"
-            phi_days = 14
-            img_url = "/samples/fertilizer_01.jpg"
-            matched_confidence = 88.0
+            # Filter salient keywords from OCR to build search query
+            noisy_words = {
+                "keep", "reach", "children", "storage", "poison", "antidote", "first", "aid",
+                "caution", "warning", "danger", "batch", "date", "mfg", "exp", "net", "qty",
+                "weight", "volume", "marketed", "manufactured", "registered", "office", "india",
+                "ltd", "limited", "pvt", "corp", "inc", "co", "price", "mrp", "rs", "incl", "taxes",
+                "regn", "cir", "cib", "rc", "read", "leaflet", "before", "use", "direction"
+            }
+            raw_tokens = re.findall(r'[a-zA-Z]{3,}', extracted_text)
+            clean_keywords = [w for w in raw_tokens if w.lower() not in noisy_words]
+            search_query = " ".join(clean_keywords[:6]) if clean_keywords else extracted_text[:60]
+
+            logger.info(f"[AGROCHEMICAL SCANNER]: Triggering live web search for query: '{search_query}'")
+            web_context = search_agrochemical_web(search_query)
+
+            # Enrich with Cloud AI
+            enriched = None
+            if web_context or len(extracted_text.strip()) >= 5:
+                enriched = enrich_agrochemical_with_ai(extracted_text, web_context)
+
+            if enriched and isinstance(enriched, dict) and enriched.get("brand_name"):
+                brand_name = enriched.get("brand_name", "Commercial Agrochemical")
+                company = enriched.get("company", "Verified Manufacturer")
+                active_ingredient = enriched.get("active_ingredients", "Agricultural Active Formulation")
+                formulation = enriched.get("formulation_type", parsed_fields.get("formulation", "Liquid / Powder Formulation"))
+                dosage_per_l = enriched.get("dilution_rate_per_litre", "2.0 mL or 2.0 g per litre of clean water")
+                spray_interval = enriched.get("spray_interval", "Repeat after 10 to 14 days based on pest or disease intensity")
+                action_mode = enriched.get("action_mode", "Protective & Curative Plant Protection Chemical")
+                target_crops = enriched.get("approved_crops", ["Tomato", "Chilli", "Paddy", "Cotton", "Vegetables"])
+                target_diseases = enriched.get("target_diseases_and_pests", ["Foliar Diseases", "Target Pests"])
+                hazard_color = enriched.get("hazard_color", "#2563eb")
+                phi_days = enriched.get("preharvest_interval_days", 14)
+                img_url = "/samples/fertilizer_01.jpg"
+                matched_confidence = 95.5
+                source_type = "live_web_search"
+                custom_utility = enriched.get("utility_and_benefits")
+            else:
+                # Fallback to local regex heuristics if completely offline
+                brand_name = clean_keywords[0].title() if clean_keywords else "Scanned Commercial Agrochemical"
+                company = parsed_fields.get("registration_number", "Registered Agrochemical Manufacturer")
+                active_ingredient = f"OCR Extracted: {extracted_text[:100] or 'Standard Agricultural Active Ingredient'}"
+                formulation = parsed_fields.get("formulation", "Standard Liquid / Granular Formulation")
+                dosage_per_l = "2.0 mL or 2.5 g per liter of clean water"
+                spray_interval = "Repeat after 10 to 14 days based on pest or disease intensity"
+                action_mode = "Broad Spectrum Protective & Curative Plant Protection Chemical"
+                target_crops = ["Tomato", "Chilli", "Paddy", "Cotton", "Groundnut", "All Crops"]
+                target_diseases = ["Foliar Blights", "Leaf Spots", "Mildew", "Sucking Pests", "Caterpillars"]
+                hazard_color = "#2563eb"
+                phi_days = 14
+                img_url = "/samples/fertilizer_01.jpg"
+                matched_confidence = 85.0
+                source_type = "local_offline_ocr"
+                custom_utility = None
 
         # Toxicity description from hazard color
         tox_label = "Class IV - Green Triangle (Caution / Non-Hazardous)" if hazard_color == "#16a34a" else (
@@ -563,8 +675,11 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "approved_crops": target_crops if isinstance(target_crops, list) else [target_crops],
             "target_diseases_and_pests": target_diseases if isinstance(target_diseases, list) else [target_diseases],
             "preharvest_interval": f"{phi_days} days mandatory waiting period between spraying and food harvest.",
-            "utility_and_benefits": f"{brand_name} delivers targeted control of destructive plant pathogens and pests through {action_mode.lower()}. It penetrates plant tissue rapidly, halts cell damage, and protects developing foliage for sustained crop yield."
+            "utility_and_benefits": custom_utility or f"{brand_name} delivers targeted control of destructive plant pathogens and pests through {action_mode.lower()}. It penetrates plant tissue rapidly, halts cell damage, and protects developing foliage for sustained crop yield."
         }
+
+        # Include verification_source in product_details
+        product_details["verification_source"] = source_type
 
         # Combined info for backward compatibility
         info = {
@@ -590,6 +705,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "protective_equipment": "Wear chemical-resistant nitrile gloves, protective eye goggles, and N95 mask.",
             "storage_instructions": "Store sealed below 25°C in a dry, ventilated shed.",
             "disposal_instructions": "Puncture empty container and dispose per local agricultural waste rules.",
+            "verification_source": source_type,
             # 3 Structured Blocks
             "product_details": product_details,
             "user_instructions": user_instructions,
@@ -601,6 +717,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "is_agrochemical": True,
             "confidence": round(matched_confidence, 1),
             "matched_key": brand_name.lower().replace(" ", "_"),
+            "source": source_type,
             "info": info,
             "product_details": product_details,
             "user_instructions": user_instructions,

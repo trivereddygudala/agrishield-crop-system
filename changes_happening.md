@@ -2,6 +2,29 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-17 (v163) - Core Enhancement: Live Web Search & Network AI Fallback for Agrochemical Scanner (Any Market Chemical)
+- **Summary:** Upgraded the Agrochemical Scanner from a fixed 36-product offline matcher into a dynamic, open-world chemical intelligence system that can identify, explain, and instruct on ANY commercial agrochemical photographed:
+  1. 🌐 **Live Web Search Crawler Integration (`agrochemical_detector.py`):**
+     - Implemented `search_agrochemical_web(query: str)` using DuckDuckGo Lite crawler to query live agricultural and chemical databases for brand names, active ingredients, approved crops, and usage guidelines directly from label OCR tokens.
+     - Automatically cleans OCR noisy words and constructs targeted search queries for unlisted products.
+  2. 🧠 **NVIDIA Cloud AI Enrichment Engine (`nvidia_service.py` & `agrochemical_detector.py`):**
+     - Implemented `enrich_agrochemical_data(ocr_text: str, web_context: str)` on `NVIDIAService` with dedicated high-timeout client (`self.enrichment_client` with 15.0s timeout).
+     - Synthesizes raw OCR text and live web snippets into the strictly structured 3-section output:
+       * **Section 1: Product Details:** Commercial Brand Name, Manufacturer/Company, Technical Active Ingredient & Concentration, Formulation Type (WP, EC, SC, SL, WDG, Granules), Batch Number, Mfg & Expiry Dates, Net Quantity, and Toxicity Hazard Classification.
+       * **Section 2: User Instructions (How to Use):** *Strictly enforces dilution rate per single 1L of clean water only* (e.g. `1.0 mL / L` or `2.0 g / L`), 5-step mixing guide, morning/evening spray timing, 10–14 day repeat intervals, and PPE safety precautions. *Zero mention of dosage per acre or 20L backpack pump.*
+       * **Section 3: Chemical Explanation & Utility:** Mode of Action (Systemic, Contact, Translaminar, Protective & Curative), Approved Target Crops, Target Pests/Diseases controlled, Pre-Harvest Interval (PHI) waiting period, and detailed agricultural benefits.
+  3. 🛡️ **Dual Intelligence Architecture & Verification Badges (`AgrochemicalResults.jsx`):**
+     - Retains instant 0ms lookup for the 36 certified AgriShield catalog products.
+     - Adds visual verification badges in the frontend: `🌐 Live Web & AI Verified` (cyan) for web-enriched products vs `🛡️ Certified Catalog Product` (emerald green) for catalog products.
+  4. 🐛 **Legacy Bug Fix (`predict.py`):**
+     - Removed obsolete call to non-existent `nvidia_service.parse_agrochemical_ocr` which previously caused silent `AttributeError` exceptions.
+  5. 🧪 **Validation:**
+     - Verified `search_agrochemical_web`: successfully retrieves live snippets for FMC Coragen, Amistar Top, Tracer, etc.
+     - Verified `enrich_agrochemical_with_ai` on Corteva Tracer: successfully structured Spinosad 45% SC, 1.0 mL/L dilution, crops, and action mode in 7.7s.
+     - Verified `detect_agrochemical` on catalog image `saaf_upl.jpg`: returns catalog result with 98.5% confidence and 0ms lookup.
+     - Verified frontend build with `npm run build`: built in 20.42s with 0 errors.
+- **Files modified**: `backend/app/services/agrochemical_detector.py`, `backend/app/services/nvidia_service.py`, `backend/app/routers/predict.py`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `changes_happening.md`.
+
 ## 2026-09-17 (v162) - Core Enhancement: WGS-84 Exact Field Area Calculator (Dual Surveying Modes & Village Search) & Plant/Crop Identification Fix (Chilli & Botanical Net)
 - **Summary:** Upgraded the Field Area Calculator to 100% survey-grade accuracy and resolved identification errors for Chilli and other crops:
   1. 📐 **Field Area Calculator Precision & Dual Surveying Modes (`FieldBoundaryMap.jsx` & `FieldAreaCalculatorPage.jsx`):**
