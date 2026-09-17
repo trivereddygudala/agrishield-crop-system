@@ -62,23 +62,31 @@ const SCAN_MODULES = [
   }
 ];
 
-// Fully Reactive Global Store to persist scan state + background loading across tab navigation
+const defaultTabState = () => ({
+  selectedFile: null,
+  previewUrl: null,
+  hasScanned: false,
+  liveResult: null,
+  loading: false,
+  errorMsg: '',
+  compressionInfo: null
+});
+
+// Fully Reactive Global Store to persist scan state + background loading across tab navigation (Tab-Isolated)
 const scanStore = {
   state: {
     activeTab: 'overview',
     scanMode: 'single', // 'single' | 'multi'
     batchSamples: [],
     batchResult: null,
-    selectedFile: null,
-    previewUrl: null,
-    hasScanned: false,
-    liveResult: null,
-    loading: false,
-    errorMsg: '',
     selectedCropFilter: '',
-    compressionInfo: null,
     plantType: 'crop', // 'crop' | 'tree' (for Plant ID tab)
-    selectedTreeFilter: ''
+    selectedTreeFilter: '',
+    tabs: {
+      'disease-diag': defaultTabState(),
+      'plant-id': defaultTabState(),
+      'agro-scan': defaultTabState()
+    }
   },
   listeners: new Set(),
   subscribe(listener) {
@@ -90,6 +98,21 @@ const scanStore = {
   },
   setState(newState) {
     scanStore.state = { ...scanStore.state, ...newState };
+    scanStore.listeners.forEach((l) => l());
+  },
+  setTabState(tabId, updates) {
+    const currentTabs = scanStore.state.tabs || {};
+    const targetTab = currentTabs[tabId] || defaultTabState();
+    scanStore.state = {
+      ...scanStore.state,
+      tabs: {
+        ...currentTabs,
+        [tabId]: {
+          ...targetTab,
+          ...updates
+        }
+      }
+    };
     scanStore.listeners.forEach((l) => l());
   }
 };
@@ -107,11 +130,24 @@ const UploadImagePage = () => {
   
   const { 
     activeTab, scanMode = 'single', batchSamples = [], batchResult,
-    selectedFile, previewUrl, 
-    hasScanned, liveResult, loading, errorMsg,
-    selectedCropFilter, compressionInfo,
-    plantType = 'crop', selectedTreeFilter = ''
+    selectedCropFilter,
+    plantType = 'crop', selectedTreeFilter = '',
+    tabs = {}
   } = state;
+
+  // Isolate current module state completely so disease diagnosis, plant ID, and agrochemical scanner never mix up!
+  const currentTab = ['disease-diag', 'plant-id', 'agro-scan'].includes(activeTab) ? activeTab : 'disease-diag';
+  const currentTabState = tabs[currentTab] || defaultTabState();
+
+  const {
+    selectedFile,
+    previewUrl,
+    hasScanned,
+    liveResult,
+    loading,
+    errorMsg,
+    compressionInfo
+  } = currentTabState;
 
   const isTe = i18n?.language === 'te';
   const currentModule = SCAN_MODULES.find(m => m.id === activeTab);
@@ -157,13 +193,13 @@ const UploadImagePage = () => {
     if (!file) return false;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      scanStore.setState({ errorMsg: 'Invalid file format. Please select a JPG, JPEG, PNG, or WEBP image.' });
+      scanStore.setTabState(activeTab, { errorMsg: 'Invalid file format. Please select a JPG, JPEG, PNG, or WEBP image.' });
       return false;
 
     }
     // Allow up to 30MB phone photos because in-browser compression downsamples it instantly
     if (file.size > 30 * 1024 * 1024) {
-      scanStore.setState({ errorMsg: 'File size exceeds 30MB. Please select a smaller photo.' });
+      scanStore.setTabState(activeTab, { errorMsg: 'File size exceeds 30MB. Please select a smaller photo.' });
       return false;
     }
     return true;
@@ -176,27 +212,29 @@ const UploadImagePage = () => {
       const compressResult = await compressImageForUpload(file);
       const effectiveFile = compressResult.file;
 
-      scanStore.setState({
+      scanStore.setTabState(activeTab, {
         selectedFile: effectiveFile,
         previewUrl: URL.createObjectURL(effectiveFile),
         compressionInfo: compressResult,
         errorMsg: '',
-        hasScanned: false
+        hasScanned: false,
+        liveResult: null
       });
     } catch (err) {
       console.warn("Auto-compression fallback to original:", err);
-      scanStore.setState({
+      scanStore.setTabState(activeTab, {
         selectedFile: file,
         previewUrl: URL.createObjectURL(file),
         compressionInfo: null,
         errorMsg: '',
-        hasScanned: false
+        hasScanned: false,
+        liveResult: null
       });
     }
   };
 
   const clearSelection = () => {
-    scanStore.setState({
+    scanStore.setTabState(activeTab, {
       selectedFile: null,
       previewUrl: null,
       compressionInfo: null,
@@ -207,23 +245,25 @@ const UploadImagePage = () => {
   };
 
   const loadSampleImage = async (samplePath = '/samples/chilli_leaf_spot.jpg', crop = 'Chilli') => {
-    scanStore.setState({ errorMsg: '' });
+    scanStore.setTabState(activeTab, { errorMsg: '' });
     try {
       const response = await fetch(samplePath);
       if (!response.ok) throw new Error();
       const blob = await response.blob();
       const fileName = samplePath.split('/').pop() || 'sample_crop_leaf.jpg';
       const file = new File([blob], fileName, { type: 'image/jpeg' });
-      scanStore.setState({
+      scanStore.setTabState(activeTab, {
         selectedFile: file,
         previewUrl: URL.createObjectURL(file),
         compressionInfo: null,
-        selectedCropFilter: crop || '',
         hasScanned: false,
         liveResult: null
       });
+      if (crop) {
+        scanStore.setState({ selectedCropFilter: crop });
+      }
     } catch {
-      scanStore.setState({ errorMsg: 'Failed to load sample image.' });
+      scanStore.setTabState(activeTab, { errorMsg: 'Failed to load sample image.' });
     }
   };
 
@@ -316,7 +356,7 @@ const UploadImagePage = () => {
 
   const handleStartScan = async () => {
     if (!selectedFile) {
-      scanStore.setState({ hasScanned: true });
+      scanStore.setTabState(activeTab, { hasScanned: true });
       return;
     }
 
@@ -326,7 +366,7 @@ const UploadImagePage = () => {
 
     // Check if offline before initiating network requests
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      scanStore.setState({ loading: true, errorMsg: '' });
+      scanStore.setTabState(activeTab, { loading: true, errorMsg: '' });
       try {
         let offlineResult = null;
         if (activeTab === 'disease-diag' && previewUrl) {
@@ -346,7 +386,7 @@ const UploadImagePage = () => {
         });
 
         if (offlineResult) {
-          scanStore.setState({
+          scanStore.setTabState(activeTab, {
             liveResult: offlineResult,
             hasScanned: true,
             loading: false,
@@ -354,7 +394,7 @@ const UploadImagePage = () => {
           });
           return;
         } else {
-          scanStore.setState({
+          scanStore.setTabState(activeTab, {
             errorMsg: '📡 Offline Field Mode: Photo saved to offline queue. It will automatically upload and analyze when internet connection is restored!',
             loading: false
           });
@@ -362,11 +402,11 @@ const UploadImagePage = () => {
         }
       } catch (queueErr) {
         console.error("Failed to run offline diagnosis or queue scan:", queueErr);
-        scanStore.setState({ loading: false });
+        scanStore.setTabState(activeTab, { loading: false });
       }
     }
 
-    scanStore.setState({ loading: true, errorMsg: '' });
+    scanStore.setTabState(activeTab, { loading: true, errorMsg: '' });
 
     let fileToUpload = selectedFile;
     try {
@@ -416,9 +456,10 @@ const UploadImagePage = () => {
       }
 
       const predictRes = await API.post(endpoint, payload);
-      scanStore.setState({
+      scanStore.setTabState(activeTab, {
         liveResult: predictRes.data,
-        hasScanned: true
+        hasScanned: true,
+        loading: false
       });
     } catch (err) {
       console.warn("Backend error during scan:", err);
@@ -446,7 +487,7 @@ const UploadImagePage = () => {
           });
 
           if (offlineResult) {
-            scanStore.setState({
+            scanStore.setTabState(activeTab, {
               liveResult: offlineResult,
               hasScanned: true,
               loading: false,
@@ -454,7 +495,7 @@ const UploadImagePage = () => {
             });
             return;
           } else {
-            scanStore.setState({
+            scanStore.setTabState(activeTab, {
               errorMsg: '📡 Field Offline Mode: Photo saved to offline queue. It will auto-sync when connection returns!',
               hasScanned: false,
               liveResult: null,
@@ -478,13 +519,14 @@ const UploadImagePage = () => {
       } else if (err.message) {
         newError = err.message;
       }
-      scanStore.setState({
+      scanStore.setTabState(activeTab, {
         errorMsg: newError,
         hasScanned: false,
-        liveResult: null
+        liveResult: null,
+        loading: false
       });
     } finally {
-      scanStore.setState({ loading: false });
+      scanStore.setTabState(activeTab, { loading: false });
     }
   };
 
@@ -780,7 +822,7 @@ const UploadImagePage = () => {
                   )}
 
                   {activeTab === 'agro-scan' && (
-                    <AgrochemicalResults liveResult={liveResult} />
+                    <AgrochemicalResults data={liveResult} />
                   )}
                 </motion.div>
               ) : (

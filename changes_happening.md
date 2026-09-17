@@ -2,6 +2,17 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-17 (v161) - Fix: Strict Tab State Isolation in AI Scan Center (Disease Diagnosis, Plant ID & Agrochemical Scanner)
+- **Summary:** Resolved cross-tab result leakage and state collision across the three AI Scan Center modules:
+  1. 🛡️ **Tab State Isolation (`frontend/src/pages/UploadImagePage.jsx`):**
+     - Previously, `selectedFile`, `previewUrl`, `hasScanned`, `liveResult`, `loading`, and `errorMsg` were stored in a single shared object. Executing a disease diagnosis in `disease-diag` caused the disease report to leak into `plant-id` and `agro-scan`.
+     - Refactored `scanStore` to maintain separate, isolated states per module: `tabs['disease-diag']`, `tabs['plant-id']`, and `tabs['agro-scan']`.
+     - Updated all upload, scanning, and reset actions (`handleFileSelect`, `clearSelection`, `loadSampleImage`, `handleStartScan`) to operate strictly via `scanStore.setTabState(activeTab, ...)`.
+     - When switching between tabs, each module presents its own independent uploader or its own dedicated results without cross-contamination.
+  2. 🧪 **Validation:**
+     - Verified with `npm run build`: bundle compiled cleanly in 20.05s with 0 errors.
+- **Files modified**: `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`.
+
 ## 2026-09-17 (v160) - Core Enhancement: Agrochemical Scanner 3-Section Restructure, PyTorch 1,252-Class Plant/Weed Identification & Responsive Disease Reference Gallery
 - **Summary:** Upgraded the AI Scan Center to resolve inaccuracies in Agrochemical scanning and Plant/Weed identification, and enhanced the diagnosis results with responsive image sizing and verified reference photos:
   1. 🧪 **Agrochemical Scanner 3-Section Intelligence (`agrochemical_detector.py` & `AgrochemicalResults.jsx`):**
