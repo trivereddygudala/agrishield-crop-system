@@ -139,6 +139,15 @@ def parse_class_label(class_label: str):
     known_general_pests = ["Tarnished_Plant_Bug", "Green_Stinkbug"]
     if clean_label in known_general_pests:
         return "General Plant", clean_label.replace("_", " ").title(), "diseased"
+
+    # Known edge cases where crop is at the end or has special prefix:
+    # e.g. Fruit_Anthracnose_Mango -> ("Mango", "Anthracnose", "diseased")
+    if clean_label.startswith("Fruit_") or clean_label.startswith("fruit_"):
+        parts = clean_label.split("_")
+        if len(parts) >= 3 and parts[-1].lower() in ["mango", "papaya", "banana", "guava", "apple", "citrus", "grape"]:
+            crop = parts[-1].title()
+            disease_raw = " ".join(parts[1:-1]).strip()
+            return crop, disease_raw.replace("_", " ").title(), "diseased"
     
     if "___" in clean_label:
         parts = clean_label.split("___")
@@ -156,10 +165,27 @@ def parse_class_label(class_label: str):
         crop = clean_label.title()
         disease_raw = "General Condition"
 
+    # Normalize crop name variants
+    c_low = crop.lower()
+    if "corn" in c_low or "maize" in c_low:
+        crop = "Corn"
+    elif "pepper" in c_low or "capsicum" in c_low:
+        crop = "Chilli" if "chilli" in c_low or "chili" in c_low else "Bell Pepper"
+    elif "soyabean" in c_low or "soybean" in c_low:
+        crop = "Soybean"
+    elif "potato" in c_low:
+        crop = "Potato"
+    elif "tomato" in c_low:
+        crop = "Tomato"
+    elif "rice" in c_low or "paddy" in c_low:
+        crop = "Rice"
+    elif "grape" in c_low:
+        crop = "Grape"
+
     if crop.lower() in ["negative", "background", "other", "unknown"]:
         return "Unknown", "Unsupported crop or non-plant image", "unsupported"
 
-    if disease_raw.lower() in ["healthy", "normal"]:
+    if disease_raw.lower() in ["healthy", "normal", "leaf"]:
         disease_name = "Healthy"
         status = "healthy"
     elif any(k in disease_raw.lower() for k in ["negative", "other", "background"]):

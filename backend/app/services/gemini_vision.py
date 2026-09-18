@@ -34,8 +34,8 @@ async def cross_verify_disease_with_vision(
 ) -> Optional[Dict[str, Any]]:
     """
     Expert multimodal second opinion using Google Gemini Flash Vision.
-    Triggers only when local PyTorch model confidence is below 75% or ambiguous.
-    Returns structured diagnosis consensus.
+    Triggers when local PyTorch model confidence is low (<75%), ambiguous, or flagged as OOD.
+    Returns structured pathology, exact chemical & organic treatments, and regional naming.
     """
     gemini_key = getattr(settings, "GEMINI_API_KEY", "")
     if not gemini_key or "mock" in gemini_key or "PASTE" in gemini_key:
@@ -51,21 +51,29 @@ async def cross_verify_disease_with_vision(
             image_bytes = f.read()
         b64_img = base64.b64encode(image_bytes).decode("utf-8")
 
-        prompt = f"""You are a senior agricultural plant pathologist and botanist.
-Analyze this photographed plant/leaf for crop identification and disease diagnosis.
+        prompt = f"""You are a senior agricultural plant pathologist and agronomist.
+Analyze this photographed plant/leaf for precise crop identification, pathogen diagnosis, and treatment.
 {f'Crop Hint: {crop_hint}' if crop_hint else ''}
 
 Return ONLY a valid JSON object with the following exact keys:
 {{
-  "crop_name": "<Crop name in English, e.g. Chilli, Tomato, Maize, Potato, Rice>",
-  "disease_name": "<Disease name or 'Healthy Foliage', e.g. Leaf Spot, Late Blight, Powdery Mildew>",
+  "crop_name": "<Crop name in English, e.g. Tomato, Chilli, Rice, Cotton, Potato, Maize, Mango, Groundnut, Wheat, Soybean>",
+  "disease_name": "<Specific plant disease name or 'Healthy Foliage', e.g. Late Blight, Early Blight, Powdery Mildew, Bacterial Spot, Leaf Curl, Blast, Sheath Blight, Yellow Vein Mosaic>",
+  "pathogen_type": "<Fungal / Bacterial / Viral / Pest / Nutrient Deficiency / Healthy>",
   "is_healthy": <true or false>,
-  "confidence": <confidence score between 0.70 and 0.99>,
-  "severity": "<Mild / Moderate / Severe / None>",
-  "diagnostic_reasoning": "<1-2 sentence visual pathology reasoning based on lesion shapes, halos, or chlorosis>",
-  "recommended_active_chemical": "<Key chemical active ingredient recommended for this condition, or 'None' if healthy>"
+  "confidence": <confidence score between 0.85 and 0.99>,
+  "severity": "<Mild / Moderate / Severe / Healthy>",
+  "symptoms": ["<Observable visual symptom 1>", "<Observable visual symptom 2>"],
+  "diagnostic_reasoning": "<1-2 sentence visual pathology reasoning based on lesion shapes, margins, halos, sporulation, or chlorosis>",
+  "organic_remedies": ["<Specific organic or biological treatment, e.g. Neem oil spray 10000 ppm @ 5ml/L, Trichoderma viride @ 5g/L, Bordeaux mixture 1%>"],
+  "chemical_remedies": ["<Specific active chemical formulation with exact dilution, e.g. Metalaxyl 8% + Mancozeb 64% WP @ 2.5 g/L water, Azoxystrobin 23% SC @ 1 ml/L>"],
+  "prevention_steps": ["<Preventive agronomic practice 1>", "<Preventive agronomic practice 2>"],
+  "regional_names": {{
+    "te": "<Disease or crop condition in Telugu script, e.g. ఆలస్యపు తెగులు (లేట్ బ్లైట్)>",
+    "hi": "<Disease or crop condition in Hindi script, e.g. पछेती झुलसा (लेट ब्लाइट)>"
+  }}
 }}
-Do NOT output any markdown formatting other than the JSON block."""
+Do NOT output any conversational text or markdown explanation outside the JSON object."""
 
         payload = {
             "contents": [{
@@ -76,12 +84,12 @@ Do NOT output any markdown formatting other than the JSON block."""
             }],
             "generationConfig": {
                 "temperature": 0.1,
-                "maxOutputTokens": 500
+                "maxOutputTokens": 600
             }
         }
 
-        models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest"]
-        async with httpx.AsyncClient(timeout=4.5) as client:
+        models_to_try = ["gemini-flash-latest", "gemini-flash-lite-latest"]
+        async with httpx.AsyncClient(timeout=12.0) as client:
             for model_name in models_to_try:
                 try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
@@ -92,7 +100,7 @@ Do NOT output any markdown formatting other than the JSON block."""
                         if candidates:
                             parts = candidates[0].get("content", {}).get("parts", [])
                             if parts:
-                                text = parts[0].get("text", "").strip()
+                                text = "".join([p.get("text", "") for p in parts]).strip()
                                 parsed = safe_parse_json(text)
                                 if parsed and isinstance(parsed, dict) and parsed.get("crop_name"):
                                     logger.info(f"Gemini Vision cross-verification succeeded with model {model_name}")

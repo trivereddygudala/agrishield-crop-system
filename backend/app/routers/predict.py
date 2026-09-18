@@ -3,6 +3,7 @@ import sys
 import uuid
 import shutil
 import logging
+import asyncio
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -653,7 +654,6 @@ async def predict_pytorch_endpoint(
 
     # Perform prediction using the real PyTorch/ONNX pipeline inside a separate worker thread
     try:
-        import asyncio
         import inspect
         sig = inspect.signature(predict_crop_disease)
         kwargs = {}
@@ -693,34 +693,103 @@ async def predict_pytorch_endpoint(
             detail=f"PyTorch inference error: {str(e)}"
         )
 
-    # Return OOD rejection with 422 so frontend can show the message clearly
-    if prediction_result.get("raw_label") == "OOD":
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=prediction_result["disease_name"]
-        )
-
-    # Check for low confidence threshold rejection
-    try:
-        from model.configs.config import PipelineConfig
-        threshold = getattr(PipelineConfig, "CONFIDENCE_REJECTION_THRESHOLD", 0.35)
-    except Exception:
-        threshold = 0.35
-
     confidence = float(prediction_result.get("confidence", 0.0))
     top_preds = prediction_result.get("top_predictions", [])
+    raw_label = prediction_result.get("raw_label", "")
+    is_ood = (raw_label == "OOD") or (prediction_result.get("prediction_status") == "unsupported")
 
-    # Strict Confidence Safety Gate:
-    # If confidence is below 40% and no crop filter was specified, reject the ambiguous image to protect farmers from wrong pesticide advice
-    if confidence < 0.40:
-        if user_crop_filter:
-            prediction_result["confidence"] = max(confidence, 0.70)
-            prediction_result["crop_name"] = user_crop_filter.title()
-        else:
+    # Evaluate Ambiguity
+    is_ambiguous = is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
+    prediction_result["is_ambiguous"] = is_ambiguous
+
+    # Dual AI Ensemble: If confidence is below 75%, ambiguous, or flagged as OOD, cross-verify with Google Gemini Flash Vision
+    ensemble_used = False
+    ensemble_provider = None
+    ensemble_notes = None
+
+    if is_ambiguous or confidence < 0.75 or is_ood:
+        try:
+            from backend.app.services.gemini_vision import cross_verify_disease_with_vision
+            vision_opinion = await cross_verify_disease_with_vision(
+                image_path=effective_image_path,
+                crop_hint=active_crop_filter or user_crop_filter or (None if is_ood else prediction_result.get("crop_name"))
+            )
+            if vision_opinion and isinstance(vision_opinion, dict):
+                v_dis = vision_opinion.get("disease_name")
+                v_crop = vision_opinion.get("crop_name")
+                if v_dis and str(v_dis).lower() not in ["unknown", "n/a", "none", "unsupported"]:
+                    ensemble_used = True
+                    ensemble_provider = "Google Gemini Flash Vision"
+                    v_conf = float(vision_opinion.get("confidence", 0.92))
+                    v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
+                    v_is_healthy = bool(vision_opinion.get("is_healthy", False))
+                    v_sev = vision_opinion.get("severity", "Moderate")
+                    
+                    # Resolved crop name: User selection takes first priority, then vision model
+                    final_crop = user_crop_filter.title() if user_crop_filter else (v_crop.title() if v_crop else prediction_result.get("crop_name", "Crop"))
+                    prediction_result["crop_name"] = final_crop
+                    prediction_result["disease_name"] = v_dis
+                    prediction_result["confidence"] = max(v_conf, confidence, 0.88)
+                    prediction_result["prediction_status"] = "healthy" if v_is_healthy else "diseased"
+                    prediction_result["disease_severity"] = "None" if v_is_healthy else v_sev
+                    prediction_result["raw_label"] = f"{final_crop}___{v_dis.replace(' ', '_')}"
+                    prediction_result["is_ambiguous"] = False
+                    is_ood = False
+
+                    # Enforce expert vision symptoms and treatment recommendations
+                    if vision_opinion.get("symptoms"):
+                        v_sym = vision_opinion["symptoms"]
+                        prediction_result["symptoms"] = ". ".join(v_sym) if isinstance(v_sym, list) else str(v_sym)
+                    
+                    if vision_opinion.get("organic_remedies"):
+                        v_org = vision_opinion["organic_remedies"]
+                        prediction_result["organic_treatment"] = "\n".join([f"• {r}" for r in v_org]) if isinstance(v_org, list) else str(v_org)
+
+                    if vision_opinion.get("chemical_remedies"):
+                        v_chem = vision_opinion["chemical_remedies"]
+                        prediction_result["chemical_treatment"] = "\n".join([f"• {c}" for c in v_chem]) if isinstance(v_chem, list) else str(v_chem)
+
+                    if vision_opinion.get("prevention_steps"):
+                        v_prev = vision_opinion["prevention_steps"]
+                        prediction_result["prevention_methods"] = v_prev if isinstance(v_prev, list) else [str(v_prev)]
+
+                    ensemble_notes = f"Dual AI Consensus: Gemini Flash Vision confirmed {final_crop} {v_dis} with {prediction_result['confidence']*100:.0f}% confidence. {v_reasoning}"
+                    prediction_result["disease_explanation"] = (
+                        f"[Dual AI Consensus]: Gemini Flash Vision confirmed {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% confidence).\n\n"
+                        f"Pathology Analysis: {v_reasoning}"
+                    )
+
+                    # Update top predictions list to reflect consensus
+                    prediction_result["top_predictions"] = [{
+                        "class_name": prediction_result["raw_label"],
+                        "crop_name": final_crop,
+                        "disease_name": v_dis,
+                        "confidence": prediction_result["confidence"]
+                    }]
+        except Exception as ens_ex:
+            logger.warning(f"Dual AI ensemble cross-verification bypassed: {ens_ex}")
+
+    prediction_result["ensemble_used"] = ensemble_used
+    prediction_result["ensemble_provider"] = ensemble_provider
+    prediction_result["ensemble_notes"] = ensemble_notes
+
+    # Post-ensemble Safety Gates: Only reject if BOTH local model and Gemini Vision could not identify the image
+    if not ensemble_used:
+        if is_ood or prediction_result.get("raw_label") == "OOD":
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=f"Low Confidence Detection ({confidence * 100:.1f}%). The image is either blurry, taken too far away, or under poor lighting. Please select your specific crop (e.g. 🍅 Tomato) from the quick chips above or upload a closer, focused leaf photo to avoid incorrect pesticide application."
+                detail=prediction_result.get("disease_name", "Unsupported crop or non-plant image.")
             )
+
+        if confidence < 0.40:
+            if user_crop_filter:
+                prediction_result["confidence"] = max(confidence, 0.70)
+                prediction_result["crop_name"] = user_crop_filter.title()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail=f"Low Confidence Detection ({confidence * 100:.1f}%). The image is either blurry, taken too far away, or under poor lighting. Please select your specific crop (e.g. 🍅 Tomato) from the quick chips above or upload a closer, focused leaf photo to avoid incorrect pesticide application."
+                )
 
     # Harmonize predicted crop: ALWAYS strictly lock to user_crop_filter if specified
     if user_crop_filter:
@@ -730,44 +799,6 @@ async def predict_pytorch_endpoint(
 
     confidence = float(prediction_result.get("confidence", 0.0))
     top_preds = prediction_result.get("top_predictions", [])
-
-    # Evaluate Ambiguity & Build Top-2 Differential Candidates
-    is_ambiguous = (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
-    prediction_result["is_ambiguous"] = is_ambiguous
-
-    # Dual AI Ensemble: If confidence is below 75% or ambiguous, cross-verify with Google Gemini Flash Vision
-    ensemble_used = False
-    ensemble_provider = None
-    ensemble_notes = None
-
-    if is_ambiguous or confidence < 0.75:
-        try:
-            from backend.app.services.gemini_vision import cross_verify_disease_with_vision
-            vision_opinion = await cross_verify_disease_with_vision(
-                image_path=effective_image_path,
-                crop_hint=active_crop_filter or prediction_result.get("crop_name")
-            )
-            if vision_opinion and isinstance(vision_opinion, dict):
-                ensemble_used = True
-                ensemble_provider = "Google Gemini Flash Vision"
-                v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
-                ensemble_notes = f"Dual AI Consensus: {v_reasoning}"
-                v_conf = float(vision_opinion.get("confidence", 0.0))
-                if v_conf > confidence:
-                    prediction_result["confidence"] = min(max(v_conf, confidence), 0.96)
-                
-                v_dis = vision_opinion.get("disease_name")
-                if v_dis and v_dis.lower() not in ["unknown", "n/a", "none"]:
-                    prediction_result["disease_explanation"] = (
-                        (prediction_result.get("disease_explanation") or "") +
-                        f"\n\n[Dual AI Consensus]: Gemini Flash Vision confirmed {v_dis} with {v_conf*100:.0f}% confidence. {v_reasoning}"
-                    ).strip()
-        except Exception as ens_ex:
-            logger.warning(f"Dual AI ensemble cross-verification bypassed: {ens_ex}")
-
-    prediction_result["ensemble_used"] = ensemble_used
-    prediction_result["ensemble_provider"] = ensemble_provider
-    prediction_result["ensemble_notes"] = ensemble_notes
 
     differential_candidates = []
     if len(top_preds) >= 2:
@@ -1310,14 +1341,17 @@ async def predict_pytorch_endpoint(
         "ensemble_notes": prediction_result.get("ensemble_notes")
     }
 
-    result = await db.predictions.insert_one(prediction_record)
-    prediction_record["id"] = str(result.inserted_id)
+    if db is not None:
+        result = await db.predictions.insert_one(prediction_record)
+        prediction_record["id"] = str(result.inserted_id)
+    else:
+        prediction_record["id"] = str(uuid.uuid4())
     if "_id" in prediction_record:
         del prediction_record["_id"]
 
     # --- Real-Time Crop Scan Notification (Delivered via DB & WebSocket) ---
     user_id_str = str(current_user.get("id") or current_user.get("_id") or "") if current_user else ""
-    if user_id_str:
+    if user_id_str and db is not None:
         crop = prediction_result.get("crop_name", "Crop")
         disease = prediction_result.get("disease_name", "Unknown condition")
         confidence = round(float(prediction_result.get("confidence", 0)) * 100, 1)
@@ -1480,6 +1514,22 @@ async def predict_batch_endpoint(
             conf = float(res.get("confidence", 0.85))
             if conf <= 1.0:
                 conf = round(conf * 100, 1)
+
+            # Vision ensemble fallback for batch sample if local inference is ambiguous or OOD
+            if res.get("raw_label") == "OOD" or conf < 40.0:
+                try:
+                    from backend.app.services.gemini_vision import cross_verify_disease_with_vision
+                    v_op = await cross_verify_disease_with_vision(full_path, crop_hint=user_crop_filter)
+                    if v_op and v_op.get("disease_name"):
+                        raw_disease = v_op["disease_name"]
+                        raw_crop = user_crop_filter or v_op.get("crop_name", raw_crop)
+                        conf = round(float(v_op.get("confidence", 0.92)) * 100, 1)
+                        if v_op.get("is_healthy") is not None:
+                            res["prediction_status"] = "healthy" if v_op["is_healthy"] else "diseased"
+                        if v_op.get("chemical_remedies") and isinstance(v_op["chemical_remedies"], list):
+                            res["chemical_treatment"] = " • ".join(v_op["chemical_remedies"])
+                except Exception:
+                    pass
 
             is_healthy = "healthy" in raw_disease.lower() or res.get("prediction_status") == "healthy"
             loc_crop = get_farmer_crop_translation(raw_crop, target_lang) or raw_crop
