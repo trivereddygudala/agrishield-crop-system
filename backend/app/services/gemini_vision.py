@@ -117,7 +117,8 @@ Do NOT output any conversational text or markdown explanation outside the JSON o
 async def extract_agrochemical_label_vision(image_path: str) -> Optional[Dict[str, Any]]:
     """
     Reads commercial agrochemical bottle or pouch labels directly using Gemini Vision.
-    Activated when local EasyOCR yields fewer than 3 words on crumpled or glossy containers.
+    Extracts brand, active ingredients, category (Fungicide/Insecticide/Fertilizer/etc.),
+    detailed description, target crops, fertilizer growth stages, 4 mixing steps, and PPE guidelines.
     """
     gemini_key = getattr(settings, "GEMINI_API_KEY", "")
     if not gemini_key or "mock" in gemini_key or "PASTE" in gemini_key:
@@ -136,16 +137,38 @@ Read all visible text on this commercial agrochemical bottle, packet, or caniste
 
 Extract and return ONLY a valid JSON object matching this exact structure:
 {
-  "brand_name": "<Commercial Brand Name on the package, e.g. Coragen, SAAF, Amistar Top, Tracer>",
-  "manufacturer": "<Company / Manufacturer name, e.g. FMC, UPL, Syngenta, Bayer>",
-  "active_ingredients": "<Technical Active chemical formulation with %, e.g. Chlorantraniliprole 18.5% SC, Mancozeb 64% + Carbendazim 12% WP>",
+  "brand_name": "<Commercial Brand Name on the package, e.g. Coragen, SAAF, Amistar Top, Tracer, Mahadhan 19:19:19>",
+  "manufacturer": "<Company / Manufacturer name, e.g. FMC, UPL, Syngenta, Bayer, Mahadhan>",
+  "active_ingredients": "<Technical Active chemical formulation with %, e.g. Chlorantraniliprole 18.5% SC, Mancozeb 64% + Carbendazim 12% WP, NPK 19:19:19>",
   "product_type": "<Fungicide / Insecticide / Herbicide / Fertilizer / Plant Growth Regulator>",
+  "detailed_description": "<3 to 6 comprehensive sentences describing the product, technical mode of action, active molecules, and systemic/contact properties>",
   "target_crops": ["<Crop 1>", "<Crop 2>", "<Crop 3>"],
+  "target_diseases_and_pests": ["<Target pest or disease 1>", "<Target pest or disease 2>"],
   "dilution_rate_per_litre": "<Exact dilution per 1 Litre of clean water only, e.g. 0.4 mL / L or 2.0 g / L. Do NOT write per acre or 20L pump>",
+  "spray_interval": "<Repeat spray frequency, e.g. Repeat after 10 to 14 days if disease or pest pressure continues>",
+  "preharvest_interval_days": 14,
+  "fertilizer_growth_stages": {
+    "vegetative": "<How it helps in vegetative stage, e.g. rapid root expansion, vigorous tillering, and healthy foliage growth>",
+    "flowering": "<How it helps in flowering stage, e.g. prevents flower drop, stimulates bud initiation, and enhances pollination>",
+    "fruiting_grain": "<How it helps in fruiting/grain filling stage, e.g. accelerates fruit sizing, uniform color, brix sweetness, and grain weight>"
+  },
+  "step_by_step_mixing": [
+    "Measure the exact chemical dose needed using a clean measuring scoop or cup.",
+    "Pre-dilute by stirring thoroughly into 2 to 3 litres of clean water in a plastic mixing bucket to form a uniform primary slurry.",
+    "Pour the pre-mixed suspension into the spray tank filled halfway with clean water through the inlet filter strainer.",
+    "Fill the remaining water to the calibrated mark, agitate gently, and spray uniformly over both upper and lower leaf surfaces."
+  ],
+  "ppe_guidelines": [
+    "Wear chemical-resistant rubber/nitrile gloves when handling and mixing concentrate.",
+    "Wear protective safety goggles or transparent shield to protect eyes from accidental splashes.",
+    "Wear an N95 particulate / vapor respirator mask while spraying to avoid inhaling fine chemical mist.",
+    "Wear full-sleeve protective clothing and rubber boots during application.",
+    "Wash hands, face, and spray equipment thoroughly with clean water and soap immediately after spraying."
+  ],
   "toxicity_hazard": "<Green (Caution) / Blue (Warning) / Yellow (Danger) / Red (Poison)>",
   "extracted_text_summary": "<Key visible words and text extracted from the label>"
 }
-Do NOT output conversational text. Output pure JSON only."""
+Do NOT output conversational text or markdown explanation outside the JSON object."""
 
         payload = {
             "contents": [{
@@ -156,12 +179,12 @@ Do NOT output conversational text. Output pure JSON only."""
             }],
             "generationConfig": {
                 "temperature": 0.1,
-                "maxOutputTokens": 600
+                "maxOutputTokens": 800
             }
         }
 
-        models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest"]
-        async with httpx.AsyncClient(timeout=6.0) as client:
+        models_to_try = ["gemini-flash-latest", "gemini-flash-lite-latest"]
+        async with httpx.AsyncClient(timeout=12.0) as client:
             for model_name in models_to_try:
                 try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
@@ -172,7 +195,7 @@ Do NOT output conversational text. Output pure JSON only."""
                         if candidates:
                             parts = candidates[0].get("content", {}).get("parts", [])
                             if parts:
-                                text = parts[0].get("text", "").strip()
+                                text = "".join([p.get("text", "") for p in parts]).strip()
                                 parsed = safe_parse_json(text)
                                 if parsed and isinstance(parsed, dict) and parsed.get("brand_name"):
                                     logger.info(f"Gemini Vision agrochemical OCR succeeded with model {model_name}")

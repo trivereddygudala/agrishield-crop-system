@@ -445,9 +445,12 @@ const UploadImagePage = () => {
 
       const payload = {
         image_path: imagePath,
-        language: activeLang,
-        crop_filter: selectedCropFilter || undefined
+        language: activeLang
       };
+
+      if (activeTab === 'disease-diag') {
+        payload.crop_filter = selectedCropFilter || undefined;
+      }
 
       if (activeTab === 'plant-id') {
         payload.plant_type = plantType || 'crop';
@@ -455,6 +458,7 @@ const UploadImagePage = () => {
         if (plantType === 'tree') {
           payload.tree_filter = selectedTreeFilter || undefined;
         }
+        // Strict isolation: Plant identification must always analyze the specimen dynamically without inheriting farm crop filters
       }
 
       const predictRes = await API.post(endpoint, payload);

@@ -32,8 +32,8 @@ class PlantIdentifier:
         Attempts local plant identification using tree/crop filter, filename heuristics,
         color features, and local botanical knowledge base.
         """
-        # 1. Direct filter selection override
-        if plant_type == "tree" and tree_filter and tree_filter.lower() != "all":
+        # 1. Direct filter selection override (Only when user explicitly chooses a specific tree)
+        if plant_type == "tree" and tree_filter and tree_filter.lower() not in ["all", "none", "auto", ""]:
             selected_tree = tree_filter.lower().strip()
             tree_info = get_plant_info(selected_tree)
             if tree_info:
@@ -43,18 +43,6 @@ class PlantIdentifier:
                     "plant_type": "tree",
                     "confidence": 98.5,
                     "plant": tree_info
-                }
-
-        if plant_type == "crop" and crop_filter and crop_filter.lower() != "all":
-            selected_crop = crop_filter.lower().strip()
-            crop_info = get_plant_info(selected_crop)
-            if crop_info:
-                return {
-                    "success": True,
-                    "source": "local",
-                    "plant_type": "crop",
-                    "confidence": 98.0,
-                    "plant": crop_info
                 }
 
         filename = os.path.basename(image_path).lower()
@@ -415,84 +403,84 @@ class PlantIdentifier:
                         if cls_prob < 0.70:
                             continue
 
-                    # 1. Direct Chilli vs Bell Pepper Distinction
-                    if "chilli" in cls_name or "chili" in cls_name or "mirapa" in cls_name:
-                        plant_info = get_plant_info("chilli")
-                        if plant_info:
-                            return {
-                                "success": True,
-                                "source": "local_neural_vision",
-                                "model": "PyTorch 1,252-Class Vision Engine",
-                                "plant_type": "crop",
-                                "confidence": max(round(cls_prob * 100, 1), 97.5),
-                                "plant": plant_info
-                            }
-                    elif "bell_pepper" in cls_name or "pepper__bell" in cls_name or "capsicum" in cls_name:
-                        plant_info = get_plant_info("pepper")
-                        if plant_info:
-                            return {
-                                "success": True,
-                                "source": "local_neural_vision",
-                                "model": "PyTorch 1,252-Class Vision Engine",
-                                "plant_type": "crop",
-                                "confidence": max(round(cls_prob * 100, 1), 97.0),
-                                "plant": plant_info
-                            }
-
-                    # 2. Agricultural Weeds Check
-                    if any(w in cls_name for w in ["weed", "parthenium", "amaranthus", "grass", "cyperus", "trianthema", "commelina", "chickweed", "mayweed"]):
-                        weed_key = "parthenium"
-                        if "amaranthus" in cls_name:
-                            weed_key = "amaranthus_spinosus"
-                        elif "cyperus" in cls_name or "nut_grass" in cls_name:
-                            weed_key = "nut_grass"
-                        elif "bermuda" in cls_name or "garika" in cls_name:
-                            weed_key = "bermuda_grass"
-                        elif "trianthema" in cls_name or "galijeru" in cls_name:
-                            weed_key = "trianthema"
-                        elif "commelina" in cls_name or "vennedevi" in cls_name:
-                            weed_key = "commelina"
-                        
-                        plant_info = get_plant_info(weed_key)
-                        if plant_info:
-                            return {
-                                "success": True,
-                                "source": "local_neural_vision",
-                                "model": "PyTorch 1,252-Class Vision Engine",
-                                "plant_type": "crop",
-                                "is_weed": True,
-                                "confidence": max(round(cls_prob * 100, 1), 96.5),
-                                "plant": plant_info
-                            }
-
-                    # 3. Native Regional Trees Check
-                    for tree_key in ["neem", "tamarind", "banyan", "peepal", "teak", "red_sanders", "jamun", "rosewood", "babool", "subabul", "eucalyptus", "casuarina", "pongamia", "gulmohar", "rain_tree", "sandalwood", "palmyra", "ficus", "acacia"]:
-                        if tree_key in cls_name:
-                            plant_info = get_plant_info(tree_key)
+                        # 1. Direct Chilli vs Bell Pepper Distinction
+                        if "chilli" in cls_name or "chili" in cls_name or "mirapa" in cls_name:
+                            plant_info = get_plant_info("chilli")
                             if plant_info:
                                 return {
                                     "success": True,
                                     "source": "local_neural_vision",
                                     "model": "PyTorch 1,252-Class Vision Engine",
-                                    "plant_type": "tree",
-                                    "confidence": max(round(cls_prob * 100, 1), 96.5),
+                                    "plant_type": "crop",
+                                    "confidence": max(round(cls_prob * 100, 1), 97.5),
                                     "plant": plant_info
                                 }
-
-                    # 4. Crops & Vegetables Check
-                    for crop_key, db_key in crop_to_botanical.items():
-                        if crop_key in cls_name:
-                            plant_info = get_plant_info(db_key)
+                        elif "bell_pepper" in cls_name or "pepper__bell" in cls_name or "capsicum" in cls_name:
+                            plant_info = get_plant_info("pepper")
                             if plant_info:
-                                inferred_type = "tree" if any(t in (plant_info.get("category") or "").lower() for t in ["tree", "చెట్టు", "వృక్ష"]) else "crop"
                                 return {
                                     "success": True,
                                     "source": "local_neural_vision",
                                     "model": "PyTorch 1,252-Class Vision Engine",
-                                    "plant_type": inferred_type,
+                                    "plant_type": "crop",
+                                    "confidence": max(round(cls_prob * 100, 1), 97.0),
+                                    "plant": plant_info
+                                }
+
+                        # 2. Agricultural Weeds Check
+                        if any(w in cls_name for w in ["weed", "parthenium", "amaranthus", "grass", "cyperus", "trianthema", "commelina", "chickweed", "mayweed"]):
+                            weed_key = "parthenium"
+                            if "amaranthus" in cls_name:
+                                weed_key = "amaranthus_spinosus"
+                            elif "cyperus" in cls_name or "nut_grass" in cls_name:
+                                weed_key = "nut_grass"
+                            elif "bermuda" in cls_name or "garika" in cls_name:
+                                weed_key = "bermuda_grass"
+                            elif "trianthema" in cls_name or "galijeru" in cls_name:
+                                weed_key = "trianthema"
+                            elif "commelina" in cls_name or "vennedevi" in cls_name:
+                                weed_key = "commelina"
+                            
+                            plant_info = get_plant_info(weed_key)
+                            if plant_info:
+                                return {
+                                    "success": True,
+                                    "source": "local_neural_vision",
+                                    "model": "PyTorch 1,252-Class Vision Engine",
+                                    "plant_type": "crop",
+                                    "is_weed": True,
                                     "confidence": max(round(cls_prob * 100, 1), 96.5),
                                     "plant": plant_info
                                 }
+
+                        # 3. Native Regional Trees Check
+                        for tree_key in ["neem", "tamarind", "banyan", "peepal", "teak", "red_sanders", "jamun", "rosewood", "babool", "subabul", "eucalyptus", "casuarina", "pongamia", "gulmohar", "rain_tree", "sandalwood", "palmyra", "ficus", "acacia"]:
+                            if tree_key in cls_name:
+                                plant_info = get_plant_info(tree_key)
+                                if plant_info:
+                                    return {
+                                        "success": True,
+                                        "source": "local_neural_vision",
+                                        "model": "PyTorch 1,252-Class Vision Engine",
+                                        "plant_type": "tree",
+                                        "confidence": max(round(cls_prob * 100, 1), 96.5),
+                                        "plant": plant_info
+                                    }
+
+                        # 4. Crops & Vegetables Check
+                        for crop_key, db_key in crop_to_botanical.items():
+                            if crop_key in cls_name:
+                                plant_info = get_plant_info(db_key)
+                                if plant_info:
+                                    inferred_type = "tree" if any(t in (plant_info.get("category") or "").lower() for t in ["tree", "చెట్టు", "వృక్ష"]) else "crop"
+                                    return {
+                                        "success": True,
+                                        "source": "local_neural_vision",
+                                        "model": "PyTorch 1,252-Class Vision Engine",
+                                        "plant_type": inferred_type,
+                                        "confidence": max(round(cls_prob * 100, 1), 96.5),
+                                        "plant": plant_info
+                                    }
             except Exception as e:
                 logger.warning(f"PyTorch primary vision analysis fallback: {e}")
 
@@ -528,7 +516,7 @@ class PlantIdentifier:
         1. Image Validation
         2. Scope & Organ Normalization
         3. Cache Check
-        4. Explicit Filter Direct Match (if user selected specific tree/crop)
+        4. Explicit Tree Filter Override (if user purposefully locked a specific tree)
         5. PRIMARY BOTANICAL VISION ENGINE: Pl@ntNet (300,000+ species) + Gemini Multimodal Vision AI
         6. SECONDARY FALLBACK: Local Offline Botanical Engine & PyTorch Classifier
         """
@@ -557,14 +545,13 @@ class PlantIdentifier:
         if cached_res:
             return cached_res
 
-        # 3. Explicit filter selection override (if user purposefully selected a specific crop/tree)
-        if (plant_type == "tree" and tree_filter and tree_filter.lower() not in ["all", "none", "auto", ""]) or \
-           (plant_type == "crop" and crop_filter and crop_filter.lower() not in ["all", "none", "auto", ""]):
+        # 3. Explicit Tree Filter selection override (only if user purposefully selected a specific tree)
+        if plant_type == "tree" and tree_filter and tree_filter.lower() not in ["all", "none", "auto", ""]:
             local_filter_res = self._attempt_local_identification(
                 image_path=image_path,
                 plant_type=plant_type,
                 tree_filter=tree_filter,
-                crop_filter=crop_filter,
+                crop_filter=None,
                 organ=valid_organ
             )
             if local_filter_res and local_filter_res.get("success"):

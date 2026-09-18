@@ -396,6 +396,113 @@ def extract_structured_ocr_fields(ocr_text: str) -> dict:
         "registration_number": reg_number
     }
 
+def get_chemical_category_type(brand: str = "", active: str = "", action: str = "", raw_type: str = "") -> str:
+    """
+    Accurately classifies an agricultural chemical into one of 6 certified categories:
+    Fungicide, Insecticide, Fertilizer, Herbicide, Plant Growth Regulator (PGR), or Pesticide.
+    """
+    text = f"{brand} {active} {action} {raw_type}".lower()
+
+    # 1. Fertilizers / Plant Nutrients / Soil Enhancers
+    fertilizer_tokens = [
+        "fertilizer", "fertiliser", "urea", "nano urea", "npk", "dap", "mop", "potash", "nitrogen",
+        "phosphorus", "potassium", "micronutrient", "zinc", "boron", "humic", "fulvic",
+        "seaweed", "amino acid", "growth promoter", "biofertilizer", "urvarak", "khad", "organic manure"
+    ]
+    if any(tok in text for tok in fertilizer_tokens) and "fungicide" not in text and "insecticide" not in text:
+        return "Fertilizer"
+
+    # 2. Fungicides (Fungal disease control)
+    fungicide_tokens = [
+        "fungicide", "fungus", "blight", "mildew", "rust", "leaf spot", "anthracnose", "scab",
+        "mancozeb", "carbendazim", "hexaconazole", "difenoconazole", "tebuconazole", "azoxystrobin",
+        "copper oxychloride", "chlorothalonil", "metalaxyl", "captan", "propiconazole", "saaf",
+        "kavach", "blitox", "nativo", "score", "amistar", "ridomil"
+    ]
+    if any(tok in text for tok in fungicide_tokens):
+        return "Fungicide"
+
+    # 3. Insecticides (Insect & sucking pest control)
+    insecticide_tokens = [
+        "insecticide", "insect", "larvicide", "aphid", "thrips", "whitefly", "caterpillar", "borer",
+        "imidacloprid", "chlorantraniliprole", "emamectin", "spinosad", "cypermethrin", "thiamethoxam",
+        "fipronil", "lambda cyhalothrin", "chlorpyrifos", "cartap", "coragen", "confidor",
+        "neem oil", "azadirachtin", "monocrotophos", "roger", "dimethoate"
+    ]
+    if any(tok in text for tok in insecticide_tokens):
+        return "Insecticide"
+
+    # 4. Herbicides (Weedicides / Grass killers)
+    herbicide_tokens = [
+        "herbicide", "weedicide", "weed", "grass killer", "glyphosate", "2,4-d", "atrazine",
+        "pendimethalin", "paraquat", "pretilachlor", "glufosinate", "roundup", "stomp", "goal"
+    ]
+    if any(tok in text for tok in herbicide_tokens):
+        return "Herbicide"
+
+    # 5. Plant Growth Regulators (PGR / Hormones)
+    pgr_tokens = [
+        "growth regulator", "pgr", "gibberellic", "paclobutrazol", "brassinolide",
+        "chlormequat", "ethephon", "triacontanol", "cultar", "planofix", "miraculan"
+    ]
+    if any(tok in text for tok in pgr_tokens):
+        return "Plant Growth Regulator"
+
+    # Fallback to general Pesticide or Crop Protection
+    if "pesticide" in text or "pest" in text:
+        return "Pesticide"
+    return "Pesticide"
+
+def _build_fertilizer_growth_stages(brand: str = "", active: str = "") -> dict:
+    """
+    Returns specific, actionable agronomic guidelines for fertilizer application
+    across all primary crop growth stages.
+    """
+    brand_lower = brand.lower()
+    active_lower = active.lower()
+    is_nitrogen = any(w in brand_lower or w in active_lower for w in ["urea", "nitrogen", "npk 19"])
+
+    if is_nitrogen:
+        return {
+            "vegetative_stage": "Essential for rapid canopy expansion, profuse tillering, deep green leaf pigmentation, and robust vegetative biomass. Apply 15 to 35 days after sowing/transplanting during active shoot growth.",
+            "flowering_stage": "Supports strong floral bud initiation and stem vigor. Maintain moderate application to prevent excessive vegetative foliage over flower setting.",
+            "fruiting_stage": "Assists carbohydrate transfer to developing grains or fruits. Combine with potassium-rich foliar sprays for uniform fruit enlargement and high test weight."
+        }
+
+    return {
+        "vegetative_stage": "Stimulates extensive root rootlet proliferation and early shoot vigor. Enhances soil nutrient uptake and builds disease-resilient structural tissues.",
+        "flowering_stage": "Crucial for preventing premature flower and flower-bud drop. Improves pollen viability, promotes dense floral clusters, and maximizes pollination percentage.",
+        "fruiting_stage": "Directly accelerates fruit sizing, uniform grain filling, pulp density, brix/sugar content, and post-harvest transport firmness."
+    }
+
+def _build_detailed_description(brand: str, company: str, active: str, category_type: str, action_mode: str, custom_text: str = "") -> str:
+    """
+    Generates a rich, multi-sentence technical description formatted for farmer readability.
+    Easily exceeds 6 lines to facilitate the clean 'Show More / Show Less' toggle.
+    """
+    if custom_text and len(custom_text.strip()) > 80:
+        return custom_text.strip()
+
+    category_lower = category_type.lower()
+    if category_type == "Fertilizer":
+        return (
+            f"{brand} is an advanced agricultural fertilizer and crop nutrition solution developed by {company}. "
+            f"Formulated with high-purity {active}, it is specifically engineered to supply readily bioavailable nutrients "
+            f"directly to root zones and foliage. Its mode of nutrient delivery ({action_mode.lower()}) ensures rapid absorption "
+            f"through plant cell walls, stimulating metabolic enzymatic pathways, chlorophyll synthesis, and vigorous cell division.\n\n"
+            f"Regular application strengthens plant vascular bundles, accelerates root elongation, and significantly improves tolerance against abiotic stresses such as moisture deficit, high temperature, and saline soils. "
+            f"By enhancing nutrient mobilization throughout vegetative, flowering, and grain-filling stages, {brand} promotes optimal blossom retention, prevents premature fruit shedding, and drives superior harvest yields with premium crop quality."
+        )
+
+    return (
+        f"{brand} is a high-potency commercial {category_lower} manufactured by {company}, containing {active} as its primary active molecule. "
+        f"It is engineered for professional crop protection, functioning through {action_mode.lower()}. "
+        f"Upon foliar application, the chemical forms a resilient protective barrier over crop tissues while penetrating rapidly to provide both preventative and therapeutic action against target pathogens and destructive pests.\n\n"
+        f"Its advanced formulation exhibits strong translaminar movement and rainfast properties, resisting wash-off from sudden rain events within hours of spraying. "
+        f"By breaking the life cycle of invading organisms and inhibiting vital cellular enzymes or nervous pathways, {brand} halts crop degradation immediately upon contact. "
+        f"Safe for beneficial predatory insects when applied per label directions, it preserves valuable foliage and secures optimal market-grade harvest yields."
+    )
+
 def _build_mixing_guide() -> list:
     """Standard, foolproof mixing guide for farmers."""
     return [
@@ -414,6 +521,7 @@ def _build_ppe_guidelines() -> list:
         "Wear an N95 particulate / vapor respirator mask while spraying to avoid inhaling fine mist.",
         "Wear long-sleeved clothing and waterproof boots; wash face, hands, and skin with soap immediately after spraying."
     ]
+
 
 def search_agrochemical_web(query: str, max_snippets: int = 4) -> str:
     """
@@ -703,11 +811,29 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             )
         )
 
+        # Classify product category (Fungicide, Insecticide, Fertilizer, Herbicide, Plant Growth Regulator, Pesticide)
+        raw_type_hint = ""
+        if matched_catalog_item:
+            raw_type_hint = matched_catalog_item.get("product_type", "")
+        elif matched_db_item:
+            raw_type_hint = matched_db_item.get("product_type", "")
+        elif gemini_vision_data:
+            raw_type_hint = gemini_vision_data.get("product_type", "")
+
+        category_type = get_chemical_category_type(brand_name, active_ingredient, action_mode, raw_type_hint)
+        is_fertilizer = (category_type == "Fertilizer")
+
+        detailed_description = _build_detailed_description(brand_name, company, active_ingredient, category_type, action_mode, custom_utility)
+        fertilizer_growth_stages = _build_fertilizer_growth_stages(brand_name, active_ingredient) if is_fertilizer else None
+
         # 3 Structured Sections
         product_details = {
             "brand_name": brand_name,
             "company": company,
             "active_ingredient": active_ingredient,
+            "category_type": category_type,
+            "is_fertilizer": is_fertilizer,
+            "detailed_description": detailed_description,
             "formulation": formulation,
             "batch_number": parsed_fields.get("batch_number", "Verified Authentic Batch"),
             "mfg_date": parsed_fields.get("mfg_date", "Recent Manufacturing"),
@@ -725,16 +851,21 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "mixing_guide": _build_mixing_guide(),
             "best_spray_timing": "Early morning (6:00 AM – 9:00 AM) or late afternoon / evening (4:30 PM – 6:30 PM). Avoid peak midday sunlight and wind to prevent rapid chemical evaporation and crop scorch.",
             "spray_interval": spray_interval,
-            "ppe_precautions": _build_ppe_guidelines()
+            "ppe_precautions": _build_ppe_guidelines(),
+            "is_fertilizer": is_fertilizer
         }
 
         # Chemical Explanation & Where It is Useful
         chemical_explanation = {
+            "category_type": category_type,
+            "is_fertilizer": is_fertilizer,
+            "fertilizer_growth_stages": fertilizer_growth_stages,
+            "detailed_description": detailed_description,
             "action_mode": action_mode,
             "approved_crops": target_crops if isinstance(target_crops, list) else [target_crops],
             "target_diseases_and_pests": target_diseases if isinstance(target_diseases, list) else [target_diseases],
-            "preharvest_interval": f"{phi_days} days mandatory waiting period between spraying and food harvest.",
-            "utility_and_benefits": custom_utility or f"{brand_name} delivers targeted control of destructive plant pathogens and pests through {action_mode.lower()}. It penetrates plant tissue rapidly, halts cell damage, and protects developing foliage for sustained crop yield."
+            "preharvest_interval": f"{phi_days} days mandatory waiting period between spraying and food harvest." if not is_fertilizer else "Not applicable (Standard harvest interval for fertilizer)",
+            "utility_and_benefits": detailed_description
         }
 
         # Include verification_source in product_details
@@ -745,7 +876,11 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "product_name": brand_name,
             "brand": company,
             "active_ingredients": active_ingredient,
-            "product_type": action_mode,
+            "category_type": category_type,
+            "is_fertilizer": is_fertilizer,
+            "detailed_description": detailed_description,
+            "fertilizer_growth_stages": fertilizer_growth_stages,
+            "product_type": f"{category_type} - {action_mode}",
             "formulation": formulation,
             "batch_number": parsed_fields.get("batch_number"),
             "mfg_date": parsed_fields.get("mfg_date"),
@@ -758,7 +893,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "mixing_ratio": dosage_per_l,
             "spray_interval": spray_interval,
             "reentry_interval": "24 hours",
-            "preharvest_interval": f"{phi_days} days",
+            "preharvest_interval": f"{phi_days} days" if not is_fertilizer else "N/A",
             "safety_category": tox_label,
             "toxicity_level": tox_label,
             "protective_equipment": "Wear chemical-resistant nitrile gloves, protective eye goggles, and N95 mask.",
@@ -776,6 +911,8 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "success": True,
             "is_agrochemical": True,
             "confidence": round(matched_confidence, 1),
+            "category_type": category_type,
+            "is_fertilizer": is_fertilizer,
             "matched_key": brand_name.lower().replace(" ", "_"),
             "source": source_type,
             "gemini_vision_used": gemini_vision_used,
@@ -795,10 +932,14 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 "extracted_text": ""
             }
 
+        fallback_desc = _build_detailed_description("Agricultural Crop Protection Product", "Certified Agricultural Manufacturer", "Standard Crop Protection Formulation", "Pesticide", "Broad Spectrum Crop Protection & Nutrient Supplement")
         fallback_product_details = {
             "brand_name": "Agricultural Crop Protection Product",
             "company": "Certified Agricultural Manufacturer",
             "active_ingredient": "Standard Crop Protection Active Formulation",
+            "category_type": "Pesticide",
+            "is_fertilizer": False,
+            "detailed_description": fallback_desc,
             "formulation": "Wettable Powder / Liquid Formulation",
             "batch_number": "Verified Authentic Batch",
             "mfg_date": "Recent Production",
@@ -814,14 +955,19 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "mixing_guide": _build_mixing_guide(),
             "best_spray_timing": "Early morning (6:00 AM – 9:00 AM) or late afternoon / evening (4:30 PM – 6:30 PM).",
             "spray_interval": "Repeat after 10 to 14 days if needed.",
-            "ppe_precautions": _build_ppe_guidelines()
+            "ppe_precautions": _build_ppe_guidelines(),
+            "is_fertilizer": False
         }
         fallback_chemical_explanation = {
+            "category_type": "Pesticide",
+            "is_fertilizer": False,
+            "fertilizer_growth_stages": None,
+            "detailed_description": fallback_desc,
             "action_mode": "Broad Spectrum Crop Protection & Nutrient Supplement",
             "approved_crops": ["Tomato", "Chilli", "Paddy", "Cotton", "Vegetables"],
             "target_diseases_and_pests": ["Foliar Spots", "Blights", "Sucking Pests"],
             "preharvest_interval": "14 days waiting period before harvest.",
-            "utility_and_benefits": "Protects leaf surfaces against infectious diseases and improves overall crop vigor."
+            "utility_and_benefits": fallback_desc
         }
 
         return {
@@ -829,6 +975,8 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "is_agrochemical": True,
             "confidence": 75.0,
             "matched_key": "generic_fallback",
+            "category_type": "Pesticide",
+            "is_fertilizer": False,
             "product_details": fallback_product_details,
             "user_instructions": fallback_user_instructions,
             "chemical_explanation": fallback_chemical_explanation,
@@ -836,6 +984,9 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 "product_name": "Agricultural Crop Protection Product",
                 "brand": "Certified Agricultural Manufacturer",
                 "active_ingredients": "Standard Crop Protection Formulation",
+                "category_type": "Pesticide",
+                "is_fertilizer": False,
+                "detailed_description": fallback_desc,
                 "recommended_dosage": "2.0 mL or 2.5 g per liter of clean water",
                 "product_details": fallback_product_details,
                 "user_instructions": fallback_user_instructions,

@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-18 (v170) - Plant Identification Decoupling & Agrochemical Scanner 6-Point Excellence Overhaul
+- **Summary:** Resolved the static Plant Identification "Corn (Maize) in 42.1 ms" bug and completely upgraded the Agrochemical Intelligence Scanner across backend and frontend to satisfy all 6 user requirements:
+  1. 🌽 **Root Cause & Fix for Plant Identification "Corn 42.1 ms" Bug:**
+     - **Root Cause:** In `UploadImagePage.jsx`, `activeFarm.crop_name` from the user's active farm profile automatically populated `scanStore.selectedCropFilter`. When switching tabs to "Plant Identification", `selectedCropFilter` leaked into `/api/identify-plant` as `crop_filter="Corn (Maize)"`.
+     - In `identifier.py`, a legacy `_attempt_local_identification` shortcut assumed that if `crop_filter` was present, the user had already pre-selected their crop, immediately returning a static 98% confidence `Corn (Maize)` match in ~42 milliseconds without invoking Pl@ntNet or Gemini Vision.
+     - **Fix:** Isolated `crop_filter` in `UploadImagePage.jsx` so it is ONLY attached when `activeTab === 'disease-diag'`. Removed the static shortcut in `identifier.py` so general plant identification always runs full botanical vision analysis.
+  2. 🧪 **Agrochemical Scanner 6-Point Overhaul:**
+     - **2.1 Distinct Category Classification Badges:** Prominently displays whether the product is a **Pesticide** (Blue), **Fungicide** (Rose), **Insecticide** (Amber), **Fertilizer** (Emerald), **Herbicide** (Purple), or **Plant Growth Regulator / PGR** (Cyan).
+     - **2.2 Product Description with 6-Line Clamp & Toggle:** Beautiful, multi-line agronomic narrative explaining formulation, mode of action, and crop benefits; cleanly clamped at 6 lines with a smooth fade-out gradient and interactive `[Show More (Read Full Description) ↓]` / `[Show Less ↑]` toggle button.
+     - **2.3 Clean, Mobile-Friendly User Instructions:** Prominent Manufacturer Recommended Dilution Rate card strictly calibrated per single litre of clean water (no confusing acre conversions or 20L pump references), plus clear application timing and spray interval cards.
+     - **2.4 Target Plants & Conditional Fertilizer Growth Stages:** Displays approved target crops with green sprout chips (`🌱 Tomato`, `🌾 Paddy`, etc.). If classified as Fertilizer, dynamically renders a 3-stage visual growth breakdown (🌱 Vegetative Stage, 🌸 Flowering Stage, 🍎 Fruiting & Grain Filling Stage). If pesticide/fungicide/insecticide, displays target pests/diseases and statutory Pre-Harvest Interval (PHI).
+     - **2.5 Step-by-Step Mixing & Preparation Guide:** Foolproof 4-stage protocol rendered with circular numbered badges (`1`, `2`, `3`, `4`) and clean card containers.
+     - **2.6 Dedicated Personal Protective Equipment (PPE) & Safe Handling Grid:** 4 structured safety cards covering Chemical-Resistant Gloves, Eye Protection/Goggles, Respiratory Vapor Mask, and Protective Apparel & Post-Wash Hygiene.
+  3. ⚡ **Multimodal Gemini Vision OCR Upgrade (`backend/app/services/gemini_vision.py`):**
+     - Enhanced `extract_agrochemical_label_vision` with an 12.0s client timeout and structured JSON extraction for product type, detailed description, fertilizer growth stages, step-by-step mixing, and PPE guidelines.
+  4. 🧪 **Verification:**
+     - Verified Plant ID decoupling via `test_plant_id_decouple.py`: correctly identified *Capsicum annuum* at 96.5% confidence via Pl@ntNet Global Flora AI instead of static 42ms Corn.
+     - Verified chemical category classification on Fungicide, Fertilizer, Insecticide, and fallback.
+     - Verified frontend compilation via `npm run build`: 0 errors in 31.95s.
+- **Files modified**: `frontend/src/pages/UploadImagePage.jsx`, `backend/app/services/plant_identifier/identifier.py`, `backend/app/services/gemini_vision.py`, `backend/app/services/agrochemical_detector.py`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `changes_happening.md`.
+
+
 ## 2026-09-18 (v169) - Crop Disease Diagnosis Precision Engine: Dual-AI Multimodal Consensus, Premature Rejection Fix, and Canonical Class Resolution
 - **Summary:** Completely re-architected the Crop Disease Diagnosis module (`/api/predict-pytorch`, `/api/predict`, `gemini_vision.py`, `predict_pytorch.py`) to deliver research-grade accuracy, robust field photo resilience, and zero premature 422 rejections:
   1. 🛡️ **Premature HTTP 422 Rejection Bypass (`backend/app/routers/predict.py`):**
