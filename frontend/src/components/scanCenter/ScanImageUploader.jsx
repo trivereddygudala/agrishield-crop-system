@@ -113,6 +113,14 @@ const ScanImageUploader = ({
   onOrganChange
 }) => {
   const { t, i18n } = useTranslation();
+  const isTelugu = (i18n.language || '').toLowerCase().startsWith('te');
+
+  const ORGAN_OPTIONS = [
+    { id: 'leaf', key: 'uploader.organ_leaf', labelEn: 'Leaf / Foliage', labelTe: 'ఆకు / పచ్చదనం', icon: '🍃' },
+    { id: 'flower', key: 'uploader.organ_flower', labelEn: 'Flower / Blossom', labelTe: 'పువ్వు / మొగ్గ', icon: '🌸' },
+    { id: 'fruit', key: 'uploader.organ_fruit', labelEn: 'Fruit / Pod', labelTe: 'కాయ / పండు', icon: '🍎' },
+    { id: 'bark', key: 'uploader.organ_bark', labelEn: 'Bark / Stem', labelTe: 'కాండం / బెరడు', icon: '🪵' }
+  ];
 
   const fileInputRef = useRef(null);
   const nativeCameraInputRef = useRef(null);
@@ -656,31 +664,36 @@ const ScanImageUploader = ({
               <div>
                 <div className="flex items-center gap-1.5">
                   <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                    {t('uploader.select_organ_title', 'Plant Organ Photographed')}
+                    {t('uploader.select_organ_title', isTelugu ? 'ఫోటో తీసిన మొక్క భాగం' : 'Plant Organ Photographed')}
                   </h4>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-black">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 font-black">
                     Pl@ntNet Vision
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {t('uploader.select_organ_subtitle', 'Specify the photographed plant part to maximize flora identification accuracy up to 99%')}
+                  {t('uploader.select_organ_subtitle', isTelugu ? 'మొక్క జాతి గుర్తింపు 99% కచ్చితత్వం కోసం ఫోటోలోని భాగాన్ని ఎంచుకోండి' : 'Specify the photographed plant part to maximize flora identification accuracy up to 99%')}
                 </p>
               </div>
             </div>
-            <Badge variant="outline" className="text-[10px] font-bold text-teal-600 dark:text-teal-300 py-1 px-2.5 capitalize">
-              {(selectedOrgan || 'leaf')} Focus
+            <Badge variant="outline" className="text-[10px] font-bold text-teal-600 dark:text-teal-300 py-1 px-2.5">
+              {(() => {
+                const map = {
+                  leaf: { en: 'Leaf Focus', te: 'ఆకు ఫోకస్', hi: 'पत्ती फोकस' },
+                  flower: { en: 'Flower Focus', te: 'పువ్వు ఫోకస్', hi: 'फूल फोकस' },
+                  fruit: { en: 'Fruit Focus', te: 'కాయ ఫోకస్', hi: 'फल फोकस' },
+                  bark: { en: 'Bark Focus', te: 'కాండం ఫోకస్', hi: 'तना फोकस' }
+                };
+                const sel = selectedOrgan || 'leaf';
+                return isTelugu ? map[sel]?.te : (i18n.language === 'hi' ? map[sel]?.hi : map[sel]?.en || `${sel} Focus`);
+              })()}
             </Badge>
           </div>
 
           {/* Quick-Select Organ Chips */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5">
-            {[
-              { id: 'leaf', label: 'Leaf / Foliage', telugu: 'ఆకు', icon: '🍃' },
-              { id: 'flower', label: 'Flower / Blossom', telugu: 'పువ్వు', icon: '🌸' },
-              { id: 'fruit', label: 'Fruit / Pod', telugu: 'కాయ / పండు', icon: '🍎' },
-              { id: 'bark', label: 'Bark / Stem', telugu: 'కాండం / బెరడు', icon: '🪵' }
-            ].map((org) => {
+            {ORGAN_OPTIONS.map((org) => {
               const isSelected = (selectedOrgan || 'leaf') === org.id;
+              const organLabel = t(org.key, isTelugu ? org.labelTe : org.labelEn);
               return (
                 <button
                   key={org.id}
@@ -693,7 +706,7 @@ const ScanImageUploader = ({
                   }`}
                 >
                   <span className="text-sm">{org.icon}</span>
-                  <span>{org.label}</span>
+                  <span>{organLabel}</span>
                   {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </button>
               );
@@ -964,43 +977,96 @@ const ScanImageUploader = ({
         </div>
       )}
 
-      {/* Dual Identification Options STRICTLY for Plant Identification Tab */}
+      {/* 100% Automated Dual-AI Identification Information Card for Plant Identification Tab */}
       {tabId === 'plant-id' && (
-        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-b from-emerald-500/[0.07] to-teal-500/[0.02] border border-emerald-500/20 shadow-xs">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <span className="flex items-center gap-2 text-xs font-black text-emerald-900 dark:text-emerald-300">
-              <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>{t('uploader.plant_category_select', 'Identification Domain / విభాగం ఎంచుకోండి')}</span>
-              <button
-                type="button"
-                onClick={() => setShowSpeciesInfo(prev => !prev)}
-                className={`p-1 rounded-full transition-all cursor-pointer ${
-                  showSpeciesInfo 
-                    ? 'bg-emerald-600 text-white shadow-xs' 
-                    : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900'
-                }`}
-                title="View coverage information (38 Andhra Trees & 70 Crops)"
-                aria-label="Toggle species info"
-              >
-                <Info className="w-3.5 h-3.5" />
-              </button>
-            </span>
-            <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/70 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-              {plantType === 'tree' ? '🌳 Normal Trees' : '🌾 Crops & Weeds'}
-            </span>
+        <div className="mt-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-slate-50/80 dark:from-emerald-950/40 dark:via-slate-900/60 dark:to-slate-900/90 border border-emerald-500/30 shadow-xs space-y-3.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                    {t('uploader.plant_id_autodetect_title', isTelugu ? 'స్వయంచాలక మొక్క & కలుపు గుర్తింపు (100% Auto-Detect)' : '100% Automated Flora & Weed Identification')}
+                  </h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black uppercase tracking-wider">
+                    Auto-AI
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium leading-relaxed">
+                  {t('uploader.plant_id_autodetect_subtitle', isTelugu 
+                    ? 'మీరు ఎలాంటి రకాన్ని మాన్యువల్‌గా ఎంచుకోనవసరం లేదు! డ్యూయల్-AI (Pl@ntNet + Google Gemini) పంటలు, కూరగాయలు, ఉద్యానవన చెట్లు మరియు కలుపు మొక్కలను ఫోటో ద్వారా స్వయంచాలకంగా గుర్తిస్తుంది.' 
+                    : 'No manual selection required! Dual-AI (Pl@ntNet + Google Gemini Vision) automatically recognizes field crops, horticulture trees, vegetables, and invasive weeds directly from your photo.')}
+                </p>
+              </div>
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => setShowSpeciesInfo(prev => !prev)}
+              className={`p-1.5 rounded-xl transition-all cursor-pointer shrink-0 ${
+                showSpeciesInfo 
+                  ? 'bg-emerald-600 text-white shadow-xs' 
+                  : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 border border-emerald-500/20'
+              }`}
+              title="View Flora & Weed Coverage"
+              aria-label="Toggle species coverage info"
+            >
+              <Info className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Interactive Info Popover triggered by the Info symbol */}
+          {/* 3 Practical Photo Tips for 99% Precision */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-emerald-500/15 dark:border-emerald-500/10">
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800">
+              <span className="text-base shrink-0">📸</span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                  {t('uploader.plant_id_tip1_title', isTelugu ? '1. దగ్గరి ఫోటో (Close-Up)' : '1. Clear Close-Up')}
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                  {t('uploader.plant_id_tip1_desc', isTelugu ? 'ఆకు ఈనెలు, పువ్వు లేదా కాయ స్పష్టంగా కనిపించాలి.' : 'Frame leaf venation, flower petals, or fruit in clear focus.')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800">
+              <span className="text-base shrink-0">☀️</span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                  {t('uploader.plant_id_tip2_title', isTelugu ? '2. సహజ వెలుతురు' : '2. Natural Daylight')}
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                  {t('uploader.plant_id_tip2_desc', isTelugu ? 'పగటి వెలుతురులో కదలకుండా స్పష్టమైన ఫోటో తీయండి.' : 'Capture in daylight without blur or dark harsh shadows.')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800">
+              <span className="text-base shrink-0">🎯</span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                  {t('uploader.plant_id_tip3_title', isTelugu ? '3. ఒకే మొక్కపై దృష్టి' : '3. Single Specimen')}
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                  {t('uploader.plant_id_tip3_desc', isTelugu ? 'గుర్తించాల్సిన మొక్క ఫ్రేమ్‌లో ప్రధానంగా ఉండాలి.' : 'Keep target plant in the center of the frame.')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Expandable Botanical Coverage Catalog */}
           <AnimatePresence>
             {showSpeciesInfo && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mb-3 p-3 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-700/60 text-[11px] text-emerald-950 dark:text-emerald-200 space-y-1.5 overflow-hidden"
+                className="p-3.5 rounded-xl bg-emerald-50/95 dark:bg-emerald-950/90 border border-emerald-300 dark:border-emerald-700/60 text-[11px] text-emerald-950 dark:text-emerald-200 space-y-2 overflow-hidden"
               >
                 <div className="flex items-center justify-between font-black text-xs text-emerald-800 dark:text-emerald-300 pb-1 border-b border-emerald-200 dark:border-emerald-800">
-                  <span>ℹ️ {plantType === 'tree' ? '38 Andhra Normal & Big Trees Coverage' : '70 Andhra Field Crops & Weeds Coverage'}</span>
+                  <span>🌿 {isTelugu ? 'ఆంధ్రప్రదేశ్ & భారతీయ జాతుల గుర్తింపు సామర్థ్యం' : 'Supported Flora & Weed Species Coverage'}</span>
                   <button
                     type="button"
                     onClick={() => setShowSpeciesInfo(false)}
@@ -1009,95 +1075,14 @@ const ScanImageUploader = ({
                     ✕
                   </button>
                 </div>
-                {plantType === 'tree' ? (
-                  <p className="leading-relaxed font-medium">
-                    🌳 <strong>Big Trees & Timber:</strong> Neem (వేప), Tamarind (చింత), Banyan (మర్రి), Peepal (రావి), Teak (టేకు), Red Sanders (ఎర్రచందనం), Jamun (నేరేడు), Rosewood, Babool (తుమ్మ), Subabul, Eucalyptus, Casuarina (సర్వి), Pongamia (కానుగ), Palmyra Palm (తాటి).<br/>
-                    🥭 <strong>Fruit Trees:</strong> Mango (మామిడి), Guava (జామ), Coconut (కొబ్బరి), Cashew (జీడిమామిడి), Oil Palm, Sapota, Papaya, Banana, Sweet Orange (బత్తాయి), Acid Lime (నిమ్మ), Pomegranate, Custard Apple (సీతాఫలం), Jackfruit, Amla (ఉసిరి), Dragon Fruit.
-                  </p>
-                ) : (
-                  <p className="leading-relaxed font-medium">
-                    🌾 <strong>Field Crops:</strong> Paddy (వరి), Chilli (మిరప), Cotton (ప్రత్తి), Maize, Groundnut, Tobacco, Pulses (కందులు, మినుములు, పెసలు, శనగలు), Millets (రాగులు, సజ్జలు, జొన్నలు, కొర్రలు).<br/>
-                    🥬 <strong>Vegetables:</strong> Brinjal (వంకాయ), Bhendi (బెండకాయ), Bitter Gourd (కాకర), Bottle Gourd (సొర), Ridge Gourd (బీర), Ivy Gourd (దొండ), Gongura (గోంగూర), Turmeric, Ginger, Tulasi, Aloevera, Ashwagandha.<br/>
-                    🌱 <strong>Weeds:</strong> Nut Grass (తుంగ), Bermuda Grass (గరిక), Parthenium (వయ్యారి భామ), Barnyard Grass (ఊర గడ్డి), Trianthema (గలిజేరు), Achyranthes (ఉత్తరేణి), Eclipta (గుంటగలగరాకు).
-                  </p>
-                )}
+                <div className="space-y-1.5 leading-relaxed font-medium">
+                  <p>🌾 <strong>{isTelugu ? 'పంటలు & కూరగాయలు:' : 'Field Crops & Vegetables:'}</strong> Paddy (వరి), Chilli (మిరప), Cotton (ప్రత్తి), Maize (మొక్కజొన్న), Groundnut (వేరుశనగ), Tomato, Brinjal (వంకాయ), Bhendi (బెండ), Pulses (కందులు, మినుములు, పెసలు), Turmeric, Ginger.</p>
+                  <p>🌳 <strong>{isTelugu ? 'ఉద్యానవన & పెద్ద చెట్లు:' : 'Horticulture & Trees:'}</strong> Mango (మామిడి), Guava (జామ), Coconut (కొబ్బరి), Cashew (జీడిమామిడి), Neem (వేప), Tamarind (చింత), Teak (టేకు), Red Sanders (ఎర్రచందనం), Peepal (రావి), Jamun (నేరేడు).</p>
+                  <p>🌱 <strong>{isTelugu ? 'కలుపు మొక్కలు:' : 'Invasive Weeds:'}</strong> Nut Grass (తుంగ), Bermuda Grass (గరిక), Parthenium (వయ్యారి భామ), Trianthema (గలిజేరు), Achyranthes (ఉత్తరేణి).</p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Segmented 2-Option Pill Buttons */}
-          <div className="grid grid-cols-2 gap-2 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10">
-            <button
-              type="button"
-              onClick={() => onPlantTypeChange && onPlantTypeChange('crop')}
-              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg transition-all cursor-pointer ${
-                plantType === 'crop'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
-              }`}
-            >
-              <Sprout className="w-4 h-4 shrink-0" />
-              <div className="flex flex-col text-left leading-tight">
-                <span className="text-xs font-black tracking-wide">🌾 Crops</span>
-                <span className="text-[9px] opacity-85 font-semibold">వ్యవసాయ పంటలు & గడ్డి</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onPlantTypeChange && onPlantTypeChange('tree')}
-              className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg transition-all cursor-pointer ${
-                plantType === 'tree'
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
-              }`}
-            >
-              <Trees className="w-4 h-4 shrink-0" />
-              <div className="flex flex-col text-left leading-tight">
-                <span className="text-xs font-black tracking-wide">🌳 Normal Trees</span>
-                <span className="text-[9px] opacity-85 font-semibold">సాధారణ / పెద్ద చెట్లు</span>
-              </div>
-            </button>
-          </div>
-
-          {/* Dynamic contextual guidance & species selector */}
-          {plantType === 'tree' ? (
-            <div className="mt-3.5 space-y-2">
-              <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                <span>{t('uploader.select_tree_target', 'Select Tree Species / చెట్టు రకం (Optional Filter):')}</span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">38 Andhra Big & Fruit Trees</span>
-              </label>
-              <select
-                value={selectedTreeFilter}
-                onChange={(e) => onTreeFilterChange && onTreeFilterChange(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-colors appearance-none cursor-pointer"
-              >
-                {ANDHRA_NORMAL_TREES.map((tree) => (
-                  <option key={tree.value} value={tree.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                    {tree.label} {tree.telugu ? `— ${tree.telugu}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="mt-3.5 space-y-2">
-              <label className="block text-[11px] font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                <span>{t('uploader.select_crop_target', 'Target Crop / Weed / పంట లేదా కలుపు రకం (Optional Filter):')}</span>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">70 Andhra Crops & Weeds</span>
-              </label>
-              <select
-                value={selectedCropFilter}
-                onChange={(e) => onCropFilterChange && onCropFilterChange(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-colors appearance-none cursor-pointer"
-              >
-                {ANDHRA_CROPS_AND_WEEDS.map((crop) => (
-                  <option key={crop.value} value={crop.value} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                    {crop.label} {crop.telugu ? `— ${crop.telugu}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
       )}
 

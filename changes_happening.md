@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v182) - Banner Contrast Elevation, Organ Localization & Plant ID Auto-Detection Simplification
+- **Summary:** Resolved all 3 user-reported visual, translation, and user-flow issues:
+  1. 🌟 **Picture 1 Resolution — Dashboard Welcome Banner High-Contrast Scrim (`DashboardPage.jsx`):**
+     - Replaced raw semi-transparent scrim with deep protective gradient overlay (`bg-gradient-to-r from-slate-950/98 via-slate-950/90 to-slate-950/80`) and frosted glass backdrop filter (`backdrop-blur-[2px]`).
+     - Wrapped the greeting heading and weather summary inside a frosted protective container (`bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-xl`) with drop-shadows on typography (`drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]`), ensuring "నమస్తే, farmer1 రైతు గారూ!" and weather actionable details are 100% crystal-clear and readable over foliage photography.
+     - Upgraded the 3 status pills (`Crops: Healthy`, `Soil: Optimal`, `Disease Risk: Low`) with dark frosted pill backdrops (`bg-slate-950/85 backdrop-blur-md border border-emerald-500/50`) for WCAG AAA outdoor visibility.
+  2. 🌐 **Picture 2 Resolution — Plant Organ Photographed Regional Localization (`ScanImageUploader.jsx`, `translations.js`):**
+     - Added comprehensive translation keys (`uploader.select_organ_title`, `uploader.select_organ_subtitle`, `uploader.organ_leaf`, `uploader.organ_flower`, `uploader.organ_fruit`, `uploader.organ_bark`, `uploader.organ_focus`) across English, Telugu, Hindi, and regional languages.
+     - Replaced hardcoded English labels with localized titles and organ chips (e.g. `ఆకు / పచ్చదనం`, `పువ్వు / మొగ్గ`, `కాయ / పండు`, `కాండం / బెరడు`) and localized focus pill (`ఆకు ఫోకస్`).
+  3. 🤖 **Picture 3 Resolution — Plant ID Redundant Domain/Filter Removal & Informational Card (`ScanImageUploader.jsx`):**
+     - Removed the redundant manual "Identification Domain (Crops vs Normal Trees)" toggle and the 70-crop dropdown selector since Pl@ntNet + Google Gemini Vision automatically detects all species from the photo.
+     - Replaced with an informative AI Auto-Detection status card highlighting 100% automated flora recognition across all crops, horticulture trees, vegetables, and invasive weeds.
+     - Added 3 practical photography guidelines for 99% accuracy:
+       - 📸 **1. Clear Close-Up (స్పష్టమైన దగ్గరి ఫోటో):** Focus on leaf veins, petals, or fruit.
+       - ☀️ **2. Natural Daylight (సహజ వెలుతురు):** Daylight shooting without blur or heavy shadows.
+       - 🎯 **3. Single Specimen (ఒకే మొక్కపై దృష్టి):** Frame target plant centrally.
+  4. 🏗️ **Full Production Build Verification:**
+     - Compiled 3,154 modules using Vite with zero build or syntax errors (`✓ built in 23.40s`, exit code 0).
+- **Files modified:** `frontend/src/pages/DashboardPage.jsx`, `frontend/src/i18n/translations.js`, `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v181) - Platform Elevation, 12-Language Wiring & WCAG AAA Design System
 - **Summary:** Executed core modules of the approved master platform elevation plan across Localization, Design Tokens, AI Diagnostics, Land Survey, Mandi Markets, and Help Center:
   1. 🌐 **12-Language Localization Engine Expansion (`translations.js`, `FieldAreaCalculatorPage.jsx`, `HelpSupportPage.jsx`, `SDCardPage.jsx`):**

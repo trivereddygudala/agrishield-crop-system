@@ -331,40 +331,43 @@ const DashboardPage = () => {
           className="w-full"
         >
           <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md">
-            {/* Real Unsplash / Pexels farm sunrise photography background */}
+            {/* Real Unsplash / Pexels farm photography background */}
             <img 
-              src={CURATED_FARM_PHOTOS.farmSunrise} 
+              src={CURATED_FARM_PHOTOS.farmField} 
               alt="Authentic Agricultural Farm Field" 
-              className="absolute inset-0 w-full h-full object-cover object-center"
+              className="absolute inset-0 w-full h-full object-cover object-center scale-105"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-900/85 to-slate-950/50" />
+            {/* Deep protective dark scrim ensuring WCAG AAA text visibility over photography */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/98 via-slate-950/90 to-slate-950/80" />
+            <div className="absolute inset-0 backdrop-blur-[2px]" />
             
             <div className="relative z-10 p-5 sm:p-6 lg:p-7 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              <div className="space-y-1.5">
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/30 text-emerald-300 text-xs font-bold mb-1">
+              {/* High-contrast frosted text container */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-xl space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 text-xs font-black mb-0.5 shadow-sm">
                   <span>🌾 Authentic Field Telemetry</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
                 </h2>
-                <p className="text-xs sm:text-sm font-medium text-slate-200 leading-relaxed max-w-2xl">
+                <p className="text-xs sm:text-sm font-bold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                   {t('dashboard.daily_actionable_summary', 'Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying')}
                 </p>
               </div>
 
-              {/* 3 Status Badges (Green / Sky / Protected) */}
+              {/* 3 High-Contrast Status Badges (Green / Sky / Protected) */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 backdrop-blur border border-emerald-400/40 text-emerald-200 text-xs sm:text-sm font-black shadow-xs">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/50 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                   {t('dashboard.crops_healthy', 'Crops: Healthy')}
                 </div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/20 backdrop-blur border border-sky-400/40 text-sky-200 text-xs sm:text-sm font-black shadow-xs">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-sky-500/50 text-sky-300 text-xs sm:text-sm font-black shadow-md">
                   <span>💧</span>
                   {t('dashboard.soil_optimal', 'Soil: {{pct}}% (Optimal)', { pct: activeTelemetry?.soil_moisture ?? 45 })}
                 </div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 backdrop-blur border border-emerald-400/30 text-emerald-200 text-xs sm:text-sm font-black shadow-xs">
-                  <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                   {t('dashboard.disease_risk_low', 'Disease Risk: Low')}
                 </div>
               </div>
