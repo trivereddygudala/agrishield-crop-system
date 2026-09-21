@@ -18,12 +18,14 @@ import { Badge, Button } from '../components/ui/index';
 import { compressImageForUpload, formatFileSize } from '../utils/imageCompression';
 import { queueOfflineScan } from '../utils/offlineQueue';
 import { diagnoseOfflineLeaf } from '../utils/offlineDiagnosticEngine';
+import { CURATED_FARM_PHOTOS } from '../services/photoService';
 
 // Diagnostic Modules metadata for overview and fresh sub-pages
 const SCAN_MODULES = [
   {
     id: 'disease-diag',
     icon: Bug,
+    image: CURATED_FARM_PHOTOS.leafDoctor,
     iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
     badgeVariant: 'healthy',
     badge: 'PyTorch AI',
@@ -37,6 +39,7 @@ const SCAN_MODULES = [
   {
     id: 'plant-id',
     icon: Sprout,
+    image: CURATED_FARM_PHOTOS.plantSeedling,
     iconBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/30',
     badgeVariant: 'default',
     badge: 'Species Engine',
@@ -50,6 +53,7 @@ const SCAN_MODULES = [
   {
     id: 'agro-scan',
     icon: FlaskConical,
+    image: CURATED_FARM_PHOTOS.agrochemical,
     iconBg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30',
     badgeVariant: 'default',
     badge: 'OCR Vision',
@@ -661,15 +665,26 @@ const UploadImagePage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: idx * 0.06 }}
                   onClick={() => handleTabChange(mod.id)}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-700 hover:shadow-lg hover:shadow-emerald-500/5 transition-all active:scale-[0.98] text-left group cursor-pointer"
+                  className="w-full flex items-center justify-between p-3.5 sm:p-4.5 rounded-2xl human-card-interactive bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-emerald-500 shadow-xs hover:shadow-lg transition-all text-left group cursor-pointer"
                 >
-                  <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-                    <div className={`p-3 sm:p-3.5 rounded-2xl border ${mod.iconBg} shrink-0`}>
-                      <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <div className="flex items-center gap-3.5 sm:gap-4.5 min-w-0">
+                    {/* Authentic Agriculture Picture Thumbnail instead of plain symbol */}
+                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shrink-0 border border-slate-200/90 dark:border-slate-700 shadow-md group-hover:scale-105 group-hover:border-emerald-500 transition-all duration-300">
+                      <img 
+                        src={mod.image} 
+                        alt={title} 
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-transparent" />
+                      <div className="absolute bottom-1 right-1 p-1 rounded-lg bg-slate-950/85 backdrop-blur-xs text-white border border-white/20 shadow-xs">
+                        <Icon className="w-3 h-3 text-emerald-400" />
+                      </div>
                     </div>
+
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                           {title}
                         </h4>
                         <Badge variant={mod.badgeVariant} className="text-[9px] uppercase tracking-wider font-extrabold shrink-0">

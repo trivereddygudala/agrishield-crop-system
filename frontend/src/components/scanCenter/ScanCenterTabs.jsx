@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Sprout, Bug, FlaskConical } from 'lucide-react';
 import { Badge } from '../ui/index';
+import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
 const TABS = [
   {
@@ -10,6 +11,7 @@ const TABS = [
     labelKey: 'tabs.disease_diag',
     label: 'Disease Diagnosis',
     icon: Bug,
+    image: CURATED_FARM_PHOTOS.leafDoctor,
     descKey: 'tabs.disease_diag_desc',
     description: 'Detect fungal, bacterial & viral crop pathologies',
     badgeKey: 'tabs.badges.pytorch',
@@ -21,6 +23,7 @@ const TABS = [
     labelKey: 'tabs.plant_id',
     label: 'Plant Identification',
     icon: Sprout,
+    image: CURATED_FARM_PHOTOS.plantSeedling,
     descKey: 'tabs.plant_id_desc',
     description: 'Identify crop variety, botanical species & growth traits',
     badgeKey: 'tabs.badges.species',
@@ -32,6 +35,7 @@ const TABS = [
     labelKey: 'tabs.agro_scan',
     label: 'Agrochemical Scanner',
     icon: FlaskConical,
+    image: CURATED_FARM_PHOTOS.agrochemical,
     descKey: 'tabs.agro_scan_desc',
     description: 'Scan pesticides, fungicides & fertilizer product labels',
     badgeKey: 'tabs.badges.ocr',
@@ -82,12 +86,12 @@ const ScanCenterTabs = ({ activeTab, onTabChange }) => {
 
             <div className="flex items-center justify-between mb-3 w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className={`p-2.5 rounded-xl transition-colors border ${
-                  isActive 
-                    ? colorsMap[tab.color]
-                    : 'bg-white dark:bg-white/5 border-slate-200 dark:border-transparent text-slate-600 dark:text-white/30 shadow-xs'
-                }`}>
-                  <Icon className="w-5 h-5 shrink-0" />
+                <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-200/90 dark:border-slate-700 shadow-sm">
+                  <img src={tab.image} alt={t(tab.labelKey, tab.label)} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-0.5 right-0.5 p-0.5 rounded bg-slate-950/85 text-emerald-400">
+                    <Icon className="w-2.5 h-2.5" />
+                  </div>
                 </div>
                 <span className={`font-black text-base tracking-tight ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-white/70'}`} style={{ fontFamily: 'var(--font-display)' }}>
                   {t(tab.labelKey, tab.label)}
