@@ -2,6 +2,25 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v189) - Removed 50% Clutter Card & Enforced Strict 3-Section Botanical Identification
+- **Summary:** Fulfilled the user's requirement to completely remove the unwanted "50% AI Botanical Model + 50% Agronomist Peer-Review" / "Edit 50%" studio banner, and restructured plant identification into the exact strict 3-section format (`🌿 Plant Classification`, `📝 Description & Key Details`, `🪵 Environmental Conditions`):
+  1. 🧹 **Complete Removal of 50% Peer-Review Overlay (`PlantIdResults.jsx`):**
+     - Completely eliminated the 50% AI + 50% Agronomist card overlay and `✏️ Edit 50%` button from `renderSpecimenHero` that was cluttering the top of the mobile identification screen.
+     - Kept the hero interface clean, ultra-responsive, and focused on specimen classification.
+  2. 🌿 **Enforced Strict 3-Section Botanical Schema (`PlantIdResults.jsx` & `online_provider.py`):**
+     - **Section 1 (🌿 Plant Classification):** Displays Identified Type (`Tree`, `Weed`, `Medicinal Plant`, `Crop`, or `Ornamental`), Common Name, Botanical/Latin Scientific Name in italics, and Family.
+     - **Section 2 (📝 Description & Key Details):** Medium 5 to 10 sentence narrative overview of physical characteristics, regional presence, and distinct botanical features, with an explicit `🌱 Primary Use / Impact` badge and callout (cultivated food crop, therapeutic herb, invasive weed, or native tree).
+     - **Section 3 (🪵 Environmental Conditions):** Suitable Soil Type (soil textures, pH ranges, drainage needs), Ideal Weather & Climate (temperature windows, rainfall, sunlight photoperiod), Irrigation regimen, and Nutrition.
+  3. 📋 **Instant 1-Tap Strict Markdown Report Generation & Export (`PlantIdResults.jsx`):**
+     - Added an emerald **"Copy Markdown Report"** button on the specimen hero card with live copy feedback (`Report Copied!`).
+     - Formats and copies the analysis immediately into the user's exact requested markdown structure.
+  4. 🌶️ **Enriched Knowledge Base for Capsicum Frutescens (`plant_information.py` & `PlantIdResults.jsx`):**
+     - Added dedicated botanical entry for *Capsicum frutescens* (Bird's Eye Chilli / Kanthari Chilli Crop) with authentic Solanaceae taxonomy, 5–10 sentence morphological description, primary spice/medicinal usage, sandy/red loam soil parameters (pH 6.0–6.8), and warm tropical climate profile (20°C–35°C, Full Sun).
+  5. 🏗️ **Full Build Verification:**
+     - Compiled 3,154 modules using Vite (`npm run build`: 0 errors, built in 24.25s).
+     - Backend Python compilation check passed with exit code 0.
+- **Files modified:** `frontend/src/components/scanCenter/PlantIdResults.jsx`, `backend/app/services/plant_identifier/plant_information.py`, `backend/app/services/plant_identifier/online_provider.py`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v188) - Strict 4-Section Agrochemical Scanner Report & Pricing Financials Presentation
 - **Summary:** Upgraded the AI Agrochemical Scanner backend detection and frontend presentation to enforce the user's strict 4-section report structure (📦 Product Identity, 📝 Product Description & Usage, 🧪 Composition & Technical Details, 💰 Pricing & Financials):
   1. 📦 **Enforced 4-Section Data Schema (`gemini_vision.py` & `agrochemical_detector.py`):**

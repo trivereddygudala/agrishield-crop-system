@@ -18,7 +18,9 @@ import {
   ChevronDown, 
   ChevronUp, 
   Layers, 
-  CheckCircle2 
+  CheckCircle2,
+  Copy,
+  Check
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button } from '../ui/index';
@@ -149,6 +151,29 @@ const BASE_CROPS_KNOWLEDGE = {
     micronutrients: "Zinc, Boron & Calcium foliar nutrition",
     commonDiseases: ["Chilli Leaf Spot (Cercospora)", "Anthracnose / Dieback", "Leaf Curl Virus"],
     commonPests: ["Chilli Thrips", "Yellow Mites", "Aphids"]
+  },
+  capsicum: {
+    commonName: "Capsicum Frutescens Crop",
+    scientificName: "Capsicum frutescens",
+    genus: "Capsicum",
+    species: "frutescens",
+    family: "Solanaceae (Nightshade Family)",
+    identifiedType: "Crop",
+    nativeRegion: "Tropical Americas (Naturalized & cultivated across Southern India)",
+    growthHabit: "Perennial branching subshrub (0.5 to 1.5 m)",
+    leafType: "Simple ovate-elliptic deep green leaves with acute apex and entire margins",
+    sunlight: "Full Sun (6 to 8 hours daily)",
+    soilpH: "6.0 - 6.8 (Well-drained Fertile Sandy Loam or Red Loam)",
+    suitableSoilType: "Well-drained sandy loam or fertile red loam (pH 6.0 - 6.8) with high organic matter, excellent aeration, and non-waterlogging drainage",
+    idealWeatherClimate: "Warm tropical & semi-arid climate, 20°C - 35°C optimal temperature, 600 - 1200 mm annual rainfall, and Full Sun (6 to 8 hours daily)",
+    waterNeed: "Moderate regular watering (drip irrigation preferred; avoid waterlogging)",
+    temperature: "20°C - 35°C (Warm tropical climate)",
+    fertilizer: "NPK 120:60:60 kg/ha split application + vermicompost and neem cake",
+    micronutrients: "Zinc, Boron & Calcium foliar nutrition",
+    description: "Capsicum frutescens is a perennial shrub in the nightshade family (Solanaceae), commonly recognized as bird's eye chilli, wild chilli, or kanthari chilli. It typically develops into a compact, heavily branched subshrub reaching heights of 0.5 to 1.5 meters under favorable agronomic conditions. The foliage exhibits ovate-elliptic, smooth, and vibrant deep-green leaves with entire margins. Its flowers display solitary or paired greenish-white corollas with erect pedicels that face upward. The resulting berries are conical or oblong-lanceolate, point vertically towards the sky, and ripen from pale green to vibrant scarlet-red. Originating from tropical America, it is widely naturalized and cultivated across southern India, especially in Andhra Pradesh, Kerala, and Tamil Nadu homestead farms. The fruits contain exceptionally high concentrations of capsaicin, providing extreme pungency and valuable oleoresin yields. The plant is drought resilient once established, thrives in warm humid agro-climates, and produces continuous flushes over multiple seasons.",
+    primaryUseImpact: "Cultivated commercial food crop, therapeutic medicinal spice herb (capsaicin-rich topical analgesic), and natural organic pest repellent.",
+    commonDiseases: ["Anthracnose / Fruit Rot", "Cercospora Leaf Spot", "Chilli Leaf Curl Virus", "Bacterial Wilt"],
+    commonPests: ["Chilli Thrips (Scirtothrips dorsalis)", "Yellow Mites", "Aphids", "Fruit Borer"]
   }
 };
 
@@ -372,6 +397,14 @@ const getPlantDetails = (liveResult) => {
     const genus = p.genus || (sciName ? sciName.split(' ')[0] : "Botanical Genus");
     const species = p.species || (sciName ? sciName.split(' ').slice(1).join(' ') : "spp.");
     const isWeed = Boolean(p.is_weed || liveResult.is_weed || (p.category && p.category.toLowerCase().includes('weed')));
+    const rawType = (p.identified_type || p.category || (isWeed ? "Weed" : "Crop")).trim();
+    let identifiedType = "Crop";
+    if (isWeed || rawType.toLowerCase().includes('weed')) identifiedType = "Weed";
+    else if (rawType.toLowerCase().includes('tree') || p.is_tree || liveResult.plant_type === 'tree') identifiedType = "Tree";
+    else if (rawType.toLowerCase().includes('medicinal')) identifiedType = "Medicinal Plant";
+    else if (rawType.toLowerCase().includes('ornamental')) identifiedType = "Ornamental";
+    else if (rawType.toLowerCase().includes('crop')) identifiedType = "Crop";
+    else identifiedType = rawType;
 
     return {
       commonName: p.common_name || "Identified Plant",
@@ -381,14 +414,18 @@ const getPlantDetails = (liveResult) => {
       regionalNames: p.regional_names || {},
       family: p.family || "Botanical Family",
       category: p.category || (isWeed ? "Agricultural Weed" : "Plant Species"),
+      identifiedType: identifiedType,
       isWeed: isWeed,
       nativeRegion: p.native_region || "Global & Indian Subcontinent",
       confidence: conf,
       growthHabit: p.growth_stage || p.growth_habit || "Active Growth / Foliage",
       leafType: p.leaf_type || "Standard Foliage Leaf",
       description: p.description || "",
+      primaryUseImpact: p.primary_use_impact || (isWeed ? "Invasive agricultural weed requiring active field eradication." : "Cultivated agricultural food crop and beneficial economic plant."),
       sunlight: p.sunlight_requirement || "Full Sun (6 to 8 hours daily)",
       soilpH: p.soil_type || "Well-drained Fertile Soil (pH 6.0 - 7.2)",
+      suitableSoilType: p.suitable_soil_type || p.soil_type || "Well-drained fertile loamy soil (pH 6.0 - 7.0) with adequate organic matter",
+      idealWeatherClimate: p.ideal_weather_climate || `${p.temperature_range || "20°C - 35°C"}, ${p.sunlight_requirement || "Full Sun (6 to 8 hours daily)"}`,
       waterNeed: p.water_requirement || "Moderate Agricultural Irrigation",
       temperature: p.temperature_range || "18°C - 35°C",
       fertilizer: p.fertilizer_recommendation || "Balanced Organic Compost & Recommended NPK",
@@ -412,6 +449,10 @@ const getPlantDetails = (liveResult) => {
       if (liveResult.confidence) {
         match.confidence = (liveResult.confidence <= 1.0 ? liveResult.confidence * 100 : liveResult.confidence).toFixed(1) + "%";
       }
+      match.identifiedType = match.identifiedType || (match.isWeed ? "Weed" : (match.category?.includes('Tree') ? "Tree" : "Crop"));
+      match.primaryUseImpact = match.primaryUseImpact || (match.isWeed ? "Invasive weed requiring control." : "Cultivated agricultural food crop.");
+      match.suitableSoilType = match.suitableSoilType || match.soilpH || "Well-drained fertile loam (pH 6.0 - 7.0)";
+      match.idealWeatherClimate = match.idealWeatherClimate || `${match.temperature || "20°C - 35°C"}, ${match.sunlight || "Full Sun"}`;
       return match;
     }
   }
@@ -440,6 +481,10 @@ const getPlantDetails = (liveResult) => {
       hi: `${cropTitle} का पौधा`
     },
     family: `${cropTitle} Botanical Family`,
+    identifiedType: "Crop",
+    primaryUseImpact: "Cultivated agricultural food crop.",
+    suitableSoilType: "Well-drained fertile loam (pH 6.0 - 7.0)",
+    idealWeatherClimate: "Warm tropical to temperate climate (18°C - 28°C, Full Sun)",
     nativeRegion: "Global Agricultural Cultivation",
     confidence: confidenceStr,
     growthHabit: "Agricultural Crop / Cultivar",
@@ -565,35 +610,49 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     }
   };
 
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+
+  const generateMarkdownReport = () => {
+    const identifiedType = info.identifiedType || (info.isWeed ? 'Weed' : (info.isTree ? 'Tree' : 'Crop'));
+    const commonName = info.commonName || 'Plant Specimen';
+    const botanicalName = info.scientificName || 'Botanical classification';
+    const family = info.family || 'Botanical Family';
+    const description = info.description || `${commonName} is a botanical specimen belonging to the ${family} family.`;
+    const primaryUse = info.primaryUseImpact || (info.isWeed ? 'An invasive agricultural weed requiring active field management and eradication.' : 'Cultivated agricultural food crop and beneficial economic plant.');
+    const suitableSoil = info.suitableSoilType || info.soilpH || 'Well-drained fertile loamy soil (pH 6.0 - 7.0)';
+    const idealWeather = info.idealWeatherClimate || `${info.temperature || '20°C - 35°C'}, Full Sun (6 to 8 hours daily)`;
+
+    return `### 🌿 Plant Classification
+- **Identified Type**: ${identifiedType}
+- **Common Name**: ${commonName}
+- **Botanical Name**: *${botanicalName}*
+- **Family**: ${family}
+
+### 📝 Description & Key Details
+- **Description**: ${description}
+- **Primary Use / Impact**: ${primaryUse}
+
+### 🪵 Environmental Conditions
+- **Suitable Soil Type**: ${suitableSoil}
+- **Ideal Weather & Climate**: ${idealWeather}`;
+  };
+
+  const handleCopyMarkdown = async () => {
+    try {
+      const md = generateMarkdownReport();
+      await navigator.clipboard.writeText(md);
+      setCopiedMarkdown(true);
+      setTimeout(() => setCopiedMarkdown(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy markdown report:', err);
+    }
+  };
+
   // ==================== CARD 1: HERO SPECIMEN BANNER ====================
   const renderSpecimenHero = () => (
     <Card className="p-6 sm:p-8 bg-gradient-to-r from-teal-950 via-slate-900 to-slate-900 text-white border border-teal-500/20 shadow-2xl relative overflow-hidden rounded-3xl">
       <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* 50% AI + 50% Human Collaboration Banner */}
-      <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-transparent border border-emerald-500/30 flex items-center justify-between gap-3 relative z-10">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🤝</span>
-          <div>
-            <p className="text-xs font-black text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-              <span>50% AI Botanical Model</span>
-              <span className="text-white/40">+</span>
-              <span>50% Agronomist Peer-Review</span>
-            </p>
-            <p className="text-[11px] text-slate-300">
-              Verified by {studio?.agronomistProfile?.name || 'Chief Agronomist'} ({studio?.agronomistProfile?.institution || 'PJTSAU & ICAR'}) • Reg: {studio?.agronomistProfile?.regNo || 'ICAR-AGR-2024-8841'}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => studio?.setIsDrawerOpen(true)}
-          className="text-[11px] font-black px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center gap-1 shadow-md transition-all shrink-0"
-        >
-          ✏️ Edit 50%
-        </button>
-      </div>
 
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
         <div className="space-y-3 flex-1">
@@ -602,6 +661,12 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
             <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-400/30 flex items-center gap-1.5 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-teal-300" />
               {locUI.speciesMatch || 'Species Match'}
+            </span>
+
+            {/* Strict Identified Type Badge */}
+            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5 shadow-sm">
+              <span>🌿</span>
+              <span>{info.identifiedType || 'Crop'}</span>
             </span>
 
             {/* Weed / Tree / Crop Classification Badge */}
@@ -678,15 +743,35 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
               <h2 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight leading-tight">
                 {info.commonName}
               </h2>
-              <Button
-                variant="glass"
-                size="sm"
-                onClick={() => speak(fullSpeciesSummary, 'plant_summary', activeLang)}
-                leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'plant_summary' ? 'animate-bounce text-teal-300' : 'text-white'}`} />}
-                className="bg-teal-600/80 hover:bg-teal-500 text-white font-bold border-teal-400/40 shadow-sm rounded-xl"
-              >
-                {speakingId === 'plant_summary' ? (locUI.stopVoice || 'Stop Voice') : (locUI.listenVoice || 'Listen Summary')}
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => speak(fullSpeciesSummary, 'plant_summary', activeLang)}
+                  leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'plant_summary' ? 'animate-bounce text-teal-300' : 'text-white'}`} />}
+                  className="bg-teal-600/80 hover:bg-teal-500 text-white font-bold border-teal-400/40 shadow-sm rounded-xl"
+                >
+                  {speakingId === 'plant_summary' ? (locUI.stopVoice || 'Stop Voice') : (locUI.listenVoice || 'Listen Summary')}
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleCopyMarkdown}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  title="Copy Strict Markdown Report"
+                >
+                  {copiedMarkdown ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-300 font-extrabold">Report Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-emerald-300" />
+                      <span>Copy Markdown Report</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {info.scientificName && (
@@ -735,16 +820,77 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     </Card>
   );
 
-  // ==================== CARD 2: TAXONOMY & MORPHOLOGICAL PROFILE ====================
+  // ==================== CARD 2: SECTION 1 & 2 (PLANT CLASSIFICATION & DESCRIPTION) ====================
   const renderTaxonomy = () => (
     <div className="space-y-4">
-      {/* Specimen Overview & Narrative */}
+      {/* SECTION 1: 🌿 Plant Classification */}
+      <CollapsibleSection 
+        title="🌿 Plant Classification" 
+        icon={Sprout} 
+        badge={info.identifiedType || "Botanical Profile"} 
+        defaultOpen={true}
+        onSpeak={() => {
+          const text = buildPlantSpeech(speechInfo, activeLang, 'scientific');
+          speak(text, 'plant_scientific', activeLang);
+        }}
+        isSpeaking={speakingId === 'plant_scientific'}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+            <span className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+              🏷️ Identified Type
+            </span>
+            <p className="font-extrabold text-slate-100 text-sm">
+              {info.identifiedType || (info.isWeed ? 'Weed' : (info.isTree ? 'Tree' : 'Crop'))}
+            </p>
+          </div>
+          <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+            <span className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+              🌾 Common Name
+            </span>
+            <p className="font-extrabold text-slate-100 text-sm">{info.commonName}</p>
+          </div>
+          <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+            <span className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+              🔬 Botanical Name
+            </span>
+            <p className="font-extrabold text-emerald-300 text-sm italic">{info.scientificName}</p>
+          </div>
+          <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700/80">
+            <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+              🌿 Family
+            </span>
+            <p className="font-bold text-slate-200 text-sm">{info.family}</p>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* SECTION 2: 📝 Description & Key Details */}
       {info.description && (
         <Card className="p-5 sm:p-6 bg-slate-900/90 dark:bg-slate-900 border border-slate-700/80 text-white rounded-2xl shadow-md">
-          <div className="flex items-center gap-2 mb-2.5 text-teal-400 font-bold text-sm uppercase tracking-wider">
-            <BookOpen className="w-4 h-4" />
-            <span>{locUI.overview || 'Botanical Overview & Agricultural Traits'}</span>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <div className="flex items-center gap-2 text-teal-400 font-bold text-sm uppercase tracking-wider">
+              <BookOpen className="w-4 h-4" />
+              <span>📝 Description & Key Details</span>
+            </div>
+            {info.identifiedType && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-500/20 text-teal-300 border border-teal-400/30">
+                {info.identifiedType}
+              </span>
+            )}
           </div>
+
+          {/* Primary Use / Impact Callout */}
+          <div className="mb-3.5 p-3.5 rounded-xl bg-teal-950/60 border border-teal-500/30 text-xs">
+            <span className="font-extrabold text-teal-300 uppercase text-[10px] tracking-wider block mb-1 flex items-center gap-1.5">
+              <span>🌱</span>
+              <span>Primary Use / Impact</span>
+            </span>
+            <p className="text-slate-200 font-medium leading-relaxed">
+              {info.primaryUseImpact || (info.isWeed ? 'Invasive agricultural weed requiring active field management and eradication.' : 'Cultivated agricultural food crop and beneficial economic plant.')}
+            </p>
+          </div>
+
           <div className="relative">
             <p className={`text-sm text-slate-200 leading-relaxed font-normal ${!isDescriptionExpanded ? 'line-clamp-6' : ''}`}>
               {info.description}
@@ -762,7 +908,7 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
               {isDescriptionExpanded ? (
                 <><span>{locUI.showLess || 'Show Less ↑'}</span><ChevronUp className="w-4 h-4" /></>
               ) : (
-                <><span>{locUI.showMore || 'Show More (Read Full Description) ↓'}</span><ChevronDown className="w-4 h-4" /></>
+                <><span>{locUI.showMore || 'Show More (Read Full Overview) ↓'}</span><ChevronDown className="w-4 h-4" /></>
               )}
             </button>
           </div>
@@ -821,94 +967,61 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
           </div>
         </Card>
       )}
-
-      {/* Botanical Taxonomy & Architecture */}
-      <CollapsibleSection 
-        title={locUI.taxonomy || t("results.scientific_info", "Scientific Classification & Morphology")} 
-        icon={BookOpen} 
-        badge="Taxonomy" 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = buildPlantSpeech(speechInfo, activeLang, 'scientific');
-          speak(text, 'plant_scientific', activeLang);
-        }}
-        isSpeaking={speakingId === 'plant_scientific'}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-          <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-100/80 dark:border-emerald-900/50">
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold uppercase text-[10px]">{locUI.genus || 'Genus'}</span>
-            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm italic mt-0.5">{info.genus}</p>
-          </div>
-          <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-100/80 dark:border-emerald-900/50">
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold uppercase text-[10px]">{locUI.species || 'Species'}</span>
-            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm italic mt-0.5">{info.species}</p>
-          </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">{locUI.family || 'Botanical Family'}</span>
-            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{info.family}</p>
-          </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80 md:col-span-2">
-            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">{locUI.foliage || 'Foliage Morphology'}</span>
-            <p className="font-semibold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{info.leafType}</p>
-          </div>
-          <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-100 dark:border-slate-700/80">
-            <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">{locUI.growthHabit || 'Growth Habit'}</span>
-            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{info.growthHabit}</p>
-          </div>
-        </div>
-      </CollapsibleSection>
     </div>
   );
 
-  // ==================== CARD 3: AGRONOMIC CARE & CULTIVATION MATRIX ====================
+  // ==================== CARD 3: SECTION 3 (ENVIRONMENTAL CONDITIONS) ====================
   const renderAgronomicAdvisory = () => (
     <div>
       <div className="flex items-center gap-2 mb-3">
         <Sun className="w-4 h-4 text-amber-500" />
-        <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-slate-100">
-          {locUI.careMatrix || 'Cultivation & Growing Conditions Matrix'}
+        <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <span>🪵 Environmental Conditions</span>
+          <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+            ({locUI.careMatrix || 'Agronomic Growth Parameters'})
+          </span>
         </h3>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Sunlight */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900/60 to-slate-900 border border-amber-500/30 text-white shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider">
-                {locUI.sunlightTitle || 'Sunlight'}
-              </span>
-              <Sun className="w-4 h-4 text-amber-400" />
-            </div>
-            <p className="text-xs font-semibold text-slate-100 leading-relaxed">
-              {info.sunlight}
-            </p>
-          </div>
-          <span className="text-[10px] text-amber-400/80 font-bold mt-2">Optimal Photoperiod</span>
-        </div>
-
-        {/* Soil & pH */}
+        {/* Suitable Soil Type */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-slate-900/60 to-slate-900 border border-emerald-500/30 text-white shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider">
-                {locUI.soilTitle || 'Soil & pH'}
+                Suitable Soil Type
               </span>
               <Sprout className="w-4 h-4 text-emerald-400" />
             </div>
             <p className="text-xs font-semibold text-slate-100 leading-relaxed">
-              {info.soilpH}
+              {info.suitableSoilType || info.soilpH}
             </p>
           </div>
-          <span className="text-[10px] text-emerald-400/80 font-bold mt-2">Substrate Quality</span>
+          <span className="text-[10px] text-emerald-400/80 font-bold mt-2">Texture & pH Optimal</span>
         </div>
 
-        {/* Water Need */}
+        {/* Ideal Weather & Climate */}
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900/60 to-slate-900 border border-amber-500/30 text-white shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider">
+                Ideal Weather & Climate
+              </span>
+              <Sun className="w-4 h-4 text-amber-400" />
+            </div>
+            <p className="text-xs font-semibold text-slate-100 leading-relaxed">
+              {info.idealWeatherClimate || `${info.temperature} • ${info.sunlight}`}
+            </p>
+          </div>
+          <span className="text-[10px] text-amber-400/80 font-bold mt-2">Thermal & Sunlight Window</span>
+        </div>
+
+        {/* Water Need / Irrigation */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-slate-900/60 to-slate-900 border border-cyan-500/30 text-white shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-black uppercase text-cyan-400 tracking-wider">
-                {locUI.waterTitle || 'Irrigation'}
+                {locUI.waterTitle || 'Irrigation & Moisture'}
               </span>
               <Droplets className="w-4 h-4 text-cyan-400" />
             </div>
@@ -919,20 +1032,20 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
           <span className="text-[10px] text-cyan-400/80 font-bold mt-2">Moisture Regimen</span>
         </div>
 
-        {/* Temperature Window */}
+        {/* Temperature Window / Sunlight */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-500/10 via-slate-900/60 to-slate-900 border border-rose-500/30 text-white shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-black uppercase text-rose-400 tracking-wider">
-                {locUI.tempTitle || 'Temperature'}
+                {locUI.sunlightTitle || 'Sunlight Exposure'}
               </span>
               <Thermometer className="w-4 h-4 text-rose-400" />
             </div>
             <p className="text-xs font-semibold text-slate-100 leading-relaxed">
-              {info.temperature}
+              {info.sunlight}
             </p>
           </div>
-          <span className="text-[10px] text-rose-400/80 font-bold mt-2">Thermal Window</span>
+          <span className="text-[10px] text-rose-400/80 font-bold mt-2">Photoperiod Hours</span>
         </div>
       </div>
     </div>

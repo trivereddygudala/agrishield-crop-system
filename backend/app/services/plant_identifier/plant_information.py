@@ -92,6 +92,38 @@ PLANT_DATABASE = {
         "common_diseases": ["Chilli Leaf Spot (Cercospora)", "Anthracnose / Dieback (Fruit Rot)", "Leaf Curl Virus (Gemini virus)", "Damping Off"],
         "common_pests": ["Thrips (Scirtothrips dorsalis)", "Black Thrips", "Mites (Yellow Mite)", "Whiteflies"]
     },
+    "capsicum_frutescens": {
+        "common_name": "Bird's Eye Chilli / Capsicum Frutescens",
+        "regional_names": {
+            "te": "సన్న మిరప / కాంథారీ మిరప (Kanthari Mirapa)",
+            "hi": "तीखी मिर्च / बर्ड्स आई मिर्च (Bird's Eye Mirch)",
+            "ta": "காந்தாரி மிளகாய் / ஊசி மிளகாய் (Kanthari Milagai)",
+            "kn": "ಗಂಡು ಮೆಣಸಿನಕಾಯಿ / ಕಾಂತಾರಿ ಮೆಣಸು (Kanthari Menasu)",
+            "ml": "കാന്താരി മുളക് (Kanthari Mulaku)",
+            "mr": "लवंगी मिरची (Lavangi Mirchi)"
+        },
+        "scientific_name": "Capsicum frutescens",
+        "family": "Solanaceae (Nightshade Family)",
+        "category": "Crop",
+        "identified_type": "Crop",
+        "description": "Capsicum frutescens is a perennial shrub in the nightshade family (Solanaceae), widely recognized as bird's eye chilli, wild chilli, or kanthari chilli. It typically develops into a compact, heavily branched subshrub reaching heights of 0.5 to 1.5 meters under favorable conditions. The leaves are ovate-elliptic, smooth, and vibrant deep green with entire margins and acute tips. Its solitary or clustered flowers display greenish-white or pale greenish corollas with erect pedicels. The resulting berries are conical to oblong-lanceolate, point vertically upward toward the sky, and ripen from pale green to bright orange-red. Originating from tropical America, it has naturalized across southern India, particularly in Andhra Pradesh, Kerala, and Tamil Nadu homestead gardens and farms. The fruits contain exceptionally elevated capsaicin concentrations, rendering intense pungency and substantial commercial extraction value. The crop thrives in warm humid agro-climatic zones and continues yielding multiple harvests throughout the year with standard pruning and irrigation.",
+        "primary_use_impact": "Cultivated food crop and therapeutic medicinal spice herb valued for high-pungency culinary preparations, capsaicin pharmaceutical analgesics, and organic agricultural pest repellent sprays.",
+        "native_region": "Tropical Americas (Cultivated and naturalized throughout Southern India)",
+        "growth_stage": "Flowering, Pod Set & Active Picking",
+        "growing_season": "Year-round in tropical climates; Kharif & Rabi flushes",
+        "harvest_season": "Continuous picking every 7 to 10 days after 90 days from planting",
+        "soil_type": "Well-drained sandy loam or fertile red loam (pH 6.0 - 6.8)",
+        "suitable_soil_type": "Well-drained sandy loam, red loamy, or black alluvial soil with rich organic matter, optimal pH range of 6.0 - 6.8, and excellent aeration without standing water.",
+        "temperature_range": "20°C - 35°C",
+        "ideal_weather_climate": "Warm tropical to semi-arid climate, 20°C - 35°C optimal thermal window, 600 - 1200 mm annual rainfall, and Full Sun (6 to 8 hours daily).",
+        "water_requirement": "Moderate regular irrigation (Drip system preferred; sensitive to waterlogging)",
+        "sunlight_requirement": "Full Sun (6 to 8 hours daily)",
+        "fertilizer_recommendation": "NPK 120:60:60 kg/ha with split nitrogen application, well-rotted farmyard manure, and neem cake",
+        "economic_importance": "High-value spice fetching premium market rates; source of high-purity oleoresin and capsaicin.",
+        "common_uses": ["Culinary spice & hot pepper sauces", "Topical pain relief analgesics & capsaicin plasters", "Bio-pesticide spray against sucking pests"],
+        "common_diseases": ["Anthracnose / Dieback", "Chilli Leaf Curl Virus", "Cercospora Leaf Spot", "Bacterial Wilt"],
+        "common_pests": ["Chilli Thrips (Scirtothrips dorsalis)", "Yellow Mites", "Aphids", "Whiteflies"]
+    },
     "pepper": {
         "common_name": "Bell Pepper / Capsicum",
         "regional_names": {

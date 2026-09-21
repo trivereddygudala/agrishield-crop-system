@@ -170,8 +170,8 @@ class MockOnlinePlantProvider(BaseOnlinePlantProvider):
                 key = "trianthema"
             elif "achyranthes" in filename or "uttareni" in filename:
                 key = "achyranthes"
-            elif "eclipta" in filename or "guntagalagara" in filename:
-                key = "eclipta"
+            elif "capsicum" in filename or "frutescens" in filename or "chilli" in filename:
+                key = "capsicum_frutescens"
             else:
                 key = "tomato"
 
@@ -213,18 +213,22 @@ Focused organ inspected: {valid_organ}.
 
 Return ONLY a valid JSON object matching this exact structure:
 {{
-  "common_name": "<Common name in English, e.g. Hibiscus / China Rose, Mango Tree, Parthenium Weed>",
-  "scientific_name": "<Binomial scientific name, e.g. Hibiscus rosa-sinensis>",
-  "genus": "<Genus name, e.g. Hibiscus>",
-  "species": "<Specific epithet, e.g. rosa-sinensis>",
-  "family": "<Botanical family, e.g. Malvaceae>",
-  "category": "<Field Crop / Commercial Fruit Tree / Wild Flower / Agricultural Weed / Medicinal Plant / Ornamental>",
+  "common_name": "<Common name in English, e.g. Bird's Eye Chilli / Chilli Plant, Hibiscus, Mango Tree, Parthenium Weed>",
+  "scientific_name": "<Binomial scientific name in italics, e.g. Capsicum frutescens>",
+  "genus": "<Genus name, e.g. Capsicum>",
+  "species": "<Specific epithet, e.g. frutescens>",
+  "family": "<Botanical family, e.g. Solanaceae>",
+  "identified_type": "<Tree / Weed / Medicinal Plant / Crop / Ornamental>",
+  "category": "<Tree / Weed / Medicinal Plant / Crop / Ornamental>",
   "is_weed": <true or false>,
-  "description": "<2-3 sentence overview of botanical traits, growth habit, and agricultural/botanical value>",
-  "native_region": "<Geographic origin & native regions, e.g. Tropical Asia / Indian Subcontinent>",
+  "description": "<A medium 5 to 10 sentence overview of the plant's physical characteristics, regional presence, and distinct botanical features>",
+  "primary_use_impact": "<Specify if it is a cultivated food crop, a therapeutic/medicinal herb, an invasive weed requiring management, or a native tree>",
+  "suitable_soil_type": "<Specify ideal soil textures like Loamy, Sandy, Clay, or Black soil, along with optimal pH ranges and drainage needs>",
+  "ideal_weather_climate": "<Detail temperature ranges, annual rainfall requirements, and sunlight levels needed for optimal growth, e.g., Tropical, Semi-arid, Full Sun>",
+  "native_region": "<Geographic origin & native regions, e.g. Central and South America / Widely grown across India>",
   "growth_stage": "<Vegetative / Flowering / Fruiting / Mature Canopy>",
   "leaf_type": "<Leaf morphology: shape, arrangement, margins, and venation>",
-  "soil_type": "<Optimal soil type and pH range, e.g. Well-drained Red Loam (pH 6.0 - 7.5)>",
+  "soil_type": "<Optimal soil type and pH range, e.g. Well-drained Loamy Soil (pH 6.0 - 6.8)>",
   "temperature_range": "<Ideal temperature range, e.g. 20°C - 35°C>",
   "water_requirement": "<Watering / irrigation need: Low / Moderate / High / Drip>",
   "sunlight_requirement": "<Sunlight requirement: Full Sun / Partial Shade>",
