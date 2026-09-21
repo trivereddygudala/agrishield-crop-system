@@ -22,6 +22,8 @@ import { WeatherDashboard } from '../components/intelligence/WeatherDashboard';
 import { IrrigationAdvisor } from '../components/intelligence/IrrigationAdvisor';
 import { DiseaseRiskCard } from '../components/intelligence/DiseaseRiskCard';
 import { translateCrop, translateStage, translateDisease } from '../utils/diseaseAdvisoryData';
+import StudioEditableCard from '../components/common/StudioEditableCard';
+import { CURATED_FARM_PHOTOS } from '../services/photoService';
 
 // In-memory module-level cache to enable instantaneous (0ms) page transitions
 let cachedDashboardStats = null;
@@ -321,110 +323,194 @@ const DashboardPage = () => {
 
       {/* ─── Daily Farm Status Banner (Friendly & Actionable) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
-        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-[#0c1626]/90 shadow-sm rounded-3xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
-              </h2>
-              <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
-                {t('dashboard.daily_actionable_summary', 'Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying')}
-              </p>
-            </div>
+        <StudioEditableCard
+          cardKey="dashboard-banner"
+          tabId="dashboard"
+          title="Daily Farm Status Banner"
+          description="Today's weather summary, crop health condition, and foliar spray window"
+          className="w-full"
+        >
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md">
+            {/* Real Unsplash / Pexels farm sunrise photography background */}
+            <img 
+              src={CURATED_FARM_PHOTOS.farmSunrise} 
+              alt="Authentic Agricultural Farm Field" 
+              className="absolute inset-0 w-full h-full object-cover object-center"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-900/85 to-slate-950/50" />
+            
+            <div className="relative z-10 p-5 sm:p-6 lg:p-7 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/30 text-emerald-300 text-xs font-bold mb-1">
+                  <span>🌾 Authentic Field Telemetry</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+                  {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
+                </h2>
+                <p className="text-xs sm:text-sm font-medium text-slate-200 leading-relaxed max-w-2xl">
+                  {t('dashboard.daily_actionable_summary', 'Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying')}
+                </p>
+              </div>
 
-            {/* 3 Status Badges (Green / Sky / Protected) */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-300 text-xs sm:text-sm font-black shadow-xs">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                {t('dashboard.crops_healthy', 'Crops: Healthy')}
-              </div>
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100 dark:bg-sky-500/15 border border-sky-300 dark:border-sky-500/30 text-sky-900 dark:text-sky-300 text-xs sm:text-sm font-black shadow-xs">
-                <span>💧</span>
-                {t('dashboard.soil_optimal', 'Soil: {{pct}}% (Optimal)', { pct: activeTelemetry?.soil_moisture ?? 45 })}
-              </div>
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/25 text-emerald-900 dark:text-emerald-300 text-xs sm:text-sm font-black shadow-xs">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                {t('dashboard.disease_risk_low', 'Disease Risk: Low')}
+              {/* 3 Status Badges (Green / Sky / Protected) */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 backdrop-blur border border-emerald-400/40 text-emerald-200 text-xs sm:text-sm font-black shadow-xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {t('dashboard.crops_healthy', 'Crops: Healthy')}
+                </div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/20 backdrop-blur border border-sky-400/40 text-sky-200 text-xs sm:text-sm font-black shadow-xs">
+                  <span>💧</span>
+                  {t('dashboard.soil_optimal', 'Soil: {{pct}}% (Optimal)', { pct: activeTelemetry?.soil_moisture ?? 45 })}
+                </div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 backdrop-blur border border-emerald-400/30 text-emerald-200 text-xs sm:text-sm font-black shadow-xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
+                  {t('dashboard.disease_risk_low', 'Disease Risk: Low')}
+                </div>
               </div>
             </div>
           </div>
-        </Card>
+        </StudioEditableCard>
       </motion.div>
 
       {/* ─── Essential Farmer KPIs (4 Spacious, High-Contrast Cards) ─── */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* KPI 1: Active Crop */}
-        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
-          <div>
-            <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-              {t('dashboard.kpi.active_crop_label', 'Active Crop:')}
-            </span>
-            <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-              {cropName ? (translateCrop(cropName, i18n.language) || cropName) : (
-                <Link to="/farm" className="text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
-                  <span>+ {t('dashboard.set_crop', 'Set Your Crop')}</span>
-                </Link>
-              )}
-            </div>
-          </div>
-          {cropName ? (
-            <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 mt-3">
-              ({translateStage(growthStage, i18n.language)} {t('dashboard.kpi.stage', 'Stage')})
-            </p>
-          ) : (
-            <p className="text-xs text-slate-400 dark:text-slate-500 font-semibold mt-3">
-              {t('dashboard.configure_crop', 'Configure crop in My Farm')}
-            </p>
-          )}
-        </Card>
-
-        {/* KPI 2: Leaf Scans */}
-        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
-          <div>
-            <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-              {t('dashboard.kpi.leaf_scans_label', 'Leaf Scans:')}
-            </span>
-            <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-              {stats.total}
-            </div>
-          </div>
-          <p className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 mt-3">
-            ({stats.healthy} {t('dashboard.kpi.healthy', 'Healthy')} · {stats.diseased} {t('dashboard.kpi.treated', 'Treated')})
-          </p>
-        </Card>
-
-        {/* KPI 3: Soil Water */}
-        <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between">
-          <div>
-            <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-              {t('dashboard.kpi.soil_water_label', 'Soil Water:')}
-            </span>
-            <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-              {activeTelemetry?.soil_moisture ?? 45}%
-            </div>
-          </div>
-          <p className="text-xs sm:text-sm font-bold text-sky-700 dark:text-sky-400 mt-3">
-            ({(activeTelemetry?.soil_moisture ?? 45) > 50 ? t('dashboard.kpi.optimal', 'Optimal') : (activeTelemetry?.soil_moisture ?? 45) > 30 ? t('dashboard.kpi.adequate', 'Adequate') : t('dashboard.kpi.needs_water', 'Needs Water')})
-          </p>
-        </Card>
-
-        {/* KPI 4: Market Rate */}
-        <Link to="/market" className="block">
-          <Card glass className="p-4 sm:p-5 border border-slate-200 dark:border-emerald-500/30 bg-white dark:bg-[#08121f] rounded-2xl shadow-sm hover:border-emerald-500/60 transition-all flex flex-col justify-between h-full group">
+        <StudioEditableCard
+          cardKey="dashboard-kpi-crop"
+          tabId="dashboard"
+          title="Active Crop KPI"
+          description="Displays current registered crop and growth stage"
+          className="h-full"
+        >
+          <div className="p-4 sm:p-5 border-t-4 border-t-emerald-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-emerald-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
             <div>
-              <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-                {t('dashboard.kpi.mandi_rate_label', 'Market Rate:')}
-              </span>
-              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
-                ₹2,150/Qtl
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                  {t('dashboard.kpi.active_crop_label', 'Active Crop:')}
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <Sprout className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                {cropName ? (translateCrop(cropName, i18n.language) || cropName) : (
+                  <Link to="/farm" className="text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
+                    <span>+ {t('dashboard.set_crop', 'Set Your Crop')}</span>
+                  </Link>
+                )}
               </div>
             </div>
-            <p className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-3 flex items-center justify-between">
-              <span>(▲ +₹50 {t('dashboard.kpi.today', 'today')})</span>
-              <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-            </p>
-          </Card>
-        </Link>
+            {cropName ? (
+              <div className="mt-3">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {translateStage(growthStage, i18n.language)} {t('dashboard.kpi.stage', 'Stage')}
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-3">
+                {t('dashboard.configure_crop', 'Configure crop in My Farm')}
+              </p>
+            )}
+          </div>
+        </StudioEditableCard>
+
+        {/* KPI 2: Leaf Scans */}
+        <StudioEditableCard
+          cardKey="dashboard-kpi-scans"
+          tabId="dashboard"
+          title="Total Leaf Scans KPI"
+          description="Scans history total and healthy vs diseased counters"
+          className="h-full"
+        >
+          <div className="p-4 sm:p-5 border-t-4 border-t-teal-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-teal-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                  {t('dashboard.kpi.leaf_scans_label', 'Leaf Scans:')}
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-teal-500/15 dark:bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                  <Camera className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                {stats.total}
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/80 text-teal-800 dark:text-teal-300 font-bold text-xs">
+                🌿 {stats.healthy} {t('dashboard.kpi.healthy', 'Healthy')}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-rose-800 dark:text-rose-300 font-bold text-xs">
+                🍂 {stats.diseased} {t('dashboard.kpi.treated', 'Treated')}
+              </span>
+            </div>
+          </div>
+        </StudioEditableCard>
+
+        {/* KPI 3: Soil Water */}
+        <StudioEditableCard
+          cardKey="dashboard-kpi-soil"
+          tabId="dashboard"
+          title="Soil Moisture Telemetry KPI"
+          description="Real-time ESP32 edge soil capacitance percentage"
+          className="h-full"
+        >
+          <div className="p-4 sm:p-5 border-t-4 border-t-sky-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-sky-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                  {t('dashboard.kpi.soil_water_label', 'Soil Water:')}
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                  <Droplets className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                {activeTelemetry?.soil_moisture ?? 45}%
+              </div>
+            </div>
+            <div className="mt-3">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 font-bold text-xs">
+                💧 {(activeTelemetry?.soil_moisture ?? 45) > 50 ? t('dashboard.kpi.optimal', 'Optimal') : (activeTelemetry?.soil_moisture ?? 45) > 30 ? t('dashboard.kpi.adequate', 'Adequate') : t('dashboard.kpi.needs_water', 'Needs Water')}
+              </span>
+            </div>
+          </div>
+        </StudioEditableCard>
+
+        {/* KPI 4: Market Rate */}
+        <StudioEditableCard
+          cardKey="dashboard-kpi-market"
+          tabId="dashboard"
+          title="Commodity Market Rate KPI"
+          description="Today's agricultural APMC mandi price per quintal"
+          className="h-full"
+        >
+          <Link to="/market" className="block h-full group">
+            <div className="p-4 sm:p-5 border-t-4 border-t-amber-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-amber-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                    {t('dashboard.kpi.mandi_rate_label', 'Market Rate:')}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
+                  ₹2,150/Qtl
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-300 font-bold text-xs">
+                  ▲ +₹50 {t('dashboard.kpi.today', 'today')}
+                </span>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+              </div>
+            </div>
+          </Link>
+        </StudioEditableCard>
       </motion.div>
 
       {/* ─── Quick Touch-Friendly Farming Tools (4 Balanced Cards) ─── */}
@@ -439,94 +525,158 @@ const DashboardPage = () => {
           </Link>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Link to="/upload" className="block group">
-            <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 transition-all h-full flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">📷</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+          <StudioEditableCard
+            cardKey="dashboard-tool-leaf"
+            tabId="dashboard"
+            title="Leaf Doctor Launcher"
+            description="Quick link to scan crop leaf"
+            className="h-full"
+          >
+            <Link to="/upload" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.leafDoctor} alt="Crop Leaf Diagnosis" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {t('dashboard.quick_tools.leaf_doctor', 'Leaf Doctor')}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {t('dashboard.quick_tools.leaf_doctor_desc', 'Scan crop leaf for instant disease detection.')}
+                  </p>
                 </div>
-                <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {t('dashboard.quick_tools.leaf_doctor', 'Leaf Doctor')}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                  {t('dashboard.quick_tools.leaf_doctor_desc', 'Scan crop leaf for instant disease detection.')}
-                </p>
-              </div>
-            </Card>
-          </Link>
+              </Card>
+            </Link>
+          </StudioEditableCard>
 
-          <Link to="/assistant" className="block group">
-            <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 transition-all h-full flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">💬</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+          <StudioEditableCard
+            cardKey="dashboard-tool-agronomist"
+            tabId="dashboard"
+            title="AI Agronomist Launcher"
+            description="Quick link to AI voice crop doctor & chat"
+            className="h-full"
+          >
+            <Link to="/assistant" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.agronomist} alt="Human Agronomist Advisory" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {t('dashboard.quick_tools.agronomist', 'AI Agronomist')}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {t('dashboard.quick_tools.agronomist_desc', 'Ask farming advice in your voice or language.')}
+                  </p>
                 </div>
-                <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {t('dashboard.quick_tools.agronomist', 'AI Agronomist')}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                  {t('dashboard.quick_tools.agronomist_desc', 'Ask farming advice in your voice or language.')}
-                </p>
-              </div>
-            </Card>
-          </Link>
+              </Card>
+            </Link>
+          </StudioEditableCard>
 
-          <Link to="/market" className="block group">
-            <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 transition-all h-full flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">📈</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+          <StudioEditableCard
+            cardKey="dashboard-tool-market"
+            tabId="dashboard"
+            title="Market Rates Launcher"
+            description="Quick link to track daily live market rates"
+            className="h-full"
+          >
+            <Link to="/market" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.rice} alt="Agricultural Market Produce" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {t('dashboard.quick_tools.mandi_prices', 'Market')}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {t('dashboard.quick_tools.mandi_prices_desc', 'Track daily live agricultural market rates.')}
+                  </p>
                 </div>
-                <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {t('dashboard.quick_tools.mandi_prices', 'Market')}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                  {t('dashboard.quick_tools.mandi_prices_desc', 'Track daily live agricultural market rates.')}
-                </p>
-              </div>
-            </Card>
-          </Link>
+              </Card>
+            </Link>
+          </StudioEditableCard>
 
-          <Link to="/farm" className="block group">
-            <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 transition-all h-full flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">🌾</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+          <StudioEditableCard
+            cardKey="dashboard-tool-farm"
+            tabId="dashboard"
+            title="My Farm Launcher"
+            description="Quick link to field GPS boundaries & crop setup"
+            className="h-full"
+          >
+            <Link to="/farm" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.farmField} alt="GPS Farm Boundary" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {t('dashboard.quick_tools.my_farm', 'My Farm')}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {t('dashboard.quick_tools.my_farm_desc', 'View field GPS boundaries & crop setup.')}
+                  </p>
                 </div>
-                <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {t('dashboard.quick_tools.my_farm', 'My Farm')}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                  {t('dashboard.quick_tools.my_farm_desc', 'View field GPS boundaries & crop setup.')}
-                </p>
-              </div>
-            </Card>
-          </Link>
+              </Card>
+            </Link>
+          </StudioEditableCard>
         </div>
       </motion.div>
 
       {/* ─── Hero Intelligence Blocks (Weather, Irrigation, Risks) ─── */}
       <motion.div variants={itemVariants} className="grid lg:grid-cols-12 gap-6 w-full max-w-full min-w-0">
         <div className="lg:col-span-7 space-y-6 flex flex-col w-full max-w-full min-w-0 overflow-hidden">
-          <WidgetErrorBoundary name="Weather Intelligence">
-            <div className="flex-1 w-full max-w-full min-w-0">
-              <WeatherDashboard farmId={farmId} lat={coordinates.lat} lon={coordinates.lon} />
-            </div>
-          </WidgetErrorBoundary>
+          <StudioEditableCard
+            cardKey="dashboard-weather"
+            tabId="dashboard"
+            title="Weather Intelligence Telemetry"
+            description="Real-time temperature, humidity, rainfall & satellite forecast"
+            className="w-full"
+          >
+            <WidgetErrorBoundary name="Weather Intelligence">
+              <div className="flex-1 w-full max-w-full min-w-0">
+                <WeatherDashboard farmId={farmId} lat={coordinates.lat} lon={coordinates.lon} />
+              </div>
+            </WidgetErrorBoundary>
+          </StudioEditableCard>
         </div>
 
         <div className="lg:col-span-5 space-y-6 flex flex-col w-full max-w-full min-w-0">
-          <WidgetErrorBoundary name="Smart Irrigation Advisor">
-            <IrrigationAdvisor farmId={farmId} cropName={cropName} growthStage={growthStage} farmSize={farmSize} />
-          </WidgetErrorBoundary>
+          <StudioEditableCard
+            cardKey="dashboard-irrigation"
+            tabId="dashboard"
+            title="Smart Irrigation Advisor"
+            description="Soil moisture analysis and smart knapsack water guidance"
+            className="w-full"
+          >
+            <WidgetErrorBoundary name="Smart Irrigation Advisor">
+              <IrrigationAdvisor farmId={farmId} cropName={cropName} growthStage={growthStage} farmSize={farmSize} />
+            </WidgetErrorBoundary>
+          </StudioEditableCard>
           
-          <WidgetErrorBoundary name="Disease Risk Forecast">
-            <DiseaseRiskCard farmId={farmId} cropName={cropName} />
-          </WidgetErrorBoundary>
+          <StudioEditableCard
+            cardKey="dashboard-disease-risk"
+            tabId="dashboard"
+            title="Disease Risk Forecast"
+            description="Micro-climate fungal and bacterial outbreak risk score"
+            className="w-full"
+          >
+            <WidgetErrorBoundary name="Disease Risk Forecast">
+              <DiseaseRiskCard farmId={farmId} cropName={cropName} />
+            </WidgetErrorBoundary>
+          </StudioEditableCard>
         </div>
       </motion.div>
 

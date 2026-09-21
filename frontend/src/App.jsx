@@ -5,7 +5,6 @@ import { AuthProvider } from './context/AuthContext';
 import { FarmProvider } from './context/FarmContext';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { StudioProvider } from './context/StudioContext';
-import AgriShieldStudioDrawer from './components/common/AgriShieldStudioDrawer';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageSkeleton from './components/PageSkeleton';
@@ -14,6 +13,7 @@ import OfflineStatusBar from './components/common/OfflineStatusBar';
 import { useColorTheme } from './hooks/useColorTheme';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { getApiBaseUrl } from './services/api';
+
 
 // Critical-path authentication pages — loaded eagerly for instant first-paint
 import LandingPage from './pages/LandingPage';
@@ -159,61 +159,60 @@ function App() {
               <StudioProvider>
                 <BrowserRouter>
                   <FarmerWelcomeModal />
-                  <AgriShieldStudioDrawer />
                   <ErrorBoundary>
-                <Routes>
-                  {/* Public Views */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
+                      <Routes>
+                        {/* Public Views */}
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/register" element={<RegisterPage />} />
 
-                  {/* Authenticated Dashboard Views */}
-                  <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/more" element={<MorePage />} />
-                    <Route path="/node-control" element={<NodeControlPage />} />
-                    <Route path="/farm" element={<FarmPage />} />
-                    <Route path="/field-calculator" element={<FieldAreaCalculatorPage />} />
-                    <Route path="/area-calculator" element={<Navigate to="/field-calculator" replace />} />
-                    <Route path="/farm-settings" element={<Navigate to="/farm" replace />} />
-                    <Route path="/farm-info" element={<Navigate to="/farm" replace />} />
-                    <Route path="/crop-advisory" element={<CropAdvisoryPage />} />
-                    <Route path="/market" element={<MarketPricesPage />} />
-                    <Route path="/crop-prices" element={<Navigate to="/market" replace />} />
-                    <Route path="/upload" element={<UploadImagePage />} />
-                    <Route path="/upload/:tab" element={<UploadImagePage />} />
-                    <Route path="/result" element={<PredictionResultPage />} />
-                    <Route path="/history" element={<HistoryPage />} />
-                    <Route path="/devices" element={<DevicesPage />} />
-                    <Route path="/device" element={<Navigate to="/devices" replace />} />
-                    <Route path="/sdcard" element={<SDCardPage />} />
-                    <Route path="/notifications" element={<NotificationsPage />} />
-                    <Route path="/reports" element={<ReportsPage />} />
-                    <Route path="/assistant" element={<AIAssistantPage />} />
-                    <Route path="/analytics" element={<AnalyticsPage />} />
-                    <Route path="/telemetry" element={<Navigate to="/analytics" replace />} />
-                    <Route path="/farm-analytics" element={<FarmAnalyticsPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/languages" element={<LanguagesPage />} />
-                    <Route path="/language" element={<Navigate to="/languages" replace />} />
-                    <Route path="/support" element={<HelpSupportPage />} />
-                    <Route path="/help" element={<Navigate to="/support" replace />} />
-                    <Route path="/helpdesk" element={<Navigate to="/support" replace />} />
-                    <Route path="/admin" element={<AdminPage />} />
-                    <Route path="/admin/*" element={<AdminPage />} />
-                    <Route path="/scan" element={<UploadImagePage />} />
-                    <Route path="/scan/:tab" element={<UploadImagePage />} />
-                    <Route path="/ai-scan" element={<UploadImagePage />} />
-                    <Route path="/ai-scan/:tab" element={<UploadImagePage />} />
-                  </Route>
+                        {/* Authenticated Dashboard Views */}
+                        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                          <Route path="/dashboard" element={<DashboardPage />} />
+                          <Route path="/more" element={<MorePage />} />
+                          <Route path="/node-control" element={<NodeControlPage />} />
+                          <Route path="/farm" element={<FarmPage />} />
+                          <Route path="/field-calculator" element={<FieldAreaCalculatorPage />} />
+                          <Route path="/area-calculator" element={<Navigate to="/field-calculator" replace />} />
+                          <Route path="/farm-settings" element={<Navigate to="/farm" replace />} />
+                          <Route path="/farm-info" element={<Navigate to="/farm" replace />} />
+                          <Route path="/crop-advisory" element={<CropAdvisoryPage />} />
+                          <Route path="/market" element={<MarketPricesPage />} />
+                          <Route path="/crop-prices" element={<Navigate to="/market" replace />} />
+                          <Route path="/upload" element={<UploadImagePage />} />
+                          <Route path="/upload/:tab" element={<UploadImagePage />} />
+                          <Route path="/result" element={<PredictionResultPage />} />
+                          <Route path="/history" element={<HistoryPage />} />
+                          <Route path="/devices" element={<DevicesPage />} />
+                          <Route path="/device" element={<Navigate to="/devices" replace />} />
+                          <Route path="/sdcard" element={<SDCardPage />} />
+                          <Route path="/notifications" element={<NotificationsPage />} />
+                          <Route path="/reports" element={<ReportsPage />} />
+                          <Route path="/assistant" element={<AIAssistantPage />} />
+                          <Route path="/analytics" element={<AnalyticsPage />} />
+                          <Route path="/telemetry" element={<Navigate to="/analytics" replace />} />
+                          <Route path="/farm-analytics" element={<FarmAnalyticsPage />} />
+                          <Route path="/profile" element={<ProfilePage />} />
+                          <Route path="/settings" element={<SettingsPage />} />
+                          <Route path="/languages" element={<LanguagesPage />} />
+                          <Route path="/language" element={<Navigate to="/languages" replace />} />
+                          <Route path="/support" element={<HelpSupportPage />} />
+                          <Route path="/help" element={<Navigate to="/support" replace />} />
+                          <Route path="/helpdesk" element={<Navigate to="/support" replace />} />
+                          <Route path="/admin" element={<AdminPage />} />
+                          <Route path="/admin/*" element={<AdminPage />} />
+                          <Route path="/scan" element={<UploadImagePage />} />
+                          <Route path="/scan/:tab" element={<UploadImagePage />} />
+                          <Route path="/ai-scan" element={<UploadImagePage />} />
+                          <Route path="/ai-scan/:tab" element={<UploadImagePage />} />
+                        </Route>
 
-                  {/* Error Pages */}
-                  <Route path="/error" element={<ServerErrorPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </ErrorBoundary>
-              </BrowserRouter>
+                        {/* Error Pages */}
+                        <Route path="/error" element={<ServerErrorPage />} />
+                        <Route path="*" element={<NotFoundPage />} />
+                      </Routes>
+                    </ErrorBoundary>
+                </BrowserRouter>
               </StudioProvider>
             </ToastProvider>
           </WebSocketProvider>

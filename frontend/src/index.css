@@ -783,6 +783,45 @@
   .text-gradient-sky {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-sky-600 via-cyan-600 to-blue-700 dark:from-sky-400 dark:via-cyan-300 dark:to-blue-200;
   }
+
+  /* Human-Engineered High-Contrast Cards & Badges (WCAG AAA Compliant) */
+  .human-card {
+    background: #ffffff;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
+    border-radius: 1.25rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dark .human-card {
+    background: rgba(11, 19, 34, 0.95);
+    border: 1px solid rgba(30, 41, 59, 0.85);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .human-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  }
+
+  .dark .human-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  }
+
+  /* High-Contrast Badges */
+  .badge-contrast-emerald {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700/80 text-emerald-900 dark:text-emerald-200 font-extrabold text-xs;
+  }
+  .badge-contrast-amber {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-700/80 text-amber-900 dark:text-amber-200 font-extrabold text-xs;
+  }
+  .badge-contrast-sky {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/70 border border-sky-300 dark:border-sky-700/80 text-sky-900 dark:text-sky-200 font-extrabold text-xs;
+  }
+  .badge-contrast-rose {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-700/80 text-rose-900 dark:text-rose-200 font-extrabold text-xs;
+  }
 }
 
 /* Custom Scrollbars */

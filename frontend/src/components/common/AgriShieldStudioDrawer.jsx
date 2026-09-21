@@ -17,6 +17,7 @@ const TAB_OPTIONS = [
 ];
 
 const PAGE_CONTEXTS = [
+  { id: 'landing', label: 'First Page / Landing Page', icon: Sprout },
   { id: 'disease-diag', label: 'AI Crop Disease Diagnosis', icon: Stethoscope },
   { id: 'plant-id', label: 'Plant & Weed Identification', icon: Sprout },
   { id: 'agro-scan', label: 'Agrochemical OCR Scanner', icon: FlaskConical },
@@ -108,7 +109,9 @@ const AgriShieldStudioDrawer = () => {
     updateEffectsConfig,
     agronomistProfile,
     updateAgronomistProfile,
-    resetAllToDefaults
+    resetAllToDefaults,
+    isVisualEditMode,
+    setIsVisualEditMode
   } = useStudio();
 
   const [selectedNode, setSelectedNode] = useState(ARCHITECTURE_NODES[2]); // Default to Human HITL node
@@ -126,9 +129,26 @@ const AgriShieldStudioDrawer = () => {
 
   return (
     <>
-      {/* Persistent Floating Studio Controller Button */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2 print:hidden">
+      {/* Persistent Floating Studio Controller Buttons */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col sm:flex-row items-end sm:items-center gap-2 print:hidden">
+        {/* Visual In-Place Edit Mode Quick Toggle */}
         <button
+          type="button"
+          onClick={() => setIsVisualEditMode(!isVisualEditMode)}
+          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-2xl font-extrabold text-xs shadow-2xl border transition-all cursor-pointer backdrop-blur-md ${
+            isVisualEditMode
+              ? 'bg-emerald-500 text-slate-950 border-emerald-300 ring-2 ring-emerald-400/60 shadow-emerald-500/40 scale-105'
+              : 'bg-slate-950/90 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10'
+          }`}
+          title="Toggle Visual In-Place Touch/Click Card Editor"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>{isVisualEditMode ? '🎨 Visual Studio: ON' : '🎨 Touch-to-Edit'}</span>
+        </button>
+
+        {/* Full 50/50 Drawer Button */}
+        <button
+          type="button"
           onClick={() => openDrawer('editor', activePageTab)}
           className="group relative flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white font-extrabold text-xs sm:text-sm shadow-2xl shadow-emerald-950/60 border border-emerald-400/40 hover:scale-105 active:scale-95 transition-all cursor-pointer backdrop-blur-md"
           title="Open AgriShield Studio: 50% AI + 50% Human Agronomist Editor & Visual Customizer"
@@ -201,6 +221,37 @@ const AgriShieldStudioDrawer = () => {
               })}
             </div>
 
+            {/* Visual In-Place Edit Mode Activation Banner */}
+            <div className="p-3 bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/60 border-b border-emerald-500/30 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-xl ${isVisualEditMode ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-white">Visual On-Touch Card Studio</span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isVisualEditMode ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
+                      {isVisualEditMode ? 'ACTIVE' : 'OFF'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Touch or hover cards to customize colors, box corners, gradients, sizes & remove live
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVisualEditMode(!isVisualEditMode)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-md shrink-0 cursor-pointer ${
+                  isVisualEditMode
+                    ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+                    : 'bg-slate-800 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/20'
+                }`}
+              >
+                {isVisualEditMode ? 'Turn OFF' : 'Enable Visual Mode'}
+              </button>
+            </div>
+
             {/* Context Selector Bar (Shows active page tab) */}
             {activeDrawerTab !== 'map' && (
               <div className="px-4 py-2.5 bg-slate-900/50 border-b border-slate-800/80 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
@@ -236,6 +287,106 @@ const AgriShieldStudioDrawer = () => {
               {/* TAB 1: 50% AI + 50% HUMAN AGRONOMIST EDITOR */}
               {activeDrawerTab === 'editor' && (
                 <div className="space-y-5 animate-in fade-in duration-200">
+                  {/* Quick 3-Step Guide for non-technical users */}
+                  <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-700/80 shadow-md">
+                    <p className="text-[11px] font-black uppercase text-amber-400 tracking-wider mb-2 flex items-center gap-1.5">
+                      💡 How To Edit In 3 Simple Steps:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                      <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                        <span className="font-black text-emerald-400 block mb-0.5">1. Pick a Preset</span>
+                        <p className="text-slate-300 text-[11px]">Click Rice, Tomato, or Cotton below to auto-fill authentic data.</p>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                        <span className="font-black text-sky-400 block mb-0.5">2. Or Type Changes</span>
+                        <p className="text-slate-300 text-[11px]">Type any crop, disease, chemical dosage, or doctor note.</p>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                        <span className="font-black text-indigo-400 block mb-0.5">3. Click Save</span>
+                        <p className="text-slate-300 text-[11px]">Your changes update on screen and in downloaded PDF slips instantly!</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 1-Click Instant Demo Presets */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-purple-950/60 border border-indigo-500/40 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-indigo-300 tracking-wider flex items-center gap-1.5">
+                        <Wand2 className="w-4 h-4 text-indigo-400" /> 1-Click Instant Demo Presets (Try These First!)
+                      </span>
+                      <span className="text-[10px] text-indigo-200/80 font-semibold bg-indigo-500/20 px-2 py-0.5 rounded-full">
+                        Instant 1-Tap Fill
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCardOverride(activePageTab, 'crop_name', 'Rice / Paddy (వరి)');
+                          setCardOverride(activePageTab, 'disease_name', 'Rice Blast (అగ్గి తెగులు)');
+                          setCardOverride(activePageTab, 'chemical_treatment', 'Tricyclazole 75% WP @ 0.6 g / L or Saaf @ 2.0 g / L of water');
+                          setCardOverride(activePageTab, 'organic_treatment', 'Spray Pseudomonas fluorescens @ 5 g / L with 5% Neem Seed Kernel Extract (NSKE)');
+                          setCardOverride(activePageTab, 'agronomist_notes', 'Verified by Dr. V. Ramanjaneyulu (PJTSAU). Immediate spray recommended at tillering stage.');
+                          setCardOverride(activePageTab, 'human_verified', true);
+                          setCardOverride(activePageTab, 'is_modified', true);
+                          setSaveToast(true);
+                          setTimeout(() => setSaveToast(false), 3500);
+                        }}
+                        className="p-3 rounded-xl bg-slate-800/90 hover:bg-emerald-600/90 text-slate-200 hover:text-white border border-slate-700 hover:border-emerald-400 transition-all text-left group cursor-pointer shadow-sm"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xl">🌾</span>
+                          <span className="font-extrabold text-white text-xs group-hover:text-white">Rice Blast Demo</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 group-hover:text-emerald-100 line-clamp-1">Tricyclazole + Organic NSKE</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCardOverride(activePageTab, 'crop_name', 'Tomato (టమోటా)');
+                          setCardOverride(activePageTab, 'disease_name', 'Early Blight (ముందస్తు ఆకుమచ్చ)');
+                          setCardOverride(activePageTab, 'chemical_treatment', 'Mancozeb 75% WP (Dithane M-45) @ 2.5 g / L + Saaf @ 1.5 g / L');
+                          setCardOverride(activePageTab, 'organic_treatment', 'Trichoderma viride 1% WP @ 5 g / L foliar drench + Copper Hydroxide 2 g/L');
+                          setCardOverride(activePageTab, 'agronomist_notes', 'Certified by ICAR-AP. Alternate with systemic fungicide after 10 days to prevent resistance.');
+                          setCardOverride(activePageTab, 'human_verified', true);
+                          setCardOverride(activePageTab, 'is_modified', true);
+                          setSaveToast(true);
+                          setTimeout(() => setSaveToast(false), 3500);
+                        }}
+                        className="p-3 rounded-xl bg-slate-800/90 hover:bg-emerald-600/90 text-slate-200 hover:text-white border border-slate-700 hover:border-emerald-400 transition-all text-left group cursor-pointer shadow-sm"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xl">🍅</span>
+                          <span className="font-extrabold text-white text-xs group-hover:text-white">Tomato Blight Demo</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 group-hover:text-emerald-100 line-clamp-1">Mancozeb + Trichoderma</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCardOverride(activePageTab, 'crop_name', 'Cotton (పత్తి)');
+                          setCardOverride(activePageTab, 'disease_name', 'Bacterial Blight & Bollworm');
+                          setCardOverride(activePageTab, 'chemical_treatment', 'Streptocycline 90:10 @ 1.0 g / 10 L water + Copper Oxychloride @ 3.0 g / L');
+                          setCardOverride(activePageTab, 'organic_treatment', 'Neem Oil 10,000 PPM @ 3.0 ml / L + Liquid organic bio-fertilizer foliar spray');
+                          setCardOverride(activePageTab, 'agronomist_notes', 'Clinical recommendation for Telangana & Andhra black cotton soils.');
+                          setCardOverride(activePageTab, 'human_verified', true);
+                          setCardOverride(activePageTab, 'is_modified', true);
+                          setSaveToast(true);
+                          setTimeout(() => setSaveToast(false), 3500);
+                        }}
+                        className="p-3 rounded-xl bg-slate-800/90 hover:bg-emerald-600/90 text-slate-200 hover:text-white border border-slate-700 hover:border-emerald-400 transition-all text-left group cursor-pointer shadow-sm"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xl">🌱</span>
+                          <span className="font-extrabold text-white text-xs group-hover:text-white">Cotton Blight Demo</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 group-hover:text-emerald-100 line-clamp-1">Streptocycline + Neem Oil</p>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Banner explaining 50/50 Human-in-the-Loop */}
                   <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-indigo-950/70 border border-emerald-500/40 space-y-2">
                     <div className="flex items-center justify-between">

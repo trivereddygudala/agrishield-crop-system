@@ -9,6 +9,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DemoModal from '../components/DemoModal';
+import StudioEditableCard from '../components/common/StudioEditableCard';
+import { CURATED_FARM_PHOTOS } from '../services/photoService';
 
 /* ─── Animated Counter ──────────────────────────────────── */
 const AnimatedCounter = ({ to, suffix = '', duration = 2 }) => {
@@ -37,7 +39,7 @@ const FloatingOrb = ({ className }) => (
 );
 
 /* ─── Feature Card ──────────────────────────────────── */
-const FeatureCard = ({ icon: Icon, badge, title, description, color, index, previewLabel, onClick }) => (
+const FeatureCard = ({ icon: Icon, badge, title, description, color, index, previewLabel, onClick, photo }) => (
   <motion.div
     onClick={onClick}
     initial={{ opacity: 0, y: 30 }}
@@ -45,14 +47,20 @@ const FeatureCard = ({ icon: Icon, badge, title, description, color, index, prev
     viewport={{ once: true }}
     transition={{ delay: index * 0.1, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
     whileHover={{ y: -6, transition: { duration: 0.2 } }}
-    className="group relative rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md p-6 flex flex-col gap-5 hover:border-emerald-500/40 hover:bg-white/10 transition-all duration-300 cursor-pointer overflow-hidden h-full"
+    className="group relative rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md p-6 flex flex-col gap-4 hover:border-emerald-500/40 hover:bg-white/[0.08] transition-all duration-300 cursor-pointer overflow-hidden h-full shadow-lg"
   >
+    {photo && (
+      <div className="w-full h-36 -mx-6 -mt-6 mb-1 overflow-hidden relative border-b border-white/10">
+        <img src={photo} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060a10] via-transparent to-transparent opacity-80" />
+      </div>
+    )}
     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 group-hover:from-emerald-500/8 to-transparent transition-all duration-500 rounded-2xl pointer-events-none" />
     <div className="flex items-start justify-between relative z-10">
       <div className={`p-3 rounded-xl ${color} ring-1 ring-white/10`}>
         <Icon className="h-5 w-5" />
       </div>
-      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-white/50 border border-white/10 tracking-wide">
+      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-white/70 border border-white/10 tracking-wide">
         {badge}
       </span>
     </div>
@@ -60,9 +68,9 @@ const FeatureCard = ({ icon: Icon, badge, title, description, color, index, prev
       <h3 className="font-bold text-white text-base leading-snug group-hover:text-emerald-300 transition-colors duration-200">
         {title}
       </h3>
-      <p className="text-white/45 text-sm leading-relaxed">{description}</p>
+      <p className="text-white/55 text-sm leading-relaxed">{description}</p>
     </div>
-    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:text-emerald-300 transition-colors relative z-10 mt-auto">
+    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:text-emerald-300 transition-colors relative z-10 mt-auto pt-2 border-t border-white/5">
       <span>{previewLabel || 'Preview Demo'}</span>
       <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
     </div>
@@ -108,24 +116,28 @@ const LandingPage = () => {
       color: 'bg-emerald-500/20 text-emerald-300',
       title: t('landing.feat1_title', 'Real-Time AI Disease Diagnosis'),
       description: t('landing.feat1_desc', 'Upload crop leaf photos to detect 1,200+ plant species and pathogens instantly using PyTorch EfficientNetV2 neural networks with Grad-CAM heatmaps.'),
+      photo: CURATED_FARM_PHOTOS.leafDoctor
     },
     {
       icon: Sprout, badge: t('nav.my_farm', 'My Farm'), route: '/farm',
       color: 'bg-sky-500/20 text-sky-300',
       title: t('landing.feat2_title', 'Agronomic Sector & Crop Lifecycle'),
       description: t('landing.feat2_desc', 'Manage land sectors, active crop growth stages from Germination to Harvest, irrigation types, and 1-click GPS auto-coordinates.'),
+      photo: CURATED_FARM_PHOTOS.corn
     },
     {
       icon: Cpu, badge: t('nav.iot_devices', 'ESP32 IoT'), route: '/devices',
       color: 'bg-amber-500/20 text-amber-300',
       title: t('landing.feat3_title', 'Real-Time Sensor Hardware Sync'),
       description: t('landing.feat3_desc', 'Stream live field metrics (Air Temp, Humidity, Soil Moisture, Rain, Sunlight) directly from paired ESP32 field transceiver nodes.'),
+      photo: CURATED_FARM_PHOTOS.irrigation
     },
     {
       icon: Bot, badge: t('nav.ai_advisor', 'AI Agronomist'), route: '/assistant',
       color: 'bg-purple-500/20 text-purple-300',
       title: t('landing.feat4_title', 'Multilingual Smart Chat Advisor'),
       description: t('landing.feat4_desc', 'Get 24/7 personalized advice on soil NPK nutrients, organic bio-pesticide treatments, and spray schedules in your preferred language.'),
+      photo: CURATED_FARM_PHOTOS.agronomist
     },
   ];
 
@@ -250,7 +262,13 @@ const LandingPage = () => {
           <div className="flex flex-col lg:flex-row items-center gap-14 lg:gap-20 py-20 lg:py-28">
 
             {/* Left */}
-            <div className="flex-1 text-center lg:text-left space-y-8 max-w-2xl mx-auto lg:mx-0">
+            <StudioEditableCard
+              cardKey="landing-hero"
+              tabId="landing"
+              title="Hero Headline & Primary Action"
+              description="Headline, subheadline, and instant registration launchers"
+              className="flex-1 text-center lg:text-left space-y-8 max-w-2xl mx-auto lg:mx-0 p-3 sm:p-6 rounded-3xl"
+            >
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs sm:text-sm font-semibold">
                 <span className="relative flex h-2 w-2">
@@ -314,13 +332,14 @@ const LandingPage = () => {
                   </span>
                 ))}
               </motion.div>
-            </div>
+            </StudioEditableCard>
 
             {/* Right: Hero Mockup */}
-            <motion.div
-              initial={{ opacity: 0, x: 40, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ duration: 0.9, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+            <StudioEditableCard
+              cardKey="landing-mockup"
+              tabId="landing"
+              title="AI Scan Center & Telemetry Preview"
+              badge="98.4% Acc."
               className="flex-1 w-full max-w-[360px] sm:max-w-md mx-auto lg:mx-0 relative"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-sky-500/15 rounded-3xl blur-3xl scale-95 -z-10" />
@@ -345,11 +364,19 @@ const LandingPage = () => {
                 </div>
 
                 {/* Diagnosis Preview */}
-                <div className="relative rounded-2xl bg-[#080d14] border border-white/5 overflow-hidden p-4 space-y-3" style={{ minHeight: 170 }}>
+                <div className="relative rounded-2xl bg-[#080d14] border border-white/10 overflow-hidden p-4 space-y-3 shadow-inner" style={{ minHeight: 180 }}>
+                  {/* Authentic Leaf Background Photo */}
+                  <img 
+                    src={CURATED_FARM_PHOTOS.tomato} 
+                    alt="Authentic Tomato Leaf Pathology" 
+                    className="absolute inset-0 w-full h-full object-cover object-center opacity-25 filter contrast-125"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#080d14] via-[#080d14]/85 to-[#080d14]/55" />
                   <motion.div
                     animate={{ top: ['5%', '88%', '5%'] }}
                     transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                    className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent pointer-events-none z-20"
+                    className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent pointer-events-none z-20"
                   />
                   <div className="flex items-center justify-between flex-wrap gap-2 z-10 relative">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/8 text-xs font-bold text-white/75">
@@ -398,25 +425,31 @@ const LandingPage = () => {
                   ))}
                 </div>
               </div>
-            </motion.div>
+            </StudioEditableCard>
 
           </div>
         </div>
 
         {/* Stats Bar */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.55 }}
-          className="w-full border-t border-white/5 bg-white/[0.015]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/5">
-            {stats.map(({ label, value, suffix }) => (
-              <div key={label} className="text-center px-4 sm:px-6 first:pl-0 last:pr-0 space-y-1">
-                <p className="text-2xl sm:text-3xl font-extrabold text-white" style={{ fontFamily: 'var(--font-display)' }}>
-                  <AnimatedCounter to={value} suffix={suffix} />
-                </p>
-                <p className="text-xs text-white/35 font-medium">{label}</p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        <StudioEditableCard
+          cardKey="landing-stats"
+          tabId="landing"
+          title="Platform Statistics & Impact Counters"
+          className="w-full border-t border-white/5 bg-white/[0.015]"
+        >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.55 }}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/5">
+              {stats.map(({ label, value, suffix }) => (
+                <div key={label} className="text-center px-4 sm:px-6 first:pl-0 last:pr-0 space-y-1">
+                  <p className="text-2xl sm:text-3xl font-extrabold text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                    <AnimatedCounter to={value} suffix={suffix} />
+                  </p>
+                  <p className="text-xs text-white/35 font-medium">{label}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </StudioEditableCard>
       </section>
 
       {/* ── Features ──────────────────────────── */}
@@ -437,11 +470,23 @@ const LandingPage = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {features.map((feat, idx) => (
-              <div key={idx} className="block h-full">
-                <FeatureCard {...feat} index={idx} previewLabel={t('landing.preview_demo', 'Preview Demo')} onClick={() => openDemo(idx)} />
-              </div>
-            ))}
+            {features.map((feat, idx) => {
+              const featKeys = ['landing-feat-scan', 'landing-feat-farm', 'landing-feat-iot', 'landing-feat-ai'];
+              const featKey = featKeys[idx] || `landing-feat-${idx}`;
+              return (
+                <StudioEditableCard
+                  key={idx}
+                  cardKey={featKey}
+                  tabId="landing"
+                  title={feat.title}
+                  description={feat.description}
+                  badge={feat.badge}
+                  className="block h-full"
+                >
+                  <FeatureCard {...feat} index={idx} previewLabel={t('landing.preview_demo', 'Preview Demo')} onClick={() => openDemo(idx)} />
+                </StudioEditableCard>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -449,7 +494,13 @@ const LandingPage = () => {
       {/* ── Technology Strip ──────────────────────────── */}
       <section id="technology" className="relative py-20 px-4 sm:px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
-          <div className="rounded-3xl bg-gradient-to-br from-emerald-500/8 via-white/[0.02] to-sky-500/8 border border-white/8 p-8 sm:p-12">
+          <StudioEditableCard
+            cardKey="landing-tech"
+            tabId="landing"
+            title="Enterprise-Grade AI Architecture for the Farm"
+            description="PyTorch EfficientNetV2, ESP32 Field Transceivers, and Cloud Sync"
+            className="rounded-3xl bg-gradient-to-br from-emerald-500/8 via-white/[0.02] to-sky-500/8 border border-white/8 p-8 sm:p-12"
+          >
             <div className="flex flex-col lg:flex-row items-center gap-12">
               <div className="flex-1 space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/40 tracking-widest">
@@ -518,13 +569,19 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </StudioEditableCard>
         </div>
       </section>
 
       {/* ── Final CTA ──────────────────────────────────── */}
       <section className="relative py-28 px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto text-center space-y-8">
+        <StudioEditableCard
+          cardKey="landing-cta"
+          tabId="landing"
+          title="Final Conversion Call To Action"
+          description="Free for Farmers registration launcher and harvest protection"
+          className="max-w-3xl mx-auto text-center space-y-8 p-6 sm:p-12 rounded-3xl bg-white/[0.02] border border-white/5"
+        >
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-400 mb-6 tracking-widest">
               <Star className="h-3.5 w-3.5" /> {t('landing.free_for_farmers', 'FREE FOR FARMERS')}
@@ -562,7 +619,7 @@ const LandingPage = () => {
               </>
             )}
           </motion.div>
-        </div>
+        </StudioEditableCard>
       </section>
 
       {/* ── Footer ──────────────────────────────────── */}

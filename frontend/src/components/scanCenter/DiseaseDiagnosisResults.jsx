@@ -14,6 +14,7 @@ import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { FORMULATION_TEXTS, getAudioActionLabel, getSpeechLocale, getSafetyFallback } from '../../utils/regionalLocale';
 import { getMatchingProducts } from '../../utils/commercialProducts';
 import { useStudio } from '../../context/StudioContext';
+import StudioEditableCard from '../common/StudioEditableCard';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
 
@@ -1014,7 +1015,16 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               onMouseEnter={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(cardItem.key)}
               onMouseLeave={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(null)}
             >
-              {renderedNode}
+              <StudioEditableCard
+                cardKey={cardItem.key}
+                tabId="disease-diag"
+                title={cardItem.label}
+                allowReorder={true}
+                onMoveUp={() => studio?.moveCard('disease-diag', cardItem.key, 'up')}
+                onMoveDown={() => studio?.moveCard('disease-diag', cardItem.key, 'down')}
+              >
+                {renderedNode}
+              </StudioEditableCard>
             </div>
           );
         })}
