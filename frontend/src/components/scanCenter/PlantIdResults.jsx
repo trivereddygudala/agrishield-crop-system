@@ -796,8 +796,15 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     const merged = { ...rawInfo, ...localizedOverride };
 
     // Resolve localized common name with high priority
-    const regional = rawInfo.regionalNames?.[activeLang];
-    const cropMapped = translateCrop(rawInfo.commonName, activeLang);
+    const regional = rawInfo?.regionalNames?.[activeLang];
+    const cropMapped = translateCrop(rawInfo?.commonName, activeLang);
+    let resolvedName = regional || localizedOverride?.common_name || localizedOverride?.commonName;
+    if (!resolvedName && activeLang !== 'en') {
+      resolvedName = (cropMapped && cropMapped !== rawInfo?.commonName) ? cropMapped : null;
+    }
+    if (!resolvedName) {
+      resolvedName = rawInfo?.commonName || 'Plant Specimen';
+    }
     const finalCommonName = resolvedName;
 
     return {

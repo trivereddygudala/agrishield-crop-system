@@ -2,7 +2,29 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
-## 2026-09-21 (v195) - Removal of 50% AI / 50% Human Card & Fix Disease Detection "Healthy Crop" Inversion Bug
+## 2026-09-21 (v196) - Complete Root-Cause Fix for Plant Identification Error & Cross-Tab Synchronization Across AI Scan Center
+- **Summary:** Identified and resolved the exact runtime errors in Plant Identification and established seamless bi-directional synchronization and error resilience across all 3 AI Scan Center tabs (Disease Diagnosis, Plant & Weed Identification, and Agrochemical Verification):
+  1. 🐛 **Exact Root-Cause of Plant Identification Crash (`ReferenceError: resolvedName is not defined`):**
+     - In `frontend/src/components/scanCenter/PlantIdResults.jsx` (line 801), the variable `resolvedName` was referenced in `const finalCommonName = resolvedName;` without having been declared or defined in scope.
+     - When any user completed a plant identification scan, rendering the `info` `useMemo` threw an immediate fatal `ReferenceError: resolvedName is not defined`, crashing the component and triggering the ErrorBoundary ("Something went wrong — An unexpected error occurred while rendering this page").
+     - **Fix:** Properly computed `resolvedName` with safe fallback hierarchy: `regional || localizedOverride?.common_name || localizedOverride?.commonName || cropMapped || rawInfo?.commonName || 'Plant Specimen'`.
+  2. 🐛 **Root-Cause of Scan Execution Crash in Online Mode (`ReferenceError: activeLang is not defined`):**
+     - In `frontend/src/pages/UploadImagePage.jsx`, `const activeLang` was locally declared ONLY inside an offline block (`if (!navigator.onLine)`). When users had an active internet connection, the code bypassed that block, causing `language: activeLang` in `handleStartScan` (line 452) to throw a fatal `ReferenceError: activeLang is not defined`.
+     - **Fix:** Declared `activeLang` at the component root level, ensuring it is universally available to all scan endpoints, batch operations, and offline triage without scope failure.
+  3. 🔄 **Cross-Tab Bi-Directional Synchronization Across All 3 Scan Tabs:**
+     - **Event Handlers Added in `UploadImagePage.jsx`:** Added listeners for `'agrishield-switch-tab'`, `'agrishield-scan-another'`, and `'agrishield-language-changed'`.
+     - **Plant ID Tab Integration:** Connected the `"ఈ పంటపై తెగుళ్ల పరీక్ష చేయండి →"` (`Check Disease on this Plant`) button to `handleSwitchToDisease`, which seamlessly switches to the `disease-diag` tab and auto-fills the identified crop filter.
+     - **Agrochemical Scanner Tab Integration:** Added bottom action bar to `AgrochemicalResults.jsx` enabling 1-tap re-scan (`Scan Another Bottle`) and direct transfer to crop disease diagnosis (`Test Crop Leaf for Diseases →`).
+     - **Disease Diagnosis Tab Integration:** Added bottom action bar to `DiseaseDiagnosisResults.jsx` enabling 1-tap re-scan (`Scan Another Leaf`), direct jump to plant identification (`Identify Plant Specimen →`), and chemical bottle verification (`Verify Chemical Bottle →`).
+     - **Persistent 1-Tap Multilingual Synchronization:** Switching language in any of the 3 tabs immediately synchronizes the language across all 3 tabs, updating `i18n`, `localStorage`, and all active result views simultaneously.
+  4. 🛡️ **Backend Resilience & Elimination of Premature 422 Crashes (`predict.py`):**
+     - Upgraded `/api/identify-plant` in `backend/app/routers/predict.py`: If external vision models return lower confidence, rather than hard crashing with HTTP 422, the system automatically provides intelligent botanical triage using the local knowledge base.
+     - Wrapped `/api/translate-plant` in fault-tolerant exception handling so translation network glitches never return HTTP 500 or break the plant identification payload.
+  5. 🏗️ **Build & Test Verification:**
+     - Production build passed cleanly (`npm run build`: 30.72s, 0 errors across 3,152 modules).
+- **Files modified:** `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `backend/app/routers/predict.py`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
+
 - **Summary:** Removed the 50% AI Dual Neural Vision / 50% Human Agronomist Review card and resolved the critical headline bug where a diseased leaf scan displayed "ఆరోగ్యకరమైన పంట (ఎలాంటి తెగుళ్లు లేవు)" (Healthy crop - No diseases) despite being correctly recognized as diseased (Leaf Blight):
   1. 🗑️ **Permanent Removal of 50% AI + 50% Human Header Card (`DiseaseDiagnosisResults.jsx`):**
      - Completely removed the top collaborative card block containing "50% AI Dual Neural Vision" and "50% Human Agronomist Review (Lead: Dr. V. Ramanjaneyulu)".

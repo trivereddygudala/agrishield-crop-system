@@ -158,6 +158,45 @@ const UploadImagePage = () => {
   const currentModule = SCAN_MODULES.find(m => m.id === activeTab);
   const currentModuleTitle = isTe ? currentModule?.teluguTitle : (currentModule?.titleKey ? t(currentModule.titleKey, currentModule.defaultTitle) : currentModule?.defaultTitle);
 
+  // Universal normalized active language across all 3 AI scanner modules
+  const activeLang = (i18n?.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase();
+
+  // Listen to cross-module custom events: tab switching, re-scan, and language synchronization
+  useEffect(() => {
+    const onSwitchTab = (e) => {
+      const targetTab = e.detail?.tab || 'disease-diag';
+      const crop = e.detail?.crop;
+      scanStore.setState({
+        activeTab: targetTab,
+        ...(crop ? { selectedCropFilter: crop } : {})
+      });
+      navigate(`/scan/${targetTab}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const onScanAnother = () => {
+      clearSelection();
+    };
+
+    const onLangChanged = (e) => {
+      const newLang = e.detail?.language;
+      if (newLang && i18n.language !== newLang) {
+        i18n.changeLanguage(newLang);
+        localStorage.setItem('i18nextLng', newLang);
+      }
+    };
+
+    window.addEventListener('agrishield-switch-tab', onSwitchTab);
+    window.addEventListener('agrishield-scan-another', onScanAnother);
+    window.addEventListener('agrishield-language-changed', onLangChanged);
+
+    return () => {
+      window.removeEventListener('agrishield-switch-tab', onSwitchTab);
+      window.removeEventListener('agrishield-scan-another', onScanAnother);
+      window.removeEventListener('agrishield-language-changed', onLangChanged);
+    };
+  }, [i18n, navigate]);
+
   // Sync route and query params with active tab to ensure fresh dedicated pages
   useEffect(() => {
     const rawTab = routeTab || searchParams.get('tab');
@@ -338,7 +377,6 @@ const UploadImagePage = () => {
       const imagePaths = uploadedResults.map(u => u.imagePath);
       const sampleLabels = uploadedResults.map(u => u.label);
 
-      const activeLang = (i18n.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase();
       // 2. Call batch prediction endpoint
       const batchRes = await API.post('/api/predict-batch', {
         image_paths: imagePaths,
@@ -359,6 +397,15 @@ const UploadImagePage = () => {
     }
   };
 
+  const handleSwitchToDisease = (cropName) => {
+    scanStore.setState({
+      activeTab: 'disease-diag',
+      selectedCropFilter: cropName || state.selectedCropFilter
+    });
+    navigate('/scan/disease-diag');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleStartScan = async () => {
     if (!selectedFile) {
       scanStore.setTabState(activeTab, { hasScanned: true });
@@ -366,8 +413,6 @@ const UploadImagePage = () => {
     }
 
     if (loading) return;
-
-    const activeLang = (i18n.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase();
 
     // Check if offline before initiating network requests
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -830,7 +875,11 @@ const UploadImagePage = () => {
                   </div>
 
                   {activeTab === 'plant-id' && (
-                    <PlantIdResults liveResult={liveResult} />
+                    <PlantIdResults 
+                      liveResult={liveResult}
+                      onScanAnother={clearSelection}
+                      onCheckDisease={handleSwitchToDisease}
+                    />
                   )}
 
                   {activeTab === 'disease-diag' && (
@@ -839,11 +888,15 @@ const UploadImagePage = () => {
                       previewUrl={previewUrl}
                       onDownloadPDF={handleDownloadPDF}
                       onSaveScan={() => navigate('/history')}
+                      onScanAnother={clearSelection}
                     />
                   )}
 
                   {activeTab === 'agro-scan' && (
-                    <AgrochemicalResults data={liveResult} />
+                    <AgrochemicalResults 
+                      data={liveResult}
+                      onScanAnother={clearSelection}
+                    />
                   )}
                 </motion.div>
               ) : (

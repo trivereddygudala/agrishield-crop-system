@@ -4,7 +4,8 @@ import {
   CheckCircle2, Clock, Droplets, AlertTriangle, ShieldCheck, Info,
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
   ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2,
-  Award, UserCheck, PenSquare, SlidersHorizontal, IndianRupee, Copy, Check, Banknote, Building2
+  Award, UserCheck, PenSquare, SlidersHorizontal, IndianRupee, Copy, Check, Banknote, Building2,
+  RotateCcw
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
@@ -21,7 +22,7 @@ const SUPPORTED_LANGUAGES = [
   { code: 'ml', label: 'Malayalam', native: 'മലയാളം' }
 ];
 
-const AgrochemicalResults = ({ data = {} }) => {
+const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
   const { t, i18n } = useTranslation();
   const overrides = {};
   const isHumanCalibrated = false;
@@ -910,6 +911,32 @@ const AgrochemicalResults = ({ data = {} }) => {
           </div>
         );
       })}
+
+      {/* Bottom Action Footer for 3-Tab Cross-Synchronization */}
+      <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
+        <Button
+          variant="outline"
+          className="w-full sm:w-1/2 py-3 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
+          onClick={() => {
+            if (onScanAnother) onScanAnother();
+            else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
+          }}
+        >
+          <RotateCcw className="w-4 h-4" />
+          <span>{currentLang === 'te' ? 'మరో మందు సీసాను స్కాన్ చేయండి' : currentLang === 'hi' ? 'दूसरी बोतल स्कैन करें' : 'Scan Another Product / Bottle'}</span>
+        </Button>
+
+        <Button
+          variant="primary"
+          className="w-full sm:w-1/2 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 rounded-2xl"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('agrishield-switch-tab', { detail: { tab: 'disease-diag' } }));
+          }}
+        >
+          <Sprout className="w-4 h-4" />
+          <span>{currentLang === 'te' ? 'పంట తెగుళ్ల పరీక్షకు వెళ్లండి →' : currentLang === 'hi' ? 'फसल रोग जांच पर जाएं →' : 'Test Crop Leaf for Diseases →'}</span>
+        </Button>
+      </div>
 
       {/* Product Image Zoom Modal */}
       {showImageZoom && productDetails.image_url && (

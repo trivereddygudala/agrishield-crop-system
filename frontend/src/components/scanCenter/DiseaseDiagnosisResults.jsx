@@ -17,7 +17,7 @@ import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
 
-const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloadPDF }) => {
+const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloadPDF, onScanAnother }) => {
   const { t, i18n } = useTranslation();
   const overrides = {};
   const isHumanCalibrated = false;
@@ -990,6 +990,43 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             </div>
           );
         })}
+
+        {/* Bottom Action Bar for 3-Tab Cross-Synchronization */}
+        <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Button
+            variant="outline"
+            className="py-3 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
+            onClick={() => {
+              if (onScanAnother) onScanAnother();
+              else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
+            }}
+          >
+            <RefreshCw className="w-4 h-4 text-emerald-600" />
+            <span>{activeLang === 'te' ? 'మరో ఆకును స్కాన్ చేయండి' : activeLang === 'hi' ? 'दूसरी पत्ती स्कैन करें' : 'Scan Another Leaf'}</span>
+          </Button>
+
+          <Button
+            variant="glass"
+            className="py-3 bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/20 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('agrishield-switch-tab', { detail: { tab: 'plant-id' } }));
+            }}
+          >
+            <Sparkles className="w-4 h-4 text-teal-500" />
+            <span>{activeLang === 'te' ? 'మొక్క జాతిని గుర్తించండి →' : activeLang === 'hi' ? 'पौधे की पहचान करें →' : 'Identify Plant Specimen →'}</span>
+          </Button>
+
+          <Button
+            variant="glass"
+            className="py-3 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('agrishield-switch-tab', { detail: { tab: 'agro-scan' } }));
+            }}
+          >
+            <FlaskConical className="w-4 h-4 text-cyan-500" />
+            <span>{activeLang === 'te' ? 'మందు సీసాను ధృవీకరించండి →' : activeLang === 'hi' ? 'कीटनाशक बोतल सत्यापित करें →' : 'Verify Chemical Bottle →'}</span>
+          </Button>
+        </div>
 
         {/* Kisan Helpdesk Emergency Modal */}
         <KisanHelpdeskModal
