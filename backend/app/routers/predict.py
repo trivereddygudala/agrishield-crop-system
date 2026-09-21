@@ -1400,35 +1400,30 @@ async def predict_pytorch_endpoint(
     confidence = float(prediction_result.get("confidence", 0.0))
     top_preds = prediction_result.get("top_predictions", [])
 
-    differential_candidates = []
-    if len(top_preds) >= 2:
-        for p in top_preds[:2]:
-            d_name = p.get("disease_name", "")
-            d_lower = d_name.lower()
-            if "blight" in d_lower:
-                hallmark = "Dark necrotic lesions with concentric target rings; rapid leaf yellowing."
-            elif "spot" in d_lower or "tikka" in d_lower:
-                hallmark = "Small circular spots with yellow chlorotic halos and brown centers."
-            elif "rust" in d_lower:
-                hallmark = "Reddish-brown or orange powdery pustules on leaf undersides."
-            elif "mildew" in d_lower or "mold" in d_lower:
-                hallmark = "White/gray powdery patches covering the leaf surface."
-            elif "rot" in d_lower or "anthracnose" in d_lower:
-                hallmark = "Dark sunken circular lesions; drying twigs dying from top downwards."
-            elif "healthy" in d_lower:
-                hallmark = "Vibrant green foliage with normal turgidity and no lesions."
-            elif "virus" in d_lower or "curl" in d_lower or "mosaic" in d_lower:
-                hallmark = "Leaf curling, stunting, and mosaic yellow-green mottling."
-            else:
-                hallmark = "Inspect leaf lesion shape, margin texture, and underside spore growth."
-            
-            differential_candidates.append({
-                "disease_name": d_name,
-                "crop_name": p.get("crop_name", prediction_result.get("crop_name")),
-                "confidence": round(float(p.get("confidence", 0.0)) * 100, 1),
-                "visual_hallmark": hallmark
-            })
-    prediction_result["differential_candidates"] = differential_candidates
+    # Always enrich with Extension Officer structured diagnostic report
+    from backend.app.services.gemini_vision import generate_fallback_extension_officer_report
+    final_c = prediction_result.get("crop_name", user_crop_filter or "Agricultural Crop")
+    final_d = prediction_result.get("disease_name", "Crop Health Condition")
+    final_conf = float(prediction_result.get("confidence", 0.92))
+
+    if ensemble_used and vision_opinion and isinstance(vision_opinion, dict) and vision_opinion.get("differential_candidates"):
+        ext_report = vision_opinion
+    else:
+        ext_report = generate_fallback_extension_officer_report(final_c, final_d, final_conf)
+
+    prediction_result["extension_officer_report"] = ext_report
+    prediction_result["observed_symptoms"] = ext_report.get("observed_symptoms", "")
+    prediction_result["biological_advisory"] = ext_report.get("biological_advisory", {})
+    prediction_result["pro_chemical_plan"] = ext_report.get("pro_chemical_plan", {})
+    prediction_result["label_verification"] = ext_report.get("label_verification", "")
+
+    # Ensure differential candidates has 3 distinct possibilities
+    diff_cands = ext_report.get("differential_candidates", [])
+    if not diff_cands or len(diff_cands) < 3:
+        fallback_data = generate_fallback_extension_officer_report(final_c, final_d, final_conf)
+        diff_cands = fallback_data.get("differential_candidates", [])
+
+    prediction_result["differential_candidates"] = diff_cands[:3]
 
     # Dual-Model Consensus & Refinement Logic
     prediction_result["dual_model_consensus"] = False
