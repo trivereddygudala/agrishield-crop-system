@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v195) - Removal of 50% AI / 50% Human Card & Fix Disease Detection "Healthy Crop" Inversion Bug
+- **Summary:** Removed the 50% AI Dual Neural Vision / 50% Human Agronomist Review card and resolved the critical headline bug where a diseased leaf scan displayed "ఆరోగ్యకరమైన పంట (ఎలాంటి తెగుళ్లు లేవు)" (Healthy crop - No diseases) despite being correctly recognized as diseased (Leaf Blight):
+  1. 🗑️ **Permanent Removal of 50% AI + 50% Human Header Card (`DiseaseDiagnosisResults.jsx`):**
+     - Completely removed the top collaborative card block containing "50% AI Dual Neural Vision" and "50% Human Agronomist Review (Lead: Dr. V. Ramanjaneyulu)".
+  2. 🐛 **Root-Cause Resolution of "Healthy Crop" Headline Inversion (`diseaseAdvisoryData.js`):**
+     - **The Bug:** When the neural vision backend identified a diseased specimen (e.g. Corn Northern Leaf Blight) and returned the Telugu name `"ఆకు మాడు తెగులు"`, the frontend passed it into `normalizeDiseaseKey("ఆకు మాడు తెగులు")`. Because `str.includes('మాడ తెగులు')` required `'మాడ'` instead of colloquial `'మాడు'`, and the non-ASCII regex `str.replace(/[^a-z0-9]/g, '_')` stripped all Telugu characters into an empty string `""`, it defaulted to `'healthy'`! This triggered `COMMON_DISEASES['healthy']['te']`, causing the headline to display `"ఆరోగ్యకరమైన పంట (ఎలాంటి తెగుళ్లు లేవు)"` despite the badge displaying `DISEASED` and the subtitle showing `"ఆకు మాడు తెగులు"`.
+     - **The Fix:**
+       - Added dynamic bidirectional `REVERSE_DISEASES_CACHE` and `getReverseDiseasesMap()` in `diseaseAdvisoryData.js` that indexes all regional vernacular disease phrases across all 13 supported languages. Any Telugu, Hindi, Tamil, Kannada, etc. terms (e.g. `ఆకు మాడు తెగులు`, `మాడు తెగులు`, `ఆకు మాడు`) are instantly reverse-matched to their exact disease key (`northern_leaf_blight` or `blight`).
+       - Added `northern_leaf_blight` and `gray_leaf_spot` to `COMMON_DISEASES` in all 13 languages with authentic ICAR/Plantix terms (`మొక్కజొన్న ఆకు మాడు తెగులు (నార్తర్న్ లీఫ్ బ్లైట్)`).
+       - Added strict diseased safety guard: when `statusHint === 'diseased'`, `normalizeDiseaseKey` and `translateDisease` are strictly barred from ever returning `'healthy'`.
+  3. 🏷️ **Canonical English Name Prioritization (`DiseaseDiagnosisResults.jsx` & `PredictionResultPage.jsx`):**
+     - Updated `rawDiseaseName` and `rawCropName` extraction to prioritize `liveResult.canonical_disease_name` (e.g. `"Northern Corn Leaf Blight"`) for diagnostic translation, preventing degradation from re-translating already-translated strings.
+     - Subtitle beneath primary headline now cleanly displays the canonical/scientific name in English without duplicate or malformed labels.
+- **Files modified:** `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v194) - Fix Cross-Tab ErrorBoundary Lock & Dynamic Chunk Mismatch Recovery
 - **Summary:** Diagnosed and resolved the issue where an unexpected JavaScript error on one view locked the ErrorBoundary across all mobile bottom navigation tabs ("Home", "Field", "Scan", "Alerts", "More"):
   1. 🔄 **Dynamic Route-Keyed ErrorBoundary Reset (`App.jsx`):**

@@ -184,14 +184,16 @@ const PredictionResultPage = () => {
     );
   }
 
-  const isHealthy = result?.prediction_status === 'healthy' || (result?.disease_name || '').toLowerCase().includes('healthy');
-  const fallbackAdvice = getAdviceForDisease(result?.disease_name);
+  const isHealthy = result?.prediction_status === 'healthy' || ((result?.canonical_disease_name || result?.disease_name || '').toLowerCase().includes('healthy') && result?.prediction_status !== 'diseased');
+  const rawDis = result?.canonical_disease_name || result?.disease_name;
+  const rawCrop = result?.canonical_crop_name || result?.crop_name;
+  const fallbackAdvice = getAdviceForDisease(rawDis);
   const confidencePercent = result?.confidence ? (result.confidence * 100).toFixed(1) : '98.5';
   const displayImgUrl = passedPreviewUrl || (imagePath ? `${backendBaseUrl}/${imagePath.replace(/\\/g, '/')}` : '');
 
-  const diseaseKb = getDiseaseDetails(result?.disease_name, i18n.language);
-  const localizedCrop = translateCrop(result?.crop_name, i18n.language);
-  const localizedDisease = translateDisease(result?.disease_name, i18n.language);
+  const diseaseKb = getDiseaseDetails(rawDis, i18n.language);
+  const localizedCrop = translateCrop(rawCrop, i18n.language);
+  const localizedDisease = translateDisease(rawDis, i18n.language, rawCrop, result?.prediction_status);
 
   const handleWhatsAppShare = () => {
     if (!result) return;

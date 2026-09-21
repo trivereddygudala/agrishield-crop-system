@@ -1,3 +1,4 @@
+
 export const DISEASE_KB = {
   "early blight": {
     en: {
@@ -1393,6 +1394,36 @@ export const CROPS_MAP = {
 
 // Authentic Plantix-Grade Vernacular Crop Diseases Localization
 export const COMMON_DISEASES = {
+  "northern_leaf_blight": {
+    "te": "మొక్కజొన్న ఆకు మాడు తెగులు (నార్తర్న్ లీఫ్ బ్లైట్)",
+    "hi": "मक्का पत्ती झुलसा रोग (नार्दर्न लीफ ब्लाइट)",
+    "ta": "மக்காச்சோளம் இலை கருகல் நோய் (நார்தர்ன் லீப் பிளைட்)",
+    "kn": "ಮೆಕ್ಕೆಜೋಳ ಎಲೆ ಕರಗು ರೋಗ (ನಾರ್ದರ್ನ್ ಲೀಫ್ ಬ್ಲೈಟ್)",
+    "ml": "ചോളം ഇല കരിച്ചിൽ രോഗം (നോർത്തേൺ ലീഫ് ബ്ലൈറ്റ്)",
+    "mr": "मका पान करपा रोग (नार्दर्न लीफ ब्लाइट)",
+    "gu": "મકાઈ પાન સુકારો રોગ (નોર્ધન લીફ બ્લાઈટ)",
+    "pa": "ਮੱਕੀ ਪੱਤਾ ਝੁਲਸਾ ਰੋਗ (ਨਾਰਦਰਨ ਲੀਫ਼ ਬਲਾਇਟ)",
+    "bn": "ভুট্টার পাতা পোড়া বা ধ্বসা রোগ (নর্দার্ন লিফ ব্লাইট)",
+    "or": "ମକା ପତ୍ରପୋଡ଼ା ରୋଗ (ନର୍ଦର୍ଣ୍ଣ ଲିଫ୍ ବ୍ଲାଇଟ୍)",
+    "as": "মাকৈৰ পাতপোৰা ৰোগ",
+    "ur": "مکئی کا پتہ جھلسائو (نادرن لیف بلائٹ)",
+    "en": "Northern Corn Leaf Blight (Exserohilum turcicum)"
+  },
+  "gray_leaf_spot": {
+    "te": "మొక్కజొన్న బూడిద రంగు ఆకుమచ్చ తెగులు (గ్రే లీఫ్ స్పాట్)",
+    "hi": "मक्का धूसर पत्ती धब्बा रोग (ग्रे लीफ स्पॉट)",
+    "ta": "மக்காச்சோளம் சாம்பல் இலைப்புள்ளி நோய்",
+    "kn": "ಮೆಕ್ಕೆಜೋಳ ಬೂದು ಎಲೆ ಚುಕ್ಕೆ ರೋಗ",
+    "ml": "ചോളം ചാരനിറ പുള്ളി രോഗം",
+    "mr": "मका करडा ठिपके रोग (ग्रे लीफ स्पॉट)",
+    "gu": "મકાઈ ભૂખરા ટપકાંનો રોગ",
+    "pa": "ਮੱਕੀ ਸਲੇਟੀ ਪੱਤਾ ਧੱਬਾ ਰੋਗ",
+    "bn": "ভুট্টার ধূসর পাতার দাগ রোগ",
+    "or": "ମକା ଧୂସର ପତ୍ର ଦାଗ ରୋଗ",
+    "as": "মাকৈৰ ছাইৰঙী পাতৰ দাগ",
+    "ur": "مکئی کا سرمئی پتا دھبہ",
+    "en": "Gray Leaf Spot (Cercospora zeae-maydis)"
+  },
   "sheath_blight": {
     "te": "వరి పొడ తెగులు (షీత్ బ్లైట్)",
     "hi": "शीथ ब्लाइट (पर्णच्छद अंगमारी रोग)",
@@ -1935,19 +1966,56 @@ export const COMMON_DISEASES = {
   }
 };
 
+// Reverse index map caching across all supported regional languages
+let REVERSE_DISEASES_CACHE = null;
+export function getReverseDiseasesMap() {
+  if (REVERSE_DISEASES_CACHE) return REVERSE_DISEASES_CACHE;
+  REVERSE_DISEASES_CACHE = {};
+  for (const [diseaseKey, langMap] of Object.entries(COMMON_DISEASES)) {
+    for (const [lang, text] of Object.entries(langMap)) {
+      if (!text) continue;
+      const lower = String(text).toLowerCase().trim();
+      REVERSE_DISEASES_CACHE[lower] = diseaseKey;
+      // Strip parenthetical English / notes: e.g. "ఆకు మాడు తెగులు (నార్తర్న్ లీఫ్ బ్లైట్)" -> "ఆకు మాడు తెగులు"
+      const clean = lower.replace(/\(.*?\)/g, '').trim();
+      if (clean && clean.length >= 3) {
+        REVERSE_DISEASES_CACHE[clean] = diseaseKey;
+      }
+      const slashes = lower.split(/[/()]/).map(s => s.trim()).filter(s => s.length >= 3);
+      for (const s of slashes) {
+        REVERSE_DISEASES_CACHE[s] = diseaseKey;
+      }
+    }
+  }
+  return REVERSE_DISEASES_CACHE;
+}
+
 // Robust disease condition normalizer with full multilingual support
 // Prioritizes specific compound names BEFORE single-word catchalls
-export function normalizeDiseaseKey(rawName = '') {
-  if (!rawName) return 'healthy';
+export function normalizeDiseaseKey(rawName = '', statusHint = '') {
+  if (!rawName) return statusHint === 'diseased' ? 'blight' : 'healthy';
   const str = String(rawName).toLowerCase().replace(/___/g, ' ').replace(/_/g, ' ').replace(/-/g, ' ').trim();
   
-  if (str.includes('healthy') || str.includes('ఆరోగ్య') || str.includes('स्वस्थ') || str.includes('ஆரோக்கிய') || str.includes('ಆರೋಗ್ಯ') || str.includes('निरोगी') || str.includes('সুস্থ') || str.includes('ସୁସ୍ଥ') || str.includes('তંદુરસ્ત')) {
-    return 'healthy';
-  }
+  // Fast exact match in COMMON_DISEASES
+  if (COMMON_DISEASES[str]) return str;
+
+  // Fast reverse dictionary check across all 13 languages
+  const revMap = getReverseDiseasesMap();
+  if (revMap[str]) return revMap[str];
 
   // Specific compound diseases FIRST:
   if (str.includes('sheath blight') || str.includes('వరి పొడ') || str.includes('పొడ తెగులు') || str.includes('शीथ ब्लाइट') || str.includes('शीथ') || str.includes('உறை கருகல்') || str.includes('ಕೋಶ ಕರಗು') || str.includes('খোল পোড়া')) {
     return 'sheath_blight';
+  }
+
+  // Northern Leaf Blight (Corn / Maize / Turcicum / ఆకు మాడు / మాడు తెగులు)
+  if (str.includes('northern leaf blight') || str.includes('turcicum') || str.includes('ఆకు మాడు') || str.includes('మాడు తెగులు') || ((str.includes('corn') || str.includes('maize') || str.includes('మొక్కజొన్న')) && (str.includes('blight') || str.includes('మాడు')))) {
+    return 'northern_leaf_blight';
+  }
+
+  // Gray Leaf Spot
+  if (str.includes('gray leaf') || str.includes('grey leaf') || str.includes('zeae maydis') || str.includes('బూడిద రంగు ఆకుమచ్చ')) {
+    return 'gray_leaf_spot';
   }
 
   if (str.includes('yellow vein') || str.includes('yellow mosaic') || str.includes('yvmv') || str.includes('పసుపు పచ్చ ఈనెల') || str.includes('पीला मोज़ेक') || str.includes('मஞ்சள் நரம்பு') || str.includes('ಹಳದಿ ನರ')) {
@@ -1982,7 +2050,7 @@ export function normalizeDiseaseKey(rawName = '') {
     return 'bacterial_blight';
   }
 
-  if (str.includes('bacterial') || str.includes('జీవాణు') || str.includes('బాక్టీరియా') || str.includes('जीवाणु') || str.includes('பாக்டீரியா') || str.includes('ದುಂಡಾಣು')) {
+  if (str.includes('bacterial') || str.includes('జీవాణు') || str.includes('బాక్టీరియా') || str.includes('जीवाणु') || str.includes('பாக்டீரியா') || str.includes('ದುಂಡಾಣు')) {
     return 'bacterial_spot';
   }
 
@@ -2074,12 +2142,19 @@ export function normalizeDiseaseKey(rawName = '') {
     return 'black_rot';
   }
 
-  if (str.includes('root rot') || str.includes('collar rot') || str.includes('వేరు కుళ్లు') || str.includes('కాండం కుళ్లు') || str.includes('जड़ सड़न') || str.includes('വേര് ചീയൽ') || str.includes('வேர் அழுகல்')) {
+  if (str.includes('root rot') || str.includes('collar rot') || str.includes('వేరు కుళ్లు') || str.includes('కాండం కుళ్లు') || str.includes('जड़ सड़न') || str.includes('വേര് ചീയൽ') || str.includes('വേర్ அழுகல்')) {
     return 'root_rot';
   }
 
+  // Check substring match in reverse map
+  for (const [phrase, key] of Object.entries(revMap)) {
+    if (phrase.length >= 4 && (str.includes(phrase) || phrase.includes(str))) {
+      return key;
+    }
+  }
+
   // Generic single-word fallbacks ONLY if no compound match
-  if (str.includes('blight') || str.includes('మాడ తెగులు') || str.includes('ఎండాకు') || str.includes('झुलसा') || str.includes('கருகல்') || str.includes('ಕರಗು') || str.includes('করপা')) {
+  if (str.includes('blight') || str.includes('మాడ తెగులు') || str.includes('మాడు') || str.includes('ఎండాకు') || str.includes('झुलसा') || str.includes('கருகல்') || str.includes('ಕರಗು') || str.includes('করপা')) {
     return 'blight';
   }
 
@@ -2095,6 +2170,12 @@ export function normalizeDiseaseKey(rawName = '') {
     return 'root_rot';
   }
 
+  // Check healthy ONLY if NOT flagged as diseased
+  const isHealthyCheck = str.includes('healthy') || str.includes('ఆరోగ్య') || str.includes('स्वस्थ') || str.includes('ஆரோக்கிய') || str.includes('ಆರೋಗ್ಯ') || str.includes('निरोगी') || str.includes('સુস্থ') || str.includes('ସୁସ୍ଥ') || str.includes('તંદુરસ્ત');
+  if (isHealthyCheck && statusHint !== 'diseased') {
+    return 'healthy';
+  }
+
   // Clean alphanumeric key fallback matching COMMON_DISEASES
   const cleanKey = str.replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
   if (COMMON_DISEASES[cleanKey] || DISEASE_KB[cleanKey]) {
@@ -2107,9 +2188,15 @@ export function normalizeDiseaseKey(rawName = '') {
     }
   }
 
-  return cleanKey || 'healthy';
+  // If status is diseased or infected, NEVER declare it as healthy!
+  if (statusHint === 'diseased' || statusHint === 'infected') {
+    return cleanKey || 'blight';
+  }
+
+  return cleanKey || (isHealthyCheck ? 'healthy' : 'blight');
 }
 
+  // Specific compound diseases FIRST:
 export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   let cropName = '';
   let diseaseName = '';
@@ -2276,10 +2363,13 @@ export function translateCrop(cropName = '', lang = 'en') {
   return cropName;
 }
 
-export function translateDisease(diseaseName = '', lang = 'en', cropName = '') {
+export function translateDisease(diseaseName = '', lang = 'en', cropName = '', statusHint = '') {
   if (!diseaseName) return '';
   const targetLang = (lang ? String(lang).split(/[-_]/)[0] : 'en').toLowerCase().trim();
-  const key = normalizeDiseaseKey(diseaseName);
+  let key = normalizeDiseaseKey(diseaseName, statusHint);
+  if (statusHint === 'diseased' && key === 'healthy') {
+    key = 'blight';
+  }
   
   // Look up in COMMON_DISEASES first
   if (COMMON_DISEASES[key]) {

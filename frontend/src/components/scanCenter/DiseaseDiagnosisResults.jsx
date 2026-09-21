@@ -34,9 +34,11 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
 
   const [selectedChemicalIdx, setSelectedChemicalIdx] = useState(0);
 
-  // Read base or manually edited agronomist override values
-  const rawDiseaseName = overrides.disease_name || liveResult?.disease_name || liveResult?.predicted_class || 'Crop Health Condition';
-  const rawCropName = overrides.crop_name || liveResult?.crop_name || 'Agricultural Crop';
+  const status = liveResult?.prediction_status || 'diseased';
+
+  // Read base or manually edited agronomist override values (prioritizing canonical English names for accurate translation)
+  const rawDiseaseName = overrides.disease_name || liveResult?.canonical_disease_name || liveResult?.disease_name || liveResult?.predicted_class || 'Crop Health Condition';
+  const rawCropName = overrides.crop_name || liveResult?.canonical_crop_name || liveResult?.crop_name || 'Agricultural Crop';
 
   // Load matching authentic pathology comparison photos from dataset catalog
   useEffect(() => {
@@ -101,10 +103,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   };
 
   const localizedCrop = translateCrop(rawCropName, activeLang) || rawCropName;
-  const localizedDisease = translateDisease(rawDiseaseName, activeLang, rawCropName) || rawDiseaseName;
+  const localizedDisease = translateDisease(rawDiseaseName, activeLang, rawCropName, status) || rawDiseaseName;
 
   const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
-  const status = liveResult?.prediction_status || 'diseased';
 
   const hasRegionalText = (str) => /[\u0900-\u0D7F]/.test(str || '');
 
@@ -226,53 +227,6 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         </div>
       </div>
 
-      {/* 50% AI + 50% Human Agronomist Collaborative Header */}
-      <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-black/40 border border-white/15 backdrop-blur-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 relative z-10">
-        {/* 50% AI */}
-        <div className="flex-1 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex flex-col items-center justify-center text-white font-black shadow-md shrink-0 leading-none">
-            <span className="text-[11px]">50%</span>
-            <span className="text-[8px] tracking-tighter font-extrabold">AI</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-black text-cyan-300 uppercase tracking-wider">Dual Neural Vision</span>
-              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200 text-[10px] font-mono">PyTorch + Gemini</span>
-            </div>
-            <p className="text-xs text-slate-300">
-              AI Confidence: <strong className="text-white">{confidence}</strong>
-            </p>
-          </div>
-        </div>
-
-        <div className="hidden md:block w-px h-10 bg-white/15" />
-
-        {/* 50% Human */}
-        <div className="flex-1 flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex flex-col items-center justify-center text-white font-black shadow-md shrink-0 leading-none">
-              <span className="text-[11px]">50%</span>
-              <span className="text-[8px] tracking-tighter font-extrabold">HUMAN</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-black text-emerald-300 uppercase tracking-wider">Agronomist Review</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
-                  isHumanCalibrated 
-                    ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50' 
-                    : 'bg-amber-500/25 text-amber-200 border border-amber-400/40'
-                }`}>
-                  <UserCheck className="w-3 h-3" />
-                  {isHumanCalibrated ? 'CALIBRATED & VERIFIED' : 'ACCREDITED PROFESSOR REVIEW'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-300">
-                Lead: <strong className="text-white">Dr. V. Ramanjaneyulu</strong> (PJTSAU)
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Official Agronomist Calibration Seal Stamp if modified */}
       {isHumanCalibrated && (
@@ -359,9 +313,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               {localizedDisease}
             </h2>
 
-            {localizedDisease !== rawDiseaseName && (
+            {(liveResult?.canonical_disease_name || rawDiseaseName) && (liveResult?.canonical_disease_name || rawDiseaseName) !== localizedDisease && (
               <p className="text-xs sm:text-sm text-slate-300 font-medium tracking-wide">
-                {rawDiseaseName.replace(/___/g, ' - ').replace(/_/g, ' ')}
+                {(liveResult?.canonical_disease_name || rawDiseaseName).replace(/___/g, ' - ').replace(/_/g, ' ')}
               </p>
             )}
 
