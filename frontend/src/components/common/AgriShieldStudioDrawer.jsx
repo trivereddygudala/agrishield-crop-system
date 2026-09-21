@@ -90,6 +90,10 @@ const ARCHITECTURE_NODES = [
 ];
 
 const AgriShieldStudioDrawer = () => {
+  return null;
+};
+
+const _unusedAgriShieldStudioDrawer = () => {
   const {
     isDrawerOpen,
     closeDrawer,

@@ -912,12 +912,7 @@ const AgrochemicalResults = ({ data = {} }) => {
         if (!renderedNode) return null;
 
         return (
-          <div
-            key={cardItem.key}
-            className={`transition-all duration-300 ${studio?.getCardClass ? studio.getCardClass(cardItem.key) : ''}`}
-            onMouseEnter={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(cardItem.key)}
-            onMouseLeave={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(null)}
-          >
+          <div key={cardItem.key} className="transition-all duration-200">
             {renderedNode}
           </div>
         );

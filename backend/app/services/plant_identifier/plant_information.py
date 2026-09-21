@@ -14,27 +14,31 @@ PLANT_DATABASE = {
             "te": "వరి (Vari)",
             "ta": "நெல் (Nel)",
             "ml": "നെല്ല് (Nellu)",
-            "kn": "అక్కి / భత్త (Akki)",
+            "kn": "ಅಕ್ಕಿ / ಭತ್ತ (Akki)",
             "mr": "तांदूळ (Tandul)",
             "hi": "धान / चावल (Dhan)"
         },
         "scientific_name": "Oryza sativa",
-        "family": "Paddy Cereal Crop",
+        "family": "Poaceae (Gramineae Family)",
         "category": "Cereal Grain Crop",
-        "description": "Primary staple food crop cultivated across South India in flooded paddies and aerobic soils.",
+        "identified_type": "Crop",
+        "description": "Oryza sativa (Rice/Paddy) is a vital semi-aquatic cereal grain and the principal staple food crop nourishing over half the global population. Characterized by fibrous root systems, hollow tillering culms, and flat linear leaf blades with prominent ligules, the plant develops terminal panicles bearing grain spikelets. In South India, it is extensively cultivated across the Krishna-Godavari and Cauvery deltaic plains under lowland flooded conditions and aerobic systems. High temperature, prolonged sunlight, and uniform moisture during vegetative and grain-filling phases are critical for optimal photosynthetic accumulation and grain yield.",
+        "primary_use_impact": "Cultivated agricultural food crop serving as the primary staple grain and economic backbone of Indian agriculture.",
         "native_region": "South Asia & Tropical Asia",
         "growth_stage": "Tillering & Panicle Initiation",
         "growing_season": "Kharif & Rabi Seasons",
         "harvest_season": "100 - 145 days after sowing",
         "soil_type": "Clay loam or heavy clay retaining moisture (pH 5.5 - 6.5)",
+        "suitable_soil_type": "Clayey loam, silty clay, or alluvial heavy soils (pH 5.5 - 6.5) with high moisture retention and slow drainage.",
         "temperature_range": "22°C - 34°C",
+        "ideal_weather_climate": "22°C - 34°C, High Relative Humidity (70-85%), 1200mm+ water requirement, Full Sun (6 to 8 hours daily).",
         "water_requirement": "Flooded paddy or Alternate Wetting & Drying (AWD)",
         "sunlight_requirement": "Full Sun (6 to 8 hours daily)",
-        "fertilizer_recommendation": "NPK 120:60:60 kg/ha split application of Urea & MOP Potash",
+        "fertilizer_recommendation": "NPK 120:60:60 kg/ha split application with Zinc Sulfate 25 kg/ha basal dose",
         "economic_importance": "Primary staple crop for 80%+ of South Indian farming families.",
-        "common_uses": ["Steamed grain staple", "Rice flour & parboiled rice", "Paddy straw fodder"],
-        "common_diseases": ["Rice Blast", "Bacterial Leaf Blight", "Sheath Blight", "Brown Spot"],
-        "common_pests": ["Yellow Stem Borer", "Brown Planthopper (BPH)", "Gall Midge"]
+        "common_uses": ["Steamed grain staple", "Rice flour & parboiled rice", "Paddy straw fodder", "Rice bran oil"],
+        "common_diseases": ["Rice Blast (Magnaporthe oryzae)", "Bacterial Leaf Blight (Xanthomonas oryzae)", "Sheath Blight", "Brown Spot"],
+        "common_pests": ["Yellow Stem Borer", "Brown Planthopper (BPH)", "Gall Midge", "Leaf Folder"]
     },
     "paddy": {
         "common_name": "Rice / Paddy Crop",
@@ -42,27 +46,31 @@ PLANT_DATABASE = {
             "te": "వరి (Vari)",
             "ta": "நெல் (Nel)",
             "ml": "നെല്ല് (Nellu)",
-            "kn": "అక్కి / భత్త (Akki)",
+            "kn": "ಅಕ್ಕಿ / ಭತ್ತ (Akki)",
             "mr": "तांदूळ (Tandul)",
             "hi": "धान / चावल (Dhan)"
         },
         "scientific_name": "Oryza sativa",
-        "family": "Paddy Cereal Crop",
+        "family": "Poaceae (Gramineae Family)",
         "category": "Cereal Grain Crop",
-        "description": "Primary staple food crop cultivated across South India in flooded paddies and aerobic soils.",
+        "identified_type": "Crop",
+        "description": "Oryza sativa (Rice/Paddy) is a vital semi-aquatic cereal grain and the principal staple food crop nourishing over half the global population. Characterized by fibrous root systems, hollow tillering culms, and flat linear leaf blades with prominent ligules, the plant develops terminal panicles bearing grain spikelets. In South India, it is extensively cultivated across the Krishna-Godavari and Cauvery deltaic plains under lowland flooded conditions and aerobic systems. High temperature, prolonged sunlight, and uniform moisture during vegetative and grain-filling phases are critical for optimal photosynthetic accumulation and grain yield.",
+        "primary_use_impact": "Cultivated agricultural food crop serving as the primary staple grain and economic backbone of Indian agriculture.",
         "native_region": "South Asia & Tropical Asia",
         "growth_stage": "Tillering & Panicle Initiation",
         "growing_season": "Kharif & Rabi Seasons",
         "harvest_season": "100 - 145 days after sowing",
         "soil_type": "Clay loam or heavy clay retaining moisture (pH 5.5 - 6.5)",
+        "suitable_soil_type": "Clayey loam, silty clay, or alluvial heavy soils (pH 5.5 - 6.5) with high moisture retention and slow drainage.",
         "temperature_range": "22°C - 34°C",
+        "ideal_weather_climate": "22°C - 34°C, High Relative Humidity (70-85%), 1200mm+ water requirement, Full Sun (6 to 8 hours daily).",
         "water_requirement": "Flooded paddy or Alternate Wetting & Drying (AWD)",
         "sunlight_requirement": "Full Sun (6 to 8 hours daily)",
-        "fertilizer_recommendation": "NPK 120:60:60 kg/ha split application of Urea & MOP Potash",
+        "fertilizer_recommendation": "NPK 120:60:60 kg/ha split application with Zinc Sulfate 25 kg/ha basal dose",
         "economic_importance": "Primary staple crop for 80%+ of South Indian farming families.",
-        "common_uses": ["Steamed grain staple", "Rice flour & parboiled rice", "Paddy straw fodder"],
-        "common_diseases": ["Rice Blast", "Bacterial Leaf Blight", "Sheath Blight", "Brown Spot"],
-        "common_pests": ["Yellow Stem Borer", "Brown Planthopper (BPH)", "Gall Midge"]
+        "common_uses": ["Steamed grain staple", "Rice flour & parboiled rice", "Paddy straw fodder", "Rice bran oil"],
+        "common_diseases": ["Rice Blast (Magnaporthe oryzae)", "Bacterial Leaf Blight (Xanthomonas oryzae)", "Sheath Blight", "Brown Spot"],
+        "common_pests": ["Yellow Stem Borer", "Brown Planthopper (BPH)", "Gall Midge", "Leaf Folder"]
     },
     "chilli": {
         "common_name": "Chilli Crop / Mirapa",
@@ -1550,6 +1558,78 @@ def get_authentic_regional_names(plant_key: str) -> dict:
         "mr": f"{display} रोप"
     }
 
+SCIENTIFIC_NAME_TO_CROP_KEY = {
+    "oryza sativa": "rice",
+    "oryza": "rice",
+    "paddy": "paddy",
+    "rice": "rice",
+    "vari": "rice",
+    "capsicum annuum": "chilli",
+    "capsicum frutescens": "capsicum_frutescens",
+    "capsicum": "chilli",
+    "mirapa": "chilli",
+    "solanum lycopersicum": "tomato",
+    "lycopersicon esculentum": "tomato",
+    "tomato": "tomato",
+    "solanum tuberosum": "potato",
+    "potato": "potato",
+    "zea mays": "corn",
+    "corn": "corn",
+    "maize": "corn",
+    "gossypium hirsutum": "cotton",
+    "gossypium": "cotton",
+    "cotton": "cotton",
+    "patti": "cotton",
+    "saccharum officinarum": "sugarcane",
+    "saccharum": "sugarcane",
+    "sugarcane": "sugarcane",
+    "cheruku": "sugarcane",
+    "arachis hypogaea": "groundnut",
+    "groundnut": "groundnut",
+    "peanut": "groundnut",
+    "verusenaga": "groundnut",
+    "triticum aestivum": "wheat",
+    "triticum": "wheat",
+    "wheat": "wheat",
+    "godhuma": "wheat",
+    "mangifera indica": "mango",
+    "mango": "mango",
+    "mamidi": "mango",
+    "azadirachta indica": "neem",
+    "neem": "neem",
+    "vepa": "neem",
+    "musa acuminata": "banana",
+    "musa": "banana",
+    "banana": "banana",
+    "arati": "banana",
+    "allium cepa": "onion",
+    "onion": "onion",
+    "ullipayalu": "onion",
+    "allium sativum": "garlic",
+    "garlic": "garlic",
+    "vellulli": "garlic",
+    "curcuma longa": "turmeric",
+    "turmeric": "turmeric",
+    "pasupu": "turmeric",
+    "zingiber officinale": "ginger",
+    "ginger": "ginger",
+    "allam": "ginger",
+    "glycine max": "soybean",
+    "soybean": "soybean",
+    "brassica juncea": "mustard",
+    "mustard": "mustard",
+    "parthenium hysterophorus": "parthenium",
+    "parthenium": "parthenium",
+    "cyperus rotundus": "nut_grass",
+    "tunga": "nut_grass",
+    "cynodon dactylon": "bermuda_grass",
+    "garika": "bermuda_grass",
+    "trianthema portulacastrum": "trianthema",
+    "achyranthes aspera": "achyranthes",
+    "eichhornia crassipes": "water_hyacinth",
+    "amaranthus viridis": "amaranthus"
+}
+
 def get_plant_info(plant_key: str) -> dict:
     """
     Looks up plant information dictionary by key/name.
@@ -1557,6 +1637,15 @@ def get_plant_info(plant_key: str) -> dict:
     """
     normalized_key = plant_key.lower().strip()
     
+    # 0. Scientific binomial / vernacular alias match priority
+    for sci, ckey in SCIENTIFIC_NAME_TO_CROP_KEY.items():
+        if sci in normalized_key or normalized_key == sci:
+            if ckey in PLANT_DATABASE:
+                res = PLANT_DATABASE[ckey].copy()
+                reg = get_authentic_regional_names(ckey)
+                res["regional_names"] = {**reg, **(res.get("regional_names") or {})}
+                return res
+
     # 1. Exact key match priority
     if normalized_key in PLANT_DATABASE:
         res = PLANT_DATABASE[normalized_key].copy()

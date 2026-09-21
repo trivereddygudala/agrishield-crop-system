@@ -179,16 +179,17 @@ export const StudioProvider = ({ children }) => {
     };
   });
 
-  // Visual in-place touch/click editing mode (persisted across pages)
-  const [isVisualEditMode, setIsVisualEditMode] = useState(false);
+  // Visual in-place touch/click editing mode permanently disabled per user requirements
+  const isVisualEditMode = false;
+  const setIsVisualEditMode = useCallback(() => {}, []);
   const [activeCardKey, setActiveCardKey] = useState(null);
   const [previewDevice, setPreviewDevice] = useState('desktop'); // 'desktop' | 'mobile'
 
-  // Drawer state (not persisted to storage)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeDrawerTab, setActiveDrawerTab] = useState('editor'); // 'editor' | 'layout' | 'effects' | 'map'
-  const [activePageTab, setActivePageTab] = useState('disease-diag'); // which tab context is currently being inspected
-  const [focusedCardKey, setFocusedCardKey] = useState(null); // for spotlight dim effect
+  // Drawer state permanently closed
+  const isDrawerOpen = false;
+  const [activeDrawerTab, setActiveDrawerTab] = useState('editor');
+  const [activePageTab, setActivePageTab] = useState('disease-diag');
+  const [focusedCardKey, setFocusedCardKey] = useState(null);
 
   // Sync to LocalStorage
   useEffect(() => {
@@ -251,16 +252,9 @@ export const StudioProvider = ({ children }) => {
     return state.cardStyles?.[cardKey] || {};
   }, [state.cardStyles]);
 
-  // Open drawer with optional specific sub-tab
-  const openDrawer = useCallback((tab = 'editor', pageTab = null) => {
-    if (tab) setActiveDrawerTab(tab);
-    if (pageTab) setActivePageTab(pageTab);
-    setIsDrawerOpen(true);
-  }, []);
-
-  const closeDrawer = useCallback(() => {
-    setIsDrawerOpen(false);
-  }, []);
+  // Open drawer disabled permanently
+  const openDrawer = useCallback(() => {}, []);
+  const closeDrawer = useCallback(() => {}, []);
 
   // Card Reordering Logic
   const moveCard = useCallback((tabId, cardKey, direction) => {
@@ -386,28 +380,10 @@ export const StudioProvider = ({ children }) => {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  // Helper classes to inject on cards based on spotlight and sliding config
+  // Clean card class helper without touch-to-edit or spotlight interference
   const getCardClass = useCallback((cardKey, extraClasses = '') => {
-    const classes = [extraClasses];
-
-    if (state.effectsConfig.slidingEffects) {
-      classes.push('studio-slide-in');
-    }
-
-    if (state.effectsConfig.cardGlow) {
-      classes.push('studio-card-glow');
-    }
-
-    if (state.effectsConfig.spotlightDim) {
-      if (focusedCardKey && focusedCardKey !== cardKey) {
-        classes.push('opacity-45 scale-[0.985] blur-[0.3px] transition-all duration-300');
-      } else if (focusedCardKey === cardKey) {
-        classes.push('opacity-100 scale-[1.01] ring-2 ring-emerald-400/70 shadow-2xl shadow-emerald-500/20 z-20 transition-all duration-300');
-      }
-    }
-
-    return classes.filter(Boolean).join(' ');
-  }, [state.effectsConfig, focusedCardKey]);
+    return extraClasses || '';
+  }, []);
 
   const value = useMemo(() => ({
     // State

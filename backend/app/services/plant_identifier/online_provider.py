@@ -364,6 +364,7 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
                                 if family_name:
                                     plant_dict["family"] = family_name
                                 plant_dict["is_weed"] = is_weed
+                                plant_dict["identified_type"] = matched_dict.get("identified_type", "Weed" if is_weed else ("Tree" if plant_type == "tree" else "Crop"))
                                 plant_dict["confidence"] = max(round(score, 1), 96.5)
                             else:
                                 plant_dict = {
@@ -372,6 +373,7 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
                                     "genus": genus_name,
                                     "species": species_epithet,
                                     "family": family_name or "Botanical Family",
+                                    "identified_type": "Weed" if is_weed else ("Tree" if plant_type == "tree" else "Crop"),
                                     "category": "Agricultural Weed" if is_weed else ("Normal Tree" if plant_type == "tree" else "Agricultural Plant / Flora"),
                                     "is_weed": is_weed,
                                     "description": f"Botanical specimen identified as {sci_name} ({best_common}) belonging to family {family_name} via Pl@ntNet Global Flora research database.",

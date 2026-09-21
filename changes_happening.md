@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v191) - High-Contrast Text Visibility, Language Sync, Scientific Binomial Matching & Complete Removal of Card Tap Edit Mode
+- **Summary:** Fulfilled the user's complete bugfix and polish requirements across the website:
+  1. 👁️ **Resolved Low-Contrast & Text Invisibility in Light Mode (`PlantIdResults.jsx`):**
+     - Replaced hardcoded dark-mode tokens (`text-slate-100`, `text-emerald-300`, `bg-emerald-500/10`) inside `renderTaxonomy` and `renderAgronomicAdvisory` with high-contrast, theme-adaptive styling.
+     - Specimen attributes (`Identified Type`, `Common Name`, `Botanical Name`, `Family`, `Suitable Soil Type`, `Ideal Weather & Climate`) now render in crisp, readable dark slate (`text-slate-900 dark:text-slate-100`) on subtle mint backgrounds (`bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60`).
+  2. 🌐 **Complete English (`en`) Localization Dictionary & Language Fallback:**
+     - Created a comprehensive English dictionary in `AGRONOMIC_LOCALIZATIONS.en` covering audio TTS controls (`Listen Summary`, `Stop Audio`), section titles (`Environmental Conditions & Growth Guide`), expansion controls (`Read Full Description ↓`, `Show Less ↑`), and status badges.
+     - Updated dictionary resolution fallback from Telugu to English (`AGRONOMIC_LOCALIZATIONS[activeLang] || AGRONOMIC_LOCALIZATIONS.en || AGRONOMIC_LOCALIZATIONS.te`), preventing Telugu phrases from lingering when English is selected.
+  3. 🌾 **Universal Scientific Binomial Name Normalization & Crop Enrichment:**
+     - Resolved the issue where scanning Rice (*Oryza sativa*) returned generic unclassified specimen fallbacks ("Identified agricultural crop specimen").
+     - In `plant_information.py`, added `SCIENTIFIC_NAME_TO_CROP_KEY` mapping over 30 botanical binomials (`oryza sativa`, `solanum lycopersicum`, `zea mays`, `gossypium hirsutum`, `capsicum frutescens`, etc.) directly to rich crop profiles.
+     - Enriched `rice` and `paddy` entries with authentic 5–10 sentence botanical overviews, `identified_type: "Crop"`, `family: "Poaceae (Gramineae Family)"`, soil parameters (clayey loam / alluvial soils, pH 5.5–7.0), and monsoon/tropical climate profiles.
+     - Added scientific alias resolution in frontend `BASE_CROPS_KNOWLEDGE` (`PlantIdResults.jsx`), ensuring instant, zero-latency rich rendering for rice, paddy, cotton, and wheat specimens.
+  4. 🚫 **Complete Elimination of Card Tap Edit Mode Across Website:**
+     - Permanently removed the feature where tapping or clicking result cards opened editing drawers or dimmed neighboring cards:
+       - Disabled `isVisualEditMode` (hardcoded `false`) and studio drawer triggers in `StudioContext.jsx`.
+       - Neutered `AgriShieldStudioDrawer.jsx` and `StudioCardInspectorDock.jsx` by returning `null` so floating "🎨 Touch-to-Edit" and inspector docks cannot mount.
+       - Removed `studio?.getCardClass`, `onMouseEnter`, `onMouseLeave`, and `StudioEditableCard` wrappers from `PlantIdResults.jsx`, `DiseaseDiagnosisResults.jsx`, and `AgrochemicalResults.jsx`.
+  5. 🏗️ **Build Verification:**
+     - Successfully built production bundle with Vite (`npm run build`: 3,154 modules, 0 errors in 26.08s).
+- **Files modified:** `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/context/StudioContext.jsx`, `frontend/src/components/common/AgriShieldStudioDrawer.jsx`, `frontend/src/components/common/StudioCardInspectorDock.jsx`, `backend/app/services/plant_identifier/plant_information.py`, `backend/app/services/plant_identifier/online_provider.py`, `backend/app/services/plant_identifier/identifier.py`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v190) - Removed 50% Clutter Card & Aesthetic Color Polish in Agrochemical Scanner
 - **Summary:** Fulfilled the user's request to eliminate the "50% AI MULTI-MODAL LABEL OCR + 50% HUMAN AGRONOMIST REVIEW" card and "Edit 50%" button from the Agrochemical Scanner results screen, while elevating color contrast, badge aesthetics, and button hierarchy:
   1. 🧹 **Complete Removal of 50% Peer-Review Overlay (`AgrochemicalResults.jsx`):**

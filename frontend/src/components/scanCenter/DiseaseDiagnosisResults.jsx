@@ -228,27 +228,6 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="glass"
-              size="sm"
-              onClick={() => studio?.openDrawer('editor', 'disease-diag')}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black border-none text-xs shadow-md shrink-0"
-            >
-              <PenSquare className="w-3.5 h-3.5 mr-1" />
-              Edit 50%
-            </Button>
-            <Button
-              variant="glass"
-              size="sm"
-              onClick={() => studio?.openDrawer('layout', 'disease-diag')}
-              className="bg-white/20 hover:bg-white/30 text-white font-bold border-white/20 text-xs shadow-sm shrink-0"
-              title="Reorder cards & visual effects"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -1009,22 +988,8 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           if (!renderedNode) return null;
 
           return (
-            <div
-              key={cardItem.key}
-              className={`transition-all duration-300 ${studio?.getCardClass ? studio.getCardClass(cardItem.key) : ''}`}
-              onMouseEnter={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(cardItem.key)}
-              onMouseLeave={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(null)}
-            >
-              <StudioEditableCard
-                cardKey={cardItem.key}
-                tabId="disease-diag"
-                title={cardItem.label}
-                allowReorder={true}
-                onMoveUp={() => studio?.moveCard('disease-diag', cardItem.key, 'up')}
-                onMoveDown={() => studio?.moveCard('disease-diag', cardItem.key, 'down')}
-              >
-                {renderedNode}
-              </StudioEditableCard>
+            <div key={cardItem.key} className="transition-all duration-200">
+              {renderedNode}
             </div>
           );
         })}

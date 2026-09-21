@@ -32,6 +32,98 @@ import API from '../../services/api';
 import { useStudio } from '../../context/StudioContext';
 
 const BASE_CROPS_KNOWLEDGE = {
+  rice: {
+    commonName: "Rice / Paddy Crop",
+    scientificName: "Oryza sativa",
+    genus: "Oryza",
+    species: "sativa",
+    family: "Poaceae (Gramineae Family)",
+    identifiedType: "Crop",
+    nativeRegion: "South Asia & Tropical Asia",
+    growthHabit: "Semi-aquatic annual tillering grass",
+    leafType: "Flat linear parallel-veined blade with prominent ligule & auricles",
+    sunlight: "Full Sun (6 to 8 hours daily)",
+    soilpH: "5.5 - 6.5 (Clayey loam with standing water retention)",
+    suitableSoilType: "Clayey loam, silty clay, or alluvial heavy delta soils (pH 5.5 - 6.5) with low percolation and slow drainage.",
+    idealWeatherClimate: "22°C - 34°C, High Relative Humidity (70-85%), 1200mm+ water requirement, Full Sun (6 to 8 hours daily).",
+    waterNeed: "Flooded paddy or Alternate Wetting & Drying (AWD)",
+    temperature: "22°C - 34°C",
+    fertilizer: "NPK 120:60:60 kg/ha split application of Urea & MOP Potash with Zinc Sulfate basal dose",
+    micronutrients: "Zinc Sulfate (25 kg/ha) to prevent Khaira disease & Iron (Fe) in calcarous soils",
+    description: "Oryza sativa (Rice/Paddy) is a vital semi-aquatic cereal grain and the principal staple food crop nourishing over half the global population. Characterized by fibrous root systems, hollow tillering culms, and flat linear leaf blades with prominent ligules, the plant develops terminal panicles bearing grain spikelets. In South India, it is extensively cultivated across the Krishna-Godavari and Cauvery deltaic plains under lowland flooded conditions and aerobic systems. High temperature, prolonged sunlight, and uniform moisture during vegetative and grain-filling phases are critical for optimal photosynthetic accumulation and grain yield.",
+    primaryUseImpact: "Cultivated agricultural food crop serving as the primary staple grain and economic backbone of Indian agriculture.",
+    commonDiseases: ["Rice Blast (Magnaporthe oryzae)", "Bacterial Leaf Blight (Xanthomonas oryzae)", "Sheath Blight", "Brown Spot"],
+    commonPests: ["Yellow Stem Borer", "Brown Planthopper (BPH)", "Gall Midge", "Leaf Folder"]
+  },
+  paddy: {
+    commonName: "Rice / Paddy Crop",
+    scientificName: "Oryza sativa",
+    genus: "Oryza",
+    species: "sativa",
+    family: "Poaceae (Gramineae Family)",
+    identifiedType: "Crop",
+    nativeRegion: "South Asia & Tropical Asia",
+    growthHabit: "Semi-aquatic annual tillering grass",
+    leafType: "Flat linear parallel-veined blade with prominent ligule & auricles",
+    sunlight: "Full Sun (6 to 8 hours daily)",
+    soilpH: "5.5 - 6.5 (Clayey loam with standing water retention)",
+    suitableSoilType: "Clayey loam, silty clay, or alluvial heavy delta soils (pH 5.5 - 6.5) with low percolation and slow drainage.",
+    idealWeatherClimate: "22°C - 34°C, High Relative Humidity (70-85%), 1200mm+ water requirement, Full Sun (6 to 8 hours daily).",
+    waterNeed: "Flooded paddy or Alternate Wetting & Drying (AWD)",
+    temperature: "22°C - 34°C",
+    fertilizer: "NPK 120:60:60 kg/ha split application of Urea & MOP Potash with Zinc Sulfate basal dose",
+    micronutrients: "Zinc Sulfate (25 kg/ha) to prevent Khaira disease & Iron (Fe) in calcarous soils",
+    description: "Oryza sativa (Rice/Paddy) is a vital semi-aquatic cereal grain and the principal staple food crop nourishing over half the global population. Characterized by fibrous root systems, hollow tillering culms, and flat linear leaf blades with prominent ligules, the plant develops terminal panicles bearing grain spikelets. In South India, it is extensively cultivated across the Krishna-Godavari and Cauvery deltaic plains under lowland flooded conditions and aerobic systems. High temperature, prolonged sunlight, and uniform moisture during vegetative and grain-filling phases are critical for optimal photosynthetic accumulation and grain yield.",
+    primaryUseImpact: "Cultivated agricultural food crop serving as the primary staple grain and economic backbone of Indian agriculture.",
+    commonDiseases: ["Rice Blast (Magnaporthe oryzae)", "Bacterial Leaf Blight (Xanthomonas oryzae)", "Sheath Blight", "Brown Spot"],
+    commonPests: ["Yellow Stem Borer", "Brown Planthopper (BPH)", "Gall Midge", "Leaf Folder"]
+  },
+  cotton: {
+    commonName: "Cotton Crop / Kapas",
+    scientificName: "Gossypium hirsutum",
+    genus: "Gossypium",
+    species: "hirsutum",
+    family: "Malvaceae (Mallow Family)",
+    identifiedType: "Crop",
+    nativeRegion: "Central America (Widely bred & grown in India)",
+    growthHabit: "Branching taproot shrub (1 to 1.8 m)",
+    leafType: "Palmate 3-5 lobed leaves with hairy veins",
+    sunlight: "Full Sun (8+ hours daily)",
+    soilpH: "6.5 - 8.0 (Deep Black Cotton Soil)",
+    suitableSoilType: "Deep black cotton soils (Vertisols) or fertile clay loam with high moisture holding capacity and good drainage.",
+    idealWeatherClimate: "21°C - 35°C, Warm tropical climate, 700 - 1200 mm annual rainfall, and Full Sun (8+ hours daily).",
+    waterNeed: "Moderate (Critical during flowering and boll development)",
+    temperature: "21°C - 35°C",
+    fertilizer: "NPK 150:60:60 kg/ha with split Nitrogen top-dressing",
+    micronutrients: "Magnesium Sulfate (25 kg/ha) & Boron 0.1% foliar spray",
+    description: "Gossypium hirsutum (Upland Cotton) is the world's most vital natural textile fiber and an important commercial cash crop. It exhibits an erect taproot system with monopodial vegetative and sympodial fruiting branches bearing deeply lobed palmate leaves. Large creamy-white to yellow blossoms turn pink after pollination, eventually forming multi-locular seed bolls containing lint and fuzz fibers. Cultivated extensively on the black soils of the Deccan plateau, it thrives under warm temperatures and prolonged bright sunshine.",
+    primaryUseImpact: "Commercial fiber crop, cottonseed oil production, and high-protein livestock feed.",
+    commonDiseases: ["Cotton Leaf Curl Virus", "Bacterial Blight / Angular Leaf Spot", "Grey Mildew"],
+    commonPests: ["Pink Bollworm (Pectinophora gossypiella)", "Whiteflies", "Thrips", "Aphids"]
+  },
+  wheat: {
+    commonName: "Wheat Crop / Gehun",
+    scientificName: "Triticum aestivum",
+    genus: "Triticum",
+    species: "aestivum",
+    family: "Poaceae (Gramineae Family)",
+    identifiedType: "Crop",
+    nativeRegion: "Fertile Crescent (Middle East)",
+    growthHabit: "Annual tillering cereal grass (0.8 to 1.2 m)",
+    leafType: "Linear lanceolate leaves with auricles clasping stem",
+    sunlight: "Full Sun (6 to 8 hours daily)",
+    soilpH: "6.0 - 7.5 (Well-drained fertile loam)",
+    suitableSoilType: "Well-drained fertile loam or clay loam soils (pH 6.0 - 7.5) with good tilth and moisture retention.",
+    idealWeatherClimate: "12°C - 25°C, Cool winter vegetative season and bright warm grain ripening window.",
+    waterNeed: "4 to 6 critical irrigations (CRI, tillering, jointing, flowering, milking)",
+    temperature: "12°C - 25°C",
+    fertilizer: "NPK 120:60:40 kg/ha with Zinc Sulfate top-dressing",
+    micronutrients: "Zinc Sulfate & Manganese foliar nutrition",
+    description: "Triticum aestivum (Common Wheat) is a major world staple cereal grass producing nutrient-dense grain rich in gluten and carbohydrates. Developing a dense fibrous root architecture, it produces hollow tillering stems with narrow, parallel-veined leaves and terminal awned or awnless spike inflorescences. Cultivated predominantly as a Rabi crop in northern and central India, it requires cool temperatures during vegetative elongation followed by sunny, dry conditions for grain filling.",
+    primaryUseImpact: "Primary staple food crop for flour, bread, chapatis, and cereal products.",
+    commonDiseases: ["Yellow / Stripe Rust (Puccinia striiformis)", "Brown / Leaf Rust", "Loose Smut"],
+    commonPests: ["Wheat Aphids", "Armyworm", "Termites"]
+  },
   onion: {
     commonName: "Onion Crop",
     family: "Vegetable Bulb Crop",
@@ -184,6 +276,72 @@ const PLANT_KNOWLEDGE_BASE = {
 
 // Client-side localized dictionary for instant vernacular rendering upon language switch
 const AGRONOMIC_LOCALIZATIONS = {
+  en: {
+    sunlight: {
+      "full sun": "Full Sun (6 to 8 hours daily)",
+      "partial shade": "Partial Shade (3 to 5 hours sunlight)",
+      "full direct sun": "Direct Full Sun (8+ hours daily)"
+    },
+    watering: {
+      "moderate": "Moderate Agricultural Irrigation",
+      "high": "High Moisture & Frequent Irrigation",
+      "low": "Low Water Requirement (Drought Resilient)",
+      "drought": "High Drought Resilient Flora"
+    },
+    soil: {
+      "loam": "Fertile Loamy / Red Soil (pH 6.0 - 7.2)",
+      "clay": "Moisture-Retentive Heavy Clay Soil (pH 5.5 - 6.5)",
+      "sandy": "Light Well-Drained Sandy Soil"
+    },
+    organs: {
+      leaf: "🍃 Leaf Organ",
+      flower: "🌸 Flower Organ",
+      fruit: "🍎 Fruit Organ",
+      bark: "🪵 Bark Organ"
+    },
+    categories: {
+      weed: "🚨 Agricultural Weed",
+      tree: "🌳 Tree Species",
+      crop: "🌾 Agricultural Crop / Flora"
+    },
+    ui: {
+      speciesMatch: "Species Match",
+      confidence: "Identification Confidence",
+      inferenceTime: "Inference Time",
+      listenVoice: "Listen Summary",
+      stopVoice: "Stop Voice",
+      overview: "Plant Overview & Agronomic Importance",
+      showMore: "Read Full Overview ↓",
+      showLess: "Show Less ↑",
+      careMatrix: "Agronomic Growth Parameters",
+      sunlightTitle: "Sunlight Exposure",
+      wateringTitle: "Irrigation & Moisture",
+      soilTitle: "Suitable Soil Type",
+      tempTitle: "Ideal Weather & Climate",
+      taxonomy: "Scientific Classification & Morphology",
+      genus: "Genus",
+      species: "Species",
+      family: "Botanical Family",
+      foliage: "Foliage Morphology",
+      growthHabit: "Growth Habit",
+      nativeRegion: "Native Origin",
+      nutrition: "Fertilizer Recommendation & Soil Nutrition",
+      recommendedBlend: "Recommended Macronutrient Formula (NPK)",
+      essentialMicro: "Essential Micronutrients & Soil Amenders",
+      vigilance: "Agricultural Vigilance & Crop Protection",
+      commonDiseases: "Vulnerable Crop Diseases",
+      commonPests: "Common Destructive Pests",
+      weedTitle: "Agricultural Weed Management & Eradication",
+      weedPriority: "Crop Protection Priority",
+      chemicalControl: "Chemical Control (Herbicides)",
+      culturalControl: "Cultural & Manual Eradication",
+      scanAnother: "Scan Another Plant",
+      checkDisease: "Diagnose Crop Disease →",
+      switchLanguage: "Language",
+      copyMarkdown: "Copy Markdown Report",
+      reportCopied: "Report Copied!"
+    }
+  },
   te: {
     sunlight: {
       "full sun": "పూర్తి సూర్యరశ్మి (రోజూ 6 నుండి 8 గంటలు)",
@@ -378,14 +536,50 @@ const AGRONOMIC_LOCALIZATIONS = {
   }
 };
 
+const SCIENTIFIC_NAME_TO_CROP_KEY = {
+  'oryza sativa': 'rice',
+  'oryza': 'rice',
+  'paddy': 'rice',
+  'rice': 'rice',
+  'vari': 'rice',
+  'solanum lycopersicum': 'tomato',
+  'lycopersicon esculentum': 'tomato',
+  'tomato': 'tomato',
+  'solanum tuberosum': 'potato',
+  'potato': 'potato',
+  'capsicum annuum': 'chilli',
+  'capsicum frutescens': 'capsicum',
+  'capsicum': 'chilli',
+  'chilli': 'chilli',
+  'mirapa': 'chilli',
+  'zea mays': 'corn',
+  'corn': 'corn',
+  'maize': 'corn',
+  'gossypium hirsutum': 'cotton',
+  'gossypium': 'cotton',
+  'cotton': 'cotton',
+  'patti': 'cotton',
+  'saccharum officinarum': 'sugarcane',
+  'sugarcane': 'sugarcane',
+  'triticum aestivum': 'wheat',
+  'wheat': 'wheat',
+  'mangifera indica': 'mango',
+  'mango': 'mango',
+  'allium cepa': 'onion',
+  'onion': 'onion',
+  'parthenium hysterophorus': 'parthenium',
+  'cyperus rotundus': 'nut_grass',
+  'cynodon dactylon': 'bermuda_grass'
+};
+
 const getPlantDetails = (liveResult) => {
   if (!liveResult) {
-    return PLANT_KNOWLEDGE_BASE["onion"];
+    return PLANT_KNOWLEDGE_BASE["rice"] || PLANT_KNOWLEDGE_BASE["onion"];
   }
 
   const rawCrop = (liveResult.crop_name || liveResult.raw_label || liveResult.prediction || "").toLowerCase();
   const rawLabel = (liveResult.raw_label || "").toLowerCase();
-  const textSearch = `${rawCrop} ${rawLabel}`;
+  const textSearch = `${rawCrop} ${rawLabel}`.trim();
 
   // Structured API output from /api/identify-plant
   if (liveResult && liveResult.plant) {
@@ -394,6 +588,7 @@ const getPlantDetails = (liveResult) => {
       ? (liveResult.confidence <= 1.0 ? (liveResult.confidence * 100).toFixed(1) : Number(liveResult.confidence).toFixed(1)) + "%" 
       : "98.2%";
     const sciName = p.scientific_name || "";
+    const sciLower = sciName.toLowerCase();
     const genus = p.genus || (sciName ? sciName.split(' ')[0] : "Botanical Genus");
     const species = p.species || (sciName ? sciName.split(' ').slice(1).join(' ') : "spp.");
     const isWeed = Boolean(p.is_weed || liveResult.is_weed || (p.category && p.category.toLowerCase().includes('weed')));
@@ -406,40 +601,78 @@ const getPlantDetails = (liveResult) => {
     else if (rawType.toLowerCase().includes('crop')) identifiedType = "Crop";
     else identifiedType = rawType;
 
+    // Check if scientific name or label matches rich local botanical knowledge
+    const mappedCropKey = SCIENTIFIC_NAME_TO_CROP_KEY[sciLower] ||
+      Object.keys(SCIENTIFIC_NAME_TO_CROP_KEY).find(k => sciLower.includes(k) || textSearch.includes(k));
+    const kbCrop = mappedCropKey ? (PLANT_KNOWLEDGE_BASE[SCIENTIFIC_NAME_TO_CROP_KEY[mappedCropKey] || mappedCropKey] || null) : null;
+
+    const commonName = (p.common_name && p.common_name !== sciName && !p.common_name.toLowerCase().includes('specimen'))
+      ? p.common_name
+      : (kbCrop?.commonName || p.common_name || "Identified Plant");
+
+    const description = (p.description && p.description.length > 70 && !p.description.startsWith('Identified agricultural crop') && !p.description.startsWith('Identified agricultural weed'))
+      ? p.description
+      : (kbCrop?.description || p.description || `${commonName} is an important agricultural plant species.`);
+
+    const primaryUse = (p.primary_use_impact && !p.primary_use_impact.startsWith('Identified'))
+      ? p.primary_use_impact
+      : (kbCrop?.primaryUseImpact || (isWeed ? "Invasive agricultural weed requiring active field eradication." : "Cultivated agricultural food crop and beneficial economic plant."));
+
+    const suitableSoil = p.suitable_soil_type || kbCrop?.suitableSoilType || p.soil_type || kbCrop?.soilpH || "Well-drained fertile loamy soil (pH 6.0 - 7.0)";
+    const idealWeather = p.ideal_weather_climate || kbCrop?.idealWeatherClimate || `${p.temperature_range || kbCrop?.temperature || "20°C - 35°C"}, ${p.sunlight_requirement || kbCrop?.sunlight || "Full Sun (6 to 8 hours daily)"}`;
+    const family = (p.family && p.family !== "Botanical Family") ? p.family : (kbCrop?.family || "Poaceae");
+
     return {
-      commonName: p.common_name || "Identified Plant",
+      commonName: commonName,
       scientificName: sciName,
       genus: genus,
       species: species,
-      regionalNames: p.regional_names || {},
-      family: p.family || "Botanical Family",
+      regionalNames: p.regional_names || kbCrop?.regional_names || {},
+      family: family,
       category: p.category || (isWeed ? "Agricultural Weed" : "Plant Species"),
       identifiedType: identifiedType,
       isWeed: isWeed,
-      nativeRegion: p.native_region || "Global & Indian Subcontinent",
+      nativeRegion: p.native_region || kbCrop?.nativeRegion || "Global & Indian Subcontinent",
       confidence: conf,
-      growthHabit: p.growth_stage || p.growth_habit || "Active Growth / Foliage",
-      leafType: p.leaf_type || "Standard Foliage Leaf",
-      description: p.description || "",
-      primaryUseImpact: p.primary_use_impact || (isWeed ? "Invasive agricultural weed requiring active field eradication." : "Cultivated agricultural food crop and beneficial economic plant."),
-      sunlight: p.sunlight_requirement || "Full Sun (6 to 8 hours daily)",
-      soilpH: p.soil_type || "Well-drained Fertile Soil (pH 6.0 - 7.2)",
-      suitableSoilType: p.suitable_soil_type || p.soil_type || "Well-drained fertile loamy soil (pH 6.0 - 7.0) with adequate organic matter",
-      idealWeatherClimate: p.ideal_weather_climate || `${p.temperature_range || "20°C - 35°C"}, ${p.sunlight_requirement || "Full Sun (6 to 8 hours daily)"}`,
-      waterNeed: p.water_requirement || "Moderate Agricultural Irrigation",
-      temperature: p.temperature_range || "18°C - 35°C",
-      fertilizer: p.fertilizer_recommendation || "Balanced Organic Compost & Recommended NPK",
-      micronutrients: p.micronutrients || "Essential Plant Micronutrients (Zinc, Boron, Iron)",
-      commonUses: p.common_uses || [],
-      commonDiseases: p.common_diseases || ["Foliar Spot", "Blight"],
-      commonPests: p.common_pests || ["Aphids", "Mites", "Thrips"],
+      growthHabit: p.growth_stage || p.growth_habit || kbCrop?.growthHabit || "Active Growth / Foliage",
+      leafType: p.leaf_type || kbCrop?.leafType || "Standard Foliage Leaf",
+      description: description,
+      primaryUseImpact: primaryUse,
+      sunlight: p.sunlight_requirement || kbCrop?.sunlight || "Full Sun (6 to 8 hours daily)",
+      soilpH: p.soil_type || kbCrop?.soilpH || "Well-drained Fertile Soil (pH 6.0 - 7.2)",
+      suitableSoilType: suitableSoil,
+      idealWeatherClimate: idealWeather,
+      waterNeed: p.water_requirement || kbCrop?.waterNeed || "Moderate Agricultural Irrigation",
+      temperature: p.temperature_range || kbCrop?.temperature || "18°C - 35°C",
+      fertilizer: p.fertilizer_recommendation || kbCrop?.fertilizer || "Balanced Organic Compost & Recommended NPK",
+      micronutrients: p.micronutrients || kbCrop?.micronutrients || "Essential Plant Micronutrients (Zinc, Boron, Iron)",
+      commonUses: p.common_uses || kbCrop?.common_uses || [],
+      commonDiseases: (p.common_diseases && p.common_diseases.length > 2) ? p.common_diseases : (kbCrop?.commonDiseases || ["Rice Blast", "Leaf Spot"]),
+      commonPests: (p.common_pests && p.common_pests.length > 2) ? p.common_pests : (kbCrop?.commonPests || ["Stem Borer", "Aphids"]),
       weedEradication: p.weed_eradication_advice || "",
-      economicImportance: p.economic_importance || "",
+      economicImportance: p.economic_importance || kbCrop?.economic_importance || "",
       organ: liveResult.organ || "leaf",
       source: liveResult.source || "online",
       model: liveResult.model || (liveResult.source === 'plantnet_botanical_ai' ? 'Pl@ntNet Global Flora AI (300,000+ Species)' : liveResult.source === 'gemini_vision_ai' ? 'Google Gemini Multimodal Vision AI' : 'PyTorch Botanical Vision'),
       translations: p.translations || liveResult.translations || {}
     };
+  }
+
+  // Check scientific alias map first in fallback mode
+  const aliasMatch = Object.keys(SCIENTIFIC_NAME_TO_CROP_KEY).find(k => textSearch.includes(k));
+  if (aliasMatch) {
+    const kbKey = SCIENTIFIC_NAME_TO_CROP_KEY[aliasMatch];
+    if (PLANT_KNOWLEDGE_BASE[kbKey]) {
+      const match = { ...PLANT_KNOWLEDGE_BASE[kbKey] };
+      if (liveResult.confidence) {
+        match.confidence = (liveResult.confidence <= 1.0 ? liveResult.confidence * 100 : liveResult.confidence).toFixed(1) + "%";
+      }
+      match.identifiedType = match.identifiedType || (match.isWeed ? "Weed" : (match.category?.includes('Tree') ? "Tree" : "Crop"));
+      match.primaryUseImpact = match.primaryUseImpact || (match.isWeed ? "Invasive weed requiring control." : "Cultivated agricultural food crop.");
+      match.suitableSoilType = match.suitableSoilType || match.soilpH || "Well-drained fertile loam (pH 6.0 - 7.0)";
+      match.idealWeatherClimate = match.idealWeatherClimate || `${match.temperature || "20°C - 35°C"}, ${match.sunlight || "Full Sun"}`;
+      return match;
+    }
   }
 
   // Check matching key in knowledge base
@@ -578,7 +811,7 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
   }, [rawInfo, translatedCache, activeLang, studio?.cardOverrides]);
 
   // Localized UI strings
-  const locDict = AGRONOMIC_LOCALIZATIONS[activeLang] || AGRONOMIC_LOCALIZATIONS.te;
+  const locDict = AGRONOMIC_LOCALIZATIONS[activeLang] || AGRONOMIC_LOCALIZATIONS.en || AGRONOMIC_LOCALIZATIONS.te;
   const locUI = locDict?.ui || {};
 
   // Speech reader helper
@@ -836,74 +1069,74 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
         isSpeaking={speakingId === 'plant_scientific'}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-            <span className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+            <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
               🏷️ Identified Type
             </span>
-            <p className="font-extrabold text-slate-100 text-sm">
+            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">
               {info.identifiedType || (info.isWeed ? 'Weed' : (info.isTree ? 'Tree' : 'Crop'))}
             </p>
           </div>
-          <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-            <span className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+            <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
               🌾 Common Name
             </span>
-            <p className="font-extrabold text-slate-100 text-sm">{info.commonName}</p>
+            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{info.commonName}</p>
           </div>
-          <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-            <span className="text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+            <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
               🔬 Botanical Name
             </span>
-            <p className="font-extrabold text-emerald-300 text-sm italic">{info.scientificName}</p>
+            <p className="font-extrabold text-emerald-800 dark:text-emerald-300 text-sm italic">{info.scientificName}</p>
           </div>
-          <div className="p-3.5 bg-slate-800/80 rounded-xl border border-slate-700/80">
-            <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+          <div className="p-3.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xs">
+            <span className="text-slate-600 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
               🌿 Family
             </span>
-            <p className="font-bold text-slate-200 text-sm">{info.family}</p>
+            <p className="font-bold text-slate-900 dark:text-slate-200 text-sm">{info.family}</p>
           </div>
         </div>
       </CollapsibleSection>
 
       {/* SECTION 2: 📝 Description & Key Details */}
       {info.description && (
-        <Card className="p-5 sm:p-6 bg-slate-900/90 dark:bg-slate-900 border border-slate-700/80 text-white rounded-2xl shadow-md">
+        <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-sm">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-            <div className="flex items-center gap-2 text-teal-400 font-bold text-sm uppercase tracking-wider">
-              <BookOpen className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-teal-800 dark:text-teal-400 font-bold text-sm uppercase tracking-wider">
+              <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               <span>📝 Description & Key Details</span>
             </div>
             {info.identifiedType && (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-500/20 text-teal-300 border border-teal-400/30">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-400/30">
                 {info.identifiedType}
               </span>
             )}
           </div>
 
           {/* Primary Use / Impact Callout */}
-          <div className="mb-3.5 p-3.5 rounded-xl bg-teal-950/60 border border-teal-500/30 text-xs">
-            <span className="font-extrabold text-teal-300 uppercase text-[10px] tracking-wider block mb-1 flex items-center gap-1.5">
+          <div className="mb-3.5 p-3.5 rounded-xl bg-teal-50/80 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-500/30 text-xs">
+            <span className="font-extrabold text-teal-800 dark:text-teal-300 uppercase text-[10px] tracking-wider block mb-1 flex items-center gap-1.5">
               <span>🌱</span>
               <span>Primary Use / Impact</span>
             </span>
-            <p className="text-slate-200 font-medium leading-relaxed">
+            <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
               {info.primaryUseImpact || (info.isWeed ? 'Invasive agricultural weed requiring active field management and eradication.' : 'Cultivated agricultural food crop and beneficial economic plant.')}
             </p>
           </div>
 
           <div className="relative">
-            <p className={`text-sm text-slate-200 leading-relaxed font-normal ${!isDescriptionExpanded ? 'line-clamp-6' : ''}`}>
+            <p className={`text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-normal ${!isDescriptionExpanded ? 'line-clamp-6' : ''}`}>
               {info.description}
             </p>
             {!isDescriptionExpanded && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none" />
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
             )}
           </div>
           <div className="pt-3">
             <button
               type="button"
               onClick={() => setIsDescriptionExpanded(prev => !prev)}
-              className="text-xs font-extrabold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors"
+              className="text-xs font-extrabold text-teal-700 dark:text-teal-400 hover:text-teal-600 dark:hover:text-teal-300 flex items-center gap-1 transition-colors"
             >
               {isDescriptionExpanded ? (
                 <><span>{locUI.showLess || 'Show Less ↑'}</span><ChevronUp className="w-4 h-4" /></>
@@ -985,67 +1218,67 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Suitable Soil Type */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-slate-900/60 to-slate-900 border border-emerald-500/30 text-white shadow-sm flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider">
-                Suitable Soil Type
+              <span className="text-[11px] font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-wider">
+                {locUI.soilTitle || 'Suitable Soil Type'}
               </span>
-              <Sprout className="w-4 h-4 text-emerald-400" />
+              <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <p className="text-xs font-semibold text-slate-100 leading-relaxed">
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
               {info.suitableSoilType || info.soilpH}
             </p>
           </div>
-          <span className="text-[10px] text-emerald-400/80 font-bold mt-2">Texture & pH Optimal</span>
+          <span className="text-[10px] text-emerald-700 dark:text-emerald-400/80 font-bold mt-2">Texture & pH Optimal</span>
         </div>
 
         {/* Ideal Weather & Climate */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900/60 to-slate-900 border border-amber-500/30 text-white shadow-sm flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider">
-                Ideal Weather & Climate
+              <span className="text-[11px] font-black uppercase text-amber-800 dark:text-amber-400 tracking-wider">
+                {locUI.tempTitle || 'Ideal Weather & Climate'}
               </span>
-              <Sun className="w-4 h-4 text-amber-400" />
+              <Sun className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <p className="text-xs font-semibold text-slate-100 leading-relaxed">
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
               {info.idealWeatherClimate || `${info.temperature} • ${info.sunlight}`}
             </p>
           </div>
-          <span className="text-[10px] text-amber-400/80 font-bold mt-2">Thermal & Sunlight Window</span>
+          <span className="text-[10px] text-amber-700 dark:text-amber-400/80 font-bold mt-2">Thermal & Sunlight Window</span>
         </div>
 
         {/* Water Need / Irrigation */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-500/10 via-slate-900/60 to-slate-900 border border-cyan-500/30 text-white shadow-sm flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-cyan-400 tracking-wider">
-                {locUI.waterTitle || 'Irrigation & Moisture'}
+              <span className="text-[11px] font-black uppercase text-cyan-800 dark:text-cyan-400 tracking-wider">
+                {locUI.wateringTitle || 'Irrigation & Moisture'}
               </span>
-              <Droplets className="w-4 h-4 text-cyan-400" />
+              <Droplets className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
             </div>
-            <p className="text-xs font-semibold text-slate-100 leading-relaxed">
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
               {info.waterNeed}
             </p>
           </div>
-          <span className="text-[10px] text-cyan-400/80 font-bold mt-2">Moisture Regimen</span>
+          <span className="text-[10px] text-cyan-700 dark:text-cyan-400/80 font-bold mt-2">Moisture Regimen</span>
         </div>
 
         {/* Temperature Window / Sunlight */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-500/10 via-slate-900/60 to-slate-900 border border-rose-500/30 text-white shadow-sm flex flex-col justify-between">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-rose-400 tracking-wider">
+              <span className="text-[11px] font-black uppercase text-rose-800 dark:text-rose-400 tracking-wider">
                 {locUI.sunlightTitle || 'Sunlight Exposure'}
               </span>
-              <Thermometer className="w-4 h-4 text-rose-400" />
+              <Thermometer className="w-4 h-4 text-rose-600 dark:text-rose-400" />
             </div>
-            <p className="text-xs font-semibold text-slate-100 leading-relaxed">
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
               {info.sunlight}
             </p>
           </div>
-          <span className="text-[10px] text-rose-400/80 font-bold mt-2">Photoperiod Hours</span>
+          <span className="text-[10px] text-rose-700 dark:text-rose-400/80 font-bold mt-2">Photoperiod Hours</span>
         </div>
       </div>
     </div>
@@ -1178,12 +1411,7 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
         if (!renderedNode) return null;
 
         return (
-          <div
-            key={cardItem.key}
-            className={`transition-all duration-300 ${studio?.getCardClass ? studio.getCardClass(cardItem.key) : ''}`}
-            onMouseEnter={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(cardItem.key)}
-            onMouseLeave={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(null)}
-          >
+          <div key={cardItem.key} className="transition-all duration-200">
             {renderedNode}
           </div>
         );

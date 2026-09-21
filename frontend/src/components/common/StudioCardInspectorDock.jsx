@@ -15,6 +15,10 @@ import {
 } from '../../context/StudioContext';
 
 export default function StudioCardInspectorDock() {
+  return null;
+}
+
+function _unusedStudioCardInspectorDock() {
   const {
     isVisualEditMode,
     activeCardKey,
