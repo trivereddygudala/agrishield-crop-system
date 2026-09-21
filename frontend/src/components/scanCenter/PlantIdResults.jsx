@@ -28,6 +28,7 @@ import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { buildPlantSpeech } from '../../utils/regionalLocale';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
 import { ANDHRA_BOTANICAL_BASE } from '../../data/andhraBotanicalData';
+import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import API from '../../services/api';
 
 const BASE_CROPS_KNOWLEDGE = {
@@ -936,26 +937,19 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
               <Globe className="w-3.5 h-3.5 text-teal-400" />
               {locUI.switchLanguage || 'Language'}:
             </span>
-            {[
-              { code: 'en', label: 'English' },
-              { code: 'te', label: 'తెలుగు' },
-              { code: 'ta', label: 'தமிழ்' },
-              { code: 'hi', label: 'हिन्दी' },
-              { code: 'kn', label: 'ಕನ್ನಡ' },
-              { code: 'ml', label: 'മലയാളം' },
-              { code: 'mr', label: 'मराठी' }
-            ].map(lang => (
+            {SUPPORTED_LANGUAGES.map(lang => (
               <button
                 key={lang.code}
                 type="button"
                 onClick={() => handleLanguageSelect(lang.code)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1 ${
                   activeLang === lang.code
                     ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/30 scale-105'
                     : 'bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10'
                 }`}
               >
-                {lang.label}
+                <span>{lang.flag || '🌾'}</span>
+                <span>{lang.nativeName || lang.name}</span>
               </button>
             ))}
             {isTranslating && (

@@ -803,6 +803,13 @@ export const CROPS_MAP = {
     "tamarind": "చింత చెట్టు",
     "turmeric": "పసుపు",
     "ginger": "అల్లం",
+    "black_gram": "మినుములు",
+    "green_gram": "పెసలు",
+    "red_gram": "కందులు",
+    "mustard": "ఆవాలు",
+    "tobacco": "పొగాకు",
+    "coffee": "కాఫీ",
+    "tea": "తేయాకు",
     "parthenium": "వయ్యారి భామ / కలుపు",
     "weed": "కలుపు మొక్క"
   },
@@ -844,6 +851,13 @@ export const CROPS_MAP = {
     "tamarind": "इमली",
     "turmeric": "हल्दी",
     "ginger": "अदरक",
+    "black_gram": "उड़द",
+    "green_gram": "मूंग",
+    "red_gram": "अरहर / तूर",
+    "mustard": "सरसों",
+    "tobacco": "तंबाकू",
+    "coffee": "कॉफ़ी",
+    "tea": "चाय",
     "parthenium": "गाजर घास खरपतवार",
     "weed": "खरपतवार"
   },
@@ -885,6 +899,13 @@ export const CROPS_MAP = {
     "tamarind": "புளிய மரம்",
     "turmeric": "மஞ்சள்",
     "ginger": "இஞ்சி",
+    "black_gram": "உளுந்து",
+    "green_gram": "பாசிப்பயறு",
+    "red_gram": "துவரை",
+    "mustard": "கடுகு",
+    "tobacco": "புகையிலை",
+    "coffee": "காபி",
+    "tea": "தேயிலை",
     "parthenium": "பார்த்தீனியம் களை",
     "weed": "களைச்செடி"
   },
@@ -912,7 +933,29 @@ export const CROPS_MAP = {
     "squash": "ಕುಂಬಳಕಾಯಿ",
     "strawberry": "ಸ್ಟ್ರಾಬೆರಿ",
     "blueberry": "ಬ್ಲೂಬೆರ್ರಿ",
-    "cherry": "ಚೆರ್ರಿ"
+    "cherry": "ಚೆರ್ರಿ",
+    "onion": "ಈರುಳ್ಳಿ",
+    "garlic": "ಬೆಳ್ಳುಳ್ಳಿ",
+    "brinjal": "ಬದನೆಕಾಯಿ",
+    "okra": "ಬೆಂಡೆಕಾಯಿ",
+    "papaya": "ಪಪ್ಪಾಯಿ",
+    "guava": "ಸೀಬೆಕಾಯಿ / ಪೇರಲ",
+    "pomegranate": "ದಾಳಿಂಬೆ",
+    "lemon": "ನಿಂಬೆಹಣ್ಣು",
+    "coconut": "ತೆಂಗಿನಕಾಯಿ",
+    "neem": "ಬೇವಿನ ಮರ",
+    "tamarind": "ಹುಣಸೆ ಮರ",
+    "turmeric": "ಅರಿಶಿನ",
+    "ginger": "ಶುಂಠಿ",
+    "black_gram": "ಉದ್ದು",
+    "green_gram": "ಹೆಸರುಕಾಳು",
+    "red_gram": "ತೊಗರಿ",
+    "mustard": "ಸಾಸಿವೆ",
+    "tobacco": "ತಂಬಾಕು",
+    "coffee": "ಕಾಫಿ",
+    "tea": "ಚಹಾ",
+    "parthenium": "ಕಾಡು ಕಳೆ",
+    "weed": "ಕಳೆ ಗಿಡ"
   },
   "ml": {
     "all": "എല്ലാ വിളകളും (ഓട്ടോ-ഡിറ്റക്ട്)",
@@ -938,7 +981,29 @@ export const CROPS_MAP = {
     "squash": "മത്തങ്ങ",
     "strawberry": "സ്ട്രോബെറി",
     "blueberry": "ബ്ലൂബെറി",
-    "cherry": "ചെറി"
+    "cherry": "ചെറി",
+    "onion": "സവാള / ഉള്ളി",
+    "garlic": "വെളുത്തുള്ളി",
+    "brinjal": "വഴുതനങ്ങ",
+    "okra": "വെണ്ടയ്ക്ക",
+    "papaya": "പപ്പായ",
+    "guava": "പേരയ്ക്ക",
+    "pomegranate": "മാതളനാരകം",
+    "lemon": "നാരങ്ങ",
+    "coconut": "തെങ്ങ് / തേങ്ങ",
+    "neem": "ആര്യവേപ്പ്",
+    "tamarind": "വാളൻപുളി",
+    "turmeric": "മഞ്ഞൾ",
+    "ginger": "ഇഞ്ചി",
+    "black_gram": "ഉഴുന്ന്",
+    "green_gram": "ചെറുപയർ",
+    "red_gram": "തുവരപ്പയർ",
+    "mustard": "കടുക്",
+    "tobacco": "പുകയില",
+    "coffee": "കാപ്പി",
+    "tea": "തേയില",
+    "parthenium": "പാർത്തീനിയം കള",
+    "weed": "കള"
   },
   "mr": {
     "all": "सर्व पिके (स्वयं शोध)",
@@ -964,7 +1029,29 @@ export const CROPS_MAP = {
     "squash": "कोहळा / डांगर",
     "strawberry": "स्ट्रॉबेरी",
     "blueberry": "ब्लूबेरी",
-    "cherry": "चेरी"
+    "cherry": "चेरी",
+    "onion": "कांदा",
+    "garlic": "लसूण",
+    "brinjal": "वांगी",
+    "okra": "भेंडी",
+    "papaya": "पपई",
+    "guava": "पेरू",
+    "pomegranate": "डाळिंब",
+    "lemon": "लिंबू",
+    "coconut": "नारळ",
+    "neem": "कडुनिंब",
+    "tamarind": "चिंच",
+    "turmeric": "हळद",
+    "ginger": "आले",
+    "black_gram": "उडीद",
+    "green_gram": "मूग",
+    "red_gram": "तूर",
+    "mustard": "मोहरी",
+    "tobacco": "तंबाखू",
+    "coffee": "कॉफी",
+    "tea": "चहा",
+    "parthenium": "गाजर गवत",
+    "weed": "तण"
   },
   "gu": {
     "all": "તમામ પાક (સ્વયં શોધ)",
@@ -990,7 +1077,29 @@ export const CROPS_MAP = {
     "squash": "કોળું",
     "strawberry": "સ્ટ્રોબેરી",
     "blueberry": "બ્લુબેરી",
-    "cherry": "ચેરી"
+    "cherry": "ચેરી",
+    "onion": "ડુંગળી",
+    "garlic": "લસણ",
+    "brinjal": "રીંગણ",
+    "okra": "ભીંડા",
+    "papaya": "પપૈયું",
+    "guava": "જામફળ",
+    "pomegranate": "દાડમ",
+    "lemon": "લીંબુ",
+    "coconut": "નાળિયેર",
+    "neem": "લીમડો",
+    "tamarind": "આંબલી",
+    "turmeric": "હળદર",
+    "ginger": "આદુ",
+    "black_gram": "અડદ",
+    "green_gram": "મગ",
+    "red_gram": "તુવેર",
+    "mustard": "રાઈ",
+    "tobacco": "તમાકુ",
+    "coffee": "કોફી",
+    "tea": "ચા",
+    "parthenium": "ગાજર ઘાસ",
+    "weed": "નીંદણ"
   },
   "pa": {
     "all": "ਸਾਰੀਆਂ ਫ਼ਸਲਾਂ (ਆਟੋ-ਡਿਟੈਕਟ)",
@@ -1016,7 +1125,77 @@ export const CROPS_MAP = {
     "squash": "ਕੱਦੂ / ਚੱਪਣ ਕੱਦੂ",
     "strawberry": "ਸਟ੍ਰਾਬੇਰੀ",
     "blueberry": "ਬਲੂਬੇਰੀ",
-    "cherry": "ਚੈਰੀ"
+    "cherry": "ਚੈਰੀ",
+    "onion": "ਪਿਆਜ਼",
+    "garlic": "ਲਸਣ",
+    "brinjal": "ਬੈਂਗਣ",
+    "okra": "ਭਿੰਡੀ",
+    "papaya": "ਪਪੀਤਾ",
+    "guava": "ਅਮਰੂਦ",
+    "pomegranate": "ਅਨਾਰ",
+    "lemon": "ਨਿੰਬੂ",
+    "coconut": "ਨਾਰੀਅਲ",
+    "neem": "ਨਿੰਮ",
+    "tamarind": "ਇਮਲੀ",
+    "turmeric": "ਹਲਦੀ",
+    "ginger": "ਅਦਰਕ",
+    "black_gram": "ਮਾਂਹ",
+    "green_gram": "ਮੂੰਗੀ",
+    "red_gram": "ਅਰਹਰ",
+    "mustard": "ਸਰ੍ਹੋਂ",
+    "tobacco": "ਤੰਬਾਕੂ",
+    "coffee": "ਕੌਫ਼ੀ",
+    "tea": "ਚਾਹ",
+    "parthenium": "ਗਾਜਰ ਘਾਹ",
+    "weed": "ਨਦੀਨ"
+  },
+  "bn": {
+    "all": "সমস্ত ফসল (স্বয়ংক্রিয় শনাক্তকরণ)",
+    "rice": "ধান (চাল)",
+    "sugarcane": "আখ",
+    "cotton": "তুলা",
+    "maize": "ভুট্টা",
+    "corn": "ভুট্টা",
+    "groundnut": "চিনাবাদাম",
+    "peanut": "চিনাবাদাম",
+    "chilli": "লঙ্কা (মরিচ)",
+    "pepper": "ক্যাপসিকাম",
+    "tomato": "টমেটো",
+    "mango": "আম",
+    "banana": "কলা",
+    "potato": "আলু",
+    "wheat": "গম",
+    "apple": "আপেল",
+    "grape": "আঙুর",
+    "orange": "কমলালেবু",
+    "peach": "পীচ ফল",
+    "soybean": "সয়াবিন",
+    "squash": "মিষ্টি কুমড়ো",
+    "strawberry": "স্ট্রবেরি",
+    "blueberry": "ব্লুবেরি",
+    "cherry": "চেরি",
+    "onion": "পেঁয়াজ",
+    "garlic": "রসুন",
+    "brinjal": "বেগুন",
+    "okra": "ঢেঁড়শ",
+    "papaya": "পেঁপে",
+    "guava": "পেয়ারা",
+    "pomegranate": "বেদানা / ডালিম",
+    "lemon": "লেবু",
+    "coconut": "নারকেল",
+    "neem": "নিম গাছ",
+    "tamarind": "তেঁতুল গাছ",
+    "turmeric": "হলুদ",
+    "ginger": "আদা",
+    "black_gram": "বিউলি / কলাই",
+    "green_gram": "মুগ ডাল",
+    "red_gram": "অড়হর",
+    "mustard": "সরিষা",
+    "tobacco": "তামাক",
+    "coffee": "কফি",
+    "tea": "চা",
+    "parthenium": "পার্থেনিয়াম আগাছা",
+    "weed": "আগাছা"
   },
   "or": {
     "all": "ସମସ୍ତ ଫସଲ (ସ୍ୱୟଂ ଚିହ୍ନଟ)",
@@ -1042,7 +1221,29 @@ export const CROPS_MAP = {
     "squash": "କଖାରୁ / ବୋଇତାଳୁ",
     "strawberry": "ଷ୍ଟ୍ରବେରୀ",
     "blueberry": "ବ୍ଲୁବେରୀ",
-    "cherry": "ଚେରୀ"
+    "cherry": "ଚେରୀ",
+    "onion": "ପିଆଜ",
+    "garlic": "ରସୁଣ",
+    "brinjal": "ବାଇଗଣ",
+    "okra": "ଭେଣ୍ଡି",
+    "papaya": "ଅମୃତଭଣ୍ଡା",
+    "guava": "ପିଜୁଳି",
+    "pomegranate": "ଡାଳିମ୍ବ",
+    "lemon": "ଲେମ୍ବୁ",
+    "coconut": "ନଡ଼ିଆ",
+    "neem": "ନିମ୍ବ",
+    "tamarind": "ତେନ୍ତୁଳି",
+    "turmeric": "ହଳଦୀ",
+    "ginger": "ଅଦା",
+    "black_gram": "ବିରି",
+    "green_gram": "ମୁଗ",
+    "red_gram": "ହରଡ଼",
+    "mustard": "ସୋରିଷ",
+    "tobacco": "ଧୂଆଁପତ୍ର",
+    "coffee": "କଫି",
+    "tea": "ଚା",
+    "parthenium": "କଂଗ୍ରେସ ଘାସ",
+    "weed": "ଘାସ / ଅନାବନା ଗଛ"
   },
   "as": {
     "all": "সকলো শস্য (স্বয়ংক্ৰিয় চিনাক্তকৰণ)",
@@ -1068,7 +1269,29 @@ export const CROPS_MAP = {
     "squash": "কোমোৰা / ৰঙালাউ",
     "strawberry": "ষ্ট্ৰবেৰী",
     "blueberry": "ব্লুবেৰী",
-    "cherry": "চেৰী"
+    "cherry": "চেৰী",
+    "onion": "পিয়াঁজ",
+    "garlic": "নহৰু",
+    "brinjal": "বেঙেনা",
+    "okra": "ভেণ্ডী",
+    "papaya": "অমিতা",
+    "guava": "মধুৰিআম",
+    "pomegranate": "ডালিম",
+    "lemon": "নেমু",
+    "coconut": "নাৰিকল",
+    "neem": "নিম গছ",
+    "tamarind": "তেঁতেলী",
+    "turmeric": "হালধি",
+    "ginger": "আদা",
+    "black_gram": "মাটিকলাই",
+    "green_gram": "মগু মাহ",
+    "red_gram": "অৰহৰ",
+    "mustard": "সৰিয়হ",
+    "tobacco": "ধঁপাত",
+    "coffee": "কফি",
+    "tea": "চাহ",
+    "parthenium": "পাৰ্থেনিয়াম",
+    "weed": "অপতৃণ"
   },
   "ur": {
     "all": "تمام فصلیں (خودکار شناخت)",
@@ -1094,7 +1317,29 @@ export const CROPS_MAP = {
     "squash": "کدو / حلوہ کدو",
     "strawberry": "اسٹرابیری",
     "blueberry": "بلیو بیری",
-    "cherry": "چیری"
+    "cherry": "چیری",
+    "onion": "پیاز",
+    "garlic": "لہسن",
+    "brinjal": "بینگن",
+    "okra": "بھنڈی",
+    "papaya": "پپیتا",
+    "guava": "امرود",
+    "pomegranate": "انار",
+    "lemon": "لیمو",
+    "coconut": "ناریل",
+    "neem": "نیم",
+    "tamarind": "املی",
+    "turmeric": "ہلدی",
+    "ginger": "ادرک",
+    "black_gram": "ماش",
+    "green_gram": "مونگ",
+    "red_gram": "ارہر",
+    "mustard": "سرسوں",
+    "tobacco": "تمباکو",
+    "coffee": "کافی",
+    "tea": "چائے",
+    "parthenium": "گاجر گھاس",
+    "weed": "جڑی بوٹی"
   },
   "en": {
     "all": "All Crops (Auto-Detect)",
@@ -1134,55 +1379,94 @@ export const CROPS_MAP = {
     "tamarind": "Tamarind Tree",
     "turmeric": "Turmeric",
     "ginger": "Ginger",
+    "black_gram": "Black Gram (Urad)",
+    "green_gram": "Green Gram (Moong)",
+    "red_gram": "Red Gram (Pigeon Pea)",
+    "mustard": "Mustard",
+    "tobacco": "Tobacco",
+    "coffee": "Coffee",
+    "tea": "Tea",
     "parthenium": "Parthenium Weed",
     "weed": "Agricultural Weed"
   }
 };
 
-
-// Authentic Local Vernacular Disease Names Understood by Farmers
+// Authentic Plantix-Grade Vernacular Crop Diseases Localization
 export const COMMON_DISEASES = {
-  "anthracnose": {
-    "te": "కొమ్మ ఎండు తెగులు / కాయ కుళ్లు తెగులు",
-    "hi": "डाईबैक / फल सड़न रोग (एंथ्रेक्नोज़)",
-    "ta": "கொடி கருகல் / பழ அழுகல் நோய்",
-    "kn": "ಕೊಳೆ ರೋಗ / ತುದಿ ಒಣಗು ರೋಗ",
-    "ml": "കായ ചീയൽ / കൊമ്പ് ഉണങ്ങൽ",
-    "mr": "फळ कुज / शेंडा वाळणे (डाइबॅक)",
-    "gu": "ફળનો સડો / ડાળી સુકારો",
-    "pa": "ਫ਼ਲ ਦਾ ਗਲਣਾ / ਡਾਈਬੈਕ ਰੋਗ",
-    "or": "ଫଳ ସଢ଼ା ରୋଗ / ଡାଇବ୍ୟାକ୍",
-    "as": "ফল পচা / ডাইবেক ৰোগ",
-    "ur": "پھل کا گلنا / ڈائی بیک",
-    "en": "Anthracnose / Dieback (Fruit Rot)"
+  "sheath_blight": {
+    "te": "వరి పొడ తెగులు (షీత్ బ్లైట్)",
+    "hi": "शीथ ब्लाइट (पर्णच्छद अंगमारी रोग)",
+    "ta": "உறை கருகல் நோய் (ஷீத் பிளைட்)",
+    "kn": "ಕೋಶ ಕರಗು ರೋಗ (ಶೀತ್ ಬ್ಲೈಟ್)",
+    "ml": "പോള കരിച്ചിൽ രോഗം",
+    "mr": "शीथ ब्लाइट / खोड करपा",
+    "gu": "પર્ણ આવરણ સુકારો (શીથ બ્લાઇટ)",
+    "pa": "ਸ਼ੀਥ ਬਲਾਇਟ ਰੋਗ",
+    "bn": "খোল পোড়া রোগ (শীথ ব্লাইট)",
+    "or": "ଖୋଳପୋଡ଼ା ରୋଗ (ଶୀଥ୍ ବ୍ଲାଇଟ୍)",
+    "as": "পতুৱা পোৰা ৰোগ",
+    "ur": "شیتھ بلائٹ",
+    "en": "Sheath Blight (Rhizoctonia solani)"
   },
-  "leaf_curl": {
-    "te": "ఆకు ముడత తెగులు / బొబ్బర తెగులు",
-    "hi": "पत्ती मरोड़ रोग (लीफ कर्ल)",
-    "ta": "இலை சுருட்டு வைரஸ் நோய்",
-    "kn": "ಎಲೆ ಮುದುರು ರೋಗ / ಬೊಬ್ಬೆ ರೋಗ",
-    "ml": "ഇല ചുരുളൽ രോഗം",
-    "mr": "चुरडा-मुरडा / पान आकसणे",
-    "gu": "પર્ણ સંકોચન / પાન વળવાનો રોગ",
-    "pa": "ਪੱਤਾ ਮਰੋੜ ਰੋਗ (ਲੀਫ਼ ਕਰਲ)",
-    "or": "ପତ୍ର କୁଞ୍ଚନ ଭାଇରସ ରୋଗ",
-    "as": "পাত কোঁচোৱা ভাইৰাছ ৰোগ",
-    "ur": "پتا مروڑ وائرس",
-    "en": "Leaf Curl Virus"
+  "blast": {
+    "te": "వరి అగ్గి తెగులు / మెడవిరుపు తెగులు (బ్లాస్ట్)",
+    "hi": "झोंका रोग / ब्लास्ट रोग",
+    "ta": "குலை நோய் / பிளாஸ்ட்",
+    "kn": "ಬೆಂಕಿ ರೋಗ / ಬ್ಲಾಸ್ಟ್",
+    "ml": "കരിച്ചിൽ രോഗം / ബ്ലാസ്റ്റ്",
+    "mr": "करपा रोग (ब्लास्ट)",
+    "gu": "ઝોળારોગ / બ્લાસ્ટ",
+    "pa": "ਝੋਨੇ ਦਾ ਬਲਾਸਟ ਰੋਗ",
+    "bn": "ধানের ব্লাস্ট রোগ (পাইরিকুলারিয়া)",
+    "or": "ପତ୍ରପୋଡ଼ା / ବ୍ଲାଷ୍ଟ ରୋଗ",
+    "as": "শস্যৰ ব্লাষ্ট ৰোগ",
+    "ur": "دھان کا بلاسٹ جھلسائو",
+    "en": "Rice Blast (Pyricularia oryzae)"
   },
-  "leaf_spot": {
-    "te": "ఆకుమచ్చ తెగులు / తిక్క తెగులు",
-    "hi": "पत्ती धब्बा रोग / टिक्का रोग",
-    "ta": "இலைப்புள்ளி நோய் / திక్కா நோய்",
-    "kn": "ಎಲೆ ಚುಕ್ಕೆ ರೋಗ / ತಿಕ್ಕಾ ರೋಗ",
-    "ml": "ഇലപ്പുള്ളി രോഗം / ടിക്ക രോഗം",
-    "mr": "पानावरील ठिपके / टिक्का रोग",
-    "gu": "પર્ણના ટપકાંનો રોગ / ટીક્કા રોગ",
-    "pa": "ਪੱਤੇ ਦੇ ਧੱਬੇ / ਟਿੱਕਾ ਰੋਗ",
-    "or": "ପତ୍ର ଦାଗ ରୋଗ / ଟିକା ରୋଗ",
-    "as": "পাতৰ দাগ ৰোগ / টিকা ৰোগ",
-    "ur": "پتوں کے دھبے / ٹکا بیماری",
-    "en": "Leaf Spot (Tikka / Cercospora)"
+  "brown_spot": {
+    "te": "గోధుమ రంగు మచ్చ తెగులు (బ్రౌన్ స్పాట్)",
+    "hi": "भूरा धब्बा रोग (ब्राउन स्पॉट)",
+    "ta": "பழுப்பு இலைப்புள்ளி நோய்",
+    "kn": "ಕಂದು ಚುಕ್ಕೆ ರೋಗ",
+    "ml": "തവിട്ടു പുള്ളി രോഗം",
+    "mr": "तपकिरी ठिपके रोग",
+    "gu": "બદામી ટપકાંનો રોગ",
+    "pa": "ਭੂਰੇ ਧੱਬਿਆਂ ਦਾ ਰੋਗ",
+    "bn": "বাদামি দাগ রোগ (ব্রাউন স্পট)",
+    "or": "ବାଦାମୀ ଦାଗ ରୋଗ",
+    "as": "মুগা দাগ ৰোগ",
+    "ur": "بھورے دھبے",
+    "en": "Brown Spot (Bipolaris oryzae)"
+  },
+  "bacterial_blight": {
+    "te": "బాక్టీరియా ఎండాకు తెగులు (బీఎల్‌బీ)",
+    "hi": "जीवाणु झुलसा रोग (बैक्टीरियल ब्लाइट)",
+    "ta": "பாக்டீரியா இலை கருகல் நோய்",
+    "kn": "ದುಂಡಾಣು ಎಲೆ ಕರಗು ರೋಗ (ಬಿಎಲ್‌ಬಿ)",
+    "ml": "ബാക്ടീരിയൽ ഇല കരിച്ചിൽ",
+    "mr": "जिवाणूजन्य करपा रोग",
+    "gu": "જીવાણુ સુકારો (બેક્ટેરિયલ બ્લાઇટ)",
+    "pa": "ਜੀਵਾਣੂ ਝੁਲਸਾ ਰੋਗ",
+    "bn": "ব্যাকটেরিয়াজনিত পাতা পোড়া রোগ",
+    "or": "ଜୀବାଣୁ ଜନିତ ପତ୍ରପୋଡ଼ା ରୋଗ",
+    "as": "জীৱাণুজনিত পাতপোৰা ৰোগ",
+    "ur": "بیکٹیریل بلائٹ",
+    "en": "Bacterial Leaf Blight (Xanthomonas)"
+  },
+  "bacterial_spot": {
+    "te": "బాక్టీరియా మచ్చ తెగులు",
+    "hi": "जीवाणु धब्बा रोग (बैक्टीरियल स्पॉट)",
+    "ta": "பாக்டீரியா இலைப்புள்ளி நோய்",
+    "kn": "ದುಂಡಾಣು ಚುಕ್ಕೆ ರೋಗ",
+    "ml": "ബാക്ടീരിയൽ പുള്ളി രോഗം",
+    "mr": "जिवाणूजन्य ठिपके",
+    "gu": "જીવાણુ ટપકાંનો રોગ",
+    "pa": "ਜੀਵਾਣੂ ਧੱਬਾ ਰੋਗ",
+    "bn": "ব্যাকটেরিয়া ঘটিত দাগ রোগ",
+    "or": "ଜୀବାଣୁ ଦାଗ ରୋଗ",
+    "as": "জীৱাণুজনিত দাগ ৰোগ",
+    "ur": "بیکٹیریل دھبے",
+    "en": "Bacterial Spot"
   },
   "early_blight": {
     "te": "ముందస్తు మాడ తెగులు (ఎర్లీ బ్లైట్)",
@@ -1193,10 +1477,11 @@ export const COMMON_DISEASES = {
     "mr": "लवकर येणारा करपा रोग",
     "gu": "અગેતી સુકારો (અર્લી બ્લાઇટ)",
     "pa": "ਅਗੇਤਾ ਝੁਲਸਾ ਰੋਗ",
+    "bn": "আগাম ধ্বসা রোগ (আর্লি ব্লাইট)",
     "or": "ଅଗ୍ରଣୀ ପତ୍ରପୋଡ଼ା ରୋଗ",
     "as": "আগতীয়া পাতপোৰা ৰোগ",
     "ur": "پہلا جھلسائو (ارلی بلائٹ)",
-    "en": "Early Blight"
+    "en": "Early Blight (Alternaria solani)"
   },
   "late_blight": {
     "te": "ఆలస్యపు మాడ తెగులు (లేట్ బ్లైట్)",
@@ -1207,62 +1492,112 @@ export const COMMON_DISEASES = {
     "mr": "उशिरा येणारा करपा रोग",
     "gu": "પાછોતરો સુકારો (લેટ બ્લાઇટ)",
     "pa": "ਪਛੇਤਾ ਝੁਲਸਾ ਰੋਗ",
+    "bn": "নাবি ধ্বসা রোগ (লেট ব্লাইট)",
     "or": "ନାଳନ୍ଦା ପତ୍ରପୋଡ଼ା ରୋଗ",
     "as": "পলমকৈ হোৱা পাতপোৰা ৰোগ",
     "ur": "پچھیتا جھلسائو (لیٹ بلائٹ)",
-    "en": "Late Blight"
+    "en": "Late Blight (Phytophthora infestans)"
   },
-  "blast": {
-    "te": "అగ్గి తెగులు / మెడవిరుపు తెగులు",
-    "hi": "झोंका रोग / ब्लास्ट रोग",
-    "ta": "குலை நோய் / பிளாஸ்ட்",
-    "kn": "ಬೆಂಕಿ ರೋಗ / ಬ್ಲಾಸ್ಟ್",
-    "ml": "കരിച്ചിൽ രോഗം / ബ്ലാസ്റ്റ്",
-    "mr": "करपा रोग (ब्लास्ट)",
-    "gu": "ઝોળારોગ / બ્લાસ્ટ",
-    "pa": "ਝੋਨੇ ਦਾ ਬਲਾਸਟ ਰੋਗ",
-    "or": "ପତ୍ରପୋଡ଼ା / ବ୍ଲାଷ୍ଟ ରୋଗ",
-    "as": "শস্যৰ ব্লাষ্ট ৰোগ",
-    "ur": "دھان کا بلاسٹ جھلسائو",
-    "en": "Rice Blast (Pyricularia)"
+  "target_spot": {
+    "te": "లక్ష్యపు చుక్క తెగులు (టార్గెట్ స్పాట్)",
+    "hi": "छल्लेदार धब्बा रोग (टारगेट स्पॉट)",
+    "ta": "வளைய புள்ளி நோய் (டார்கெட் ஸ்பாட்)",
+    "kn": "ಗುರಿ ಚುಕ್ಕೆ ರೋಗ (ಟಾರ್ಗೆಟ್ ಸ್ಪಾಟ್)",
+    "ml": "വട്ടപ്പുള്ളി രോഗം",
+    "mr": "चकती ठिपके रोग (टार्गेट स्पॉट)",
+    "gu": "ટાર્ગેટ સ્પોટ (ગોળાકાર ટપકાં)",
+    "pa": "ਟਾਰਗੇਟ ਸਪਾਟ ਰੋਗ",
+    "bn": "টার্গেট স্পট (বৃত্তাকার দাগ)",
+    "or": "ଚକ୍ରାକାର ଦାଗ ରୋଗ",
+    "as": "টাৰ্গেট স্পট",
+    "ur": "ہدف نما دھبے",
+    "en": "Target Spot (Corynespora cassiicola)"
   },
-  "bacterial_blight": {
-    "te": "బాక్టీరియా ఎండాకు తెగులు",
-    "hi": "जीवाणु झुलसा रोग (बैक्टीरियल ब्लाइट)",
-    "ta": "பாக்டீரியா இலை கருகல் நோய்",
-    "kn": "ದುಂಡಾಣು ಎಲೆ ಕರಗು ರೋಗ",
-    "ml": "ബാക്ടീരിയൽ ഇല കരിച്ചിൽ",
-    "mr": "जिवाणूजन्य करपा",
-    "gu": "જીવાણુ સુકારો (બેક્ટેરિયલ બ્લાઇટ)",
-    "pa": "ਜੀਵਾਣੂ ਝੁਲਸਾ ਰੋਗ",
-    "or": "ଜୀବାଣୁ ଜନିତ ପତ୍ରପୋଡ଼ା",
-    "as": "জীৱাণুজনিত পাতপোৰা ৰোগ",
-    "ur": "بیکٹیریل بلائٹ",
-    "en": "Bacterial Leaf Blight"
+  "tikka_disease": {
+    "te": "వేరుశనగ తిక్క ఆకుమచ్చ తెగులు",
+    "hi": "मूंगफली टिक्का रोग (पत्ती धब्बा)",
+    "ta": "வேர்க்கடலை திక్కா இலைப்புள்ளி நோய்",
+    "kn": "ಶೇಂಗಾ ತಿಕ್ಕಾ ರೋಗ (ಚುಕ್ಕೆ ರೋಗ)",
+    "ml": "നിലക്കടല ടിക്ക രോഗം",
+    "mr": "भुईमूग टिक्का रोग",
+    "gu": "મગફળીનો ટીક્કા રોગ",
+    "pa": "ਮੂੰਗਫਲੀ ਟਿੱਕਾ ਰੋਗ",
+    "bn": "চিনাবাদামের টিক্কা রোগ (পাতার দাগ)",
+    "or": "ଚିନାବାଦାମ ଟିକା ରୋଗ",
+    "as": "বাদামৰ টিকা ৰোগ",
+    "ur": "مونگ پھلی کا ٹکا بیماری",
+    "en": "Tikka Disease (Cercospora Leaf Spot)"
   },
-  "bacterial_spot": {
-    "te": "బాక్టీరియా మచ్చ తెగులు",
-    "hi": "जीवाणु धब्बा रोग",
-    "ta": "பாக்டீரியா இலைப்புள்ளி நோய்",
-    "kn": "ದುಂಡಾಣು ಚುಕ್ಕೆ ರೋಗ",
-    "ml": "ബാക്ടീരിയൽ പുള്ളി രോഗം",
-    "mr": "जिवाणूजन्य ठिपके",
-    "gu": "જીવાણુ ટપકાંનો રોગ",
-    "pa": "ਜੀਵਾਣੂ ਧੱਬਾ ਰੋਗ",
-    "or": "ଜୀବାଣୁ ଦାଗ ରୋଗ",
-    "as": "জীৱাণুজনিত দাগ ৰোগ",
-    "ur": "بیکٹیریل دھبے",
-    "en": "Bacterial Spot"
+  "yellow_vein_mosaic": {
+    "te": "పసుపు పచ్చ ఈనెల మొజాయిక్ తెగులు",
+    "hi": "पीला शिरा मोज़ेक रोग (पीली नस रोग)",
+    "ta": "மஞ்சள் நரம்பு மொசைக் வைரஸ் நோய்",
+    "kn": "ಹಳದಿ ನರ ಮೊಸಾಯಿಕ್ ರೋಗ",
+    "ml": "മഞ്ഞ സിര മൊസൈക്ക് രോഗം",
+    "mr": "पिवळा शिरा मोझॅक रोग",
+    "gu": "પીળી નસનો મોઝેક રોગ",
+    "pa": "ਪੀਲੀ ਨਾੜੀ ਮੋਜ਼ੇਕ ਰੋਗ",
+    "bn": "হলুদ শিরা মোজাইক ভাইরাস রোগ",
+    "or": "ହଳଦିଆ ଶିରା ମୋଜାଇକ ରୋଗ",
+    "as": "হালধীয়া সিৰা মোজাইক ৰোগ",
+    "ur": "پیلی رگ موزیک وائرس",
+    "en": "Yellow Vein Mosaic Virus (YVMV)"
+  },
+  "canker": {
+    "te": "నిమ్మ గజ్జి తెగులు (సిట్రస్ కాంకర్)",
+    "hi": "नींबू का कैंकर रोग (सिट्रस कैंकर)",
+    "ta": "எலுமிச்சை திட்டு நோய் (சிட்ரஸ் கேங்கர்)",
+    "kn": "ನಿಂಬೆ ಗಜ್ಜು ರೋಗ (ಕ್ಯಾಂಕರ್)",
+    "ml": "നാരങ്ങ ചൊറി രോഗം (കാങ്കർ)",
+    "mr": "लिंबू खवल्या रोग (सिट्रस कॅन्कर)",
+    "gu": "લીંબુનો ખસ રોગ (કેન્કર)",
+    "pa": "ਨਿੰਬੂ ਕੈਂਕਰ ਰੋਗ",
+    "bn": "লেবুর ক্যাঙ্কার রোগ",
+    "or": "ଲେମ୍ବୁ ଯାଦୁ ରୋଗ (କ୍ୟାଙ୍କର)",
+    "as": "নেমুৰ কেংকাৰ ৰোগ",
+    "ur": "لیمو کا کینکر रोग",
+    "en": "Citrus Canker (Xanthomonas)"
+  },
+  "false_smut": {
+    "te": "వరి తప్పుడు కాటుక తెగులు (ఫాల్స్ స్మట్)",
+    "hi": "झूठा कंडुआ रोग (फाल्स स्मट / हरदा)",
+    "ta": "பொய் கரிப்பூட்டை நோய்",
+    "kn": "ಸುಳ್ಳು ಕಾಡಿಗೆ ರೋಗ",
+    "ml": "പോളി സ്മട്ട് രോഗം",
+    "mr": "भातावरील आभासी काणी",
+    "gu": "ડાંગરનો કાળીયો / ખોટો કંડુઆ",
+    "pa": "ਝੋਨੇ ਦਾ ਝੂਠਾ ਸਮੱਟ",
+    "bn": "ধানের নকল শিষ পোড়া (ফলস স্মাট)",
+    "or": "ନକଲି କାଣ୍ଡିଆ ରୋଗ",
+    "as": "ধানৰ মিছা স্মাট",
+    "ur": "جھوٹا کنڈوا",
+    "en": "False Smut (Ustilaginoidea virens)"
+  },
+  "leaf_curl": {
+    "te": "ఆకు ముడత తెగులు / బొబ్బర తెగులు",
+    "hi": "पत्ती मरोड़ रोग (लीफ कर्ल)",
+    "ta": "இலை சுருட்டு வைரஸ் நோய்",
+    "kn": "ಎಲೆ ಮುದುರು ರೋಗ / ಬೊಬ್ಬೆ ರೋಗ",
+    "ml": "ഇല ചുരുളൽ രോഗം",
+    "mr": "चुरडा-मुरडा / पान आकसणे",
+    "gu": "પર્ણ સંકોચન / પાન વળવાનો રોગ",
+    "pa": "ਪੱਤਾ ਮਰੋੜ ਰੋਗ (ਲੀਫ਼ ਕਰਲ)",
+    "bn": "পাতা কোঁকড়ানো ভাইরাস রোগ",
+    "or": "ପତ୍ର କୁଞ୍ଚନ ଭାଇରସ ରୋଗ",
+    "as": "পাত কোঁচোৱা ভাইৰাছ ৰোগ",
+    "ur": "پتا مروڑ وائرس",
+    "en": "Leaf Curl Virus"
   },
   "powdery_mildew": {
-    "te": "బూడిద తెగులు",
+    "te": "బూడిద తెగులు (పౌడరీ మిల్డ్యూ)",
     "hi": "चूर्णिल आसिता (सफेद फफूंद / पाउडरी मिल्ड्यू)",
     "ta": "சாம்பல் நோய்",
     "kn": "ಬೂದಿ ರೋಗ",
     "ml": "ചാരപ്പൂപ്പ് രോഗം",
-    "mr": "भुरी रोग",
+    "mr": "भुरी रोग (पावडरी मिल्ड्यू)",
     "gu": "ભૂકી છારો (પાવડરી મિલ્ડ્યુ)",
     "pa": "ਚਿੱਟਾ ਉੱਲੀ ਰੋਗ (ਪਾਊਡਰੀ ਮਿਲਡਿਊ)",
+    "bn": "পাউডারি মিলডিউ (সাদা গুঁড়ো রোগ)",
     "or": "ଧଳା ପାଉଡର ରୋଗ",
     "as": "পাউদাৰী মিলডিউ ৰোগ",
     "ur": "پاؤڈری پھپھوند",
@@ -1274,9 +1609,10 @@ export const COMMON_DISEASES = {
     "ta": "அடிச்சாம்பல் நோய்",
     "kn": "ಹೂವಿನ ಬೂದಿ ರೋಗ",
     "ml": "ഡൗണി പൂപ്പ് രോഗം",
-    "mr": "केवडा रोग",
+    "mr": "केवडा रोग (डाऊनी मिल्ड्यू)",
     "gu": "તળછારો (ડાઉની મિલ્ડ્યુ)",
     "pa": "ਡਾਊਨੀ ਮਿਲਡਿਊ",
+    "bn": "ডাউনি মিলডিউ রোগ",
     "or": "ପତ୍ର ତଳ ପାଉଡର ରୋଗ",
     "as": "ডাউনি মিলডিউ",
     "ur": "ڈاؤنی پھپھوند",
@@ -1291,6 +1627,7 @@ export const COMMON_DISEASES = {
     "mr": "तांबेरा रोग",
     "gu": "ગેરુ રોગ (રસ્ટ)",
     "pa": "ਰਤੂਆ ਰੋਗ / ਕੁੰਗੀ",
+    "bn": "মরিচা রোগ (রাস্ট)",
     "or": "କଳଙ୍କି ରୋଗ",
     "as": "মৰিচা ৰোগ",
     "ur": "زنگ آلودگی (رسٹ)",
@@ -1305,10 +1642,26 @@ export const COMMON_DISEASES = {
     "mr": "मर रोग (सुका)",
     "gu": "સુકારો / સુકાવાનો રોગ",
     "pa": "ਸੁੱਕਾ ਰੋਗ (ਵਿਲਟ)",
+    "bn": "ঢলে পড়া রোগ (উইল্ট)",
     "or": "ଝାଉଁଳା ରୋଗ",
     "as": "লেৰেলি যোৱা ৰোগ",
     "ur": "مرجھانے کی بیماری (ولٹ)",
     "en": "Wilt Disease (Fusarium)"
+  },
+  "anthracnose": {
+    "te": "కొమ్మ ఎండు తెగులు / కాయ కుళ్లు తెగులు",
+    "hi": "डाईबैक / फल सड़न रोग (एंथ्रेक्नोज़)",
+    "ta": "கொடி கருகல் / பழ அழுகல் நோய்",
+    "kn": "ಕೊಳೆ ರೋಗ / ತುದಿ ಒಣಗು ರೋಗ",
+    "ml": "കായ ചീയൽ / കൊമ്പ് ഉണങ്ങൽ",
+    "mr": "फळ कुज / शेंडा वाळणे (डाइबॅक)",
+    "gu": "ફળનો સડો / ડાળી સુકારો",
+    "pa": "ਫ਼ਲ ਦਾ ਗਲਣਾ / ਡਾਈਬੈਕ ਰੋਗ",
+    "bn": "ক্ষত ও ডাল শুকানো রোগ (অ্যানথ্রাকনোজ)",
+    "or": "ଫଳ ସଢ଼ା ରୋଗ / ଡାଇବ୍ୟାକ୍",
+    "as": "ফল পচা / ডাইবেক ৰোগ",
+    "ur": "پھل کا گلنا / ڈائی بیک",
+    "en": "Anthracnose / Dieback (Fruit Rot)"
   },
   "damping_off": {
     "te": "నారుకుళ్లు తెగులు",
@@ -1319,6 +1672,7 @@ export const COMMON_DISEASES = {
     "mr": "रोप कुजणे",
     "gu": "ધરૂનો કોહવારો",
     "pa": "ਪੌਦਾ ਗਲਣ ਰੋਗ",
+    "bn": "চারা ধসা / গুটি পচা রোগ",
     "or": "ତଳି ସଢ଼ା ରୋଗ",
     "as": "পুলি পচা ৰোগ",
     "ur": "پود گلنا (ڈیمپنگ آف)",
@@ -1326,17 +1680,48 @@ export const COMMON_DISEASES = {
   },
   "whitefly": {
     "te": "తెల్ల దోమ (రసం పీల్చే పురుగు)",
-    "hi": "सफेद मक्खी",
+    "hi": "सफेद मक्खी कीट",
     "ta": "வெள்ளை ஈ",
     "kn": "ಬಿಳಿ ನೊಣ",
     "ml": "വെള്ളീച്ച",
     "mr": "पांढरी माशी",
     "gu": "સફેદ માખી",
     "pa": "ਚਿੱਟੀ ਮੱਖੀ",
+    "bn": "সাদা মাছি পোকা",
     "or": "ଧଳା ମାଛି ପୋକ",
     "as": "বগা মাখি",
     "ur": "سفید مکھی",
     "en": "Whitefly Infestation"
+  },
+  "thrips": {
+    "te": "తామర పురుగులు (త్రిప్స్)",
+    "hi": "थ्रिप्स कीट / रस चूसक कीड़ा",
+    "ta": "இலைப்பேன் பூச்சி (த்ரிப்ஸ்)",
+    "kn": "ನುಸಿ / ಥ್ರಿಪ್ಸ್ ಹುಳು",
+    "ml": "ഇലപ്പേൻ (ത്രിപ്സ്)",
+    "mr": "फुलकिडे (थ्रिप्स)",
+    "gu": "થ્રીપ્સ કીટકો",
+    "pa": "ਥ੍ਰਿਪਸ ਕੀੜੇ",
+    "bn": "থ্রিপস পোকা",
+    "or": "ସୂକ୍ଷ୍ମ କୀଟ (ଥ୍ରିପ୍ସ)",
+    "as": "থ্ৰিপছ পোক",
+    "ur": "تھرپس کا حملہ",
+    "en": "Thrips Infestation"
+  },
+  "fall_armyworm": {
+    "te": "కత్తెర పురుగు (ఫాల్ ఆర్మీవార్మ్)",
+    "hi": "फॉल आर्मीवर्म (सैनिक कीट)",
+    "ta": "படைப்புழு தாக்குதல் (பால் ஆர்மிவார்ம்)",
+    "kn": "ಲದ್ದಿ ಹುಳು / ಸೈನಿಕ ಹುಳು",
+    "ml": "പട്ടാളപ്പുഴു",
+    "mr": "लष्करी अळी (फॉल आर्मीवॉर्म)",
+    "gu": "લશ્કરી ઈયળ (ફોલ આર્મીવોર્મ)",
+    "pa": "ਫਾਲ ਆਰਮੀਵਰਮ ਸੁੰਡੀ",
+    "bn": "ফল আর্মিওয়ার্ম পোকা",
+    "or": "ପତ୍ର ଛେଦକ କୀଟ",
+    "as": "ফল আৰ্মীৱাৰ্ম",
+    "ur": "فال آرمی ورم",
+    "en": "Fall Armyworm (Spodoptera)"
   },
   "mites": {
     "te": "ఎర్ర నల్లి / బూడిద పురుగులు",
@@ -1347,6 +1732,7 @@ export const COMMON_DISEASES = {
     "mr": "लाल कोळी कीड",
     "gu": "લાલ કથીરી (માઇટ્સ)",
     "pa": "ਲਾਲ ਮੱਕੜੀ ਕੀੜਾ",
+    "bn": "লাল মাকড় পোকা (মাইট)",
     "or": "ନାଲି ବୁଢ଼ିଆଣୀ ପୋକ",
     "as": "ৰঙা মকৰা পোক",
     "ur": "لال مکڑی",
@@ -1361,6 +1747,7 @@ export const COMMON_DISEASES = {
     "mr": "मावा कीड",
     "gu": "મોલો મશી (એફિડ્સ)",
     "pa": "ਤੇਲਾ / ਚੇਪਾ ਕੀੜਾ",
+    "bn": "জাব পোকা (এফিড)",
     "or": "ଜାଉ ପୋକ",
     "as": "মোৱা পোক",
     "ur": "سیاہ کیڑا (ایفڈ)",
@@ -1375,6 +1762,7 @@ export const COMMON_DISEASES = {
     "mr": "खोडातील कीड / बोंड अळी",
     "gu": "ગાભમારાની ઈયળ / કાણા પાડનાર ઈયળ",
     "pa": "ਤਣਾ ਛੇਦਕ ਸੁੰਡੀ",
+    "bn": "মাজরা পোকা / ফল ছিদ্রকারী পোকা",
     "or": "କାଣ୍ଡ ବିନ୍ଧା / ଫଳ ବିନ୍ଧା ପୋକ",
     "as": "কাণ্ড বিন্ধা পোক",
     "ur": "تنے کا سوراخ کرنے والا کیڑا",
@@ -1389,6 +1777,7 @@ export const COMMON_DISEASES = {
     "mr": "काणी रोग",
     "gu": "કાંગસીયો રોગ (સ્મટ)",
     "pa": "ਕੰਗਿਆਰੀ ਰੋਗ (ਸਮੱਟ)",
+    "bn": "স্মাট রোগ / শিষ ঝরা",
     "or": "କାଣ୍ଡିଆ ରୋଗ",
     "as": "স্মাট ৰোগ",
     "ur": "سیاہ پھپھوند (سمٹ)",
@@ -1403,6 +1792,7 @@ export const COMMON_DISEASES = {
     "mr": "तांबडी कुज",
     "gu": "લાલ સડો",
     "pa": "ਲਾਲ ਸੜਨ ਰੋਗ",
+    "bn": "আখের লাল পচা রোগ (রেড রট)",
     "or": "ନାଲି ସଢ଼ା ରୋଗ",
     "as": "ৰঙা পচা ৰোগ",
     "ur": "سرخ سڑاند",
@@ -1417,24 +1807,11 @@ export const COMMON_DISEASES = {
     "mr": "पानावरील बुरशी",
     "gu": "પર્ણ ફૂગ રોગ",
     "pa": "ਪੱਤਾ ਉੱਲੀ ਰੋਗ",
+    "bn": "পাতার ছত্রাক ছাঁচ রোগ",
     "or": "ପତ୍ର ଧୂଳିଆ ରୋଗ",
     "as": "পাতৰ ভেঁকুৰ ৰোগ",
     "ur": "پتوں کی پھپھوند",
     "en": "Leaf Mold"
-  },
-  "target_spot": {
-    "te": "లక్ష్యపు చుక్క తెగులు (టార్గెట్ స్పాట్)",
-    "hi": "छल्लेदार धब्बा रोग (टारगेट स्पॉट)",
-    "ta": "வளைய புள்ளி நோய்",
-    "kn": "ಗುರಿ ಚುಕ್ಕೆ ರೋಗ",
-    "ml": "വട്ടപ്പുള്ളി രോഗം",
-    "mr": "चकती ठिपके रोग",
-    "gu": "ટાર્ગેટ સ્પોટ (ગોળાકાર ટપકાં)",
-    "pa": "ਟਾਰਗੇਟ ਸਪਾਟ",
-    "or": "ଚକ୍ରାକାର ଦାଗ ରୋଗ",
-    "as": "টাৰ্গেট স্পট",
-    "ur": "ہدف نما دھبے",
-    "en": "Target Spot"
   },
   "mosaic_virus": {
     "te": "మొజాయిక్ తెగులు / పసుపు పచ్చ రంగు మచ్చలు",
@@ -1445,6 +1822,7 @@ export const COMMON_DISEASES = {
     "mr": "मोझॅक विषाणू रोग",
     "gu": "મોઝેક વાયરસ",
     "pa": "ਮੋਜ਼ੇਕ ਵਾਇਰਸ",
+    "bn": "মোজাইক ভাইরাস রোগ",
     "or": "ମୋଜାଇକ ରୋଗ",
     "as": "মোজাইক ভাইৰাছ",
     "ur": "موزیک وائرس",
@@ -1459,24 +1837,26 @@ export const COMMON_DISEASES = {
     "mr": "खवल्या रोग",
     "gu": "ખસ રોગ (સ્કેબ)",
     "pa": "ਸਕੈਬ ਰੋਗ",
+    "bn": "স্ক্যাব বা খসখসে রোগ",
     "or": "ଯାଦୁ ରୋଗ",
     "as": "স্কেব ৰোগ",
     "ur": "کھرنڈ بیماری (اسکیب)",
     "en": "Scab Disease"
   },
-  "brown_spot": {
-    "te": "గోధుమ రంగు మచ్చ తెగులు",
-    "hi": "भूरा धब्बा रोग",
-    "ta": "பழுப்பு இலைப்புள்ளி நோய்",
-    "kn": "ಕಂದು ಚುಕ್ಕೆ ರೋಗ",
-    "ml": "തവിട്ടു പുള്ളി രോഗം",
-    "mr": "तपकिरी ठिपके",
-    "gu": "બદામી ટપકાંનો રોગ",
-    "pa": "ਭੂਰੇ ਧੱਬੇ",
-    "or": "ବାଦାମୀ ଦାଗ ରୋଗ",
-    "as": "মুগা দাগ ৰোগ",
-    "ur": "بھورے دھبے",
-    "en": "Brown Spot"
+  "tungro": {
+    "te": "వరి తుంగ్రో వైరస్ తెగులు",
+    "hi": "धान का टुंग्रो विषाणु रोग",
+    "ta": "நெல் துங்ரோ வைரஸ் நோய்",
+    "kn": "ಭತ್ತದ ತುಂಗ್ರೋ ರೋಗ",
+    "ml": "തുങ്ഗ്രോ രോഗം",
+    "mr": "तुंग्रो विषाणू रोग",
+    "gu": "ટુંગ્રો રોગ",
+    "pa": "ਟੁੰਗਰੋ ਵਾਇਰਸ ਰੋਗ",
+    "bn": "টুংরো ভাইরাস রোগ",
+    "or": "ଟୁଙ୍ଗ୍ରୋ ରୋଗ",
+    "as": "টুংৰো ৰোগ",
+    "ur": "دھان کا ٹنگرو وائرس",
+    "en": "Rice Tungro Virus"
   },
   "root_rot": {
     "te": "వేరు కుళ్లు / కాండం కుళ్లు తెగులు",
@@ -1487,6 +1867,7 @@ export const COMMON_DISEASES = {
     "mr": "मूळ कुज / खोड कुज",
     "gu": "મૂળનો સડો / થડનો કોહવારો",
     "pa": "ਜੜ੍ਹ ਗਲਣ ਰੋਗ",
+    "bn": "শিকড় পচা / গোড়া পচা রোগ",
     "or": "ଚେର ସଢ଼ା ରୋଗ",
     "as": "শিপা পচা ৰোগ",
     "ur": "جڑ کا گلنا",
@@ -1501,6 +1882,7 @@ export const COMMON_DISEASES = {
     "mr": "काळी कुज",
     "gu": "કાળો સડો",
     "pa": "ਕਾਲਾ ਗਲਣ ਰੋਗ",
+    "bn": "কালো পচা রোগ (ব্ল্যাক রট)",
     "or": "କଳା ସଢ଼ା ରୋଗ",
     "as": "ক'লা পচা ৰোগ",
     "ur": "سیاہ سڑاند",
@@ -1515,10 +1897,26 @@ export const COMMON_DISEASES = {
     "mr": "करपा रोग (ब्लाइट)",
     "gu": "સુકારો રોગ (બ્લાઇટ)",
     "pa": "ਝੁਲਸਾ ਰੋਗ",
+    "bn": "ধ্বসা রোগ (ব্লাইট)",
     "or": "ପତ୍ରପୋଡ଼ା ରୋଗ",
-    "as": "পাতপোৰਾ ৰোগ",
+    "as": "পাতপোৰা ৰোগ",
     "ur": "جھلسائو کی بیماری",
     "en": "Blight Disease"
+  },
+  "leaf_spot": {
+    "te": "ఆకుమచ్చ తెగులు / తిక్క తెగులు",
+    "hi": "पत्ती धब्बा रोग / टिक्का रोग",
+    "ta": "இலைப்புள்ளி நோய் / திక్కா நோய்",
+    "kn": "ಎಲೆ ಚುಕ್ಕೆ ರೋಗ / ತಿಕ್ಕಾ ರೋಗ",
+    "ml": "ഇലപ്പുള്ളി രോഗം / ടിക്ക രോഗം",
+    "mr": "पानावरील ठिपके / टिक्का रोग",
+    "gu": "પર્ણના ટપકાંનો રોગ / ટીક્કા રોગ",
+    "pa": "ਪੱਤੇ ਦੇ ਧੱਬੇ / ਟਿੱਕਾ ਰੋਗ",
+    "bn": "পাতার দাগ রোগ (লিফ স্পট)",
+    "or": "ପତ୍ର ଦାଗ ରୋଗ / ଟିକା ରୋଗ",
+    "as": "পাতৰ দাগ ৰোগ / টিকা ৰোগ",
+    "ur": "پتوں کے دھبے / ٹکا بیماری",
+    "en": "Leaf Spot (Cercospora)"
   },
   "healthy": {
     "te": "ఆరోగ్యకరమైన పంట (ఎలాంటి తెగుళ్లు లేవు)",
@@ -1529,6 +1927,7 @@ export const COMMON_DISEASES = {
     "mr": "निरोगी पीक (कोणताही रोग नाही)",
     "gu": "તંદુરસ્ત પાક (રોગ મુક્ત)",
     "pa": "ਸਿਹਤਮੰਦ ਫ਼ਸਲ (ਕੋਈ ਬਿਮਾਰੀ ਨਹੀਂ)",
+    "bn": "সুস্থ ফসল (কোনো রোগ নেই)",
     "or": "ସୁସ୍ଥ ଫସଲ (ରୋଗମୁକ୍ତ)",
     "as": "স্বাস্থ্যৱান শস্য (ৰোগমুক্ত)",
     "ur": "صحت مند فصل (کوئی بیماری نہیں)",
@@ -1536,44 +1935,166 @@ export const COMMON_DISEASES = {
   }
 };
 
-
-
 // Robust disease condition normalizer with full multilingual support
+// Prioritizes specific compound names BEFORE single-word catchalls
 export function normalizeDiseaseKey(rawName = '') {
   if (!rawName) return 'healthy';
-  const str = String(rawName).toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ').trim();
+  const str = String(rawName).toLowerCase().replace(/___/g, ' ').replace(/_/g, ' ').replace(/-/g, ' ').trim();
   
-  if (str.includes('healthy') || str.includes('ఆరోగ్య') || str.includes('स्वस्थ') || str.includes('ஆரோக்கிய') || str.includes('ಆರೋಗ್ಯ') || str.includes('निरोगी')) return 'healthy';
-  if (str.includes('anthracn') || str.includes('dieback') || str.includes('die back') || str.includes('fruit rot') || str.includes('ఆంత్రాక్నోస్') || str.includes('కాయకుళ్లు') || str.includes('కొమ్మ ఎండు') || str.includes('కొమ్మఎండు') || str.includes('एंथ्रेक्नोज') || str.includes('एन्थ्रेक्नोज़')) return 'anthracnose';
-  if (str.includes('damping off') || str.includes('నారుకుళ్లు') || str.includes('आर्द्र गलन')) return 'damping_off';
-  if (str.includes('curl') || str.includes('ముడత') || str.includes('ఆకు ముడుత') || str.includes('मरोड़') || str.includes('சுருட்டு') || str.includes('சுருள்') || str.includes('ಮುದುರು')) return 'leaf_curl';
-  if (str.includes('tikka') || str.includes('తిక్క') || str.includes('टिक्का') || str.includes('దిక్కా') || str.includes('cercospora') || str.includes('septoria') || str.includes('leaf spot') || str.includes('ఆకు మచ్చ') || str.includes('మచ్చ తెగులు') || str.includes('పत्ती धब्बा') || str.includes('धब्बा') || str.includes('gray leaf spot')) return 'leaf_spot';
-  if (str.includes('early blight') || str.includes('ఆల్టర్నేరియా') || str.includes('ముందస్తు') || str.includes('अगेती')) return 'early_blight';
-  if (str.includes('late blight') || str.includes('లేట్ బ్లైట్') || str.includes('ఆలస్యపు') || str.includes('पछेती')) return 'late_blight';
-  if (str.includes('bacterial') && (str.includes('blight') || str.includes('ఎండాకు'))) return 'bacterial_blight';
-  if (str.includes('bacterial') || str.includes('బ్యాక్టీరియ') || str.includes('జీవాణు') || str.includes('जीवाणु')) return 'bacterial_spot';
-  if (str.includes('blast') || str.includes('అగ్గి తెగులు') || str.includes('అగ్గి') || str.includes('झोंका') || str.includes('குலை') || str.includes('ಬೆಂಕಿ ರೋಗ')) return 'blast';
-  if (str.includes('powdery mildew') || str.includes('బూడిద') || str.includes('चूर्णिल') || str.includes('சாம்பல்') || str.includes('ಬೂದಿ')) return 'powdery_mildew';
-  if (str.includes('downy mildew') || str.includes('పసుపు మచ్చ బూజు') || str.includes('मृदु रोमिल') || str.includes('அடிச்சாம்பல்')) return 'downy_mildew';
-  if (str.includes('mildew')) return 'powdery_mildew';
-  if (str.includes('rust') || str.includes('తుప్పు') || str.includes('गेरुई') || str.includes('रतुआ') || str.includes('துரு') || str.includes('ತುಕ್ಕು')) return 'rust';
-  if (str.includes('wilt') || str.includes('fusarium') || str.includes('ఎండు') || str.includes('उकठा') || str.includes('வாடல்') || str.includes('ಸೊರಗು')) return 'wilt';
-  if (str.includes('whitefly') || str.includes('తెల్ల దోమ') || str.includes('सफेद मक्खी') || str.includes('வெள்ளை ஈ') || str.includes('ಬಿಳಿ ನೊಣ')) return 'whitefly';
-  if (str.includes('mite') || str.includes('spider') || str.includes('నల్లి') || str.includes('मकड़ी') || str.includes('சிலந்தி') || str.includes('ನುಸಿ')) return 'mites';
-  if (str.includes('aphid') || str.includes('పేనుబంక') || str.includes('माहू') || str.includes('அசுவினி') || str.includes('ಹೇನು')) return 'aphids';
-  if (str.includes('borer') || str.includes('bollworm') || str.includes('armyworm') || str.includes('కాయ తొలుచు') || str.includes('కాండం తొలుచు') || str.includes('छेदक') || str.includes('துளைப்பான்') || str.includes('ಕೊರೆಯುವ')) return 'stem_borer';
-  if (str.includes('smut') || str.includes('కాటుక') || str.includes('कंडुआ') || str.includes('கரிப்பூட்டை') || str.includes('ಕಾಡಿಗೆ')) return 'smut';
-  if (str.includes('red rot') || str.includes('ఎర్ర కుళ్లు') || str.includes('लाल सड़न')) return 'red_rot';
-  if (str.includes('leaf mold') || str.includes('ఆకు బూజు') || str.includes('पत्ती फफूंद')) return 'leaf_mold';
-  if (str.includes('target spot') || str.includes('లక్ష్యపు') || str.includes('टारगेट') || str.includes('வளைய')) return 'target_spot';
-  if (str.includes('mosaic') || str.includes('mottle') || str.includes('మొజాయిక్') || str.includes('మొటల్') || str.includes('मोज़ेक') || str.includes('மொசைக்')) return 'mosaic_virus';
-  if (str.includes('scab') || str.includes('గజ్జి') || str.includes('स्कैब') || str.includes('சொறி') || str.includes('ಗಜ್ಜು')) return 'scab';
-  if (str.includes('brown spot') || str.includes('గోధుమ రంగు మచ్చ') || str.includes('గోధుమ మచ్చ') || str.includes('भूरा धब्बा')) return 'brown_spot';
-  if (str.includes('black rot') || str.includes('నల్ల కుళ్లు') || str.includes('काला सड़न')) return 'black_rot';
-  if (str.includes('root rot') || str.includes('collar rot') || str.includes('వేరు కుళ్లు') || str.includes('जड़ सड़न')) return 'root_rot';
-  if (str.includes('blight') || str.includes('మాడ తెగులు') || str.includes('झुलसा') || str.includes('கருகல்') || str.includes('ಕರಗು')) return 'blight';
-  if (str.includes('spot') || str.includes('మచ్చ') || str.includes('धब्बा') || str.includes('புள்ளி')) return 'leaf_spot';
-  
+  if (str.includes('healthy') || str.includes('ఆరోగ్య') || str.includes('स्वस्थ') || str.includes('ஆரோக்கிய') || str.includes('ಆರೋಗ್ಯ') || str.includes('निरोगी') || str.includes('সুস্থ') || str.includes('ସୁସ୍ଥ') || str.includes('তંદુરસ્ત')) {
+    return 'healthy';
+  }
+
+  // Specific compound diseases FIRST:
+  if (str.includes('sheath blight') || str.includes('వరి పొడ') || str.includes('పొడ తెగులు') || str.includes('शीथ ब्लाइट') || str.includes('शीथ') || str.includes('உறை கருகல்') || str.includes('ಕೋಶ ಕರಗು') || str.includes('খোল পোড়া')) {
+    return 'sheath_blight';
+  }
+
+  if (str.includes('yellow vein') || str.includes('yellow mosaic') || str.includes('yvmv') || str.includes('పసుపు పచ్చ ఈనెల') || str.includes('पीला मोज़ेक') || str.includes('मஞ்சள் நரம்பு') || str.includes('ಹಳದಿ ನರ')) {
+    return 'yellow_vein_mosaic';
+  }
+
+  if (str.includes('false smut') || str.includes('తప్పుడు కాటుక') || str.includes('झूठा कंडुआ') || str.includes('பொய் கரிப்பூட்டை') || str.includes('ಸುಳ್ಳು ಕಾಡಿಗೆ')) {
+    return 'false_smut';
+  }
+
+  if (str.includes('canker') || str.includes('కాంకర్') || str.includes('कैंकर') || str.includes('கேங்கர்') || str.includes('ಕ್ಯಾಂಕರ್')) {
+    return 'canker';
+  }
+
+  if (str.includes('target spot') || str.includes('లక్ష్యపు చుక్క') || str.includes('లక్ష్యపు') || str.includes('टारगेट') || str.includes('வளைய புள்ளி') || str.includes('ಗುರಿ ಚುಕ್ಕೆ') || str.includes('चकती ठिपके')) {
+    return 'target_spot';
+  }
+
+  if (str.includes('brown spot') || str.includes('గోధుమ రంగు మచ్చ') || str.includes('గోధుమ మచ్చ') || str.includes('भूरा धब्बा') || str.includes('பழுப்பு இலைப்புள்ளி') || str.includes('ಕಂದು ಚುಕ್ಕೆ') || str.includes('বাদামি দাগ')) {
+    return 'brown_spot';
+  }
+
+  if (str.includes('early blight') || str.includes('alternaria') || str.includes('ఆల్టర్నేరియా') || str.includes('ముందస్తు') || str.includes('अगेती') || str.includes('முன் பருவ') || str.includes('ಮುಂಚಿನ ಕರಗು')) {
+    return 'early_blight';
+  }
+
+  if (str.includes('late blight') || str.includes('phytophthora') || str.includes('లేట్ బ్లైట్') || str.includes('ఆలస్యపు') || str.includes('पछेती') || str.includes('பின் பருவ') || str.includes('ತಡವಾಗಿ ಬರುವ')) {
+    return 'late_blight';
+  }
+
+  if ((str.includes('bacterial') || str.includes('జీవాణు') || str.includes('బాక్టీరియా') || str.includes('जीवाणु') || str.includes('பாக்டீரியா') || str.includes('ದುಂಡಾಣು')) && (str.includes('blight') || str.includes('ఎండాకు') || str.includes('झुलसा') || str.includes('கருகல்') || str.includes('ಕರಗು') || str.includes('করপা'))) {
+    return 'bacterial_blight';
+  }
+
+  if (str.includes('bacterial') || str.includes('జీవాణు') || str.includes('బాక్టీరియా') || str.includes('जीवाणु') || str.includes('பாக்டீரியா') || str.includes('ದುಂಡಾಣು')) {
+    return 'bacterial_spot';
+  }
+
+  if (str.includes('tikka') || str.includes('తిక్క') || str.includes('टिक्का') || str.includes('దిక్కా') || str.includes('திక్కா') || str.includes('ತಿಕ್ಕಾ')) {
+    return 'tikka_disease';
+  }
+
+  if (str.includes('curl') || str.includes('ముడత') || str.includes('ఆకు ముడుత') || str.includes('मरोड़') || str.includes('சுருட்டு') || str.includes('சுருள்') || str.includes('ಮುದುರು') || str.includes('चुरडा')) {
+    return 'leaf_curl';
+  }
+
+  if (str.includes('powdery mildew') || str.includes('పౌడరీ') || str.includes('బూడిద') || str.includes('चूर्णिल') || str.includes('சாம்பல்') || str.includes('ಬೂದಿ') || str.includes('भुरी')) {
+    return 'powdery_mildew';
+  }
+
+  if (str.includes('downy mildew') || str.includes('డౌనీ') || str.includes('పసుపు మచ్చ బూజు') || str.includes('मृदु रोमिल') || str.includes('அடிச்சாம்பல்') || str.includes('ಹೂವಿನ ಬೂದಿ') || str.includes('તળછારો')) {
+    return 'downy_mildew';
+  }
+
+  if (str.includes('blast') || str.includes('pyricularia') || str.includes('అగ్గి తెగులు') || str.includes('అగ్గి') || str.includes('మెడవిరుపు') || str.includes('झोंका') || str.includes('குலை') || str.includes('ಬೆಂಕಿ ರೋಗ') || str.includes('ઝોળારોગ')) {
+    return 'blast';
+  }
+
+  if (str.includes('anthracn') || str.includes('colletotrichum') || str.includes('dieback') || str.includes('die back') || str.includes('fruit rot') || str.includes('ఆంత్రాక్నోస్') || str.includes('కాయకుళ్లు') || str.includes('కొమ్మ ఎండు') || str.includes('కొమ్మఎండు') || str.includes('एंथ्रेक्नोज') || str.includes('एन्थ्रेक्नोज़') || str.includes('கொடி கருகல்')) {
+    return 'anthracnose';
+  }
+
+  if (str.includes('rust') || str.includes('puccinia') || str.includes('తుప్పు') || str.includes('गेरुई') || str.includes('रतुआ') || str.includes('துரு') || str.includes('ತುಕ್ಕು') || str.includes('तांबेरा')) {
+    return 'rust';
+  }
+
+  if (str.includes('thrip') || str.includes('తామర పురుగు') || str.includes('తామర') || str.includes('थ्रिप्स') || str.includes('இலைப்பேன்') || str.includes('फुलकिडे')) {
+    return 'thrips';
+  }
+
+  if (str.includes('fall army') || str.includes('armyworm') || str.includes('spodoptera frugiperda') || str.includes('కత్తెర పురుగు') || str.includes('सैनिक कीट') || str.includes('படைப்புழு') || str.includes('लष्करी अळी')) {
+    return 'fall_armyworm';
+  }
+
+  if (str.includes('whitefly') || str.includes('bemisia') || str.includes('తెల్ల దోమ') || str.includes('सफेद मक्खी') || str.includes('வெள்ளை ஈ') || str.includes('ಬಿಳಿ ನೊಣ')) {
+    return 'whitefly';
+  }
+
+  if (str.includes('mite') || str.includes('spider') || str.includes('tetranychus') || str.includes('నల్లి') || str.includes('ఎర్ర నల్లి') || str.includes('मकड़ी') || str.includes('சிலந்தி') || str.includes('ನುಸಿ')) {
+    return 'mites';
+  }
+
+  if (str.includes('aphid') || str.includes('పేనుబంక') || str.includes('माहू') || str.includes('चेपा') || str.includes('அசுவினி') || str.includes('ಹೇನು') || str.includes('मावा')) {
+    return 'aphids';
+  }
+
+  if (str.includes('borer') || str.includes('bollworm') || str.includes('worm') || str.includes('కాయ తొలుచు') || str.includes('కాండం తొలుచు') || str.includes('छेदक') || str.includes('துளைப்பான்') || str.includes('ಕೊರೆಯುವ')) {
+    return 'stem_borer';
+  }
+
+  if (str.includes('smut') || str.includes('ustilago') || str.includes('కాటుక') || str.includes('కొరడా తెగులు') || str.includes('कंडुआ') || str.includes('கரிப்பூட்டை') || str.includes('ಕಾಡಿಗೆ')) {
+    return 'smut';
+  }
+
+  if (str.includes('red rot') || str.includes('ఎర్ర కుళ్లు') || str.includes('लाल सड़न') || str.includes('செவ்வழுகல்')) {
+    return 'red_rot';
+  }
+
+  if (str.includes('leaf mold') || str.includes('ఆకు బూజు') || str.includes('पत्ती फफूंद') || str.includes('இலை பூஞ்சை')) {
+    return 'leaf_mold';
+  }
+
+  if (str.includes('mosaic') || str.includes('mottle') || str.includes('మొజాయిక్') || str.includes('మొటల్') || str.includes('मोज़ेक') || str.includes('மொசைக்')) {
+    return 'mosaic_virus';
+  }
+
+  if (str.includes('scab') || str.includes('గజ్జి') || str.includes('स्कैब') || str.includes('சொறி') || str.includes('ಗಜ್ಜು')) {
+    return 'scab';
+  }
+
+  if (str.includes('tungro') || str.includes('తుంగ్రో') || str.includes('टुंग्रो') || str.includes('துங்ரோ')) {
+    return 'tungro';
+  }
+
+  if (str.includes('wilt') || str.includes('fusarium') || str.includes('ఎండు తెగులు') || str.includes('పల్లా తెగులు') || str.includes('उकठा') || str.includes('வாடல்') || str.includes('ಸೊರಗು') || str.includes('मर रोग')) {
+    return 'wilt';
+  }
+
+  if (str.includes('damping off') || str.includes('నారుకుళ్లు') || str.includes('आर्द्र गलन') || str.includes('நாற்று அழுகல்')) {
+    return 'damping_off';
+  }
+
+  if (str.includes('black rot') || str.includes('నల్ల కుళ్లు') || str.includes('काला सड़न') || str.includes('கரு அழுகல்')) {
+    return 'black_rot';
+  }
+
+  if (str.includes('root rot') || str.includes('collar rot') || str.includes('వేరు కుళ్లు') || str.includes('కాండం కుళ్లు') || str.includes('जड़ सड़न') || str.includes('വേര് ചീയൽ') || str.includes('வேர் அழுகல்')) {
+    return 'root_rot';
+  }
+
+  // Generic single-word fallbacks ONLY if no compound match
+  if (str.includes('blight') || str.includes('మాడ తెగులు') || str.includes('ఎండాకు') || str.includes('झुलसा') || str.includes('கருகல்') || str.includes('ಕರಗು') || str.includes('করপা')) {
+    return 'blight';
+  }
+
+  if (str.includes('cercospora') || str.includes('septoria') || str.includes('leaf spot') || str.includes('spot') || str.includes('మచ్చ') || str.includes('ఆకు మచ్చ') || str.includes('धब्बा') || str.includes('पत्ती धब्बा') || str.includes('புள்ளி') || str.includes('ಚುಕ್ಕೆ') || str.includes('ठिपके')) {
+    return 'leaf_spot';
+  }
+
+  if (str.includes('mildew') || str.includes('బూజు')) {
+    return 'powdery_mildew';
+  }
+
+  if (str.includes('rot') || str.includes('కుళ్లు') || str.includes('सड़न') || str.includes('അழுகൽ')) {
+    return 'root_rot';
+  }
+
   // Clean alphanumeric key fallback matching COMMON_DISEASES
   const cleanKey = str.replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
   if (COMMON_DISEASES[cleanKey] || DISEASE_KB[cleanKey]) {
@@ -1592,27 +2113,26 @@ export function normalizeDiseaseKey(rawName = '') {
 export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   let cropName = '';
   let diseaseName = '';
-  let lang = 'en';
+  let rawLang = 'en';
 
-  const knownLangs = ['en', 'te', 'hi', 'ta', 'kn', 'mr', 'gu', 'pa', 'ur', 'ml', 'or', 'as'];
+  const knownLangs = ['en', 'te', 'hi', 'ta', 'kn', 'mr', 'gu', 'pa', 'ur', 'ml', 'or', 'as', 'bn'];
 
-  if (arg3 && typeof arg3 === 'string' && arg2 && typeof arg2 === 'string' && !knownLangs.includes(arg2.toLowerCase().trim())) {
-    // Standard 3-arg call: getDiseaseDetails(cropName, diseaseName, lang)
+  if (arg3 && typeof arg3 === 'string' && arg2 && typeof arg2 === 'string' && !knownLangs.includes(arg2.toLowerCase().split(/[-_]/)[0].trim())) {
     cropName = arg1 || '';
     diseaseName = arg2 || '';
-    lang = arg3 || 'en';
-  } else if (arg2 && typeof arg2 === 'string' && knownLangs.includes(arg2.toLowerCase().trim())) {
-    // Flexible 2-arg call: getDiseaseDetails(diseaseName, lang)
+    rawLang = arg3 || 'en';
+  } else if (arg2 && typeof arg2 === 'string' && knownLangs.includes(arg2.toLowerCase().split(/[-_]/)[0].trim())) {
     diseaseName = arg1 || '';
-    lang = arg2 || 'en';
+    rawLang = arg2 || 'en';
   } else {
-    // 1-arg or ambiguous call
     diseaseName = arg2 || arg1 || '';
-    lang = (typeof arg3 === 'string' ? arg3 : 'en') || 'en';
+    rawLang = (typeof arg3 === 'string' ? arg3 : 'en') || 'en';
   }
 
+  const lang = (rawLang ? String(rawLang).split(/[-_]/)[0] : 'en').toLowerCase().trim();
   const key = normalizeDiseaseKey(diseaseName);
-  const isGroundnut = String(cropName).toLowerCase().includes('groundnut') || String(cropName).toLowerCase().includes('peanut') || String(cropName).includes('వేరుశనగ');
+  const isGroundnut = String(cropName).toLowerCase().includes('groundnut') || String(cropName).toLowerCase().includes('peanut') || String(cropName).includes('వేరుశనగ') || String(cropName).includes('मूंगफली');
+
   const keyMap = {
     'early_blight': 'early blight',
     'late_blight': 'late blight',
@@ -1641,6 +2161,9 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
     'scab': 'target spot',
     'leaf_mold': 'powdery mildew',
     'mosaic_virus': 'leaf curl virus',
+    'canker': 'bacterial spot',
+    'yellow_vein_mosaic': 'leaf curl virus',
+    'false_smut': 'early blight',
     'healthy': 'healthy'
   };
   const kbKey = keyMap[key] || (DISEASE_KB[key] ? key : 'early blight');
@@ -1648,6 +2171,7 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   const kbEntry = DISEASE_KB[kbKey] || DISEASE_KB['early blight'];
   const language = (lang === 'te' || lang === 'hi') ? lang : 'en';
   const data = kbEntry[language] || kbEntry.en;
+
   return {
     ...data,
     key,
@@ -1657,11 +2181,46 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
 
 // Cache for bidirectional reverse lookup across any language
 const REVERSE_CROPS_CACHE = {};
-function getCanonicalCropKey(rawName = '') {
+export function getCanonicalCropKey(rawName = '') {
   if (!rawName) return '';
-  const clean = String(rawName).toLowerCase().trim();
+  let clean = String(rawName).toLowerCase().trim()
+    .replace(/___/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/s+/g, ' ');
   
-  // Direct canonical check (if it's already English canonical key like "chilli", "corn", etc.)
+  clean = clean.replace(/\b(crop|plant|leaf|leaves|tree|specimen|field|disease|infected|healthy)\b/gi, '').trim();
+
+  // Fast direct matches for major crops across English and regional scripts
+  if (/rice|paddy|oryza|వరి|ధాన్యం|धान|चावल|நெல்|அரிசி|ಭತ್ತ|ಅಕ್ಕಿ|നെല്ല്|भात|ડાંગર|ਝੋਨਾ|ধান|ଧାନ|ঘাহ/i.test(clean)) return 'rice';
+  if (/cotton|gossypium|పత్తి|దూది|कपास|रुई|பருத்தி|ಹತ್ತಿ|പരുത്തി|कापूस|કપાસ|ਕਪਾਹ|তুলা|କପା|কপাহ/i.test(clean)) return 'cotton';
+  if (/chilli|chili|pepper|capsicum|mirchi|మిరప|మిర్చి|మిరపకాయ|मिर्च|शिमला|மிளகாய்|ಮೆಣಸಿನಕಾಯಿ|മുളക്|मिरची|મરચાં|ਮਿਰਚ|লঙ্কা|ଲଙ୍କା|জলকীয়া/i.test(clean)) return 'chilli';
+  if (/groundnut|peanut|arachis|వేరుశనగ|పల్లీ|శనగకాయ|मूंगफली|வேர்க்கடலை|மணிலா|ಕಡಲೆಕಾಯಿ|ಶೇಂಗಾ|നിലക്കടല|भुईमूग|મગફળી|ਮੂੰਗਫਲੀ|বাদাম|ଚିନାବାଦାମ/i.test(clean)) return 'groundnut';
+  if (/corn|maize|zea|మొక్కజొన్న|మక్కజొన్న|మక్క|मक्का|भुट्टा|மக்காச்சோளம்|ಮೆಕ್ಕೆಜೋಳ|ചോളം|मका|મકાઈ|ਮੱਕੀ|ভুট্টা|ମକା|মাকৈ/i.test(clean)) return 'corn';
+  if (/sugarcane|saccharum|చెరకు|చెరుకు|गन्ना|கரும்பு|ಕಬ್ಬು|കരിമ്പ്|ऊस|શેરડી|ਗੰਨਾ|আখ|ଆଖୁ|কুঁহিয়াৰ/i.test(clean)) return 'sugarcane';
+  if (/tomato|lycopersicon|solanum lycopersicum|టమోటా|టొమాటో|రామ్ములగ|टमाटर|தக்காளி|ಟೊಮೆಟೊ|തക്കാളി|टोमॅटो|ટામેટાં|ਟਮਾਟਰ|টমেটো|ଟମାଟୋ|বিলাহী/i.test(clean)) return 'tomato';
+  if (/potato|solanum tuberosum|బంగాళాదుంప|ఆలూ|ఆలుగడ్డ|आलू|உருளைக்கிழங்கு|ಆಲೂಗಡ್ಡೆ|ഉരുളക്കിഴങ്ങ്|बटाटा|બટાકા|ਆਲੂ|আলু|ଆଳୁ/i.test(clean)) return 'potato';
+  if (/onion|allium cepa|ఉల్లిపాయ|ఎర్రగడ్డ|ఉల్లి|प्याज|வெங்காயம்|ಈರುಳ್ಳಿ|സവാള|कांदा|ડુંગળી|ਪਿਆਜ਼|পেঁয়াজ|ପିଆଜ/i.test(clean)) return 'onion';
+  if (/garlic|allium sativum|వెల్లుల్లి|తెల్లగడ్డ|लहसुन|பூண்டு|ಬೆಳ್ಳುಳ್ಳಿ|വെളുത്തുള്ളി|लसूण|લસણ|રસুন|ରସୁଣ|নহৰু/i.test(clean)) return 'garlic';
+  if (/brinjal|eggplant|aubergine|వంకాయ|వంకాయలు|बैंगन|கத்தரிக்காய்|ಬದನೆಕಾಯಿ|വഴുതനങ്ങ|वांगी|રીંગણ|ਬੈਂਗਣ|বেগুন|ବାଇଗଣ|বেঙেনা/i.test(clean)) return 'brinjal';
+  if (/okra|bhendi|ladyfinger|abelmoschus|బెండకాయ|బెండ|भिंडी|வெண்டைக்காய்|ಬೆಂಡೆಕಾಯಿ|വെണ്ടയ്ക്ക|भेंडी|ભીંડા|ਭਿੰਡੀ|ঢেঁড়শ|ଭେଣ୍ଡି|ভেণ্ডী/i.test(clean)) return 'okra';
+  if (/banana|musa|అరటి|అరటిచెట్టు|కేలా|केला|வாழை|வாழைமரம்|ಬಾಳೆ|ಬಾಳೆಗಿಡ|വാഴ|केळी|કેળાં|ਕੇਲਾ|কলা|କଦଳୀ|কল/i.test(clean)) return 'banana';
+  if (/mango|mangifera|మామిడి|మామిడిచెట్టు|आम|மாம்பழம்|மாமரம்|ಮಾವಿನ ಮರ|മാവ്|आंबा|કેરી|ਅੰਬ|আম|ଆମ୍ବ/i.test(clean)) return 'mango';
+  if (/apple|malus|యాపిల్|ఆపిల్|सेब|ஆப்பிள்|ಸೇಬು|ആപ്പിൾ|सफरचंद|સફરજન|ਸੇਬ|আপেল|ସେଓ/i.test(clean)) return 'apple';
+  if (/grape|vitis|ద్రాక్ష|ద్రాక్షపండ్లు|अंगूर|திராட்சை|ದ್ರಾಕ್ಷಿ|മുന്തിരി|द्राक्षे|દ્રાક્ષ|ਅੰਗੂਰ|আঙুর|ଅଙ୍ଗୁର|আঙুৰ/i.test(clean)) return 'grape';
+  if (/pomegranate|punica|దానిమ్మ|దానిమ్మకాయ|अनार|மாதுளை|ದಾಳಿಂಬೆ|മാതളനാരകം|डाळिंब|દાડમ|ਅਨਾਰ|বেদানা|ଡାଳିମ୍ବ|ডালিম/i.test(clean)) return 'pomegranate';
+  if (/papaya|carica|బొప్పాయి|బొప్పాయిచెట్టు|पपीता|பப்பாளி|ಪಪ್ಪಾಯಿ|പപ്പായ|पपई|પપૈયું|ਪਪੀਤਾ|পেঁপে|ଅମୃତଭଣ୍ଡା|অমিতা/i.test(clean)) return 'papaya';
+  if (/guava|psidium|జామ|జామచెట్టు|జామకాయ|अमरूद|கொய்யா|ಸೀಬೆಕಾಯಿ|ಪೇರಲ|പേരയ്ക്ക|पेरू|જામફળ|ਅਮਰੂਦ|পেয়ারা|ପିଜୁଳି|মধুৰিআম/i.test(clean)) return 'guava';
+  if (/lemon|lime|citrus|acid lime|నిమ్మ|నిమ్మకాయ|బత్తాయి|नींबू|मौसमी|எலுமிச்சை|ನಿಂಬೆಹಣ್ಣು|നാരങ്ങ|लिंबू|લીંબુ|ਨਿੰਬੂ|লেবু|ଲେମ୍ବୁ|নেমু/i.test(clean)) return 'lemon';
+  if (/orange|sweet lime|citrus sinensis|నారింజ|సంత్రా|संतरा|ஆரஞ்சு|ಕಿತ್ತಳೆ|ഓറഞ്ച്|संत्रे|સંતરા|ਸੰਤਰਾ|কমলা|କମଳା/i.test(clean)) return 'orange';
+  if (/coconut|cocos|కొబ్బరి|కొబ్బరిచెట్టు|नारियल|தென்னை|தேங்காய்|ತೆಂಗಿನಕಾಯಿ|ತೆಂಗು|തെങ്ങ്|നാളികേരം|नारळ|નાળિયેર|ਨਾਰੀਅਲ|নারকেল|ନଡ଼ିଆ|নাৰিকল/i.test(clean)) return 'coconut';
+  if (/soybean|glycine max|సోయాబీన్|సోయా|सोयाबीन|சோயாபீன்|ಸೋಯಾಬೀನ್|സോയാബീൻ|सोयाबीन|સોયાબીન|ਸੋਇਆਬੀਨ|সয়াবিন|ସୋୟାବିନ୍|ছয়াবিন/i.test(clean)) return 'soybean';
+  if (/wheat|triticum|గోధుమ|గోధుమలు|गेहूं|கோதுமை|ಗೋಧಿ|ഗോതമ്പ്|गहू|ઘઉં|ਕਣਕ|গম|ଗହମ/i.test(clean)) return 'wheat';
+  if (/turmeric|curcuma|పసుపు|हल्दी|மஞ்சள்|ಅರಿಶಿನ|മഞ്ഞൾ|हळद|હળદર|ਹਲਦੀ|হলুদ|ହଳଦୀ|হালধি/i.test(clean)) return 'turmeric';
+  if (/ginger|zingiber|అల్లం|अदरक|இஞ்சி|ಶುಂಠಿ|ഇഞ്ചി|आले|આદુ|ਅਦਰਕ|আদা|ଅଦା|আদা/i.test(clean)) return 'ginger';
+  if (/neem|azadirachta|వేప|వేపచెట్టు|नीम|வேப்பமரம்|ಬೇವಿನ ಮರ|ആര്യവേപ്പ്|कडुनिंब|લીમડો|ਨਿੰਮ|নিম|ନିମ୍ବ|নিম/i.test(clean)) return 'neem';
+  if (/parthenium|weed|కలుపు|వయ్యారి భామ|కలుపు మొక్క|खरपतवार|गाजर घास|களை|ಕಳೆ|കള|तण|નીંદણ|ਨਦੀਨ|আগাছা|ଘାସ|অপতৃণ/i.test(clean)) return 'weed';
+
+  // Direct check against English map
   if (CROPS_MAP.en && CROPS_MAP.en[clean]) return clean;
   if (clean === 'maize') return 'corn';
   if (clean === 'peanut') return 'groundnut';
@@ -1673,7 +2232,6 @@ function getCanonicalCropKey(rawName = '') {
         if (enKey === 'all') continue;
         const locClean = String(localizedName).toLowerCase().trim();
         REVERSE_CROPS_CACHE[locClean] = enKey;
-        // Split by parentheticals and slashes e.g. "వేరుశనగ (పల్లీ)" -> "వేరుశనగ", "పల్లీ"
         const parts = localizedName.split(/[/()]/).map(s => s.trim().toLowerCase()).filter(Boolean);
         for (const p of parts) {
           if (p.length >= 2) REVERSE_CROPS_CACHE[p] = enKey;
@@ -1686,7 +2244,6 @@ function getCanonicalCropKey(rawName = '') {
     return REVERSE_CROPS_CACHE[clean];
   }
 
-  // Partial / substring match in any language
   for (const [locPhrase, canonicalKey] of Object.entries(REVERSE_CROPS_CACHE)) {
     if (clean.includes(locPhrase) || locPhrase.includes(clean)) {
       return canonicalKey;
@@ -1698,7 +2255,7 @@ function getCanonicalCropKey(rawName = '') {
 
 export function translateCrop(cropName = '', lang = 'en') {
   if (!cropName) return '';
-  const targetLang = (lang || 'en').toLowerCase().trim();
+  const targetLang = (lang ? String(lang).split(/[-_]/)[0] : 'en').toLowerCase().trim();
   const canonical = getCanonicalCropKey(cropName);
 
   // Return localized name in target language
@@ -1712,8 +2269,8 @@ export function translateCrop(cropName = '', lang = 'en') {
   }
 
   // Capitalize canonical if string fallback
-  if (canonical && typeof canonical === 'string' && /^[a-z]+$/.test(canonical)) {
-    return canonical.charAt(0).toUpperCase() + canonical.slice(1);
+  if (canonical && typeof canonical === 'string' && /^[a-z_]+$/.test(canonical)) {
+    return canonical.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   }
 
   return cropName;
@@ -1721,13 +2278,19 @@ export function translateCrop(cropName = '', lang = 'en') {
 
 export function translateDisease(diseaseName = '', lang = 'en', cropName = '') {
   if (!diseaseName) return '';
+  const targetLang = (lang ? String(lang).split(/[-_]/)[0] : 'en').toLowerCase().trim();
   const key = normalizeDiseaseKey(diseaseName);
   
   // Look up in COMMON_DISEASES first
   if (COMMON_DISEASES[key]) {
-    const langEntry = COMMON_DISEASES[key][lang] || COMMON_DISEASES[key]['en'];
+    const langEntry = COMMON_DISEASES[key][targetLang] || COMMON_DISEASES[key]['en'];
     if (langEntry) {
-      const isGroundnut = cropName && (cropName.toLowerCase().includes('groundnut') || cropName.toLowerCase().includes('peanut'));
+      const isGroundnut = cropName && (
+        cropName.toLowerCase().includes('groundnut') || 
+        cropName.toLowerCase().includes('peanut') ||
+        cropName.includes('వేరుశనగ') ||
+        cropName.includes('मूंगफली')
+      );
       if (key === 'leaf_spot' && !isGroundnut) {
         return langEntry
           .replace(/\(Tikka\s*\/\s*Cercospora\)/gi, '(Cercospora)')
@@ -1740,6 +2303,7 @@ export function translateDisease(diseaseName = '', lang = 'en', cropName = '') {
           .replace(/\s*\/\s*ਟਿੱਕਾ ਰੋਗ/g, '')
           .replace(/\s*\/\s*ଟିକା ରୋଗ/g, '')
           .replace(/\s*\/\s*টিকা ৰোগ/g, '')
+          .replace(/\s*\/\s*টিকা রোগ/g, '')
           .replace(/\s*\/\s*ٹکا بیماری/g, '');
       }
       return langEntry;
@@ -1748,12 +2312,12 @@ export function translateDisease(diseaseName = '', lang = 'en', cropName = '') {
   
   // Fallback to DISEASE_KB entry
   const kbEntry = DISEASE_KB[key];
-  if (kbEntry && kbEntry[lang] && kbEntry[lang].name) {
-    return kbEntry[lang].name;
+  if (kbEntry && kbEntry[targetLang] && kbEntry[targetLang].name) {
+    return kbEntry[targetLang].name;
   }
   
   // If english or fallback
-  if (lang === 'en' || !lang) {
+  if (targetLang === 'en' || !targetLang) {
     return diseaseName.replace(/___/g, ' ').replace(/_/g, ' ').trim();
   }
   

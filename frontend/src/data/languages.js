@@ -74,6 +74,14 @@ export const SUPPORTED_LANGUAGES = [
     region: 'ਪੰਜਾਬ (Punjab)' 
   },
   { 
+    code: 'bn', 
+    name: 'Bengali', 
+    nativeName: 'বাংলা', 
+    flag: '🌾', 
+    greeting: 'নমস্কার', 
+    region: 'পশ্চিমবঙ্গ ও ত্রিপুরা (West Bengal)' 
+  },
+  { 
     code: 'ur', 
     name: 'Urdu', 
     nativeName: 'اردو', 

@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v193) - Plantix-Grade Vernacular Localization for Crops & Diseases Across 12+ Indian Languages
+- **Summary:** Fulfilled the user's request to achieve Plantix-grade vernacular localization for agricultural plants/crops and disease names without errors or fallback bugs:
+  1. 🌾 **Comprehensive 13-Language Crop Name Localization (`CROPS_MAP` in `diseaseAdvisoryData.js`):**
+     - Expanded `CROPS_MAP` with complete regional translations across all 12 Indian regional languages + English: Telugu (`te`), Hindi (`hi`), Tamil (`ta`), Kannada (`kn`), Malayalam (`ml`), Marathi (`mr`), Gujarati (`gu`), Punjabi (`pa`), Bengali (`bn`), Odia (`or`), Assamese (`as`), Urdu (`ur`), and English (`en`).
+     - Added full coverage for all major Indian crops, plantation trees, vegetables, and commercial crops: Rice / Paddy, Cotton, Chilli, Groundnut, Maize / Corn, Sugarcane, Tomato, Potato, Onion, Garlic, Brinjal, Okra, Banana, Mango, Apple, Grape, Orange, Lemon, Pomegranate, Papaya, Guava, Coconut, Turmeric, Ginger, Soybean, Wheat, Black Gram (Urad), Green Gram (Moong), Red Gram (Arhar/Toor), Mustard, Tobacco, Coffee, Tea, Neem, and Agricultural Weeds.
+  2. 🩺 **Plantix-Grade Authentic Vernacular Disease Localization (`COMMON_DISEASES` in `diseaseAdvisoryData.js`):**
+     - Enriched 35+ crop diseases, pests, and conditions across all 13 languages with authentic, farmer-friendly vernacular terms.
+     - Added critical missing diseases: *Sheath Blight* (`sheath_blight`), *Rice Blast* (`blast`), *Brown Spot* (`brown_spot`), *Target Spot* (`target_spot`), *Citrus Canker* (`canker`), *Yellow Vein Mosaic Virus* (`yellow_vein_mosaic`), *False Smut* (`false_smut`), *Tikka Disease* (`tikka_disease`), *Rice Tungro Virus* (`tungro`), *Thrips* (`thrips`), *Fall Armyworm* (`fall_armyworm`).
+  3. 🔍 **Prioritized Compound Disease Matching (`normalizeDiseaseKey`):**
+     - Resolved the critical bug where single-word keywords (`spot`, `blight`, `rot`) matched before specific compound diseases, causing "Rice Sheath Blight" to become generic "Blight" or "Tomato Target Spot" to become "Leaf Spot".
+     - Implemented strict compound disease checks *before* generic fallbacks.
+  4. 🛡️ **Fixed Language Tag Sanitization (`translateCrop`, `translateDisease`, `getDiseaseDetails`):**
+     - Fixed language lookups where locale tags like `te-IN`, `hi-IN`, `ta-IN` resulted in `undefined` dictionary lookups and triggered unwanted English fallback.
+     - Normalized all locale lookups with `.split(/[-_]/)[0].toLowerCase().trim()`.
+  5. 🔘 **Plantix-Style 1-Tap Horizontal Language Switcher Pill Bar (`DiseaseDiagnosisResults.jsx` & `PlantIdResults.jsx`):**
+     - Embedded an interactive, 1-tap horizontal language switcher pill bar on `DiseaseDiagnosisResults.jsx` allowing farmers to toggle between Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi, Gujarati, Punjabi, Bengali, Odia, Assamese, Urdu, and English in real-time.
+     - Synchronized language switching with speech audio (`useSpeechReader`), prescription slip generation, and alternate candidate cards.
+     - Upgraded `PlantIdResults.jsx` language selector to support the full 13-language roster.
+     - Added Bengali (`bn`) to `SUPPORTED_LANGUAGES` in `languages.js`.
+  6. 🏗️ **Build & Test Verification:**
+     - 25/25 unit tests passed (`test_translations_verify.mjs`).
+     - Frontend production bundle built with 0 errors via Vite (`npm run build`: 3,152 modules, built in 26.36s).
+- **Files modified:** `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/data/languages.js`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v192) - Complete Removal of AgriShield Studio Editor & Visual Customizer
 - **Summary:** Completely dismantled, removed, and purged the AgriShield Studio Editor, drawer customizers, floating edit buttons, inspector docks, and studio context hooks across the entire website:
   1. 🧹 **Purged All Studio Editor Components & Context Files:**

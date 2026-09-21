@@ -13,6 +13,7 @@ import { translateCrop, translateDisease, getDiseaseDetails, localizeAdvice } fr
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { FORMULATION_TEXTS, getAudioActionLabel, getSpeechLocale, getSafetyFallback } from '../../utils/regionalLocale';
 import { getMatchingProducts } from '../../utils/commercialProducts';
+import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
 
@@ -82,27 +83,43 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     return () => { isMounted = false; };
   }, [rawCropName, rawDiseaseName]);
   
-  const localizedCrop = translateCrop(rawCropName, i18n.language) || rawCropName;
-  const localizedDisease = translateDisease(rawDiseaseName, i18n.language, rawCropName) || rawDiseaseName;
+  const currentLang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
+  const [activeLang, setActiveLang] = useState(currentLang || 'en');
+
+  // Sync activeLang with i18n.language changes
+  useEffect(() => {
+    const lang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
+    setActiveLang(lang);
+  }, [i18n.language]);
+
+  const handleLanguageSelect = (langCode) => {
+    const clean = (langCode || 'en').split('-')[0].toLowerCase();
+    setActiveLang(clean);
+    i18n.changeLanguage(clean);
+    localStorage.setItem('i18nextLng', clean);
+    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: clean } }));
+  };
+
+  const localizedCrop = translateCrop(rawCropName, activeLang) || rawCropName;
+  const localizedDisease = translateDisease(rawDiseaseName, activeLang, rawCropName) || rawDiseaseName;
 
   const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
   const status = liveResult?.prediction_status || 'diseased';
 
-  const currentLang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
   const hasRegionalText = (str) => /[\u0900-\u0D7F]/.test(str || '');
 
   // Advisory lookup for real trade names and dilution
-  const diseaseInfo = getDiseaseDetails(rawCropName, rawDiseaseName, currentLang);
+  const diseaseInfo = getDiseaseDetails(rawCropName, rawDiseaseName, activeLang);
   
-  const baseChemicalsList = (currentLang !== 'en' && !hasRegionalText(liveResult?.chemical_treatment) && diseaseInfo?.chemicals?.length)
+  const baseChemicalsList = (activeLang !== 'en' && !hasRegionalText(liveResult?.chemical_treatment) && diseaseInfo?.chemicals?.length)
     ? diseaseInfo.chemicals
     : (liveResult?.chemical_treatment 
         ? [liveResult.chemical_treatment]
         : (diseaseInfo?.chemicals || [
-            currentLang === 'te' 
+            activeLang === 'te' 
               ? "మాంకోజెబ్ 75% WP (సాఫ్ / డైథేన్ M-45) @ 2.5 గ్రా/లీ నీటికి కలిపి పిచికారీ చేయాలి." 
               : "Mancozeb 75% WP (Saaf / Dithane M-45) @ 2.5 g/L of water.",
-            currentLang === 'te'
+            activeLang === 'te'
               ? "క్లోరోథలోనిల్ 75% WP (కవచ్) @ 2.0 గ్రా/లీ నీటికి కలిపి పిచికారీ చేయాలి."
               : "Chlorothalonil 75% WP (Kavach) @ 2.0 g/L of water."
           ])
@@ -112,15 +129,15 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     ? [overrides.chemical_treatment, ...baseChemicalsList.filter(c => c !== overrides.chemical_treatment)]
     : baseChemicalsList;
 
-  const baseOrganicList = (currentLang !== 'en' && !hasRegionalText(liveResult?.organic_treatment) && diseaseInfo?.organic?.length)
+  const baseOrganicList = (activeLang !== 'en' && !hasRegionalText(liveResult?.organic_treatment) && diseaseInfo?.organic?.length)
     ? diseaseInfo.organic
     : (liveResult?.organic_treatment 
         ? [liveResult.organic_treatment] 
         : (diseaseInfo?.organic || [
-            currentLang === 'te'
+            activeLang === 'te'
               ? "వేప నూనె స్ప్రే (5 మి.లీ/లీటర్ నీటికి) ప్రతి 7 రోజులకు ఒకసారి పిచికారీ చేయాలి."
               : "Neem oil spray (5 ml/L with liquid soap) every 7 days.",
-            currentLang === 'te'
+            activeLang === 'te'
               ? "ట్రైకోడెర్మా విరిడే జీవ శిలీంద్రనాశిని (5 గ్రా/లీ) నేల మరియు ఆకులపై పిచికారీ చేయాలి."
               : "Trichoderma viride bio-fungicide (5 g/L) soil & foliar drench."
           ])
@@ -178,7 +195,36 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       <div className={`pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full blur-3xl opacity-30 ${
         status === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'
       }`} />
-      <div className="pointer-events-none absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-teal-500/20 blur-3xl" />
+      {/* Plantix-Grade 1-Tap Vernacular Language Switcher Bar */}
+      <div className="mb-4 p-2.5 sm:p-3 bg-slate-950/80 backdrop-blur-md rounded-2xl border border-emerald-500/30 shadow-lg flex items-center justify-between gap-3 flex-wrap relative z-10">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+          <Globe className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="hidden sm:inline font-semibold">Diagnosis Language:</span>
+          <span className="text-[11px] text-emerald-300 font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+            {SUPPORTED_LANGUAGES.find(l => l.code === activeLang)?.nativeName || activeLang}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto max-w-full py-0.5 scrollbar-none">
+          {SUPPORTED_LANGUAGES.map(lang => {
+            const isSelected = activeLang === lang.code;
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => handleLanguageSelect(lang.code)}
+                className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/25 scale-105 border border-emerald-400'
+                    : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70'
+                }`}
+              >
+                <span>{lang.flag || '🌾'}</span>
+                <span>{lang.nativeName || lang.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* 50% AI + 50% Human Agronomist Collaborative Header */}
       <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-black/40 border border-white/15 backdrop-blur-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 relative z-10">
@@ -339,12 +385,12 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               size="sm"
               onClick={() => {
                 const summaryText = `${localizedCrop}. ${localizedDisease}. ${organicList[0] || ''}. ${chemicalsList[0] || ''}`;
-                speak(summaryText, 'hero_summary', currentLang);
+                speak(summaryText, 'hero_summary', activeLang);
               }}
               leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'hero_summary' ? 'animate-bounce text-emerald-300' : 'text-white'}`} />}
               className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-lg shadow-emerald-950/40"
             >
-              {getAudioActionLabel(speakingId === 'hero_summary', currentLang, true)}
+              {getAudioActionLabel(speakingId === 'hero_summary', activeLang, true)}
             </Button>
 
             <Button
@@ -437,7 +483,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             ]).slice(0, 2).map((cand, idx) => {
               const isPrimary = idx === 0;
               const candCrop = cand.crop_name || rawCropName;
-              const locCandDisease = translateDisease(cand.disease_name, i18n.language, candCrop) || cand.disease_name;
+              const locCandDisease = translateDisease(cand.disease_name, activeLang, candCrop) || cand.disease_name;
               const matchingProds = getMatchingProducts(cand.disease_name, candCrop, 1);
               const prod = matchingProds[0];
 
