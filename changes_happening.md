@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v194) - Fix Cross-Tab ErrorBoundary Lock & Dynamic Chunk Mismatch Recovery
+- **Summary:** Diagnosed and resolved the issue where an unexpected JavaScript error on one view locked the ErrorBoundary across all mobile bottom navigation tabs ("Home", "Field", "Scan", "Alerts", "More"):
+  1. 🔄 **Dynamic Route-Keyed ErrorBoundary Reset (`App.jsx`):**
+     - Attached `key={location.pathname}` and `locationKey={location.pathname}` to `<ErrorBoundary>` wrapping `<Outlet />`. Previously, when any view threw an error, `<ErrorBoundary>` remained stuck in `hasError: true` state even when navigating between tabs, making it appear as though every tab was broken.
+  2. 🛡️ **Auto-Reset & Comprehensive Chunk Loading Detection (`ErrorBoundary.jsx`):**
+     - Added `componentDidUpdate` lifecycle listener that automatically resets `hasError: false` upon route navigation.
+     - Expanded chunk mismatch detection (`isChunkMismatch`) to recognize all mobile browser error variants (`Failed to fetch dynamically imported module`, `Importing a module script failed`, `Loading chunk failed`, `MIME type is not a valid JavaScript MIME type`).
+     - Set `<details open>` on the Error Details box so any future errors are immediately inspectable without requiring extra clicks.
+  3. 🏗️ **Build Verification:**
+     - Compiled production bundle via Vite (`npm run build`: 3,152 modules, 0 errors in 57.07s).
+- **Files modified:** `frontend/src/App.jsx`, `frontend/src/components/ErrorBoundary.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v193) - Plantix-Grade Vernacular Localization for Crops & Diseases Across 12+ Indian Languages
 - **Summary:** Fulfilled the user's request to achieve Plantix-grade vernacular localization for agricultural plants/crops and disease names without errors or fallback bugs:
   1. 🌾 **Comprehensive 13-Language Crop Name Localization (`CROPS_MAP` in `diseaseAdvisoryData.js`):**

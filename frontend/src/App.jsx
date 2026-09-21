@@ -92,7 +92,7 @@ const DashboardLayout = () => {
           role="main"
         >
           <div className={isAssistant ? 'p-0 h-full max-h-full flex flex-col flex-1 min-h-0 overflow-hidden' : 'p-3 sm:p-6 lg:p-8 pb-28 lg:pb-8 w-full flex-1'}>
-            <ErrorBoundary>
+            <ErrorBoundary key={location.pathname} locationKey={location.pathname}>
               <Suspense fallback={<PageSkeleton />}>
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div

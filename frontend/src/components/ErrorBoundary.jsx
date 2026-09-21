@@ -22,10 +22,29 @@ class ErrorBoundary extends React.Component {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    // Automatically reset error boundary when navigating to a different route/tab
+    if (this.props.locationKey && this.props.locationKey !== prevProps.locationKey) {
+      if (this.state.hasError) {
+        this.setState({ hasError: false, error: null, errorInfo: null });
+      }
+    }
+  }
+
+  isChunkMismatch = () => {
+    const msg = (this.state.error?.message || '').toLowerCase();
+    return (
+      msg.includes('dynamically imported module') ||
+      msg.includes('loading chunk') ||
+      msg.includes('importing a module script failed') ||
+      msg.includes('failed to load module script') ||
+      msg.includes('mime type') ||
+      msg.includes('failed to fetch')
+    );
+  };
+
   handleRetry = () => {
-    const isChunkError = this.state.error?.message?.includes('dynamically imported module') ||
-                         this.state.error?.message?.includes('Loading chunk');
-    if (isChunkError) {
+    if (this.isChunkMismatch()) {
       window.location.reload();
       return;
     }
@@ -34,8 +53,7 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      const isChunkError = this.state.error?.message?.includes('dynamically imported module') ||
-                           this.state.error?.message?.includes('Loading chunk');
+      const isChunkError = this.isChunkMismatch();
 
       return (
         <div className="min-h-[60vh] flex items-center justify-center p-6" role="alert">
@@ -51,14 +69,14 @@ class ErrorBoundary extends React.Component {
               <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                 {isChunkError 
                   ? 'A new build of AgriShield was deployed to the cloud. Click Refresh below to load the latest version.'
-                  : 'An unexpected error occurred while rendering this page. Your data is safe — try refreshing or go back to the dashboard.'}
+                  : 'An unexpected error occurred while rendering this page. Your data is safe — try refreshing or tap Error Details below.'}
               </p>
             </div>
 
             {this.state.error && (
-              <details className="text-left p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <details open className="text-left p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                 <summary className="text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
-                  Error Details (Click to Expand)
+                  Error Details (Click to Toggle)
                 </summary>
                 <pre className="mt-2 text-[10px] text-rose-600 dark:text-rose-400 overflow-x-auto whitespace-pre-wrap break-words font-mono">
                   {this.state.error.toString()}
@@ -70,7 +88,7 @@ class ErrorBoundary extends React.Component {
             <div className="flex items-center justify-center gap-3 pt-2">
               <Button 
                 variant="primary" 
-                onClick={isChunkError ? () => window.location.reload() : this.handleRetry} 
+                onClick={() => window.location.reload()} 
                 leftIcon={<RefreshCw className="w-4 h-4" />}
               >
                 {isChunkError ? 'Refresh & Update App' : 'Try Again'}
