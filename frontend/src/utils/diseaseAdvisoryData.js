@@ -572,6 +572,194 @@ export const DISEASE_KB = {
       ],
       prevention: "3-वर्षीय फसल चक्र अपनाएं। प्रमाणित रोगमुक्त बीज का उपयोग करें। पौधों के बीच 60 सेमी की दूरी रखें।"
     }
+  },
+  "blast": {
+    en: {
+      name: "Rice Blast (Magnaporthe oryzae)",
+      overview: "The most destructive fungal disease of paddy rice. Appears as spindle-shaped (diamond-like) elliptical lesions on leaf blades with gray or white centers and reddish-brown margins. Also causes neck blast and node rot during panicle emergence.",
+      chemicals: [
+        "Tricyclazole 75% WP (Baan / Beam) @ 0.6 g/L of water (120g in 200L water/acre) at initial leaf symptom.",
+        "Isoprothiolane 40% EC (Fuji-One) @ 1.5 ml/L of water (300 ml/acre) for translaminar systemic cure.",
+        "Kasugamycin 3% SL (Kasu-B) @ 2.0 ml/L of water for organic antibiotic protection."
+      ],
+      organic: [
+        "Foliar spray of Pseudomonas fluorescens @ 10 g/L every 10–12 days.",
+        "Spray 5% Neem Seed Kernel Extract (NSKE) with soap emulsion.",
+        "Apply silica soil amendments or rice husk ash to strengthen cell epidermal walls."
+      ],
+      prevention: "Avoid excessive nitrogen (urea) split doses. Maintain optimal water depth (2–5 cm) in paddy fields; avoid prolonged drought stress."
+    },
+    te: {
+      name: "వరి అగ్గితెగులు (రైస్ బ్లాస్ట్)",
+      overview: "వరి పంటలో అత్యంత తీవ్రమైన శిలీంధ్ర తెగులు. ఆకులపై కదురు ఆకారంలో (స్పిండిల్ షేప్) బూడిద లేదా తెలుపు రంగు మధ్యభాగం మరియు ఎరుపు-గోధుమ రంగు అంచులతో మచ్చలు ఏర్పడతాయి. చిరుపొట్ట మరియు ఈనె దశలో మెడ విరుపు తెగులుగా మారి గింజలు తాలుగా మారుతాయి.",
+      chemicals: [
+        "ట్రైసైక్లాజోల్ 75% WP (బాన్ / బీమ్) @ 0.6 గ్రా/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి (ఎకరాకు 120 గ్రాములు 200 లీటర్ల నీటిలో).",
+        "ఐసోప్రోథియోలేన్ 40% EC (ఫ్యూజీ-వన్) @ 1.5 మి.లీ/లీటర్ నీటిలో పిచికారీ చేయాలి.",
+        "కసుగామైసిన్ 3% SL @ 2.0 మి.లీ/లీటర్ నీటిలో వాడండి."
+      ],
+      organic: [
+        "సూడోమోనాస్ ఫ్లోరోసెన్స్ (10 గ్రా/లీటర్) జీవ శిలీంద్ర సంహారిణి పిచికారీ చేయండి.",
+        "5% వేప గింజల కషాయం (NSKE) వాడండి.",
+        "వరి పొలంలో సిలికాన్ ఎరువులు లేదా వరి పొట్టు బూడిద వేసి ఆకుల కణజాలాన్ని దృఢపరచండి."
+      ],
+      prevention: "యూరియాను ఒకేసారి ఎక్కువగా వేయకండి - దఫాలుగా వేయండి. పొలంలో 2-5 సెం.మీ నీటి మట్టం నిలిపి ఉంచండి, నీటి ఎద్దడి రాకుండా చూడండి."
+    },
+    hi: {
+      name: "धान का झोंका रोग / ब्लास्ट (राइस ब्लास्ट)",
+      overview: "धान की फसल का मुख्य विनाशकारी फफूंद जनित रोग। पत्तियों पर धुरी के आकार (नाव जैसे) के भूरे धब्बे बनते हैं जिनका केंद्र धूसर-सफेद होता है। बाली निकलते समय यह गर्दन तोड़ (नेक ब्लास्ट) का रूप ले लेता है।",
+      chemicals: [
+        "ट्राइसाइक्लाज़ोल 75% WP (बीम / बाण) @ 0.6 ग्राम/लीटर पानी में (120 ग्राम प्रति एकड़)।",
+        "आइसोप्रोपियोलेन 40% EC (फूजी-वन) @ 1.5 मिली/लीटर पानी में छिड़कें।",
+        "कसूगामाइसिन 3% SL @ 2.0 मिली/लीटर का प्रयोग करें।"
+      ],
+      organic: [
+        "स्यूडोमोनास फ्लोरोसेंस (10 ग्राम/लीटर) जैविक कवकनाशी का छिड़काव करें।",
+        "नीम बीज का अर्क (5% NSKE) प्रयोग करें।",
+        "सिलिका या धान की भूसी की राख का प्रयोग कर पत्तियों को मजबूत बनाएं।"
+      ],
+      prevention: "यूरिया की अत्यधिक मात्रा न डालें। खेत में नमी बनाए रखें, सूखा न पड़ने दें।"
+    }
+  },
+  "bacterial leaf blight": {
+    en: {
+      name: "Bacterial Leaf Blight (Xanthomonas oryzae)",
+      overview: "Major bacterial vascular wilt disease in rice. Begins as water-soaked translucent stripes at leaf tips and margins that turn wavy yellow-orange and progress down the entire blade, causing leaf drying ('Kresek' seedling wilt phase).",
+      chemicals: [
+        "Copper Oxychloride 50% WP (Blitox) @ 2.5 g/L + Streptocycline @ 0.1 g/L (1g per 10L water).",
+        "Plantomycin / Agrimycin (Streptomycin sulfate + Tetracycline) @ 0.5 g/L of water.",
+        "Bismerthiazol 20% WP @ 1.5 g/L for targeted bacterial inhibition."
+      ],
+      organic: [
+        "Spray 20% fresh cow dung slurry supernatant (filtrate) every 10 days.",
+        "Seed treatment with hot water (52°C for 30 minutes) or Pseudomonas fluorescens (10 g/kg seed).",
+        "Drain standing water for 2–3 days during early symptom progression."
+      ],
+      prevention: "Never clip seedling leaf tips during transplanting. Avoid entering fields or spraying when leaves are wet with morning dew or rain."
+    },
+    te: {
+      name: "వరి బాక్టీరియా ఆకు ఎండు తెగులు (బి.ఎల్.బి)",
+      overview: "వరిలో జాంతోమోనాస్ ఓరైజే బ్యాక్టీరియా వల్ల వస్తుంది. ఆకుల చివర్ల నుండి అంచుల వెంబడి అలల మాదిరిగా పసుపు-తెలుపు రంగు చారలు ఏర్పడి, క్రమంగా ఆకంతా ఎండుగడ్డి రంగులోకి మారి ఎండిపోతుంది.",
+      chemicals: [
+        "కాపర్ ఆక్సీక్లోరైడ్ 50% WP @ 2.5 గ్రా/లీటర్ + స్ట్రెప్టోసైక్లిన్ @ 0.1 గ్రా/లీటర్ (10 లీటర్ల నీటికి 1 గ్రాము).",
+        "ప్లాంటోమైసిన్ @ 0.5 గ్రా/లీటర్ నీటిలో కలిపి పిచికారీ చేయండి.",
+        "బిస్మెర్తియాజోల్ 20% WP @ 1.5 గ్రా/లీటర్ వాడండి."
+      ],
+      organic: [
+        "20% తాజా ఆవు పేడ ద్రావణాన్ని వడకట్టి పిచికారీ చేయండి.",
+        "సూడోమోనాస్ ఫ్లోరోసెన్స్ (10 గ్రా/లీటర్) జీవ కారకం వాడండి.",
+        "తెగులు ఉధృతి ఎక్కువగా ఉన్నప్పుడు పొలంలో నీటిని 2-3 రోజులు తీసివేసి ఆరబెట్టండి."
+      ],
+      prevention: "నాట్లు వేసేటప్పుడు ఆకుల చివర్లను తుంచవద్దు. ఆకులపై మంచు లేదా వర్షపు నీరు ఉన్నప్పుడు పొలంలో తిరగవద్దు."
+    },
+    hi: {
+      name: "धान का जीवाणु झुलसा रोग (बीएलबी)",
+      overview: "जैंथोमोनास जीवाणु के कारण पत्तियों के सिरों से नीचे की ओर लहरदार पीली-सफेद धारियां बनती हैं और पूरी पत्ती पुआल की तरह सूख जाती है।",
+      chemicals: [
+        "कॉपर ऑक्सीक्लोराइड 50% WP @ 2.5 ग्राम/लीटर + स्ट्रेप्टोसाइक्लिन @ 0.1 ग्राम/लीटर (10 लीटर में 1 ग्राम)।",
+        "प्लांटोमाइसिन @ 0.5 ग्राम/लीटर का पर्णीय छिड़काव करें।",
+        "बिस्मरथियाजोल 20% WP @ 1.5 ग्राम/लीटर का प्रयोग करें।"
+      ],
+      organic: [
+        "ताजे गाय के गोबर का 20% घोल छानकर छिड़कें।",
+        "स्यूडोमोनास फ्लोरोसेंस जैविक संवर्धन का उपयोग करें।",
+        "खेत से पानी निकालकर 2-3 दिन हवा लगने दें।"
+      ],
+      prevention: "रोपाई के समय पत्तियों के ऊपरी हिस्से न काटें। गीले खेतों में काम न करें।"
+    }
+  },
+  "sheath blight": {
+    en: {
+      name: "Rice Sheath Blight (Rhizoctonia solani)",
+      overview: "Soil-borne fungal disease causing large oval to irregular greenish-gray water-soaked lesions with dark reddish-brown borders on leaf sheaths just above the water line, spreading upward to the flag leaf and panicle.",
+      chemicals: [
+        "Validamycin 3% L (Sheathmar) @ 2.5 ml/L of water (500 ml in 200L water/acre).",
+        "Hexaconazole 5% SC (Contaf Plus) @ 2.0 ml/L of water (400 ml/acre).",
+        "Azoxystrobin 18.2% + Difenoconazole 11.4% SC (Amistar Top) @ 1.0 ml/L of water."
+      ],
+      organic: [
+        "Apply Trichoderma viride or T. harzianum @ 10 g/L around plant stem collars.",
+        "Drain excess standing water and remove floating sclerotia during tillage.",
+        "Neem cake application @ 100 kg/acre to soil."
+      ],
+      prevention: "Adopt wider plant spacing (20 × 15 cm). Avoid heavy dense planting and split nitrogen fertilizer into 3 balanced applications."
+    },
+    te: {
+      name: "వరి కాండపు కుళ్లు / పొడ తెగులు (షీత్ బ్లైట్)",
+      overview: "రైజోక్టోనియా సోలానీ శిలీంధ్రం వల్ల నీటి మట్టానికి దగ్గరగా ఉన్న ఆకు తొడుగులపై కోడిగుడ్డు ఆకారంలో బూడిద-ఆకుపచ్చ నీటి మచ్చలు ఏర్పడతాయి. తెగులు పైకి విస్తరించి పిలకలు మరియు చిరుపొట్టను నాశనం చేస్తుంది.",
+      chemicals: [
+        "వ్యాలిడామైసిన్ 3% L (షీత్మర్) @ 2.5 మి.లీ/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి (ఎకరాకు 500 మి.లీ).",
+        "హెక్సాకొనజోల్ 5% SC (కాంటాఫ్ ప్లస్) @ 2.0 మి.లీ/లీటర్ నీటిలో పిచికారీ చేయండి.",
+        "అమిస్టార్ టాప్ (అజాక్సిస్ట్రోబిన్ + డైఫెనోకోనజోల్) @ 1.0 మి.లీ/లీటర్ వాడండి."
+      ],
+      organic: [
+        "ట్రైకోడెర్మా విరిడే (10 గ్రా/లీటర్) మొదళ్ల వద్ద తడిసేలా పిచికారీ చేయండి.",
+        "పొలంలో నీటిని తీసివేసి నేలకు గాలి తగిలేలా చూడండి.",
+        "వేప పిండి ఎకరాకు 100 కిలోలు నేలలో వేయండి."
+      ],
+      prevention: "వరి కుదుర్ల మధ్య తగినంత దూరం (20 × 15 సెం.మీ) పాటించండి. నత్రజని ఎరువులను మూడు దఫాలుగా మాత్రమే వేయండి."
+    },
+    hi: {
+      name: "धान का शीथ ब्लाइट रोग",
+      overview: "राइजोक्टोनिया कवक के कारण पानी की सतह के पास तने के आवरण (शीथ) पर अंडाकार धूसर-हरे धब्बे बनते हैं, जो ऊपर की पत्तियों तक फैल जाते हैं।",
+      chemicals: [
+        "वैलिडामाइसिन 3% L @ 2.5 मिली/लीटर पानी में मिलाकर छिड़कें (500 मिली प्रति एकड़)।",
+        "हेक्साकोनाज़ोल 5% SC @ 2.0 मिली/लीटर पानी में प्रयोग करें।",
+        "एज़ोक्सिस्ट्रोबिन + डाइफेनोकोनाज़ोल @ 1.0 मिली/लीटर का छिड़काव करें।"
+      ],
+      organic: [
+        "ट्राइकोडर्मा विरिडी (10 ग्राम/लीटर) पौधों के तनों पर छिड़कें।",
+        "खेत का पानी कुछ दिन निकाल दें।",
+        "नीम खली 100 किग्रा प्रति एकड़ मिट्टी में मिलाएं।"
+      ],
+      prevention: "पौधों के बीच 20 × 15 सेमी की दूरी रखें। यूरिया संतुलित मात्रा में दें।"
+    }
+  },
+  "brown spot": {
+    en: {
+      name: "Rice Brown Spot (Bipolaris oryzae)",
+      overview: "Fungal disease associated with nutrient-deficient, poorly drained, or drought-stressed paddy soils. Manifests as small, circular to oval sesame-seed-like dark brown spots with prominent yellow halos covering leaf blades.",
+      chemicals: [
+        "Mancozeb 75% WP (Dithane M-45) @ 2.5 g/L of water (500g in 200L water/acre).",
+        "Propiconazole 25% EC (Tilt) @ 1.0 ml/L of water (200 ml/acre).",
+        "Carbendazim 12% + Mancozeb 63% WP (Saaf) @ 2.0 g/L of water."
+      ],
+      organic: [
+        "Foliar spray of 5% Neem oil emulsion or Neem Seed Kernel Extract (NSKE).",
+        "Soil application of well-decomposed Farm Yard Manure (FYM) with Zinc Sulfate (10 kg/acre).",
+        "Bio-fertilizer treatment with Azospirillum and Phosphobacteria."
+      ],
+      prevention: "Correct soil potassium and zinc deficiencies. Avoid water stress or drought during active tillering and panicle development."
+    },
+    te: {
+      name: "వరి గోధుమ రంగు మచ్చ తెగులు (బ్రౌన్ స్పాట్)",
+      overview: "బైపోలారిస్ ఓరైజే శిలీంధ్రం వల్ల వస్తుంది. నేలలో జింక్, పొటాష్ లోపం లేదా నీటి ఎద్దడి ఉన్నప్పుడు ఆకులపై నువ్వుల గింజల ఆకారంలో ముదురు గోధుమ రంగు మచ్చలు చుట్టూ పసుపు వలయంతో ఏర్పడతాయి.",
+      chemicals: [
+        "మాంకోజెబ్ 75% WP @ 2.5 గ్రా/లీటర్ నీటిలో కలిపి పిచికారీ చేయాలి (ఎకరాకు 500 గ్రాములు).",
+        "ప్రొపికొనజోల్ 25% EC (టిల్ట్) @ 1.0 మి.లీ/లీటర్ నీటిలో పిచికారీ చేయండి.",
+        "సాఫ్ (కార్బెండజిమ్ + మాంకోజెబ్) @ 2.0 గ్రా/లీటర్ వాడండి."
+      ],
+      organic: [
+        "5% వేప నూనె లేదా వేప గింజల కషాయం పిచికారీ చేయండి.",
+        "ఎకరాకు 10 కిలోల జింక్ సల్ఫేట్ మరియు తగినంత పొటాష్ ఎరువులు వేయండి.",
+        "పశువుల ఎరువును సమృద్ధిగా నేలలో కలపండి."
+      ],
+      prevention: "నేలలో పోషక లోపాలు లేకుండా చూసుకోండి. దుబ్బు చేసే దశలో మరియు పూత దశలో నీటి ఎద్దడి రానివ్వవద్దు."
+    },
+    hi: {
+      name: "धान का भूरा धब्बा रोग (ब्राउन स्पॉट)",
+      overview: "बाइपोलारिस कवक के कारण पत्तियों पर तिल के आकार के गहरे भूरे गोल धब्बे बनते हैं। यह रोग मिट्टी में पोषण या जिंक की कमी से बढ़ता है।",
+      chemicals: [
+        "मैनकोजेब 75% WP @ 2.5 ग्राम/लीटर पानी में (500 ग्राम प्रति एकड़)।",
+        "प्रोपिकोनाज़ोल 25% EC (टिल्ट) @ 1.0 मिली/लीटर पानी में छिड़कें।",
+        "साफ (कार्बेन्डाजिम + मैनकोजेब) @ 2.0 ग्राम/लीटर का प्रयोग करें।"
+      ],
+      organic: [
+        "5% नीम तेल का घोल छिड़कें।",
+        "खेत में 10 किग्रा जिंक सल्फेट और पोटाश डालें।",
+        "खेत में गोबर की खाद का भरपूर उपयोग करें।"
+      ],
+      prevention: "मिट्टी में पोषक तत्वों की कमी न होने दें। फसल में पानी की कमी न होने दें।"
+    }
   }
 };
 
@@ -1438,10 +1626,15 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
     'cercospora_leaf_spot': 'leaf spot',
     'anthracnose': 'anthracnose',
     'blast': 'blast',
+    'rice_blast': 'blast',
+    'bacterial_leaf_blight': 'bacterial leaf blight',
+    'sheath_blight': 'sheath blight',
+    'rice_sheath_blight': 'sheath blight',
     'powdery_mildew': 'powdery mildew',
     'downy_mildew': 'powdery mildew',
     'tikka_disease': 'tikka disease',
-    'brown_spot': 'leaf spot',
+    'brown_spot': 'brown spot',
+    'rice_brown_spot': 'brown spot',
     'black_rot': 'early blight',
     'root_rot': 'early blight',
     'damping_off': 'early blight',

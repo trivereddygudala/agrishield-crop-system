@@ -1595,7 +1595,10 @@ async def predict_pytorch_endpoint(
                     "safety_precautions": prediction_result.get("safety_precautions", "None")
                 }
                 
-                translated_fields = await nvidia_service.translate_diagnosis(fields_to_translate, target_lang)
+                translated_fields = await asyncio.wait_for(
+                    nvidia_service.translate_diagnosis(fields_to_translate, target_lang),
+                    timeout=3.5
+                )
                 if translated_fields:
                     trans_crop = get_farmer_crop_translation(translated_fields.get("crop_name", prediction_result["crop_name"]), target_lang)
                     trans_dis = get_farmer_disease_translation(translated_fields.get("disease_name", prediction_result["disease_name"]), target_lang)

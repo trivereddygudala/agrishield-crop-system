@@ -55,9 +55,9 @@ class AIClusterDispatcher:
         if not workers:
             return None
 
-        # Fast connect timeout (3.5s) ensures that if a Render worker instance is spun down or cold,
-        # we don't stall the farmer for 20-30 seconds waiting for connection.
-        cluster_timeout = httpx.Timeout(connect=3.5, read=14.0, write=10.0, pool=3.5)
+        # Fast connect & read timeout (2.5s) ensures that if a Render worker instance is spun down or cold,
+        # we fail fast (<2.5s) to local PyTorch inference rather than stalling the user for 28 seconds.
+        cluster_timeout = httpx.Timeout(connect=1.5, read=2.5, write=2.0, pool=1.5)
 
         # Select candidate workers starting with round-robin index
         candidates = [workers[self._index % len(workers)]]

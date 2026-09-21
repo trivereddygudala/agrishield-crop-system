@@ -165,64 +165,119 @@ export const diagnoseOfflineLeaf = async ({
     ? cropFilter
     : 'Tomato'; // Sensible default for solanaceous field diagnostics
 
-  let conditionKey = 'early blight';
-  let diseaseName = `${effectiveCrop} Early Blight`;
+  const cropLower = String(effectiveCrop).toLowerCase();
+  const isRice = cropLower.includes('rice') || cropLower.includes('paddy') || cropLower.includes('వరి') || cropLower.includes('धान');
+  const isTomato = cropLower.includes('tomato') || cropLower.includes('టమోటా') || cropLower.includes('टमाटर');
+  const isPotato = cropLower.includes('potato') || cropLower.includes('బంగాళాదుంప') || cropLower.includes('आलू');
+  const isCotton = cropLower.includes('cotton') || cropLower.includes('పత్తి') || cropLower.includes('कपास');
+  const isChilli = cropLower.includes('chilli') || cropLower.includes('pepper') || cropLower.includes('మిరప') || cropLower.includes('मिर्च');
+  const isCorn = cropLower.includes('corn') || cropLower.includes('maize') || cropLower.includes('మొక్కజొన్న') || cropLower.includes('मक्का');
+  const isGroundnut = cropLower.includes('groundnut') || cropLower.includes('peanut') || cropLower.includes('వేరుశనగ') || cropLower.includes('मूंगफली');
+
+  let conditionKey = isRice ? 'blast' : 'early blight';
+  let diseaseName = isRice ? 'Rice Blast' : `${effectiveCrop} Early Blight`;
   let confidence = 0.88;
   let severity = 'Moderate';
   let reasoning = 'Foliar necrotic lesions and tissue stress detected on canopy.';
 
-  // 1. Check for Strict Healthy Leaf (Requires overwhelming green chlorophyll and near-zero necrosis)
-  if (metrics.greenPct >= 88.0 && metrics.necrosisPct < 1.2 && metrics.chlorosisPct < 4.5 && metrics.powderyPct < 3.0 && metrics.rustPct < 1.2) {
+  // 1. Check for Strict Healthy Leaf (Overwhelming green chlorophyll and minimal foliar lesions)
+  if (metrics.greenPct >= 86.0 && metrics.necrosisPct < 1.5 && metrics.chlorosisPct < 5.0 && metrics.powderyPct < 3.0 && metrics.rustPct < 1.5) {
     conditionKey = 'healthy';
     diseaseName = `${effectiveCrop} Healthy`;
     confidence = Math.min(0.97, 0.88 + (metrics.greenPct / 100) * 0.1);
     severity = 'Healthy';
-    reasoning = `Healthy green chlorophyll canopy detected (${metrics.greenPct}% green, minimal foliar lesions < 1%).`;
+    reasoning = `Healthy green chlorophyll canopy detected (${metrics.greenPct}% green, minimal foliar lesions < 1.5%).`;
   }
-  // 2. Check for Powdery Mildew
-  else if (metrics.powderyPct >= 5.0) {
+  // 2. Crop-Specific Pathology Diagnosis for RICE (Paddy)
+  else if (isRice) {
+    if (metrics.necrosisPct > 15.0 || (metrics.necrosisPct > 8.0 && !metrics.isConcentratedLesions)) {
+      // Extensive water-soaked / diamond necrosis -> Rice Blast or Bacterial Leaf Blight
+      if (metrics.chlorosisPct > 8.0) {
+        conditionKey = 'bacterial leaf blight';
+        diseaseName = 'Rice Bacterial Leaf Blight';
+        confidence = Math.min(0.96, 0.86 + (metrics.necrosisPct / 100) * 0.3);
+        severity = metrics.necrosisPct > 25 ? 'Severe' : 'Moderate';
+        reasoning = `Extensive water-soaked wavy marginal lesions and chlorosis (${metrics.necrosisPct}% necrosis) typical of Xanthomonas oryzae bacterial blight.`;
+      } else {
+        conditionKey = 'blast';
+        diseaseName = 'Rice Blast';
+        confidence = Math.min(0.96, 0.87 + (metrics.necrosisPct / 100) * 0.3);
+        severity = metrics.necrosisPct > 20 ? 'Severe' : 'Moderate';
+        reasoning = `Spindle-shaped diamond necrotic lesions with gray centers across ${metrics.necrosisPct}% of paddy foliar tissue (Magnaporthe oryzae).`;
+      }
+    } else if (metrics.necrosisPct >= 2.0) {
+      // Small circular brown speckles -> Rice Brown Spot
+      conditionKey = 'brown spot';
+      diseaseName = 'Rice Brown Spot';
+      confidence = Math.min(0.94, 0.84 + (metrics.necrosisPct / 100) * 0.3);
+      severity = metrics.necrosisPct > 8 ? 'Severe' : 'Moderate';
+      reasoning = `Sesame-seed-like oval brown spots with chlorotic haloes (${metrics.necrosisPct}% affected) indicative of Bipolaris oryzae.`;
+    } else if (metrics.chlorosisPct >= 6.0) {
+      conditionKey = 'bacterial leaf blight';
+      diseaseName = 'Rice Bacterial Leaf Blight';
+      confidence = 0.89;
+      severity = 'Mild';
+      reasoning = `Early wavy leaf-tip chlorosis detected (${metrics.chlorosisPct}% yellowing). Preventative bactericide recommended.`;
+    } else {
+      conditionKey = 'sheath blight';
+      diseaseName = 'Rice Sheath Blight';
+      confidence = 0.88;
+      severity = 'Mild';
+      reasoning = `Water-soaked greenish-gray irregular foliar blemishes detected. Check stem collar and water level.`;
+    }
+  }
+  // 3. Check for Powdery Mildew
+  else if (metrics.powderyPct >= 5.0 && (isTomato || !isRice)) {
     conditionKey = 'powdery mildew';
     diseaseName = `${effectiveCrop} Powdery Mildew`;
     confidence = Math.min(0.95, 0.84 + (metrics.powderyPct / 100) * 0.4);
     severity = metrics.powderyPct > 15 ? 'Severe' : 'Moderate';
     reasoning = `Whitish-gray powdery fungal patches covering ${metrics.powderyPct}% of foliar surface.`;
   }
-  // 3. Check for Rust
+  // 4. Check for Rust Pustules
   else if (metrics.rustPct >= 2.5) {
-    conditionKey = 'leaf rust';
-    diseaseName = `${effectiveCrop} Leaf Rust`;
+    conditionKey = 'common rust';
+    diseaseName = `${effectiveCrop} Rust`;
     confidence = Math.min(0.94, 0.82 + (metrics.rustPct / 100) * 0.5);
     severity = metrics.rustPct > 8 ? 'Severe' : 'Moderate';
     reasoning = `Reddish-orange rust pustule discoloration detected across ${metrics.rustPct}% of canopy.`;
   }
-  // 4. Check for Late Blight (High necrosis + rapid water-soaked dispersion across leaves)
-  else if (metrics.necrosisPct > 16.0 || (metrics.necrosisPct > 9.0 && !metrics.isConcentratedLesions)) {
+  // 5. Check for Groundnut Tikka Spot
+  else if (isGroundnut && metrics.necrosisPct >= 1.5) {
+    conditionKey = 'tikka disease';
+    diseaseName = 'Groundnut Tikka Leaf Spot';
+    confidence = Math.min(0.95, 0.85 + (metrics.necrosisPct / 100) * 0.3);
+    severity = metrics.necrosisPct > 10 ? 'Severe' : 'Moderate';
+    reasoning = `Dark circular necrotic lesions with yellow halos on peanut foliage (${metrics.necrosisPct}% coverage).`;
+  }
+  // 6. Solanaceous Blight (Tomato & Potato Late Blight)
+  else if ((isTomato || isPotato) && (metrics.necrosisPct > 14.0 || (metrics.necrosisPct > 8.0 && !metrics.isConcentratedLesions))) {
     conditionKey = 'late blight';
     diseaseName = `${effectiveCrop} Late Blight`;
     confidence = Math.min(0.96, 0.86 + (metrics.necrosisPct / 100) * 0.3);
     severity = metrics.necrosisPct > 25 ? 'Severe' : 'Moderate';
-    reasoning = `Extensive water-soaked necrotic lesions spanning ${metrics.necrosisPct}% of foliar tissue. High blight progression risk.`;
+    reasoning = `Extensive water-soaked necrotic lesions spanning ${metrics.necrosisPct}% of foliar tissue. High late blight progression risk.`;
   }
-  // 5. Check for Early Blight (Concentric rings / localized target lesions)
-  else if (metrics.necrosisPct >= 2.5) {
+  // 7. Early Blight (Concentric rings / localized target lesions)
+  else if ((isTomato || isPotato) && metrics.necrosisPct >= 2.5) {
     conditionKey = 'early blight';
     diseaseName = `${effectiveCrop} Early Blight`;
     confidence = Math.min(0.94, 0.85 + (metrics.necrosisPct / 100) * 0.3);
     severity = metrics.necrosisPct > 10 ? 'Severe' : (metrics.necrosisPct > 5 ? 'Moderate' : 'Mild');
     reasoning = `Concentric brown necrotic lesions detected across foliar surface (${metrics.necrosisPct}% affected).`;
   }
-  // 6. Check for Yellow Leaf Curl Virus / Severe Chlorosis
+  // 8. Viral Chlorosis / Leaf Curl
   else if (metrics.chlorosisPct >= 8.0) {
-    conditionKey = 'yellow leaf curl virus';
-    diseaseName = `${effectiveCrop} Yellow Leaf Curl Virus`;
+    conditionKey = 'leaf curl virus';
+    diseaseName = `${effectiveCrop} Leaf Curl Virus`;
     confidence = Math.min(0.92, 0.82 + (metrics.chlorosisPct / 100) * 0.3);
     severity = metrics.chlorosisPct > 25 ? 'Severe' : 'Moderate';
     reasoning = `Pronounced foliar chlorosis with yellowing margins detected across ${metrics.chlorosisPct}% of canopy.`;
   }
-  // 7. Subtle or early bacterial foliar spot
+  // 9. Bacterial Spot / General Leaf Spot
   else if (metrics.necrosisPct >= 1.0) {
-    conditionKey = 'bacterial spot';
-    diseaseName = `${effectiveCrop} Bacterial Spot`;
+    conditionKey = isCotton ? 'bacterial spot' : 'leaf spot';
+    diseaseName = isCotton ? 'Cotton Bacterial Blight' : `${effectiveCrop} Leaf Spot`;
     confidence = 0.88;
     severity = 'Mild';
     reasoning = `Small angular necrotic speckles detected (${metrics.necrosisPct}% coverage). Early stage intervention recommended.`;
