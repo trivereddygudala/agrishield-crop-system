@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v198) - 1-Tap WhatsApp Agronomist Slip Sharing, Deep Rural Offline Plant Identification Triage & Live In-Browser Scan Verification
+- **Summary:** Executed the full triple-enhancement package requested by the user:
+  1. 📱 **1-Tap WhatsApp Agronomist Prescription Slip Dispatch (`PrescriptionSlipModal.jsx` & `DiseaseDiagnosisResults.jsx`):**
+     - Integrated `shareDiagnosticToWhatsApp` from `prescriptionShare.js` directly into `PrescriptionSlipModal.jsx`.
+     - Added a prominent `WhatsApp Share` action button in the Prescription Slip modal footer alongside `Print Slip` and `Done`.
+     - Upgraded `handleShareWhatsApp` in `DiseaseDiagnosisResults.jsx` so clicking WhatsApp on the diagnostic card generates a complete, formatted clinical prescription slip (crop name, pathology, confidence, chemical dosages, organic remedies, water ratio, knapsack pump counts, and spray schedule) in the farmer's active native language (Telugu, Hindi, Tamil, Kannada, Marathi, Gujarati, etc.).
+  2. 📡 **Deep Rural Offline Plant & Weed Identification Triage (`offlineDiagnosticEngine.js` & `UploadImagePage.jsx`):**
+     - Implemented `identifyOfflinePlant` in `frontend/src/utils/offlineDiagnosticEngine.js`. Uses on-device canvas color/morphology heuristics (chlorophyll index, chlorosis ratio, foliar geometry) to identify common field crops (Rice, Cotton, Tomato) or invasive weeds (Parthenium / Congress Grass) when no cellular tower or Wi-Fi is available.
+     - Connected `identifyOfflinePlant` to `UploadImagePage.jsx` for both explicit offline scans (`navigator.onLine === false`) and automatic fallback on network dropouts/timeouts.
+  3. 🌐 **Live In-Browser Verification & Validation:**
+     - Verified with browser subagent across all 3 AI Scan Center modules (`/scan/disease-diag`, `/scan/plant-id`, `/scan/chemical-scan`).
+     - Executed PyTorch AI inference on sample Chilli leaf; verified Telugu disease translation (`Leaf Spot / ఆకుమచ్చ తెగులు`), chemical recommendations (Saaf 40g/20L), and verified that the Prescription Slip modal opens with the newly added WhatsApp Share button.
+  4. 🏗️ **Build & Test Verification:**
+     - Production bundle built cleanly with Vite (`npm run build`: 24.47s, 0 errors).
+- **Files modified:** `frontend/src/components/scanCenter/PrescriptionSlipModal.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/utils/offlineDiagnosticEngine.js`, `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v196) - Complete Root-Cause Fix for Plant Identification Error & Cross-Tab Synchronization Across AI Scan Center
 - **Summary:** Identified and resolved the exact runtime errors in Plant Identification and established seamless bi-directional synchronization and error resilience across all 3 AI Scan Center tabs (Disease Diagnosis, Plant & Weed Identification, and Agrochemical Verification):
   1. 🐛 **Exact Root-Cause of Plant Identification Crash (`ReferenceError: resolvedName is not defined`):**

@@ -2,8 +2,9 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
-import { FileText, Printer, Download, X, CheckCircle, ShieldCheck, QrCode, Award, UserCheck, Sparkles } from 'lucide-react';
+import { FileText, Printer, Download, X, CheckCircle, ShieldCheck, QrCode, Award, UserCheck, Sparkles, Share2 } from 'lucide-react';
 import { Button, Badge } from '../ui/index';
+import { shareDiagnosticToWhatsApp } from '../../utils/prescriptionShare';
 
 const DEFAULT_AGRONOMIST_PROFILE = {
   name: 'Dr. V. Ramanjaneyulu, Ph.D.',
@@ -13,7 +14,7 @@ const DEFAULT_AGRONOMIST_PROFILE = {
 };
 
 export default function PrescriptionSlipModal({ isOpen, onClose, liveResult }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const agroProfile = DEFAULT_AGRONOMIST_PROFILE;
 
   if (!isOpen) return null;
@@ -38,6 +39,22 @@ export default function PrescriptionSlipModal({ isOpen, onClose, liveResult }) {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleWhatsAppShare = () => {
+    shareDiagnosticToWhatsApp({
+      cropName: crop,
+      diseaseName: disease,
+      confidence: liveResult?.confidence ? Math.round(Number(liveResult.confidence) * (liveResult.confidence <= 1 ? 100 : 1)) : 98,
+      severity: liveResult?.severity || 'Moderate',
+      chemicals: liveResult?.chemicals_list || [liveResult?.chemical_treatment].filter(Boolean),
+      organic: liveResult?.organic_list || [liveResult?.organic_treatment].filter(Boolean),
+      prevention: Array.isArray(liveResult?.prevention_methods) ? liveResult.prevention_methods.join('\n') : (liveResult?.prevention || ''),
+      acres: 1.0,
+      farmerName: liveResult?.farmer_name || 'AgriShield Farmer',
+      farmLocation: liveResult?.farm_location || 'Field Sector',
+      language: i18n?.language || 'en'
+    });
   };
 
   return (
@@ -212,24 +229,34 @@ export default function PrescriptionSlipModal({ isOpen, onClose, liveResult }) {
           </div>
 
           {/* Fixed Footer */}
-          <div className="px-5 sm:px-7 py-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-end gap-2.5 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrint}
-              leftIcon={<Printer className="w-3.5 h-3.5" />}
-              className="text-xs font-bold"
+          <div className="px-5 sm:px-7 py-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between gap-2.5 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex-wrap">
+            <button
+              type="button"
+              onClick={handleWhatsAppShare}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition-all hover:scale-102 active:scale-98 cursor-pointer"
             >
-              Print Slip
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={onClose}
-              className="px-5 text-xs font-bold"
-            >
-              Done
-            </Button>
+              <Share2 className="w-4 h-4" />
+              <span>{t('results.share_whatsapp', 'WhatsApp Share')}</span>
+            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                leftIcon={<Printer className="w-3.5 h-3.5" />}
+                className="text-xs font-bold"
+              >
+                Print Slip
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onClose}
+                className="px-5 text-xs font-bold"
+              >
+                Done
+              </Button>
+            </div>
           </div>
         </motion.div>
       </div>

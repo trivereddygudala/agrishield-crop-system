@@ -17,7 +17,7 @@ import { useFarm } from '../context/FarmContext';
 import { Badge, Button } from '../components/ui/index';
 import { compressImageForUpload, formatFileSize } from '../utils/imageCompression';
 import { queueOfflineScan } from '../utils/offlineQueue';
-import { diagnoseOfflineLeaf } from '../utils/offlineDiagnosticEngine';
+import { diagnoseOfflineLeaf, identifyOfflinePlant } from '../utils/offlineDiagnosticEngine';
 import { CURATED_FARM_PHOTOS } from '../services/photoService';
 
 // Diagnostic Modules metadata for overview and fresh sub-pages
@@ -425,6 +425,11 @@ const UploadImagePage = () => {
             cropFilter: selectedCropFilter,
             language: activeLang
           });
+        } else if (activeTab === 'plant-id' && previewUrl) {
+          offlineResult = await identifyOfflinePlant({
+            imageSrc: previewUrl,
+            language: activeLang
+          });
         }
 
         await queueOfflineScan({
@@ -529,6 +534,11 @@ const UploadImagePage = () => {
             offlineResult = await diagnoseOfflineLeaf({
               imageSrc: previewUrl,
               cropFilter: selectedCropFilter,
+              language: activeLang
+            });
+          } else if (activeTab === 'plant-id' && previewUrl) {
+            offlineResult = await identifyOfflinePlant({
+              imageSrc: previewUrl,
               language: activeLang
             });
           }

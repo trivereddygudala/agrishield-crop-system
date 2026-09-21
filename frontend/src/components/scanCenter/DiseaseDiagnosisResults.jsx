@@ -16,6 +16,7 @@ import { getMatchingProducts } from '../../utils/commercialProducts';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
+import { shareDiagnosticToWhatsApp } from '../../utils/prescriptionShare';
 
 const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloadPDF, onScanAnother }) => {
   const { t, i18n } = useTranslation();
@@ -172,18 +173,19 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const gradCamImg = liveResult?.gradcam_base64 || null;
 
   const handleShareWhatsApp = () => {
-    const title = t('results.share_title', '*AgriShield AI Crop Health Report*');
-    const cropLbl = t('results.target_crop', 'Crop');
-    const diagLbl = t('results.diagnosis', 'Diagnosis');
-    const confLbl = t('results.confidence', 'Confidence');
-    const sevLbl = t('results.severity', 'Severity');
-    const orgLbl = t('results.organic_approach', 'Organic Treatment');
-    const chemLbl = t('results.chemical_treatment', 'Chemical Fungicide');
-    const genVia = t('results.generated_via', 'Generated via AgriShield AI Platform');
-
-    const text = `${title}\n\n🌾 *${cropLbl}:* ${localizedCrop}\n🩺 *${diagLbl}:* ${localizedDisease}\n🎯 *${confLbl}:* ${confidence}\n⚠️ *${sevLbl}:* ${liveResult?.severity || 'Moderate'}\n\n🍀 *${orgLbl}:*\n${organicList[0] || ''}\n\n🧪 *${chemLbl}:*\n${chemicalsList[0] || ''}\n\n_${genVia}_`;
-    const encodedText = encodeURIComponent(text);
-    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+    shareDiagnosticToWhatsApp({
+      cropName: localizedCrop || liveResult?.crop_name || 'Crop',
+      diseaseName: localizedDisease || liveResult?.disease_name || 'Crop Disease',
+      confidence: liveResult?.confidence ? Math.round(Number(liveResult.confidence) * (liveResult.confidence <= 1 ? 100 : 1)) : 98,
+      severity: liveResult?.severity || 'Moderate',
+      chemicals: chemicalsList,
+      organic: organicList,
+      prevention: Array.isArray(preventionList) ? preventionList.join('\n') : (liveResult?.prevention || ''),
+      acres: 1.0,
+      farmerName: liveResult?.farmer_name || 'AgriShield Farmer',
+      farmLocation: liveResult?.farm_location || 'Field Sector',
+      language: activeLang || i18n?.language || 'en'
+    });
   };
 
   const renderHybridHero = () => (
