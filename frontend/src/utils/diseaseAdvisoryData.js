@@ -2196,7 +2196,6 @@ export function normalizeDiseaseKey(rawName = '', statusHint = '') {
   return cleanKey || (isHealthyCheck ? 'healthy' : 'blight');
 }
 
-  // Specific compound diseases FIRST:
 export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   let cropName = '';
   let diseaseName = '';
