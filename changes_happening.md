@@ -2,6 +2,17 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v184) - Authentic Agricultural Pesticide / Fungicide Bottle Photography
+- **Summary:** Replaced the pharmaceutical medicine tablet blister pack image with an authentic, high-resolution agricultural crop protection bottle photograph:
+  1. 🧴 **Authentic Agrochemical Bottle Asset (`frontend/public/products/agrochemical_bottle.jpg`):**
+     - Integrated a realistic agricultural crop protection chemical bottle ("CROP-GUARD PLUS Broad Spectrum Fungicide - Concentrate 1 Litre") complete with measuring cap, chemical hazard classification diamond, dosage rates in hectares, application guidelines, barcode, and green crop field with tractor in the background.
+  2. 🔗 **Photo Service Pipeline Synchronization (`frontend/src/services/photoService.js`):**
+     - Updated `CURATED_FARM_PHOTOS.agrochemical` to point directly to `/products/agrochemical_bottle.jpg`.
+     - Automatically renders in both the AI Scan Center overview card (`UploadImagePage.jsx`) and the navigation tab header (`ScanCenterTabs.jsx`).
+  3. 🏗️ **Full Production Build Verification:**
+     - Compiled 3,154 modules using Vite with zero build or syntax errors (`✓ built in 25.64s`, exit code 0).
+- **Files modified:** `frontend/public/products/agrochemical_bottle.jpg`, `frontend/src/services/photoService.js`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v183) - Authentic Agriculture Photography Thumbnails for AI Scan Modules
 - **Summary:** Replaced generic vector symbols (Bug, Sprout, Flask) across AI Scan Center overview cards and navigation tabs with authentic, curated agricultural photography:
   1. 📸 **Diagnostic Module Photography Pipeline (`photoService.js`):**
