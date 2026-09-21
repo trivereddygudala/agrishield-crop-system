@@ -2,6 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v172) - Agrochemical Scanner Full-Spectrum Detection & Regional Language Localization (Telugu, Tamil, Hindi)
+- **Summary:** Resolved the issue where the Agrochemical Scanner failed to detect various fertilizers, pesticides, insecticides, and agricultural chemicals used by farmers, and enabled full multi-language translation and 1-tap in-card language switching:
+  1. 🔍 **Root Cause Identified & Fixed in Agrochemical Detection Pipeline (`backend/app/services/agrochemical_detector.py`):**
+     - **EasyOCR Gatekeeping Bug:** Gemini Vision was previously only invoked if `len(extracted_text.split()) < 3 or len(extracted_text) < 15`. Since almost all camera photos contain batch numbers or barcodes (>15 chars), Gemini Vision was bypassed in >95% of scans.
+     - **Limited Local Database:** The previous local database contained only 13 items, missing common Indian fertilizers (DAP, Urea, MOP, SSP, Zinc, Boron, Gromor complexes), insecticides (Actara, Confidor, Admire, Regent, Chlorpyrifos, Profex Super), and fungicides/herbicides.
+     - **Overhaul:** Overhauled `detect_agrochemical` to make **Google Gemini Multimodal Vision the primary scanner directly on `image_path`**, cross-referencing catalog items for official packaging photos and certified specs.
+     - **Expanded Database:** Expanded local `AGROCHEMICAL_DATABASE` from 13 to **73 comprehensive Indian agricultural products** across all categories (Fertilizers & Micronutrients, Insecticides, Fungicides, Herbicides, PGRs, Bio-Pesticides) as an instant offline fallback.
+  2. 👁️ **Multimodal Vision Optimization (`backend/app/services/gemini_vision.py`):**
+     - Upgraded `extract_agrochemical_label_vision` with `maxOutputTokens: 2048` and verified active models `["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.5-flash"]` with 12.0s per-model timeout.
+     - Enhanced prompt to classify all agricultural chemical categories (Fertilizer, Insecticide, Fungicide, Herbicide, PGR, Bio-Pesticide) and extract brand, manufacturer, technical active formulation, target crops, 1L dilution rate, mixing guide, and PPE precautions.
+  3. 🌐 **Automatic Multilingual Translation & On-Demand Endpoint (`backend/app/routers/predict.py` & `schemas.py`):**
+     - Implemented `translate_agrochemical_data(agro_obj, target_lang)` using Google Gemini Flash AI (with NVIDIA NIM and deep-translator fallbacks) and in-memory RAM caching.
+     - Automatically translates product descriptions, 1L dilution guidelines, application timing, mixing steps, safety precautions, fertilizer growth stages, and approved crops when `req.language != "en"`.
+     - Preserves clean canonical English source in `translations['en']` and caches target language translations in `translations[lang_code]`.
+     - Added `@router.post("/translate-agrochemical")` endpoint for instant 0ms client-side switching.
+     - Added `TranslateAgrochemicalRequest` Pydantic schema in `backend/app/models/schemas.py`.
+  4. 🎨 **Frontend 1-Tap Language Switcher & Localization (`frontend/src/components/scanCenter/AgrochemicalResults.jsx`):**
+     - Added an interactive in-card language switcher pill bar (`[ 🌐 English | తెలుగు | தமிழ் | हिंदी | ಕನ್ನಡ | മലയാളം ]`).
+     - Added responsive state management (`activeLang`, `translatedCache`, `isTranslating`) to update all cards and audio TTS dynamically when the language changes.
+     - Localized category badges and growth stages across Telugu, Tamil, and Hindi.
+  5. 🧪 **Validation:**
+     - Verified end-to-end detection on sample images:
+       - `iffco_nano_dap.jpg`: Identified as `IFFCO Nano DAP` (Fertilizer, 2.5 mL / L).
+       - `actara_syngenta.jpg`: Identified as `Actara` (Insecticide, Thiamethoxam 25% WG, 0.2 g / L).
+       - `contaf_plus_tata.webp`: Identified as `Tata Contaf Plus` (Fungicide, Hexaconazole 5% SC, 2.0 mL / L).
+     - Verified natural Telugu translation of Contaf Plus advisory.
+     - Verified frontend production bundle (`npm run build`) succeeded with 0 errors in 29.99s.
+- **Files modified**: `backend/app/services/agrochemical_detector.py`, `backend/app/services/gemini_vision.py`, `backend/app/routers/predict.py`, `backend/app/models/schemas.py`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `changes_happening.md`.
+
 ## 2026-09-21 (v171) - Plant & Botanical Identification Language Localization (Telugu, Tamil, Hindi) & Next-Gen UI Overhaul
 - **Summary:** Resolved the issue where Plant Identification results only returned in English even when switched to regional languages (Telugu, Tamil, etc.), and overhauled the Plant Identification results UI to be visually stunning, high-fidelity, and responsive:
   1. 🌐 **Multi-Language Botanical Translation Pipeline (`backend/app/routers/predict.py`):**

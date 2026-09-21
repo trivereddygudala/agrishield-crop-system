@@ -116,8 +116,8 @@ Do NOT output any conversational text or markdown explanation outside the JSON o
 
 async def extract_agrochemical_label_vision(image_path: str) -> Optional[Dict[str, Any]]:
     """
-    Reads commercial agrochemical bottle or pouch labels directly using Gemini Vision.
-    Extracts brand, active ingredients, category (Fungicide/Insecticide/Fertilizer/etc.),
+    Reads commercial agrochemical bottle, packet, sack, or canister labels directly using Gemini Vision.
+    Extracts brand, manufacturer, active ingredients, category (Fertilizer/Insecticide/Fungicide/Herbicide/PGR/Bio-Pesticide),
     detailed description, target crops, fertilizer growth stages, 4 mixing steps, and PPE guidelines.
     """
     gemini_key = getattr(settings, "GEMINI_API_KEY", "")
@@ -132,20 +132,29 @@ async def extract_agrochemical_label_vision(image_path: str) -> Optional[Dict[st
             image_bytes = f.read()
         b64_img = base64.b64encode(image_bytes).decode("utf-8")
 
-        prompt = """You are an expert agricultural chemist and agrochemical packaging inspector.
-Read all visible text on this commercial agrochemical bottle, packet, or canister.
+        prompt = """You are an expert agricultural scientist, chemist, and agrochemical packaging inspector.
+Analyze this photo of an agricultural chemical container, bottle, carton, sachet, or fertilizer bag.
+Read all visible text, logos, formulations, and Indian regional scripts (Hindi, Telugu, Tamil, Marathi, English).
 
-Extract and return ONLY a valid JSON object matching this exact structure:
+Accurately classify the product into one of the following exact categories:
+- 'Fertilizer' (e.g., Urea, DAP 18-46-0, MOP 0-0-60, NPK complexes, Nano Urea, Nano DAP, Chelated Micronutrients, Zinc, Boron)
+- 'Insecticide' (e.g., Coragen, Actara, Confidor, Admire, Regent, Tracer, Chlorpyrifos, Profenofos, Monocrotophos)
+- 'Fungicide' (e.g., SAAF, Bavistin, Indofil M-45, Blitox 50, Contaf Plus, Tilt, Score, Nativo, Amistar Top, Ridomil Gold)
+- 'Herbicide' (e.g., Roundup / Glyphosate, Gramoxone / Paraquat, Stomp / Pendimethalin, Nominee Gold, 2,4-D, Rifit)
+- 'Plant Growth Regulator' (e.g., Gibberellic Acid GA3, Cultar / Paclobutrazol, Planofix NAA, Lihocin)
+- 'Bio-Pesticide' (e.g., Neem Oil, Azadirachtin, Trichoderma, Pseudomonas)
+
+Extract and return ONLY a valid JSON object matching this structure:
 {
-  "brand_name": "<Commercial Brand Name on the package, e.g. Coragen, SAAF, Amistar Top, Tracer, Mahadhan 19:19:19>",
-  "manufacturer": "<Company / Manufacturer name, e.g. FMC, UPL, Syngenta, Bayer, Mahadhan>",
-  "active_ingredients": "<Technical Active chemical formulation with %, e.g. Chlorantraniliprole 18.5% SC, Mancozeb 64% + Carbendazim 12% WP, NPK 19:19:19>",
-  "product_type": "<Fungicide / Insecticide / Herbicide / Fertilizer / Plant Growth Regulator>",
-  "detailed_description": "<3 to 6 comprehensive sentences describing the product, technical mode of action, active molecules, and systemic/contact properties>",
+  "brand_name": "<Commercial Brand Name on the package, e.g. Coragen, SAAF, Amistar Top, Tracer, IFFCO Nano DAP, Gromor 14-35-14, Urea>",
+  "manufacturer": "<Company / Manufacturer name, e.g. FMC, UPL, Syngenta, Bayer, IFFCO, Coromandel, Tata Rallis>",
+  "active_ingredients": "<Technical Active chemical formulation with %, e.g. Chlorantraniliprole 18.5% SC, Mancozeb 64% + Carbendazim 12% WP, Nano Di-Ammonium Phosphate 8:16:0, Nitrogen 46%>",
+  "product_type": "<Fertilizer / Insecticide / Fungicide / Herbicide / Plant Growth Regulator / Bio-Pesticide>",
+  "detailed_description": "<3 to 6 comprehensive sentences describing the product, technical mode of action, active molecules, and systemic/contact or nutritional properties>",
   "target_crops": ["<Crop 1>", "<Crop 2>", "<Crop 3>"],
-  "target_diseases_and_pests": ["<Target pest or disease 1>", "<Target pest or disease 2>"],
-  "dilution_rate_per_litre": "<Exact dilution per 1 Litre of clean water only, e.g. 0.4 mL / L or 2.0 g / L. Do NOT write per acre or 20L pump>",
-  "spray_interval": "<Repeat spray frequency, e.g. Repeat after 10 to 14 days if disease or pest pressure continues>",
+  "target_diseases_and_pests": ["<Target pest, disease, or deficiency 1>", "<Target pest, disease, or deficiency 2>"],
+  "dilution_rate_per_litre": "<Exact dilution per 1 Litre of clean water only, e.g. 0.4 mL / L or 2.0 g / L or 2.5 mL / L. Do NOT write per acre or 20L pump>",
+  "spray_interval": "<Repeat spray frequency, e.g. Repeat after 10 to 14 days if disease or pest pressure continues, or at critical growth stages for fertilizer>",
   "preharvest_interval_days": 14,
   "fertilizer_growth_stages": {
     "vegetative": "<How it helps in vegetative stage, e.g. rapid root expansion, vigorous tillering, and healthy foliage growth>",
@@ -166,9 +175,9 @@ Extract and return ONLY a valid JSON object matching this exact structure:
     "Wash hands, face, and spray equipment thoroughly with clean water and soap immediately after spraying."
   ],
   "toxicity_hazard": "<Green (Caution) / Blue (Warning) / Yellow (Danger) / Red (Poison)>",
-  "extracted_text_summary": "<Key visible words and text extracted from the label>"
+  "extracted_text_summary": "<Key visible words, numbers, and text extracted from the label>"
 }
-Do NOT output conversational text or markdown explanation outside the JSON object."""
+Do NOT output any markdown blocks or conversational text outside the JSON object."""
 
         payload = {
             "contents": [{
@@ -179,11 +188,15 @@ Do NOT output conversational text or markdown explanation outside the JSON objec
             }],
             "generationConfig": {
                 "temperature": 0.1,
-                "maxOutputTokens": 800
+                "maxOutputTokens": 2048
             }
         }
 
-        models_to_try = ["gemini-flash-latest", "gemini-flash-lite-latest"]
+        models_to_try = [
+            "gemini-flash-latest",
+            "gemini-flash-lite-latest",
+            "gemini-3.5-flash"
+        ]
         async with httpx.AsyncClient(timeout=12.0) as client:
             for model_name in models_to_try:
                 try:

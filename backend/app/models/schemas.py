@@ -145,6 +145,10 @@ class TranslatePlantRequest(BaseModel):
     plant: dict = Field(..., description="Plant botanical dictionary to translate")
     language: str = Field(default="en", description="Target language code (e.g. te, ta, hi, kn, ml, mr)")
 
+class TranslateAgrochemicalRequest(BaseModel):
+    agrochemical: dict = Field(..., description="Agrochemical data dictionary to translate")
+    language: str = Field(default="en", description="Target language code (e.g. te, ta, hi, kn, ml, mr)")
+
 class PredictBatchRequest(BaseModel):
     image_paths: List[str] = Field(..., min_length=1, max_length=10, description="List of image paths for multi-leaf field plot scan")
     sample_labels: Optional[List[str]] = Field(default_factory=list, description="Optional labels for samples like 'North-East Corner', 'Center Plot'")

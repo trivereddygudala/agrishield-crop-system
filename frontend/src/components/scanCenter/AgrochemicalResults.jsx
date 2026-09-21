@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FlaskConical, ClipboardList, ShieldAlert, Sparkles, Volume2, VolumeX, 
   CheckCircle2, Clock, Droplets, AlertTriangle, ShieldCheck, Info,
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
-  ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield
+  ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
+import API from '../../services/api';
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', label: 'English', native: 'English' },
+  { code: 'te', label: 'Telugu', native: 'తెలుగు' },
+  { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
+  { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
+  { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
+  { code: 'ml', label: 'Malayalam', native: 'മലയാളം' }
+];
 
 const AgrochemicalResults = ({ data = {} }) => {
   const { t, i18n } = useTranslation();
@@ -17,27 +27,82 @@ const AgrochemicalResults = ({ data = {} }) => {
   const [showImageZoom, setShowImageZoom] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
-  // Extract the core structured sections with intelligent fallbacks
-  const productDetails = data?.product_details || data?.info?.product_details || {
-    brand_name: data?.productName || data?.info?.product_name || "Certified Agricultural Product",
-    company: data?.brand || data?.info?.brand || "Registered Manufacturer",
-    active_ingredient: data?.activeIngredient || data?.info?.active_ingredients || "Active Plant Protection Formulation",
-    category_type: data?.category_type || data?.info?.category_type || "Pesticide",
-    is_fertilizer: data?.is_fertilizer || data?.info?.is_fertilizer || false,
-    detailed_description: data?.detailed_description || data?.info?.detailed_description || "",
-    formulation: data?.formulation || data?.info?.formulation || "Wettable Powder / Liquid Formulation",
-    batch_number: data?.batchNumber || data?.info?.batch_number || "Verified Authentic Batch",
-    mfg_date: data?.mfgDate || data?.info?.mfg_date || "Recent Manufacturing",
-    exp_date: data?.expDate || data?.info?.exp_date || "Best before 24-36 months",
-    net_quantity: data?.netQuantity || data?.info?.net_qty || "Standard Commercial Pack",
-    registration_number: data?.registrationNumber || data?.info?.registration_number || "CIR-Verified",
-    hazard_color: data?.info?.hazard_color || "#16a34a",
-    toxicity_class: data?.toxicityClass || data?.info?.toxicity_level || "Class III - Caution (Green/Blue Triangle)",
-    image_url: data?.info?.image_url || "/samples/fertilizer_01.jpg"
+  // Multilingual State & Translation Cache
+  const [activeLang, setActiveLang] = useState(currentLang || 'en');
+  const [translatedCache, setTranslatedCache] = useState(() => data?.translations || {});
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  // Sync cache and active language with incoming data props
+  useEffect(() => {
+    if (data?.translations) {
+      setTranslatedCache(prev => ({ ...prev, ...data.translations }));
+    }
+    if (data?.current_language) {
+      setActiveLang(data.current_language);
+    }
+  }, [data]);
+
+  // Request on-demand translation if user selects a language not yet in cache
+  useEffect(() => {
+    if (activeLang === 'en') return;
+    if (translatedCache[activeLang]) return;
+
+    let isMounted = true;
+    const fetchTranslation = async () => {
+      setIsTranslating(true);
+      try {
+        const res = await API.post('/api/translate-agrochemical', {
+          agrochemical: data,
+          language: activeLang
+        });
+        if (isMounted && res.data?.success && res.data?.agrochemical) {
+          setTranslatedCache(prev => ({
+            ...prev,
+            [activeLang]: res.data.agrochemical
+          }));
+        }
+      } catch (err) {
+        console.warn("On-demand agrochemical translation failed:", err);
+      } finally {
+        if (isMounted) setIsTranslating(false);
+      }
+    };
+
+    fetchTranslation();
+    return () => { isMounted = false; };
+  }, [activeLang, data, translatedCache]);
+
+  const handleLanguageSelect = (langCode) => {
+    setActiveLang(langCode);
+    i18n.changeLanguage(langCode);
+    localStorage.setItem('i18nextLng', langCode);
+    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: langCode } }));
   };
 
-  const userInstructions = data?.user_instructions || data?.info?.user_instructions || {
-    dilution_rate_per_litre: data?.mixingRatio || data?.dosage || data?.info?.recommended_dosage || "2.0 mL or 2.5 g / L of clean water",
+  // Active localized data object (cached translation or raw data)
+  const activeData = translatedCache[activeLang] || data;
+
+  // Extract the core structured sections with intelligent fallbacks
+  const productDetails = activeData?.product_details || activeData?.info?.product_details || {
+    brand_name: activeData?.productName || activeData?.info?.product_name || "Certified Agricultural Product",
+    company: activeData?.brand || activeData?.info?.brand || "Registered Manufacturer",
+    active_ingredient: activeData?.activeIngredient || activeData?.info?.active_ingredients || "Active Plant Protection Formulation",
+    category_type: activeData?.category_type || activeData?.info?.category_type || "Pesticide",
+    is_fertilizer: activeData?.is_fertilizer || activeData?.info?.is_fertilizer || false,
+    detailed_description: activeData?.detailed_description || activeData?.info?.detailed_description || "",
+    formulation: activeData?.formulation || activeData?.info?.formulation || "Wettable Powder / Liquid Formulation",
+    batch_number: activeData?.batchNumber || activeData?.info?.batch_number || "Verified Authentic Batch",
+    mfg_date: activeData?.mfgDate || activeData?.info?.mfg_date || "Recent Manufacturing",
+    exp_date: activeData?.expDate || activeData?.info?.exp_date || "Best before 24-36 months",
+    net_quantity: activeData?.netQuantity || activeData?.info?.net_qty || "Standard Commercial Pack",
+    registration_number: activeData?.registrationNumber || activeData?.info?.registration_number || "CIR-Verified",
+    hazard_color: activeData?.info?.hazard_color || "#16a34a",
+    toxicity_class: activeData?.toxicityClass || activeData?.info?.toxicity_level || "Class III - Caution (Green/Blue Triangle)",
+    image_url: activeData?.info?.image_url || "/samples/fertilizer_01.jpg"
+  };
+
+  const userInstructions = activeData?.user_instructions || activeData?.info?.user_instructions || {
+    dilution_rate_per_litre: activeData?.mixingRatio || activeData?.dosage || activeData?.info?.recommended_dosage || "2.0 mL or 2.5 g / L of clean water",
     mixing_guide: [
       "1. Take 2 to 3 litres of fresh, clean water in a dedicated plastic mixing bucket.",
       "2. Accurately measure the recommended product dose using a clean measuring cup or scoop.",
@@ -46,7 +111,7 @@ const AgrochemicalResults = ({ data = {} }) => {
       "5. Agitate the tank gently and apply as a uniform fine mist covering both upper and lower leaf surfaces."
     ],
     best_spray_timing: "Early morning (6:00 AM – 9:00 AM) or late afternoon / evening (4:30 PM – 6:30 PM). Avoid peak midday sunlight and wind to prevent rapid chemical evaporation and crop scorch.",
-    spray_interval: data?.sprayInterval || data?.info?.spray_interval || "Repeat after 10 to 14 days if disease or pest pressure persists.",
+    spray_interval: activeData?.sprayInterval || activeData?.info?.spray_interval || "Repeat after 10 to 14 days if disease or pest pressure persists.",
     ppe_precautions: [
       "Wear chemical-resistant nitrile or neoprene rubber gloves during measuring, mixing, and spraying.",
       "Wear protective safety goggles or a transparent face shield to prevent accidental splashes.",
@@ -56,62 +121,62 @@ const AgrochemicalResults = ({ data = {} }) => {
     is_fertilizer: false
   };
 
-  const chemicalExplanation = data?.chemical_explanation || data?.info?.chemical_explanation || {
-    category_type: data?.category_type || data?.info?.category_type || "Pesticide",
-    is_fertilizer: data?.is_fertilizer || data?.info?.is_fertilizer || false,
-    fertilizer_growth_stages: data?.fertilizer_growth_stages || data?.info?.fertilizer_growth_stages || null,
-    action_mode: data?.info?.action_mode || data?.category || data?.info?.product_type || "Dual Action Protective & Curative Formulation",
-    approved_crops: data?.info?.target_crops || ["Tomato", "Chilli", "Paddy", "Cotton", "Vegetables"],
-    target_diseases_and_pests: data?.info?.target_diseases || ["Fungal Blights", "Leaf Spots", "Mildew", "Insect Pests"],
-    preharvest_interval: data?.info?.preharvest_interval ? `${data.info.preharvest_interval} mandatory waiting period before harvest.` : "14 days waiting period before crop harvest.",
+  const chemicalExplanation = activeData?.chemical_explanation || activeData?.info?.chemical_explanation || {
+    category_type: activeData?.category_type || activeData?.info?.category_type || "Pesticide",
+    is_fertilizer: activeData?.is_fertilizer || activeData?.info?.is_fertilizer || false,
+    fertilizer_growth_stages: activeData?.fertilizer_growth_stages || activeData?.info?.fertilizer_growth_stages || null,
+    action_mode: activeData?.info?.action_mode || activeData?.category || activeData?.info?.product_type || "Dual Action Protective & Curative Formulation",
+    approved_crops: activeData?.info?.target_crops || ["Tomato", "Chilli", "Paddy", "Cotton", "Vegetables"],
+    target_diseases_and_pests: activeData?.info?.target_diseases || ["Fungal Blights", "Leaf Spots", "Mildew", "Insect Pests"],
+    preharvest_interval: activeData?.info?.preharvest_interval ? `${activeData.info.preharvest_interval} mandatory waiting period before harvest.` : "14 days waiting period before crop harvest.",
     utility_and_benefits: "Delivers rapid, targeted foliar protection by inhibiting pathogen cell metabolism and halting pest damage, protecting overall crop yield."
   };
 
   // Determine Product Category Classification
   const getCategoryMeta = () => {
-    const rawCategory = productDetails?.category_type || chemicalExplanation?.category_type || data?.category_type || data?.info?.category_type || '';
+    const rawCategory = productDetails?.category_type || chemicalExplanation?.category_type || activeData?.category_type || activeData?.info?.category_type || '';
     const text = `${productDetails?.brand_name} ${productDetails?.active_ingredient} ${chemicalExplanation?.action_mode} ${rawCategory}`.toLowerCase();
 
-    if (rawCategory === 'Fertilizer' || text.includes('fertiliz') || text.includes('urea') || text.includes('npk') || text.includes('nutrient')) {
+    if (rawCategory === 'Fertilizer' || text.includes('fertiliz') || text.includes('urea') || text.includes('npk') || text.includes('nutrient') || text.includes('పోషక') || text.includes('ఎరువు')) {
       return {
         type: 'Fertilizer',
-        label: 'Fertilizer & Plant Nutrition',
+        label: activeLang === 'te' ? 'ఎరువు & మొక్కల పోషణ' : activeLang === 'ta' ? 'உரம் & தாவர ஊட்டச்சத்து' : activeLang === 'hi' ? 'उर्वरक एवं पादप पोषण' : 'Fertilizer & Plant Nutrition',
         icon: '🌱',
         badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-emerald-950/40',
         textColor: 'text-emerald-400'
       };
     }
-    if (rawCategory === 'Fungicide' || text.includes('fungicid') || text.includes('blight') || text.includes('mancozeb') || text.includes('saaf') || text.includes('copper') || text.includes('mildew')) {
+    if (rawCategory === 'Fungicide' || text.includes('fungicid') || text.includes('blight') || text.includes('mancozeb') || text.includes('saaf') || text.includes('copper') || text.includes('mildew') || text.includes('శిలీంధ్ర') || text.includes('తెగులు')) {
       return {
         type: 'Fungicide',
-        label: 'Fungicide (Fungal Disease Control)',
+        label: activeLang === 'te' ? 'శిలీంద్ర సంహారిణి (తెగుళ్ల నివారణ)' : activeLang === 'ta' ? 'பூஞ்சைக்கொல்லி (பூஞ்சை நோய் தடுப்பு)' : activeLang === 'hi' ? 'कवकनाशी (फफूंद रोग नियंत्रण)' : 'Fungicide (Fungal Disease Control)',
         icon: '🍄',
         badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-rose-950/40',
         textColor: 'text-rose-400'
       };
     }
-    if (rawCategory === 'Insecticide' || text.includes('insecticid') || text.includes('coragen') || text.includes('confidor') || text.includes('imidacloprid') || text.includes('pest') || text.includes('thrips')) {
+    if (rawCategory === 'Insecticide' || text.includes('insecticid') || text.includes('coragen') || text.includes('confidor') || text.includes('imidacloprid') || text.includes('pest') || text.includes('thrips') || text.includes('పురుగు') || text.includes('కీటక')) {
       return {
         type: 'Insecticide',
-        label: 'Insecticide (Pest & Insect Control)',
+        label: activeLang === 'te' ? 'పురుగుమందు (కీటకాల నివారణ)' : activeLang === 'ta' ? 'பூச்சிக்கொல்லி (பூச்சி கட்டுப்பாடு)' : activeLang === 'hi' ? 'कीटनाशक (कीट नियंत्रण)' : 'Insecticide (Pest & Insect Control)',
         icon: '🐛',
         badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-amber-950/40',
         textColor: 'text-amber-400'
       };
     }
-    if (rawCategory === 'Herbicide' || text.includes('herbicid') || text.includes('weed') || text.includes('glyphosate')) {
+    if (rawCategory === 'Herbicide' || text.includes('herbicid') || text.includes('weed') || text.includes('glyphosate') || text.includes('కలుపు')) {
       return {
         type: 'Herbicide',
-        label: 'Herbicide (Weed & Grass Control)',
+        label: activeLang === 'te' ? 'కలుపు మందు (కలుపు మొక్కల నివారణ)' : activeLang === 'ta' ? 'களைக்கொல்லி (களை கட்டுப்பாடு)' : activeLang === 'hi' ? 'शाकनाशी (खरपतवार नियंत्रण)' : 'Herbicide (Weed & Grass Control)',
         icon: '🌿',
         badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-purple-950/40',
         textColor: 'text-purple-400'
       };
     }
-    if (rawCategory === 'Plant Growth Regulator' || text.includes('growth regulator') || text.includes('pgr')) {
+    if (rawCategory === 'Plant Growth Regulator' || text.includes('growth regulator') || text.includes('pgr') || text.includes('వృద్ధి')) {
       return {
         type: 'Plant Growth Regulator',
-        label: 'Plant Growth Regulator (PGR)',
+        label: activeLang === 'te' ? 'మొక్కల వృద్ధి నియంత్రకం (PGR)' : activeLang === 'ta' ? 'தாவர வளர்ச்சி சீராக்கி (PGR)' : activeLang === 'hi' ? 'पादप वृद्धि नियामक (PGR)' : 'Plant Growth Regulator (PGR)',
         icon: '📈',
         badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-cyan-950/40',
         textColor: 'text-cyan-400'
@@ -119,7 +184,7 @@ const AgrochemicalResults = ({ data = {} }) => {
     }
     return {
       type: 'Pesticide',
-      label: 'Agricultural Crop Protection / Pesticide',
+      label: activeLang === 'te' ? 'వ్యవసాయ పంట సంరక్షణ మందు' : activeLang === 'ta' ? 'பயிர் பாதுகாப்பு மருந்து' : activeLang === 'hi' ? 'कृषि फसल सुरक्षा उत्पाद' : 'Agricultural Crop Protection / Pesticide',
       icon: '🧪',
       badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-blue-950/40',
       textColor: 'text-blue-400'
@@ -131,9 +196,15 @@ const AgrochemicalResults = ({ data = {} }) => {
 
   // Fertilizer Growth Stages Data
   const growthStages = chemicalExplanation?.fertilizer_growth_stages || {
-    vegetative_stage: "Supports vigorous root establishment, rapid shoot tillering, and deep chlorophyll synthesis. Apply during early vegetative flush to build a strong canopy foundation.",
-    flowering_stage: "Enhances floral bud formation, prevents premature flower drop, and boosts pollen fertility for maximum pollination success.",
-    fruiting_stage: "Promotes uniform fruit enlargement, grain filling, sugar accumulation, pulp density, and optimal post-harvest firmness."
+    vegetative_stage: activeLang === 'te'
+      ? "బలమైన వేరు వ్యవస్థ, కొత్త పిలకల ఏర్పాటు మరియు పత్రహరిత తయారీకి తోడ్పడుతుంది."
+      : "Supports vigorous root establishment, rapid shoot tillering, and deep chlorophyll synthesis. Apply during early vegetative flush to build a strong canopy foundation.",
+    flowering_stage: activeLang === 'te'
+      ? "పూత రాలడాన్ని అరికట్టి, ఎక్కువ మొగ్గలు రావడానికి మరియు ఫలదీకరణకు సహాయపడుతుంది."
+      : "Enhances floral bud formation, prevents premature flower drop, and boosts pollen fertility for maximum pollination success.",
+    fruiting_stage: activeLang === 'te'
+      ? "కాయలు బరువు పెరగడానికి, రంగు, నాణ్యత మరియు గింజ నిండుదనానికి దోహదం చేస్తుంది."
+      : "Promotes uniform fruit enlargement, grain filling, sugar accumulation, pulp density, and optimal post-harvest firmness."
   };
 
   // Detailed Description Text
@@ -143,19 +214,56 @@ const AgrochemicalResults = ({ data = {} }) => {
     `${productDetails.brand_name} is a high-grade agricultural product manufactured by ${productDetails.company}. It delivers targeted plant protection and health optimization through ${chemicalExplanation.action_mode.toLowerCase()}.`;
 
   // Determine detection source
-  const isWebSearch = data?.source === 'live_web_search' || productDetails?.verification_source === 'live_web_search';
-  const isCatalog = data?.source === 'catalog' || productDetails?.verification_source === 'catalog';
-  const isGeminiVision = data?.gemini_vision_used || productDetails?.gemini_vision_used || data?.source === 'gemini_vision_ocr';
+  const isWebSearch = activeData?.source === 'live_web_search' || productDetails?.verification_source === 'live_web_search';
+  const isCatalog = activeData?.source === 'catalog' || productDetails?.verification_source === 'catalog';
+  const isGeminiVision = activeData?.gemini_vision_used || productDetails?.gemini_vision_used || activeData?.source === 'gemini_vision_ocr';
 
   // Build high-clarity speech summary
-  const agroSpeech = currentLang === 'te'
+  const agroSpeech = activeLang === 'te'
     ? `${productDetails.brand_name}, వర్గం: ${categoryMeta.label}, కంపెనీ: ${productDetails.company}. క్రియాశీల రసాయనం: ${productDetails.active_ingredient}. ఉపయోగించే మోతాదు: లీటరు నీటికి ${userInstructions.dilution_rate_per_litre}. పిచికారీ సమయం: ఉదయం లేదా సాయంత్రం.`
-    : currentLang === 'hi'
+    : activeLang === 'ta'
+    ? `${productDetails.brand_name}, வகை: ${categoryMeta.label}, நிறுவனம்: ${productDetails.company}. தீவிர மூலக்கூறு: ${productDetails.active_ingredient}. அளவு: ஒரு லிட்டர் தண்ணீருக்கு ${userInstructions.dilution_rate_per_litre}.`
+    : activeLang === 'hi'
     ? `${productDetails.brand_name}, श्रेणी: ${categoryMeta.label}, कंपनी: ${productDetails.company}. सक्रिय रसायन: ${productDetails.active_ingredient}. उपयोग दर: प्रति लीटर पानी में ${userInstructions.dilution_rate_per_litre}. छिड़काव का समय: सुबह या शाम.`
+    : activeLang === 'kn'
+    ? `${productDetails.brand_name}, ವರ್ಗ: ${categoryMeta.label}, ಕಂಪನಿ: ${productDetails.company}. ಸಕ್ರಿಯ ಪದಾರ್ಥ: ${productDetails.active_ingredient}. ಪ್ರಮಾಣ: ಪ್ರತಿ ಲೀಟರ್ ನೀರಿಗೆ ${userInstructions.dilution_rate_per_litre}.`
     : `${productDetails.brand_name}, Category: ${categoryMeta.type}, by ${productDetails.company}. Active ingredient: ${productDetails.active_ingredient}. Recommended dilution: ${userInstructions.dilution_rate_per_litre}.`;
 
   return (
     <div className="space-y-4">
+      {/* Quick Regional Language Switcher Pill Bar */}
+      <div className="flex items-center justify-between gap-3 p-3 bg-slate-900/95 dark:bg-slate-900/95 rounded-2xl border border-indigo-500/30 shadow-lg flex-wrap">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+          <Globe className="w-4 h-4 text-emerald-400" />
+          <span className="hidden sm:inline">Advisory Language:</span>
+          {isTranslating && (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-300 animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Translating...
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {SUPPORTED_LANGUAGES.map(lang => {
+            const isSelected = activeLang === lang.code;
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => handleLanguageSelect(lang.code)}
+                disabled={isTranslating}
+                className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/25 scale-105 border border-emerald-400'
+                    : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70'
+                }`}
+              >
+                <span>{lang.native}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Header Banner with Distinct Category Classification */}
       <Card className="p-5 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-900 text-white border border-indigo-500/30 shadow-2xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
@@ -165,7 +273,6 @@ const AgrochemicalResults = ({ data = {} }) => {
               <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-md flex items-center gap-1.5 ${categoryMeta.badgeColor}`}>
                 <span>{categoryMeta.icon}</span> {categoryMeta.label}
               </span>
-
               {isWebSearch ? (
                 <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-cyan-300 border-cyan-400/40 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
                   🌐 Live Web & AI Verified

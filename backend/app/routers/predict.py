@@ -4,6 +4,7 @@ import uuid
 import shutil
 import logging
 import asyncio
+import copy
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -22,6 +23,7 @@ from backend.app.models.schemas import (
     PredictRequest,
     PredictBatchRequest,
     TranslatePlantRequest,
+    TranslateAgrochemicalRequest,
     AgrochemicalCompareRequest,
     CropAdvisorRequest
 )
@@ -478,6 +480,204 @@ Fields to translate:
     return translated_plant
 
 
+async def translate_agrochemical_data(agro_obj: dict, target_lang: str) -> dict:
+    """
+    Translates agrochemical product details, dilution instructions, and safety advisory
+    into the user's requested regional language (e.g. Telugu, Tamil, Hindi, Kannada, etc.).
+    Maintains a multi-language translations map so clients can toggle instantaneously.
+    """
+    if not agro_obj or not target_lang or target_lang.lower().startswith("en"):
+        return agro_obj
+
+    lang_code = target_lang.lower().split("-")[0].strip()
+
+    # Check cache
+    translations = agro_obj.get("translations", {})
+    if isinstance(translations, dict) and lang_code in translations:
+        cached = translations[lang_code].copy()
+        cached["translations"] = translations
+        return cached
+
+    # Source English object
+    source_obj = agro_obj.get("translations", {}).get("en", agro_obj)
+    english_version = copy.deepcopy(source_obj)
+
+    prod_details = source_obj.get("product_details", {}) or {}
+    user_instr = source_obj.get("user_instructions", {}) or {}
+    chem_expl = source_obj.get("chemical_explanation", {}) or {}
+    growth_stages = chem_expl.get("fertilizer_growth_stages") or {}
+
+    fields_to_translate = {
+        "detailed_description": prod_details.get("detailed_description", ""),
+        "action_mode": chem_expl.get("action_mode", ""),
+        "utility_and_benefits": chem_expl.get("utility_and_benefits", ""),
+        "preharvest_interval": chem_expl.get("preharvest_interval", ""),
+        "best_spray_timing": user_instr.get("best_spray_timing", ""),
+        "spray_interval": user_instr.get("spray_interval", ""),
+        "mixing_guide": user_instr.get("mixing_guide", []),
+        "ppe_precautions": user_instr.get("ppe_precautions", []),
+        "veg_stage": growth_stages.get("vegetative_stage", "") if isinstance(growth_stages, dict) else "",
+        "bloom_stage": growth_stages.get("flowering_stage", "") if isinstance(growth_stages, dict) else "",
+        "fruit_stage": growth_stages.get("fruiting_stage", "") if isinstance(growth_stages, dict) else "",
+        "approved_crops": chem_expl.get("approved_crops", []),
+        "target_diseases_and_pests": chem_expl.get("target_diseases_and_pests", []),
+        "farmer_tips": source_obj.get("farmer_tips", []),
+        "dosage": source_obj.get("dosage", ""),
+        "safety_instructions": source_obj.get("safety_instructions", ""),
+        "mixing_instructions": source_obj.get("mixing_instructions", "")
+    }
+
+    fields_to_send = {k: v for k, v in fields_to_translate.items() if v}
+
+    lang_names = {
+        "te": "Telugu (తెలుగు)",
+        "ta": "Tamil (தமிழ்)",
+        "hi": "Hindi (हिन्दी)",
+        "kn": "Kannada (ಕನ್ನಡ)",
+        "ml": "Malayalam (മലയാളം)",
+        "mr": "Marathi (मराठी)",
+        "gu": "Gujarati (ગુજરાતી)",
+        "pa": "Punjabi (ਪੰਜਾਬੀ)",
+        "ur": "Urdu (اردو)",
+        "bn": "Bengali (বাংলা)",
+        "or": "Odia (ଓଡ଼ిଆ)",
+        "as": "Assamese (অসমীয়া)"
+    }
+    target_lang_name = lang_names.get(lang_code, "Indian regional language")
+    translated_fields = {}
+
+    # 1. Primary: Google Gemini Flash Multimodal AI (1,000,000 TPM official quota)
+    try:
+        from backend.app.services.nvidia_service import nvidia_service
+        import json as _json
+        prompt = f"""You are an expert agronomic translator for Indian farmers.
+Translate the following agrochemical advisory, dosage guidelines, mixing steps, and safety precautions into {target_lang_name}.
+CRITICAL RULES:
+1. Preserve all JSON keys exactly as-is in English.
+2. Only translate the text values into natural, farmer-friendly {target_lang_name}.
+3. Keep technical chemical names and numbers/units (e.g. 1 L, 2.0 mL, 2.5 g, Mancozeb, NPK 19-19-19) clear and identifiable.
+4. For lists, return a list of translated strings.
+5. Return ONLY a valid JSON object without markdown or conversational text.
+
+Fields to translate:
+{_json.dumps(fields_to_send, ensure_ascii=False, indent=2)}
+"""
+        msgs = [{"role": "user", "content": prompt}]
+        raw_gemini_resp = await nvidia_service._call_gemini_flash(msgs, max_tokens=2048, temperature=0.1)
+        if raw_gemini_resp:
+            cleaned_text = raw_gemini_resp.strip()
+            if "```json" in cleaned_text:
+                cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in cleaned_text:
+                cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
+            parsed = _json.loads(cleaned_text)
+            if isinstance(parsed, dict) and len(parsed) > 0:
+                translated_fields = parsed
+    except Exception as gemini_err:
+        print(f"Gemini agrochemical translation failed: {gemini_err}")
+
+    # 2. Secondary: NVIDIA NIM LLM Translation
+    if not translated_fields:
+        try:
+            from backend.app.services.nvidia_service import nvidia_service
+            if nvidia_service and nvidia_service.client:
+                translated_fields = await nvidia_service.translate_diagnosis(fields_to_send, lang_code)
+        except Exception as e:
+            print("NVIDIA translation fallback failed:", e)
+
+    # 3. Tertiary: Deep-Translator fallback
+    is_untranslated = (
+        not translated_fields or
+        (fields_to_send.get("detailed_description") and translated_fields.get("detailed_description") == fields_to_send.get("detailed_description"))
+    )
+    if is_untranslated:
+        try:
+            from deep_translator import GoogleTranslator
+            translator = GoogleTranslator(source='auto', target=lang_code)
+
+            def _translate_str(text):
+                if not text or str(text).strip() in ["", "None", "N/A"]:
+                    return text
+                ck = f"{lang_code}:{str(text).strip()}"
+                if ck in _TRANSLATION_CACHE:
+                    return _TRANSLATION_CACHE[ck]
+                try:
+                    res = translator.translate(str(text))
+                    if res:
+                        _TRANSLATION_CACHE[ck] = res
+                        return res
+                    return text
+                except Exception:
+                    return text
+
+            for k, v in fields_to_send.items():
+                if isinstance(v, list):
+                    translated_fields[k] = [_translate_str(item) for item in v]
+                elif isinstance(v, str):
+                    translated_fields[k] = _translate_str(v)
+        except Exception as deep_err:
+            print("deep_translator fallback failed for agrochemical:", deep_err)
+
+    # Reconstruct translated agrochemical dictionary
+    translated_agro = copy.deepcopy(source_obj)
+
+    # Update nested sections
+    if "product_details" in translated_agro and isinstance(translated_agro["product_details"], dict):
+        if "detailed_description" in translated_fields:
+            translated_agro["product_details"]["detailed_description"] = translated_fields["detailed_description"]
+
+    if "user_instructions" in translated_agro and isinstance(translated_agro["user_instructions"], dict):
+        if "best_spray_timing" in translated_fields:
+            translated_agro["user_instructions"]["best_spray_timing"] = translated_fields["best_spray_timing"]
+        if "spray_interval" in translated_fields:
+            translated_agro["user_instructions"]["spray_interval"] = translated_fields["spray_interval"]
+        if "mixing_guide" in translated_fields and isinstance(translated_fields["mixing_guide"], list):
+            translated_agro["user_instructions"]["mixing_guide"] = translated_fields["mixing_guide"]
+        if "ppe_precautions" in translated_fields and isinstance(translated_fields["ppe_precautions"], list):
+            translated_agro["user_instructions"]["ppe_precautions"] = translated_fields["ppe_precautions"]
+
+    if "chemical_explanation" in translated_agro and isinstance(translated_agro["chemical_explanation"], dict):
+        if "action_mode" in translated_fields:
+            translated_agro["chemical_explanation"]["action_mode"] = translated_fields["action_mode"]
+        if "utility_and_benefits" in translated_fields:
+            translated_agro["chemical_explanation"]["utility_and_benefits"] = translated_fields["utility_and_benefits"]
+        if "preharvest_interval" in translated_fields:
+            translated_agro["chemical_explanation"]["preharvest_interval"] = translated_fields["preharvest_interval"]
+        if "approved_crops" in translated_fields and isinstance(translated_fields["approved_crops"], list):
+            translated_agro["chemical_explanation"]["approved_crops"] = translated_fields["approved_crops"]
+        if "target_diseases_and_pests" in translated_fields and isinstance(translated_fields["target_diseases_and_pests"], list):
+            translated_agro["chemical_explanation"]["target_diseases_and_pests"] = translated_fields["target_diseases_and_pests"]
+
+        # Growth stages
+        if isinstance(translated_agro["chemical_explanation"].get("fertilizer_growth_stages"), dict):
+            if "veg_stage" in translated_fields:
+                translated_agro["chemical_explanation"]["fertilizer_growth_stages"]["vegetative_stage"] = translated_fields["veg_stage"]
+            if "bloom_stage" in translated_fields:
+                translated_agro["chemical_explanation"]["fertilizer_growth_stages"]["flowering_stage"] = translated_fields["bloom_stage"]
+            if "fruit_stage" in translated_fields:
+                translated_agro["chemical_explanation"]["fertilizer_growth_stages"]["fruiting_stage"] = translated_fields["fruit_stage"]
+
+    # Top level fields
+    if "farmer_tips" in translated_fields and isinstance(translated_fields["farmer_tips"], list):
+        translated_agro["farmer_tips"] = translated_fields["farmer_tips"]
+    if "dosage" in translated_fields:
+        translated_agro["dosage"] = translated_fields["dosage"]
+    if "safety_instructions" in translated_fields:
+        translated_agro["safety_instructions"] = translated_fields["safety_instructions"]
+    if "mixing_instructions" in translated_fields:
+        translated_agro["mixing_instructions"] = translated_fields["mixing_instructions"]
+
+    # Attach bidirectional multi-language cache
+    if "translations" not in agro_obj:
+        agro_obj["translations"] = {}
+    agro_obj["translations"]["en"] = english_version
+    agro_obj["translations"][lang_code] = copy.deepcopy(translated_agro)
+    translated_agro["translations"] = agro_obj["translations"]
+    translated_agro["current_language"] = lang_code
+
+    return translated_agro
+
+
 def get_farmer_disease_translation(disease_name: str, lang: str) -> str:
     if not disease_name:
         return ""
@@ -768,7 +968,7 @@ async def agrochemical_scan_endpoint(
         target_diseases = info.get("target_diseases", ["Fungal Pathogens", "Insect Pests"])
         target_pests = info.get("target_pests", ["Agricultural Pests"])
 
-        return {
+        scan_result = {
             "success": True,
             "is_agrochemical": True,
             "confidence": agro_res.get("confidence", 95.0),
@@ -798,6 +998,7 @@ async def agrochemical_scan_endpoint(
             "incompatibleProducts": info.get("incompatible_products", []),
             "extracted_text": extracted_text,
             "gemini_vision_used": agro_res.get("gemini_vision_used", False),
+            "source": agro_res.get("source", "gemini_vision_ocr"),
             # 3 Structured Agrochemical Intelligence Sections
             "product_details": agro_res.get("product_details", info.get("product_details", {})),
             "user_instructions": agro_res.get("user_instructions", info.get("user_instructions", {})),
@@ -817,6 +1018,13 @@ async def agrochemical_scan_endpoint(
                 "Do not mix with incompatible chemicals to prevent precipitation or crop injury."
             ]
         }
+
+        # Automatic Multilingual Translation for Agrochemical Scan
+        target_lang = (req.language or "en").lower().split("-")[0].strip()
+        if target_lang != "en":
+            scan_result = await translate_agrochemical_data(scan_result, target_lang)
+
+        return scan_result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -831,6 +1039,30 @@ async def scan_agrochemical_endpoint(
     db = Depends(get_database)
 ):
     return await agrochemical_scan_endpoint(req, current_user, db)
+
+@router.post("/translate-agrochemical")
+async def translate_agrochemical_endpoint(
+    req: TranslateAgrochemicalRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    On-demand translation endpoint for active agrochemical scan results.
+    Enables instantaneous UI language switching for farmers on scanned agricultural products.
+    """
+    try:
+        target_lang = (req.language or "en").lower().split("-")[0].strip()
+        if target_lang == "en":
+            if "translations" in req.agrochemical and "en" in req.agrochemical["translations"]:
+                return {"success": True, "agrochemical": req.agrochemical["translations"]["en"]}
+            return {"success": True, "agrochemical": req.agrochemical}
+
+        translated = await translate_agrochemical_data(req.agrochemical, target_lang)
+        return {"success": True, "agrochemical": translated}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Agrochemical translation error: {str(e)}"
+        )
 
 @router.post("/agrochemical-compare")
 async def compare_agrochemical_endpoint(
