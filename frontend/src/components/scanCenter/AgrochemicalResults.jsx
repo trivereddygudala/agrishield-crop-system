@@ -4,7 +4,7 @@ import {
   CheckCircle2, Clock, Droplets, AlertTriangle, ShieldCheck, Info,
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
   ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2,
-  Award, UserCheck, PenSquare, SlidersHorizontal, IndianRupee, Copy, Check, Banknote
+  Award, UserCheck, PenSquare, SlidersHorizontal, IndianRupee, Copy, Check, Banknote, Building2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
@@ -309,141 +309,55 @@ const AgrochemicalResults = ({ data = {} }) => {
   );
 
   const renderAgroHero = () => (
-    <Card className="p-5 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-900 text-white border border-indigo-500/30 shadow-2xl relative overflow-hidden">
-      {/* 50% AI + 50% Human Collaborative Header */}
-      <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-black/40 border border-white/15 backdrop-blur-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 relative z-10">
-        {/* 50% AI */}
-        <div className="flex-1 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex flex-col items-center justify-center text-white font-black shadow-md shrink-0 leading-none">
-            <span className="text-[11px]">50%</span>
-            <span className="text-[8px] tracking-tighter font-extrabold">AI</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-black text-cyan-300 uppercase tracking-wider">Multi-Modal Label OCR</span>
-              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200 text-[10px] font-mono">Tesseract + Gemini</span>
-            </div>
-            <p className="text-xs text-slate-300">
-              Match Source: <strong className="text-white">{isWebSearch ? 'Live Web Verified' : (isCatalog ? 'Curated Catalog' : 'Neural OCR')}</strong>
-            </p>
-          </div>
-        </div>
-
-        <div className="hidden md:block w-px h-10 bg-white/15" />
-
-        {/* 50% Human */}
-        <div className="flex-1 flex items-center justify-between gap-2.5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex flex-col items-center justify-center text-white font-black shadow-md shrink-0 leading-none">
-              <span className="text-[11px]">50%</span>
-              <span className="text-[8px] tracking-tighter font-extrabold">HUMAN</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-black text-emerald-300 uppercase tracking-wider">Agronomist Review</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
-                  isHumanCalibrated 
-                    ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50' 
-                    : 'bg-indigo-500/25 text-indigo-200 border border-indigo-400/40'
-                }`}>
-                  <UserCheck className="w-3 h-3" />
-                  {isHumanCalibrated ? 'CALIBRATED & VERIFIED' : 'ACCREDITED PROFESSOR REVIEW'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-300">
-                Lead: <strong className="text-white">{studio?.agronomistProfile?.name || 'Dr. V. Ramanjaneyulu'}</strong> ({studio?.agronomistProfile?.institution || 'PJTSAU'})
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="glass"
-              size="sm"
-              onClick={() => studio?.openDrawer('editor', 'agro-scan')}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black border-none text-xs shadow-md shrink-0"
-            >
-              <PenSquare className="w-3.5 h-3.5 mr-1" />
-              Edit 50%
-            </Button>
-            <Button
-              variant="glass"
-              size="sm"
-              onClick={() => studio?.openDrawer('layout', 'agro-scan')}
-              className="bg-white/20 hover:bg-white/30 text-white font-bold border-white/20 text-xs shadow-sm shrink-0"
-              title="Reorder cards & visual effects"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Official Agronomist Calibration Seal Stamp if modified */}
-      {isHumanCalibrated && (
-        <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/10 border-2 border-emerald-400/60 flex items-center justify-between gap-3 text-emerald-200 relative z-10">
-          <div className="flex items-center gap-2.5">
-            <Award className="w-6 h-6 text-emerald-400 shrink-0 animate-pulse" />
-            <div>
-              <p className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <span>Certified Chemical Formulations Validation</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-mono">
-                  {studio?.agronomistProfile?.registrationNo || 'AP-AGRO-2024-8842'}
-                </span>
-              </p>
-              <p className="text-[11px] text-emerald-200/90 font-medium">
-                Active ingredient & tank dilution verified by {studio?.agronomistProfile?.name || 'Dr. V. Ramanjaneyulu'}. Safe for field application.
-              </p>
-            </div>
-          </div>
-          <Badge variant="glow-emerald" className="text-[10px] font-black uppercase shrink-0">
-            SEAL VALIDATED
-          </Badge>
-        </div>
-      )}
+    <Card className="p-5 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-900 text-white border border-indigo-500/30 shadow-2xl relative overflow-hidden rounded-3xl">
+      {/* Ambient background glows */}
+      <div className="absolute -top-24 -right-24 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
-        <div className="space-y-3 flex-1">
+        <div className="space-y-3.5 flex-1">
           {/* Category and Verification Badges */}
           <div className="flex flex-wrap items-center gap-2">
             <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-md flex items-center gap-1.5 ${categoryMeta.badgeColor}`}>
               <span>{categoryMeta.icon}</span> {categoryMeta.label}
             </span>
             {isWebSearch ? (
-              <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-cyan-300 border-cyan-400/40 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
+              <span className="px-3 py-1 text-xs font-bold text-cyan-200 border border-cyan-400/40 bg-cyan-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
                 🌐 Live Web & AI Verified
-              </Badge>
-              ) : isCatalog ? (
-                <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-emerald-300 border-emerald-400/40 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
-                  🛡️ Certified Catalog Product
-                </Badge>
-              ) : (
-                <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-indigo-300 border-indigo-400/40 bg-indigo-950/70 flex items-center gap-1">
-                  ✓ OCR Packaging Analysis
-                </Badge>
-              )}
-              {isGeminiVision && (
-                <Badge variant="glass" className="px-3 py-0.5 text-xs font-black text-cyan-200 border-cyan-400/50 bg-cyan-950/80 flex items-center gap-1 shadow-sm">
-                  👁️ Gemini Vision OCR Assist
-                </Badge>
-              )}
-              {productDetails.company && (
-                <Badge variant="glass" className="px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
-                  🏢 {productDetails.company}
-                </Badge>
-              )}
-            </div>
+              </span>
+            ) : isCatalog ? (
+              <span className="px-3 py-1 text-xs font-bold text-emerald-200 border border-emerald-400/40 bg-emerald-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
+                🛡️ Certified Catalog Product
+              </span>
+            ) : (
+              <span className="px-3 py-1 text-xs font-bold text-indigo-200 border border-indigo-400/40 bg-indigo-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
+                ✓ OCR Packaging Analysis
+              </span>
+            )}
+            {isGeminiVision && (
+              <span className="px-3 py-1 text-xs font-black text-teal-200 border border-teal-400/50 bg-teal-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
+                👁️ Gemini Vision OCR Assist
+              </span>
+            )}
+            {productDetails.company && (
+              <span className="px-3 py-1 text-xs font-extrabold text-amber-300 border border-amber-500/40 bg-amber-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
+                <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{productDetails.company}</span>
+              </span>
+            )}
+          </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="font-display font-black text-2xl sm:text-3xl text-white leading-tight">
-                {productDetails.brand_name}
-              </h2>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="font-display font-black text-2xl sm:text-3xl text-white leading-tight tracking-tight">
+              {productDetails.brand_name}
+            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="glass"
                 size="sm"
                 onClick={() => speak(agroSpeech, 'agro_summary', currentLang)}
                 leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'agro_summary' ? 'animate-bounce text-indigo-300' : 'text-white'}`} />}
-                className="bg-indigo-600/90 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm rounded-xl"
               >
                 {speakingId === 'agro_summary' 
                   ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Audio') 
@@ -453,17 +367,23 @@ const AgrochemicalResults = ({ data = {} }) => {
                 variant="glass"
                 size="sm"
                 onClick={handleCopyMarkdown}
-                leftIcon={copiedMarkdown ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-cyan-300" />}
-                className="bg-slate-800/90 hover:bg-slate-700 text-white font-bold border-white/20 shadow-sm"
+                leftIcon={copiedMarkdown ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-emerald-300" />}
+                className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-sm rounded-xl"
               >
                 {copiedMarkdown ? (currentLang === 'te' ? 'కాపీ చేయబడింది!' : 'Copied Markdown!') : (currentLang === 'te' ? 'రిపోర్ట్ కాపీ (Markdown)' : 'Copy Markdown Report')}
               </Button>
             </div>
-
-            <p className="text-xs sm:text-sm text-indigo-200/90 font-medium">
-              <span className="font-bold text-white">Active Ingredient:</span> {productDetails.active_ingredient}
-            </p>
           </div>
+
+          <p className="text-xs sm:text-sm text-slate-200 font-medium flex items-center gap-2 flex-wrap pt-0.5">
+            <span className="px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 font-extrabold uppercase text-[10px] tracking-wider border border-teal-500/30">
+              Active Ingredient
+            </span>
+            <span className="font-bold text-white text-sm">
+              {productDetails.active_ingredient}
+            </span>
+          </p>
+        </div>
 
           {/* Product Image Thumbnail with Tap-to-Zoom */}
           {productDetails.image_url && (

@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v190) - Removed 50% Clutter Card & Aesthetic Color Polish in Agrochemical Scanner
+- **Summary:** Fulfilled the user's request to eliminate the "50% AI MULTI-MODAL LABEL OCR + 50% HUMAN AGRONOMIST REVIEW" card and "Edit 50%" button from the Agrochemical Scanner results screen, while elevating color contrast, badge aesthetics, and button hierarchy:
+  1. 🧹 **Complete Removal of 50% Peer-Review Overlay (`AgrochemicalResults.jsx`):**
+     - Completely deleted the 50% AI + 50% Human Agronomist collaborative header, `✏️ Edit 50%` button, and sliders icon button from `renderAgroHero`.
+     - Removed redundant calibration seal clutter, creating a focused, ultra-clean mobile and desktop presentation.
+  2. 🎨 **Aesthetic Color Polish & High-Contrast Badging (`AgrochemicalResults.jsx`):**
+     - **Manufacturer Badge:** Replaced the low-contrast, washed-out gray badge with a vibrant amber-gold badge with `Building2` icon (`bg-amber-950/80 border-amber-500/40 text-amber-300 font-extrabold`).
+     - **Verification Badges:** Styled Live Web, Certified Catalog, OCR Analysis, and Gemini Vision badges with high-contrast pill styling, dedicated border luminescence, and matching icons.
+     - **Active Ingredient Highlight:** Added a dedicated teal micro-tag (`Active Ingredient`) alongside the bold active formulation value.
+     - **Card Atmosphere:** Added ambient gradient blurs behind the hero card for a sleek, glassmorphic dark-mode finish.
+  3. 🔘 **Vibrant Action Buttons (`AgrochemicalResults.jsx`):**
+     - Upgraded the "Listen Instructions" and "Copy Markdown Report" buttons with rich indigo and emerald gradients, bold typography, and smooth rounded-xl pill geometry.
+  4. 🏗️ **Build & Runtime Verification:**
+     - Compiled 3,154 modules using Vite (`npm run build`: 0 errors in 28.25s).
+- **Files modified:** `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v189) - Removed 50% Clutter Card & Enforced Strict 3-Section Botanical Identification
 - **Summary:** Fulfilled the user's requirement to completely remove the unwanted "50% AI Botanical Model + 50% Agronomist Peer-Review" / "Edit 50%" studio banner, and restructured plant identification into the exact strict 3-section format (`🌿 Plant Classification`, `📝 Description & Key Details`, `🪵 Environmental Conditions`):
   1. 🧹 **Complete Removal of 50% Peer-Review Overlay (`PlantIdResults.jsx`):**
