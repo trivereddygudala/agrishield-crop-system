@@ -22,7 +22,6 @@ import { WeatherDashboard } from '../components/intelligence/WeatherDashboard';
 import { IrrigationAdvisor } from '../components/intelligence/IrrigationAdvisor';
 import { DiseaseRiskCard } from '../components/intelligence/DiseaseRiskCard';
 import { translateCrop, translateStage, translateDisease } from '../utils/diseaseAdvisoryData';
-import StudioEditableCard from '../components/common/StudioEditableCard';
 import { CURATED_FARM_PHOTOS } from '../services/photoService';
 
 // In-memory module-level cache to enable instantaneous (0ms) page transitions
@@ -323,13 +322,7 @@ const DashboardPage = () => {
 
       {/* ─── Daily Farm Status Banner (Friendly & Actionable) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
-        <StudioEditableCard
-          cardKey="dashboard-banner"
-          tabId="dashboard"
-          title="Daily Farm Status Banner"
-          description="Today's weather summary, crop health condition, and foliar spray window"
-          className="w-full"
-        >
+        <div className="w-full">
           <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md">
             {/* Real Unsplash / Pexels farm photography background */}
             <img 
@@ -373,19 +366,13 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-        </StudioEditableCard>
+        </div>
       </motion.div>
 
       {/* ─── Essential Farmer KPIs (4 Spacious, High-Contrast Cards) ─── */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* KPI 1: Active Crop */}
-        <StudioEditableCard
-          cardKey="dashboard-kpi-crop"
-          tabId="dashboard"
-          title="Active Crop KPI"
-          description="Displays current registered crop and growth stage"
-          className="h-full"
-        >
+        <div className="h-full">
           <div className="p-4 sm:p-5 border-t-4 border-t-emerald-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-emerald-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
             <div>
               <div className="flex items-center justify-between gap-2">
@@ -417,16 +404,10 @@ const DashboardPage = () => {
               </p>
             )}
           </div>
-        </StudioEditableCard>
+        </div>
 
         {/* KPI 2: Leaf Scans */}
-        <StudioEditableCard
-          cardKey="dashboard-kpi-scans"
-          tabId="dashboard"
-          title="Total Leaf Scans KPI"
-          description="Scans history total and healthy vs diseased counters"
-          className="h-full"
-        >
+        <div className="h-full">
           <div className="p-4 sm:p-5 border-t-4 border-t-teal-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-teal-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
             <div>
               <div className="flex items-center justify-between gap-2">
@@ -450,16 +431,10 @@ const DashboardPage = () => {
               </span>
             </div>
           </div>
-        </StudioEditableCard>
+        </div>
 
         {/* KPI 3: Soil Water */}
-        <StudioEditableCard
-          cardKey="dashboard-kpi-soil"
-          tabId="dashboard"
-          title="Soil Moisture Telemetry KPI"
-          description="Real-time ESP32 edge soil capacitance percentage"
-          className="h-full"
-        >
+        <div className="h-full">
           <div className="p-4 sm:p-5 border-t-4 border-t-sky-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-sky-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
             <div>
               <div className="flex items-center justify-between gap-2">
@@ -480,16 +455,10 @@ const DashboardPage = () => {
               </span>
             </div>
           </div>
-        </StudioEditableCard>
+        </div>
 
         {/* KPI 4: Market Rate */}
-        <StudioEditableCard
-          cardKey="dashboard-kpi-market"
-          tabId="dashboard"
-          title="Commodity Market Rate KPI"
-          description="Today's agricultural APMC mandi price per quintal"
-          className="h-full"
-        >
+        <div className="h-full">
           <Link to="/market" className="block h-full group">
             <div className="p-4 sm:p-5 border-t-4 border-t-amber-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-amber-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
               <div>
@@ -513,7 +482,7 @@ const DashboardPage = () => {
               </div>
             </div>
           </Link>
-        </StudioEditableCard>
+        </div>
       </motion.div>
 
       {/* ─── Quick Touch-Friendly Farming Tools (4 Balanced Cards) ─── */}
@@ -528,13 +497,7 @@ const DashboardPage = () => {
           </Link>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StudioEditableCard
-            cardKey="dashboard-tool-leaf"
-            tabId="dashboard"
-            title="Leaf Doctor Launcher"
-            description="Quick link to scan crop leaf"
-            className="h-full"
-          >
+          <div className="h-full">
             <Link to="/upload" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
@@ -553,15 +516,9 @@ const DashboardPage = () => {
                 </div>
               </Card>
             </Link>
-          </StudioEditableCard>
+          </div>
 
-          <StudioEditableCard
-            cardKey="dashboard-tool-agronomist"
-            tabId="dashboard"
-            title="AI Agronomist Launcher"
-            description="Quick link to AI voice crop doctor & chat"
-            className="h-full"
-          >
+          <div className="h-full">
             <Link to="/assistant" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
@@ -580,15 +537,9 @@ const DashboardPage = () => {
                 </div>
               </Card>
             </Link>
-          </StudioEditableCard>
+          </div>
 
-          <StudioEditableCard
-            cardKey="dashboard-tool-market"
-            tabId="dashboard"
-            title="Market Rates Launcher"
-            description="Quick link to track daily live market rates"
-            className="h-full"
-          >
+          <div className="h-full">
             <Link to="/market" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
@@ -607,15 +558,9 @@ const DashboardPage = () => {
                 </div>
               </Card>
             </Link>
-          </StudioEditableCard>
+          </div>
 
-          <StudioEditableCard
-            cardKey="dashboard-tool-farm"
-            tabId="dashboard"
-            title="My Farm Launcher"
-            description="Quick link to field GPS boundaries & crop setup"
-            className="h-full"
-          >
+          <div className="h-full">
             <Link to="/farm" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
@@ -634,52 +579,34 @@ const DashboardPage = () => {
                 </div>
               </Card>
             </Link>
-          </StudioEditableCard>
+          </div>
         </div>
       </motion.div>
 
       {/* ─── Hero Intelligence Blocks (Weather, Irrigation, Risks) ─── */}
       <motion.div variants={itemVariants} className="grid lg:grid-cols-12 gap-6 w-full max-w-full min-w-0">
         <div className="lg:col-span-7 space-y-6 flex flex-col w-full max-w-full min-w-0 overflow-hidden">
-          <StudioEditableCard
-            cardKey="dashboard-weather"
-            tabId="dashboard"
-            title="Weather Intelligence Telemetry"
-            description="Real-time temperature, humidity, rainfall & satellite forecast"
-            className="w-full"
-          >
+          <div className="w-full">
             <WidgetErrorBoundary name="Weather Intelligence">
               <div className="flex-1 w-full max-w-full min-w-0">
                 <WeatherDashboard farmId={farmId} lat={coordinates.lat} lon={coordinates.lon} />
               </div>
             </WidgetErrorBoundary>
-          </StudioEditableCard>
+          </div>
         </div>
 
         <div className="lg:col-span-5 space-y-6 flex flex-col w-full max-w-full min-w-0">
-          <StudioEditableCard
-            cardKey="dashboard-irrigation"
-            tabId="dashboard"
-            title="Smart Irrigation Advisor"
-            description="Soil moisture analysis and smart knapsack water guidance"
-            className="w-full"
-          >
+          <div className="w-full">
             <WidgetErrorBoundary name="Smart Irrigation Advisor">
               <IrrigationAdvisor farmId={farmId} cropName={cropName} growthStage={growthStage} farmSize={farmSize} />
             </WidgetErrorBoundary>
-          </StudioEditableCard>
+          </div>
           
-          <StudioEditableCard
-            cardKey="dashboard-disease-risk"
-            tabId="dashboard"
-            title="Disease Risk Forecast"
-            description="Micro-climate fungal and bacterial outbreak risk score"
-            className="w-full"
-          >
+          <div className="w-full">
             <WidgetErrorBoundary name="Disease Risk Forecast">
               <DiseaseRiskCard farmId={farmId} cropName={cropName} />
             </WidgetErrorBoundary>
-          </StudioEditableCard>
+          </div>
         </div>
       </motion.div>
 

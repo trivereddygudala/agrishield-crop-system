@@ -10,7 +10,6 @@ import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
-import { useStudio } from '../../context/StudioContext';
 import API from '../../services/api';
 
 const SUPPORTED_LANGUAGES = [
@@ -24,9 +23,8 @@ const SUPPORTED_LANGUAGES = [
 
 const AgrochemicalResults = ({ data = {} }) => {
   const { t, i18n } = useTranslation();
-  const studio = useStudio();
-  const overrides = studio?.cardOverrides?.['agro-scan'] || {};
-  const isHumanCalibrated = Boolean(overrides.human_verified || overrides.is_modified);
+  const overrides = {};
+  const isHumanCalibrated = false;
 
   const currentLang = (i18n.language || 'en').split('-')[0].toLowerCase();
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
@@ -893,12 +891,7 @@ const AgrochemicalResults = ({ data = {} }) => {
     safety_ppe: renderApplicationGuide
   };
 
-  const activeAgroOrder = (
-    studio?.cardOrders?.['agro-scan'] &&
-    studio.cardOrders['agro-scan'].some(c => agroCardMap[c.key] && agroCardMap[c.key]() !== null)
-  )
-    ? studio.cardOrders['agro-scan']
-    : defaultAgroOrder;
+  const activeAgroOrder = defaultAgroOrder;
 
   return (
     <div className="space-y-4">

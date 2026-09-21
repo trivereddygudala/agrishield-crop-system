@@ -29,7 +29,6 @@ import { buildPlantSpeech } from '../../utils/regionalLocale';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
 import { ANDHRA_BOTANICAL_BASE } from '../../data/andhraBotanicalData';
 import API from '../../services/api';
-import { useStudio } from '../../context/StudioContext';
 
 const BASE_CROPS_KNOWLEDGE = {
   rice: {
@@ -737,7 +736,6 @@ const getPlantDetails = (liveResult) => {
 const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => {
   const { t, i18n } = useTranslation();
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
-  const studio = useStudio();
 
   const [activeLang, setActiveLang] = useState(
     (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase()
@@ -791,7 +789,7 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     return () => { isMounted = false; };
   }, [activeLang, rawInfo, translatedCache]);
 
-  // Active localized plant details (merges translated data + client-side dictionary + studio override)
+  // Active localized plant details (merges translated data + client-side dictionary)
   const info = useMemo(() => {
     const localizedOverride = translatedCache[activeLang] || {};
     const merged = { ...rawInfo, ...localizedOverride };
@@ -799,16 +797,13 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     // Resolve localized common name with high priority
     const regional = rawInfo.regionalNames?.[activeLang];
     const cropMapped = translateCrop(rawInfo.commonName, activeLang);
-    const resolvedName = localizedOverride.common_name || regional || cropMapped || rawInfo.commonName;
-
-    const studioCropName = studio?.cardOverrides?.['plant-id']?.cropName;
-    const finalCommonName = studioCropName || resolvedName;
+    const finalCommonName = resolvedName;
 
     return {
       ...merged,
       commonName: finalCommonName
     };
-  }, [rawInfo, translatedCache, activeLang, studio?.cardOverrides]);
+  }, [rawInfo, translatedCache, activeLang]);
 
   // Localized UI strings
   const locDict = AGRONOMIC_LOCALIZATIONS[activeLang] || AGRONOMIC_LOCALIZATIONS.en || AGRONOMIC_LOCALIZATIONS.te;
@@ -1394,12 +1389,7 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     action_bar: () => null
   };
 
-  const activePlantOrder = (
-    studio?.cardOrders?.['plant-id'] &&
-    studio.cardOrders['plant-id'].some(c => plantCardMap[c.key] && plantCardMap[c.key]() !== null)
-  )
-    ? studio.cardOrders['plant-id']
-    : defaultPlantOrder;
+  const activePlantOrder = defaultPlantOrder;
 
   return (
     <div className="space-y-4">

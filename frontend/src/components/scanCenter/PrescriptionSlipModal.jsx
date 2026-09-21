@@ -4,17 +4,17 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { FileText, Printer, Download, X, CheckCircle, ShieldCheck, QrCode, Award, UserCheck, Sparkles } from 'lucide-react';
 import { Button, Badge } from '../ui/index';
-import { useStudio } from '../../context/StudioContext';
+
+const DEFAULT_AGRONOMIST_PROFILE = {
+  name: 'Dr. V. Ramanjaneyulu, Ph.D.',
+  title: 'Lead Agronomist & Pathology Specialist',
+  institution: 'PJTSAU / ICAR Accredited',
+  registrationNo: 'AP-AGRO-2024-8842'
+};
 
 export default function PrescriptionSlipModal({ isOpen, onClose, liveResult }) {
   const { t } = useTranslation();
-  const studio = useStudio();
-  const agroProfile = studio?.agronomistProfile || {
-    name: 'Dr. V. Ramanjaneyulu, Ph.D.',
-    title: 'Lead Agronomist & Pathology Specialist',
-    institution: 'PJTSAU / ICAR Accredited',
-    registrationNo: 'AP-AGRO-2024-8842'
-  };
+  const agroProfile = DEFAULT_AGRONOMIST_PROFILE;
 
   if (!isOpen) return null;
 

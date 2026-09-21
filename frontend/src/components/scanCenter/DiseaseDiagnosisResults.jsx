@@ -13,16 +13,13 @@ import { translateCrop, translateDisease, getDiseaseDetails, localizeAdvice } fr
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { FORMULATION_TEXTS, getAudioActionLabel, getSpeechLocale, getSafetyFallback } from '../../utils/regionalLocale';
 import { getMatchingProducts } from '../../utils/commercialProducts';
-import { useStudio } from '../../context/StudioContext';
-import StudioEditableCard from '../common/StudioEditableCard';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
 
 const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloadPDF }) => {
   const { t, i18n } = useTranslation();
-  const studio = useStudio();
-  const overrides = studio?.cardOverrides?.['disease-diag'] || {};
-  const isHumanCalibrated = Boolean(overrides.human_verified || overrides.is_modified);
+  const overrides = {};
+  const isHumanCalibrated = false;
 
   const [showHelpdeskModal, setShowHelpdeskModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
@@ -224,7 +221,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                Lead: <strong className="text-white">{studio?.agronomistProfile?.name || 'Dr. V. Ramanjaneyulu'}</strong> ({studio?.agronomistProfile?.institution || 'PJTSAU'})
+                Lead: <strong className="text-white">Dr. V. Ramanjaneyulu</strong> (PJTSAU)
               </p>
             </div>
           </div>
@@ -240,11 +237,11 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               <p className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                 <span>Certified Clinical Agronomist Calibration</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-mono">
-                  {studio?.agronomistProfile?.registrationNo || 'AP-AGRO-2024-8842'}
+                  AP-AGRO-2024-8842
                 </span>
               </p>
               <p className="text-[11px] text-emerald-200/90 font-medium">
-                Prescription manually verified by {studio?.agronomistProfile?.name || 'Dr. V. Ramanjaneyulu'}. Safe for field application.
+                Prescription manually verified by Dr. V. Ramanjaneyulu. Safe for field application.
               </p>
             </div>
           </div>
@@ -976,7 +973,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       safety: renderSafety
     };
 
-    const activeOrder = studio?.cardOrders?.['disease-diag'] || defaultOrder;
+    const activeOrder = defaultOrder;
 
     return (
       <div className="space-y-4">

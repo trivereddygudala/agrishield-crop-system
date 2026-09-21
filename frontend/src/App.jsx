@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { FarmProvider } from './context/FarmContext';
 import { WebSocketProvider } from './context/WebSocketContext';
-import { StudioProvider } from './context/StudioContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageSkeleton from './components/PageSkeleton';
@@ -156,9 +155,8 @@ function App() {
         <FarmProvider>
           <WebSocketProvider>
             <ToastProvider>
-              <StudioProvider>
-                <BrowserRouter>
-                  <FarmerWelcomeModal />
+              <BrowserRouter>
+                <FarmerWelcomeModal />
                   <ErrorBoundary>
                       <Routes>
                         {/* Public Views */}
@@ -212,8 +210,7 @@ function App() {
                         <Route path="*" element={<NotFoundPage />} />
                       </Routes>
                     </ErrorBoundary>
-                </BrowserRouter>
-              </StudioProvider>
+              </BrowserRouter>
             </ToastProvider>
           </WebSocketProvider>
         </FarmProvider>

@@ -9,7 +9,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DemoModal from '../components/DemoModal';
-import StudioEditableCard from '../components/common/StudioEditableCard';
 import { CURATED_FARM_PHOTOS } from '../services/photoService';
 
 /* ─── Animated Counter ──────────────────────────────────── */
@@ -262,13 +261,7 @@ const LandingPage = () => {
           <div className="flex flex-col lg:flex-row items-center gap-14 lg:gap-20 py-20 lg:py-28">
 
             {/* Left */}
-            <StudioEditableCard
-              cardKey="landing-hero"
-              tabId="landing"
-              title="Hero Headline & Primary Action"
-              description="Headline, subheadline, and instant registration launchers"
-              className="flex-1 text-center lg:text-left space-y-8 max-w-2xl mx-auto lg:mx-0 p-3 sm:p-6 rounded-3xl"
-            >
+            <div className="flex-1 text-center lg:text-left space-y-8 max-w-2xl mx-auto lg:mx-0 p-3 sm:p-6 rounded-3xl">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs sm:text-sm font-semibold">
                 <span className="relative flex h-2 w-2">
@@ -332,16 +325,10 @@ const LandingPage = () => {
                   </span>
                 ))}
               </motion.div>
-            </StudioEditableCard>
+            </div>
 
             {/* Right: Hero Mockup */}
-            <StudioEditableCard
-              cardKey="landing-mockup"
-              tabId="landing"
-              title="AI Scan Center & Telemetry Preview"
-              badge="98.4% Acc."
-              className="flex-1 w-full max-w-[360px] sm:max-w-md mx-auto lg:mx-0 relative"
-            >
+            <div className="flex-1 w-full max-w-[360px] sm:max-w-md mx-auto lg:mx-0 relative">
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-sky-500/15 rounded-3xl blur-3xl scale-95 -z-10" />
               <div className="relative rounded-3xl bg-white/[0.04] border border-white/10 backdrop-blur-2xl p-5 shadow-2xl space-y-4">
                 {/* Card header */}
@@ -425,18 +412,13 @@ const LandingPage = () => {
                   ))}
                 </div>
               </div>
-            </StudioEditableCard>
+            </div>
 
           </div>
         </div>
 
         {/* Stats Bar */}
-        <StudioEditableCard
-          cardKey="landing-stats"
-          tabId="landing"
-          title="Platform Statistics & Impact Counters"
-          className="w-full border-t border-white/5 bg-white/[0.015]"
-        >
+        <div className="w-full border-t border-white/5 bg-white/[0.015]">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.55 }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/5">
               {stats.map(({ label, value, suffix }) => (
@@ -449,7 +431,7 @@ const LandingPage = () => {
               ))}
             </div>
           </motion.div>
-        </StudioEditableCard>
+        </div>
       </section>
 
       {/* ── Features ──────────────────────────── */}
@@ -470,23 +452,11 @@ const LandingPage = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {features.map((feat, idx) => {
-              const featKeys = ['landing-feat-scan', 'landing-feat-farm', 'landing-feat-iot', 'landing-feat-ai'];
-              const featKey = featKeys[idx] || `landing-feat-${idx}`;
-              return (
-                <StudioEditableCard
-                  key={idx}
-                  cardKey={featKey}
-                  tabId="landing"
-                  title={feat.title}
-                  description={feat.description}
-                  badge={feat.badge}
-                  className="block h-full"
-                >
-                  <FeatureCard {...feat} index={idx} previewLabel={t('landing.preview_demo', 'Preview Demo')} onClick={() => openDemo(idx)} />
-                </StudioEditableCard>
-              );
-            })}
+            {features.map((feat, idx) => (
+              <div key={idx} className="block h-full">
+                <FeatureCard {...feat} index={idx} previewLabel={t('landing.preview_demo', 'Preview Demo')} onClick={() => openDemo(idx)} />
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -494,13 +464,7 @@ const LandingPage = () => {
       {/* ── Technology Strip ──────────────────────────── */}
       <section id="technology" className="relative py-20 px-4 sm:px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
-          <StudioEditableCard
-            cardKey="landing-tech"
-            tabId="landing"
-            title="Enterprise-Grade AI Architecture for the Farm"
-            description="PyTorch EfficientNetV2, ESP32 Field Transceivers, and Cloud Sync"
-            className="rounded-3xl bg-gradient-to-br from-emerald-500/8 via-white/[0.02] to-sky-500/8 border border-white/8 p-8 sm:p-12"
-          >
+          <div className="rounded-3xl bg-gradient-to-br from-emerald-500/8 via-white/[0.02] to-sky-500/8 border border-white/8 p-8 sm:p-12">
             <div className="flex flex-col lg:flex-row items-center gap-12">
               <div className="flex-1 space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/40 tracking-widest">
@@ -569,19 +533,13 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
-          </StudioEditableCard>
+          </div>
         </div>
       </section>
 
       {/* ── Final CTA ──────────────────────────────────── */}
       <section className="relative py-28 px-4 sm:px-6">
-        <StudioEditableCard
-          cardKey="landing-cta"
-          tabId="landing"
-          title="Final Conversion Call To Action"
-          description="Free for Farmers registration launcher and harvest protection"
-          className="max-w-3xl mx-auto text-center space-y-8 p-6 sm:p-12 rounded-3xl bg-white/[0.02] border border-white/5"
-        >
+        <div className="max-w-3xl mx-auto text-center space-y-8 p-6 sm:p-12 rounded-3xl bg-white/[0.02] border border-white/5">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-400 mb-6 tracking-widest">
               <Star className="h-3.5 w-3.5" /> {t('landing.free_for_farmers', 'FREE FOR FARMERS')}
@@ -619,7 +577,7 @@ const LandingPage = () => {
               </>
             )}
           </motion.div>
-        </StudioEditableCard>
+        </div>
       </section>
 
       {/* ── Footer ──────────────────────────────────── */}
