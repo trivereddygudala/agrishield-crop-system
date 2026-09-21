@@ -1034,13 +1034,26 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
 
   const plantCardMap = {
     specimen_hero: renderSpecimenHero,
+    species_hero: renderSpecimenHero,
     taxonomy_morphology: renderTaxonomy,
+    taxonomy_card: renderTaxonomy,
     agronomic_advisory: renderAgronomicAdvisory,
+    care_matrix: renderAgronomicAdvisory,
     soil_nutrition: renderSoilNutrition,
-    disease_pest: renderDiseasePest
+    nutrition_card: renderSoilNutrition,
+    disease_pest: renderDiseasePest,
+    pest_vigilance: renderDiseasePest,
+    narrative_desc: () => null,
+    weed_advisory: () => null,
+    action_bar: () => null
   };
 
-  const activePlantOrder = studio?.cardOrders?.['plant-id'] || defaultPlantOrder;
+  const activePlantOrder = (
+    studio?.cardOrders?.['plant-id'] &&
+    studio.cardOrders['plant-id'].some(c => plantCardMap[c.key] && plantCardMap[c.key]() !== null)
+  )
+    ? studio.cardOrders['plant-id']
+    : defaultPlantOrder;
 
   return (
     <div className="space-y-4">

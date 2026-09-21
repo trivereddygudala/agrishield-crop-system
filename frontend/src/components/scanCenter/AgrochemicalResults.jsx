@@ -862,12 +862,21 @@ const AgrochemicalResults = ({ data = {} }) => {
 
   const agroCardMap = {
     agro_hero: renderAgroHero,
+    product_hero: renderAgroHero,
     product_details: renderProductDetails,
     application_guide: renderApplicationGuide,
-    mode_of_action: renderModeOfAction
+    dilution_guide: renderApplicationGuide,
+    mode_of_action: renderModeOfAction,
+    growth_stages: renderModeOfAction,
+    safety_ppe: renderApplicationGuide
   };
 
-  const activeAgroOrder = studio?.cardOrders?.['agro-scan'] || defaultAgroOrder;
+  const activeAgroOrder = (
+    studio?.cardOrders?.['agro-scan'] &&
+    studio.cardOrders['agro-scan'].some(c => agroCardMap[c.key] && agroCardMap[c.key]() !== null)
+  )
+    ? studio.cardOrders['agro-scan']
+    : defaultAgroOrder;
 
   return (
     <div className="space-y-4">

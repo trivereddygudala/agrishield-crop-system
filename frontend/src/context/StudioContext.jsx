@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext, useCallback, use
 
 const StudioContext = createContext(null);
 
-const STORAGE_KEY = 'agrishield_studio_state_v1';
+const STORAGE_KEY = 'agrishield_studio_state_v2';
 
 // Default card sequences for each key page / diagnostic tab
 export const DEFAULT_CARD_ORDERS = {
@@ -15,21 +15,17 @@ export const DEFAULT_CARD_ORDERS = {
     { key: 'action_bar', label: 'Action Toolbar & Prescription Download', visible: true }
   ],
   'plant-id': [
-    { key: 'species_hero', label: 'Botanical Specimen Hero & Confidence', visible: true },
-    { key: 'care_matrix', label: '4-Card Cultivation Care Matrix (Sun, Water, Soil, Temp)', visible: true },
-    { key: 'narrative_desc', label: 'Agronomic Narrative & Botanical Overview', visible: true },
-    { key: 'taxonomy_card', label: 'Taxonomy, Genus & Foliage Morphology', visible: true },
-    { key: 'nutrition_card', label: 'Soil Fertility & Balanced NPK Formulation', visible: true },
-    { key: 'pest_vigilance', label: 'Agricultural Pathogen & Pest Vigilance', visible: true },
-    { key: 'weed_advisory', label: 'Weed Eradication Protocol (If Weed)', visible: true },
-    { key: 'action_bar', label: 'Action Toolbar & Secondary Scans', visible: true }
+    { key: 'specimen_hero', label: 'Botanical Specimen Hero & Confidence', visible: true },
+    { key: 'taxonomy_morphology', label: 'Taxonomy, Genus & Foliage Morphology', visible: true },
+    { key: 'agronomic_advisory', label: 'Agronomic Care & Cultivation Matrix', visible: true },
+    { key: 'soil_nutrition', label: 'Soil Fertility & Balanced NPK Formulation', visible: true },
+    { key: 'disease_pest', label: 'Vulnerable Diseases & Target Pests', visible: true }
   ],
   'agro-scan': [
-    { key: 'product_hero', label: 'Agrochemical Product Classification Hero', visible: true },
-    { key: 'product_details', label: 'Technical Chemical Details & Registration', visible: true },
-    { key: 'dilution_guide', label: 'Manufacturer Dilution & 4-Step Mixing Protocol', visible: true },
-    { key: 'growth_stages', label: 'Target Crops & Dynamic Growth Stages', visible: true },
-    { key: 'safety_ppe', label: '4-Card Personal Protective Equipment (PPE) Grid', visible: true }
+    { key: 'agro_hero', label: 'Chemical Identification Hero', visible: true },
+    { key: 'product_details', label: 'Product Details & Classification', visible: true },
+    { key: 'application_guide', label: 'User Instructions & Dilution Guide', visible: true },
+    { key: 'mode_of_action', label: 'Utility, Benefits & Action Mode', visible: true }
   ],
   'dashboard': [
     { key: 'stats_overview', label: 'Active Farm Health & Quick Metrics', visible: true },

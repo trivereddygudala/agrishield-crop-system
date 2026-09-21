@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v186) - Plant Identification & Agrochemical Card Key Mismatch Fix
+- **Summary:** Resolved the issue where the Plant Identification scan results screen was completely blank below the action buttons (missing plant identity cards, botanical name, confidence, species details, and cultivation advisory):
+  1. 🔍 **Root Cause Identified:**
+     - Key Mismatch between `StudioContext.jsx` and `PlantIdResults.jsx`: `StudioContext` stored keys (`species_hero`, `care_matrix`, `narrative_desc`, `taxonomy_card`, `nutrition_card`, `pest_vigilance`, `weed_advisory`) while `PlantIdResults` expected (`specimen_hero`, `taxonomy_morphology`, `agronomic_advisory`, `soil_nutrition`, `disease_pest`).
+     - Because `localStorage` persisted the studio keys, every single card renderer returned `null`, leaving only the bottom action buttons visible.
+  2. 🛡️ **Universal Key Aliasing & Fallback (`PlantIdResults.jsx` & `AgrochemicalResults.jsx`):**
+     - Added comprehensive key aliases to `plantCardMap` so both naming schemes resolve seamlessly to the corresponding card renderers.
+     - Added a defensive fallback: if the active studio order array contains stale or unrecognized keys, it automatically falls back to `defaultPlantOrder`, guaranteeing that plant identification results will **never** render blank.
+     - Applied the same key aliasing to `agroCardMap` in `AgrochemicalResults.jsx`.
+  3. 📦 **Studio Cache Migration (`StudioContext.jsx`):**
+     - Updated `DEFAULT_CARD_ORDERS` for `plant-id` and `agro-scan` to align with the actual component card keys.
+     - Bumped `STORAGE_KEY` to `agrishield_studio_state_v2` to invalidate stale browser cache.
+  4. 🏗️ **Full Production Build Verification:**
+     - Compiled 3,154 modules using Vite with zero build or syntax errors (`✓ built in 29.31s`, exit code 0).
+- **Files modified:** `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/context/StudioContext.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v185) - Universal AI Agrochemical Scanner Vision & Enrichment Engine Fix
 - **Summary:** Resolved the issue where scanning commercial agrochemical products (such as Bharat NPK fertilizer) returned a generic fallback card ("Scanned Commercial Agrochemical", "Standard Agricultural Active Ingredient"):
   1. ⚡ **Gemini Multimodal Vision Optimization (`gemini_vision.py`):**
