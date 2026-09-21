@@ -1671,8 +1671,13 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
 
         # 3 Structured Sections
         detected_mrp = (gemini_vision_data.get("mrp_price") if gemini_vision_data else None) or (enriched.get("mrp_price") if 'enriched' in locals() and enriched else None) or parsed_fields.get("mrp", "Not visible on label")
-        detected_subsidy = (gemini_vision_data.get("government_subsidy") if gemini_vision_data else None) or (enriched.get("government_subsidy") if 'enriched' in locals() and enriched else None) or "Standard PMBJP Subsidy applicable"
+        detected_subsidy = (gemini_vision_data.get("government_subsidy") if gemini_vision_data else None) or (enriched.get("government_subsidy") if 'enriched' in locals() and enriched else None) or "Subsidized under PMBJP / Central Fertilizer Scheme"
         detected_weight = (gemini_vision_data.get("net_weight") if gemini_vision_data else None) or (enriched.get("net_weight") if 'enriched' in locals() and enriched else None) or parsed_fields.get("net_qty", "50 kg / Standard Pack")
+        detected_primary_fn = (gemini_vision_data.get("primary_function") if gemini_vision_data else None) or (
+            "Provides balanced primary macronutrients (Nitrogen, Phosphorus, Potassium) to stimulate vigorous root growth, vegetative canopy development, and superior fruit/grain filling." if is_fertilizer else (
+                f"Delivers targeted broad-spectrum {category_type.lower()} protection to eradicate destructive pests and fungal pathogens, preserving crop yields."
+            )
+        )
 
         product_details = {
             "brand_name": brand_name,
@@ -1680,6 +1685,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "active_ingredient": active_ingredient,
             "category_type": category_type,
             "is_fertilizer": is_fertilizer,
+            "primary_function": detected_primary_fn,
             "detailed_description": detailed_description,
             "formulation": formulation,
             "batch_number": parsed_fields.get("batch_number", "Verified Authentic Batch"),

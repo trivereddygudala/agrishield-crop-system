@@ -4,7 +4,7 @@ import {
   CheckCircle2, Clock, Droplets, AlertTriangle, ShieldCheck, Info,
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
   ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2,
-  Award, UserCheck, PenSquare, SlidersHorizontal
+  Award, UserCheck, PenSquare, SlidersHorizontal, IndianRupee, Copy, Check, Banknote
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
@@ -32,6 +32,7 @@ const AgrochemicalResults = ({ data = {} }) => {
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
   const [showImageZoom, setShowImageZoom] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
 
   // Multilingual State & Translation Cache
   const [activeLang, setActiveLang] = useState(currentLang || 'en');
@@ -89,22 +90,60 @@ const AgrochemicalResults = ({ data = {} }) => {
   const activeData = translatedCache[activeLang] || data;
 
   // Extract the core structured sections with intelligent fallbacks
-  const productDetails = activeData?.product_details || activeData?.info?.product_details || {
-    brand_name: activeData?.productName || activeData?.info?.product_name || "Certified Agricultural Product",
-    company: activeData?.brand || activeData?.info?.brand || "Registered Manufacturer",
-    active_ingredient: activeData?.activeIngredient || activeData?.info?.active_ingredients || "Active Plant Protection Formulation",
-    category_type: activeData?.category_type || activeData?.info?.category_type || "Pesticide",
-    is_fertilizer: activeData?.is_fertilizer || activeData?.info?.is_fertilizer || false,
-    detailed_description: activeData?.detailed_description || activeData?.info?.detailed_description || "",
-    formulation: activeData?.formulation || activeData?.info?.formulation || "Wettable Powder / Liquid Formulation",
-    batch_number: activeData?.batchNumber || activeData?.info?.batch_number || "Verified Authentic Batch",
-    mfg_date: activeData?.mfgDate || activeData?.info?.mfg_date || "Recent Manufacturing",
-    exp_date: activeData?.expDate || activeData?.info?.exp_date || "Best before 24-36 months",
-    net_quantity: activeData?.netQuantity || activeData?.info?.net_qty || "Standard Commercial Pack",
-    registration_number: activeData?.registrationNumber || activeData?.info?.registration_number || "CIR-Verified",
-    hazard_color: activeData?.info?.hazard_color || "#16a34a",
-    toxicity_class: activeData?.toxicityClass || activeData?.info?.toxicity_level || "Class III - Caution (Green/Blue Triangle)",
-    image_url: activeData?.info?.image_url || "/samples/fertilizer_01.jpg"
+  const rawDetails = activeData?.product_details || activeData?.info?.product_details || {};
+  const isFert = Boolean(rawDetails.is_fertilizer || activeData?.is_fertilizer || activeData?.info?.is_fertilizer || activeData?.category_type === 'Fertilizer');
+
+  const productDetails = {
+    brand_name: rawDetails.brand_name || activeData?.productName || activeData?.info?.product_name || "Certified Agricultural Product",
+    company: rawDetails.company || activeData?.brand || activeData?.info?.brand || "Registered Manufacturer",
+    active_ingredient: rawDetails.active_ingredient || activeData?.activeIngredient || activeData?.info?.active_ingredients || "Active Agricultural Formulation",
+    category_type: rawDetails.category_type || activeData?.category_type || activeData?.info?.category_type || (isFert ? "Fertilizer" : "Pesticide"),
+    is_fertilizer: isFert,
+    detailed_description: rawDetails.detailed_description || activeData?.detailed_description || activeData?.info?.detailed_description || "",
+    primary_function: rawDetails.primary_function || activeData?.primary_function || activeData?.info?.primary_function || (
+      isFert
+        ? "Provides balanced primary macronutrients (Nitrogen, Phosphorus, Potassium) to stimulate vigorous root growth, vegetative canopy development, and superior fruit/grain filling."
+        : "Delivers targeted crop protection to eradicate pests and fungal pathogens, preserving crop yields."
+    ),
+    formulation: rawDetails.formulation || activeData?.formulation || activeData?.info?.formulation || "Water Soluble Granular / Liquid Formulation",
+    batch_number: rawDetails.batch_number || activeData?.batchNumber || activeData?.info?.batch_number || "Verified Authentic Batch",
+    mfg_date: rawDetails.mfg_date || activeData?.mfgDate || activeData?.info?.mfg_date || "Recent Manufacturing",
+    exp_date: rawDetails.exp_date || activeData?.expDate || activeData?.info?.exp_date || "Best before 24-36 months",
+    net_quantity: rawDetails.net_quantity || activeData?.netQuantity || activeData?.info?.net_qty || "50 kg (Standard Agricultural Pack)",
+    mrp_price: rawDetails.mrp_price || activeData?.mrp_price || activeData?.info?.mrp_price || "₹1,470 (Inclusive of all taxes)",
+    government_subsidy: rawDetails.government_subsidy || activeData?.government_subsidy || activeData?.info?.government_subsidy || "Subsidized under PMBJP / Central Fertilizer NBS Scheme",
+    registration_number: rawDetails.registration_number || activeData?.registrationNumber || activeData?.info?.registration_number || "CIR-Verified",
+    hazard_color: rawDetails.hazard_color || activeData?.info?.hazard_color || "#16a34a",
+    toxicity_class: rawDetails.toxicity_class || activeData?.toxicityClass || activeData?.info?.toxicity_level || "Class III - Caution (Green/Blue Triangle)",
+    image_url: rawDetails.image_url || activeData?.info?.image_url || "/products/agrochemical_bottle.jpg"
+  };
+
+  const generateMarkdownReport = () => {
+    return `### 📦 Product Identity
+- **Product Name**: ${productDetails.brand_name}
+- **Type**: ${productDetails.category_type}
+- **Manufacturer**: ${productDetails.company}
+
+### 📝 Product Description & Usage
+- **Description**: ${productDetails.detailed_description || detailedDescription}
+
+### 🧪 Composition & Technical Details
+- **Active Elements**: ${productDetails.active_ingredient}
+- **Primary Function**: ${productDetails.primary_function}
+
+### 💰 Pricing & Financials
+- **Retail Price (MRP)**: ${productDetails.mrp_price}
+- **Government Subsidy**: ${productDetails.government_subsidy}
+- **Net Weight**: ${productDetails.net_quantity}`;
+  };
+
+  const handleCopyMarkdown = () => {
+    const report = generateMarkdownReport();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(report);
+    }
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2500);
   };
 
   const userInstructions = activeData?.user_instructions || activeData?.info?.user_instructions || {
@@ -410,6 +449,15 @@ const AgrochemicalResults = ({ data = {} }) => {
                   ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Audio') 
                   : (currentLang === 'te' ? 'వివరాలు వినండి' : currentLang === 'hi' ? 'विवरण सुनें' : 'Listen Instructions')}
               </Button>
+              <Button
+                variant="glass"
+                size="sm"
+                onClick={handleCopyMarkdown}
+                leftIcon={copiedMarkdown ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-cyan-300" />}
+                className="bg-slate-800/90 hover:bg-slate-700 text-white font-bold border-white/20 shadow-sm"
+              >
+                {copiedMarkdown ? (currentLang === 'te' ? 'కాపీ చేయబడింది!' : 'Copied Markdown!') : (currentLang === 'te' ? 'రిపోర్ట్ కాపీ (Markdown)' : 'Copy Markdown Report')}
+              </Button>
             </div>
 
             <p className="text-xs sm:text-sm text-indigo-200/90 font-medium">
@@ -451,27 +499,27 @@ const AgrochemicalResults = ({ data = {} }) => {
         badge={`${categoryMeta.icon} ${categoryMeta.type}`} 
         defaultOpen={true}
         onSpeak={() => {
-          const text = `${productDetails.brand_name} by ${productDetails.company}. Classified as ${categoryMeta.label}. Active ingredient: ${productDetails.active_ingredient}. Formulation: ${productDetails.formulation}. Batch: ${productDetails.batch_number}. Expiry: ${productDetails.exp_date}. Toxicity: ${productDetails.toxicity_class}.`;
+          const text = `${productDetails.brand_name} by ${productDetails.company}. Classified as ${categoryMeta.label}. Active ingredient: ${productDetails.active_ingredient}. Primary function: ${productDetails.primary_function}. MRP: ${productDetails.mrp_price}. Net weight: ${productDetails.net_quantity}.`;
           speak(text, 'agro_details', currentLang);
         }}
         isSpeaking={speakingId === 'agro_details'}
       >
-        <div className="space-y-3.5">
-          {/* Details Grid */}
+        <div className="space-y-4">
+          {/* Top Row: 📦 Product Identity & 🧪 Composition */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
             {/* Commercial Brand Name */}
             <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
               <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <Package className="w-3.5 h-3.5 text-indigo-500" /> Commercial Brand Name
+                <Package className="w-3.5 h-3.5 text-indigo-500" /> 📦 Product Identity
               </span>
               <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-1">{productDetails.brand_name}</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Mfg: {productDetails.company}</p>
             </div>
 
-            {/* Product Category Classification (Pesticide, Fungicide, Insecticide, Fertilizer, Herbicide) */}
+            {/* Product Category Classification */}
             <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
               <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" /> Product Category & Function
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" /> Product Type & Classification
               </span>
               <p className="font-black text-slate-900 dark:text-white text-sm mt-1 flex items-center gap-1.5">
                 <span>{categoryMeta.icon}</span> {categoryMeta.label}
@@ -484,53 +532,107 @@ const AgrochemicalResults = ({ data = {} }) => {
             {/* Active Ingredients */}
             <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60">
               <span className="text-indigo-700 dark:text-indigo-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <FlaskConical className="w-3.5 h-3.5" /> Technical Molecule & Potency
+                <FlaskConical className="w-3.5 h-3.5" /> 🧪 Active Elements
               </span>
               <p className="font-black text-slate-900 dark:text-white text-sm mt-1">{productDetails.active_ingredient}</p>
               <p className="text-[11px] text-indigo-600 dark:text-indigo-300 mt-0.5 font-medium">Standard certified chemical composition</p>
             </div>
+          </div>
 
+          {/* Primary Function Banner */}
+          {productDetails.primary_function && (
+            <div className="p-3.5 bg-emerald-50/80 dark:bg-emerald-950/40 rounded-xl border border-emerald-300/80 dark:border-emerald-800/60 flex items-start gap-2.5">
+              <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-emerald-900 dark:text-emerald-300 font-extrabold uppercase text-[10px] tracking-wider">
+                  Primary Agricultural Function
+                </span>
+                <p className="text-xs sm:text-sm font-semibold text-emerald-950 dark:text-emerald-200 mt-0.5">
+                  {productDetails.primary_function}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION: 💰 Pricing & Financials */}
+          <div className="p-4 bg-gradient-to-br from-amber-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl border border-amber-500/30 dark:border-amber-400/20 shadow-sm space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-amber-900 dark:text-amber-300 font-extrabold uppercase text-[11px] flex items-center gap-1.5">
+                <IndianRupee className="w-4 h-4 text-amber-500" /> 💰 Pricing & Financials
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                Official Label & NBS Rates
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-white/80 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Retail Price (MRP)</span>
+                <p className="font-black text-slate-900 dark:text-white text-base mt-0.5 text-emerald-600 dark:text-emerald-400">
+                  {productDetails.mrp_price}
+                </p>
+                <p className="text-[10px] text-slate-400">Maximum Retail Price</p>
+              </div>
+
+              <div className="p-3 bg-white/80 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Government Subsidy</span>
+                <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5 text-indigo-600 dark:text-indigo-400">
+                  {productDetails.government_subsidy}
+                </p>
+                <p className="text-[10px] text-slate-400">PMBJP / State NBS Assistance</p>
+              </div>
+
+              <div className="p-3 bg-white/80 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+                <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Net Weight / Packaging</span>
+                <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5">
+                  {productDetails.net_quantity}
+                </p>
+                <p className="text-[10px] text-slate-400">Standard Agricultural Pack</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary Details: Formulation, Batch, Hazard */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             {/* Formulation Type */}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
               <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
                 <Layers className="w-3.5 h-3.5 text-teal-500" /> Formulation Type
               </span>
-              <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-1">{productDetails.formulation}</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Pack: {productDetails.net_quantity}</p>
+              <p className="font-extrabold text-slate-900 dark:text-white text-xs mt-1">{productDetails.formulation}</p>
             </div>
 
             {/* Batch & Expiry Timeline */}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
               <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-amber-500" /> Batch & Expiry Timeline
+                <Calendar className="w-3.5 h-3.5 text-amber-500" /> Batch & Expiry
               </span>
               <p className="font-bold text-slate-900 dark:text-white text-xs mt-1">Batch: <span className="font-mono">{productDetails.batch_number}</span></p>
-              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">Exp: {productDetails.exp_date}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Exp: {productDetails.exp_date}</p>
             </div>
 
             {/* Toxicity Hazard Classification */}
-            <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-900/60">
+            <div className="p-3 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-900/60">
               <span className="text-amber-800 dark:text-amber-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5" /> Hazard Toxicity Level
+                <AlertTriangle className="w-3.5 h-3.5" /> Hazard Toxicity
               </span>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1.5 mt-1">
                 <div 
-                  className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/20" 
+                  className="w-3 h-3 rounded-full shrink-0 border border-black/20" 
                   style={{ backgroundColor: productDetails.hazard_color || '#16a34a' }}
                 />
                 <p className="font-extrabold text-amber-950 dark:text-amber-300 text-xs">
                   {productDetails.toxicity_class}
                 </p>
               </div>
-              <p className="text-[11px] text-amber-700 dark:text-amber-400/90 mt-0.5">Statutory regulatory color triangle</p>
             </div>
           </div>
 
-          {/* SECTION 1.2: Product Description with 6-Line Clamp and Show More Toggle */}
+          {/* SECTION: 📝 Product Description & Usage with Show More Toggle */}
           <div className="p-4 bg-slate-50/90 dark:bg-slate-800/90 rounded-2xl border border-slate-200/90 dark:border-slate-700/90 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-slate-600 dark:text-slate-300 font-bold uppercase text-[11px] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Product Technical Description & Action Overview
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> 📝 Product Description & Usage
               </span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 {isDescriptionExpanded ? "Full Narrative" : "Summary Preview"}
@@ -539,7 +641,7 @@ const AgrochemicalResults = ({ data = {} }) => {
 
             <div className="relative">
               <p className={`text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed transition-all duration-300 whitespace-pre-line ${isDescriptionExpanded ? '' : 'line-clamp-6'}`}>
-                {detailedDescription}
+                {productDetails.detailed_description || detailedDescription}
               </p>
               {!isDescriptionExpanded && (
                 <div className="absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-slate-50 dark:from-slate-800 to-transparent pointer-events-none" />

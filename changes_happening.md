@@ -2,6 +2,31 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v188) - Strict 4-Section Agrochemical Scanner Report & Pricing Financials Presentation
+- **Summary:** Upgraded the AI Agrochemical Scanner backend detection and frontend presentation to enforce the user's strict 4-section report structure (📦 Product Identity, 📝 Product Description & Usage, 🧪 Composition & Technical Details, 💰 Pricing & Financials):
+  1. 📦 **Enforced 4-Section Data Schema (`gemini_vision.py` & `agrochemical_detector.py`):**
+     - Enhanced multimodal Gemini Vision prompt and schema to extract:
+       - `brand_name`: Commercial product name and numeric active ratio (e.g. `Bharat NPK 19:19:19`).
+       - `product_type`: Exact classification (`Fertilizer`, `Insecticide`, `Fungicide`, `Herbicide`, `PGR`, `Bio-Pesticide`).
+       - `manufacturer`: Company name and corporate/production location if visible.
+       - `detailed_description`: A rich, 5 to 10 sentence overview of product composition, primary agricultural purpose, and benefited crops.
+       - `active_ingredients`: Exact active ingredients, NPK percentages, or chemical active compounds.
+       - `primary_function`: Concise 1-sentence explanation of what it does for crops.
+       - `mrp_price`: Extracted retail cost with currency symbol (e.g. `₹1,470`).
+       - `government_subsidy`: Government or state subsidy assistance (e.g. `Subsidized under PMBJP / Central NBS`).
+       - `net_weight`: Net weight or volume (e.g. `50 kg`, `1 Litre`).
+  2. 💰 **High-Contrast Pricing & Financials Presentation Card (`AgrochemicalResults.jsx`):**
+     - Integrated a dedicated **💰 Pricing & Financials** grid card within `renderProductDetails` displaying Retail Price (MRP), Government Subsidy, and Net Weight in high-contrast emerald and amber styling.
+     - Added a Primary Agricultural Function banner highlighting the 1-sentence physiological benefit for crops.
+     - Formatted Product Description & Usage with 6-line clamp, fading gradient, and interactive `[Show More (Read Full Description) ↓]` / `[Show Less ↑]` toggle.
+  3. 📋 **1-Tap Markdown Report Export (`AgrochemicalResults.jsx`):**
+     - Added an instant **"📋 Copy Strict Markdown Report"** button directly on the hero card alongside audio TTS reader.
+     - Formats and copies the complete analysis directly into clipboard formatted in the user's exact markdown structure.
+  4. 🏗️ **Full Build Verification:**
+     - Compiled 3,154 modules cleanly using Vite (`npm run build`: built in 25.58s with 0 errors).
+     - Verified Python runtime `agrochemical_detector` import with exit code 0.
+- **Files modified:** `backend/app/services/gemini_vision.py`, `backend/app/services/agrochemical_detector.py`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v187) - Disease Diagnosis Latency Elimination (38s -> 1.8s) & Crop-Specific Offline Pathology Fix
 - **Summary:** Resolved the issue where scanning a rice leaf produced a "ZERO-INTERNET OFFLINE TRIAGE" banner and diagnosed "Rice Late Blight 94%":
   1. 🔍 **Root Cause 1: 38-Second Latency Stall on Cloud `/api/predict`:**

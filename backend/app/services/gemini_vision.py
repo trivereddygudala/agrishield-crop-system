@@ -146,14 +146,15 @@ Accurately classify the product into one of the following exact categories:
 
 Extract and return ONLY a valid JSON object matching this structure:
 {
-  "brand_name": "<Commercial Brand Name on the package, e.g. Coragen, SAAF, Amistar Top, Tracer, IFFCO Nano DAP, Gromor 14-35-14, Urea>",
-  "manufacturer": "<Company / Manufacturer name, e.g. FMC, UPL, Syngenta, Bayer, IFFCO, Coromandel, Tata Rallis>",
-  "active_ingredients": "<Technical Active chemical formulation with %, e.g. Chlorantraniliprole 18.5% SC, Mancozeb 64% + Carbendazim 12% WP, Nano Di-Ammonium Phosphate 8:16:0, Nitrogen 46%>",
+  "brand_name": "<Commercial Brand Name & numeric ratio on the package, e.g. Bharat NPK 19:19:19, Coragen, SAAF, Amistar Top>",
+  "manufacturer": "<Company / Manufacturer name & location if visible, e.g. Bharat Rasayan / PMBJP New Delhi, FMC, UPL, Syngenta>",
+  "active_ingredients": "<Active ingredients, NPK percentages, or chemical active compounds, e.g. Total Nitrogen 19% + Available Phosphate 19% + Potash 19%>",
   "product_type": "<Fertilizer / Insecticide / Fungicide / Herbicide / Plant Growth Regulator / Bio-Pesticide>",
-  "detailed_description": "<3 to 6 comprehensive sentences describing the product, technical mode of action, active molecules, and systemic/contact or nutritional properties>",
+  "primary_function": "<Short 1-sentence explanation of what it does for crops, e.g. Provides balanced macronutrients for vegetative vigor, root expansion, and fruit formation>",
+  "detailed_description": "<A medium 5 to 10 sentence overview of what this product is, its primary agricultural purpose, and the target crops it benefits based on its composition>",
   "target_crops": ["<Crop 1>", "<Crop 2>", "<Crop 3>"],
   "target_diseases_and_pests": ["<Target pest, disease, or deficiency 1>", "<Target pest, disease, or deficiency 2>"],
-  "dilution_rate_per_litre": "<Exact dilution per 1 Litre of clean water only, e.g. 0.4 mL / L or 2.0 g / L or 2.5 mL / L. Do NOT write per acre or 20L pump>",
+  "dilution_rate_per_litre": "<Exact dilution per 1 Litre of clean water only, e.g. 5.0 g / L or 2.0 mL / L. Do NOT write per acre or 20L pump>",
   "spray_interval": "<Repeat spray frequency, e.g. Repeat after 10 to 14 days if disease or pest pressure continues, or at critical growth stages for fertilizer>",
   "preharvest_interval_days": 14,
   "fertilizer_growth_stages": {
@@ -176,7 +177,7 @@ Extract and return ONLY a valid JSON object matching this structure:
   ],
   "toxicity_hazard": "<Green (Caution) / Blue (Warning) / Yellow (Danger) / Red (Poison)>",
   "mrp_price": "<Retail Price (MRP) with currency symbol, e.g. ₹1,470 or Not visible on label>",
-  "government_subsidy": "<Government subsidy amount if visible or applicable, e.g. ₹2,200 per bag or Subsidized under PMBJP>",
+  "government_subsidy": "<Government subsidy amount if visible or applicable, e.g. Subsidized under PMBJP / ₹2,200 per bag>",
   "net_weight": "<Net Weight or volume, e.g. 50 kg, 45 kg, 1 Litre, 500 g>",
   "extracted_text_summary": "<Key visible words, numbers, and text extracted from the label>"
 }
