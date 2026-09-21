@@ -1207,46 +1207,362 @@ except ImportError:
 
 PLANT_DATABASE.update(ANDHRA_SPECIES_DATABASE)
 
+# Comprehensive Multilingual Regional Names Repository for Indian Agriculture & Flora
+REGIONAL_BOTANICAL_NAMES = {
+    "chilli": {
+        "te": "మిరప మొక్క (Mirapa)",
+        "ta": "மிளகாய் செடி (Milagai)",
+        "hi": "मिर्च का पौधा (Mirch)",
+        "kn": "ಮೆಣಸಿನಕಾಯಿ ಗಿಡ (Menasinakayi)",
+        "ml": "മുളക് ചെടി (Mulaku)",
+        "mr": "मिरचीचे झाड (Mirchi)"
+    },
+    "pepper": {
+        "te": "క్యాప్సికమ్ / బెంగళూరు మిరప (Capsicum)",
+        "ta": "குடைமிளகாய் செடி (Kudaimilagai)",
+        "hi": "शिमला मिर्च (Shimla Mirch)",
+        "kn": "ದೊಣ್ಣೆಮೆಣಸಿನಕಾಯಿ (Donnemenasu)",
+        "ml": "ക്യാപ്സിക്കം (Capsicum)",
+        "mr": "ढोबळी मिरची (Dhobli Mirchi)"
+    },
+    "capsicum": {
+        "te": "మిరప / క్యాప్సికమ్ (Mirapa)",
+        "ta": "மிளகாய் / குடைமிளகாய் (Milagai)",
+        "hi": "शिमला मिर्च / मिर्च (Mirch)",
+        "kn": "ಮೆಣಸಿನಕಾಯಿ (Menasinakayi)",
+        "ml": "മുളക് (Mulaku)",
+        "mr": "मिरची (Mirchi)"
+    },
+    "tomato": {
+        "te": "టమోటా మొక్క (Tomato)",
+        "ta": "தக்காளி செடி (Thakkali)",
+        "hi": "टमाटर का पौधा (Tamatar)",
+        "kn": "ಟೊಮೆಟೊ ಗಿಡ (Tomato)",
+        "ml": "തക്കാളി ചെടി (Thakkali)",
+        "mr": "टोमॅटोचे रोप (Tomato)"
+    },
+    "potato": {
+        "te": "బంగాళాదుంప మొక్క (Alu)",
+        "ta": "உருளைக்கிழங்கு செடி (Urulaikkizhangu)",
+        "hi": "आलू का पौधा (Aloo)",
+        "kn": "ಆಲೂಗಡ್ಡೆ ಗಿಡ (Alooplant)",
+        "ml": "ഉരുളക്കിഴങ്ങ് ചെടി (Urulakkizhangu)",
+        "mr": "बटाटा रोप (Batata)"
+    },
+    "corn": {
+        "te": "మొక్కజొన్న పంట (Mokkajonna)",
+        "ta": "மக்காச்சோளம் பயிர் (Makkacholam)",
+        "hi": "मक्का की फसल (Makka)",
+        "kn": "ಮೆಕ್ಕೆಜೋಳ ಬೆಳೆ (Mekkejola)",
+        "ml": "ചോളം വിള (Cholam)",
+        "mr": "मका पीक (Maka)"
+    },
+    "maize": {
+        "te": "మొక్కజొన్న పంట (Mokkajonna)",
+        "ta": "மக்காச்சோளம் பயிர் (Makkacholam)",
+        "hi": "मक्का की फसल (Makka)",
+        "kn": "ಮೆಕ್ಕೆಜೋಳ ಬೆಳೆ (Mekkejola)",
+        "ml": "ചോളം വിള (Cholam)",
+        "mr": "मका पीक (Maka)"
+    },
+    "rice": {
+        "te": "వరి పంట (Vari)",
+        "ta": "நெல் பயிர் (Nel)",
+        "hi": "धान की फसल (Dhan)",
+        "kn": "ಭತ್ತದ ಬೆಳೆ (Bhatta)",
+        "ml": "നെല്ല് വിള (Nellu)",
+        "mr": "भात पीक (Bhat)"
+    },
+    "paddy": {
+        "te": "వరి పంట (Vari)",
+        "ta": "நெல் பயிர் (Nel)",
+        "hi": "धान की फसल (Dhan)",
+        "kn": "ಭತ್ತದ ಬೆಳೆ (Bhatta)",
+        "ml": "നെല്ല് വിള (Nellu)",
+        "mr": "भात पीक (Bhat)"
+    },
+    "wheat": {
+        "te": "గోధుమ పంట (Godhuma)",
+        "ta": "கோதுமை பயிர் (Gothumai)",
+        "hi": "गेहूं की फसल (Gehun)",
+        "kn": "ಗೋಧಿ ಬೆಳೆ (Godhi)",
+        "ml": "ഗോതമ്പ് വിള (Gothambu)",
+        "mr": "गहू पीक (Gahu)"
+    },
+    "cotton": {
+        "te": "పత్తి పంట (Patthi)",
+        "ta": "பருத்தி பயிர் (Paruthi)",
+        "hi": "कपास की फसल (Kapas)",
+        "kn": "ಹತ್ತಿ ಬೆಳೆ (Hatti)",
+        "ml": "പരുത്തി വിള (Paruthi)",
+        "mr": "कापूस पीक (Kapus)"
+    },
+    "sugarcane": {
+        "te": "చెరకు పంట (Cheruku)",
+        "ta": "கரும்பு பயிர் (Karumbu)",
+        "hi": "गन्ना फसल (Ganna)",
+        "kn": "ಕಬ್ಬು ಬೆಳೆ (Kabbu)",
+        "ml": "കരിമ്പ് വിള (Karimbu)",
+        "mr": "ऊस पीक (Oos)"
+    },
+    "groundnut": {
+        "te": "వేరుశనగ పంట (Verusenaga)",
+        "ta": "வேர்க்கடலை பயிர் (Verkadalai)",
+        "hi": "मूंगफली फसल (Moongphali)",
+        "kn": "ಕಡಲೆಕಾಯಿ ಬೆಳೆ (Kadalekayi)",
+        "ml": "നിലക്കടല വിള (Nilakkadala)",
+        "mr": "भुईमूग पीक (Bhuimug)"
+    },
+    "onion": {
+        "te": "ఉల్లిపాయ పంట (Ullipaya)",
+        "ta": "வெங்காயம் பயிர் (Vengayam)",
+        "hi": "प्याज की फसल (Pyaz)",
+        "kn": "ಈರುಳ್ಳಿ ಬೆಳೆ (Eerulli)",
+        "ml": "സവാള / ഉള്ളി (Ulli)",
+        "mr": "कांदा पीक (Kanda)"
+    },
+    "garlic": {
+        "te": "వెల్లుల్లి (Vellulli)",
+        "ta": "பூண்டு (Poondu)",
+        "hi": "लहसुन (Lahsun)",
+        "kn": "ಬೆಳ್ಳುಳ್ಳಿ (Bellulli)",
+        "ml": "വെളുത്തുള്ളി (Veluthulli)",
+        "mr": "लसूण (Lasun)"
+    },
+    "brinjal": {
+        "te": "వంకాయ మొక్క (Vankaya)",
+        "ta": "கத்தரிக்காய் செடி (Kathirikai)",
+        "hi": "बैंगन का पौधा (Baingan)",
+        "kn": "ಬದನೆಕಾಯಿ ಗಿಡ (Badanekayi)",
+        "ml": "വഴുതനങ്ങ ചെടി (Vazhuthananga)",
+        "mr": "वांगी रोप (Vangi)"
+    },
+    "okra": {
+        "te": "బెండకాయ మొక్క (Bendakaya)",
+        "ta": "வெண்டைக்காய் செடி (Vendaikkai)",
+        "hi": "भिंडी का पौधा (Bhindi)",
+        "kn": "ಬೆಂಡೆಕಾಯಿ ಗಿಡ (Bendekayi)",
+        "ml": "വെണ്ടയ്ക്ക ചെടി (Vendakka)",
+        "mr": "भेंडी रोप (Bhendi)"
+    },
+    "mango": {
+        "te": "మామిడి చెట్టు (Mamidi)",
+        "ta": "மாமரம் (Maamaram)",
+        "hi": "आम का पेड़ (Aam)",
+        "kn": "ಮಾವಿನ ಮರ (Mavina Mara)",
+        "ml": "മാവ് (Maavu)",
+        "mr": "आंब्याचे झाड (Aamba)"
+    },
+    "banana": {
+        "te": "అరటి మొక్క (Arati)",
+        "ta": "வாழை மரம் (Vazhai)",
+        "hi": "केले का पौधा (Kela)",
+        "kn": "ಬಾಳೆ ಗಿಡ (Bale Gida)",
+        "ml": "വാഴ (Vaazha)",
+        "mr": "केळीचे झाड (Keli)"
+    },
+    "papaya": {
+        "te": "బొప్పాయి చెట్టు (Boppayi)",
+        "ta": "பப்பாளி மரம் (Pappali)",
+        "hi": "पपीता का पेड़ (Papita)",
+        "kn": "ಪರಂಗಿ ಮರ (Parangi)",
+        "ml": "പപ്പായ (Pappaya)",
+        "mr": "पपई झाड (Papai)"
+    },
+    "guava": {
+        "te": "జామ చెట్టు (Jama)",
+        "ta": "கொய்யா மரம் (Koyya)",
+        "hi": "अमरूद का पेड़ (Amrood)",
+        "kn": "ಸೀಬೆ ಮರ (Seebe)",
+        "ml": "പേരക്ക മരം (Pera)",
+        "mr": "पेरूचे झाड (Peru)"
+    },
+    "pomegranate": {
+        "te": "దానిమ్మ చెట్టు (Danimma)",
+        "ta": "மாதுளை மரம் (Madhulai)",
+        "hi": "अनार का पेड़ (Anaar)",
+        "kn": "ದಾಳಿಂಬೆ ಗಿಡ (Dalimbe)",
+        "ml": "മാതളനാരകം (Mathalam)",
+        "mr": "डाळिंब झाड (Dalimb)"
+    },
+    "lemon": {
+        "te": "నిమ్మ చెట్టు (Nimma)",
+        "ta": "எலுமிச்சை மரம் (Elumichai)",
+        "hi": "नींबू का पौधा (Nimbu)",
+        "kn": "ನಿಂಬೆ ಗಿಡ (Nimbe)",
+        "ml": "നാരകം (Narakam)",
+        "mr": "लिंबू झाड (Limbu)"
+    },
+    "sweet_orange": {
+        "te": "బత్తాయి చెట్టు (Batthayi)",
+        "ta": "சாத்துக்குடி மரம் (Sathukudi)",
+        "hi": "मौसमी का पेड़ (Mosambi)",
+        "kn": "ಮೋಸಂಬಿ ಗಿಡ (Mosambi)",
+        "ml": "മൊസാമ്പി (Mosambi)",
+        "mr": "मोसंबी झाड (Mosambi)"
+    },
+    "apple": {
+        "te": "యాపిల్ చెట్టు (Apple)",
+        "ta": "ஆப்பிள் மரம் (Apple)",
+        "hi": "सेब का पेड़ (Seb)",
+        "kn": "ಸೇಬು ಮರ (Sebu)",
+        "ml": "ആപ്പിൾ മരം (Apple)",
+        "mr": "सफरचंद झाड (Safarchand)"
+    },
+    "grape": {
+        "te": "ద్రాక్ష తీగ (Draksha)",
+        "ta": "திராட்சை கொடி (Thiratchai)",
+        "hi": "अंगूर की बेल (Angoor)",
+        "kn": "ದ್ರಾಕ್ಷಿ ಬಳ್ಳಿ (Drakshi)",
+        "ml": "മുന്തിരി വള്ളി (Munthiri)",
+        "mr": "द्राक्ष वेल (Draksha)"
+    },
+    "coconut": {
+        "te": "కొబ్బరి చెట్టు (Kobbari)",
+        "ta": "தென்னை மரம் (Thennai)",
+        "hi": "नारियल का पेड़ (Nariyal)",
+        "kn": "ತೆಂಗಿನ ಮರ (Tengina Mara)",
+        "ml": "തെങ്ങ് (Thengu)",
+        "mr": "नारळाचे झाड (Naral)"
+    },
+    "neem": {
+        "te": "వేప చెట్టు (Vepa)",
+        "ta": "வேப்ப மரம் (Veppamaram)",
+        "hi": "नीम का पेड़ (Neem)",
+        "kn": "ಬೇವಿನ ಮರ (Bevina Mara)",
+        "ml": "വേപ്പ് (Vepu)",
+        "mr": "कडुनिंब झाड (Kadunimb)"
+    },
+    "tamarind": {
+        "te": "చింత చెట్టు (Chinta)",
+        "ta": "புளிய மரம் (Puliyamaram)",
+        "hi": "इमली का पेड़ (Imli)",
+        "kn": "ಹುಣಸೆ ಮರ (Hunase Mara)",
+        "ml": "പുളി മരം (Puli)",
+        "mr": "चिंचेचे झाड (Chinch)"
+    },
+    "turmeric": {
+        "te": "పసుపు పంట (Pasupu)",
+        "ta": "மஞ்சள் பயிர் (Manjal)",
+        "hi": "हल्दी की फसल (Haldi)",
+        "kn": "ಅರಿಶಿನ ಬೆಳೆ (Arishina)",
+        "ml": "മഞ്ഞൾ വിള (Manjal)",
+        "mr": "हळद पीक (Halad)"
+    },
+    "ginger": {
+        "te": "అల్లం పంట (Allam)",
+        "ta": "இஞ்சி பயிர் (Inji)",
+        "hi": "अदरक की फसल (Adrak)",
+        "kn": "ಶುಂಠಿ ಬೆಳೆ (Shunti)",
+        "ml": "ഇഞ്ചി വിള (Inji)",
+        "mr": "आले पीक (Aale)"
+    },
+    "parthenium": {
+        "te": "వయ్యారి భామ / కాంగ్రెస్ గడ్డి (Parthenium Weed)",
+        "ta": "பார்த்தீனியம் விஷக்களை (Parthenium)",
+        "hi": "गाजर घास / चटक चांदनी (Parthenium)",
+        "kn": "ಕಾಂಗ್ರೆಸ್ ಗಿಡ / ಪಾರ್ಥೇನಿಯಂ (Parthenium)",
+        "ml": "പാർത്ഥീനിയം കള (Parthenium)",
+        "mr": "गाजर गवत (Gajar Gavat)"
+    },
+    "nut_grass": {
+        "te": "తుంగ గడ్డి / తుంగ దుంపలు (Tunga Gaddi)",
+        "ta": "கோரைப்புல் (Koraipul)",
+        "hi": "मोथा घास (Motha)",
+        "kn": "ಭದ್ರ ಮುಷ್ಟಿ / ಕೊರೆ ಹುಲ್ಲು (Bhadramushti)",
+        "ml": "മുത്തങ്ങ (Muthanga)",
+        "mr": "लव्हाळा गवत (Lavhala)"
+    },
+    "bermuda_grass": {
+        "te": "గరిక గడ్డి (Garika Gaddi)",
+        "ta": "அருகம்புல் (Arugampul)",
+        "hi": "दूब घास (Doob)",
+        "kn": "ಗರಿಕೆ ಹುಲ್ಲು (Garike)",
+        "ml": "കറുകപ്പുല്ല് (Karukapullu)",
+        "mr": "दुर्वा गवत (Durva)"
+    },
+    "weed": {
+        "te": "కలుపు మొక్క (Agricultural Weed)",
+        "ta": "விவசாய களைச்செடி (Agricultural Weed)",
+        "hi": "कृषि खरपतवार (Agricultural Weed)",
+        "kn": "ಕೃಷಿ ಕಳೆಗಿಡ (Agricultural Weed)",
+        "ml": "കാർഷിക കള (Agricultural Weed)",
+        "mr": "तण / शेतातील गवत (Weed)"
+    }
+}
+
+def get_authentic_regional_names(plant_key: str) -> dict:
+    """
+    Returns authentic South Indian & Hindi regional names for any crop, weed, or plant.
+    Matches exact or partial terms to ensure high-fidelity vernacular output for farmers.
+    """
+    clean_k = (plant_key or "").lower().replace('_', ' ').replace('-', ' ').strip()
+    
+    # 1. Exact match
+    for k, v in REGIONAL_BOTANICAL_NAMES.items():
+        if k in clean_k or clean_k in k:
+            return v.copy()
+            
+    # 2. Heuristics for common agricultural weeds
+    if any(w in clean_k for w in ["weed", "grass", "gaddi", "pul", "gavat", "ghas"]):
+        return REGIONAL_BOTANICAL_NAMES["weed"].copy()
+        
+    # 3. Fallback to clean title
+    display = plant_key.replace('_', ' ').title()
+    return {
+        "te": f"{display} మొక్క",
+        "ta": f"{display} செடி",
+        "hi": f"{display} का पौधा",
+        "kn": f"{display} ಗಿಡ",
+        "ml": f"{display} ചെടി",
+        "mr": f"{display} रोप"
+    }
+
 def get_plant_info(plant_key: str) -> dict:
     """
     Looks up plant information dictionary by key/name.
-    Falls back to structured dynamic template if exact key isn't present.
+    Falls back to structured dynamic template with authentic multilingual regional names.
     """
     normalized_key = plant_key.lower().strip()
     
-    # 1. Exact key match priority (prevents 'apple' matching 'custard_apple' or 'rose' matching 'rosewood')
+    # 1. Exact key match priority
     if normalized_key in PLANT_DATABASE:
-        return PLANT_DATABASE[normalized_key].copy()
+        res = PLANT_DATABASE[normalized_key].copy()
+        if not res.get("regional_names") or not res["regional_names"].get("ta"):
+            reg = get_authentic_regional_names(normalized_key)
+            res["regional_names"] = {**reg, **(res.get("regional_names") or {})}
+        return res
     
     # 2. Case-insensitive / whitespace-normalized exact check
     for key, data in PLANT_DATABASE.items():
         if key == normalized_key:
-            return data.copy()
+            res = data.copy()
+            if not res.get("regional_names") or not res["regional_names"].get("ta"):
+                reg = get_authentic_regional_names(normalized_key)
+                res["regional_names"] = {**reg, **(res.get("regional_names") or {})}
+            return res
 
-    # 3. Substring match: key in normalized_key (e.g. 'tomato_leaf.jpg' contains 'tomato')
-    # Sort keys by length descending so longer/more specific keys match first!
+    # 3. Substring match
     import re
     for key in sorted(PLANT_DATABASE.keys(), key=lambda k: len(k), reverse=True):
         pattern = rf"\b{re.escape(key)}\b"
         if re.search(pattern, normalized_key) or key in normalized_key:
-            return PLANT_DATABASE[key].copy()
+            res = PLANT_DATABASE[key].copy()
+            if not res.get("regional_names") or not res["regional_names"].get("ta"):
+                reg = get_authentic_regional_names(normalized_key)
+                res["regional_names"] = {**reg, **(res.get("regional_names") or {})}
+            return res
 
-    # Dynamic fallback structured plant profile
+    # Dynamic fallback structured plant profile with authentic regional names
     display_title = plant_key.replace('_', ' ').title()
     is_weed = any(w in normalized_key for w in ["weed", "grass", "gaddi", "pul", "gavat", "ghas", "parthenium", "cyperus"])
     
     cat = "Agricultural Weed" if is_weed else "Agricultural Crop"
+    authentic_reg = get_authentic_regional_names(normalized_key)
     
     return {
         "common_name": f"{display_title} {'Weed' if is_weed else 'Crop'}",
-        "regional_names": {
-            "te": f"{display_title} (తెలుగు)",
-            "ta": f"{display_title} (தமிழ்)",
-            "ml": f"{display_title} (മലയാളം)",
-            "kn": f"{display_title} (ಕನ್ನಡ)",
-            "mr": f"{display_title} (मराठी)",
-            "hi": f"{display_title} (हिंदी)"
-        },
+        "regional_names": authentic_reg,
         "scientific_name": display_title,
         "family": cat,
         "category": cat,

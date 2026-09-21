@@ -21,6 +21,7 @@ from backend.app.models.schemas import (
     PredictionHistoryResponse, 
     PredictRequest,
     PredictBatchRequest,
+    TranslatePlantRequest,
     AgrochemicalCompareRequest,
     CropAdvisorRequest
 )
@@ -145,12 +146,164 @@ def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
             "te": "టమోటా",
             "hi": "टमाटर",
             "ta": "தக்காளி",
-            "kn": "టొమెటొ",
+            "kn": "ಟೊಮೆಟೊ",
             "ml": "തക്കാളി",
             "mr": "टोमॅटो",
             "gu": "ટમેટા",
             "pa": "ਟਮਾਟਰ",
-            "ur": "టమాటర్"
+            "ur": "ٹماٹر"
+        },
+        "potato": {
+            "te": "బంగాళాదుంప",
+            "hi": "आलू",
+            "ta": "உருளைக்கிழங்கு",
+            "kn": "ಆಲೂಗಡ್ಡೆ",
+            "ml": "ഉരുളക്കിഴങ്ങ്",
+            "mr": "बटाटा"
+        },
+        "onion": {
+            "te": "ఉల్లిపాయ",
+            "hi": "प्याज",
+            "ta": "வெங்காயம்",
+            "kn": "ಈರುಳ್ಳಿ",
+            "ml": "സവാള / ഉള്ളി",
+            "mr": "कांदा"
+        },
+        "garlic": {
+            "te": "వెల్లుల్లి",
+            "hi": "लहसुन",
+            "ta": "பூண்டு",
+            "kn": "ಬೆಳ್ಳುಳ್ಳಿ",
+            "ml": "വെളുത്തുള്ളി",
+            "mr": "लसूण"
+        },
+        "brinjal": {
+            "te": "వంకాయ",
+            "hi": "बैंगन",
+            "ta": "கத்தரிக்காய்",
+            "kn": "ಬದನೆಕಾಯಿ",
+            "ml": "വഴുതനങ്ങ",
+            "mr": "वांगी"
+        },
+        "okra": {
+            "te": "బెండకాయ",
+            "hi": "भिंडी",
+            "ta": "வெண்டைக்காய்",
+            "kn": "ಬೆಂಡೆಕಾಯಿ",
+            "ml": "വെണ്ടയ്ക്ക",
+            "mr": "भेंडी"
+        },
+        "banana": {
+            "te": "అరటి",
+            "hi": "केला",
+            "ta": "வாழை",
+            "kn": "ಬಾಳೆ",
+            "ml": "വാഴ",
+            "mr": "केळी"
+        },
+        "papaya": {
+            "te": "బొప్పాయి",
+            "hi": "पपीता",
+            "ta": "பப்பாளி",
+            "kn": "ಪರಂಗಿ",
+            "ml": "പപ്പായ",
+            "mr": "पपई"
+        },
+        "guava": {
+            "te": "జామ",
+            "hi": "अमरूद",
+            "ta": "கொய்யா",
+            "kn": "ಸೀಬೆ",
+            "ml": "പേരക്ക",
+            "mr": "पेरू"
+        },
+        "pomegranate": {
+            "te": "దానిమ్మ",
+            "hi": "अनार",
+            "ta": "மாதுளை",
+            "kn": "ದಾಳಿಂಬೆ",
+            "ml": "മാതളനാരകം",
+            "mr": "डाळिंब"
+        },
+        "lemon": {
+            "te": "నిమ్మ",
+            "hi": "नींबू",
+            "ta": "எலுமிச்சை",
+            "kn": "ನಿಂಬೆ",
+            "ml": "നാരകം",
+            "mr": "लिंबू"
+        },
+        "apple": {
+            "te": "యాపిల్",
+            "hi": "सेब",
+            "ta": "ஆப்பிள்",
+            "kn": "ಸೇಬು",
+            "ml": "ആപ്പിൾ",
+            "mr": "सफरचंद"
+        },
+        "grape": {
+            "te": "ద్రాక్ష",
+            "hi": "अंगूर",
+            "ta": "திராட்சை",
+            "kn": "ದ್ರಾಕ್ಷಿ",
+            "ml": "മുന്തിരി",
+            "mr": "द्राक्ष"
+        },
+        "coconut": {
+            "te": "కొబ్బరి",
+            "hi": "नारियल",
+            "ta": "தென்னை",
+            "kn": "ತೆಂಗಿನ",
+            "ml": "തെങ്ങ്",
+            "mr": "नारळ"
+        },
+        "neem": {
+            "te": "వేప చెట్టు",
+            "hi": "नीम",
+            "ta": "வேப்ப மரம்",
+            "kn": "ಬೇವಿನ ಮರ",
+            "ml": "വേപ്പ്",
+            "mr": "कडुनिंब"
+        },
+        "tamarind": {
+            "te": "చింత చెట్టు",
+            "hi": "इमली",
+            "ta": "புளிய மரம்",
+            "kn": "ಹುಣಸೆ ಮರ",
+            "ml": "പുളി",
+            "mr": "चिंच"
+        },
+        "turmeric": {
+            "te": "పసుపు",
+            "hi": "हल्दी",
+            "ta": "மஞ்சள்",
+            "kn": "ಅರಿಶಿನ",
+            "ml": "മഞ്ഞൾ",
+            "mr": "हळद"
+        },
+        "ginger": {
+            "te": "అల్లం",
+            "hi": "अदरक",
+            "ta": "இஞ்சி",
+            "kn": "ಶುಂಠಿ",
+            "ml": "ഇഞ്ചി",
+            "mr": "आले"
+        },
+        "wheat": {
+            "te": "గోధుమ",
+            "hi": "गेहूं",
+            "ta": "கோதுமை",
+            "kn": "ಗೋಧಿ",
+            "ml": "ഗോതമ്പ്",
+            "mr": "गहू"
+        },
+        "parthenium": {
+            "te": "వయ్యారి భామ / కాంగ్రెస్ గడ్డి",
+            "hi": "गाजर घास खरपतवार",
+            "ta": "பார்த்தீனியம் விஷக்களை",
+            "kn": "ಕಾಂಗ್ರೆಸ್ ಕಳೆಗಿಡ",
+            "ml": "പാർത്ഥീനിയം കള",
+            "mr": "गाजर गवत"
         }
     }
     
@@ -158,6 +311,171 @@ def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
         if crop_key in crop_lower:
             return langs.get(lang_lower, crop_name)
     return crop_name
+
+
+async def translate_plant_data(plant_obj: dict, target_lang: str) -> dict:
+    """
+    Translates plant identification botanical attributes and agronomic advisory
+    into the user's requested regional language (e.g. Telugu, Tamil, Hindi, Kannada, etc.).
+    Maintains a multi-language translations map so clients can toggle instantaneously.
+    """
+    if not plant_obj or not target_lang or target_lang.lower().startswith("en"):
+        return plant_obj
+
+    lang_code = target_lang.lower().split("-")[0].strip()
+
+    # If already translated and cached in translations map, return directly
+    translations = plant_obj.get("translations", {})
+    if isinstance(translations, dict) and lang_code in translations:
+        cached_result = translations[lang_code].copy()
+        cached_result["translations"] = translations
+        return cached_result
+
+    # Retrieve or preserve pristine original English version for canonical translation
+    source_obj = plant_obj.get("translations", {}).get("en", plant_obj)
+    english_version = source_obj.copy()
+
+    # Determine authentic regional common name
+    regional_names = plant_obj.get("regional_names") or source_obj.get("regional_names") or {}
+    localized_name = regional_names.get(lang_code)
+    if not localized_name:
+        localized_name = get_farmer_crop_translation(source_obj.get("common_name", ""), lang_code)
+    if not localized_name:
+        try:
+            from backend.app.services.plant_identifier.plant_information import get_authentic_regional_names
+            reg = get_authentic_regional_names(source_obj.get("common_name", "") or source_obj.get("scientific_name", ""))
+            localized_name = reg.get(lang_code, source_obj.get("common_name", ""))
+            regional_names.update(reg)
+        except Exception:
+            localized_name = source_obj.get("common_name", "")
+
+    # Fields to translate from canonical English source
+    fields_to_translate = {
+        "category": source_obj.get("category", ""),
+        "description": source_obj.get("description", ""),
+        "growth_stage": source_obj.get("growth_stage", ""),
+        "growing_season": source_obj.get("growing_season", ""),
+        "harvest_season": source_obj.get("harvest_season", ""),
+        "leaf_type": source_obj.get("leaf_type", ""),
+        "soil_type": source_obj.get("soil_type", ""),
+        "temperature_range": source_obj.get("temperature_range", ""),
+        "water_requirement": source_obj.get("water_requirement", ""),
+        "sunlight_requirement": source_obj.get("sunlight_requirement", ""),
+        "fertilizer_recommendation": source_obj.get("fertilizer_recommendation", ""),
+        "economic_importance": source_obj.get("economic_importance", ""),
+        "weed_eradication_advice": source_obj.get("weed_eradication_advice", ""),
+        "native_region": source_obj.get("native_region", ""),
+        "common_uses": source_obj.get("common_uses", []),
+        "common_diseases": source_obj.get("common_diseases", []),
+        "common_pests": source_obj.get("common_pests", [])
+    }
+    fields_to_send = {k: v for k, v in fields_to_translate.items() if v}
+
+    translated_fields = {}
+    lang_names = {
+        "te": "Telugu (తెలుగు)",
+        "ta": "Tamil (தமிழ்)",
+        "hi": "Hindi (हिन्दी)",
+        "kn": "Kannada (ಕನ್ನಡ)",
+        "ml": "Malayalam (മലയാളം)",
+        "mr": "Marathi (मराठी)",
+        "gu": "Gujarati (ગુજરાતી)",
+        "pa": "Punjabi (ਪੰਜਾਬੀ)",
+        "ur": "Urdu (اردو)",
+        "bn": "Bengali (বাংলা)",
+        "or": "Odia (ଓଡ଼ିଆ)",
+        "as": "Assamese (অসমীয়া)"
+    }
+    target_lang_name = lang_names.get(lang_code, "Indian regional language")
+
+    # 1. Primary: Google Gemini Flash Multimodal AI (1,000,000 TPM official quota)
+    try:
+        from backend.app.services.nvidia_service import nvidia_service
+        import json as _json
+        prompt = f"""You are an expert botanical agronomist and agricultural translator.
+Translate the following botanical specimen and farming fields into {target_lang_name}.
+CRITICAL RULES:
+1. Preserve all JSON keys exactly as-is in English.
+2. Only translate the text values into {target_lang_name}.
+3. For lists, return a list of translated strings.
+4. Output raw native script characters directly. Do not use unicode escapes.
+5. Return ONLY a valid JSON object without markdown or extra conversational text.
+
+Fields to translate:
+{_json.dumps(fields_to_send, ensure_ascii=False, indent=2)}
+"""
+        msgs = [{"role": "user", "content": prompt}]
+        raw_gemini_resp = await nvidia_service._call_gemini_flash(msgs, max_tokens=2048, temperature=0.1)
+        if raw_gemini_resp:
+            cleaned_text = raw_gemini_resp.strip()
+            if "```json" in cleaned_text:
+                cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in cleaned_text:
+                cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
+            parsed = _json.loads(cleaned_text)
+            if isinstance(parsed, dict) and len(parsed) > 0:
+                translated_fields = parsed
+    except Exception as gemini_err:
+        print(f"Gemini Flash plant translation attempt failed: {gemini_err}")
+
+    # 2. Secondary: NVIDIA NIM LLM Translation
+    if not translated_fields:
+        try:
+            from backend.app.services.nvidia_service import nvidia_service
+            if nvidia_service and nvidia_service.client:
+                translated_fields = await nvidia_service.translate_diagnosis(fields_to_send, lang_code)
+        except Exception as e:
+            print("NVIDIA translation fallback failed:", e)
+
+    # 3. Tertiary: Fast GoogleTranslator fallback with in-memory RAM cache
+    is_untranslated = (
+        not translated_fields or
+        (fields_to_send.get("description") and translated_fields.get("description") == fields_to_send.get("description"))
+    )
+    if is_untranslated:
+        try:
+            from deep_translator import GoogleTranslator
+            translator = GoogleTranslator(source='auto', target=lang_code)
+
+            def _translate_str(text):
+                if not text or str(text).strip() in ["", "None", "N/A", "Not applicable."]:
+                    return text
+                ck = f"{lang_code}:{str(text).strip()}"
+                if ck in _TRANSLATION_CACHE:
+                    return _TRANSLATION_CACHE[ck]
+                try:
+                    res = translator.translate(str(text))
+                    if res:
+                        _TRANSLATION_CACHE[ck] = res
+                        return res
+                    return text
+                except Exception:
+                    return text
+
+            for k, v in fields_to_send.items():
+                if isinstance(v, list):
+                    translated_fields[k] = [_translate_str(item) for item in v]
+                elif isinstance(v, str):
+                    translated_fields[k] = _translate_str(v)
+        except Exception as deep_err:
+            print("deep_translator fallback failed for plant:", deep_err)
+
+    # Construct translated plant dictionary
+    translated_plant = plant_obj.copy()
+    translated_plant["common_name"] = localized_name or plant_obj.get("common_name", "")
+    translated_plant["regional_names"] = regional_names
+    for k, v in translated_fields.items():
+        if v:
+            translated_plant[k] = v
+
+    # Attach bidirectional multi-language cache
+    if "translations" not in plant_obj:
+        plant_obj["translations"] = {}
+    plant_obj["translations"]["en"] = english_version
+    plant_obj["translations"][lang_code] = translated_plant.copy()
+    translated_plant["translations"] = plant_obj["translations"]
+
+    return translated_plant
 
 
 def get_farmer_disease_translation(disease_name: str, lang: str) -> str:
@@ -590,6 +908,12 @@ async def identify_plant_endpoint(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=result.get("error", "This plant could not be confidently identified.")
             )
+
+        # Automatic Multilingual Translation for Plant Identification
+        target_lang = (req.language or "en").lower().split("-")[0].strip()
+        if target_lang != "en" and result.get("plant"):
+            result["plant"] = await translate_plant_data(result["plant"], target_lang)
+
         return result
     except HTTPException:
         raise
@@ -597,6 +921,30 @@ async def identify_plant_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Plant identification error: {str(e)}"
+        )
+
+@router.post("/translate-plant")
+async def translate_plant_endpoint(
+    req: TranslatePlantRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    On-demand translation endpoint for active plant identification results.
+    Enables instantaneous UI language switching for farmers on active scan results.
+    """
+    try:
+        target_lang = (req.language or "en").lower().split("-")[0].strip()
+        if target_lang == "en":
+            if "translations" in req.plant and "en" in req.plant["translations"]:
+                return {"success": True, "plant": req.plant["translations"]["en"]}
+            return {"success": True, "plant": req.plant}
+
+        translated = await translate_plant_data(req.plant, target_lang)
+        return {"success": True, "plant": translated}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Plant translation error: {str(e)}"
         )
 
 # Unify all prediction routes to predict_pytorch_endpoint

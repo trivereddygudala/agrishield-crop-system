@@ -2,6 +2,36 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-21 (v171) - Plant & Botanical Identification Language Localization (Telugu, Tamil, Hindi) & Next-Gen UI Overhaul
+- **Summary:** Resolved the issue where Plant Identification results only returned in English even when switched to regional languages (Telugu, Tamil, etc.), and overhauled the Plant Identification results UI to be visually stunning, high-fidelity, and responsive:
+  1. 🌐 **Multi-Language Botanical Translation Pipeline (`backend/app/routers/predict.py`):**
+     - Resolved the root cause where `/api/identify-plant` ignored `req.language` and returned raw English dicts.
+     - Implemented `translate_plant_data(plant_obj, target_lang)` using Google Gemini Flash (`_call_gemini_flash`) with official `GEMINI_API_KEY` (1,000,000 TPM limit) as primary engine, secondary NVIDIA NIM, tertiary deep_translator, and in-memory LRU RAM caching.
+     - Preserves clean canonical English source (`translations['en']`) so subsequent language switches (`en` -> `te` -> `ta`) translate accurately without cumulative degradation.
+     - Added `@router.post("/translate-plant")` endpoint for instant on-demand client language switches without re-uploading leaf photos.
+     - Added `TranslatePlantRequest` Pydantic schema in `backend/app/models/schemas.py`.
+  2. 🌿 **Authentic Vernacular Botanical Repository (`backend/app/services/plant_identifier/plant_information.py` & `online_provider.py`):**
+     - Built `REGIONAL_BOTANICAL_NAMES` database with authentic botanical and vernacular names across Telugu, Tamil, Hindi, Kannada, Malayalam, and Marathi for 35+ major crops, horticultural plants, forest trees, and agricultural weeds.
+     - Integrated `get_authentic_regional_names(plant_key)` into `get_plant_info` fallback and `PlantNetOnlineProvider`.
+  3. 🌾 **Crop Dictionary & Translation Data (`frontend/src/utils/diseaseAdvisoryData.js`):**
+     - Expanded `CROPS_MAP` across `te`, `hi`, `ta`, and `en` with garden vegetables, commercial crops, plantation trees, and invasive weeds.
+  4. 🎨 **Next-Gen Plant Identification UI (`frontend/src/components/scanCenter/PlantIdResults.jsx`):**
+     - Completely re-architected the results UI with:
+       - **Interactive In-Card Language Switcher Bar:** 1-tap pills (`[ 🌐 English | తెలుగు | தமிழ் | हिंदी | ಕನ್ನಡ | മലയാളം ]`) for instant switching without re-running scans.
+       - **Zero-Latency Agronomic Localization Dictionary:** Client-side agronomic terms dictionary for instant offline rendering.
+       - **Hero Specimen Card:** Radiant teal/emerald mesh gradient, dual-script titles, Latin scientific name, confidence meter, latency badge, and audio companion TTS reader.
+       - **Clamped Agronomic Narrative:** 6-line clamped description with fade gradient and `[Show More ↓]` / `[Show Less ↑]` toggle.
+       - **4-Card Agronomic Care Matrix:** Sunlight ☀️, Watering 💧, Soil & pH 🌱, Climate Temperature 🌡️.
+       - **Botanical Taxonomy Card:** Genus, Species, Family, Leaf Morphology.
+       - **Nutrition & Fertilizer Card:** NPK Blend & Micronutrients.
+       - **Agricultural Vigilance & Crop Protection:** Common Susceptible Diseases and Pests.
+       - **Weed Eradication Advisory Card:** Dedicated protocol when an agricultural weed is detected.
+       - **Action Toolbar:** "Scan Another Plant" and "Check Disease on this Crop" buttons.
+  5. 🧪 **Validation:**
+     - Verified end-to-end translation into Telugu (`te`) and Tamil (`ta`) using Gemini Flash engine.
+     - Verified `frontend/` production bundle compilation (`npm run build`) succeeded with 0 errors in 24.51s.
+- **Files modified**: `backend/app/routers/predict.py`, `backend/app/models/schemas.py`, `backend/app/services/plant_identifier/plant_information.py`, `backend/app/services/plant_identifier/online_provider.py`, `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `changes_happening.md`.
+
 ## 2026-09-18 (v170) - Plant Identification Decoupling & Agrochemical Scanner 6-Point Excellence Overhaul
 - **Summary:** Resolved the static Plant Identification "Corn (Maize) in 42.1 ms" bug and completely upgraded the Agrochemical Intelligence Scanner across backend and frontend to satisfy all 6 user requirements:
   1. 🌽 **Root Cause & Fix for Plant Identification "Corn 42.1 ms" Bug:**

@@ -297,7 +297,7 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
     async def identify(self, image_path: str, crop_name: str = None, plant_type: str = "crop", tree_filter: str = None, organ: str = "leaf") -> dict:
         import asyncio
         import requests
-        from backend.app.services.plant_identifier.plant_information import get_plant_info, PLANT_DATABASE
+        from backend.app.services.plant_identifier.plant_information import get_plant_info, PLANT_DATABASE, get_authentic_regional_names
 
         valid_organ = (organ or "leaf").lower().strip()
         if valid_organ not in ["leaf", "flower", "fruit", "bark"]:
@@ -385,14 +385,7 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
                                     "common_diseases": ["Foliar Leaf Spots", "Blight Pathogens"],
                                     "common_pests": ["Thrips", "Aphids", "Caterpillars"],
                                     "weed_eradication_advice": "Apply selective post-emergence herbicide (e.g., 2,4-D or Pendimethalin) or perform timely manual weeding before seed dispersal." if is_weed else "Not applicable - cultivated plant.",
-                                    "regional_names": {
-                                        "te": f"{best_common} (మొక్క)",
-                                        "hi": f"{best_common} (पौधा)",
-                                        "ta": best_common,
-                                        "kn": best_common,
-                                        "ml": best_common,
-                                        "mr": best_common
-                                    },
+                                    "regional_names": get_authentic_regional_names(best_common or sci_name),
                                     "confidence": max(round(score, 1), 96.0)
                                 }
 
