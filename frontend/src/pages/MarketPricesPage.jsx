@@ -606,7 +606,7 @@ const MarketPricesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: index * 0.03 }}
               >
-                <Card glass className="p-5 space-y-4 relative overflow-hidden transition-all duration-200 card-accent-emerald hover:shadow-lg border-slate-200/90 dark:border-slate-800">
+                <Card glass className="p-5 space-y-4 relative overflow-hidden human-card-interactive card-accent-emerald border-slate-200/90 dark:border-slate-800">
                   {/* Mandi Yard & Category Header */}
                   <div>
                     <div className="flex items-start justify-between gap-2">
@@ -622,11 +622,9 @@ const MarketPricesPage = () => {
                         </p>
                       </div>
 
-                      {/* Change % Badge */}
-                      <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1 text-xs font-extrabold border ${
-                        isUp 
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700' 
-                          : 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-700'
+                      {/* Change % Badge with WCAG AAA Contrast */}
+                      <div className={`px-2.5 py-1 rounded-xl flex items-center gap-1 text-xs font-extrabold ${
+                        isUp ? 'badge-contrast-emerald' : 'badge-contrast-rose'
                       }`}>
                         {isUp ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                         <span>{isUp ? '+' : ''}{item.change_pct}%</span>

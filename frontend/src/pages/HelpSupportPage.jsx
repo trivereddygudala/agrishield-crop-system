@@ -267,7 +267,7 @@ export default function HelpSupportPage() {
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95 shadow-xs"
           >
             <ChevronLeft className="w-4 h-4 stroke-[3]" />
-            <span>{isTe ? '← ఇతర సేవలు (More)' : '← Back to More'}</span>
+            <span>{t('support_page.back_to_more', isTe ? '← ఇతర సేవలు (More)' : '← Back to More')}</span>
           </button>
         </div>
 
@@ -279,7 +279,7 @@ export default function HelpSupportPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {isTe ? 'అగ్రిషీల్డ్ రైతు మద్దతు బృందం' : 'AgriShield Help & Support Team'}
+                  {t('support_page.title', isTe ? 'అగ్రిషీల్డ్ రైతు మద్దతు బృందం' : 'AgriShield Help & Support Team')}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
                   24x7 Helpdesk
@@ -300,7 +300,7 @@ export default function HelpSupportPage() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white shadow-md active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
           >
             <Bot className="w-4 h-4" />
-            <span>{isTe ? 'ఏఐ నిపుణుడిని అడగండి' : 'Ask AI Agronomist'}</span>
+            <span>{t('support_page.ask_ai', isTe ? 'ఏఐ నిపుణుడిని అడగండి' : 'Ask AI Agronomist')}</span>
           </button>
         </div>
       </div>
@@ -317,7 +317,7 @@ export default function HelpSupportPage() {
               1800-180-1551
             </h3>
             <p className="text-xs text-emerald-100 font-medium">
-              {isTe ? 'కిసాన్ కాల్ సెంటర్ (భారత ప్రభుత్వం)' : 'Kisan Call Centre (Govt. of India)'}
+              {t('support_page.kisan_call_center', isTe ? 'కిసాన్ కాల్ సెంటర్ (భారత ప్రభుత్వం)' : 'Kisan Call Centre (Govt. of India)')}
             </p>
           </div>
           <a
@@ -325,7 +325,7 @@ export default function HelpSupportPage() {
             className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-white/90 font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 shrink-0 transition-all"
           >
             <Phone className="w-4 h-4 text-emerald-600" />
-            <span>{isTe ? 'కాల్ చేయండి' : 'Call Free'}</span>
+            <span>{t('support_page.call_free', isTe ? 'కాల్ చేయండి' : 'Call Free')}</span>
           </a>
         </div>
 
@@ -363,7 +363,7 @@ export default function HelpSupportPage() {
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          {isTe ? 'మద్దతు మార్గాలు (Contact)' : 'Contact Support'}
+          {t('support_page.contact_support', isTe ? 'మద్దతు మార్గాలు (Contact)' : 'Contact Support')}
         </button>
 
         <button
@@ -375,7 +375,7 @@ export default function HelpSupportPage() {
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          {isTe ? 'నా ఫిర్యాదులు (My Tickets)' : 'My Support Tickets'}
+          {t('support_page.my_tickets', isTe ? 'నా ఫిర్యాదులు (My Tickets)' : 'My Support Tickets')}
         </button>
 
         <button
@@ -387,7 +387,7 @@ export default function HelpSupportPage() {
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          {isTe ? 'తరచుగా అడిగే ప్రశ్నలు (FAQ)' : 'Instant Help & FAQ'}
+          {t('support_page.faq_title', isTe ? 'తరచుగా అడిగే ప్రశ్నలు (FAQ)' : 'Instant Help & FAQ')}
         </button>
       </div>
 
@@ -397,13 +397,13 @@ export default function HelpSupportPage() {
           {/* Fast Support Cards (WhatsApp & 15-Min Callback) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* 1. WhatsApp Instant Support Desk */}
-            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between gap-4">
+            <div className="p-5 rounded-3xl human-card bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between gap-4">
               <div className="space-y-2">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
                   <MessageCircle className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  {isTe ? 'వాట్సాప్ ఇన్‌స్టంట్ హెల్ప్‌డెస్క్' : 'WhatsApp Instant Helpdesk'}
+                  {t('support_page.whatsapp_advisory', isTe ? 'వాట్సాప్ ఇన్‌స్టంట్ హెల్ప్‌డెస్క్' : 'WhatsApp Instant Helpdesk')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   {isTe
@@ -421,18 +421,18 @@ export default function HelpSupportPage() {
                 className="w-full py-3 px-4 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>{isTe ? 'వాట్సాప్‌లో చాట్ చేయండి' : 'Chat on WhatsApp Now'}</span>
+                <span>{t('support_page.chat_on_whatsapp', isTe ? 'వాట్సాప్‌లో చాట్ చేయండి' : 'Chat on WhatsApp Now')}</span>
               </button>
             </div>
 
             {/* 2. Request a 15-Minute Phone Callback */}
-            <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between gap-4">
+            <div className="p-5 rounded-3xl human-card bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-col justify-between gap-4">
               <div className="space-y-2">
                 <div className="w-12 h-12 rounded-2xl bg-sky-500/15 text-sky-600 flex items-center justify-center">
                   <PhoneCall className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  {isTe ? '15 నిమిషాల్లో కాల్‌బ్యాక్ అభ్యర్థించండి' : 'Request a 15-Minute Callback'}
+                  {t('support_page.request_callback', isTe ? '15 నిమిషాల్లో కాల్‌బ్యాక్ అభ్యర్థించండి' : 'Request a 15-Minute Callback')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   {isTe
@@ -458,7 +458,7 @@ export default function HelpSupportPage() {
               <FileText className="w-5 h-5 text-emerald-600" />
               <div>
                 <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {isTe ? 'సాంకేతిక సమస్య లేదా సలహా టికెట్ నమోదు' : 'Submit a Technical or Agronomy Ticket'}
+                  {t('support_page.submit_ticket', isTe ? 'సాంకేతిక సమస్య లేదా సలహా టికెట్ నమోదు' : 'Submit a Technical or Agronomy Ticket')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {isTe ? 'హార్డ్‌వేర్, సెన్సార్, పంట లేదా యాప్ సమస్యలపై వివరణాత్మక టికెట్ సమర్పించండి' : 'Report hardware faults, crop scan reviews, or account issues'}
@@ -496,7 +496,7 @@ export default function HelpSupportPage() {
                 {/* Category Dropdown */}
                 <div className="space-y-1.5">
                   <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                    {isTe ? 'సమస్య వర్గం (Category):' : 'Issue Category:'}
+                    {t('support_page.category', isTe ? 'సమస్య వర్గం (Category):' : 'Issue Category:')}
                   </label>
                   <select
                     value={ticketCategory}
@@ -532,7 +532,7 @@ export default function HelpSupportPage() {
               {/* Subject Input */}
               <div className="space-y-1.5">
                 <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                  {isTe ? 'సమస్య శీర్షిక (Subject):' : 'Subject Summary:'}
+                  {t('support_page.subject', isTe ? 'సమస్య శీర్షిక (Subject):' : 'Subject Summary:')}
                 </label>
                 <input
                   type="text"
@@ -547,7 +547,7 @@ export default function HelpSupportPage() {
               {/* Detailed Description */}
               <div className="space-y-1.5">
                 <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                  {isTe ? 'సమస్య పూర్తి వివరణ (Description):' : 'Detailed Description:'}
+                  {t('support_page.description', isTe ? 'సమస్య పూర్తి వివరణ (Description):' : 'Detailed Description:')}
                 </label>
                 <textarea
                   rows={4}
@@ -576,7 +576,7 @@ export default function HelpSupportPage() {
 
                 <div className="space-y-1.5">
                   <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                    {isTe ? 'సంప్రదించాల్సిన ఫోన్ నంబర్:' : 'Contact Phone Number:'}
+                    {t('support_page.phone', isTe ? 'సంప్రదించాల్సిన ఫోన్ నంబర్:' : 'Contact Phone Number:')}
                   </label>
                   <input
                     type="tel"
@@ -759,7 +759,7 @@ export default function HelpSupportPage() {
                   </div>
                   <div>
                     <h3 className="text-sm sm:text-base font-black">
-                      {isTe ? '15 నిమిషాల్లో కాల్‌బ్యాక్ అభ్యర్థించండి' : 'Request a 15-Minute Callback'}
+                      {t('support_page.request_callback', isTe ? '15 నిమిషాల్లో కాల్‌బ్యాక్ అభ్యర్థించండి' : 'Request a 15-Minute Callback')}
                     </h3>
                     <p className="text-[11px] text-slate-400">
                       {isTe ? 'మా వ్యవసాయ అధికారి మీతో నేరుగా మాట్లాడతారు' : 'Speak directly with our agricultural specialist'}

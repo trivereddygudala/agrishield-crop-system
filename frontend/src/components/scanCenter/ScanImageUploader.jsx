@@ -864,7 +864,8 @@ const ScanImageUploader = ({
               className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-35 scale-110 pointer-events-none"
             />
 
-            {/* Subtle diagnostic laser scan line */}
+            {/* Realistic diagnostic laser scan beam */}
+            {loading && <div className="scan-laser-active" />}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/10 to-transparent h-24 w-full pointer-events-none z-10" />
 
             {/* Foreground leaf photo - crisp, unobstructed, centered */}

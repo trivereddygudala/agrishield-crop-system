@@ -1271,3 +1271,191 @@
     color: #6ee7b7;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PART 2: ELEVATED DESIGN SYSTEM TOKENS & WCAG AAA CONTRAST SYSTEM
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Unified Elevated Cards with Real Depth ── */
+.human-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  border-radius: 1rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .human-card {
+  background: #0f172a;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.human-card-elevated {
+  background: #ffffff;
+  border: 1px solid rgba(203, 213, 225, 0.75);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+  border-radius: 1.25rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .human-card-elevated {
+  background: #0f172a;
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.human-card-interactive {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  will-change: transform, box-shadow;
+}
+
+.human-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(16, 185, 129, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.dark .human-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.8), 0 0 20px 2px rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* ── 2. High-Contrast WCAG AAA Semantic Badges ── */
+.badge-contrast-emerald {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  font-weight: 700;
+}
+.dark .badge-contrast-emerald {
+  background: rgba(6, 78, 59, 0.45);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.badge-contrast-amber {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+.dark .badge-contrast-amber {
+  background: rgba(120, 53, 15, 0.45);
+  color: #fcd34d;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.badge-contrast-sky {
+  background: #f0f9ff;
+  color: #075985;
+  border: 1px solid #bae6fd;
+  font-weight: 700;
+}
+.dark .badge-contrast-sky {
+  background: rgba(12, 74, 110, 0.45);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.badge-contrast-rose {
+  background: #fff1f2;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
+  font-weight: 700;
+}
+.dark .badge-contrast-rose {
+  background: rgba(136, 19, 55, 0.45);
+  color: #fda4af;
+  border: 1px solid rgba(251, 113, 133, 0.35);
+}
+
+.badge-contrast-indigo {
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  font-weight: 700;
+}
+.dark .badge-contrast-indigo {
+  background: rgba(49, 46, 129, 0.45);
+  color: #a5b4fc;
+  border: 1px solid rgba(129, 140, 248, 0.35);
+}
+
+/* ── 3. Tab Sliding Indicator & Track ── */
+.tab-sliding-track {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: rgba(241, 245, 249, 0.9);
+  padding: 4px;
+  border-radius: 9999px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.dark .tab-sliding-track {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+}
+
+.tab-sliding-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+}
+
+.dark .tab-sliding-indicator {
+  background: #10b981;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* ── 4. Realistic Laser Scanner Animation for Leaf Dropzone ── */
+@keyframes scan-laser-pulse {
+  0% {
+    top: 2%;
+    opacity: 0.85;
+  }
+  50% {
+    top: 96%;
+    opacity: 1;
+  }
+  100% {
+    top: 2%;
+    opacity: 0.85;
+  }
+}
+
+.scan-laser-active {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #10b981 20%, #34d399 50%, #10b981 80%, transparent 100%);
+  box-shadow: 0 0 15px 4px rgba(16, 185, 129, 0.7), 0 0 30px 8px rgba(52, 211, 153, 0.4);
+  animation: scan-laser-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ── 5. Mobile Ergonomics & Touch Physics ── */
+.mobile-touch-target {
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+

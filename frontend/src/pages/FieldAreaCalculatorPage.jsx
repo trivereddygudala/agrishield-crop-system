@@ -329,7 +329,7 @@ export default function FieldAreaCalculatorPage() {
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95 shadow-xs"
           >
             <ChevronLeft className="w-4 h-4 stroke-[3]" />
-            <span>{isTe ? '← ఇతర సేవలు (More)' : '← Back to More'}</span>
+            <span>{t('field_calculator.back_to_more', isTe ? '← ఇతర సేవలు (More)' : '← Back to More')}</span>
           </button>
         </div>
 
@@ -341,16 +341,16 @@ export default function FieldAreaCalculatorPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {isTe ? 'భూమి విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator'}
+                  {t('field_calculator.title', isTe ? 'భూమి విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator')}
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                  WGS-84 High Precision
+                  {t('field_calculator.badge_precision', 'WGS-84 High Precision')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {isTe 
+                {t('field_calculator.subtitle', isTe 
                   ? 'శాటిలైట్ పిన్స్, లైవ్ GPS వాక్ లేదా భౌతిక టేప్ కొలతల ద్వారా ఖచ్చితమైన విస్తీర్ణం లెక్కించండి'
-                  : 'Calculate 100% exact field size via satellite pins, GPS perimeter walk, or physical tape measurements'}
+                  : 'Calculate 100% exact field size via satellite pins, GPS perimeter walk, or physical tape measurements')}
               </p>
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function FieldAreaCalculatorPage() {
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 transition-all active:scale-95 cursor-pointer shadow-sm"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
-                <span>{isTe ? 'పూర్తి స్క్రీన్ మ్యాప్' : 'Full-Screen Map'}</span>
+                <span>{t('field_calculator.full_screen_map', isTe ? 'పూర్తి స్క్రీన్ మ్యాప్' : 'Full-Screen Map')}</span>
               </button>
             )}
 
@@ -373,7 +373,7 @@ export default function FieldAreaCalculatorPage() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>{isTe ? 'వాట్సాప్ షేర్' : 'Share'}</span>
+              <span>{t('field_calculator.share', isTe ? 'వాట్సాప్ షేర్' : 'Share')}</span>
             </button>
           </div>
         </div>
@@ -391,7 +391,7 @@ export default function FieldAreaCalculatorPage() {
           }`}
         >
           <MapPin className="w-4 h-4" />
-          <span>{isTe ? '🛰️ శాటిలైట్ మ్యాప్ & జీపీఎస్' : '🛰️ Satellite Map & GPS'}</span>
+          <span>{t('field_calculator.satellite_mode', isTe ? '🛰️ శాటిలైట్ మ్యాప్ & జీపీఎస్' : '🛰️ Satellite Map & GPS')}</span>
         </button>
 
         <button
@@ -404,7 +404,7 @@ export default function FieldAreaCalculatorPage() {
           }`}
         >
           <Calculator className="w-4 h-4" />
-          <span>{isTe ? '📐 టేప్ / గొలుసు కొలతలు (టేప్ కాలిక్యులేటర్)' : '📐 Tape / Chain Dimensions'}</span>
+          <span>{t('field_calculator.dimensions_mode', isTe ? '📐 టేప్ / గొలుసు కొలతలు (కాలిక్యులేటర్)' : '📐 Tape / Chain Dimensions')}</span>
         </button>
       </div>
 
@@ -414,13 +414,13 @@ export default function FieldAreaCalculatorPage() {
         <div className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
           <Compass className="w-4 h-4 text-emerald-600 shrink-0" />
           <span className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0">
-            {isTe ? 'సర్వే పేరు:' : 'Plot / Survey:'}
+            {t('field_calculator.plot_survey_label', isTe ? 'సర్వే పేరు:' : 'Plot / Survey:')}
           </span>
           <input
             type="text"
             value={plotName}
             onChange={(e) => setPlotName(e.target.value)}
-            placeholder={isTe ? 'ఉదా: ఉత్తర పొలం లేదా సర్వే నం. 42' : 'e.g., North Plot or Survey No. 42'}
+            placeholder={t('field_calculator.plot_name_placeholder', isTe ? 'ఉదా: ఉత్తర పొలం లేదా సర్వే నం. 42' : 'e.g., North Plot or Survey No. 42')}
             className="flex-1 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
@@ -433,7 +433,7 @@ export default function FieldAreaCalculatorPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isTe ? 'గ్రామం పేరు లేదా GPS (15.5057, 80.0499)' : 'Village, Town, or GPS coordinates'}
+              placeholder={t('field_calculator.search_village_placeholder', isTe ? 'గ్రామం పేరు లేదా GPS (15.5057, 80.0499)' : 'Village, Town, or GPS coordinates')}
               className="flex-1 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <button
@@ -441,14 +441,14 @@ export default function FieldAreaCalculatorPage() {
               disabled={searchLoading}
               className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer shrink-0"
             >
-              {searchLoading ? '...' : (isTe ? 'వెతుకు' : 'Find')}
+              {searchLoading ? '...' : t('field_calculator.find_btn', isTe ? 'వెతుకు' : 'Find')}
             </button>
           </form>
         ) : (
           <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30 text-xs font-bold text-emerald-900 dark:text-emerald-300">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>{isTe ? 'కచ్చితమైన రెవెన్యూ పాట్వారీ కొలత ఫార్ములా' : 'Certified Revenue Survey Formulas'}</span>
+              <span>{t('field_calculator.certified_formula', isTe ? 'కచ్చితమైన రెవెన్యూ పాట్వారీ కొలత ఫార్ములా' : 'Certified Revenue Survey Formulas')}</span>
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black">
               100% Accurate
@@ -469,14 +469,14 @@ export default function FieldAreaCalculatorPage() {
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-              {isTe ? 'కొలిచిన ప్రస్తుత విస్తీర్ణం (Live Measured Area)' : 'Current Measured Area'}
+              {t('field_calculator.live_area_hud', isTe ? 'కొలిచిన ప్రస్తుత విస్తీర్ణం (Live Measured Area)' : 'Current Measured Area')}
             </p>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">
-                {activeAreaData.acres} {isTe ? 'ఎకరాలు' : 'Acres'}
+                {activeAreaData.acres} {t('field_calculator.acres', isTe ? 'ఎకరాలు' : 'Acres')}
               </span>
               <span className="text-sm sm:text-base font-extrabold text-teal-600 dark:text-teal-400">
-                ({activeAreaData.cents} {isTe ? 'సెంట్లు' : 'Cents'})
+                ({activeAreaData.cents} {t('field_calculator.cents', isTe ? 'సెంట్లు' : 'Cents')})
               </span>
             </div>
           </div>
@@ -484,17 +484,17 @@ export default function FieldAreaCalculatorPage() {
 
         <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
           <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs">
-            {activeAreaData.gunthas} {isTe ? 'గుంటలు' : 'Gunthas'}
+            {activeAreaData.gunthas} {t('field_calculator.guntha', isTe ? 'గుంటలు' : 'Gunthas')}
           </span>
           <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs">
-            {activeAreaData.gajam} {isTe ? 'గజాలు (Sq.Yds)' : 'Sq.Yds (Gajam)'}
+            {activeAreaData.gajam} {t('field_calculator.gajam', isTe ? 'గజాలు (Sq.Yds)' : 'Sq.Yds (Gajam)')}
           </span>
           <span className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-xs">
             📏 {activeAreaData.perimeterMeters}m ({activeAreaData.perimeterFeet} ft)
           </span>
           {surveyTool === 'satellite' && (
             <span className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white shadow-xs">
-              📍 {boundaryPins.length} {isTe ? 'మూలలు' : 'Corners'}
+              📍 {boundaryPins.length} {t('field_calculator.corner_pins', isTe ? 'మూలలు' : 'Corners')}
             </span>
           )}
         </div>
@@ -505,7 +505,7 @@ export default function FieldAreaCalculatorPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              {isTe ? 'శాటిలైట్ మ్యాప్‌పై పిన్స్ వేయండి లేదా సరిహద్దు చుట్టూ నడిచి కొలవండి' : 'Drop pins on satellite map or walk field perimeter to measure'}
+              {t('field_calculator.tap_pins_hint', isTe ? 'శాటిలైట్ మ్యాప్‌పై పిన్స్ వేయండి లేదా సరిహద్దు చుట్టూ నడిచి కొలవండి' : 'Drop pins on satellite map or walk field perimeter to measure')}
             </span>
             {boundaryPins.length > 0 && (
               <button
@@ -514,7 +514,7 @@ export default function FieldAreaCalculatorPage() {
                 className="flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3 h-3" />
-                <span>{isTe ? 'క్లియర్ చేయి' : 'Reset Pins'}</span>
+                <span>{t('field_calculator.clear_pins', isTe ? 'క్లియర్ చేయి' : 'Reset Pins')}</span>
               </button>
             )}
           </div>
@@ -545,7 +545,7 @@ export default function FieldAreaCalculatorPage() {
             {/* Shape Select Buttons */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-slate-700 dark:text-slate-300">
-                {isTe ? '1. పొలం ఆకారం ఎంచుకోండి:' : '1. Select Field Shape:'}
+                {t('field_calculator.dimension_shape', isTe ? '1. పొలం ఆకారం ఎంచుకోండి:' : '1. Select Field Shape:')}
               </label>
               <div className="flex items-center gap-1.5">
                 <button
@@ -558,7 +558,7 @@ export default function FieldAreaCalculatorPage() {
                   }`}
                 >
                   <Square className="w-3.5 h-3.5" />
-                  <span>{isTe ? 'చతురస్రం / దీర్ఘచతురస్రం' : 'Rectangle / Square'}</span>
+                  <span>{t('field_calculator.rectangle', isTe ? 'చతురస్రం / దీర్ఘచతురస్రం' : 'Rectangle / Square')}</span>
                 </button>
 
                 <button
@@ -571,7 +571,7 @@ export default function FieldAreaCalculatorPage() {
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>{isTe ? '4-భుజాల పొలం (పాట్వారీ సర్వే)' : '4-Side Irregular Field'}</span>
+                  <span>{t('field_calculator.quadrilateral', isTe ? '4-భుజాల పొలం (పాట్వారీ సర్వే)' : '4-Side Irregular Field')}</span>
                 </button>
 
                 <button
@@ -584,7 +584,7 @@ export default function FieldAreaCalculatorPage() {
                   }`}
                 >
                   <Triangle className="w-3.5 h-3.5" />
-                  <span>{isTe ? 'త్రిభుజం (3 భుజాలు)' : 'Triangle (3 Sides)'}</span>
+                  <span>{t('field_calculator.triangle', isTe ? 'త్రిభుజం (3 భుజాలు)' : 'Triangle (3 Sides)')}</span>
                 </button>
               </div>
             </div>
@@ -592,7 +592,7 @@ export default function FieldAreaCalculatorPage() {
             {/* Measurement Unit Selector */}
             <div className="space-y-1.5">
               <label className="text-xs font-black text-slate-700 dark:text-slate-300">
-                {isTe ? '2. కొలిచిన యూనిట్:' : '2. Measurement Unit:'}
+                {t('field_calculator.dimension_unit_label', isTe ? '2. కొలిచిన యూనిట్:' : '2. Measurement Unit:')}
               </label>
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                 {[
@@ -791,7 +791,7 @@ export default function FieldAreaCalculatorPage() {
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{isTe ? 'విస్తీర్ణ కొలతలు (8 ప్రామాణిక యూనిట్లు)' : 'Land Area in 8 Standard Units'}</span>
+            <span>{t('field_calculator.eight_units_title', isTe ? 'విస్తీర్ణ కొలతలు (8 ప్రామాణిక యూనిట్లు)' : 'Land Area in 8 Standard Units')}</span>
           </h3>
           <button
             type="button"
@@ -799,15 +799,15 @@ export default function FieldAreaCalculatorPage() {
             className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 cursor-pointer"
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copied ? (isTe ? 'కాపీ అయింది!' : 'Copied!') : (isTe ? 'కాపీ చేయి' : 'Copy Summary')}</span>
+            <span>{copied ? t('field_calculator.copied', isTe ? 'కాపీ అయింది!' : 'Copied!') : t('field_calculator.copy_summary', isTe ? 'కాపీ చేయి' : 'Copy Summary')}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
           {/* 1. Acres */}
-          <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-              {isTe ? 'ఎకరాలు' : 'Acres'}
+              {t('field_calculator.acres', isTe ? 'ఎకరాలు' : 'Acres')}
             </p>
             <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
               {activeAreaData.acres}
@@ -816,9 +816,9 @@ export default function FieldAreaCalculatorPage() {
           </div>
 
           {/* 2. Gunthas */}
-          <div className="p-3 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-teal-50 dark:bg-teal-950/40 border border-teal-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-teal-800 dark:text-teal-300">
-              {isTe ? 'గుంటలు' : 'Gunthas'}
+              {t('field_calculator.guntha', isTe ? 'గుంటలు' : 'Gunthas')}
             </p>
             <p className="text-xl font-black text-teal-700 dark:text-teal-400 mt-1">
               {activeAreaData.gunthas}
@@ -827,9 +827,9 @@ export default function FieldAreaCalculatorPage() {
           </div>
 
           {/* 3. Cents */}
-          <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-sky-50 dark:bg-sky-950/40 border border-sky-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-sky-800 dark:text-sky-300">
-              {isTe ? 'సెంట్లు' : 'Cents'}
+              {t('field_calculator.cents', isTe ? 'సెంట్లు' : 'Cents')}
             </p>
             <p className="text-xl font-black text-sky-700 dark:text-sky-400 mt-1">
               {activeAreaData.cents}
@@ -838,9 +838,9 @@ export default function FieldAreaCalculatorPage() {
           </div>
 
           {/* 4. Gajam / Sq. Yards */}
-          <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
-              {isTe ? 'గజాలు' : 'Sq. Yards'}
+              {t('field_calculator.gajam', isTe ? 'గజాలు' : 'Sq. Yards')}
             </p>
             <p className="text-lg font-black text-indigo-700 dark:text-indigo-400 mt-1 truncate">
               {activeAreaData.gajam}
@@ -849,9 +849,9 @@ export default function FieldAreaCalculatorPage() {
           </div>
 
           {/* 5. Square Feet */}
-          <div className="p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-purple-50 dark:bg-purple-950/40 border border-purple-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-purple-800 dark:text-purple-300">
-              {isTe ? 'చదరపు అడుగులు' : 'Sq. Feet'}
+              {t('field_calculator.sq_feet', isTe ? 'చదరపు అడుగులు' : 'Sq. Feet')}
             </p>
             <p className="text-lg font-black text-purple-700 dark:text-purple-400 mt-1 truncate">
               {activeAreaData.sqFeet}
@@ -860,9 +860,9 @@ export default function FieldAreaCalculatorPage() {
           </div>
 
           {/* 6. Square Meters */}
-          <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
-              {isTe ? 'చదరపు మీటర్లు' : 'Sq. Meters'}
+              {t('field_calculator.sq_meters', isTe ? 'చదరపు మీటర్లు' : 'Sq. Meters')}
             </p>
             <p className="text-lg font-black text-amber-700 dark:text-amber-400 mt-1 truncate">
               {activeAreaData.sqMeters}
@@ -871,9 +871,9 @@ export default function FieldAreaCalculatorPage() {
           </div>
 
           {/* 7. Hectares */}
-          <div className="p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
-              {isTe ? 'హెక్టార్లు' : 'Hectares'}
+              {t('field_calculator.hectares', isTe ? 'హెక్టార్లు' : 'Hectares')}
             </p>
             <p className="text-xl font-black text-cyan-700 dark:text-cyan-400 mt-1">
               {activeAreaData.hectares}
@@ -882,9 +882,9 @@ export default function FieldAreaCalculatorPage() {
           </div>
 
           {/* 8. Bigha */}
-          <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-500/30 text-center">
+          <div className="p-3 rounded-2xl human-card-interactive bg-rose-50 dark:bg-rose-950/40 border border-rose-500/30 text-center">
             <p className="text-[10px] font-black uppercase tracking-wider text-rose-800 dark:text-rose-300">
-              {isTe ? 'బీఘా' : 'Bigha'}
+              {t('field_calculator.bigha', isTe ? 'బీఘా' : 'Bigha')}
             </p>
             <p className="text-xl font-black text-rose-700 dark:text-rose-400 mt-1">
               {activeAreaData.bigha}

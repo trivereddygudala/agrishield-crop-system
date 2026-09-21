@@ -128,16 +128,16 @@ const SDCardPage = () => {
             <div className="text-center text-[10px] font-bold text-slate-500">MicroSDHC</div>
           </div>
           
-          <h2 className="text-xl font-bold mb-2">Storage Status</h2>
+          <h2 className="text-xl font-bold mb-2">{t('sdcard_page.card_status', 'Storage Status')}</h2>
           {isMounted ? (
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-full">
               <CheckCircle className="h-5 w-5" />
-              MOUNTED & ACTIVE
+              {t('sdcard_page.card_healthy', 'MOUNTED & ACTIVE')}
             </div>
           ) : (
             <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/30 px-4 py-2 rounded-full">
               <XCircle className="h-5 w-5" />
-              CARD NOT DETECTED
+              {t('sdcard_page.card_unmounted', 'CARD NOT DETECTED')}
             </div>
           )}
           
@@ -150,9 +150,9 @@ const SDCardPage = () => {
         </Card>
 
         {/* Capacity Details */}
-        <Card className="lg:col-span-2 p-6 flex flex-col justify-center">
+        <Card className="lg:col-span-2 p-6 human-card-elevated flex flex-col justify-center">
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b pb-4">
-            <Activity className="h-5 w-5 text-indigo-500" /> Storage Capacity
+            <Activity className="h-5 w-5 text-indigo-500" /> {t('sdcard_page.storage_capacity', 'Storage Capacity')}
           </h2>
           
           <div className="space-y-6">
@@ -188,13 +188,13 @@ const SDCardPage = () => {
       </div>
 
       {/* File System Logs (Mocked for Visual UI) */}
-      <Card className="p-6">
+      <Card className="p-6 human-card">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <FileText className="h-5 w-5 text-sky-500" /> File System Logs
           </h2>
           <Button variant="danger" size="sm" disabled={!isMounted} leftIcon={<AlertTriangle className="w-3.5 h-3.5" />}>
-            Format SD Card
+            {t('sdcard_page.format_card', 'Format SD Card')}
           </Button>
         </div>
         
