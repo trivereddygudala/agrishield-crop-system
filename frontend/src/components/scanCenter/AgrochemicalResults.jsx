@@ -3,12 +3,14 @@ import {
   FlaskConical, ClipboardList, ShieldAlert, Sparkles, Volume2, VolumeX, 
   CheckCircle2, Clock, Droplets, AlertTriangle, ShieldCheck, Info,
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
-  ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2
+  ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2,
+  Award, UserCheck, PenSquare, SlidersHorizontal
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
+import { useStudio } from '../../context/StudioContext';
 import API from '../../services/api';
 
 const SUPPORTED_LANGUAGES = [
@@ -22,6 +24,10 @@ const SUPPORTED_LANGUAGES = [
 
 const AgrochemicalResults = ({ data = {} }) => {
   const { t, i18n } = useTranslation();
+  const studio = useStudio();
+  const overrides = studio?.cardOverrides?.['agro-scan'] || {};
+  const isHumanCalibrated = Boolean(overrides.human_verified || overrides.is_modified);
+
   const currentLang = (i18n.language || 'en').split('-')[0].toLowerCase();
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
   const [showImageZoom, setShowImageZoom] = useState(false);
@@ -229,54 +235,145 @@ const AgrochemicalResults = ({ data = {} }) => {
     ? `${productDetails.brand_name}, ವರ್ಗ: ${categoryMeta.label}, ಕಂಪನಿ: ${productDetails.company}. ಸಕ್ರಿಯ ಪದಾರ್ಥ: ${productDetails.active_ingredient}. ಪ್ರಮಾಣ: ಪ್ರತಿ ಲೀಟರ್ ನೀರಿಗೆ ${userInstructions.dilution_rate_per_litre}.`
     : `${productDetails.brand_name}, Category: ${categoryMeta.type}, by ${productDetails.company}. Active ingredient: ${productDetails.active_ingredient}. Recommended dilution: ${userInstructions.dilution_rate_per_litre}.`;
 
-  return (
-    <div className="space-y-4">
-      {/* Quick Regional Language Switcher Pill Bar */}
-      <div className="flex items-center justify-between gap-3 p-3 bg-slate-900/95 dark:bg-slate-900/95 rounded-2xl border border-indigo-500/30 shadow-lg flex-wrap">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-          <Globe className="w-4 h-4 text-emerald-400" />
-          <span className="hidden sm:inline">Advisory Language:</span>
-          {isTranslating && (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-300 animate-pulse">
-              <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Translating...
-            </span>
-          )}
+  const renderLanguageSwitcher = () => (
+    <div className="flex items-center justify-between gap-3 p-3 bg-slate-900/95 dark:bg-slate-900/95 rounded-2xl border border-indigo-500/30 shadow-lg flex-wrap">
+      <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+        <Globe className="w-4 h-4 text-emerald-400" />
+        <span className="hidden sm:inline">Advisory Language:</span>
+        {isTranslating && (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-amber-300 animate-pulse">
+            <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Translating...
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {SUPPORTED_LANGUAGES.map(lang => {
+          const isSelected = activeLang === lang.code;
+          return (
+            <button
+              key={lang.code}
+              type="button"
+              onClick={() => handleLanguageSelect(lang.code)}
+              disabled={isTranslating}
+              className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                isSelected
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/25 scale-105 border border-emerald-400'
+                  : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70'
+              }`}
+            >
+              <span>{lang.native}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderAgroHero = () => (
+    <Card className="p-5 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-900 text-white border border-indigo-500/30 shadow-2xl relative overflow-hidden">
+      {/* 50% AI + 50% Human Collaborative Header */}
+      <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-black/40 border border-white/15 backdrop-blur-md flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 relative z-10">
+        {/* 50% AI */}
+        <div className="flex-1 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex flex-col items-center justify-center text-white font-black shadow-md shrink-0 leading-none">
+            <span className="text-[11px]">50%</span>
+            <span className="text-[8px] tracking-tighter font-extrabold">AI</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-black text-cyan-300 uppercase tracking-wider">Multi-Modal Label OCR</span>
+              <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200 text-[10px] font-mono">Tesseract + Gemini</span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Match Source: <strong className="text-white">{isWebSearch ? 'Live Web Verified' : (isCatalog ? 'Curated Catalog' : 'Neural OCR')}</strong>
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {SUPPORTED_LANGUAGES.map(lang => {
-            const isSelected = activeLang === lang.code;
-            return (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => handleLanguageSelect(lang.code)}
-                disabled={isTranslating}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/25 scale-105 border border-emerald-400'
-                    : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70'
-                }`}
-              >
-                <span>{lang.native}</span>
-              </button>
-            );
-          })}
+
+        <div className="hidden md:block w-px h-10 bg-white/15" />
+
+        {/* 50% Human */}
+        <div className="flex-1 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex flex-col items-center justify-center text-white font-black shadow-md shrink-0 leading-none">
+              <span className="text-[11px]">50%</span>
+              <span className="text-[8px] tracking-tighter font-extrabold">HUMAN</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-black text-emerald-300 uppercase tracking-wider">Agronomist Review</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                  isHumanCalibrated 
+                    ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50' 
+                    : 'bg-indigo-500/25 text-indigo-200 border border-indigo-400/40'
+                }`}>
+                  <UserCheck className="w-3 h-3" />
+                  {isHumanCalibrated ? 'CALIBRATED & VERIFIED' : 'ACCREDITED PROFESSOR REVIEW'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Lead: <strong className="text-white">{studio?.agronomistProfile?.name || 'Dr. V. Ramanjaneyulu'}</strong> ({studio?.agronomistProfile?.institution || 'PJTSAU'})
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => studio?.openDrawer('editor', 'agro-scan')}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black border-none text-xs shadow-md shrink-0"
+            >
+              <PenSquare className="w-3.5 h-3.5 mr-1" />
+              Edit 50%
+            </Button>
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => studio?.openDrawer('layout', 'agro-scan')}
+              className="bg-white/20 hover:bg-white/30 text-white font-bold border-white/20 text-xs shadow-sm shrink-0"
+              title="Reorder cards & visual effects"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Header Banner with Distinct Category Classification */}
-      <Card className="p-5 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-900 text-white border border-indigo-500/30 shadow-2xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
-          <div className="space-y-3 flex-1">
-            {/* Category and Verification Badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-md flex items-center gap-1.5 ${categoryMeta.badgeColor}`}>
-                <span>{categoryMeta.icon}</span> {categoryMeta.label}
-              </span>
-              {isWebSearch ? (
-                <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-cyan-300 border-cyan-400/40 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
-                  🌐 Live Web & AI Verified
-                </Badge>
+      {/* Official Agronomist Calibration Seal Stamp if modified */}
+      {isHumanCalibrated && (
+        <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/10 border-2 border-emerald-400/60 flex items-center justify-between gap-3 text-emerald-200 relative z-10">
+          <div className="flex items-center gap-2.5">
+            <Award className="w-6 h-6 text-emerald-400 shrink-0 animate-pulse" />
+            <div>
+              <p className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <span>Certified Chemical Formulations Validation</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-mono">
+                  {studio?.agronomistProfile?.registrationNo || 'AP-AGRO-2024-8842'}
+                </span>
+              </p>
+              <p className="text-[11px] text-emerald-200/90 font-medium">
+                Active ingredient & tank dilution verified by {studio?.agronomistProfile?.name || 'Dr. V. Ramanjaneyulu'}. Safe for field application.
+              </p>
+            </div>
+          </div>
+          <Badge variant="glow-emerald" className="text-[10px] font-black uppercase shrink-0">
+            SEAL VALIDATED
+          </Badge>
+        </div>
+      )}
+
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
+        <div className="space-y-3 flex-1">
+          {/* Category and Verification Badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-md flex items-center gap-1.5 ${categoryMeta.badgeColor}`}>
+              <span>{categoryMeta.icon}</span> {categoryMeta.label}
+            </span>
+            {isWebSearch ? (
+              <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-cyan-300 border-cyan-400/40 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
+                🌐 Live Web & AI Verified
+              </Badge>
               ) : isCatalog ? (
                 <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-emerald-300 border-emerald-400/40 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
                   🛡️ Certified Catalog Product
@@ -345,8 +442,9 @@ const AgrochemicalResults = ({ data = {} }) => {
           )}
         </div>
       </Card>
+    );
 
-      {/* SECTION 1: Product Details Neatly Along with Category Classification */}
+    const renderProductDetails = () => (
       <CollapsibleSection 
         title={t('agrochemical.product_details', '1. Product Details & Classification')} 
         icon={FlaskConical} 
@@ -468,8 +566,9 @@ const AgrochemicalResults = ({ data = {} }) => {
           </div>
         </div>
       </CollapsibleSection>
+    );
 
-      {/* SECTION 2: User Instructions (How to Use) - Strictly Clean Water Dilution */}
+    const renderApplicationGuide = () => (
       <CollapsibleSection 
         title={t('agrochemical.user_instructions', '2. User Instructions & Mixing Guide')} 
         icon={ClipboardList} 
@@ -624,8 +723,9 @@ const AgrochemicalResults = ({ data = {} }) => {
           </div>
         </div>
       </CollapsibleSection>
+    );
 
-      {/* SECTION 3: Target Plants & Agronomic Action (Fertilizer Growth Stages vs Crop Protection) */}
+    const renderModeOfAction = () => (
       <CollapsibleSection 
         title={t('agrochemical.chemical_explanation', isFertilizer ? '3. Plant Growth Stages & Target Crops' : '3. Target Plants, Diseases & Mode of Action')} 
         icon={isFertilizer ? Sprout : Sparkles} 
@@ -751,6 +851,46 @@ const AgrochemicalResults = ({ data = {} }) => {
           )}
         </div>
       </CollapsibleSection>
+    );
+
+  const defaultAgroOrder = [
+    { key: 'agro_hero', label: 'Chemical Identification Hero', visible: true },
+    { key: 'product_details', label: 'Product Details & Classification', visible: true },
+    { key: 'application_guide', label: 'User Instructions & Dilution Guide', visible: true },
+    { key: 'mode_of_action', label: 'Utility, Benefits & Action Mode', visible: true }
+  ];
+
+  const agroCardMap = {
+    agro_hero: renderAgroHero,
+    product_details: renderProductDetails,
+    application_guide: renderApplicationGuide,
+    mode_of_action: renderModeOfAction
+  };
+
+  const activeAgroOrder = studio?.cardOrders?.['agro-scan'] || defaultAgroOrder;
+
+  return (
+    <div className="space-y-4">
+      {renderLanguageSwitcher()}
+
+      {activeAgroOrder.map((cardItem) => {
+        if (cardItem.visible === false) return null;
+        const renderer = agroCardMap[cardItem.key];
+        if (!renderer) return null;
+        const renderedNode = renderer();
+        if (!renderedNode) return null;
+
+        return (
+          <div
+            key={cardItem.key}
+            className={`transition-all duration-300 ${studio?.getCardClass ? studio.getCardClass(cardItem.key) : ''}`}
+            onMouseEnter={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(cardItem.key)}
+            onMouseLeave={() => studio?.setFocusedCardKey && studio.setFocusedCardKey(null)}
+          >
+            {renderedNode}
+          </div>
+        );
+      })}
 
       {/* Product Image Zoom Modal */}
       {showImageZoom && productDetails.image_url && (

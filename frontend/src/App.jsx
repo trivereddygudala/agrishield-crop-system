@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { FarmProvider } from './context/FarmContext';
 import { WebSocketProvider } from './context/WebSocketContext';
+import { StudioProvider } from './context/StudioContext';
+import AgriShieldStudioDrawer from './components/common/AgriShieldStudioDrawer';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageSkeleton from './components/PageSkeleton';
@@ -154,9 +156,11 @@ function App() {
         <FarmProvider>
           <WebSocketProvider>
             <ToastProvider>
-              <BrowserRouter>
-                <FarmerWelcomeModal />
-                <ErrorBoundary>
+              <StudioProvider>
+                <BrowserRouter>
+                  <FarmerWelcomeModal />
+                  <AgriShieldStudioDrawer />
+                  <ErrorBoundary>
                 <Routes>
                   {/* Public Views */}
                   <Route path="/" element={<LandingPage />} />
@@ -210,6 +214,7 @@ function App() {
                 </Routes>
               </ErrorBoundary>
               </BrowserRouter>
+              </StudioProvider>
             </ToastProvider>
           </WebSocketProvider>
         </FarmProvider>
