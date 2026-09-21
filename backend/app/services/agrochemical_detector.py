@@ -1348,24 +1348,65 @@ def search_agrochemical_web(query: str, max_snippets: int = 4) -> str:
 
 def enrich_agrochemical_with_ai(extracted_text: str, web_context: str) -> Optional[dict]:
     """
-    Calls NVIDIA Cloud AI to synthesize raw OCR text and live web context into a comprehensive agrochemical profile.
+    Calls Google Gemini AI to synthesize raw OCR text and live web context into a comprehensive agrochemical profile.
     """
     try:
-        from backend.app.services.nvidia_service import nvidia_service
-        if not nvidia_service.client and not getattr(nvidia_service, "enrichment_client", None):
+        from backend.app.core.config import settings
+        gemini_key = getattr(settings, "GEMINI_API_KEY", "")
+        if not gemini_key or "mock" in gemini_key:
             return None
 
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    return pool.submit(asyncio.run, nvidia_service.enrich_agrochemical_data(extracted_text, web_context)).result()
-            else:
-                return loop.run_until_complete(nvidia_service.enrich_agrochemical_data(extracted_text, web_context))
-        except RuntimeError:
-            return asyncio.run(nvidia_service.enrich_agrochemical_data(extracted_text, web_context))
+        prompt = f"""You are an expert agricultural chemist and agronomist.
+A farmer has photographed an agrochemical product package (pesticide, insecticide, fungicide, herbicide, fertilizer, plant growth regulator, or bio-pesticide).
+Here is the visible OCR text extracted from the container:
+\"\"\"{extracted_text}\"\"\"
+
+Live agricultural web search knowledge:
+\"\"\"{web_context}\"\"\"
+
+Analyze the text, brand names, and search context. Accurately extract and return ONLY a valid JSON object matching this structure:
+{{
+  "brand_name": "<Commercial Brand Name, e.g. Bharat NPK 19:19:19, Coragen, SAAF, Amistar Top>",
+  "company": "<Manufacturer / Company Name, e.g. Bharat Rasayan / PMBJP, FMC, UPL, Syngenta>",
+  "active_ingredients": "<Technical chemical active formulation with %, e.g. Nitrogen 19% + P2O5 19% + K2O 19%>",
+  "product_type": "<Fertilizer / Insecticide / Fungicide / Herbicide / Plant Growth Regulator / Bio-Pesticide>",
+  "detailed_description": "<3 to 5 clear sentences describing the product, technical mode of action, and agronomic benefits>",
+  "dilution_rate_per_litre": "<Exact dilution per 1 Litre of clean water only, e.g. 5.0 g / L or 2.0 mL / L>",
+  "spray_interval": "<Repeat application interval, e.g. 10 to 15 days>",
+  "approved_crops": ["<Crop 1>", "<Crop 2>", "<Crop 3>"],
+  "target_diseases_and_pests": ["<Target 1>", "<Target 2>"],
+  "hazard_color": "<#16a34a for green/fertilizer, #2563eb for blue, #ca8a04 for yellow, #dc2626 for red>",
+  "preharvest_interval_days": 14,
+  "action_mode": "<Mode of action / nutrient uptake>",
+  "utility_and_benefits": "<Key agricultural advantages>"
+}}
+Return ONLY valid JSON without markdown fences or additional explanation."""
+
+        import urllib.request
+        import json
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={gemini_key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1024}
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=10.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            candidates = data.get("candidates", [])
+            if candidates:
+                parts = candidates[0].get("content", {}).get("parts", [])
+                if parts:
+                    text = "".join([p.get("text", "") for p in parts]).strip()
+                    from backend.app.services.gemini_vision import safe_parse_json
+                    parsed = safe_parse_json(text)
+                    if parsed and isinstance(parsed, dict) and parsed.get("brand_name"):
+                        logger.info(f"[AGROCHEMICAL ENRICHMENT SUCCESS]: {parsed.get('brand_name')} ({parsed.get('product_type')})")
+                        return parsed
     except Exception as ex:
         logger.warning(f"AI agrochemical enrichment failed: {ex}")
     return None
@@ -1382,6 +1423,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
     3. Chemical Explanation & Utility
     """
     try:
+        extracted_text = ""
         # 1. PRIMARY ENGINE: Google Gemini Multimodal Vision AI
         gemini_vision_used = False
         gemini_vision_data = None
@@ -1394,7 +1436,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 return asyncio.run(extract_agrochemical_label_vision(image_path))
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                gemini_vision_data = pool.submit(_run_vision_sync).result(timeout=14.0)
+                gemini_vision_data = pool.submit(_run_vision_sync).result(timeout=25.0)
 
             if gemini_vision_data and isinstance(gemini_vision_data, dict) and gemini_vision_data.get("brand_name"):
                 gemini_vision_used = True
@@ -1407,6 +1449,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             brand_name = gemini_vision_data.get("brand_name", "Commercial Agrochemical")
             company = gemini_vision_data.get("manufacturer", "Certified Agricultural Manufacturer")
             active_ingredient = gemini_vision_data.get("active_ingredients", "Agricultural Formulation")
+            extracted_text = gemini_vision_data.get("extracted_text_summary") or f"{brand_name} {active_ingredient} {company}"
             raw_type_hint = gemini_vision_data.get("product_type", "")
             category_type = get_chemical_category_type(brand_name, active_ingredient, "", raw_type_hint)
             is_fertilizer = (category_type == "Fertilizer")
@@ -1627,6 +1670,10 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
         tox_label = tox_map.get(hazard_color, "Class III - Caution (Green/Blue Triangle)")
 
         # 3 Structured Sections
+        detected_mrp = (gemini_vision_data.get("mrp_price") if gemini_vision_data else None) or (enriched.get("mrp_price") if 'enriched' in locals() and enriched else None) or parsed_fields.get("mrp", "Not visible on label")
+        detected_subsidy = (gemini_vision_data.get("government_subsidy") if gemini_vision_data else None) or (enriched.get("government_subsidy") if 'enriched' in locals() and enriched else None) or "Standard PMBJP Subsidy applicable"
+        detected_weight = (gemini_vision_data.get("net_weight") if gemini_vision_data else None) or (enriched.get("net_weight") if 'enriched' in locals() and enriched else None) or parsed_fields.get("net_qty", "50 kg / Standard Pack")
+
         product_details = {
             "brand_name": brand_name,
             "company": company,
@@ -1638,7 +1685,9 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "batch_number": parsed_fields.get("batch_number", "Verified Authentic Batch"),
             "mfg_date": parsed_fields.get("mfg_date", "Recent Manufacturing"),
             "exp_date": parsed_fields.get("exp_date", "Best before 24-36 months"),
-            "net_quantity": parsed_fields.get("net_qty", "Standard Commercial Pack"),
+            "net_quantity": detected_weight,
+            "mrp_price": detected_mrp,
+            "government_subsidy": detected_subsidy,
             "registration_number": parsed_fields.get("registration_number", "CIR-Verified"),
             "hazard_color": hazard_color,
             "toxicity_class": tox_label,

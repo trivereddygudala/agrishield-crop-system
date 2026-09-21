@@ -88,7 +88,7 @@ Do NOT output any conversational text or markdown explanation outside the JSON o
             }
         }
 
-        models_to_try = ["gemini-flash-latest", "gemini-flash-lite-latest"]
+        models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest"]
         async with httpx.AsyncClient(timeout=12.0) as client:
             for model_name in models_to_try:
                 try:
@@ -175,6 +175,9 @@ Extract and return ONLY a valid JSON object matching this structure:
     "Wash hands, face, and spray equipment thoroughly with clean water and soap immediately after spraying."
   ],
   "toxicity_hazard": "<Green (Caution) / Blue (Warning) / Yellow (Danger) / Red (Poison)>",
+  "mrp_price": "<Retail Price (MRP) with currency symbol, e.g. ₹1,470 or Not visible on label>",
+  "government_subsidy": "<Government subsidy amount if visible or applicable, e.g. ₹2,200 per bag or Subsidized under PMBJP>",
+  "net_weight": "<Net Weight or volume, e.g. 50 kg, 45 kg, 1 Litre, 500 g>",
   "extracted_text_summary": "<Key visible words, numbers, and text extracted from the label>"
 }
 Do NOT output any markdown blocks or conversational text outside the JSON object."""
@@ -193,9 +196,8 @@ Do NOT output any markdown blocks or conversational text outside the JSON object
         }
 
         models_to_try = [
-            "gemini-flash-latest",
             "gemini-flash-lite-latest",
-            "gemini-3.5-flash"
+            "gemini-flash-latest"
         ]
         async with httpx.AsyncClient(timeout=12.0) as client:
             for model_name in models_to_try:
