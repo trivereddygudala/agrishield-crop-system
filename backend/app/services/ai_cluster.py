@@ -4,6 +4,7 @@ import httpx
 from typing import Optional, Dict, Any, List
 from backend.app.core.config import settings
 
+import time
 logger = logging.getLogger("ai_cluster")
 
 class AIClusterDispatcher:
@@ -12,20 +13,25 @@ class AIClusterDispatcher:
     Distributes heavy leaf scan requests across:
       - Worker 1: https://agrishield-ai-worker-1.onrender.com
       - Worker 2: https://agrishield-ai-worker-2.onrender.com
-    With automatic failover and seamless local fallback.
+    With automatic failover, circuit breaker cooldown, and seamless local fallback.
     """
     def __init__(self):
         self._index = 0
+        self._worker_cooldowns: Dict[str, float] = {}
 
     def get_worker_nodes(self) -> List[str]:
+        # Only attempt remote cluster if explicitly enabled via environment, otherwise default to fast local PyTorch
+        if not getattr(settings, "ENABLE_REMOTE_AI_CLUSTER", False) and os.environ.get("ENABLE_REMOTE_AI_CLUSTER", "").lower() != "true":
+            return []
+
         workers = []
         w1 = (getattr(settings, "AI_WORKER_1_URL", "") or os.environ.get("AI_WORKER_1_URL", "")).strip().rstrip("/")
         w2 = (getattr(settings, "AI_WORKER_2_URL", "") or os.environ.get("AI_WORKER_2_URL", "")).strip().rstrip("/")
         
-        if w1:
-            workers.append(w1)
-        if w2:
-            workers.append(w2)
+        now = time.time()
+        for w in [w1, w2]:
+            if w and now > self._worker_cooldowns.get(w, 0.0):
+                workers.append(w)
         return workers
 
     def get_next_worker(self) -> Optional[str]:
@@ -83,9 +89,11 @@ class AIClusterDispatcher:
                             logger.info(f"✅ [AI Cluster] Worker {chosen_worker} finished prediction successfully!")
                             return res_json.get("result")
                     else:
+                        self._worker_cooldowns[chosen_worker] = time.time() + 600.0
                         logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} returned HTTP {response.status_code}: {response.text[:120]}")
             except Exception as e:
-                logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} unreachable or timed out ({e}). Trying next node or local fallback.")
+                self._worker_cooldowns[chosen_worker] = time.time() + 600.0
+                logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} unreachable or timed out ({e}). Next attempts cool down for 10m.")
 
         logger.info("ℹ️ [AI Cluster] External worker nodes unavailable or sleeping. Executing local inference immediately.")
         return None

@@ -398,7 +398,32 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     );
 
     const renderVisualBreakdown = () => {
-      const observed = liveResult?.observed_symptoms || liveResult?.symptoms || 'Foliar tissue exhibits focal necrotic lesions with chlorotic yellow halo margins and localized loss of green photosynthetic pigment along lateral boundaries.';
+      const observed = (activeLang !== 'en' && !hasRegionalText(liveResult?.observed_symptoms) && diseaseInfo?.overview)
+        ? diseaseInfo.overview
+        : (liveResult?.observed_symptoms || liveResult?.symptoms || diseaseInfo?.overview || 'Foliar tissue exhibits focal necrotic lesions with chlorotic yellow halo margins and localized loss of green photosynthetic pigment along lateral boundaries.');
+      
+      const visualTitle = activeLang === 'te' 
+        ? '🔍 ఆకు దృశ్య విశ్లేషణ (స్పష్టమైన లక్షణాలు)'
+        : (activeLang === 'hi' 
+            ? '🔍 दृश्य पत्ती विश्लेषण (प्रत्यक्ष लक्षण)'
+            : (activeLang === 'ta' 
+                ? '🔍 இலை காட்சி பகுப்பாய்வு (அறிகுறிகள்)'
+                : (activeLang === 'kn'
+                    ? '🔍 ಎಲೆ ದೃಶ್ಯ ವಿಶ್ಲೇಷಣೆ (ಲಕ್ಷಣಗಳು)'
+                    : '🔍 Visual Analysis Breakdown')));
+
+      const visualBadge = activeLang === 'te' 
+        ? 'ఫీల్డ్ పరిశీలన' 
+        : (activeLang === 'hi' ? 'फील्ड अवलोकन' : (activeLang === 'ta' ? 'கள ஆய்வு' : 'Observed Symptoms'));
+
+      const visualDesc = activeLang === 'te'
+        ? 'తుది నిర్ణయానికి ముందు ఆకుపై నేరుగా గమనించిన వ్యాధి లక్షణాలు మరియు మార్పులు:'
+        : (activeLang === 'hi'
+            ? 'अंतिम निदान से पहले पत्ती पर सीधे देखे गए लक्षण और विसंगतियाँ:'
+            : (activeLang === 'ta'
+                ? 'இறுதி முடிவுக்கு முன் இலையில் நேரடியாகக் காணப்பட்ட நோய்க்குறிகள்:'
+                : 'Explicit leaf anomaly features observed on this specimen before final diagnosis:'));
+
       return (
         <Card className="p-4 sm:p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 dark:from-emerald-950/30 dark:via-slate-900 dark:to-cyan-950/30 border border-emerald-500/30 shadow-sm">
           <div className="flex items-start justify-between gap-3 mb-2">
@@ -408,15 +433,13 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </div>
               <div>
                 <h3 className="font-display font-black text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2">
-                  <span>{currentLang === 'te' ? '🔍 ఆకు దృశ్య విశ్లేషణ (స్పష్టమైన లక్షణాలు)' : '🔍 Visual Analysis Breakdown'}</span>
+                  <span>{visualTitle}</span>
                   <Badge variant="success" className="text-[10px] font-black uppercase tracking-wider">
-                    {currentLang === 'te' ? 'ఫీల్డ్ పరిశీలన' : 'Observed Symptoms'}
+                    {visualBadge}
                   </Badge>
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                  {currentLang === 'te'
-                    ? 'తుది నిర్ణయానికి ముందు ఆకుపై నేరుగా గమనించిన వ్యాధి లక్షణాలు మరియు మార్పులు:'
-                    : 'Explicit leaf anomaly features observed on this specimen before final diagnosis:'}
+                  {visualDesc}
                 </p>
               </div>
             </div>
@@ -424,7 +447,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               variant="outline"
               size="xs"
               className="gap-1.5 text-xs border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-              onClick={() => speak(observed, 'card_visual_breakdown', currentLang)}
+              onClick={() => speak(observed, 'card_visual_breakdown', activeLang)}
             >
               <Volume2 className={`w-3.5 h-3.5 ${speakingId === 'card_visual_breakdown' ? 'animate-bounce text-emerald-500' : ''}`} />
               <span className="hidden sm:inline">{speakingId === 'card_visual_breakdown' ? 'Speaking...' : 'Listen'}</span>
@@ -899,40 +922,58 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
 
     const renderBiologicalAdvisory = () => {
       const bio = liveResult?.biological_advisory || {};
-      const cleanup = bio.field_cleanup || (organicList[0] || 'Manually clip and collect heavily spotted lower leaves; burn or deeply bury residues away from cultivated plots.');
-      const water = bio.water_management || (organicList[1] || 'Avoid overhead sprinkler wetting; switch to drip irrigation to keep foliar canopy dry.');
-      const spray = bio.organic_spray || (organicList[2] || 'Spray cold-pressed Neem Oil (10,000 ppm) @ 5 ml/L water or Trichoderma viride @ 5 g/L.');
+      const cleanup = (activeLang !== 'en' && !hasRegionalText(bio.field_cleanup) && diseaseInfo?.cultural?.[0])
+        ? diseaseInfo.cultural[0]
+        : (bio.field_cleanup || organicList[0] || 'Manually clip and collect heavily spotted lower leaves; burn or deeply bury residues away from cultivated plots.');
+      const water = (activeLang !== 'en' && !hasRegionalText(bio.water_management) && diseaseInfo?.cultural?.[1])
+        ? diseaseInfo.cultural[1]
+        : (bio.water_management || organicList[1] || 'Avoid overhead sprinkler wetting; switch to drip irrigation to keep foliar canopy dry.');
+      const spray = (activeLang !== 'en' && !hasRegionalText(bio.organic_spray) && (diseaseInfo?.organic?.[0] || organicList[2]))
+        ? (diseaseInfo?.organic?.[0] || organicList[2])
+        : (bio.organic_spray || organicList[2] || 'Spray cold-pressed Neem Oil (10,000 ppm) @ 5 ml/L water or Trichoderma viride @ 5 g/L.');
+
+      const item1Title = activeLang === 'te' ? 'పొలం శుభ్రత (ఫీల్డ్ క్లీనప్)' : (activeLang === 'hi' ? 'खेत की स्वच्छता (सफाई)' : (activeLang === 'ta' ? 'வயல் தூய்மை' : 'Field Cleanup'));
+      const item2Title = activeLang === 'te' ? 'నీటి నిర్వహణ (వాటర్ మేనేజ్మెంట్)' : (activeLang === 'hi' ? 'जल प्रबंधन' : (activeLang === 'ta' ? 'நீர் மேலாண்மை' : 'Water Management'));
+      const item3Title = activeLang === 'te' ? 'సేంద్రీయ పిచికారీ (ఆర్గానిక్ స్ప్రే)' : (activeLang === 'hi' ? 'जैविक छिड़काव (नीम/बायो)' : (activeLang === 'ta' ? 'இயற்கை தெளிப்பு' : 'Organic Spray'));
 
       const items = [
         {
           num: 1,
-          title: currentLang === 'te' ? 'పొలం శుభ్రత (ఫీల్డ్ క్లీనప్)' : 'Field Cleanup',
+          title: item1Title,
           desc: cleanup,
           icon: '🧹'
         },
         {
           num: 2,
-          title: currentLang === 'te' ? 'నీటి నిర్వహణ (వాటర్ మేనేజ్మెంట్)' : 'Water Management',
+          title: item2Title,
           desc: water,
           icon: '💧'
         },
         {
           num: 3,
-          title: currentLang === 'te' ? 'సేంద్రీయ పిచికారీ (ఆర్గానిక్ స్ప్రే)' : 'Organic Spray',
+          title: item3Title,
           desc: spray,
           icon: '🌿'
         }
       ];
 
+      const bioSectionTitle = activeLang === 'te' 
+        ? 'సేంద్రీయ నియంత్రణ సలహాలు (బయోలాజికల్ అడ్వైజరీ)' 
+        : (activeLang === 'hi' 
+            ? 'जैविक नियंत्रण सलाह (पर्यावरण-अनुकूल उपाय)' 
+            : (activeLang === 'ta' 
+                ? 'இயற்கை கட்டுப்பாடு ஆலோசனைகள்' 
+                : 'Biological Advisory (Eco-Friendly Control)'));
+
       return (
         <CollapsibleSection
-          title={currentLang === 'te' ? 'సేంద్రీయ నియంత్రణ సలహాలు (బయోలాజికల్ అడ్వైజరీ)' : 'Biological Advisory (Eco-Friendly Control)'}
+          title={bioSectionTitle}
           icon={Bug}
           defaultOpen={true}
           badgeText="3 Natural Remedies"
           onSpeak={() => {
             const fullText = items.map(i => `${i.title}: ${i.desc}`).join('. ');
-            speak(fullText, 'card_biological', currentLang);
+            speak(fullText, 'card_biological', activeLang);
           }}
           isSpeaking={speakingId === 'card_biological'}
         >
@@ -961,27 +1002,50 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
 
     const renderProChemicalPlan = () => {
       const chem = liveResult?.pro_chemical_plan || {};
-      const targeted = chem.targeted_solution || (chemicalsList[0] ? `Apply standard protectant formulation: ${chemicalsList[0]}` : 'Spray Mancozeb 75% WP @ 2.5 g/L (50g/20L tank) or Copper Oxychloride 50% WP @ 3.0 g/L for contact protection.');
-      const alternative = chem.alternative_compound || (chemicalsList[1] ? `Backup active rotation: ${chemicalsList[1]}` : 'Rotate with systemic Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1.0 ml/L or Hexaconazole 5% EC @ 2.0 ml/L.');
-      const prevention = chem.prevention_routine || 'Spray healthy perimeter rows within a 15-meter buffer radius within 48 hours to prevent airborne spore dissemination.';
-      const labelNotice = liveResult?.label_verification || 'Make sure to double-check the physical product label container to confirm that the product names, active concentrations, and biometric dosage values are completely accurate before execution in the field!';
+      const targeted = (activeLang !== 'en' && !hasRegionalText(chem.targeted_solution) && chemicalsList[0])
+        ? chemicalsList[0]
+        : (chem.targeted_solution || (chemicalsList[0] ? `Apply standard protectant formulation: ${chemicalsList[0]}` : 'Spray Mancozeb 75% WP @ 2.5 g/L (50g/20L tank) or Copper Oxychloride 50% WP @ 3.0 g/L for contact protection.'));
+      const alternative = (activeLang !== 'en' && !hasRegionalText(chem.alternative_compound) && chemicalsList[1])
+        ? chemicalsList[1]
+        : (chem.alternative_compound || (chemicalsList[1] ? `Backup active rotation: ${chemicalsList[1]}` : 'Rotate with systemic Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1.0 ml/L or Hexaconazole 5% EC @ 2.0 ml/L.'));
+      const prevention = (activeLang !== 'en' && !hasRegionalText(chem.prevention_routine))
+        ? (activeLang === 'te' 
+            ? 'వ్యాధి సోకిన ప్రాంతం చుట్టూ 15 మీటర్ల బఫర్ పరిధిలోని ఆరోగ్యకరమైన మొక్కలపై 48 గంటల్లో నివారణ స్ప్రే చేసి రక్షణ కల్పించండి.'
+            : (activeLang === 'hi'
+                ? 'रोग प्रभावित क्षेत्र के 15 मीटर के दायरे में स्वस्थ पौधों पर 48 घंटों के भीतर सुरक्षात्मक छिड़काव करें।'
+                : (activeLang === 'ta'
+                    ? 'நோய் தாக்கிய பகுதியைச் சுற்றியுள்ள 15 மீட்டர் சுற்றளவில் உள்ள ஆரோக்கியமான பயிர்களில் 48 மணி நேரத்திற்குள் பாதுகாப்பு தெளிப்பு மேற்கொள்ளவும்.'
+                    : (chem.prevention_routine || 'Spray healthy perimeter rows within a 15-meter buffer radius within 48 hours to prevent airborne spore dissemination.'))))
+        : (chem.prevention_routine || 'Spray healthy perimeter rows within a 15-meter buffer radius within 48 hours to prevent airborne spore dissemination.');
+
+      const labelNotice = activeLang === 'te'
+        ? 'పొలంలో వాడే ముందు కంపెనీ డబ్బాపై ముద్రించిన మోతాదు, రసాయన నిష్పత్తి మరియు పంట వివరాలను క్షుణ్ణంగా సరిచూసుకోండి!'
+        : (activeLang === 'hi'
+            ? 'खेत में उपयोग करने से पहले उत्पाद के डिब्बे पर छपी खुराक और सक्रिय सामग्री की पुष्टि अवश्य करें!'
+            : (activeLang === 'ta'
+                ? 'வயலில் பயன்படுத்துவதற்கு முன் தயாரிப்பு கொள்கலனில் உள்ள மருந்தளவு மற்றும் லேபிள் விபரங்களை சரிபார்க்கவும்!'
+                : (liveResult?.label_verification || 'Make sure to double-check the physical product label container to confirm that the product names, active concentrations, and biometric dosage values are completely accurate before execution in the field!')));
+
+      const plan1Title = activeLang === 'te' ? 'లక్షిత రసాయన ద్రావణం' : (activeLang === 'hi' ? 'लक्षित रासायनिक समाधान' : (activeLang === 'ta' ? 'இலக்கு இரசாயன தீர்வு' : 'Targeted Active Solution'));
+      const plan2Title = activeLang === 'te' ? 'ప్రత్యామ్నాయ సమ్మేళనం' : (activeLang === 'hi' ? 'वैकल्पिक यौगिक' : (activeLang === 'ta' ? 'மாற்று கலவை' : 'Alternative Compound'));
+      const plan3Title = activeLang === 'te' ? 'నివారణ రొటీన్ (పొరుగు పంట రక్షణ)' : (activeLang === 'hi' ? 'रोकथाम दिनचर्या (बफर जोन)' : (activeLang === 'ta' ? 'தடுப்பு வழக்கம்' : 'Prevention Routine'));
 
       const plans = [
         {
           num: 1,
-          title: currentLang === 'te' ? 'లక్షిత రసాయన ద్రావణం' : 'Targeted Active Solution',
+          title: plan1Title,
           desc: targeted,
           icon: '🎯'
         },
         {
           num: 2,
-          title: currentLang === 'te' ? 'ప్రత్యామ్నాయ సమ్మేళనం' : 'Alternative Compound',
+          title: plan2Title,
           desc: alternative,
           icon: '🔄'
         },
         {
           num: 3,
-          title: currentLang === 'te' ? 'నివారణ రొటీన్ (పొరుగు పంట రక్షణ)' : 'Prevention Routine',
+          title: plan3Title,
           desc: prevention,
           icon: '🛡️'
         }

@@ -706,12 +706,15 @@ const getPlantDetails = (liveResult) => {
     genus: cropTitle,
     species: "cultivar",
     regionalNames: {
-      te: `${cropTitle} మొక్క`,
-      ta: `${cropTitle} செடி`,
-      ml: `${cropTitle} ചെടി`,
-      kn: `${cropTitle} ಗಿಡ`,
-      mr: `${cropTitle} रोप`,
-      hi: `${cropTitle} का पौधा`
+      te: translateCrop(cropTitle, 'te'),
+      hi: translateCrop(cropTitle, 'hi'),
+      ta: translateCrop(cropTitle, 'ta'),
+      kn: translateCrop(cropTitle, 'kn'),
+      ml: translateCrop(cropTitle, 'ml'),
+      mr: translateCrop(cropTitle, 'mr'),
+      gu: translateCrop(cropTitle, 'gu'),
+      pa: translateCrop(cropTitle, 'pa'),
+      bn: translateCrop(cropTitle, 'bn')
     },
     family: `${cropTitle} Botanical Family`,
     identifiedType: "Crop",
@@ -796,13 +799,16 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     const merged = { ...rawInfo, ...localizedOverride };
 
     // Resolve localized common name with high priority
+    const cropMapped = translateCrop(rawInfo?.commonName || rawInfo?.genus || rawInfo?.crop_name, activeLang);
     const regional = rawInfo?.regionalNames?.[activeLang];
-    const cropMapped = translateCrop(rawInfo?.commonName, activeLang);
-    let resolvedName = regional || localizedOverride?.common_name || localizedOverride?.commonName;
-    if (!resolvedName && activeLang !== 'en') {
-      resolvedName = (cropMapped && cropMapped !== rawInfo?.commonName) ? cropMapped : null;
-    }
-    if (!resolvedName) {
+    let resolvedName = null;
+    if (cropMapped && cropMapped !== rawInfo?.commonName && cropMapped !== 'Crop Specimen') {
+      resolvedName = cropMapped;
+    } else if (regional && !regional.includes('Crop')) {
+      resolvedName = regional;
+    } else if (localizedOverride?.common_name || localizedOverride?.commonName) {
+      resolvedName = localizedOverride?.common_name || localizedOverride?.commonName;
+    } else {
       resolvedName = rawInfo?.commonName || 'Plant Specimen';
     }
     const finalCommonName = resolvedName;

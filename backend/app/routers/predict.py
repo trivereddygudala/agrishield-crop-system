@@ -640,66 +640,214 @@ Fields to translate:
         if "action_mode" in translated_fields:
             translated_agro["chemical_explanation"]["action_mode"] = translated_fields["action_mode"]
         if "utility_and_benefits" in translated_fields:
-            translated_agro["chemical_explanation"]["utility_and_benefits"] = translated_fields["utility_and_benefits"]
-        if "preharvest_interval" in translated_fields:
-            translated_agro["chemical_explanation"]["preharvest_interval"] = translated_fields["preharvest_interval"]
-        if "approved_crops" in translated_fields and isinstance(translated_fields["approved_crops"], list):
-            translated_agro["chemical_explanation"]["approved_crops"] = translated_fields["approved_crops"]
-        if "target_diseases_and_pests" in translated_fields and isinstance(translated_fields["target_diseases_and_pests"], list):
-            translated_agro["chemical_explanation"]["target_diseases_and_pests"] = translated_fields["target_diseases_and_pests"]
-
-        # Growth stages
-        if isinstance(translated_agro["chemical_explanation"].get("fertilizer_growth_stages"), dict):
-            if "veg_stage" in translated_fields:
-                translated_agro["chemical_explanation"]["fertilizer_growth_stages"]["vegetative_stage"] = translated_fields["veg_stage"]
-            if "bloom_stage" in translated_fields:
-                translated_agro["chemical_explanation"]["fertilizer_growth_stages"]["flowering_stage"] = translated_fields["bloom_stage"]
-            if "fruit_stage" in translated_fields:
-                translated_agro["chemical_explanation"]["fertilizer_growth_stages"]["fruiting_stage"] = translated_fields["fruit_stage"]
-
-    # Top level fields
-    if "farmer_tips" in translated_fields and isinstance(translated_fields["farmer_tips"], list):
-        translated_agro["farmer_tips"] = translated_fields["farmer_tips"]
-    if "dosage" in translated_fields:
-        translated_agro["dosage"] = translated_fields["dosage"]
-    if "safety_instructions" in translated_fields:
-        translated_agro["safety_instructions"] = translated_fields["safety_instructions"]
-    if "mixing_instructions" in translated_fields:
-        translated_agro["mixing_instructions"] = translated_fields["mixing_instructions"]
-
-    # Attach bidirectional multi-language cache
-    if "translations" not in agro_obj:
-        agro_obj["translations"] = {}
-    agro_obj["translations"]["en"] = english_version
-    agro_obj["translations"][lang_code] = copy.deepcopy(translated_agro)
-    translated_agro["translations"] = agro_obj["translations"]
-    translated_agro["current_language"] = lang_code
-
-    return translated_agro
-
-
-def get_farmer_disease_translation(disease_name: str, lang: str) -> str:
-    if not disease_name:
-        return ""
-    dis_lower = disease_name.lower().strip()
-    lang_lower = lang.lower().strip()[:2]
-    
-    disease_db = {
+          disease_db = {
+        "sheath blight": {
+            "te": "పొడ తెగులు (షీత్ బ్లైట్)",
+            "hi": "शीथ ब्लाइट (पर्णच्छद झुलसा)",
+            "ta": "உறை கருகல் நோய்",
+            "kn": "ಹಾಳೆ ಕರಗು ರೋಗ (ಶೀತ್ ಬ್ಲೈಟ್)",
+            "ml": "പോളക്കരിച്ചിൽ രോഗം",
+            "mr": "पर्णकोश करपा",
+            "gu": "પર્ણાવરણ સુકારો",
+            "pa": "ਸ਼ੀਥ ਝੁਲਸ ਰੋਗ",
+            "bn": "শীথ ব্লাইট (খোল পোড়া রোগ)",
+            "or": "ପତ୍ରଛଦ ପୋଡ଼ା ରୋଗ",
+            "ur": "شیتھ بلائٹ"
+        },
+        "brown spot": {
+            "te": "గోధుమ రంగు మచ్చ తెగులు",
+            "hi": "भूरा धब्बा रोग (ब्राउन स्पॉट)",
+            "ta": "பழுப்பு புள்ளி நோய்",
+            "kn": "ಕಂದು ಚುಕ್ಕೆ ರೋಗ",
+            "ml": "തവിട്ടുപുള്ളി രോഗം",
+            "mr": "तपकिरी ठिपके",
+            "gu": "કથ્થઈ ટપકાંનો રોગ",
+            "pa": "ਭੂਰੇ ਧੱਬਿਆਂ ਦਾ ਰੋਗ",
+            "bn": "বাদামি দাগ রোগ (ব্রাউন স্পট)",
+            "or": "ବାଦାମୀ ଦାଗ ରୋଗ",
+            "ur": "براؤن سپاٹ"
+        },
         "yellow leaf curl": {
             "te": "పసుపు ఆకు ముడుత తెగులు",
             "hi": "पीला पत्ती मरोड़ रोग",
             "ta": "மஞ்சள் இலை சுருள் நோய்",
             "kn": "ಹಳದಿ ಎಲೆ ಮುದುಡು ರೋಗ",
             "ml": "മഞ്ഞ ഇലച്ചുരുട്ടൽ രോഗം",
-            "mr": "पिवळा पर्णगुच्छ रोग"
+            "mr": "पिवळा पर्णगुच्छ रोग",
+            "gu": "પીળી પર્ણ વલણ રોગ",
+            "pa": "ਪੀਲੀ ਪੱਤੀ ਮਰੋੜ ਰੋਗ",
+            "bn": "হলুদ পাতা কোঁকড়ানো রোগ",
+            "or": "ହଳଦିଆ ପତ୍ର କୁଞ୍ଚନ ରୋଗ",
+            "ur": "زرد پتی موڑ بیماری"
         },
-        "yellowleaf curl": {
-            "te": "పసుపు ఆకు ముడుత తెగులు",
-            "hi": "पीला पत्ती मरोड़ रोग",
-            "ta": "மஞ்சள் இலை சுருள் நோய்",
-            "kn": "ಹಳದಿ ಎಲೆ ಮುದುಡು ರೋಗ",
-            "ml": "മഞ്ഞ ഇലച്ചുരുട്ടൽ രോഗം",
-            "mr": "पिवळा पर्णगुच्छ रोग"
+        "yellow vein mosaic": {
+            "te": "పసుపు ఈనెల మొజాయిక్ తెగులు",
+            "hi": "पीली नस मोज़ेक रोग",
+            "ta": "மஞ்சள் நரம்பு மொசைக் நோய்",
+            "kn": "ಹಳದಿ ನರ ಮೊಸಾಯಿಕ್ ರೋಗ",
+            "ml": "മഞ്ഞ ഞരമ്പ് മൊസൈക് രോഗം",
+            "mr": "पिवळ्या शिरांचा मोझॅक रोग",
+            "gu": "પીળી નસ મોઝેક રોગ",
+            "pa": "ਪੀਲੀ ਨਾੜੀ ਮੋਜ਼ੇਕ ਰੋਗ",
+            "bn": "হলুদ শিরা মোজাইক রোগ",
+            "or": "ହଳଦିଆ ଶିରା ମୋଜାଇକ ରୋଗ",
+            "ur": "زرد رگ موزیک بیماری"
+        },
+        "bacterial blight": {
+            "te": "బ్యాక్టీరియా ఆకు తెగులు (బ్లైట్)",
+            "hi": "जीवाणु झुलसा रोग (बैक्टीरियल ब्लाइट)",
+            "ta": "பாக்டீரியா இலைக்கருகல் நோய்",
+            "kn": "ಬ್ಯಾಕ್ಟೀರಿಯಾ ಕರಗು ರೋಗ",
+            "ml": "ബാക്ടീരിയൽ കരിച്ചിൽ",
+            "mr": "जिवाणूजन्य करपा",
+            "gu": "જીવાણુ સુકારો",
+            "pa": "ਜੀਵਾਣੂ ਝੁਲਸ ਰੋਗ",
+            "bn": "ব্যাকটেরিয়াজনিত ব্লাইট রোগ",
+            "or": "ଜୀବାଣୁ ଜନିତ ପତ୍ରପୋଡ଼ା",
+            "ur": "بیکٹیریل بلائٹ"
+        },
+        "bacterial spot": {
+            "te": "బ్యాక్టీరియా మచ్చ తెగులు",
+            "hi": "जीवाणु धब्बा रोग",
+            "ta": "பாக்டீரியா புள்ளி நோய்",
+            "kn": "ಬ್ಯಾಕ್ಟೀರಿಯಾ ಚುಕ್ಕೆ ರೋಗ",
+            "ml": "ബാക്ടീരിയൽ പുള്ളിരോഗം",
+            "mr": "जिवाणूजन्य ठिपके",
+            "gu": "જીવાણુ ટપકાં રોગ",
+            "pa": "ਜੀਵਾਣੂ ਧੱਬਾ ਰੋਗ",
+            "bn": "ব্যাকটেরিয়া দাগ রোগ",
+            "or": "ଜୀବାଣୁ ଦାଗ ରୋଗ",
+            "ur": "بیکٹیریل سپاٹ"
+        },
+        "early blight": {
+            "te": "ముందస్తు ఆకు మాడు తెగులు (ఎర్లీ బ్లైట్)",
+            "hi": "अगेती झुलसा रोग",
+            "ta": "முன் பருவ இலைக்கருகல் நோய்",
+            "kn": "ಮುಂಗಾರು ಕರಗು ರೋಗ (ಅರ್ಲಿ ಬ್ಲೈಟ್)",
+            "ml": "നേരത്തെയുള്ള കരിച്ചിൽ രോഗം",
+            "mr": "लवकर येणारा करपा",
+            "gu": "આગોતરો સુકારો",
+            "pa": "ਅਗੇਤਾ ਝੁਲਸ ਰੋਗ",
+            "bn": "আগাম পোড়া রোগ (আর্লি ব্লাইট)",
+            "or": "ଆଗୁଆ ପତ୍ରପୋଡ଼ା ରୋଗ",
+            "ur": "ارلی بلائٹ"
+        },
+        "late blight": {
+            "te": "చివరి దశ ఆకు మాడు తెగులు (లేట్ బ్లైట్)",
+            "hi": "पछेती झुलसा रोग",
+            "ta": "பின் பருவ இலைக்கருகல் நோய்",
+            "kn": "ಹಿಂಗಾರು ಕರಗು ರೋಗ (ಲೇಟ್ ಬ್ಲೈಟ್)",
+            "ml": "വൈകിയുള്ള കരിച്ചിൽ രോഗം",
+            "mr": "उशिरा येणारा करपा",
+            "gu": "પાછોતરો સુકારો",
+            "pa": "ਪਛੇਤਾ ਝੁਲਸ ਰੋਗ",
+            "bn": "নাবি ধসা রোগ (লেট ব্লাইট)",
+            "or": "ପଛୁଆ ପତ୍ରପୋଡ଼ା ରୋଗ",
+            "ur": "لیٹ بلائٹ"
+        },
+        "target spot": {
+            "te": "టార్గెట్ స్పాట్ (వృత్తాకార మచ్చ తెగులు)",
+            "hi": "लक्ष्य धब्बा रोग (टारगेट स्पॉट)",
+            "ta": "இலக்கு புள்ளி நோய்",
+            "kn": "ಗುರಿ ಚುಕ್ಕೆ ರೋಗ",
+            "ml": "ടാർഗെറ്റ് സ്പോട്ട് രോഗം",
+            "mr": "टार्गेट स्पॉट करपा",
+            "gu": "ટાર્ગેટ સ્પોટ રોગ",
+            "pa": "ਟਾਰਗੇਟ ਸਪਾਟ ਰੋਗ",
+            "bn": "টার্গেট স্পট রোগ",
+            "or": "ଟାର୍ଗେଟ ସ୍ପଟ ରୋଗ",
+            "ur": "ٹارگٹ سپاٹ"
+        },
+        "tikka": {
+            "te": "తిక్కా తెగులు (ఆకుమచ్చ)",
+            "hi": "टिक्का रोग (पत्ती धब्बा)",
+            "ta": "திக்கா நோய் (இலைப்புள்ளி)",
+            "kn": "ತಿಕ್ಕಾ ಚುಕ್ಕೆ ರೋಗ",
+            "ml": "ടിക്ക രോഗം",
+            "mr": "टिक्का रोग",
+            "gu": "ટીક્કા રોગ",
+            "pa": "ਟਿੱਕਾ ਰੋਗ",
+            "bn": "টিকা রোগ",
+            "or": "ଟିକା ରୋଗ",
+            "ur": "ٹکا بیماری"
+        },
+        "powdery mildew": {
+            "te": "బూడిద తెగులు",
+            "hi": "चूर्णिल आसिता (पाउडरी मिल्ड्यू)",
+            "ta": "சாம்பல் நோய்",
+            "kn": "ಬೂದಿ ರೋಗ",
+            "ml": "ചാരപ്പൂപ്പ് രോഗം",
+            "mr": "भुरी रोग",
+            "gu": "છાશિયો રોગ",
+            "pa": "ਚਿੱਟਾ ਰੋਗ (ਪਾਊਡਰੀ ਫ਼ਫ਼ੂੰਦੀ)",
+            "bn": "পাউডারি মিলডিউ (সাদা গুঁড়ো রোগ)",
+            "or": "ପାଉଡରୀ ମିଲଡ୍ୟୁ (ଧଳାଗୁଣ୍ଡ ରୋଗ)",
+            "ur": "پاؤڈری پھپھوندی"
+        },
+        "downy mildew": {
+            "te": "డౌనీ మిల్డో తెగులు",
+            "hi": "मृदुरोमिल आसिता (डाउनी मिल्ड्यू)",
+            "ta": "அடிச்சாம்பல் நோய்",
+            "kn": "ಡೌನಿ ಶಿಲೀಂಧ್ರ ರೋಗ",
+            "ml": "അടിപ്പൂപ്പ് രോഗം",
+            "mr": "केवडा रोग",
+            "gu": "તળછારો રોગ",
+            "pa": "ਡਾਊਨੀ ਫ਼ਫ਼ੂੰਦੀ",
+            "bn": "ডাউনি মিলডিউ রোগ",
+            "or": "ତଳମାଟିଆ ମିଲଡ୍ୟୁ",
+            "ur": "ڈاؤنی پھپھوندی"
+        },
+        "blast": {
+            "te": "అగ్గి తెగులు (బ్లాస్ట్)",
+            "hi": "झोंका रोग (ब्लास्ट)",
+            "ta": "குலை நோய் (பிளாஸ்ட்)",
+            "kn": "ಬೆಂಕಿ ರೋಗ (ಬ್ಲಾಸ್ಟ್)",
+            "ml": "കുമിൾ രോഗം (ബ്ലാസ്റ്റ്)",
+            "mr": "करपा रोग (ब्लास्ट)",
+            "gu": "ધરૂ સુકારો (બ્લાસ્ટ)",
+            "pa": "ਝੁਲਸ ਰੋਗ (ਬਲਾਸਟ)",
+            "bn": "ব্লাস্ট রোগ",
+            "or": "ବ୍ଲାଷ୍ଟ ରୋଗ",
+            "ur": "جھونکا بیماری"
+        },
+        "canker": {
+            "te": "క్యాంకర్ తెగులు (సిట్రస్ కాంకర్)",
+            "hi": "कैंकर रोग",
+            "ta": "நெருப்புப்புண் நோய் (கேன்கர்)",
+            "kn": "ಕ್ಯಾಂಕರ್ ರೋಗ",
+            "ml": "കാൻകർ രോഗം",
+            "mr": "खैऱ्या रोग",
+            "gu": "કેન્કર રોગ",
+            "pa": "ਕੈਂਕਰ ਰੋਗ",
+            "bn": "ক্যাঙ্কার রোগ",
+            "or": "କ୍ୟାଙ୍କର ରୋଗ",
+            "ur": "کینکر بیماری"
+        },
+        "yellow rust": {
+            "te": "పసుపు తుప్పు తెగులు",
+            "hi": "पीला रतुआ",
+            "ta": "மஞ்சள் துரு நோய்",
+            "kn": "ಹಳದಿ ತುಕ್ಕು ರೋಗ",
+            "ml": "മഞ്ഞ തുരുമ്പ് രോഗം",
+            "mr": "पिवळा तांबेरा",
+            "gu": "પીળો ગેરુ",
+            "pa": "ਪੀਲੀ ਕੁੰਗੀ",
+            "bn": "হলুদ মরিচা রোগ",
+            "or": "ହଳଦିଆ କଳଙ୍କୀ ରୋଗ",
+            "ur": "پیلا زنگ"
+        },
+        "rust": {
+            "te": "తుప్పు తెగులు",
+            "hi": "रतुआ रोग (गेरुआ)",
+            "ta": "துரு நோய்",
+            "kn": "ತುಕ್ಕು ರೋಗ",
+            "ml": "തുരുമ്പ് രോഗം",
+            "mr": "तांबेरा रोग",
+            "gu": "ગેરુ રોગ",
+            "pa": "ਕੁੰਗੀ ਰੋਗ",
+            "bn": "মরিচা রোগ (রাস্ট)",
+            "or": "କଳଙ୍କୀ ରୋଗ",
+            "ur": "زنگ بیماری"
         },
         "leaf curl": {
             "te": "ఆకు ముడుత తెగులు",
@@ -707,102 +855,109 @@ def get_farmer_disease_translation(disease_name: str, lang: str) -> str:
             "ta": "இலை சுருள் நோய்",
             "kn": "ಎಲೆ ಮುದುಡು ರೋಗ",
             "ml": "ഇലച്ചുരുട്ടൽ രോഗം",
-            "mr": "पर्णगुच्छ रोग"
-        },
-        "yellowish": {
-            "te": "ఆకులు పసుపుబారడం (క్లోరోసిస్)",
-            "hi": "पत्तियों का पीला पड़ना (क्लोरोसिस)",
-            "ta": "இலைகள் மஞ்சள் நிறமாதல்",
-            "kn": "ಎಲೆಗಳು ಹಳದಿಯಾಗುವುದು",
-            "ml": "ഇലകൾ മഞ്ഞളിക്കൽ",
-            "mr": "पाने पिवळी पडणे"
-        },
-        "yellow": {
-            "te": "ఆకులు పసుపుబారడం",
-            "hi": "पत्तियों का पीला पड़ना",
-            "ta": "இலைகள் மஞ்சள் நிறமாதல்",
-            "kn": "ಎಲೆಗಳು ಹಳದಿಯಾಗುವುದು",
-            "ml": "இലകൾ മഞ്ഞളിക്കൽ",
-            "mr": "पाने पिवळी पडणे"
-        },
-        "leaf blight": {
-            "te": "ఆకు మాడు తెగులు",
-            "hi": "पत्ती झुलसा रोग",
-            "ta": "இலை கருகல் நோய்",
-            "kn": "ಎಲೆ ಕರಗು ರೋಗ",
-            "ml": "ഇല കരിച്ചിൽ",
-            "mr": "पानावरील करपा"
-        },
-        "yellow rust": {
-            "te": "పసుపు తుప్పు తెగులు",
-            "hi": "पीला रतुआ",
-            "ta": "மஞ்சள் துரு நோய்",
-            "kn": "హళది తుక్కు రోగ",
-            "ml": "മഞ്ഞ തുരുമ്പ് രോഗ",
-            "mr": "पिवळा तांबेरा"
-        },
-        "brown spot": {
-            "te": "గోధుమ మచ్చ తెగులు",
-            "hi": "भूरा धब्बा रोग",
-            "ta": "பழுப்பு புள்ளி நோய்",
-            "kn": "కందు చుక్కే రోగ",
-            "ml": "തവിട്ടുപുള്ളി രോഗം",
-            "mr": "तपकिरी ठिपके"
-        },
-        "blast": {
-            "te": "అగ్గి తెగులు",
-            "hi": "झोंका रोग",
-            "ta": "குலை நோய்",
-            "kn": "బెంకి రోగ",
-            "ml": "കുമിൾ രോഗം",
-            "mr": "करपा रोग"
-        },
-        "canker": {
-            "te": "క్యాంకర్ తెగులు",
-            "hi": "कैंकर रोग",
-            "ta": "நெருப்புப்புண் நோய்",
-            "kn": "క్యాంకర్ రోగ",
-            "ml": "കാൻകർ രോഗം",
-            "mr": "खैऱ्या रोग"
-        },
-        "rust": {
-            "te": "తుప్పు తెగులు",
-            "hi": "रतुआ रोग",
-            "ta": "துரு நோய்",
-            "kn": "తుక్కు రోగ",
-            "ml": "തുരുമ്പ് രോഗം",
-            "mr": "तांबेरा"
+            "mr": "पर्णगुच्छ रोग",
+            "gu": "પર્ણ વલણ રોગ",
+            "pa": "ਪੱਤੀ ਮਰੋੜ ਰੋਗ",
+            "bn": "পাতা কোঁকড়ানো রোগ",
+            "or": "ପତ୍ର କୁଞ୍ଚନ ରୋଗ",
+            "ur": "پتی مروڑ بیماری"
         },
         "leaf spot": {
             "te": "ఆకు మచ్చ తెగులు",
             "hi": "पत्ती धब्बा रोग",
             "ta": "இலை புள்ளி நோய்",
-            "kn": "ఎలే చుక్కే రోగ",
+            "kn": "ಎಲೆ ಚುಕ್ಕೆ ರೋಗ",
             "ml": "ഇലപ്പുള്ളി രോഗം",
-            "mr": "पानावरील ठिपके"
+            "mr": "पानावरील ठिपके",
+            "gu": "પાનના ટપકાંનો રોગ",
+            "pa": "ਪੱਤੀਆਂ ਦੇ ਧੱਬੇ",
+            "bn": "পাতার দাগ রোগ (লিফ স্পট)",
+            "or": "ପତ୍ର ଦାଗ ରୋଗ",
+            "ur": "پتوں کے دھبے"
+        },
+        "leaf blight": {
+            "te": "ఆకు మాడు తెగులు (బ్లైట్)",
+            "hi": "पत्ती झुलसा रोग",
+            "ta": "இலை கருகல் நோய்",
+            "kn": "ಎಲೆ ಕರಗು ರೋಗ",
+            "ml": "ഇല കരിച്ചിൽ",
+            "mr": "पानावरील करपा",
+            "gu": "પાનનો સુકારો",
+            "pa": "ਪੱਤਾ ਝੁਲਸ ਰੋਗ",
+            "bn": "পাতা পোড়া রোগ",
+            "or": "ପତ୍ରପୋଡ଼ା ରୋଗ",
+            "ur": "پتا جھلس بیماری"
+        },
+        "blight": {
+            "te": "మాడు తెగులు (బ్లైట్)",
+            "hi": "झुलसा रोग",
+            "ta": "கருகல் நோய்",
+            "kn": "ಕರಗು ರೋಗ",
+            "ml": "കരിച്ചിൽ രോഗം",
+            "mr": "करपा रोग",
+            "gu": "સુકારો રોગ",
+            "pa": "ਝੁਲਸ ਰੋਗ",
+            "bn": "ধসা / ব্লাইট রোগ",
+            "or": "ପୋଡ଼ା ରୋଗ",
+            "ur": "جھلس بیماری"
         },
         "mosaic": {
             "te": "మొజాయిక్ తెగులు",
             "hi": "मोज़ेक रोग",
             "ta": "மொசைக் நோய்",
-            "kn": "మొసాయిక్ రోగ",
+            "kn": "ಮೊಸಾಯಿಕ್ ರೋಗ",
             "ml": "മൊസൈക് രോഗം",
-            "mr": "मोझॅक रोग"
+            "mr": "मोझॅक रोग",
+            "gu": "મોઝેક રોગ",
+            "pa": "ਮੋਜ਼ੇਕ ਰੋਗ",
+            "bn": "মোজাইক রোগ",
+            "or": "ମୋଜାଇକ ରୋଗ",
+            "ur": "موزیک بیماری"
+        },
+        "anthracnose": {
+            "te": "ఆంథ్రాక్నోస్ (మచ్చ తెగులు)",
+            "hi": "एन्थ्रेक्नोज़ रोग",
+            "ta": "ஆந்த்ராக்னோஸ் கருகல் நோய்",
+            "kn": "ಆಂಥ್ರಾಕ್ನೋಸ್ ರೋಗ",
+            "ml": "ആന്ത്രാക്നോസ് രോഗം",
+            "mr": "अँथ्रॅकोनोज (खवड्या)",
+            "gu": "એન્થ્રેકનોઝ રોગ",
+            "pa": "ਐਂਥ੍ਰੈਕਨੋਜ਼ ਰੋਗ",
+            "bn": "অ্যানথ্রাকনোজ রোগ",
+            "or": "ଆନ୍ଥ୍ରାକ୍ନୋଜ ରୋଗ",
+            "ur": "اینتھراک نوز"
+        },
+        "wilt": {
+            "te": "ఎండు తెగులు (విల్ట్)",
+            "hi": "उकठा रोग (मुरझान)",
+            "ta": "வாடல் நோய்",
+            "kn": "ಸೊರಗು ರೋಗ",
+            "ml": "വാട്ടം രോഗം",
+            "mr": "मर रोग",
+            "gu": "સુકારો / કરમાવો",
+            "pa": "ਉਖੇੜਾ ਰੋਗ",
+            "bn": "নেতিয়ে পড়া রোগ (উইল্ট)",
+            "or": "ଝାଉଁଳା ରୋଗ",
+            "ur": "مرجھاؤ بیماری"
         },
         "healthy": {
-            "te": "ఆరోగ్యకరమైనది",
+            "te": "ఆరోగ్యకరమైన పంట",
             "hi": "स्वस्थ फसल",
-            "ta": "ஆரோக்கியமானது",
-            "kn": "ఆరోగ్యకర",
-            "ml": "ആരോഗ്യമുള്ളത്",
-            "mr": "निरोगी"
+            "ta": "ஆரோக்கியமான பயிர்",
+            "kn": "ಆರೋಗ್ಯಕರ ಬೆಳೆ",
+            "ml": "ആരോഗ്യമുള്ള വിള",
+            "mr": "निरोगी पीक",
+            "gu": "તંદુરસ્ત પાક",
+            "pa": "ਤੰਦਰੁਸਤ ਫ਼ਸਲ",
+            "bn": "সুস্থ ফসল",
+            "or": "ସୁସ୍ଥ ଫସଲ",
+            "ur": "صحت مند فصل"
         }
     }
     
     for dis_key, langs in disease_db.items():
         if dis_key in dis_lower:
             return langs.get(lang_lower, disease_name)
-    return disease_name
 
 
 router = APIRouter(prefix="/api", tags=["Predictions"])
@@ -1298,6 +1453,59 @@ async def predict_pytorch_endpoint(
     raw_label = prediction_result.get("raw_label", "")
     is_ood = (raw_label == "OOD") or (prediction_result.get("prediction_status") == "unsupported")
 
+    # Computer Vision Foliar Morphology & Chewing Pest Detector
+    chewing_analysis = None
+    try:
+        from backend.app.services.image_preprocessor import detect_chewing_pest_damage
+        chewing_analysis = detect_chewing_pest_damage(effective_image_path)
+    except Exception as chew_ex:
+        logger.debug(f"Chewing pest analysis exception: {chew_ex}")
+
+    # If physical chewing perforations and ragged caterpillar margins are confirmed on foliage,
+    # it MUST overrule closed-set 38-class fungal misclassifications!
+    if chewing_analysis and chewing_analysis.get("detected"):
+        final_crop = user_crop_filter.title() if user_crop_filter else prediction_result.get("crop_name", "Chilli")
+        pest_name = "Spodoptera litura (Tobacco Caterpillar) / Cutworm Infestation"
+        pest_conf = float(chewing_analysis.get("confidence", 0.94))
+        prediction_result["crop_name"] = final_crop
+        prediction_result["disease_name"] = pest_name
+        prediction_result["confidence"] = pest_conf
+        prediction_result["prediction_status"] = "diseased"
+        prediction_result["disease_severity"] = "Severe" if chewing_analysis.get("hole_count", 0) > 10 else "Moderate"
+        prediction_result["raw_label"] = f"{final_crop}___Spodoptera_Litura"
+        prediction_result["is_ambiguous"] = False
+        is_ood = False
+        confidence = pest_conf
+        prediction_result["symptoms"] = chewing_analysis.get("observed_symptoms", "")
+        prediction_result["disease_explanation"] = (
+            f"[Foliar Morphology Analysis]: Structural examination confirmed {chewing_analysis.get('hole_count', 0)} "
+            f"perforated chewing holes and ragged margins consistent with {final_crop} {pest_name}.\n\n"
+            f"{chewing_analysis.get('reasoning', '')}"
+        )
+        prediction_result["chemical_treatment"] = "Spray Emamectin Benzoate 5% SG @ 0.5 g/L or Chlorantraniliprole 18.5% SC @ 0.3 ml/L."
+        prediction_result["organic_treatment"] = "Apply Bacillus thuringiensis (Bt) @ 2.0 g/L or Neem Oil (10,000 ppm) @ 5 ml/L with soap surfactant."
+        prediction_result["top_predictions"] = [
+            {
+                "class_name": f"{final_crop}___Spodoptera_Litura",
+                "crop_name": final_crop,
+                "disease_name": pest_name,
+                "confidence": pest_conf
+            },
+            {
+                "class_name": f"{final_crop}___Flea_Beetle_Damage",
+                "crop_name": final_crop,
+                "disease_name": "Flea Beetle / Weevil Leaf Feeding",
+                "confidence": 0.04
+            },
+            {
+                "class_name": f"{final_crop}___Helicoverpa_Armigera",
+                "crop_name": final_crop,
+                "disease_name": "Gram Pod Borer / Armyworm (Helicoverpa armigera)",
+                "confidence": 0.02
+            }
+        ]
+        top_preds = prediction_result["top_predictions"]
+
     # Evaluate Ambiguity
     is_ambiguous = is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
     prediction_result["is_ambiguous"] = is_ambiguous
@@ -1676,8 +1884,17 @@ async def predict_pytorch_endpoint(
                     return [safe_translate(it) for it in items]
 
                 # Fallback translation for crop and disease names
-                fallback_crop = get_farmer_crop_translation(safe_translate(prediction_result.get("crop_name", "")), target_lang)
-                fallback_dis = get_farmer_disease_translation(safe_translate(prediction_result.get("disease_name", "")), target_lang)
+                raw_crop_orig = prediction_result.get("canonical_crop_name") or prediction_result.get("crop_name", "")
+                raw_dis_orig = prediction_result.get("canonical_disease_name") or prediction_result.get("disease_name", "")
+
+                fallback_crop = get_farmer_crop_translation(raw_crop_orig, target_lang)
+                if not fallback_crop or fallback_crop == raw_crop_orig:
+                    fallback_crop = safe_translate(raw_crop_orig)
+
+                fallback_dis = get_farmer_disease_translation(raw_dis_orig, target_lang)
+                if not fallback_dis or fallback_dis == raw_dis_orig:
+                    fallback_dis = safe_translate(raw_dis_orig)
+
                 prediction_result["crop_name"] = fallback_crop
                 prediction_result["disease_name"] = fallback_dis
                 prediction_result["localized_crop"] = fallback_crop

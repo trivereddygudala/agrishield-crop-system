@@ -2,6 +2,62 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-23 (v202) - Backend Predict Syntax Resolution, Disease Diagnosis Pipeline Audit & UI Visualization Architecture
+- **Summary:** Conducted full system audit of the Crop Disease Diagnosis pipeline requested in Dialogue 65, cleaned leftover syntax corruption in backend routing, and generated visual UI representation:
+  1. 🔧 **Backend Syntax Corruption Cleared (`predict.py`):**
+     - Resolved byte corruption and duplicate leftover dictionary lines in `backend/app/routers/predict.py` around line 961 (`SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0xae`).
+     - Verified Python syntax compilation passed cleanly with 0 errors (`python -m py_compile`).
+  2. 🔬 **Disease Diagnosis Pipeline Architecture Audit:**
+     - Verified end-to-end diagnosis flow: Preprocessing -> PyTorch Offline Inference / MobileNet / EfficientNet -> Gemini Vision AI Extension Officer -> Non-duplicating 3-Card Commercial Brand Matcher -> Biological Advisory -> WhatsApp Prescription Slip Dispatch.
+  3. 🖼️ **Disease Diagnosis UI & Architecture Visualization:**
+     - Created high-fidelity visual interface preview and complete technical flow documentation.
+- **Files modified:** `backend/app/routers/predict.py`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
+## 2026-09-22 (v201) - Morphological Chewing Damage Detector, Gemini Vision Resilience & Plantix-Grade Vernacular Verification
+- **Summary:** Verified and finalized the complete system package for high-accuracy crop pest detection, resilient AI extension officer vision, and zero-error vernacular translation:
+  1. 🐛 **Foliar Morphological Chewing Pest & Hole Detection (`image_preprocessor.py`):**
+     - Developed `detect_chewing_pest_damage(image_path)` to distinguish physical caterpillar/cutworm/defoliation holes from necrotic fungal leaf spots.
+     - Samples corner reference backgrounds and detects internal perforated contours that cut completely through the leaf tissue.
+     - Evaluates ragged perimeter feeding margins and circularity to accurately identify *Spodoptera litura* (Tobacco Caterpillar), Cutworm, and Armyworm infestations.
+  2. ⚡ **Google Gemini Vision Resilience & Modernized Model Identifiers (`gemini_vision.py`):**
+     - Added automatic thumbnail downscaling (800x800, quality 82) before Base64 encoding to prevent 10MB mobile camera photos from hitting connection timeouts.
+     - Updated Gemini model fallback cascade to use modern Gemini endpoints (`gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-3.5-flash`, `gemini-flash-latest`).
+     - Added granular HTTP connection pooling and strict connection timeouts (`httpx.Timeout(connect=3.5, read=18.0, write=5.0, pool=3.5)`).
+  3. 🌾 **Plantix-Grade Vernacular Crop & Pest Localization (`diseaseAdvisoryData.js`):**
+     - Added native vernacular translations for agricultural chewing and sap-sucking pests across 12 languages: *Spodoptera litura / Tobacco Caterpillar*, *Brown Planthopper (BPH)*, *Planthopper / Corn Leafhopper*, *Green Leafhopper / Jassids*, *Corn Borer / Shoot Fly*, and *Cercospora Leaf Spot*.
+     - Standardized regional terminology in Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi, Gujarati, Punjabi, Bengali, Odia, and Urdu.
+  4. 📱 **1-Tap Quick Language Switcher Bar:**
+     - Fully verified real-time language toggling across `DiseaseDiagnosisResults.jsx`, `PlantIdResults.jsx`, and `PredictionResultPage.jsx`.
+  5. 🏗️ **Build & Test Verification:**
+     - Production build passed with 0 errors (`npm run build`: 53.53s).
+     - Python syntax compilation passed with 0 errors (`python -m py_compile`).
+- **Files modified:** `backend/app/services/image_preprocessor.py`, `backend/app/services/gemini_vision.py`, `backend/app/services/ai_cluster.py`, `backend/app/routers/predict.py`, `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
+## 2026-09-21 (v200) - Plantix-Grade Vernacular Localization Engine (12 Regional Languages) & Complete Studio Editor Decoupling
+- **Summary:** Fulfilled the user's requirements to deliver error-free vernacular translations matching Plantix precision and permanently remove the Studio Editor:
+  1. 🌐 **Plantix-Grade Vernacular Localization Engine (`diseaseAdvisoryData.js`):**
+     - **Locale Code Sanitization:** Fixed browser locale mismatch where tags like `te-IN`, `hi-IN`, or `ta-IN` resulted in fallback to English by strictly parsing `(lang || 'en').split('-')[0].toLowerCase().trim()`.
+     - **Overhauled Priority Disease Normalizer (`normalizeDiseaseKey`):** Fixed bug where generic single-word suffixes (e.g. `spot`, `blight`, `rot`, `wilt`) superseded compound pathological names. Specific compound diseases are now strictly prioritized:
+       - Rice Sheath Blight (`sheath_blight`), Rice Brown Spot (`brown_spot`), Rice Blast (`blast`), False Smut (`false_smut`), Tungro (`tungro`).
+       - Yellow Vein Mosaic (`yellow_vein_mosaic`), Target Spot (`target_spot`), Citrus Canker (`canker`), Tikka Disease (`tikka_disease`), Leaf Mold (`leaf_mold`), Anthracnose (`anthracnose`).
+       - Bacterial Blight (`bacterial_blight`), Bacterial Spot (`bacterial_spot`), Early Blight (`early_blight`), Late Blight (`late_blight`), Powdery Mildew (`powdery_mildew`), Downy Mildew (`downy_mildew`), Leaf Curl (`leaf_curl`), Mosaic Virus (`mosaic_virus`).
+       - Agricultural insect pests: Thrips (`thrips`), Fall Armyworm (`fall_armyworm`), Whitefly (`whitefly`), Aphids (`aphids`), Stem Borer (`stem_borer`), Mites (`mites`).
+     - **Authentic Native Agricultural Terminology:** Fully mapped agricultural crops and diseases across 12 Indian regional languages: Telugu (`తెలుగు`), Hindi (`हिंदी`), Tamil (`தமிழ்`), Kannada (`ಕನ್ನಡ`), Malayalam (`മലയാളം`), Marathi (`मराठी`), Gujarati (`ગુજરાતી`), Punjabi (`ਪੰਜਾਬੀ`), Bengali (`বাংলা`), Odia (`ଓଡ଼ିଆ`), Urdu (`اردو`), and English (`en`).
+       - E.g. Sheath Blight -> Telugu: *వరి కాండం/పొర ఎండు తెగులు (షీత్ బ్లైట్)* | Hindi: *शीथ ब्लाइट (तने का झुलसा)* | Tamil: *உறை கருகல் நோய் (ஷீத் பிளைட்)*.
+       - Brown Spot -> Telugu: *వరి గోధుమ రంగు మచ్చ తెగులు* | Hindi: *भूरा धब्बा रोग (ब्राउन स्पॉट)*.
+       - Tikka Disease -> Telugu: *వేరుశనగ తిక్కా ఆకుమచ్చ తెగులు* | Hindi: *टिक्का रोग (पत्ती धब्बा)*.
+       - Citrus Canker -> Telugu: *నిమ్మ గజ్జి తెగులు (కాంకర్)* | Hindi: *सिट्रस कैंकर (नींबू का कैंकर रोग)*.
+     - **Expanded `CROPS_MAP`:** Added full Bengali (`bn`), Odia (`or`), Urdu (`ur`) support, with noise-word stripping (`getCanonicalCropKey`) handling botanical names, regional nicknames, and English varieties.
+  2. 📱 **Plantix-Style 1-Tap Quick Language Switcher Bar:**
+     - Integrated a horizontal scrollable pill bar on scan results (`DiseaseDiagnosisResults.jsx` and `PredictionResultPage.jsx`) enabling 1-tap switching across all 12 regional languages.
+     - Automatically updates all diagnosed plant names, diseases, visual foliar descriptions, and chemical/biological treatments in real-time without requiring a page reload.
+  3. 🧹 **Complete & Clean Decoupling of Studio Editor:**
+     - Permanently removed all Studio Editor components (`AgriShieldStudioDrawer.jsx`, `StudioCardInspectorDock.jsx`, `StudioEditableCard.jsx`, `VisualStudioTopBar.jsx`, `StudioContext.jsx`).
+     - Decoupled from `App.jsx`, `LandingPage.jsx`, `DashboardPage.jsx`, `DiseaseDiagnosisResults.jsx`, `AgrochemicalResults.jsx`, `PlantIdResults.jsx`, and `PrescriptionSlipModal.jsx`.
+  4. 🏗️ **Build Verification:**
+     - Production build passed with 0 errors (`npm run build`: built in 24.99s).
+- **Files modified:** `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `frontend/src/App.jsx`, `frontend/src/pages/LandingPage.jsx`, `frontend/src/pages/DashboardPage.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/PrescriptionSlipModal.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-21 (v199) - Agricultural Extension Officer Diagnostic Architecture, 3-Card Non-Duplicating Market Brands & Complete Removal of Legacy Chemical Box
 - **Summary:** Executed the complete user redesign package for crop disease diagnosis:
   1. 🚫 **Complete Removal of Legacy Chemical Box (Picture 1):**

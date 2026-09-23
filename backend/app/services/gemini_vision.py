@@ -170,42 +170,131 @@ def generate_fallback_extension_officer_report(crop: str, disease: str, confiden
     conf_pct = f"{min(99.4, max(75.0, confidence * 100 if confidence <= 1.0 else confidence)):.1f}%"
     conf_num = float(conf_pct.replace("%", "")) / 100.0
 
-    # Deterministic candidates by crop
+    # Deterministic candidates by pathology / pest category
     c_low = c_title.lower()
     d_low = d_title.lower()
 
-    if "rice" in c_low or "paddy" in c_low:
+    # Category 1: Chewing Insects / Caterpillars / Cutworms / Spodoptera
+    if any(k in d_low for k in ["caterpillar", "spodoptera", "cutworm", "armyworm", "chew", "worm", "borer", "larva", "pest"]):
+        d_title = "Spodoptera litura (Tobacco Caterpillar) / Cutworm Infestation"
+        cand1_trait = "Large irregular holes chewed straight through foliar blade with ragged margins."
+        cand2_name = "Flea Beetle / Weevil Leaf Feeding"
+        cand2_trait = "Small shot-hole punctures and localized tissue grazing on leaf blades."
+        cand3_name = "Gram Pod Borer / Armyworm (Helicoverpa armigera)"
+        cand3_trait = "Extensive leaf skeletonization and defoliation along upper vegetative nodes."
+        obs_symptoms = (
+            "The leaf surfaces show clear structural damage with large, irregular holes chewed straight through the leaf tissue. "
+            "Some leaf edges are completely hollowed out, leaving ragged margins. "
+            "The newer terminal shoots display slight inward puckering and twisting, which is typical when early-stage larvae feed on tender vegetative nodes."
+        )
+        field_cleanup = "Handpick and destroy egg masses and gregarious young larvae feeding in clusters on lower leaf surfaces; install 4–5 Spodolure pheromone traps per acre."
+        water_mgmt = "Maintain proper field drainage; practice deep summer ploughing to expose pupae to scorching solar heat and natural avian predators."
+        organic_spray = "Spray Bacillus thuringiensis var. kurstaki (Bt / Dipel) @ 2.0 g/L or cold-pressed Neem Oil (10,000 ppm) @ 5 ml/L with 1 ml soap surfactant."
+        target_chem = "Spray Emamectin Benzoate 5% SG (Proclaim / Missile) @ 0.5 g/L (10g/20L tank) or Chlorantraniliprole 18.5% SC (Coragen) @ 0.3 ml/L (6ml/20L tank) for rapid stomach and contact caterpillar paralysis."
+        alt_chem = "Rotate with Flubendiamide 39.35% SC (Fame) @ 0.2 ml/L (4ml/20L tank) or Spinosad 45% SC (Tracer) @ 0.3 ml/L or Novaluron 10% EC (Rimon) @ 1.5 ml/L for resistance management."
+        prev_chem = "Spray neighboring healthy border plants within 48 hours to create a protective barrier against migrating larval instars."
+
+    # Category 2: Sucking Pests (Thrips, Whiteflies, Aphids, Jassids)
+    elif any(k in d_low for k in ["thrips", "whitefly", "aphid", "jassid", "hopper", "sucking"]):
+        cand1_trait = f"Upward curling, silvery foliar scarring, or honeydew secretions on {c_title}."
+        cand2_name = "Yellow Mite / Red Spider Mite Infestation"
+        cand2_trait = "Downward leaf curling and bronzing on ventral leaf lamina."
+        cand3_name = "Chilli Leaf Curl Geminivirus"
+        cand3_trait = "Puckered upward cupping with stunted terminal internodes transmitted by vector."
+        obs_symptoms = "Upward curling and brittle foliar leaf margins with boat-shaped puckering and shiny silvery streaks caused by active nymph and adult sap sucking."
+        field_cleanup = "Install yellow and blue sticky traps (15–20 per acre) at canopy height to capture active flying vectors."
+        water_mgmt = "Avoid excessive nitrogen fertilizer application which triggers succulent tender foliage favorable to pest swarms."
+        organic_spray = "Spray cold-pressed Neem Oil (10,000 ppm) @ 5 ml/L or Beauveria bassiana / Verticillium lecanii entomopathogenic bio-spray @ 5 g/L."
+        target_chem = "Spray Imidacloprid 17.8% SL @ 0.5 ml/L (10ml/20L tank) or Thiamethoxam 25% WG @ 0.3 g/L for systemic sap-sucker knockdown."
+        alt_chem = "Rotate with Diafenthiuron 50% WP (Pegasus) @ 1.2 g/L or Acetamiprid 20% SP @ 0.2 g/L to eliminate cross-resistance."
+        prev_chem = "Spray barrier border crops (maize/sorghum) along field edges to intercept migrating vector populations."
+
+    # Category 3: Mites
+    elif any(k in d_low for k in ["mite", "tetranychus", "polyphagotarsonemus"]):
+        cand1_trait = f"Downward leaf curling, inverted boat shape, and bronzing on {c_title}."
+        cand2_name = "Chilli Thrips (Scirtothrips dorsalis)"
+        cand2_trait = "Upward leaf curling with brownish necrotic streaks on leaf veins."
+        cand3_name = "Broad Mite Infestation"
+        cand3_trait = "Sudden downward curling and stiff leathery thickening of terminal foliage."
+        obs_symptoms = "Severe downward curling ('inverted boat' appearance) of young leaves with bronzing, rough leathery texture, and elongated petiole formation."
+        field_cleanup = "Clip off heavily infested terminal shoot clusters and dispose of them in sealed bags."
+        water_mgmt = "Provide light overhead sprinkler irrigation during peak dry heat to disrupt mite webbing and reproduction."
+        organic_spray = "Spray Wettable Sulphur 80% WP @ 3.0 g/L or cold-pressed Neem Oil @ 5 ml/L with liquid soap."
+        target_chem = "Spray Spiromesifen 22.9% SC (Oberon) @ 1.0 ml/L (20ml/20L tank) or Fenpyroximate 5% EC @ 1.5 ml/L for complete egg and adult knockdown."
+        alt_chem = "Rotate with Propargite 57% EC (Omite) @ 2.0 ml/L or Abamectin 1.9% EC @ 0.75 ml/L."
+        prev_chem = "Spray underside of leaves thoroughly where mite colonies and eggs reside."
+
+    # Category 4: Bacterial Diseases (Bacterial Spot, Blight, Canker)
+    elif any(k in d_low for k in ["bacterial", "canker"]):
+        cand1_trait = f"Water-soaked angular spots with yellow chlorotic halos on {c_title}."
+        cand2_name = "Cercospora Leaf Spot"
+        cand2_trait = "Circular spots with whitish-grey center and prominent dark border."
+        cand3_name = "Anthracnose Foliar Lesions"
+        cand3_trait = "Sunken circular dark spots with visible concentric acervuli rings."
+        obs_symptoms = "Small, water-soaked angular dark brown lesions surrounded by prominent translucent chlorotic halos on foliar blades."
+        field_cleanup = "Sterilize pruning shears between rows with 70% isopropyl alcohol; destroy fallen infected plant debris."
+        water_mgmt = "Avoid overhead sprinkler irrigation; strictly avoid intercultural operations when foliar canopy is wet with morning dew."
+        organic_spray = "Spray copper-based bio-fungicide or Pseudomonas fluorescens (5 g/L) to colonize phyllosphere."
+        target_chem = "Spray Copper Oxychloride 50% WP @ 2.5 g/L combined with Streptocycline (bactericide) @ 1.0 g per 10 L water."
+        alt_chem = "Rotate with Kasugamycin 3% SL @ 2.0 ml/L or Copper Hydroxide 53.8% DF @ 2.0 g/L for contact copper protective barrier."
+        prev_chem = "Spray field perimeter within 24 hours of heavy monsoon rains to arrest secondary bacterial rain-splash spread."
+
+    # Category 5: Anthracnose / Dieback / Fruit Rot
+    elif any(k in d_low for k in ["anthracnose", "dieback", "colletotrichum", "fruit rot"]):
+        cand1_trait = f"Sunken circular necrotic lesions and necrotic twig dieback on {c_title}."
+        cand2_name = "Alternaria Blight / Leaf Spot"
+        cand2_trait = "Zonate concentric circular brown rings with target-board appearance."
+        cand3_name = "Bacterial Spot"
+        cand3_trait = "Small water-soaked angular lesions turning brownish-black on leaves."
+        obs_symptoms = "Sunken circular to oval dark lesions with concentric rings of black acervuli fruiting bodies, leading to tip-downward dieback and twig drying."
+        field_cleanup = "Collect and burn mummified fruits and dried twig ends from the previous season."
+        water_mgmt = "Ensure proper air circulation through optimal plant spacing and drip fertigation."
+        organic_spray = "Spray Trichoderma viride or Bacillus subtilis bio-formulation (5 g/L) as a foliar protective wash."
+        target_chem = "Spray Azoxystrobin 18.2% + Difenoconazole 11.4% SC (Amistar Top) @ 1.0 ml/L or Pyraclostrobin 20% WG (Cabrio Top) @ 1.0 g/L."
+        alt_chem = "Rotate with Tebuconazole 25.9% EC (Folicur) @ 1.5 ml/L or Mancozeb 75% WP @ 2.5 g/L for multi-site contact protection."
+        prev_chem = "Initiate preventative foliar spray at early flowering and fruit development stages."
+
+    # Category 6: Blast / Sheath Blight / Rust / Smut
+    elif any(k in d_low for k in ["blast", "sheath", "rust", "smut"]):
+        cand1_trait = f"Spindle-shaped elliptical lesions with grey center or raised orange-brown pustules on {c_title}."
         cand2_name = "Brown Spot" if "blast" in d_low else "Leaf Blast"
-        cand2_trait = "Overlapping circular to oval lesions across foliar leaf blade."
+        cand2_trait = "Overlapping circular to oval brown lesions across foliar leaf blade."
         cand3_name = "Sheath Blight"
         cand3_trait = "Water-soaked irregular snake-skin lesions near lower waterline stems."
-    elif "cotton" in c_low:
-        cand2_name = "Bacterial Blight (Angular Leaf Spot)"
-        cand2_trait = "Angular dark lesions restricted by leaf vein architecture."
-        cand3_name = "Alternaria Leaf Spot"
-        cand3_trait = "Concentric brown zonate markings with chlorotic yellow boundaries."
-    elif "tomato" in c_low or "potato" in c_low:
-        cand2_name = "Late Blight" if "early" in d_low else "Early Blight"
-        cand2_trait = "Rapidly expanding dark brown to black foliar lesions with chlorotic halos."
-        cand3_name = "Septoria Leaf Spot"
-        cand3_trait = "Numerous small circular spots with darker outer borders and necrotic centers."
-    elif "chilli" in c_low or "pepper" in c_low:
-        cand2_name = "Anthracnose (Dieback)"
-        cand2_trait = "Sunken circular dark spots with visible concentric acervuli rings."
-        cand3_name = "Bacterial Leaf Spot"
-        cand3_trait = "Small water-soaked angular lesions turning brownish-black on leaves."
-    elif "groundnut" in c_low or "peanut" in c_low:
-        cand2_name = "Late Leaf Spot (Phaeoisariopsis)"
-        cand2_trait = "Dark carbonaceous spots primarily on lower foliar surface."
-        cand3_name = "Rust (Puccinia)"
-        cand3_trait = "Brownish-orange pustules rupturing foliar epidermis on leaf undersides."
-    else:
-        cand2_name = "Alternaria Leaf Spot"
-        cand2_trait = "Zonate concentric lesions with prominent chlorotic margins."
-        cand3_name = "Anthracnose"
-        cand3_trait = "Sunken necrotic lesions with dark sporulating center rings."
+        obs_symptoms = "Diamond or spindle-shaped lesions with ash-grey centers and dark brown margins rapidly coalescing across foliar surfaces."
+        field_cleanup = "Remove collateral grass weed hosts from field bunds and drainage channels."
+        water_mgmt = "Avoid standing deep water; drain and aerate soil for 2–3 days during active tillering."
+        organic_spray = "Spray Pseudomonas fluorescens (5 g/L) or Neem Seed Kernel Extract (NSKE 5%) at early tillering."
+        target_chem = "Spray Tricyclazole 75% WP (Beam) @ 0.6 g/L (12g/20L tank) or Hexaconazole 5% EC (Contaf) @ 2.0 ml/L for systemic protective cure."
+        alt_chem = "Rotate with Isoprothiolane 40% EC @ 1.5 ml/L or Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1.0 ml/L."
+        prev_chem = "Apply protective foliar spray when relative humidity exceeds 90% and nocturnal temperatures dip below 20°C."
 
-    cand1_trait = f"Primary visual markers consistent with {d_title} lesions and chlorosis on {c_title}."
+    # Category 7: General Blight / Leaf Spot / Mildew Default
+    else:
+        if "rice" in c_low or "paddy" in c_low:
+            cand2_name = "Brown Spot"
+            cand2_trait = "Overlapping circular to oval lesions across foliar leaf blade."
+            cand3_name = "Sheath Blight"
+            cand3_trait = "Water-soaked irregular snake-skin lesions near lower waterline stems."
+        elif "tomato" in c_low or "potato" in c_low:
+            cand2_name = "Late Blight" if "early" in d_low else "Early Blight"
+            cand2_trait = "Rapidly expanding dark brown to black foliar lesions with chlorotic halos."
+            cand3_name = "Septoria Leaf Spot"
+            cand3_trait = "Numerous small circular spots with darker outer borders and necrotic centers."
+        else:
+            cand2_name = "Alternaria Leaf Spot"
+            cand2_trait = "Zonate concentric lesions with prominent chlorotic margins."
+            cand3_name = "Anthracnose"
+            cand3_trait = "Sunken necrotic lesions with dark sporulating center rings."
+
+        cand1_trait = f"Primary visual markers consistent with {d_title} lesions and chlorosis on {c_title}."
+        obs_symptoms = "Distinct foliar lesions with chlorotic yellow margins and focal necrotic patches observed on the leaf surface. Foliar tissue exhibits early cellular necrosis along lateral margins with localized loss of photosynthetic green pigment."
+        field_cleanup = "Manually clip and collect heavily spotted lower leaves; burn or deeply bury residues away from cultivated plots."
+        water_mgmt = "Switch from overhead wetting to ground/drip irrigation; water early in the morning so morning dew evaporates rapidly."
+        organic_spray = "Spray cold-pressed Neem Seed Kernel Extract (NSKE 5%) or Neem Oil (10,000 ppm) @ 5 ml/L water with 1 ml soap emulsifier."
+        target_chem = "Spray Mancozeb 75% WP @ 2.5 g/L (50g/20L tank) or Chlorothalonil 75% WP @ 2.0 g/L for broad-spectrum contact protection."
+        alt_chem = "Rotate with systemic Carbendazim 12% + Mancozeb 63% WP (Saaf) @ 2.0 g/L or Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1.0 ml/L."
+        prev_chem = "Spray healthy perimeter rows within a 15-meter buffer radius within 48 hours to prevent airborne spore dissemination."
 
     raw_md = f"""### 🚨 MAIN DIAGNOSIS HEADER
 - **Host Plant/Crop**: {c_title}
@@ -213,7 +302,7 @@ def generate_fallback_extension_officer_report(crop: str, disease: str, confiden
 - **Confidence Rating**: {conf_pct} Match
 
 ### 🔍 VISUAL ANALYSIS BREAKDOWN
-- **Observed Symptoms**: Distinct foliar lesions with chlorotic yellow margins and focal necrotic patches observed on the leaf surface. Foliar tissue exhibits early cellular necrosis along lateral margins with localized loss of photosynthetic green pigment.
+- **Observed Symptoms**: {obs_symptoms}
 
 ### 🩹 DIFFERENTIAL DIAGNOSIS (Possibilities)
 To ensure safety and scientific accuracy, you must provide exactly three distinct possibilities that share similar visual characteristics with this sample:
@@ -223,15 +312,15 @@ To ensure safety and scientific accuracy, you must provide exactly three distinc
 
 ### 🌿 BIOLOGICAL ADVISORY (Eco-Friendly Control)
 Provide exactly three distinct, natural field remedies:
-1. **Field Cleanup**: Manually clip and collect heavily spotted lower leaves; burn or deeply bury residues away from cultivated plots.
-2. **Water Management**: Switch from overhead wetting to ground/drip irrigation; water early in the morning so morning dew evaporates rapidly.
-3. **Organic Spray**: Spray cold-pressed Neem Seed Kernel Extract (NSKE 5%) or Neem Oil (10,000 ppm) @ 5 ml/L water with 1 ml soap emulsifier.
+1. **Field Cleanup**: {field_cleanup}
+2. **Water Management**: {water_mgmt}
+3. **Organic Spray**: {organic_spray}
 
 ### 🧪 PRO CHEMICAL ACTION PLAN (Market Control)
 Provide exactly three distinct, safe chemical control strategies:
-1. **Targeted Active Solution**: Spray Mancozeb 75% WP @ 2.5 g/L (50g/20L tank) or Copper Oxychloride 50% WP @ 3.0 g/L for contact protection.
-2. **Alternative Compound**: Rotate with systemic Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1.0 ml/L or Hexaconazole 5% EC @ 2.0 ml/L.
-3. **Prevention Routine**: Spray healthy perimeter rows within a 15-meter buffer radius within 48 hours to prevent airborne spore dissemination.
+1. **Targeted Active Solution**: {target_chem}
+2. **Alternative Compound**: {alt_chem}
+3. **Prevention Routine**: {prev_chem}
 
 ⚠️ **Label Verification**: **Make sure to double-check the physical product label container to confirm that the product names, active concentrations, and biometric dosage values are completely accurate before execution in the field!**"""
 
@@ -255,8 +344,22 @@ async def cross_verify_disease_with_vision(
         return None
 
     try:
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
+        # High-Performance Image Optimization: Downscale to max 800px (<60 KB payload)
+        # Prevents 10MB mobile uploads from stalling cloud vision timeouts
+        try:
+            from PIL import Image
+            import io
+            with Image.open(image_path) as img:
+                img_rgb = img.convert("RGB")
+                img_rgb.thumbnail((800, 800), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                img_rgb.save(buf, format="JPEG", quality=82, optimize=True)
+                image_bytes = buf.getvalue()
+        except Exception as img_err:
+            logger.debug(f"PIL resize bypassed, using raw bytes: {img_err}")
+            with open(image_path, "rb") as f:
+                image_bytes = f.read()
+
         b64_img = base64.b64encode(image_bytes).decode("utf-8")
 
         prompt = EXTENSION_OFFICER_PROMPT
@@ -276,8 +379,16 @@ async def cross_verify_disease_with_vision(
             }
         }
 
-        models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest"]
-        async with httpx.AsyncClient(timeout=14.0) as client:
+        # Updated modern Google Gemini model identifiers with resilient timeout
+        models_to_try = [
+            "gemini-3.6-flash",
+            "gemini-3.7-flash",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
+            "gemini-flash-latest"
+        ]
+        fast_timeout = httpx.Timeout(connect=3.5, read=18.0, write=5.0, pool=3.5)
+        async with httpx.AsyncClient(timeout=fast_timeout) as client:
             for model_name in models_to_try:
                 try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
@@ -291,7 +402,11 @@ async def cross_verify_disease_with_vision(
                                 raw_text = "".join([p.get("text", "") for p in parts]).strip()
                                 parsed = parse_extension_officer_markdown(raw_text)
                                 if parsed and parsed.get("disease_name") and parsed["disease_name"] != "Crop Health Condition":
-                                    logger.info(f"Gemini Extension Officer diagnosis succeeded with model {model_name}")
+                                    # Clean up verbose parenthetical notes from crop name
+                                    clean_c = re.sub(r"\(.*?\)", "", parsed.get("crop_name", "")).strip().title()
+                                    if clean_c:
+                                        parsed["crop_name"] = clean_c
+                                    logger.info(f"✅ [Gemini Vision] Extension Officer diagnosis confirmed: {parsed['crop_name']} - {parsed['disease_name']} ({parsed.get('confidence', 0.92)*100:.0f}%) via {model_name}")
                                     return parsed
                 except Exception as m_err:
                     logger.debug(f"Gemini model {model_name} extension officer attempt: {m_err}")
