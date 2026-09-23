@@ -2,7 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
-## 2026-09-23 (v207) - Bell Import Re-included as Failsafe in MorePage
+## 2026-09-23 (v208) - Implemented Field-Optimized Card Display Order for All 3 Scan Center Modules
+- **Summary:** Re-architected and standardized the exact card hierarchy and display order across all 3 AI Scan Center modules for Indian farmers and agricultural field usability:
+  1. 🌿 **Disease Diagnosis (`DiseaseDiagnosisResults.jsx` - 7-Card Order):**
+     - Card 1: 📸 **Specimen & Heatmap Hero Card** (Leaf photograph + Grad-CAM++ lesion heatmap side-by-side, Native Language Disease Name, Severity Status badge, AI Confidence meter).
+     - Card 2: 🌐 **Quick Language Switcher Bar** (`ScanLanguageBar`: English, Local State Language with auto-detected badge, + More Languages popover).
+     - Card 3: 🔍 **Visual Foliar Symptoms Breakdown** (Concise 2-3 sentence lesion/margin observation + 🔊 Native Voice Audio player).
+     - Card 4: 🛒 **Top 3 Verified Commercial Market Medicines** (Zero duplicates, real brand packet photo preview, manufacturer badge, price, calibrated dosage strictly per 20L backpack sprayer tank).
+     - Card 5: 🌿 **Eco-Friendly Biological Remediation** (Field sanitation, water schedule adjustment, organic bio-spray like Neem oil 10,000 PPM / Trichoderma).
+     - Card 6: 🧪 **Pro Chemical Action Plan** (Targeted chemical treatment, active ingredients, application frequency, Pre-Harvest Interval [PHI] waiting period).
+     - Card 7: 📲 **Agronomist Prescription Slip & 1-Tap WhatsApp Share** (Official accreditation seal AP-AGRO-2024-8842, QR prescription slip modal, 1-tap WhatsApp dealer share).
+  2. 🌸 **Botanical Plant & Weed Identification (`PlantIdResults.jsx` - Sequence & Bottom Toolbar):**
+     - Card 1: 🌿 **Botanical Specimen Hero Card** (Clean specimen photo, identified common name in local language, Latin scientific binomial in italics, Category Badge: 🌾 Crop | 🌳 Tree | 🌿 Weed | 💊 Medicinal, organ badge, confidence meter).
+     - Card 2: 🌐 **Quick Language Switcher Bar** (`ScanLanguageBar` standalone card).
+     - Card 3: 🌿 **Plant Classification Card** (Identified Type, Common Name, Latin Botanical Name, Botanical Family).
+     - Card 4: 📝 **Description & Practical Farm Impact** (5-10 sentence clamped narrative with Show More/Less toggle, Primary Use / Invasive Threat badge).
+     - Card 5: 🪵 **Environmental & Cultivation Care Matrix** (4-Grid: ☀️ Sunlight, 💧 Irrigation & drainage, 🌱 Ideal soil & pH, 🌡️ Temperature & climate).
+     - Card 6: ⚠️ **Weed Eradication Advisory** (Conditionally rendered only when weed is detected: selective herbicide 2,4-D / Pendimethalin dosage, manual mechanical weeding timing).
+     - Bottom Action Bar: **Strictly removed** the `[ఈ పంటపై తెగుళ్ల పరీక్ష చేయండి →] (Check Disease on this Crop)` button, keeping only the clean `[Scan Another Specimen]` action.
+  3. 🔬 **Agrochemical Scanner (`AgrochemicalResults.jsx` - 7-Card Order):**
+     - Card 1: 🧪 **Verified Product Hero Card** (Commercial brand name, category pill, 💧 Manufacturer Dilution Rate strictly per 1 Litre of clean water, OCR authenticity badge).
+     - Card 2: 🌐 **Quick Language Switcher Bar** (`ScanLanguageBar` standalone card).
+     - Card 3: 📦 **Product Identity Card** (Brand name & chemical ratio, verified manufacturer, production facility, batch/shelf life, toxicity hazard indicator).
+     - Card 4: 📝 **Product Description & Approved Target Crops** (Clamped 5-10 sentence technical overview with Show More toggle, target crop sprout chips, growth stages for fertilizers or target pests & PHI for pesticides).
+     - Card 5: 🧪 **Composition & Technical Actives** (Active chemical elements or NPK percentage ratio, primary biological mode of action).
+     - Card 6: 💰 **Pricing & Financials** (Retail MRP, Government NBS subsidy eligibility, package net weight).
+     - Card 7: 🛡️ **Step-by-Step Mixing Protocol & PPE Safety Handling** (4-step foolproof bucket mixing instructions, spray timing & interval, 4 mandatory PPE items: Gloves, Goggles, Vapor Mask, Protective Apparel).
+  4. 🏗️ **Build & Test Verification:**
+     - Production build passed with 0 errors (`npm run build`: 26.25s across 3,153 modules).
+- **Files modified:** `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
 - **Summary:** Added `Bell` back into `lucide-react` import statement in `MorePage.jsx` as a permanent failsafe to prevent any cached chunks or closures from throwing `ReferenceError: Bell is not defined`, while keeping both Notifications cards excised from the page UI.
 - **Files modified:** `frontend/src/pages/MorePage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
 

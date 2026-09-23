@@ -908,11 +908,16 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
               <span>{info.identifiedType || 'Crop'}</span>
             </span>
 
-            {/* Weed / Tree / Crop Classification Badge */}
+            {/* Category Badges (Crop / Tree / Weed / Medicinal) */}
             {info.isWeed ? (
               <span className="text-xs font-black text-rose-200 bg-rose-950/90 px-3 py-1 rounded-full border border-rose-500/50 flex items-center gap-1.5 shadow-sm animate-pulse">
                 <span>🚨</span>
                 <span>{locDict?.categories?.weed || 'Agricultural Weed'}</span>
+              </span>
+            ) : (info.category?.toLowerCase().includes('medicinal') || info.primaryUseImpact?.toLowerCase().includes('medicinal') || info.commonName?.toLowerCase().includes('neem') || info.commonName?.toLowerCase().includes('tulsi')) ? (
+              <span className="text-xs font-black text-cyan-200 bg-cyan-950/90 px-3 py-1 rounded-full border border-cyan-500/50 flex items-center gap-1.5 shadow-sm">
+                <span>💊</span>
+                <span>Medicinal Plant</span>
               </span>
             ) : (info.isTree || info.category?.toLowerCase().includes('tree') || info.commonName?.toLowerCase().includes('tree') || liveResult?.plant_type === 'tree') ? (
               <span className="text-xs font-black text-emerald-300 bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
@@ -925,30 +930,7 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
                 <span>{locDict?.categories?.crop || 'Crop / Botanical Flora'}</span>
               </span>
             )}
-
-            {/* Organ Badge */}
-            <span className="text-xs font-bold text-teal-200 bg-teal-950/90 px-3 py-1 rounded-full border border-teal-500/40 flex items-center gap-1 shadow-sm">
-              {info.organ === 'flower' ? (locDict?.organs?.flower || '🌸 Flower Organ') : 
-               info.organ === 'fruit' ? (locDict?.organs?.fruit || '🍎 Fruit Organ') : 
-               info.organ === 'bark' ? (locDict?.organs?.bark || '🪵 Bark Organ') : 
-               (locDict?.organs?.leaf || '🍃 Leaf Organ')}
-            </span>
-
-            {/* AI Engine Badge */}
-            <span className="text-[11px] font-mono font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              {info.model || liveResult?.model || 'Pl@ntNet Global Flora AI'}
-            </span>
           </div>
-
-          {/* Smart Location-Aware Vernacular Language Switcher Bar */}
-          <ScanLanguageBar
-            activeLang={activeLang}
-            onLanguageSelect={handleLanguageSelect}
-            isTranslating={isTranslating}
-            label={locUI.switchLanguage || 'Identification Language'}
-            className="my-3 bg-white/5 border-white/10"
-          />
 
           {/* Specimen Titles */}
           <div>
@@ -962,14 +944,14 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
                   size="sm"
                   onClick={() => speak(fullSpeciesSummary, 'plant_summary', activeLang)}
                   leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'plant_summary' ? 'animate-bounce text-teal-300' : 'text-white'}`} />}
-                  className="bg-teal-600/80 hover:bg-teal-500 text-white font-bold border-teal-400/40 shadow-sm rounded-xl"
+                  className="bg-teal-600/80 hover:bg-teal-500 text-white font-bold border-teal-400/40 shadow-sm rounded-xl cursor-pointer"
                 >
                   {speakingId === 'plant_summary' ? (locUI.stopVoice || 'Stop Voice') : (locUI.listenVoice || 'Listen Summary')}
                 </Button>
                 <button
                   type="button"
                   onClick={handleCopyMarkdown}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                   title="Copy Strict Markdown Report"
                 >
                   {copiedMarkdown ? (
@@ -1033,154 +1015,166 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     </Card>
   );
 
-  // ==================== CARD 2: SECTION 1 & 2 (PLANT CLASSIFICATION & DESCRIPTION) ====================
-  const renderTaxonomy = () => (
-    <div className="space-y-4">
-      {/* SECTION 1: 🌿 Plant Classification */}
-      <CollapsibleSection 
-        title="🌿 Plant Classification" 
-        icon={Sprout} 
-        badge={info.identifiedType || "Botanical Profile"} 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = buildPlantSpeech(speechInfo, activeLang, 'scientific');
-          speak(text, 'plant_scientific', activeLang);
-        }}
-        isSpeaking={speakingId === 'plant_scientific'}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-            <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-              🏷️ Identified Type
+  // ==================== CARD 2: QUICK LANGUAGE SWITCHER BAR ====================
+  const renderLanguageSwitcher = () => (
+    <ScanLanguageBar
+      activeLang={activeLang}
+      onLanguageSelect={handleLanguageSelect}
+      isTranslating={isTranslating}
+      label={locUI.switchLanguage || 'Identification Language'}
+      className="bg-slate-900/95 border-emerald-500/30"
+    />
+  );
+
+  // ==================== CARD 3: SECTION 1 (PLANT CLASSIFICATION) ====================
+  const renderPlantClassification = () => (
+    <CollapsibleSection 
+      title="🌿 Plant Classification" 
+      icon={Sprout} 
+      badge={info.identifiedType || "Botanical Profile"} 
+      defaultOpen={true}
+      onSpeak={() => {
+        const text = buildPlantSpeech(speechInfo, activeLang, 'scientific');
+        speak(text, 'plant_scientific', activeLang);
+      }}
+      isSpeaking={speakingId === 'plant_scientific'}
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+          <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+            🏷️ Identified Type
+          </span>
+          <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">
+            {info.identifiedType || (info.isWeed ? 'Weed' : (info.isTree ? 'Tree' : 'Crop'))}
+          </p>
+        </div>
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+          <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+            🌾 Common Name
+          </span>
+          <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{info.commonName}</p>
+        </div>
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
+          <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+            🔬 Botanical Name
+          </span>
+          <p className="font-extrabold text-emerald-800 dark:text-emerald-300 text-sm italic">{info.scientificName}</p>
+        </div>
+        <div className="p-3.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
+            🌿 Family
+          </span>
+          <p className="font-bold text-slate-900 dark:text-slate-200 text-sm">{info.family}</p>
+        </div>
+      </div>
+    </CollapsibleSection>
+  );
+
+  // ==================== CARD 3: SECTION 2 (DESCRIPTION & PRACTICAL IMPACT) ====================
+  const renderDescriptionCard = () => (
+    info.description ? (
+      <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-sm">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div className="flex items-center gap-2 text-teal-800 dark:text-teal-400 font-bold text-sm uppercase tracking-wider">
+            <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <span>📝 Description & Practical Farm Impact</span>
+          </div>
+          {info.identifiedType && (
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-400/30">
+              {info.identifiedType}
             </span>
-            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">
-              {info.identifiedType || (info.isWeed ? 'Weed' : (info.isTree ? 'Tree' : 'Crop'))}
+          )}
+        </div>
+
+        {/* Primary Use / Impact Callout */}
+        <div className="mb-3.5 p-3.5 rounded-xl bg-teal-50/80 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-500/30 text-xs">
+          <span className="font-extrabold text-teal-800 dark:text-teal-300 uppercase text-[10px] tracking-wider block mb-1 flex items-center gap-1.5">
+            <span>🌱</span>
+            <span>Primary Use / Impact</span>
+          </span>
+          <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+            {info.primaryUseImpact || (info.isWeed ? 'Invasive agricultural weed requiring active field management and eradication.' : 'Cultivated agricultural food crop and beneficial economic plant.')}
+          </p>
+        </div>
+
+        <div className="relative">
+          <p className={`text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-normal ${!isDescriptionExpanded ? 'line-clamp-6' : ''}`}>
+            {info.description}
+          </p>
+          {!isDescriptionExpanded && (
+            <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
+          )}
+        </div>
+        <div className="pt-3">
+          <button
+            type="button"
+            onClick={() => setIsDescriptionExpanded(prev => !prev)}
+            className="text-xs font-extrabold text-teal-700 dark:text-teal-400 hover:text-teal-600 dark:hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
+          >
+            {isDescriptionExpanded ? (
+              <><span>{locUI.showLess || 'Show Less ↑'}</span><ChevronUp className="w-4 h-4" /></>
+            ) : (
+              <><span>{locUI.showMore || 'Show More (Read Full Overview) ↓'}</span><ChevronDown className="w-4 h-4" /></>
+            )}
+          </button>
+        </div>
+      </Card>
+    ) : null
+  );
+
+  // ==================== CARD 5: WEED ERADICATION ADVISORY ====================
+  const renderWeedAdvisory = () => (
+    info.isWeed ? (
+      <Card className="p-5 bg-gradient-to-r from-rose-950/80 via-rose-900/60 to-slate-900 border border-rose-500/40 text-white shadow-xl rounded-2xl">
+        <div className="flex items-start gap-3.5">
+          <span className="text-3xl p-2.5 bg-rose-500/20 rounded-2xl border border-rose-500/30">🚨</span>
+          <div className="space-y-2 flex-1">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="font-display font-extrabold text-lg text-rose-200">
+                {locUI.weedTitle || 'Agricultural Weed Management & Eradication'}
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/30 text-rose-300 border border-rose-400/40">
+                {locUI.weedPriority || 'Crop Protection Priority'}
+              </span>
+            </div>
+            <p className="text-xs text-rose-200/90 leading-relaxed">
+              {activeLang === 'te'
+                ? 'ఈ మొక్క ప్రధాన పంటలతో పోషకాలు, తేమ మరియు సూర్యరశ్మి కోసం తీవ్రంగా పోటీపడే కలుపు జాతి. సకాలంలో అదుపు చేయకపోతే పంట దిగుబడి 30% నుండి 60% వరకు తగ్గే ప్రమాదం ఉంది.'
+                : activeLang === 'ta'
+                ? 'இந்த களைச்செடி முக்கிய பயிர்களுடன் நீர், சத்துக்கள் மற்றும் சூரிய ஒளிக்காக தீவிரமாக போட்டியிடும். சரியான நேரத்தில் கட்டுப்படுத்தாவிட்டால் மகசூல் 30% - 60% வரை குறையும்.'
+                : activeLang === 'hi'
+                ? 'यह खरपतवार मुख्य फसलों से पोषक तत्व, नमी और धूप के लिए प्रतिस्पर्धा करती है। यदि समय पर नियंत्रित न किया जाए तो उपज में 30% से 60% तक की भारी गिरावट आ सकती है।'
+                : 'This specimen is an aggressive agricultural weed that actively competes with cultivated crops for vital soil nutrients, moisture, and sunlight. Uncontrolled growth can severely compromise yield by 30% - 60%.'}
             </p>
-          </div>
-          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-            <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-              🌾 Common Name
-            </span>
-            <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{info.commonName}</p>
-          </div>
-          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-            <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-              🔬 Botanical Name
-            </span>
-            <p className="font-extrabold text-emerald-800 dark:text-emerald-300 text-sm italic">{info.scientificName}</p>
-          </div>
-          <div className="p-3.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xs">
-            <span className="text-slate-600 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-              🌿 Family
-            </span>
-            <p className="font-bold text-slate-900 dark:text-slate-200 text-sm">{info.family}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
+              <div className="p-3.5 bg-rose-950/50 rounded-xl border border-rose-500/30">
+                <span className="font-extrabold text-rose-300 uppercase text-[10px] tracking-wider block mb-1">
+                  🧪 {locUI.chemicalControl || 'Chemical Control (Herbicides)'}
+                </span>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  {info.weedEradication || 'Apply selective post-emergence herbicide (e.g. 2,4-D amine salt 58% SL @ 2-2.5 ml/L, or Pendimethalin 30% EC @ 3.3 L/ha pre-emergence) during early vegetative stages.'}
+                </p>
+              </div>
+              <div className="p-3.5 bg-emerald-950/40 rounded-xl border border-emerald-500/30">
+                <span className="font-extrabold text-emerald-300 uppercase text-[10px] tracking-wider block mb-1">
+                  🧑‍🌾 {locUI.culturalControl || 'Cultural & Manual Eradication'}
+                </span>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  {activeLang === 'te'
+                    ? 'మొక్క పూత దశకు రాకముందే చేతితో లేదా గుంటుకతో సమూలంగా తొలగించండి. విత్తనాలు నేలలో రాలకముందే కాల్చివేయడం లేదా సేంద్రీయ మల్చింగ్ చేయడం ఉత్తమం.'
+                    : activeLang === 'ta'
+                    ? 'தாவரம் பூக்கும் தருணத்திற்கு முன்பே வேரோடு பிடுங்கி எறியுங்கள். விதைகள் மண்ணில் விழுவதற்கு முன் உலர்த்தி எரிக்கவும் அல்லது மூடாக்கு இடவும்.'
+                    : activeLang === 'hi'
+                    ? 'फूल आने से पहले खुरपी से जड़ समेत उखाड़ दें। बीजों के जमीन पर गिरने से पहले उन्हें जला दें अथवा मल्चिंग तकनीक का प्रयोग करें।'
+                    : 'Hand-weed or shallow inter-cultivate prior to flowering and seed set. Mulch row spacings with organic straw to suppress sunlight germination.'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </CollapsibleSection>
-
-      {/* SECTION 2: 📝 Description & Key Details */}
-      {info.description && (
-        <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-sm">
-          <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-            <div className="flex items-center gap-2 text-teal-800 dark:text-teal-400 font-bold text-sm uppercase tracking-wider">
-              <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-              <span>📝 Description & Key Details</span>
-            </div>
-            {info.identifiedType && (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-400/30">
-                {info.identifiedType}
-              </span>
-            )}
-          </div>
-
-          {/* Primary Use / Impact Callout */}
-          <div className="mb-3.5 p-3.5 rounded-xl bg-teal-50/80 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-500/30 text-xs">
-            <span className="font-extrabold text-teal-800 dark:text-teal-300 uppercase text-[10px] tracking-wider block mb-1 flex items-center gap-1.5">
-              <span>🌱</span>
-              <span>Primary Use / Impact</span>
-            </span>
-            <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
-              {info.primaryUseImpact || (info.isWeed ? 'Invasive agricultural weed requiring active field management and eradication.' : 'Cultivated agricultural food crop and beneficial economic plant.')}
-            </p>
-          </div>
-
-          <div className="relative">
-            <p className={`text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-normal ${!isDescriptionExpanded ? 'line-clamp-6' : ''}`}>
-              {info.description}
-            </p>
-            {!isDescriptionExpanded && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
-            )}
-          </div>
-          <div className="pt-3">
-            <button
-              type="button"
-              onClick={() => setIsDescriptionExpanded(prev => !prev)}
-              className="text-xs font-extrabold text-teal-700 dark:text-teal-400 hover:text-teal-600 dark:hover:text-teal-300 flex items-center gap-1 transition-colors"
-            >
-              {isDescriptionExpanded ? (
-                <><span>{locUI.showLess || 'Show Less ↑'}</span><ChevronUp className="w-4 h-4" /></>
-              ) : (
-                <><span>{locUI.showMore || 'Show More (Read Full Overview) ↓'}</span><ChevronDown className="w-4 h-4" /></>
-              )}
-            </button>
-          </div>
-        </Card>
-      )}
-
-      {/* Weed Eradication Advisory */}
-      {info.isWeed && (
-        <Card className="p-5 bg-gradient-to-r from-rose-950/80 via-rose-900/60 to-slate-900 border border-rose-500/40 text-white shadow-xl rounded-2xl">
-          <div className="flex items-start gap-3.5">
-            <span className="text-3xl p-2.5 bg-rose-500/20 rounded-2xl border border-rose-500/30">🚨</span>
-            <div className="space-y-2 flex-1">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <h3 className="font-display font-extrabold text-lg text-rose-200">
-                  {locUI.weedTitle || 'Agricultural Weed Management & Eradication'}
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/30 text-rose-300 border border-rose-400/40">
-                  {locUI.weedPriority || 'Crop Protection Priority'}
-                </span>
-              </div>
-              <p className="text-xs text-rose-200/90 leading-relaxed">
-                {activeLang === 'te'
-                  ? 'ఈ మొక్క ప్రధాన పంటలతో పోషకాలు, తేమ మరియు సూర్యరశ్మి కోసం తీవ్రంగా పోటీపడే కలుపు జాతి. సకాలంలో అదుపు చేయకపోతే పంట దిగుబడి 30% నుండి 60% వరకు తగ్గే ప్రమాదం ఉంది.'
-                  : activeLang === 'ta'
-                  ? 'இந்த களைச்செடி முக்கிய பயிர்களுடன் நீர், சத்துக்கள் மற்றும் சூரிய ஒளிக்காக தீவிரமாக போட்டியிடும். சரியான நேரத்தில் கட்டுப்படுத்தாவிட்டால் மகசூல் 30% - 60% வரை குறையும்.'
-                  : activeLang === 'hi'
-                  ? 'यह खरपतवार मुख्य फसलों से पोषक तत्व, नमी और धूप के लिए प्रतिस्पर्धा करती है। यदि समय पर नियंत्रित न किया जाए तो उपज में 30% से 60% तक की भारी गिरावट आ सकती है।'
-                  : 'This specimen is an aggressive agricultural weed that actively competes with cultivated crops for vital soil nutrients, moisture, and sunlight. Uncontrolled growth can severely compromise yield by 30% - 60%.'}
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
-                <div className="p-3.5 bg-rose-950/50 rounded-xl border border-rose-500/30">
-                  <span className="font-extrabold text-rose-300 uppercase text-[10px] tracking-wider block mb-1">
-                    🧪 {locUI.chemicalControl || 'Chemical Control (Herbicides)'}
-                  </span>
-                  <p className="text-slate-200 text-xs leading-relaxed">
-                    {info.weedEradication || 'Apply selective post-emergence herbicide (e.g. 2,4-D amine salt 58% SL @ 2-2.5 ml/L, or Pendimethalin 30% EC @ 3.3 L/ha pre-emergence) during early vegetative stages.'}
-                  </p>
-                </div>
-                <div className="p-3.5 bg-emerald-950/40 rounded-xl border border-emerald-500/30">
-                  <span className="font-extrabold text-emerald-300 uppercase text-[10px] tracking-wider block mb-1">
-                    🧑‍🌾 {locUI.culturalControl || 'Cultural & Manual Eradication'}
-                  </span>
-                  <p className="text-slate-200 text-xs leading-relaxed">
-                    {activeLang === 'te'
-                      ? 'మొక్క పూత దశకు రాకముందే చేతితో లేదా గుంటుకతో సమూలంగా తొలగించండి. విత్తనాలు నేలలో రాలకముందే కాల్చివేయడం లేదా సేంద్రీయ మల్చింగ్ చేయడం ఉత్తమం.'
-                      : activeLang === 'ta'
-                      ? 'தாவரம் பூக்கும் தருணத்திற்கு முன்பே வேரோடு பிடுங்கி எறியுங்கள். விதைகள் மண்ணில் விழுவதற்கு முன் உலர்த்தி எரிக்கவும் அல்லது மூடாக்கு இடவும்.'
-                      : activeLang === 'hi'
-                      ? 'फूल आने से पहले खुरपी से जड़ समेत उखाड़ दें। बीजों के जमीन पर गिरने से पहले उन्हें जला दें अथवा मल्चिंग तकनीक का प्रयोग करें।'
-                      : 'Hand-weed or shallow inter-cultivate prior to flowering and seed set. Mulch row spacings with organic straw to suppress sunlight germination.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
-    </div>
+      </Card>
+    ) : null
   );
 
   // ==================== CARD 3: SECTION 3 (ENVIRONMENTAL CONDITIONS) ====================
@@ -1351,27 +1345,29 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
   );
 
   const defaultPlantOrder = [
-    { key: 'specimen_hero', label: 'Plant Specimen Hero', visible: true },
-    { key: 'taxonomy_morphology', label: 'Taxonomy & Morphological Profile', visible: true },
-    { key: 'agronomic_advisory', label: 'Agronomic Advisory & Climate Conditions', visible: true },
-    { key: 'soil_nutrition', label: 'Soil & Crop Nutrition Requirements', visible: true },
-    { key: 'disease_pest', label: 'Vulnerable Diseases & Target Pests', visible: true }
+    { key: 'specimen_hero', label: '1. 🌿 Botanical Specimen Hero Card', visible: true },
+    { key: 'language_bar', label: '2. 🌐 Quick Language Switcher Bar', visible: true },
+    { key: 'plant_classification', label: '3. 🌿 Plant Classification Card', visible: true },
+    { key: 'description_impact', label: '4. 📝 Description & Practical Farm Impact', visible: true },
+    { key: 'agronomic_advisory', label: '5. 🪵 Environmental & Cultivation Care Matrix (4-Grid)', visible: true },
+    { key: 'weed_advisory', label: '6. ⚠️ Weed Eradication Advisory', visible: true }
   ];
 
   const plantCardMap = {
     specimen_hero: renderSpecimenHero,
     species_hero: renderSpecimenHero,
-    taxonomy_morphology: renderTaxonomy,
-    taxonomy_card: renderTaxonomy,
+    language_bar: renderLanguageSwitcher,
+    language_switcher: renderLanguageSwitcher,
+    plant_classification: renderPlantClassification,
+    taxonomy_morphology: renderPlantClassification,
+    taxonomy_card: renderPlantClassification,
+    description_impact: renderDescriptionCard,
+    narrative_desc: renderDescriptionCard,
     agronomic_advisory: renderAgronomicAdvisory,
     care_matrix: renderAgronomicAdvisory,
-    soil_nutrition: renderSoilNutrition,
-    nutrition_card: renderSoilNutrition,
-    disease_pest: renderDiseasePest,
-    pest_vigilance: renderDiseasePest,
-    narrative_desc: () => null,
-    weed_advisory: () => null,
-    action_bar: () => null
+    weed_advisory: renderWeedAdvisory,
+    soil_nutrition: () => null,
+    disease_pest: () => null
   };
 
   const activePlantOrder = defaultPlantOrder;
@@ -1392,26 +1388,16 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
         );
       })}
 
-      {/* ==================== 8. ACTION TOOLBAR ==================== */}
-      <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* ==================== ACTION TOOLBAR ==================== */}
+      <div className="pt-2 flex items-center justify-center">
         <Button
           variant="outline"
           size="md"
           onClick={handleScanAnother}
           leftIcon={<RotateCcw className="w-4 h-4" />}
-          className="w-full sm:w-auto font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200"
+          className="w-full sm:w-auto font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer rounded-2xl"
         >
           {locUI.scanAnother || 'Scan Another Plant'}
-        </Button>
-
-        <Button
-          variant="primary"
-          size="md"
-          onClick={handleCheckDisease}
-          rightIcon={<ArrowRight className="w-4 h-4" />}
-          className="w-full sm:w-auto font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/30"
-        >
-          {locUI.checkDisease || 'Check Disease on this Crop'}
         </Button>
       </div>
     </div>

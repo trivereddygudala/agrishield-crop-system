@@ -185,59 +185,68 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     });
   };
 
-  const renderHybridHero = () => (
-    <Card className={`p-4 sm:p-6 border shadow-2xl text-white relative overflow-hidden ${
-      status === 'healthy' 
-        ? 'bg-gradient-to-br from-slate-950 via-emerald-950/90 to-slate-900 border-emerald-500/40 shadow-emerald-950/50' 
-        : 'bg-gradient-to-br from-slate-950 via-rose-950/90 to-slate-900 border-rose-500/40 shadow-rose-950/50'
-    }`}>
-      {/* Glow Spheres */}
-      <div className={`pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full blur-3xl opacity-30 ${
-        status === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'
-      }`} />
-      {/* Smart Location-Aware Vernacular Language Switcher Bar */}
-      <ScanLanguageBar
-        activeLang={activeLang}
-        onLanguageSelect={handleLanguageSelect}
-        label="Diagnosis Language"
-        className="relative z-10"
-      />
+  const renderLanguageSwitcher = () => (
+    <ScanLanguageBar
+      activeLang={activeLang}
+      onLanguageSelect={handleLanguageSelect}
+      label="Diagnosis Language"
+      className="bg-slate-900/95 border-emerald-500/30"
+    />
+  );
 
+  const renderHybridHero = () => {
+    const rawSeverity = liveResult?.severity || (parseFloat(confidence) > 90 ? 'Severe Condition' : 'Moderate Severity');
+    const localizedSeverity = activeLang === 'te' 
+      ? (rawSeverity.toLowerCase().includes('severe') ? 'తీవ్రమైన పరిస్థితి' : (rawSeverity.toLowerCase().includes('mild') ? 'తేలికపాటి పరిస్థితి' : 'మధ్యస్థ పరిస్థితి'))
+      : (activeLang === 'hi' 
+          ? (rawSeverity.toLowerCase().includes('severe') ? 'गंभीर स्थिति' : (rawSeverity.toLowerCase().includes('mild') ? 'हल्की स्थिति' : 'मध्यम स्थिति'))
+          : rawSeverity);
 
-      {/* Official Agronomist Calibration Seal Stamp if modified */}
-      {isHumanCalibrated && (
-        <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/10 border-2 border-emerald-400/60 flex items-center justify-between gap-3 text-emerald-200 relative z-10">
-          <div className="flex items-center gap-2.5">
-            <Award className="w-6 h-6 text-emerald-400 shrink-0 animate-pulse" />
-            <div>
-              <p className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <span>Certified Clinical Agronomist Calibration</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-mono">
-                  AP-AGRO-2024-8842
-                </span>
-              </p>
-              <p className="text-[11px] text-emerald-200/90 font-medium">
-                Prescription manually verified by Dr. V. Ramanjaneyulu. Safe for field application.
-              </p>
+    return (
+      <Card className={`p-4 sm:p-6 border shadow-2xl text-white relative overflow-hidden ${
+        status === 'healthy' 
+          ? 'bg-gradient-to-br from-slate-950 via-emerald-950/90 to-slate-900 border-emerald-500/40 shadow-emerald-950/50' 
+          : 'bg-gradient-to-br from-slate-950 via-rose-950/90 to-slate-900 border-rose-500/40 shadow-rose-950/50'
+      }`}>
+        {/* Glow Spheres */}
+        <div className={`pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full blur-3xl opacity-30 ${
+          status === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'
+        }`} />
+
+        {/* Official Agronomist Calibration Seal Stamp if modified */}
+        {isHumanCalibrated && (
+          <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-500/10 border-2 border-emerald-400/60 flex items-center justify-between gap-3 text-emerald-200 relative z-10">
+            <div className="flex items-center gap-2.5">
+              <Award className="w-6 h-6 text-emerald-400 shrink-0 animate-pulse" />
+              <div>
+                <p className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Certified Clinical Agronomist Calibration</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-mono">
+                    AP-AGRO-2024-8842
+                  </span>
+                </p>
+                <p className="text-[11px] text-emerald-200/90 font-medium">
+                  Prescription manually verified by Dr. V. Ramanjaneyulu. Safe for field application.
+                </p>
+              </div>
             </div>
+            <Badge variant="glow-emerald" className="text-[10px] font-black uppercase shrink-0">
+              SEAL VALIDATED
+            </Badge>
           </div>
-          <Badge variant="glow-emerald" className="text-[10px] font-black uppercase shrink-0">
-            SEAL VALIDATED
-          </Badge>
-        </div>
-      )}
+        )}
 
-      {/* Agronomist Field Notes Callout if present */}
-      {overrides.agronomist_notes && (
-        <div className="mb-4 p-3 rounded-xl bg-cyan-950/60 border border-cyan-400/40 text-cyan-200 text-xs font-medium space-y-1 relative z-10">
-          <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block">
-            Agronomist Clinical Observation:
-          </span>
-          <p className="italic leading-relaxed">{overrides.agronomist_notes}</p>
-        </div>
-      )}
+        {/* Agronomist Field Notes Callout if present */}
+        {overrides.agronomist_notes && (
+          <div className="mb-4 p-3 rounded-xl bg-cyan-950/60 border border-cyan-400/40 text-cyan-200 text-xs font-medium space-y-1 relative z-10">
+            <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block">
+              Agronomist Clinical Observation:
+            </span>
+            <p className="italic leading-relaxed">{overrides.agronomist_notes}</p>
+          </div>
+        )}
 
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-2.5 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={status === 'healthy' ? 'glow-emerald' : 'glow-rose'} className="px-3 py-0.5 text-xs font-black uppercase tracking-wider">
@@ -245,6 +254,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </Badge>
               <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-white bg-white/20 border-white/30 backdrop-blur-md">
                 🌾 {t('results.target_crop', 'Crop')}: {localizedCrop}
+              </Badge>
+              <Badge variant={rawSeverity.toLowerCase().includes('mild') ? 'glow-amber' : 'glow-rose'} className="px-3 py-0.5 text-xs font-black uppercase tracking-wider">
+                ⚠️ {localizedSeverity}
               </Badge>
               {liveResult?.is_offline ? (
                 <Badge variant="glow-amber" className="px-3 py-0.5 text-xs font-black text-amber-200 border-amber-400/60 bg-amber-500/30 animate-pulse">
@@ -308,6 +320,89 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           </div>
         </div>
 
+        {/* Specimen & Heatmap Side-by-Side Dual Display Hero Section */}
+        {(displayOriginalImg || gradCamImg) && (
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 relative z-10">
+            {/* Captured Leaf Photo with Responsive Sizing & Tap-to-Zoom */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
+                <span className="flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                  {t('results.original_photo', 'Original Field Photo')}
+                </span>
+                <span className="text-[11px] font-semibold text-emerald-300 flex items-center gap-0.5">
+                  <ZoomIn className="w-3 h-3" /> Tap to zoom
+                </span>
+              </div>
+              <div 
+                onClick={() => displayOriginalImg && setZoomImageModal({ src: displayOriginalImg, title: `${localizedCrop} - Captured Field Leaf` })}
+                className="relative max-h-48 sm:max-h-56 aspect-[16/10] rounded-2xl overflow-hidden bg-slate-950 border border-white/15 shadow-inner flex items-center justify-center cursor-pointer group"
+                title="Tap to zoom"
+              >
+                {displayOriginalImg ? (
+                  <img 
+                    src={displayOriginalImg} 
+                    alt="Captured crop leaf" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="text-center p-4 text-slate-400 text-xs">
+                    Original photo ready
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <span className="px-2.5 py-1 rounded-lg bg-black/70 text-[11px] font-bold text-white flex items-center gap-1">
+                    <ZoomIn className="w-3.5 h-3.5" /> Tap to view full size
+                  </span>
+                </div>
+                <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white border border-white/20">
+                  {localizedCrop} {t('results.leaf', 'Leaf')}
+                </div>
+              </div>
+            </div>
+
+            {/* Neural Heatmap (Grad-CAM++ Lesion Heatmap) with Responsive Sizing & Tap-to-Zoom */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                  {t('results.heatmap_focus', 'Grad-CAM++ Lesion Heatmap')}
+                </span>
+                <span className="text-[11px] font-semibold text-rose-300 flex items-center gap-0.5">
+                  <ZoomIn className="w-3 h-3" /> Tap to zoom
+                </span>
+              </div>
+              <div 
+                onClick={() => gradCamImg && setZoomImageModal({ src: gradCamImg, title: `${localizedCrop} - AI Attention Focus Heatmap` })}
+                className="relative max-h-48 sm:max-h-56 aspect-[16/10] rounded-2xl overflow-hidden bg-slate-950 border border-white/15 shadow-inner flex items-center justify-center cursor-pointer group"
+                title="Tap to zoom"
+              >
+                {gradCamImg ? (
+                  <img 
+                    src={gradCamImg} 
+                    alt="Neural network Grad-CAM activation heatmap" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="text-center p-6 text-slate-400 space-y-1">
+                    <Sparkles className="w-8 h-8 mx-auto text-emerald-500/60 animate-pulse" />
+                    <p className="text-xs font-bold text-slate-300">Neural Attention Processed</p>
+                    <p className="text-[11px] text-slate-500">Lesion hotspots identified across leaf veins</p>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <span className="px-2.5 py-1 rounded-lg bg-black/70 text-[11px] font-bold text-white flex items-center gap-1">
+                    <ZoomIn className="w-3.5 h-3.5" /> Tap to view full size
+                  </span>
+                </div>
+                <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-rose-950/80 backdrop-blur-md text-[10px] font-bold text-rose-200 border border-rose-400/30">
+                  {t('results.deep_vision_xray', 'Deep Vision X-Ray')}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3 relative z-10">
           <div className="flex items-center gap-2.5 flex-wrap">
             <Button
@@ -326,35 +421,15 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             <Button
               variant="glass"
               size="sm"
-              onClick={handleShareWhatsApp}
-              leftIcon={<Share2 className="w-4 h-4 text-emerald-300" />}
-              className="bg-white/20 hover:bg-white/30 text-white font-bold border-white/30 shadow-md backdrop-blur-md"
-            >
-              {t('results.share_report', 'Share Report')}
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <Button
-              variant="glass"
-              size="sm"
-              onClick={() => setShowPrescriptionModal(true)}
-              leftIcon={<FileText className="w-4 h-4 text-emerald-300" />}
-              className="bg-emerald-700/70 hover:bg-emerald-600 text-white font-bold border-emerald-400/40 shadow-sm"
-            >
-              {t('results.rx_slip', 'Rx Slip (QR)')}
-            </Button>
-
-            <Button
-              variant="glass"
-              size="sm"
               onClick={() => setShowHelpdeskModal(true)}
               leftIcon={<Phone className="w-4 h-4 text-amber-300" />}
               className="bg-amber-600/70 hover:bg-amber-500 text-white font-bold border-amber-400/40 shadow-sm"
             >
               {t('results.kisan_helpline', 'Kisan Helpline')}
             </Button>
+          </div>
 
+          <div className="flex items-center gap-2.5 flex-wrap">
             {onDownloadPDF && (
               <Button
                 variant="sky"
@@ -370,6 +445,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         </div>
       </Card>
     );
+  };
 
     const renderVisualBreakdown = () => {
       const observed = (activeLang !== 'en' && !hasRegionalText(liveResult?.observed_symptoms) && diseaseInfo?.overview)
@@ -837,37 +913,79 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       ) : null
     );
 
-    const renderDirective = () => (
-      liveResult?.farmer_friendly_advice ? (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border border-emerald-500/35 flex items-start justify-between gap-3.5 shadow-md">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2 rounded-xl bg-emerald-500 text-white shrink-0 shadow-md">
-              <Sparkles className="w-5 h-5" />
+    const renderPrescriptionShareCard = () => (
+      <Card className="p-5 sm:p-6 bg-gradient-to-br from-emerald-950/80 via-slate-900 to-teal-950/80 border-2 border-emerald-500/40 text-white shadow-2xl rounded-3xl relative overflow-hidden space-y-4">
+        {/* Ambient Glow */}
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Header & Official Certification */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/10 relative z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <Award className="w-5 h-5 animate-pulse" />
             </div>
-            <div className="space-y-1">
-              <span className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
-                {t('results.action_directive', 'Agronomist Action Directive')}
-              </span>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
-                {localizeAdvice(liveResult.farmer_friendly_advice, currentLang)}
+            <div>
+              <h3 className="font-display font-black text-white text-base sm:text-lg flex items-center gap-2">
+                <span>{currentLang === 'te' ? 'అగ్రోనమిస్ట్ ప్రిస్క్రిప్షన్ స్లిప్ & వాట్సాప్ షేర్' : 'Agronomist Prescription Slip & 1-Tap WhatsApp Share'}</span>
+              </h3>
+              <p className="text-[11px] text-emerald-300 font-semibold flex items-center gap-1.5 mt-0.5">
+                <span>Certified Accreditation:</span>
+                <span className="font-mono bg-emerald-500/20 px-1.5 py-0.5 rounded text-white">AP-AGRO-2024-8842</span>
+                <span>• Dr. V. Ramanjaneyulu</span>
               </p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => speak(localizeAdvice(liveResult.farmer_friendly_advice, currentLang), 'agronomist_directive', i18n.language || 'en')}
-            className={`p-2 rounded-xl border shrink-0 transition-all ${
-              speakingId === 'agronomist_directive'
-                ? 'bg-emerald-600 text-white border-emerald-500 animate-pulse'
-                : 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border-emerald-300/50'
-            }`}
-            title="Read aloud"
-          >
-            <Volume2 size={16} />
-          </button>
+          <Badge variant="glow-emerald" className="text-[10px] font-black uppercase shrink-0">
+            OFFICIAL ACCREDITED
+          </Badge>
         </div>
-      ) : null
+
+        {/* Agronomist Action Directive */}
+        {liveResult?.farmer_friendly_advice && (
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-emerald-400/20 space-y-1.5 relative z-10">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{t('results.action_directive', 'Agronomist Action Directive')}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => speak(localizeAdvice(liveResult.farmer_friendly_advice, currentLang), 'agronomist_directive', currentLang)}
+                className="text-emerald-400 hover:text-emerald-300 text-xs font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <Volume2 className={`w-3.5 h-3.5 ${speakingId === 'agronomist_directive' ? 'animate-bounce text-emerald-300' : ''}`} />
+                <span>{speakingId === 'agronomist_directive' ? 'Speaking...' : 'Listen'}</span>
+              </button>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
+              {localizeAdvice(liveResult.farmer_friendly_advice, currentLang)}
+            </p>
+          </div>
+        )}
+
+        {/* 1-Tap WhatsApp Share & QR Prescription Modal Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 relative z-10">
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleShareWhatsApp}
+            leftIcon={<Share2 className="w-4 h-4 text-white" />}
+            className="w-full py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-extrabold rounded-2xl shadow-lg shadow-emerald-950/60 flex items-center justify-center gap-2 cursor-pointer border border-emerald-400/30"
+          >
+            <span>{currentLang === 'te' ? '1-ట్యాప్ వాట్సాప్ షేర్ (డీలర్ / కిసాన్)' : '1-Tap WhatsApp Share to Dealer'}</span>
+          </Button>
+
+          <Button
+            variant="glass"
+            size="md"
+            onClick={() => setShowPrescriptionModal(true)}
+            leftIcon={<FileText className="w-4 h-4 text-emerald-300" />}
+            className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-extrabold rounded-2xl border border-white/20 shadow-md flex items-center justify-center gap-2 cursor-pointer backdrop-blur-md"
+          >
+            <span>{currentLang === 'te' ? 'ప్రిస్క్రిప్షన్ స్లిప్ డౌన్‌లోడ్ (QR కోడ్)' : 'Official Prescription Slip (QR Code)'}</span>
+          </Button>
+        </div>
+      </Card>
     );
 
     const renderSymptoms = () => (
@@ -1101,29 +1219,29 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     );
 
     const defaultOrder = [
-      { key: 'hybrid_hero', label: '50/50 AI-Human Diagnostic Hero', visible: true },
-      { key: 'visual_breakdown', label: 'Visual Analysis Breakdown', visible: true },
-      { key: 'differential', label: 'Differential Diagnosis & Brands', visible: true },
-      { key: 'dual_view', label: 'Captured Leaf vs Neural Heatmap', visible: true },
-      { key: 'pathology_ref', label: 'Pathology Reference Cases', visible: true },
-      { key: 'directive', label: 'Agronomist Action Directive', visible: true },
-      { key: 'symptoms', label: 'Pathology Overview & Symptoms', visible: true },
-      { key: 'biological_rx', label: 'Biological Advisory (Eco-Friendly)', visible: true },
-      { key: 'pro_chemical_plan', label: 'Pro Chemical Action Plan', visible: true },
-      { key: 'safety', label: 'Safety Precautions & PPE', visible: true }
+      { key: 'hybrid_hero', label: '1. Specimen & Heatmap Hero Card', visible: true },
+      { key: 'language_bar', label: '2. Quick Language Switcher Bar', visible: true },
+      { key: 'visual_breakdown', label: '3. Visual Foliar Symptoms Breakdown', visible: true },
+      { key: 'differential', label: '4. Top 3 Verified Commercial Market Medicines', visible: true },
+      { key: 'biological_rx', label: '5. Eco-Friendly Biological Remediation', visible: true },
+      { key: 'pro_chemical_plan', label: '6. Pro Chemical Action Plan', visible: true },
+      { key: 'directive', label: '7. Agronomist Prescription Slip & 1-Tap WhatsApp Share', visible: true }
     ];
 
     const cardMap = {
       hybrid_hero: renderHybridHero,
+      specimen_hero: renderHybridHero,
+      language_bar: renderLanguageSwitcher,
       visual_breakdown: renderVisualBreakdown,
       differential: renderDifferential,
-      dual_view: renderDualView,
-      pathology_ref: renderPathologyRef,
-      directive: renderDirective,
-      symptoms: renderSymptoms,
       biological_rx: renderBiologicalAdvisory,
       pro_chemical_plan: renderProChemicalPlan,
-      safety: renderSafety
+      directive: renderPrescriptionShareCard,
+      prescription_share: renderPrescriptionShareCard,
+      dual_view: () => null,
+      pathology_ref: () => null,
+      symptoms: () => null,
+      safety: () => null
     };
 
     const activeOrder = defaultOrder;
