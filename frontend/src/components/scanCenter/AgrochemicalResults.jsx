@@ -1048,11 +1048,12 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
         );
       })}
 
-      {/* Bottom Action Footer for 3-Tab Cross-Synchronization */}
-      <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
+      {/* Bottom Action Bar */}
+      <div className="pt-4 flex items-center justify-center">
         <Button
           variant="outline"
-          className="w-full sm:w-1/2 py-3 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
+          size="md"
+          className="w-full sm:w-auto px-8 py-3 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl shadow-sm"
           onClick={() => {
             if (onScanAnother) onScanAnother();
             else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
@@ -1060,17 +1061,6 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
         >
           <RotateCcw className="w-4 h-4" />
           <span>{currentLang === 'te' ? 'మరో మందు సీసాను స్కాన్ చేయండి' : currentLang === 'hi' ? 'दूसरी बोतल स्कैन करें' : 'Scan Another Product / Bottle'}</span>
-        </Button>
-
-        <Button
-          variant="primary"
-          className="w-full sm:w-1/2 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 rounded-2xl"
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent('agrishield-switch-tab', { detail: { tab: 'disease-diag' } }));
-          }}
-        >
-          <Sprout className="w-4 h-4" />
-          <span>{currentLang === 'te' ? 'పంట తెగుళ్ల పరీక్షకు వెళ్లండి →' : currentLang === 'hi' ? 'फसल रोग जांच पर जाएं →' : 'Test Crop Leaf for Diseases →'}</span>
         </Button>
       </div>
 

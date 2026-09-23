@@ -839,16 +839,6 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     }
   };
 
-  const handleCheckDisease = () => {
-    if (onCheckDisease) {
-      onCheckDisease(info.commonName);
-    } else {
-      window.dispatchEvent(new CustomEvent('agrishield-switch-tab', { 
-        detail: { tab: 'disease-diag', crop: info.commonName } 
-      }));
-    }
-  };
-
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
 
   const generateMarkdownReport = () => {

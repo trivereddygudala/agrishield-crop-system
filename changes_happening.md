@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-23 (v210) - Excised Cross-Tab Jump Buttons from Plant ID & Agrochemical Scanner Bottom Bars
+- **Summary:** Cleaned the bottom action bars in Plant Identification and Agrochemical Scanner to match the refined single-action pattern:
+  1. 🔬 **Agrochemical Scanner (`AgrochemicalResults.jsx`):**
+     - Completely removed the cross-tab `[Test Crop Leaf for Diseases →]` button (`window.dispatchEvent(agrishield-switch-tab)`).
+     - Formatted the action bar as a clean, single, centered `[Scan Another Product / Bottle]` button.
+  2. 🌸 **Botanical Plant Identification (`PlantIdResults.jsx`):**
+     - Verified bottom action bar has solely `[Scan Another Plant]` with no cross-tab buttons.
+     - Cleaned up unused `handleCheckDisease` event dispatcher.
+  3. 🏗️ **Build & Test Verification:**
+     - Production build passed with 0 errors (`npm run build`: 24.99s across 3,153 modules).
+- **Files modified:** `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-23 (v209) - Disease Diagnosis UI Polish: Round Big DISEASED Badge, 1st-Line Severity, Large Crop Name & Removed Cross-Tab Buttons
 - **Summary:** Refined the Hero card layout and bottom action bar in Disease Diagnosis (`DiseaseDiagnosisResults.jsx`) based on direct user image feedback:
   1. 🚫 **Bottom Action Bar Cleaned (Picture 1):**
