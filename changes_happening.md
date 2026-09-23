@@ -2,6 +2,36 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-23 (v204) - Individual Tab Language Scoping (Decoupled from Global Website i18n)
+- **Summary:** Completely isolated language selection across all scan modules so changing the language in any scan tab updates ONLY that specific result without altering the global website language (navbars, sidebar, dashboard, settings):
+  1. 🔒 **Tab-Scoped Language State Isolation:**
+     - `DiseaseDiagnosisResults.jsx`: Language state is scoped locally via `sessionStorage.getItem('agrishield_tab_lang_disease')`.
+     - `PlantIdResults.jsx`: Language state is scoped locally via `sessionStorage.getItem('agrishield_tab_lang_plant')`.
+     - `AgrochemicalResults.jsx`: Language state is scoped locally via `sessionStorage.getItem('agrishield_tab_lang_agro')`.
+     - `PredictionResultPage.jsx`: Language state is scoped locally via `sessionStorage.getItem('agrishield_tab_lang_prediction')`.
+  2. 🚫 **Excised Global Side-Effects:**
+     - Removed calls to `i18n.changeLanguage()` inside scan result handlers so the website UI remains in the user's chosen site language.
+     - Removed `localStorage.setItem('i18nextLng')` from scan tab selectors.
+     - Removed `agrishield-language-changed` event dispatching and listener in `UploadImagePage.jsx` to prevent cross-tab interference.
+  3. 🏗️ **Build & Test Verification:**
+     - Production build passed with 0 errors (`npm run build`: 28.79s across 3,153 modules).
+- **Files modified:** `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `frontend/src/pages/UploadImagePage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
+## 2026-09-23 (v203) - Smart Location-Aware Vernacular Selector & Glassmorphic '+ More Languages' Popover
+- **Summary:** Redesigned the cluttered 13-language wrap into a clean, farmer-friendly 3-pill quick bar with location-aware intelligence and a glassmorphic "+ More Languages" popover:
+  1. 🌐 **Reusable Location-Aware Language Bar (`ScanLanguageBar.jsx`):**
+     - Automatically maps farmer state/location (AP/Telangana -> Telugu, Tamil Nadu -> Tamil, Maharashtra -> Marathi, Karnataka -> Kannada, Punjab -> Punjabi, Gujarat -> Gujarati, Bengal -> Bengali, etc.) to their native regional language.
+     - Displays 3 clean, uncluttered quick pills: **English (US)** + **Local Regional Language (with 'Local' badge)** + **Active Language (or Hindi)**.
+     - Replaces the crowded 2-line wrap of 13 buttons with a compact, single-row responsive bar.
+  2. 📱 **Glassmorphic '+ More Languages' Dropdown Popover:**
+     - Displays a sleek popup listing all 13 official regional languages with native typography, regional flags, state boundaries, search filtering, and active checkmarks.
+     - 1-tap instant language switching with smooth spring animations and outside-click dismiss.
+  3. 🔄 **Cross-Module Unified Deployment:**
+     - Seamlessly integrated across **Disease Diagnosis** (`DiseaseDiagnosisResults.jsx` & `PredictionResultPage.jsx`), **Plant & Weed ID** (`PlantIdResults.jsx`), and **Agrochemical Verification** (`AgrochemicalResults.jsx`).
+  4. 🏗️ **Build & Test Verification:**
+     - Production build passed with 0 errors (`npm run build`: 26.00s).
+- **Files modified:** `frontend/src/components/scanCenter/ScanLanguageBar.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/pages/PredictionResultPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-23 (v202) - Backend Predict Syntax Resolution, Disease Diagnosis Pipeline Audit & UI Visualization Architecture
 - **Summary:** Conducted full system audit of the Crop Disease Diagnosis pipeline requested in Dialogue 65, cleaned leftover syntax corruption in backend routing, and generated visual UI representation:
   1. 🔧 **Backend Syntax Corruption Cleared (`predict.py`):**

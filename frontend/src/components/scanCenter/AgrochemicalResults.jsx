@@ -12,15 +12,8 @@ import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import API from '../../services/api';
-
-const SUPPORTED_LANGUAGES = [
-  { code: 'en', label: 'English', native: 'English' },
-  { code: 'te', label: 'Telugu', native: 'తెలుగు' },
-  { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
-  { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
-  { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
-  { code: 'ml', label: 'Malayalam', native: 'മലയാളം' }
-];
+import { SUPPORTED_LANGUAGES } from '../../data/languages';
+import ScanLanguageBar from './ScanLanguageBar';
 
 const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
   const { t, i18n } = useTranslation();
@@ -33,8 +26,10 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
 
-  // Multilingual State & Translation Cache
-  const [activeLang, setActiveLang] = useState(currentLang || 'en');
+  // Tab-isolated language state: persists within this tab without mutating global website
+  const [activeLang, setActiveLang] = useState(() => {
+    return sessionStorage.getItem('agrishield_tab_lang_agro') || currentLang || 'en';
+  });
   const [translatedCache, setTranslatedCache] = useState(() => data?.translations || {});
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -79,10 +74,10 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
   }, [activeLang, data, translatedCache]);
 
   const handleLanguageSelect = (langCode) => {
-    setActiveLang(langCode);
-    i18n.changeLanguage(langCode);
-    localStorage.setItem('i18nextLng', langCode);
-    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: langCode } }));
+    const clean = (langCode || 'en').split('-')[0].toLowerCase();
+    setActiveLang(clean);
+    sessionStorage.setItem('agrishield_tab_lang_agro', clean);
+    // Explicitly isolated to Agrochemical tab: does NOT mutate global website i18n
   };
 
   // Active localized data object (cached translation or raw data)
@@ -274,37 +269,13 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     : `${productDetails.brand_name}, Category: ${categoryMeta.type}, by ${productDetails.company}. Active ingredient: ${productDetails.active_ingredient}. Recommended dilution: ${userInstructions.dilution_rate_per_litre}.`;
 
   const renderLanguageSwitcher = () => (
-    <div className="flex items-center justify-between gap-3 p-3 bg-slate-900/95 dark:bg-slate-900/95 rounded-2xl border border-indigo-500/30 shadow-lg flex-wrap">
-      <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-        <Globe className="w-4 h-4 text-emerald-400" />
-        <span className="hidden sm:inline">Advisory Language:</span>
-        {isTranslating && (
-          <span className="flex items-center gap-1 text-[11px] font-bold text-amber-300 animate-pulse">
-            <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Translating...
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {SUPPORTED_LANGUAGES.map(lang => {
-          const isSelected = activeLang === lang.code;
-          return (
-            <button
-              key={lang.code}
-              type="button"
-              onClick={() => handleLanguageSelect(lang.code)}
-              disabled={isTranslating}
-              className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
-                isSelected
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/25 scale-105 border border-emerald-400'
-                  : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70'
-              }`}
-            >
-              <span>{lang.native}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <ScanLanguageBar
+      activeLang={activeLang}
+      onLanguageSelect={handleLanguageSelect}
+      isTranslating={isTranslating}
+      label="Advisory Language"
+      className="bg-slate-900/95 border-indigo-500/30"
+    />
   );
 
   const renderAgroHero = () => (

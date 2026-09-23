@@ -178,22 +178,12 @@ const UploadImagePage = () => {
       clearSelection();
     };
 
-    const onLangChanged = (e) => {
-      const newLang = e.detail?.language;
-      if (newLang && i18n.language !== newLang) {
-        i18n.changeLanguage(newLang);
-        localStorage.setItem('i18nextLng', newLang);
-      }
-    };
-
     window.addEventListener('agrishield-switch-tab', onSwitchTab);
     window.addEventListener('agrishield-scan-another', onScanAnother);
-    window.addEventListener('agrishield-language-changed', onLangChanged);
 
     return () => {
       window.removeEventListener('agrishield-switch-tab', onSwitchTab);
       window.removeEventListener('agrishield-scan-another', onScanAnother);
-      window.removeEventListener('agrishield-language-changed', onLangChanged);
     };
   }, [i18n, navigate]);
 

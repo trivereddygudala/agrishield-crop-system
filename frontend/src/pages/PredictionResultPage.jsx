@@ -31,6 +31,7 @@ import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../utils/presc
 import { generateAndDownloadPrescriptionPDF } from '../utils/pdfPrescriptionGenerator';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../utils/diseaseAdvisoryData';
 import { SUPPORTED_LANGUAGES } from '../data/languages';
+import ScanLanguageBar from '../components/scanCenter/ScanLanguageBar';
 import { useSpeechReader } from '../hooks/useSpeechReader';
 import VoiceCropDoctorModal from '../components/intelligence/VoiceCropDoctorModal';
 
@@ -84,20 +85,17 @@ const PredictionResultPage = () => {
   const [showGradCam, setShowGradCam] = useState(false);
   const [showVoiceDoctor, setShowVoiceDoctor] = useState(false);
   const [isVerifyingCloud, setIsVerifyingCloud] = useState(false);
-  const [activeLang, setActiveLang] = useState(
-    (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase()
-  );
-
-  useEffect(() => {
-    const lang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
-    setActiveLang(lang);
-  }, [i18n.language]);
+  const currentLang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
+  // Tab-isolated language state: persists within this view without mutating global website
+  const [activeLang, setActiveLang] = useState(() => {
+    return sessionStorage.getItem('agrishield_tab_lang_prediction') || currentLang || 'en';
+  });
 
   const handleLanguageChange = (langCode) => {
-    setActiveLang(langCode);
-    i18n.changeLanguage(langCode);
-    localStorage.setItem('i18nextLng', langCode);
-    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: langCode } }));
+    const clean = (langCode || 'en').split('-')[0].toLowerCase();
+    setActiveLang(clean);
+    sessionStorage.setItem('agrishield_tab_lang_prediction', clean);
+    // Explicitly isolated: does NOT mutate global website i18n
   };
   
   const imagePath = location.state?.imagePath;
@@ -351,37 +349,12 @@ const PredictionResultPage = () => {
         </div>
       </div>
 
-      {/* Plantix-Style Instant Language Switcher Bar */}
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-emerald-500/20 rounded-2xl p-2.5 shadow-sm">
-        <div className="flex items-center gap-2 mb-2 px-1">
-          <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-            {t('nav.languages', 'Vernacular Language / స్థానిక భాష')}
-          </span>
-          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
-            Plantix 1-Tap
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-emerald-300 dark:scrollbar-thumb-emerald-800">
-          {SUPPORTED_LANGUAGES.map((lang) => {
-            const isSelected = activeLang === lang.code;
-            return (
-              <button
-                key={lang.code}
-                onClick={() => handleLanguageChange(lang.code)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all flex items-center gap-1.5 border active:scale-95 ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/30'
-                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-600'
-                }`}
-              >
-                <span>{lang.flag}</span>
-                <span>{lang.nativeName}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Smart Location-Aware Vernacular Language Switcher Bar */}
+      <ScanLanguageBar
+        activeLang={activeLang}
+        onLanguageSelect={handleLanguageChange}
+        label="Diagnosis Language"
+      />
 
       {/* Offline Field Triage Banner */}
       {result?.is_offline && (

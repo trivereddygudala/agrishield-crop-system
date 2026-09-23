@@ -14,6 +14,7 @@ import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { FORMULATION_TEXTS, getAudioActionLabel, getSpeechLocale, getSafetyFallback } from '../../utils/regionalLocale';
 import { getMatchingProducts } from '../../utils/commercialProducts';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
+import ScanLanguageBar from './ScanLanguageBar';
 import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
 import { shareDiagnosticToWhatsApp } from '../../utils/prescriptionShare';
@@ -87,20 +88,16 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   }, [rawCropName, rawDiseaseName]);
   
   const currentLang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
-  const [activeLang, setActiveLang] = useState(currentLang || 'en');
-
-  // Sync activeLang with i18n.language changes
-  useEffect(() => {
-    const lang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
-    setActiveLang(lang);
-  }, [i18n.language]);
+  // Tab-isolated language state: persists within this tab without mutating global website
+  const [activeLang, setActiveLang] = useState(() => {
+    return sessionStorage.getItem('agrishield_tab_lang_disease') || currentLang || 'en';
+  });
 
   const handleLanguageSelect = (langCode) => {
     const clean = (langCode || 'en').split('-')[0].toLowerCase();
     setActiveLang(clean);
-    i18n.changeLanguage(clean);
-    localStorage.setItem('i18nextLng', clean);
-    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: clean } }));
+    sessionStorage.setItem('agrishield_tab_lang_disease', clean);
+    // Explicitly isolated to Disease Diagnosis tab: does NOT mutate global website i18n
   };
 
   const localizedCrop = translateCrop(rawCropName, activeLang) || rawCropName;
@@ -198,36 +195,13 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       <div className={`pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full blur-3xl opacity-30 ${
         status === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'
       }`} />
-      {/* Plantix-Grade 1-Tap Vernacular Language Switcher Bar */}
-      <div className="mb-4 p-2.5 sm:p-3 bg-slate-950/80 backdrop-blur-md rounded-2xl border border-emerald-500/30 shadow-lg flex items-center justify-between gap-3 flex-wrap relative z-10">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
-          <Globe className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span className="hidden sm:inline font-semibold">Diagnosis Language:</span>
-          <span className="text-[11px] text-emerald-300 font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-            {SUPPORTED_LANGUAGES.find(l => l.code === activeLang)?.nativeName || activeLang}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto max-w-full py-0.5 scrollbar-none">
-          {SUPPORTED_LANGUAGES.map(lang => {
-            const isSelected = activeLang === lang.code;
-            return (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => handleLanguageSelect(lang.code)}
-                className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/25 scale-105 border border-emerald-400'
-                    : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-white border border-slate-700/70'
-                }`}
-              >
-                <span>{lang.flag || '🌾'}</span>
-                <span>{lang.nativeName || lang.name}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Smart Location-Aware Vernacular Language Switcher Bar */}
+      <ScanLanguageBar
+        activeLang={activeLang}
+        onLanguageSelect={handleLanguageSelect}
+        label="Diagnosis Language"
+        className="relative z-10"
+      />
 
 
       {/* Official Agronomist Calibration Seal Stamp if modified */}

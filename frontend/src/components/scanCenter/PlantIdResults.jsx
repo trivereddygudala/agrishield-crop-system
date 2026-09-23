@@ -29,6 +29,7 @@ import { buildPlantSpeech } from '../../utils/regionalLocale';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
 import { ANDHRA_BOTANICAL_BASE } from '../../data/andhraBotanicalData';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
+import ScanLanguageBar from './ScanLanguageBar';
 import API from '../../services/api';
 
 const BASE_CROPS_KNOWLEDGE = {
@@ -741,18 +742,14 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
   const { t, i18n } = useTranslation();
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
 
-  const [activeLang, setActiveLang] = useState(
-    (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase()
-  );
+  const currentLang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
+  // Tab-isolated language state: persists within this tab without mutating global website
+  const [activeLang, setActiveLang] = useState(() => {
+    return sessionStorage.getItem('agrishield_tab_lang_plant') || currentLang || 'en';
+  });
   const [translatedCache, setTranslatedCache] = useState({});
   const [isTranslating, setIsTranslating] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-
-  // Sync activeLang when i18n global language changes
-  useEffect(() => {
-    const lang = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
-    setActiveLang(lang);
-  }, [i18n.language]);
 
   const rawInfo = useMemo(() => data || getPlantDetails(liveResult), [data, liveResult]);
 
@@ -828,10 +825,10 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
   const fullSpeciesSummary = buildPlantSpeech(speechInfo, activeLang, 'summary');
 
   const handleLanguageSelect = (langCode) => {
-    setActiveLang(langCode);
-    i18n.changeLanguage(langCode);
-    localStorage.setItem('i18nextLng', langCode);
-    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: langCode } }));
+    const clean = (langCode || 'en').split('-')[0].toLowerCase();
+    setActiveLang(clean);
+    sessionStorage.setItem('agrishield_tab_lang_plant', clean);
+    // Explicitly isolated to Plant ID tab: does NOT mutate global website i18n
   };
 
   const handleScanAnother = () => {
@@ -944,33 +941,14 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
             </span>
           </div>
 
-          {/* Quick In-Card Language Switcher Pills */}
-          <div className="flex items-center gap-1.5 flex-wrap py-2 border-y border-white/10 my-2">
-            <span className="text-[11px] font-bold text-teal-300 flex items-center gap-1 mr-1">
-              <Globe className="w-3.5 h-3.5 text-teal-400" />
-              {locUI.switchLanguage || 'Language'}:
-            </span>
-            {SUPPORTED_LANGUAGES.map(lang => (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => handleLanguageSelect(lang.code)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1 ${
-                  activeLang === lang.code
-                    ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/30 scale-105'
-                    : 'bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white border border-white/10'
-                }`}
-              >
-                <span>{lang.flag || '🌾'}</span>
-                <span>{lang.nativeName || lang.name}</span>
-              </button>
-            ))}
-            {isTranslating && (
-              <span className="text-[10px] text-teal-300 font-semibold animate-pulse ml-2">
-                Translating...
-              </span>
-            )}
-          </div>
+          {/* Smart Location-Aware Vernacular Language Switcher Bar */}
+          <ScanLanguageBar
+            activeLang={activeLang}
+            onLanguageSelect={handleLanguageSelect}
+            isTranslating={isTranslating}
+            label={locUI.switchLanguage || 'Identification Language'}
+            className="my-3 bg-white/5 border-white/10"
+          />
 
           {/* Specimen Titles */}
           <div>
