@@ -169,8 +169,9 @@ def parse_class_label(class_label: str):
     c_low = crop.lower()
     if "corn" in c_low or "maize" in c_low:
         crop = "Corn"
-    elif "pepper" in c_low or "capsicum" in c_low:
-        crop = "Chilli" if "chilli" in c_low or "chili" in c_low else "Bell Pepper"
+    elif "pepper" in c_low or "capsicum" in c_low or "chilli" in c_low or "chili" in c_low:
+        # In Indian agronomy, Capsicum annuum foliage is universally managed as Chilli
+        crop = "Chilli"
     elif "soyabean" in c_low or "soybean" in c_low:
         crop = "Soybean"
     elif "potato" in c_low:
@@ -453,12 +454,29 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     
     probs = calibrate_probabilities(probs, temperature=PipelineConfig.CALIBRATION_TEMPERATURE)
 
-    # 0c. Dynamic Crop Category Probability Filtering
-    if crop_filter and crop_filter.strip():
-        cf_clean = crop_filter.lower().strip()
+    # 0c. Dynamic Crop Category Probability Filtering & Two-Stage Hierarchical Inference
+    effective_crop_filter = crop_filter.strip() if (crop_filter and crop_filter.strip()) else None
+
+    # Stage 1: Auto-Crop Prior Aggregation (Hierarchical Bayesian Clustering)
+    # When farmer submits without manual crop lock, aggregate class probability mass by crop family across all 1,252 classes
+    if not effective_crop_filter:
+        crop_family_mass = {}
+        for idx, cls in enumerate(classes):
+            c_name, _, c_status = parse_class_label(cls)
+            if c_status != "unsupported" and c_name not in ["Unknown", "General Plant"]:
+                crop_family_mass[c_name] = crop_family_mass.get(c_name, 0.0) + float(probs[idx])
+        
+        if crop_family_mass:
+            best_auto_crop, best_auto_mass = max(crop_family_mass.items(), key=lambda x: x[1])
+            # If the dominant crop family captures significant probability (> 10% mass across 1,252 classes)
+            if best_auto_mass >= 0.10:
+                effective_crop_filter = best_auto_crop
+
+    if effective_crop_filter:
+        cf_clean = effective_crop_filter.lower().strip()
         if "rice" in cf_clean or "paddy" in cf_clean:
             keywords = ["rice", "paddy"]
-        elif "chilli" in cf_clean or "chili" in cf_clean or "pepper" in cf_clean:
+        elif "chilli" in cf_clean or "chili" in cf_clean or "pepper" in cf_clean or "capsicum" in cf_clean:
             keywords = ["chilli", "chili", "pepper", "capsicum"]
         elif "groundnut" in cf_clean or "peanut" in cf_clean:
             keywords = ["groundnut", "peanut"]
@@ -468,6 +486,22 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
             keywords = ["soybean", "soyabean", "soya"]
         elif "cherry" in cf_clean:
             keywords = ["cherry", "prunus"]
+        elif "wheat" in cf_clean:
+            keywords = ["wheat", "triticum"]
+        elif "cotton" in cf_clean:
+            keywords = ["cotton", "gossypium"]
+        elif "sugarcane" in cf_clean:
+            keywords = ["sugarcane", "saccharum"]
+        elif "citrus" in cf_clean or "orange" in cf_clean or "lemon" in cf_clean:
+            keywords = ["citrus", "orange", "lemon", "lime"]
+        elif "apple" in cf_clean:
+            keywords = ["apple", "malus"]
+        elif "grape" in cf_clean:
+            keywords = ["grape", "vitis"]
+        elif "potato" in cf_clean:
+            keywords = ["potato"]
+        elif "tomato" in cf_clean:
+            keywords = ["tomato"]
         else:
             keywords = [cf_clean]
             
@@ -542,6 +576,27 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     crop_name = top_predictions[0]["crop_name"]
     disease_name = top_predictions[0]["disease_name"]
     _, _, prediction_status = parse_class_label(top_predictions[0]["class_name"])
+
+    # 0d. Taxonomic & Regional Pathogen Harmonizer (Indian Agronomy & CIBRC Alignment)
+    # Capsicum / Chilli harmonization
+    if crop_name in ["Bell Pepper", "Pepper"] or "pepper" in top_predictions[0]["class_name"].lower():
+        crop_name = "Chilli"
+        if "bacterial" in disease_name.lower() or "spot" in disease_name.lower():
+            disease_name = "Chilli Bacterial Leaf Spot"
+        elif "anthracnose" in disease_name.lower() or "rot" in disease_name.lower():
+            disease_name = "Chilli Anthracnose / Fruit Rot"
+        elif "healthy" in disease_name.lower():
+            disease_name = "Healthy"
+
+    # Cross-host Late Blight harmonization (Phytophthora infestans)
+    if crop_name == "Potato" and "tomato" in disease_name.lower():
+        disease_name = disease_name.replace("Tomato", "Potato")
+    elif crop_name == "Tomato" and "potato" in disease_name.lower():
+        disease_name = disease_name.replace("Potato", "Tomato")
+
+    # Update top prediction 0 to reflect the harmonized names
+    top_predictions[0]["crop_name"] = crop_name
+    top_predictions[0]["disease_name"] = disease_name
     
     if prediction_status == "unsupported" or crop_name == "Unknown":
         return {

@@ -94,3 +94,8 @@ chat by user.md
 chats_by_user.md
 check_steps.py
 
+# Local Benchmark Harvest Images
+benchmarks/**/*.jpg
+benchmarks/**/*.jpeg
+benchmarks/**/*.png
+

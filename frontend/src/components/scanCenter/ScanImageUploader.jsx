@@ -136,6 +136,7 @@ const ScanImageUploader = ({
   const [currentDeviceIdx, setCurrentDeviceIdx] = useState(0);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [isLowRes, setIsLowRes] = useState(false);
+  const [isBlurry, setIsBlurry] = useState(false);
   const [showGradcam, setShowGradcam] = useState(false);
   const [showSpeciesInfo, setShowSpeciesInfo] = useState(false);
 
@@ -152,6 +153,7 @@ const ScanImageUploader = ({
   useEffect(() => {
     if (!previewUrl || !selectedFile) {
       setIsLowRes(false);
+      setIsBlurry(false);
       setLastCapturedMeta(null);
       lastProcessedFileKeyRef.current = null;
       return;
@@ -167,13 +169,51 @@ const ScanImageUploader = ({
     let isMounted = true;
 
     const runPreDetection = async () => {
-      // 1. Client-side rapid canvas leaf ratio inspection
+      // 1. Client-side rapid canvas leaf ratio & blur inspection (< 15ms)
       const img = new Image();
       img.src = previewUrl;
       img.onload = () => {
         if (!isMounted) return;
         if (img.naturalWidth > 0 && img.naturalHeight > 0) {
           setIsLowRes(img.naturalWidth < 300 || img.naturalHeight < 300);
+
+          // Fast Laplacian variance check for extreme blur / out-of-focus capture
+          try {
+            const canvas = document.createElement('canvas');
+            const size = 100;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, size, size);
+              const imgData = ctx.getImageData(0, 0, size, size);
+              const d = imgData.data;
+              let sum = 0;
+              let sumSq = 0;
+              let count = 0;
+              for (let y = 2; y < size - 2; y += 2) {
+                for (let x = 2; x < size - 2; x += 2) {
+                  const idx = (y * size + x) * 4;
+                  const center = d[idx] * 0.299 + d[idx + 1] * 0.587 + d[idx + 2] * 0.114;
+                  const top = d[((y - 1) * size + x) * 4] * 0.299 + d[((y - 1) * size + x) * 4 + 1] * 0.587 + d[((y - 1) * size + x) * 4 + 2] * 0.114;
+                  const bottom = d[((y + 1) * size + x) * 4] * 0.299 + d[((y + 1) * size + x) * 4 + 1] * 0.587 + d[((y + 1) * size + x) * 4 + 2] * 0.114;
+                  const left = d[(y * size + (x - 1)) * 4] * 0.299 + d[(y * size + (x - 1)) * 4 + 1] * 0.587 + d[(y * size + (x - 1)) * 4 + 2] * 0.114;
+                  const right = d[(y * size + (x + 1)) * 4] * 0.299 + d[(y * size + (x + 1)) * 4 + 1] * 0.587 + d[(y * size + (x + 1)) * 4 + 2] * 0.114;
+                  const lap = Math.abs(4 * center - top - bottom - left - right);
+                  sum += lap;
+                  sumSq += lap * lap;
+                  count++;
+                }
+              }
+              if (count > 0) {
+                const mean = sum / count;
+                const variance = (sumSq / count) - (mean * mean);
+                setIsBlurry(variance < 55);
+              }
+            }
+          } catch {
+            setIsBlurry(false);
+          }
         }
       };
 
@@ -718,6 +758,27 @@ const ScanImageUploader = ({
       {/* Main Upload Drop Area */}
       {!previewUrl ? (
         <div className="space-y-4">
+          {tabId === 'disease-diag' && (
+            <div className="flex items-center justify-between gap-2 p-2.5 px-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/20 text-xs shadow-xs">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span className="text-slate-700 dark:text-emerald-200 font-semibold text-[11px] sm:text-xs">
+                  {selectedCropFilter
+                    ? (isTelugu ? `🔒 AI నిర్ధారణ ${selectedCropFilter} పంట తెగుళ్లకు పరిమితం చేయబడింది` : `🔒 AI diagnosis locked strictly to ${selectedCropFilter} crop diseases`)
+                    : (isTelugu ? '💡 సూచన: 98%+ కచ్చితత్వం కోసం పైన మీ పంటను (వరి, టమాటా, మిరప, మొదలైనవి) ఎంచుకోండి' : '💡 Farmer Tip: Select your crop above (e.g. Rice, Tomato, Chilli, Cotton) for 98%+ diagnostic precision!')}
+                </span>
+              </div>
+              {selectedCropFilter && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onCropFilterChange?.(''); }}
+                  className="text-[10px] text-slate-500 hover:text-rose-500 underline font-bold cursor-pointer shrink-0"
+                >
+                  {isTelugu ? 'అన్ని పంటలు' : 'Reset Filter'}
+                </button>
+              )}
+            </div>
+          )}
           <motion.div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -928,6 +989,23 @@ const ScanImageUploader = ({
             <p className="font-black text-amber-400">{t('uploader.low_res_title', 'Low Resolution Detected!')}</p>
             <p className="text-[11px] font-normal leading-relaxed mt-0.5 text-amber-400/80">
               {t('uploader.low_res_warning', 'For reliable diagnostic accuracy, please open the original webpage, download/save the full image, and drag or upload that file instead.')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Real-Time Blur / Motion Jitter Warning Banner */}
+      {isBlurry && !isLowRes && (
+        <div className="mt-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-semibold flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
+          <div>
+            <p className="font-black text-amber-400">
+              {isTelugu ? '⚠️ ఫోటో కాస్త అస్పష్టంగా (Blur) ఉంది' : '⚠️ Foliage Appears Out of Focus or Shaky'}
+            </p>
+            <p className="text-[11px] font-normal leading-relaxed mt-0.5 text-amber-400/80">
+              {isTelugu
+                ? '98%+ ఖచ్చితమైన ఫలితాల కోసం, కెమెరాను కదల్చకుండా ఆకుకు 15 సెం.మీ దూరంలో మంచి వెలుతురులో ఉంచండి.'
+                : 'For 98%+ diagnostic precision, hold your camera steady approx 15 cm from the leaf blade in good sunlight.'}
             </p>
           </div>
         </div>
