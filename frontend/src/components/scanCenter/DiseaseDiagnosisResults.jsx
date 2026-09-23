@@ -247,38 +247,59 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         )}
 
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-2.5 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={status === 'healthy' ? 'glow-emerald' : 'glow-rose'} className="px-3 py-0.5 text-xs font-black uppercase tracking-wider">
+          <div className="space-y-3 flex-1">
+            {/* 1st Line: Round Big DISEASED Badge followed by Severity Badge on the same line */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider shadow-md ${
+                status === 'healthy' 
+                  ? 'bg-emerald-500/25 text-emerald-200 border-2 border-emerald-400/80 shadow-emerald-950/60' 
+                  : 'bg-rose-500/25 text-rose-200 border-2 border-rose-400/80 shadow-rose-950/60'
+              }`}>
                 {status.toUpperCase()}
-              </Badge>
-              <Badge variant="glass" className="px-3 py-0.5 text-xs font-bold text-white bg-white/20 border-white/30 backdrop-blur-md">
-                🌾 {t('results.target_crop', 'Crop')}: {localizedCrop}
-              </Badge>
-              <Badge variant={rawSeverity.toLowerCase().includes('mild') ? 'glow-amber' : 'glow-rose'} className="px-3 py-0.5 text-xs font-black uppercase tracking-wider">
+              </span>
+
+              <span className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-black uppercase tracking-wider shadow-md ${
+                rawSeverity.toLowerCase().includes('mild') 
+                  ? 'bg-amber-500/25 text-amber-200 border-2 border-amber-400/70 shadow-amber-950/60' 
+                  : rawSeverity.toLowerCase().includes('moderate')
+                  ? 'bg-orange-500/25 text-orange-200 border-2 border-orange-400/80 shadow-orange-950/60'
+                  : 'bg-rose-500/25 text-rose-200 border-2 border-rose-400/80 shadow-rose-950/60'
+              }`}>
                 ⚠️ {localizedSeverity}
-              </Badge>
-              {liveResult?.is_offline ? (
-                <Badge variant="glow-amber" className="px-3 py-0.5 text-xs font-black text-amber-200 border-amber-400/60 bg-amber-500/30 animate-pulse">
-                  📡 ZERO-INTERNET OFFLINE TRIAGE
-                </Badge>
-              ) : (
-                <Badge variant="glow-purple" className="px-3 py-0.5 text-xs font-bold text-teal-200 border-teal-400/40 bg-teal-500/20">
-                  ⚡ PyTorch EfficientNetV2
-                </Badge>
-              )}
+              </span>
+
               {liveResult?.dual_model_consensus && (
-                <Badge variant="glow-emerald" className="px-3 py-0.5 text-xs font-black text-emerald-200 border-emerald-400/50 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
+                <span className="px-3 py-1 rounded-full text-xs font-black text-emerald-200 border border-emerald-400/50 bg-emerald-950/70 flex items-center gap-1 shadow-sm">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                   <span>{currentLang === 'te' ? 'Dual-AI ధృవీకరించబడింది' : 'Dual-AI Verified'}</span>
-                </Badge>
+                </span>
               )}
+
+              {liveResult?.is_offline && (
+                <span className="px-3 py-1 rounded-full text-xs font-black text-amber-200 border border-amber-400/60 bg-amber-500/30 animate-pulse">
+                  📡 ZERO-INTERNET OFFLINE TRIAGE
+                </span>
+              )}
+
               {liveResult?.ensemble_used && (
-                <Badge variant="glow-cyan" className="px-3 py-0.5 text-xs font-black text-cyan-200 border-cyan-400/60 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
+                <span className="px-3 py-1 rounded-full text-xs font-black text-cyan-200 border border-cyan-400/60 bg-cyan-950/70 flex items-center gap-1 shadow-sm">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>{currentLang === 'te' ? 'ద్వంద్వ AI ధృవీకరణ (Gemini Vision)' : 'Dual AI Consensus: PyTorch + Gemini Vision'}</span>
-                </Badge>
+                  <span>{currentLang === 'te' ? 'ద్వంద్వ AI ధృవీకరణ' : 'Dual AI Consensus'}</span>
+                </span>
               )}
+            </div>
+
+            {/* 2nd Line: Large, Prominent, Highly Visible Crop Name */}
+            <div className="flex items-center gap-2 pt-1 pb-0.5">
+              <span className="text-2xl sm:text-3xl">🌾</span>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-xs uppercase font-extrabold tracking-wider text-slate-300">
+                  {t('results.target_crop', 'Crop')}:
+                </span>
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-300 dark:text-amber-200 tracking-tight drop-shadow-md">
+                  {localizedCrop}
+                </span>
+              </div>
             </div>
 
             {liveResult?.is_offline && (
@@ -297,15 +318,28 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </div>
             )}
 
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white leading-tight tracking-tight drop-shadow-md">
-              {localizedDisease}
-            </h2>
+            {/* 3rd Line: Prominent Disease Name & Intelligent Deduplicated Scientific Subtitle */}
+            <div className="space-y-1">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight drop-shadow-md">
+                {localizedDisease}
+              </h2>
 
-            {(liveResult?.canonical_disease_name || rawDiseaseName) && (liveResult?.canonical_disease_name || rawDiseaseName) !== localizedDisease && (
-              <p className="text-xs sm:text-sm text-slate-300 font-medium tracking-wide">
-                {(liveResult?.canonical_disease_name || rawDiseaseName).replace(/___/g, ' - ').replace(/_/g, ' ')}
-              </p>
-            )}
+              {(() => {
+                const cleanRaw = (liveResult?.canonical_disease_name || rawDiseaseName || '').replace(/___/g, ' - ').replace(/_/g, ' ').trim();
+                const isNearDuplicate = (
+                  cleanRaw.toLowerCase().replace(/[^a-z0-9]/g, '') === localizedDisease.toLowerCase().replace(/[^a-z0-9]/g, '') ||
+                  (activeLang === 'en' && (cleanRaw.toLowerCase().includes(localizedDisease.toLowerCase()) || localizedDisease.toLowerCase().includes(cleanRaw.toLowerCase())))
+                );
+                if (cleanRaw && !isNearDuplicate && cleanRaw !== localizedDisease) {
+                  return (
+                    <p className="text-xs sm:text-sm text-slate-300 font-medium tracking-wide">
+                      {cleanRaw}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
+            </div>
 
             <div className="pt-2 max-w-md">
               <Progress 
@@ -1262,11 +1296,11 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           );
         })}
 
-        {/* Bottom Action Bar for 3-Tab Cross-Synchronization */}
-        <div className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Bottom Action Bar */}
+        <div className="pt-4 flex items-center justify-center">
           <Button
             variant="outline"
-            className="py-3 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
+            className="w-full sm:w-auto px-8 py-3 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl shadow-sm"
             onClick={() => {
               if (onScanAnother) onScanAnother();
               else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
@@ -1274,28 +1308,6 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           >
             <RefreshCw className="w-4 h-4 text-emerald-600" />
             <span>{activeLang === 'te' ? 'మరో ఆకును స్కాన్ చేయండి' : activeLang === 'hi' ? 'दूसरी पत्ती स्कैन करें' : 'Scan Another Leaf'}</span>
-          </Button>
-
-          <Button
-            variant="glass"
-            className="py-3 bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/20 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('agrishield-switch-tab', { detail: { tab: 'plant-id' } }));
-            }}
-          >
-            <Sparkles className="w-4 h-4 text-teal-500" />
-            <span>{activeLang === 'te' ? 'మొక్క జాతిని గుర్తించండి →' : activeLang === 'hi' ? 'पौधे की पहचान करें →' : 'Identify Plant Specimen →'}</span>
-          </Button>
-
-          <Button
-            variant="glass"
-            className="py-3 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('agrishield-switch-tab', { detail: { tab: 'agro-scan' } }));
-            }}
-          >
-            <FlaskConical className="w-4 h-4 text-cyan-500" />
-            <span>{activeLang === 'te' ? 'మందు సీసాను ధృవీకరించండి →' : activeLang === 'hi' ? 'कीटनाशक बोतल सत्यापित करें →' : 'Verify Chemical Bottle →'}</span>
           </Button>
         </div>
 

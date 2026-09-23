@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-23 (v209) - Disease Diagnosis UI Polish: Round Big DISEASED Badge, 1st-Line Severity, Large Crop Name & Removed Cross-Tab Buttons
+- **Summary:** Refined the Hero card layout and bottom action bar in Disease Diagnosis (`DiseaseDiagnosisResults.jsx`) based on direct user image feedback:
+  1. 🚫 **Bottom Action Bar Cleaned (Picture 1):**
+     - Completely removed the 2 cross-tab navigation buttons (`[✨ Identify Plant Specimen →]` and `[🧪 Verify Chemical Bottle →]`).
+     - Kept a single, clean, centered `[Scan Another Leaf]` action button.
+  2. 🏷️ **Hero Card 1st-Line Re-architecture (Picture 2):**
+     - First item: `[DISEASED]` (or `[HEALTHY]`) in round big letters (`px-4 py-1.5 rounded-full font-black uppercase text-xs sm:text-sm`).
+     - Second item directly on the same 1st line: `[⚠️ MODERATE SEVERITY]` (or `MILD` / `SEVERE` severity status).
+     - Excised the `[⚡ PyTorch EfficientNetV2]` badge entirely.
+  3. 🌾 **High-Visibility Large Crop Name (Picture 2):**
+     - Placed the target crop name on its own prominent dedicated line directly below the status badges (`🌾 Crop: {localizedCrop}`) in high-contrast, large, visible typography (`text-xl sm:text-2xl lg:text-3xl font-black text-amber-300`).
+  4. 🔬 **Disease Name Deduplication & Validation:**
+     - Verified disease translation pipeline across all regional languages (`COMMON_DISEASES` dictionary).
+     - Added intelligent near-duplicate subtitle filtering so repetitive English titles (e.g. `Spodoptera litura (Tobacco Caterpillar / Cutworm)` followed by `Spodoptera litura (Tobacco Caterpillar) / Cutworm Infestation`) are not rendered twice. Regional vernacular translations (e.g. Telugu) retain clean secondary English scientific references.
+  5. 🏗️ **Build & Test Verification:**
+     - Production build passed with 0 errors (`npm run build`: 32.50s across 3,153 modules).
+- **Files modified:** `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-23 (v208) - Implemented Field-Optimized Card Display Order for All 3 Scan Center Modules
 - **Summary:** Re-architected and standardized the exact card hierarchy and display order across all 3 AI Scan Center modules for Indian farmers and agricultural field usability:
   1. 🌿 **Disease Diagnosis (`DiseaseDiagnosisResults.jsx` - 7-Card Order):**
