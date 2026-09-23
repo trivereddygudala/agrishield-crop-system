@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useHardwareMode } from '../hooks/useHardwareMode';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  Bell,
   Bot,
   Cpu,
   HardDrive,
