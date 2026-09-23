@@ -22,7 +22,6 @@ import {
   X,
   Leaf,
   TrendingUp,
-  Bell,
   Globe,
   Ruler,
   Headphones
@@ -164,15 +163,6 @@ const MorePage = () => {
       iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800', 
       accent: 'border-l-teal-500',
       badge: currentLang.nativeName
-    },
-    { 
-      icon: Bell,     
-      label: t('more.tools.notifications.label', 'Notifications Inbox'), 
-      description: t('more.tools.notifications.desc', 'Outbreak warnings, spray reminders & alerts'),    
-      path: '/notifications', 
-      iconColor: 'text-amber-600 dark:text-amber-400', 
-      iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800', 
-      accent: 'border-l-amber-500' 
     },
     { 
       icon: User,     

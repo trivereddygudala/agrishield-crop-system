@@ -2,6 +2,16 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-23 (v205) - Removed Redundant Notifications Inbox from More Page
+- **Summary:** Streamlined the "More" page navigation by removing the redundant "Notifications Inbox" card:
+  1. 🧹 **Cleaned Redundant Navigation (`MorePage.jsx`):**
+     - Removed the "Notifications Inbox" (`/notifications`) card from the "Account & Preferences" section of `MorePage.jsx`.
+     - "Alerts" is already prominently accessible as one of the 5 primary tabs in the bottom navigation bar (`[Home] [Field] [Scan] [Alerts] [More]`).
+     - Removed the unused `Bell` icon import from `lucide-react`.
+  2. 🏗️ **Build & Test Verification:**
+     - Production build passed with 0 errors (`npm run build`: 24.10s across 3,153 modules).
+- **Files modified:** `frontend/src/pages/MorePage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-23 (v204) - Individual Tab Language Scoping (Decoupled from Global Website i18n)
 - **Summary:** Completely isolated language selection across all scan modules so changing the language in any scan tab updates ONLY that specific result without altering the global website language (navbars, sidebar, dashboard, settings):
   1. 🔒 **Tab-Scoped Language State Isolation:**
