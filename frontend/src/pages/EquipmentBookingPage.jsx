@@ -46,353 +46,8 @@ import {
 } from '../data/indiaLocations';
 
 // ═══════════════════════════════════════════════════════════════════
-// INITIAL VERIFIED SEED EQUIPMENT DATA (Prakasam, Guntur & AP Hubs)
+// REAL USER EQUIPMENT & BOOKINGS REPOSITORY (No Mock Data)
 // ═══════════════════════════════════════════════════════════════════
-const INITIAL_EQUIPMENT_CATALOG = [
-  // ─── TRACTORS & HEAVY IMPLEMENTS ───
-  {
-    id: 'eq-tr-01',
-    category: 'tractor',
-    title: 'Mahindra 575 DI (45 HP) + 7ft Heavy Rotavator',
-    teluguTitle: 'మహీంద్రా 575 DI (45 HP) + 7 అడుగుల రొటవేటర్',
-    brand: 'Mahindra',
-    model: '575 DI Sarpanch',
-    hp: '45 HP',
-    implements: ['7-ft Rotavator', 'MB Plough', 'Cultivator'],
-    providerName: 'Sri Rama Rythu Seva CHC',
-    providerType: 'RBK Custom Hiring Center',
-    verified: true,
-    rating: 4.9,
-    bookingsCount: 38,
-    phone: '+919440182736',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Mundlamuru',
-    village: 'Mundlamuru',
-    distanceKm: 2.8,
-    ratePerHour: 1100,
-    ratePerAcre: 1450,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 200,
-    specs: 'Dual-clutch PTO, ideal for wet & dry secondary tillage. 1.2 acres/hour.'
-  },
-  {
-    id: 'eq-tr-02',
-    category: 'tractor',
-    title: 'John Deere 5050 D (50 HP) + Laser Land Leveler',
-    teluguTitle: 'జాన్ డీర్ 5050 D (50 HP) + లేజర్ ల్యాండ్ లెవెలర్',
-    brand: 'John Deere',
-    model: '5050 D GearPro',
-    hp: '50 HP',
-    implements: ['Laser Guided Scraper', 'Disc Harrow'],
-    providerName: 'Venkateswara Agri Mechanization',
-    providerType: 'Private Progressive Farmer',
-    verified: true,
-    rating: 4.85,
-    bookingsCount: 26,
-    phone: '+919848291044',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Addanki',
-    village: 'Addanki',
-    distanceKm: 7.5,
-    ratePerHour: 1300,
-    ratePerAcre: 1650,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 300,
-    specs: 'High precision GPS transmitter, saves 25% irrigation water by perfect grade leveling.'
-  },
-  {
-    id: 'eq-tr-03',
-    category: 'tractor',
-    title: 'Sonalika Tiger DI 55 (55 HP) + Seed cum Fertilizer Drill',
-    teluguTitle: 'సోనాలికా టైగర్ 55 HP + విత్తన & ఎరువుల డ్రిల్',
-    brand: 'Sonalika',
-    model: 'Tiger DI 55 HDM',
-    hp: '55 HP',
-    implements: ['Automatic Seed-Fertilizer Drill', '9-Tyne Cultivator'],
-    providerName: 'Pasupugallu Community Machinery Pool',
-    providerType: 'Village Farmers Association',
-    verified: true,
-    rating: 4.95,
-    bookingsCount: 45,
-    phone: '+919701482911',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Mundlamuru',
-    village: 'Pasupugallu',
-    distanceKm: 0.6,
-    ratePerHour: 1050,
-    ratePerAcre: 1350,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 150,
-    specs: 'Precise seed spacing for Bengal gram, Groundnut & Maize. Sows 2 acres in 1.5 hours.'
-  },
-  {
-    id: 'eq-tr-04',
-    category: 'tractor',
-    title: 'Kubota MU4501 4WD + Reversible Hydraulic Plough',
-    teluguTitle: 'కుబోటా MU4501 4WD + హైడ్రాలిక్ నాగలి',
-    brand: 'Kubota',
-    model: 'MU4501 4WD',
-    hp: '45 HP',
-    implements: ['2-Bottom Reversible MB Plough'],
-    providerName: 'Darsi Agri Equipment Rentals',
-    providerType: 'Private Service Provider',
-    verified: true,
-    rating: 4.75,
-    bookingsCount: 19,
-    phone: '+919989301284',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Podili',
-    village: 'Podili',
-    distanceKm: 14.0,
-    ratePerHour: 1200,
-    ratePerAcre: 1500,
-    operatorIncluded: true,
-    fuelIncluded: false,
-    availableToday: false,
-    minAdvance: 250,
-    specs: 'Deep summer ploughing up to 12 inches to eradicate subterranean weed seeds and pupae.'
-  },
-
-  // ─── AGRICULTURAL SPRAYING DRONES ───
-  {
-    id: 'eq-dr-01',
-    category: 'drone',
-    title: 'DJI Agras T30 (30-Litre Smart Spraying Drone)',
-    teluguTitle: 'DJI Agras T30 (30 లీటర్ల హై-స్పీడ్ డ్రోన్ స్ప్రేయర్)',
-    brand: 'DJI Agriculture',
-    model: 'Agras T30 Octocopter',
-    hp: '30 Litre Tank',
-    implements: ['16 Centrifugal Atomizer Nozzles', 'Obstacle Radar'],
-    providerName: 'Prakasam Kisan Drone Squadron',
-    providerType: 'DGCA Certified Drone Pilot Unit',
-    verified: true,
-    rating: 4.96,
-    bookingsCount: 64,
-    phone: '+919866192840',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Mundlamuru',
-    village: 'Purimetla',
-    distanceKm: 3.5,
-    ratePerHour: 1600,
-    ratePerAcre: 550,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 200,
-    specs: 'Sprays 1 acre in 6 minutes! 90% water reduction. Zero chemical inhalation for farmers.'
-  },
-  {
-    id: 'eq-dr-02',
-    category: 'drone',
-    title: 'Garuda Kisan Drone (16-Litre Nano-Urea & Micro-Nutrient)',
-    teluguTitle: 'గరుడ కిసాన్ డ్రోన్ (16 లీటర్ల నానో-యూరియా స్ప్రేయర్)',
-    brand: 'Garuda Aerospace',
-    model: 'Kisan Drone 16L',
-    hp: '16 Litre Tank',
-    implements: ['Electrostatic Mist Nozzles', 'Terrain Sensor'],
-    providerName: 'Addanki Rythu Drone Seva',
-    providerType: 'FPO Drone Service Partner',
-    verified: true,
-    rating: 4.88,
-    bookingsCount: 41,
-    phone: '+919391048271',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Addanki',
-    village: 'Addanki',
-    distanceKm: 8.0,
-    ratePerHour: 1400,
-    ratePerAcre: 480,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 150,
-    specs: 'Specialized for Chilli, Tomato & Cotton foliar spray. Penetrates dense crop under-canopy.'
-  },
-  {
-    id: 'eq-dr-03',
-    category: 'drone',
-    title: 'IoTechWorld Agribot (10-Litre Ultra-Lightweight)',
-    teluguTitle: 'అగ్రిబాట్ 10 లీటర్ల తేలికపాటి డ్రోన్',
-    brand: 'IoTechWorld',
-    model: 'Agribot 10L',
-    hp: '10 Litre Tank',
-    implements: ['4 Micron Sprayers', 'GPS Geo-Fence'],
-    providerName: 'Ongole Smart Agri Drones',
-    providerType: 'Certified Agri Aviators',
-    verified: true,
-    rating: 4.78,
-    bookingsCount: 22,
-    phone: '+919177284901',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Ongole',
-    village: 'Ongole',
-    distanceKm: 28.0,
-    ratePerHour: 1200,
-    ratePerAcre: 420,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: false,
-    minAdvance: 100,
-    specs: 'Fast deployment for small landholders. Rapid fungicide and pesticide intervention.'
-  },
-
-  // ─── IRRIGATION FACILITIES & WATER PUMPS ───
-  {
-    id: 'eq-ir-01',
-    category: 'irrigation',
-    title: 'Kirloskar 7.5 HP Mobile Diesel Water Pump + 150m Hose',
-    teluguTitle: 'కిర్లోస్కర్ 7.5 HP డీజిల్ వాటర్ పంపు + 150 మీటర్ల పైప్',
-    brand: 'Kirloskar',
-    model: 'MegaFlow 7.5 HP',
-    hp: '7.5 HP',
-    implements: ['150m Heavy-Duty Delivery Hose', 'Foot-Valve Strainer'],
-    providerName: 'Mundlamuru Jal Seva Unit',
-    providerType: 'Custom Hiring Center',
-    verified: true,
-    rating: 4.9,
-    bookingsCount: 52,
-    phone: '+919490182749',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Mundlamuru',
-    village: 'Mundlamuru',
-    distanceKm: 3.1,
-    ratePerHour: 320,
-    ratePerAcre: 850,
-    operatorIncluded: true,
-    fuelIncluded: false,
-    availableToday: true,
-    minAdvance: 100,
-    specs: 'Discharge 45,000 Litres/Hour. Floods 1 acre in 2.5 hours from canal, pond, or open well.'
-  },
-  {
-    id: 'eq-ir-02',
-    category: 'irrigation',
-    title: 'Mobile Solar Pumping Trolley (5 HP Submersible + 3kW PV Cart)',
-    teluguTitle: 'మొబైల్ సోలార్ పంపింగ్ ట్రాలీ (5 HP + 3kW సోలార్ కార్ట్)',
-    brand: 'Tata Solar / Shakti',
-    model: 'Helios 5HP Cart',
-    hp: '5 HP Solar',
-    implements: ['Solar PV Array on Wheels', 'VFD Pump Controller'],
-    providerName: 'GreenSun Mobile Solar Irrigation',
-    providerType: 'Clean Energy Agri Rental',
-    verified: true,
-    rating: 4.98,
-    bookingsCount: 31,
-    phone: '+919849201948',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Mundlamuru',
-    village: 'Pasupugallu',
-    distanceKm: 0.9,
-    ratePerHour: 240,
-    ratePerAcre: 650,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 100,
-    specs: 'Zero fuel cost! Operates on sunlight. Perfect for fields without electric 3-phase grid.'
-  },
-  {
-    id: 'eq-ir-03',
-    category: 'irrigation',
-    title: 'Portable High-Pressure Rain-Gun Sprinkler Rig (40m Radius)',
-    teluguTitle: 'హై-ప్రెజర్ రెయిన్-గన్ స్ప్రింక్లర్ సెట్ (40 మీటర్ల వ్యాసార్థం)',
-    brand: 'Jain Irrigation',
-    model: 'Skipper Rain-Gun 40M',
-    hp: '40m Jet Throw',
-    implements: ['Tripod Stand', 'Quick-Connect Couplers', '100m Delivery Hose'],
-    providerName: 'Addanki Micro-Irrigation Rentals',
-    providerType: 'Authorized Equipment Dealer',
-    verified: true,
-    rating: 4.82,
-    bookingsCount: 18,
-    phone: '+919704291840',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Addanki',
-    village: 'Addanki',
-    distanceKm: 8.4,
-    ratePerHour: 380,
-    ratePerAcre: 950,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 200,
-    specs: 'Simulates natural rainfall over 1.25 acres per setting. Ideal for Groundnut, Maize, & Grass.'
-  },
-  {
-    id: 'eq-ir-04',
-    category: 'irrigation',
-    title: 'Borewell Flushing High-Pressure Air Compressor Rig (300 PSI)',
-    teluguTitle: 'బోర్‌వెల్ ఫ్లషింగ్ హై-ప్రెజర్ కంప్రెసర్ రిగ్ (300 PSI)',
-    brand: 'ELGi Compressors',
-    model: 'AgriBore Flush 300',
-    hp: '300 PSI / 450 CFM',
-    implements: ['Flexible High-Pressure Air Hose', 'Bore Flusher Nozzle'],
-    providerName: 'Sri Tirumala Borewell Servicing',
-    providerType: 'Groundwater Specialist',
-    verified: true,
-    rating: 4.79,
-    bookingsCount: 29,
-    phone: '+919949102837',
-    state: 'Andhra Pradesh',
-    district: 'Prakasam',
-    mandal: 'Podili',
-    village: 'Podili',
-    distanceKm: 15.0,
-    ratePerHour: 650,
-    ratePerAcre: 3200,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: false,
-    minAdvance: 500,
-    specs: 'Flushes silt, mud, and sand from silted agricultural borewells to restore full water yield.'
-  },
-
-  // ─── HARVESTING & POST-HARVEST ───
-  {
-    id: 'eq-hv-01',
-    category: 'harvester',
-    title: 'Claas Crop Tiger 30 Tracked Paddy & Multi-Crop Combine Harvester',
-    teluguTitle: 'క్లాస్ క్రాప్ టైగర్ 30 వరి & ధాన్యపు కంబైన్ హార్వెస్టర్',
-    brand: 'Claas',
-    model: 'Crop Tiger 30 Terra Trac',
-    hp: '76 HP',
-    implements: ['Rubber Tracks for Wet Mud', 'Grain Tank & Straw Cutter'],
-    providerName: 'Coastal Andhra Harvester Syndicate',
-    providerType: 'Custom Hiring Network',
-    verified: true,
-    rating: 4.92,
-    bookingsCount: 88,
-    phone: '+919848192847',
-    state: 'Andhra Pradesh',
-    district: 'Bapatla',
-    mandal: 'Bapatla',
-    village: 'Bapatla',
-    distanceKm: 34.0,
-    ratePerHour: 2200,
-    ratePerAcre: 2600,
-    operatorIncluded: true,
-    fuelIncluded: true,
-    availableToday: true,
-    minAdvance: 500,
-    specs: 'Harvester + Thresher in 1 pass. 99% grain purity with zero field loss. 2.5 acres/hour.'
-  }
-];
 
 export default function EquipmentBookingPage() {
   const { t, i18n } = useTranslation();
@@ -418,52 +73,35 @@ export default function EquipmentBookingPage() {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
 
-  // Equipment Database state with LocalStorage sync
+  // 100% Real User Equipment Database with LocalStorage sync (Strictly zero mock data)
   const [equipmentList, setEquipmentList] = useState(() => {
     try {
       const saved = localStorage.getItem('agrishield_custom_equipment_listings');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return [...parsed, ...INITIAL_EQUIPMENT_CATALOG];
+        if (Array.isArray(parsed)) {
+          // Exclude any legacy mock items starting with eq-tr, eq-dr, eq-ir, eq-hv
+          return parsed.filter(item => !item.id?.startsWith('eq-tr-') && !item.id?.startsWith('eq-dr-') && !item.id?.startsWith('eq-ir-') && !item.id?.startsWith('eq-hv-'));
         }
       }
     } catch (e) {
       console.warn('Failed to parse saved custom equipment:', e);
     }
-    return INITIAL_EQUIPMENT_CATALOG;
+    return [];
   });
 
-  // User Bookings State with LocalStorage sync
+  // 100% Real User Bookings with LocalStorage sync (Zero mock bookings)
   const [myBookings, setMyBookings] = useState(() => {
     try {
       const saved = localStorage.getItem('agrishield_equipment_bookings');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(b => b.id !== 'BK-78210');
+        }
       }
     } catch (e) {}
-    // Seed initial demo booking so user sees how it looks
-    return [
-      {
-        id: 'BK-78210',
-        equipmentId: 'eq-dr-01',
-        title: 'DJI Agras T30 (30L Drone Spray)',
-        teluguTitle: 'DJI Agras T30 (30 లీటర్ల డ్రోన్ స్ప్రేయర్)',
-        category: 'drone',
-        providerName: 'Prakasam Kisan Drone Squadron',
-        phone: '+919866192840',
-        acres: 2.5,
-        targetCrop: activeFarm?.crop_name || 'Chilli',
-        operation: 'Nano-Urea + Insecticide Spray',
-        bookingDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        timeSlot: 'Early Morning (6:00 AM - 10:00 AM)',
-        totalCost: 1375,
-        paymentMode: 'Pay on Completion (UPI / Cash)',
-        status: 'confirmed', // 'pending' | 'confirmed' | 'in-progress' | 'completed'
-        createdAt: new Date().toISOString(),
-        syncedToKhata: false
-      }
-    ];
+    return [];
   });
 
   // Save bookings to localStorage
@@ -897,24 +535,36 @@ export default function EquipmentBookingPage() {
           </div>
 
           {displayedEquipment.length === 0 && (
-            <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8">
-              <Truck className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+            <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
+              <Truck className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-1" />
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-                {isTe ? 'ఈ కేటగిరీలో పరికరాలు కనుగొనబడలేదు' : 'No equipment matches your filter'}
+                {isTe
+                  ? `${locationVillage || locationMandal} ప్రాంతంలో ఇంకా పరికరాలు రిజిస్టర్ కాలేదు`
+                  : `No machinery registered in ${locationVillage || locationMandal} yet`}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-                {isTe ? 'దయచేసి శోధన పదాన్ని మార్చండి లేదా సమీప మండలాన్ని ఎంచుకోండి.' : 'Try clearing your search query or switching your service area location.'}
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                {isTe
+                  ? 'ఈ ప్రాంతంలో ట్రాక్టర్, డ్రోన్ లేదా నీటి పారుదల పంపును అద్దెకు ఇవ్వడానికి మీ పరికరాన్ని నమోదు చేసి సమీప రైతుల నుండి అద్దె సంపాదించండి.'
+                  : 'Be the first local provider to list your tractor, spraying drone, or irrigation pump for rent and earn income from nearby farmers.'}
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setCategoryFilter('all');
-                  setSearchQuery('');
-                }}
-                className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold"
-              >
-                {isTe ? 'ఫిల్టర్‌లు తొలగించండి' : 'Reset All Filters'}
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('register')}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{isTe ? 'నా పరికరాన్ని రిజిస్టర్ చేయండి' : '+ Register My Equipment for Rent'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLocationModal(true)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{isTe ? 'లొకేషన్ మార్చండి' : 'Change Location'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -959,7 +609,27 @@ export default function EquipmentBookingPage() {
           </div>
 
           <div className="space-y-3">
-            {myBookings.map((b) => {
+            {myBookings.length === 0 ? (
+              <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
+                <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+                  {isTe ? 'ఇంకా ఎటువంటి బుకింగ్స్ లేవు' : 'No active equipment bookings yet'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  {isTe
+                    ? 'మీరు ఏదైనా ట్రాక్టర్, డ్రోన్ లేదా నీటి పారుదల పంపును బుక్ చేసినప్పుడు, ఆ రసీదులు ఇక్కడ కనిపిస్తాయి.'
+                    : 'When you book machinery or a spraying drone, your booking vouchers and statuses will appear here.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('browse')}
+                  className="mt-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm cursor-pointer"
+                >
+                  {isTe ? 'పరికరాలను చూడండి' : 'Browse Available Equipment'}
+                </button>
+              </div>
+            ) : (
+              myBookings.map((b) => {
               const statusBadge = {
                 pending: { label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Confirmation', color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300' },
                 confirmed: { label: isTe ? 'ధృవీకరించబడింది & షెడ్యూల్' : 'Confirmed & Scheduled', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' },
@@ -1060,7 +730,7 @@ export default function EquipmentBookingPage() {
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
         </div>
       )}

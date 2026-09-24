@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v226) - Completely Purged All Mock Machinery & Dummy Bookings Data
+- **Summary:** Removed all 12 hardcoded seed machinery profiles (Tractors, Drones, Irrigation Pumps) and dummy sample booking `#BK-78210` from `EquipmentBookingPage.jsx`. Transitioned the Custom Hiring Center Hub to 100% authentic, user-registered machinery data:
+  1. 🧹 **Purged Seed Data (`INITIAL_EQUIPMENT_CATALOG`):**
+     - Completely removed the 350-line mock catalog of hardcoded tractors, spraying drones, and pumps with simulated phone numbers.
+     - `equipmentList` now initializes strictly from genuine local listings saved by real users via the "Register My Equipment" tab.
+  2. 🧹 **Purged Dummy Booking Voucher:**
+     - Removed the mock `#BK-78210` sample booking. `myBookings` now initializes completely clean and only populates when the user submits a real reservation.
+  3. 📍 **Location-Aware Empty State:**
+     - Added an informative, authentic empty state when no machinery has been registered in the farmer's village/mandal yet:
+       *"No machinery registered in [Village/Mandal] yet. Be the first local provider to list your tractor, spraying drone, or pump for rent and earn income from nearby farmers."*
+     - Direct 1-tap buttons to register machinery or change the service location.
+  4. 📑 **My Bookings Clean Empty State:**
+     - Displays an authentic empty state prompting the farmer to browse and book machinery when they have no active vouchers.
+  5. 🧪 **Production Build Verification:**
+     - Verified with `npm run build`.
+- **Files modified:** `frontend/src/pages/EquipmentBookingPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-24 (v225) - Built Custom Hiring Center (CHC) Equipment, Tractor & Drone Rental Hub in More Tab
 - **Summary:** Engineered and launched the complete farm machinery, agricultural drone, and irrigation facilities booking system accessible from the "More" tab (/equipment-booking):
   1. 🚜 **Custom Hiring & Equipment Booking Hub (`EquipmentBookingPage.jsx`):**
