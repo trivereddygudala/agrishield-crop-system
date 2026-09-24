@@ -219,6 +219,28 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
   }, [fleetList]);
 
+  // Sync remote fleet catalog items from backend for cross-device support
+  useEffect(() => {
+    const fetchRemoteFleet = async () => {
+      try {
+        const phone = user?.phone;
+        const url = phone ? `/api/v1/equipment/catalog?provider_phone=${encodeURIComponent(phone)}` : '/api/v1/equipment/catalog';
+        const res = await API.get(url);
+        if (res.data?.catalog && Array.isArray(res.data.catalog) && res.data.catalog.length > 0) {
+          setFleetList(prev => {
+            const map = new Map();
+            prev.forEach(item => map.set(item.id, item));
+            res.data.catalog.forEach(item => {
+              if (!map.has(item.id)) map.set(item.id, item);
+            });
+            return Array.from(map.values());
+          });
+        }
+      } catch (_) {}
+    };
+    fetchRemoteFleet();
+  }, [user?.phone]);
+
   // ── Incoming Farmer Bookings State (Multi-Device & Cross-Browser Real-Time Sync) ──
   const [bookingsList, setBookingsList] = useState(() => {
     try {
@@ -381,6 +403,11 @@ export default function ProviderDashboardPage() {
       localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(globalCustom));
     } catch (e) {}
 
+    // Multi-device backend sync so machinery appears on all devices
+    API.post('/api/v1/equipment/catalog', newMachine).catch(err => {
+      console.warn('Backend equipment catalog sync error:', err);
+    });
+
     setIsAddModalOpen(false);
     setNewTitle('');
     toast.success('Equipment Listed!', `${newMachine.title} has been added to your live rental catalog.`);
@@ -422,6 +449,8 @@ export default function ProviderDashboardPage() {
         localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
         window.dispatchEvent(new Event('agrishield_equipment_updated'));
       } catch (e) {}
+      // Sync delete with backend
+      API.delete(`/api/v1/equipment/catalog/${id}`).catch(() => {});
       toast.success('Removed', 'Machinery listing was deleted.');
     }
   };

@@ -311,6 +311,30 @@ export default function EquipmentBookingPage() {
   }, []);
 
   // Derived cascading dropdowns for Location Switcher Modal
+  // Fetch remote equipment catalog from backend for multi-device sync
+  useEffect(() => {
+    const fetchRemoteCatalog = async () => {
+      try {
+        let res = await API.get('/api/v1/equipment/catalog');
+        if (res.data?.catalog && Array.isArray(res.data.catalog) && res.data.catalog.length > 0) {
+          setEquipmentList(prev => {
+            const seen = new Set(prev.map(item => item.id));
+            const freshItems = res.data.catalog.filter(item => !seen.has(item.id));
+            if (freshItems.length > 0) {
+              const merged = [...prev, ...freshItems];
+              try {
+                localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(merged));
+              } catch (_) {}
+              return merged;
+            }
+            return prev;
+          });
+        }
+      } catch (_) {}
+    };
+    fetchRemoteCatalog();
+  }, []);
+
   const availableDistricts = useMemo(() => getDistricts(locationState), [locationState]);
   const availableMandals = useMemo(() => getMandals(locationState, locationDistrict), [locationState, locationDistrict]);
   const availableVillages = useMemo(() => getVillages(locationState, locationDistrict, locationMandal), [locationState, locationDistrict, locationMandal]);

@@ -2485,9 +2485,10 @@ async def get_history(
     total = await db.predictions.count_documents(query)
     pages = (total + limit - 1) // limit if total > 0 else 1
 
-    # Fetch and parse
+    # Fetch and parse (project out heavy base64 images to prevent 10MB+ payload bloat)
     skip = (page - 1) * limit
-    cursor = db.predictions.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    projection = {"gradcam_base64": 0, "heatmap_base64": 0, "comparison_base64": 0}
+    cursor = db.predictions.find(query, projection).sort("created_at", -1).skip(skip).limit(limit)
     records = await cursor.to_list(length=limit)
 
     # Fetch user details for admin view

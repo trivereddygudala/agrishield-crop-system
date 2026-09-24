@@ -49,11 +49,16 @@ def format_ticket_doc(doc: dict) -> dict:
     category_val = doc.get("category", "general")
     is_callback = doc.get("is_callback_request", False) or category_val in ["callback_request", "urgent_callback"]
 
+    user_role_val = doc.get("user_role") or ("equipment_provider" if category_val in ["machinery_listing", "booking_disputes", "payouts_settlements", "coverage_gps_dispatch", "breakdown_operational_aid", "agency_profile_verification", "general_provider"] else "farmer")
+    default_name = "Equipment Provider" if user_role_val == "equipment_provider" else "Farmer"
+
     return {
         "id": str(doc["_id"]),
         "ticket_number": doc.get("ticket_number", f"TKT-{str(doc['_id'])[-4:].upper()}"),
         "user_id": doc.get("user_id"),
-        "farmer_name": doc.get("farmer_name", "Farmer"),
+        "user_role": user_role_val,
+        "farmer_name": doc.get("farmer_name") or default_name,
+        "caller_name": doc.get("farmer_name") or default_name,
         "farmer_email": email_val,
         "contact_email": email_val,
         "phone": phone_val,
@@ -103,6 +108,7 @@ async def create_support_ticket(
     ticket_doc = {
         "ticket_number": ticket_num,
         "user_id": current_user["id"],
+        "user_role": current_user.get("role", "farmer"),
         "farmer_name": name,
         "farmer_email": current_user.get("email", ""),
         "phone": phone,
@@ -153,6 +159,7 @@ async def request_callback(
     ticket_doc = {
         "ticket_number": ticket_num,
         "user_id": current_user["id"],
+        "user_role": current_user.get("role", "farmer"),
         "farmer_name": name,
         "farmer_email": current_user.get("email", ""),
         "phone": payload.phone,
@@ -162,7 +169,7 @@ async def request_callback(
         "priority": "critical",
         "status": "open",
         "subject": f"⚡ Urgent Phone Callback ({payload.preferred_time or '15 Mins'})",
-        "description": payload.issue_summary or "Farmer requested urgent 15-minute phone callback.",
+        "description": payload.issue_summary or "User requested urgent 15-minute phone callback.",
         "device_id": None,
         "attachments": [],
         "is_callback_request": True,

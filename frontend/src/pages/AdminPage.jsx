@@ -709,6 +709,7 @@ export default function AdminPage() {
   const totalUsers = usersList.length;
   const totalAdmins = usersList.filter(u => u.role === 'admin').length;
   const totalFarmers = usersList.filter(u => u.role === 'farmer').length;
+  const totalProviders = usersList.filter(u => u.role === 'equipment_provider').length;
   const completedProfiles = usersList.filter(u => u.farm_profile_completed).length;
   const onlineIotCount = iotNodes.filter(n => n.status === 'online').length;
 
@@ -1051,7 +1052,7 @@ export default function AdminPage() {
       {activeTab === 'users' && (
         <div className="space-y-6">
           {/* KPI Interactive Stat Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             {/* Card 1: Total Registered */}
             <button
               onClick={() => { setRoleFilter('all'); setProfileFilter('all'); }}
@@ -1067,7 +1068,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Registered</p>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">{totalUsers} Users</h3>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalUsers} Users</h3>
                 </div>
               </div>
               {roleFilter === 'all' && profileFilter === 'all' && (
@@ -1092,7 +1093,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admins</p>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">{totalAdmins} Admins</h3>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalAdmins} Admins</h3>
                 </div>
               </div>
               {roleFilter === 'admin' && profileFilter === 'all' && (
@@ -1117,7 +1118,7 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Farmers</p>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">{totalFarmers} Farmers</h3>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalFarmers} Farmers</h3>
                 </div>
               </div>
               {roleFilter === 'farmer' && profileFilter === 'all' && (
@@ -1127,7 +1128,32 @@ export default function AdminPage() {
               )}
             </button>
 
-            {/* Card 4: Profiles Completed */}
+            {/* Card 4: Equipment Providers */}
+            <button
+              onClick={() => { setRoleFilter('equipment_provider'); setProfileFilter('all'); }}
+              className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all duration-200 cursor-pointer flex items-center justify-between card-lift ${
+                roleFilter === 'equipment_provider' && profileFilter === 'all'
+                  ? 'border-indigo-500 shadow-md ring-2 ring-indigo-500/30 dark:bg-indigo-950/20'
+                  : 'border-slate-200 dark:border-slate-800 shadow-sm hover:border-indigo-300 dark:hover:border-indigo-800'
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                  <ActivitySquare className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Providers</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalProviders} Providers</h3>
+                </div>
+              </div>
+              {roleFilter === 'equipment_provider' && profileFilter === 'all' && (
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
+                  Active
+                </span>
+              )}
+            </button>
+
+            {/* Card 5: Profiles Completed */}
             <button
               onClick={() => { setRoleFilter('all'); setProfileFilter('completed'); }}
               className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all duration-200 cursor-pointer flex items-center justify-between card-lift ${
@@ -1141,8 +1167,8 @@ export default function AdminPage() {
                   <UserCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Profiles Completed</p>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">{completedProfiles} Users</h3>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Profiles Done</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{completedProfiles} Users</h3>
                 </div>
               </div>
               {profileFilter === 'completed' && (
@@ -1176,6 +1202,7 @@ export default function AdminPage() {
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="all">All Roles ({totalUsers})</option>
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="admin">Admins ({totalAdmins})</option>
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="farmer">Farmers ({totalFarmers})</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="equipment_provider">Equipment Providers ({totalProviders})</option>
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="tester">Testers</option>
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="researcher">Researchers</option>
               </select>
@@ -1287,6 +1314,7 @@ export default function AdminPage() {
                               className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
                             >
                               <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="farmer">Farmer</option>
+                              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="equipment_provider">Equipment Provider</option>
                               <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="admin">Admin</option>
                               <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="tester">Tester</option>
                               <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="researcher">Researcher</option>
@@ -3256,6 +3284,7 @@ export default function AdminPage() {
                     className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold"
                   >
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="farmer">Farmer</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="equipment_provider">Equipment Provider</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="admin">Admin</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="tester">Tester</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="researcher">Researcher</option>
@@ -3468,6 +3497,7 @@ export default function AdminPage() {
                     className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold"
                   >
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="farmer">Farmer</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="equipment_provider">Equipment Provider</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="admin">Admin</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="tester">Tester</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="researcher">Researcher</option>

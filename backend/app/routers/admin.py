@@ -36,11 +36,13 @@ async def list_all_users(
             "id": str(user["_id"]),
             "name": user.get("name"),
             "email": user.get("email"),
+            "phone": user.get("phone") or user.get("mobile") or "",
             "role": user.get("role", "farmer"),
             "farm_location": user.get("farm_location"),
             "preferred_language": user.get("preferred_language", "en"),
             "farming_practices": user.get("farming_practices", "Conventional"),
             "farm_profile_completed": user.get("farm_profile_completed", False),
+            "provider_profile": user.get("provider_profile"),
             "created_at": user.get("created_at")
         }
         sanitized_users.append(sanitized)
@@ -72,7 +74,7 @@ async def get_user_by_id(user_id: str, db = Depends(get_database)):
 from backend.app.core.audit_logger import log_security_event
 
 @router.put("/users/{user_id}/role", dependencies=[Depends(require_role("admin"))])
-async def update_user_role(user_id: str, new_role: str = Query(..., pattern="^(admin|farmer|researcher|tester|guest)$"), db = Depends(get_database)):
+async def update_user_role(user_id: str, new_role: str = Query(..., pattern="^(admin|farmer|equipment_provider|researcher|tester|guest)$"), db = Depends(get_database)):
     """Strict Admin Endpoint: Change role of any registered user."""
     try:
         result = await db.users.update_one(
@@ -93,25 +95,31 @@ from pydantic import BaseModel
 class UserEditRequest(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
+    phone: Optional[str] = None
     role: Optional[str] = None
     preferred_language: Optional[str] = None
     farming_practices: Optional[str] = None
     farm_location: Optional[str] = None
+    provider_profile: Optional[Dict[str, Any]] = None
 
 class AdminPasswordResetRequest(BaseModel):
     new_password: str
 
 @router.put("/users/{user_id}", dependencies=[Depends(require_role("admin"))])
 async def edit_user_details(user_id: str, edit_data: UserEditRequest, db = Depends(get_database)):
-    """Admin Endpoint: Edit user profile details (Name, Email, Role, Language, Location)."""
+    """Admin Endpoint: Edit user profile details (Name, Email, Role, Language, Location, Phone, Provider Profile)."""
     try:
         update_fields = {}
         if edit_data.name is not None: update_fields["name"] = edit_data.name
         if edit_data.email is not None: update_fields["email"] = edit_data.email.lower().strip()
+        if edit_data.phone is not None:
+            update_fields["phone"] = edit_data.phone.strip()
+            update_fields["mobile"] = edit_data.phone.strip()
         if edit_data.role is not None: update_fields["role"] = edit_data.role.lower()
         if edit_data.preferred_language is not None: update_fields["preferred_language"] = edit_data.preferred_language
         if edit_data.farming_practices is not None: update_fields["farming_practices"] = edit_data.farming_practices
         if edit_data.farm_location is not None: update_fields["farm_location"] = edit_data.farm_location
+        if edit_data.provider_profile is not None: update_fields["provider_profile"] = edit_data.provider_profile
 
         if not update_fields:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided to update")
@@ -197,13 +205,15 @@ class AdminCreateUserRequest(BaseModel):
     name: str
     email: str
     password: str
+    phone: Optional[str] = None
     role: Optional[str] = "farmer"
     preferred_language: Optional[str] = "en"
     farm_location: Optional[str] = None
+    provider_profile: Optional[Dict[str, Any]] = None
 
 @router.post("/create-user", dependencies=[Depends(require_role("admin"))])
 async def admin_create_new_user(payload: AdminCreateUserRequest, db = Depends(get_database)):
-    """Admin Endpoint: Register/Create a new user account (Admin, Farmer, Tester, Researcher)."""
+    """Admin Endpoint: Register/Create a new user account (Admin, Farmer, Equipment Provider, Tester, Researcher)."""
     email_clean = payload.email.lower().strip()
     
     # Check duplicate
@@ -217,15 +227,19 @@ async def admin_create_new_user(payload: AdminCreateUserRequest, db = Depends(ge
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Weak password: {msg}")
 
     pwd_hash = hash_password(payload.password)
+    phone_clean = payload.phone.strip() if payload.phone else ""
     new_user_doc = {
         "name": payload.name.strip(),
         "email": email_clean,
+        "phone": phone_clean,
+        "mobile": phone_clean,
         "password_hash": pwd_hash,
         "role": payload.role.lower() if payload.role else "farmer",
         "preferred_language": payload.preferred_language or "en",
         "farm_location": payload.farm_location or "",
         "farming_practices": "Conventional",
-        "farm_profile_completed": True if payload.farm_location else False,
+        "farm_profile_completed": True if (payload.farm_location or payload.role == "equipment_provider") else False,
+        "provider_profile": payload.provider_profile or {},
         "failed_login_attempts": 0,
         "account_locked_until": None,
         "created_at": datetime.now(timezone.utc),
@@ -243,10 +257,12 @@ async def admin_create_new_user(payload: AdminCreateUserRequest, db = Depends(ge
             "id": new_id,
             "name": payload.name,
             "email": email_clean,
+            "phone": phone_clean,
             "role": payload.role,
             "farm_location": payload.farm_location,
             "preferred_language": payload.preferred_language,
-            "farm_profile_completed": True if payload.farm_location else False,
+            "farm_profile_completed": True if (payload.farm_location or payload.role == "equipment_provider") else False,
+            "provider_profile": payload.provider_profile or {},
             "created_at": new_user_doc["created_at"]
         }
     }
