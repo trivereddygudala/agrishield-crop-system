@@ -1264,7 +1264,7 @@ export const BottomNav = () => {
 
   const isEquipmentProvider = user?.role?.toLowerCase() === 'equipment_provider';
 
-  // Equipment Provider tabs (Fleet Hub, Orders, Notifications Inbox, More)
+  // Equipment Provider tabs (Fleet Hub, AI Copilot, Notifications Inbox, More)
   const providerTabs = [
     {
       key: 'hub',
@@ -1274,11 +1274,11 @@ export const BottomNav = () => {
       matchPaths: ['/provider/dashboard', '/provider'],
     },
     {
-      key: 'orders',
-      label: t('nav.provider_orders', 'Orders'),
-      path: '/provider/dashboard?tab=orders',
-      Icon: Calendar,
-      matchPaths: ['/provider/dashboard?tab=orders'],
+      key: 'copilot',
+      label: t('nav.ai_copilot', 'AI Copilot'),
+      path: '/provider/dashboard?tab=copilot',
+      Icon: Bot,
+      matchPaths: ['/provider/dashboard?tab=copilot', '/assistant'],
     },
     {
       key: 'notifications',
@@ -1313,10 +1313,10 @@ export const BottomNav = () => {
 
           let isActive = false;
           if (isEquipmentProvider) {
-            if (tab.key === 'orders') {
-              isActive = location.pathname === '/provider/dashboard' && tabParam === 'orders';
+            if (tab.key === 'copilot') {
+              isActive = (location.pathname === '/provider/dashboard' && tabParam === 'copilot') || location.pathname === '/assistant';
             } else if (tab.key === 'hub') {
-              isActive = (location.pathname === '/provider/dashboard' && tabParam !== 'orders') || location.pathname === '/provider';
+              isActive = (location.pathname === '/provider/dashboard' && tabParam !== 'copilot') || location.pathname === '/provider';
             } else {
               isActive = tab.matchPaths?.some((p) => p === currentPath || currentPath.startsWith(p + '/')) ?? currentPath === tab.path;
             }

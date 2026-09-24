@@ -4512,3 +4512,20 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
   - Tested real crop leaf scan against backend endpoints with JWT authentication: correctly diagnosed tobacco cutworm infestation (94.0% confidence) with CIBRC certified treatment Carbendazim 12% + Mancozeb 63% WP (Saaf) and organic bio-control alternatives.
 - **Master README.md Overhaul:**
   - Completely updated README.md with the 16,000-Scan Enterprise Certification Seal, Mermaid system architecture diagram, module specifications, and updated setup guide.
+
+9/24/2026: Equipment Provider Profile: Farmer Contact Actions, AI Copilot Bottom Dock, and Real-Time Booking Notifications (v233):
+- **Direct Farmer Contact Details & 1-Tap Actions (ProviderDashboardPage.jsx):**
+  - Identified root cause in Picture 1: Booking card displayed farmer name and field details, but had no contact phone number or direct contact actions.
+  - Added clear farmer phone number display (`📞 Farmer Contact Number: +91 ...`) on every booking card.
+  - Added 1-tap **"Call Farmer"** button (`tel:${phone}`) and 1-tap **"WhatsApp"** button (`https://wa.me/...`) for instant coordination.
+- **Replaced Redundant Bottom Dock "Orders" Tab with AI Chat Bot (AppLayout.jsx):**
+  - In Picture 1, the user noted "put the orders tab in the fleet hub because it already there and instead of orders tab put the ai chat bot there".
+  - Booking orders are already natively managed in Fleet Hub (`/provider/dashboard`).
+  - Replaced the redundant bottom dock `Orders` tab with **AI Copilot** (`/provider/dashboard?tab=copilot`), giving providers 1-tap bottom dock access to their specialized AI Assistant without leaving the provider workspace.
+- **Real-Time Booking Notifications & Notification Center Optimization (EquipmentBookingPage.jsx & NotificationsPage.jsx):**
+  - Identified root cause in Picture 2: Booking submissions saved to booking ledger but never created or dispatched notifications for the provider, and Notifications Center only filtered farmer disease/weather alerts.
+  - Updated `EquipmentBookingPage.jsx` to store complete farmer contact info and automatically dispatch a structured booking notification event (`agrishield_new_notification` and `newBookingNotification`) to `localStorage` and the window event pipeline.
+  - Updated `NotificationsPage.jsx` to merge booking notifications, render tailored provider filter pills (`[All Messages, Unread, 🚜 Machinery Bookings, 🛡️ Hub & System]`), and provide instant "Call Farmer", "WhatsApp", and "View Orders" actions directly on notification cards.
+  - Updated `GoogleMessageReader.jsx` with direct dialing and WhatsApp actions for booking alerts.
+- **Production Validation:**
+  - Ran `npm run build`: 3,168 modules transformed, built with 0 errors in 26.66s.

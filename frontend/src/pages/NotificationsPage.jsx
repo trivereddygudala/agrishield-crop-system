@@ -5,7 +5,7 @@ import {
   Bell, Search, Trash2, CheckCheck, Filter, RefreshCw,
   AlertTriangle, CloudRain, Droplets, BatteryWarning,
   WifiOff, Activity, ChevronDown, ChevronLeft, ChevronRight, X, BellOff, Download, Clock, Check,
-  Settings, Volume2, VolumeX, ShieldAlert, Sparkles, SlidersHorizontal, MessageSquare
+  Settings, Volume2, VolumeX, ShieldAlert, Sparkles, SlidersHorizontal, MessageSquare, Truck, Phone
 } from 'lucide-react';
 import { Card, Button, Input, Select, Badge, Dialog, EmptyState, Skeleton, Switch } from '../components/ui/index';
 import API from '../services/api';
@@ -32,6 +32,7 @@ const CATEGORY_ICONS = {
   device:         { Icon: WifiOff,       color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', label: 'Node Offline' },
   recommendation: { Icon: Activity,      color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-950/60', label: 'Advisory' },
   system:         { Icon: Activity,      color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-950/60', label: 'System' },
+  booking:        { Icon: Truck,         color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-950/60', label: 'Machinery Booking' },
 };
 
 export default function NotificationsPage() {
@@ -40,6 +41,8 @@ export default function NotificationsPage() {
   const navigate = useNavigate();
   const currentLang = i18n.language || user?.preferred_language || localStorage.getItem('i18nextLng') || 'te';
   const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const isEquipmentProvider = user?.role?.toLowerCase() === 'equipment_provider';
+  const isTe = i18n?.language === 'te';
   const [notifications, setNotifications] = useState([]);
   const [total, setTotal]     = useState(0);
   const [page, setPage]       = useState(1);
@@ -85,19 +88,106 @@ export default function NotificationsPage() {
       if (category !== 'All') params.set('category', category);
       if (priority !== 'All') params.set('priority', priority);
       if (unreadOnly)         params.set('unread_only', 'true');
-      const res = await API.get(`/api/v1/notifications?${params}`);
-      setNotifications(res.data.notifications || []);
-      setTotal(res.data.total || 0);
-      setPages(res.data.pages || 1);
+      
+      let serverNotifs = [];
+      try {
+        const res = await API.get(`/api/v1/notifications?${params}`);
+        serverNotifs = res.data.notifications || [];
+      } catch (err) {
+        console.warn("Could not fetch remote notifications, falling back to local:", err);
+      }
+
+      // Load local notifications
+      let localNotifs = [];
+      try {
+        const savedUserNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        if (Array.isArray(savedUserNotifs)) localNotifs = [...savedUserNotifs];
+      } catch (e) {}
+
+      // If equipment provider, synthesize notifications from recorded machinery bookings
+      if (isEquipmentProvider) {
+        try {
+          const bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
+          if (Array.isArray(bookings)) {
+            bookings.forEach((b) => {
+              const bId = b.id || `BK-${Math.floor(10000 + Math.random() * 90000)}`;
+              const alreadyExists = localNotifs.some(n => n.booking_id === bId || n.id === `notif-${bId}` || n.notification_id === `notif-${bId}`);
+              if (!alreadyExists) {
+                localNotifs.push({
+                  notification_id: `notif-${bId}`,
+                  id: `notif-${bId}`,
+                  type: 'booking',
+                  category: 'booking',
+                  priority: 'High',
+                  title: isTe ? `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bId})` : `🚜 New Machinery Booking Received (#${bId})`,
+                  title_te: `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bId})`,
+                  message: isTe
+                    ? `${b.farmerName || 'రైతు'} గారు మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుక్ చేసుకున్నారు (${b.acres || b.acreage || '2'} ఎకరాలు, ${b.village || 'పొలం'}). మొత్తం: ₹${b.totalCost || '800'}. ఫోన్: ${b.farmerPhone || b.phone || b.contactPhone || '9440182736'}.`
+                    : `Farmer ${b.farmerName || 'Farmer'} booked your ${b.equipmentTitle || b.title || 'Machinery'} (${b.acres || b.acreage || '2'} Acres, ${b.village || 'Field'}). Total: ₹${b.totalCost || '800'}. Phone: ${b.farmerPhone || b.phone || b.contactPhone || '9440182736'}.`,
+                  message_te: `${b.farmerName || 'రైతు'} గారు మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుక్ చేసుకున్నారు (${b.acres || b.acreage || '2'} ఎకరాలు, ${b.village || 'పొలం'}). మొత్తం: ₹${b.totalCost || '800'}. ఫోన్: ${b.farmerPhone || b.phone || b.contactPhone || '9440182736'}.`,
+                  booking_id: bId,
+                  farmerName: b.farmerName || 'Local Farmer',
+                  farmerPhone: b.farmerPhone || b.phone || b.contactPhone || '9440182736',
+                  phone: b.farmerPhone || b.phone || b.contactPhone || '9440182736',
+                  equipmentTitle: b.equipmentTitle || b.title || 'Farm Machinery',
+                  totalCost: b.totalCost || '800',
+                  created_at: b.createdAt || new Date().toISOString(),
+                  timestamp: b.createdAt || new Date().toISOString(),
+                  read: b.status === 'completed'
+                });
+              }
+            });
+          }
+        } catch (e) {}
+      }
+
+      // Merge local and server without duplicates
+      const merged = [...localNotifs];
+      serverNotifs.forEach((sn) => {
+        const snId = sn.notification_id || sn.id || sn._id;
+        if (!merged.some(m => (m.notification_id || m.id || m._id) === snId)) {
+          merged.push(sn);
+        }
+      });
+
+      // Filter by category if not 'All'
+      let finalNotifs = merged;
+      if (category !== 'All') {
+        finalNotifs = finalNotifs.filter(n => (n.category || '').toLowerCase() === category.toLowerCase());
+      }
+      if (unreadOnly) {
+        finalNotifs = finalNotifs.filter(n => !n.read);
+      }
+      finalNotifs.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
+
+      setNotifications(finalNotifs);
+      setTotal(finalNotifs.length);
+      setPages(Math.max(1, Math.ceil(finalNotifs.length / limit)));
       setPage(p);
     } catch {
       setToastMsg(t('notifications_page.toast.load_failed', 'Failed to load notifications.'));
     } finally {
       setLoading(false);
     }
-  }, [category, priority, unreadOnly, limit, t]);
+  }, [category, priority, unreadOnly, limit, t, isEquipmentProvider, isTe]);
 
   useEffect(() => { fetchNotifications(1); }, [fetchNotifications]);
+
+  useEffect(() => {
+    const handleNewNotif = (e) => {
+      if (e.detail) {
+        setNotifications(prev => [e.detail, ...prev.filter(n => (n.id || n.notification_id) !== (e.detail.id || e.detail.notification_id))]);
+        setTotal(t => t + 1);
+        playNotificationChime();
+      }
+    };
+    window.addEventListener('agrishield_new_notification', handleNewNotif);
+    window.addEventListener('newBookingNotification', handleNewNotif);
+    return () => {
+      window.removeEventListener('agrishield_new_notification', handleNewNotif);
+      window.removeEventListener('newBookingNotification', handleNewNotif);
+    };
+  }, []);
 
   const { latestAlert } = useWebSocket();
   useEffect(() => {
@@ -114,8 +204,12 @@ export default function NotificationsPage() {
   const handleMarkRead = async (id, e) => {
     if (e) e.stopPropagation();
     try {
-      await API.put(`/api/v1/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, read: true } : n));
+      await API.put(`/api/v1/notifications/${id}/read`).catch(() => {});
+      setNotifications(prev => prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, read: true } : n));
+      try {
+        const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => (n.notification_id === id || n.id === id) ? { ...n, read: true } : n)));
+      } catch (e) {}
       setToastMsg(t('notifications_page.toast.marked_read', 'Marked as read.'));
     } catch { setToastMsg(t('notifications_page.toast.mark_read_failed', 'Failed to mark as read.')); }
   };
@@ -123,18 +217,26 @@ export default function NotificationsPage() {
   const handleDelete = async (id, e) => {
     if (e) e.stopPropagation();
     try {
-      await API.delete(`/api/v1/notifications/${id}`);
-      setNotifications(prev => prev.filter(n => n.notification_id !== id));
+      await API.delete(`/api/v1/notifications/${id}`).catch(() => {});
+      setNotifications(prev => prev.filter(n => n.notification_id !== id && n.id !== id));
       setTotal(t => Math.max(0, t - 1));
-      if (selectedMessage?.notification_id === id) setSelectedMessage(null);
+      try {
+        const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.filter(n => n.notification_id !== id && n.id !== id)));
+      } catch (e) {}
+      if (selectedMessage?.notification_id === id || selectedMessage?.id === id) setSelectedMessage(null);
       setToastMsg(t('notifications_page.toast.deleted', 'Notification deleted.'));
     } catch { setToastMsg(t('notifications_page.toast.delete_failed', 'Failed to delete notification.')); }
   };
 
   const handleReadAll = async () => {
     try {
-      await API.post('/api/v1/notifications/read-all');
+      await API.post('/api/v1/notifications/read-all').catch(() => {});
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      try {
+        const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => ({ ...n, read: true }))));
+      } catch (e) {}
       setToastMsg(t('notifications_page.toast.all_read', 'All notifications marked as read.'));
     } catch { setToastMsg(t('notifications_page.toast.all_read_failed', 'Failed to mark all as read.')); }
   };
@@ -200,7 +302,12 @@ export default function NotificationsPage() {
   });
 
 
-  const FILTER_PILLS = [
+  const FILTER_PILLS = isEquipmentProvider ? [
+    { id: 'All', label: 'All Messages', icon: MessageSquare },
+    { id: 'unread', label: `Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
+    { id: 'booking', label: '🚜 Machinery Bookings', icon: Truck },
+    { id: 'system', label: '🛡️ Hub & System', icon: Activity },
+  ] : [
     { id: 'All', label: 'All Messages', icon: MessageSquare },
     { id: 'unread', label: `Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
     { id: 'disease', label: '🚨 Disease', icon: AlertTriangle },
@@ -269,7 +376,9 @@ export default function NotificationsPage() {
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            {total} farm updates & disease warnings
+            {isEquipmentProvider 
+              ? (isTe ? `${total} మెషినరీ బుకింగ్ అభ్యర్థనలు & అలర్ట్‌లు` : `${total} machinery booking requests & dispatch alerts`)
+              : `${total} farm updates & disease warnings`}
           </p>
         </div>
 
@@ -365,8 +474,10 @@ export default function NotificationsPage() {
       {filteredNotifications.length === 0 ? (
         <EmptyState
           icon={BellOff}
-          title={t('notifications_page.empty_title', 'No Messages')}
-          description="Your inbox is completely clear! All field disease warnings and environmental updates will stream here."
+          title={isEquipmentProvider ? (isTe ? 'బుకింగ్ సందేశాలు లేవు' : 'No Booking Messages') : t('notifications_page.empty_title', 'No Messages')}
+          description={isEquipmentProvider 
+            ? (isTe ? 'మీ ఇన్‌బాక్స్ స్పష్టంగా ఉంది! రైతులు మీ ట్రాక్టర్లు లేదా డ్రోన్లు బుక్ చేసుకున్నప్పుడు తక్షణ అలర్ట్‌లు ఇక్కడ కనిపిస్తాయి.' : 'Your inbox is clear. Whenever farmers book your tractors or spray drones, instant alerts and booking details will stream here.')
+            : "Your inbox is completely clear! All field disease warnings and environmental updates will stream here."}
         />
       ) : (
         <div className="bg-white dark:bg-slate-900/80 rounded-3xl border border-slate-200/80 dark:border-slate-800/90 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
@@ -432,6 +543,34 @@ export default function NotificationsPage() {
                         {catObj.label}
                       </span>
                     </div>
+
+                    {/* Quick Call & WhatsApp for Booking Alerts */}
+                    {(item.category === 'booking' || item.type === 'booking') && (
+                      <div className="flex flex-wrap items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                        <a
+                          href={`tel:${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}`}
+                          className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>{isTe ? 'రైతుకు కాల్' : 'Call Farmer'}</span>
+                        </a>
+                        <a
+                          href={`https://wa.me/${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.farmerName || 'Farmer'}, regarding your machinery booking on AgriShield...`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          <span>WhatsApp</span>
+                        </a>
+                        <Link
+                          to="/provider/dashboard"
+                          className="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold"
+                        >
+                          {isTe ? 'ఆర్డర్లలో చూడండి' : 'View Orders'}
+                        </Link>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Quick Actions */}

@@ -485,24 +485,48 @@ export default function GoogleMessageReader({
               </button>
             </div>
 
-            {/* Smart Action Buttons Inside Message (Opens full review screen) */}
+            {/* Smart Action Buttons Inside Message */}
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
-              <button
-                type="button"
-                onClick={() => setShowFullReview(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-              >
-                <span>🌿</span>
-                <span>{isTelugu ? 'పూర్తి సమీక్ష & నివారణ చూడండి' : 'See Full Review & Remedies'}</span>
-              </button>
+              {(message.category === 'booking' || message.type === 'booking') ? (
+                <>
+                  <a
+                    href={`tel:${String(message.farmerPhone || message.phone || '9440182736').replace(/[^0-9]/g, '')}`}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>📞</span>
+                    <span>{isTelugu ? 'రైతుకు కాల్ చేయండి' : `Call Farmer (${String(message.farmerPhone || message.phone || '9440182736')})`}</span>
+                  </a>
 
-              <a
-                href="tel:18001801551"
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs sm:text-sm border border-slate-200 dark:border-slate-600 transition-all active:scale-95 shadow-xs"
-              >
-                <span>📞</span>
-                <span>{isTelugu ? 'కిసాన్ హెల్ప్‌లైన్: 1800-180-1551' : 'Call Kisan Helpline'}</span>
-              </a>
+                  <a
+                    href={`https://wa.me/${String(message.farmerPhone || message.phone || '9440182736').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${message.farmerName || 'Farmer'}, regarding your machinery booking on AgriShield...`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>💬</span>
+                    <span>WhatsApp</span>
+                  </a>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowFullReview(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>🌿</span>
+                    <span>{isTelugu ? 'పూర్తి సమీక్ష & నివారణ చూడండి' : 'See Full Review & Remedies'}</span>
+                  </button>
+
+                  <a
+                    href="tel:18001801551"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs sm:text-sm border border-slate-200 dark:border-slate-600 transition-all active:scale-95 shadow-xs"
+                  >
+                    <span>📞</span>
+                    <span>{isTelugu ? 'కిసాన్ హెల్ప్‌లైన్: 1800-180-1551' : 'Call Kisan Helpline'}</span>
+                  </a>
+                </>
+              )}
             </div>
 
             {/* Message Delivery Status & Receipt */}

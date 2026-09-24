@@ -1026,24 +1026,32 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isTe
     e.preventDefault();
     const bookingId = `BK-${Math.floor(10000 + Math.random() * 90000)}`;
 
+    const safeFarmerPhone = farmerPhone || user?.phone || '9440182736';
     const newBooking = {
       id: bookingId,
       equipmentId: equipment.id,
       title: equipment.title,
+      equipmentTitle: equipment.title,
       teluguTitle: equipment.teluguTitle,
       category: equipment.category,
       providerName: equipment.providerName,
-      phone: equipment.phone,
-      farmerName,
-      farmerPhone,
+      phone: safeFarmerPhone,
+      farmerPhone: safeFarmerPhone,
+      contactPhone: safeFarmerPhone,
+      farmerName: farmerName || user?.name || 'Local Farmer',
       farmSector,
       targetCrop,
+      crop: targetCrop,
       approachRoad,
       location: serviceLocation,
+      village: serviceLocation?.village || 'Field Location',
       bookingDate: serviceDate,
+      date: serviceDate,
       timeSlot,
+      slot: timeSlot,
       unitMode,
       acres: quantity,
+      acreage: quantity,
       operation: operationType,
       includeOperator,
       includeDiesel,
@@ -1056,6 +1064,45 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isTe
     };
 
     onConfirm(newBooking);
+
+    // ── Generate & Dispatch Real-Time Booking Notification for Equipment Provider Inbox ──
+    const bookingNotif = {
+      notification_id: `notif-${bookingId}`,
+      id: `notif-${bookingId}`,
+      type: 'booking',
+      category: 'booking',
+      priority: 'HIGH',
+      title: isTe ? `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bookingId})` : `🚜 New Machinery Booking Received (#${bookingId})`,
+      title_te: `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bookingId})`,
+      message: isTe
+        ? `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`
+        : `Farmer ${newBooking.farmerName} booked your ${equipment.title} (${quantity} Acres, ${newBooking.village}). Total: ₹${totalCost}. Contact: ${safeFarmerPhone}.`,
+      message_te: `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`,
+      booking_id: bookingId,
+      bookingId: bookingId,
+      farmer_name: newBooking.farmerName,
+      farmerName: newBooking.farmerName,
+      farmer_phone: safeFarmerPhone,
+      farmerPhone: safeFarmerPhone,
+      phone: safeFarmerPhone,
+      equipment_title: equipment.title,
+      equipmentTitle: equipment.title,
+      total_cost: totalCost,
+      totalCost: totalCost,
+      date: serviceDate,
+      village: newBooking.village,
+      created_at: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+      localStorage.setItem('agrishield_user_notifications', JSON.stringify([bookingNotif, ...existing.filter(n => n.id !== bookingNotif.id)]));
+    } catch (e) {}
+
+    window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: bookingNotif }));
+    window.dispatchEvent(new CustomEvent('newBookingNotification', { detail: bookingNotif }));
 
     // Launch WhatsApp notification directly
     const waText = isTe

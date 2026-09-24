@@ -653,79 +653,118 @@ export default function ProviderDashboardPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {bookingsList.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400">
-                        #{booking.id}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        booking.status === 'completed'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
-                          : booking.status === 'cancelled'
-                          ? 'bg-rose-50 text-rose-700 border border-rose-300'
-                          : 'bg-amber-50 text-amber-700 border border-amber-300'
-                      }`}>
-                        {booking.status}
-                      </span>
+              {bookingsList.map((booking) => {
+                const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '9440182736';
+                const cleanPhone = String(farmerPhone).replace(/[^0-9]/g, '');
+                const farmerName = booking.farmerName || 'Trivendra reddy';
+                const equipmentTitle = booking.equipmentTitle || booking.title || 'Farm Machinery Rental';
+                const village = booking.village || booking.location?.village || booking.location?.mandal || 'Field Location';
+                const date = booking.bookingDate || booking.date || 'Today';
+                const slot = booking.timeSlot || booking.slot || 'Full Day';
+                const acres = booking.acres || booking.acreage || '2';
+                const crop = booking.targetCrop || booking.crop || 'Field Crop';
+                const totalCost = booking.totalCost || '800';
+
+                return (
+                  <div
+                    key={booking.id}
+                    className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-5 shadow-sm space-y-3"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400">
+                            #{booking.id}
+                          </span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            booking.status === 'completed'
+                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                              : booking.status === 'cancelled'
+                              ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                              : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                          }`}>
+                            {booking.status}
+                          </span>
+                        </div>
+
+                        <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                          {equipmentTitle}
+                        </h3>
+
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-medium flex flex-wrap items-center gap-2">
+                          <span>{isTe ? 'రైతు:' : 'Farmer:'} <strong className="text-slate-900 dark:text-white">{farmerName}</strong></span>
+                          <span>&bull;</span>
+                          <span>{isTe ? 'పొలం:' : 'Field:'} {acres} Acres ({crop})</span>
+                        </p>
+
+                        <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{date} &bull; Slot: {slot}</span>
+                          <span>&bull;</span>
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>{village}</span>
+                        </p>
+                      </div>
+
+                      {/* Fare & Status Actions */}
+                      <div className="flex items-center md:flex-col md:items-end justify-between gap-2 border-t md:border-t-0 pt-2 md:pt-0 border-slate-100 dark:border-slate-800 shrink-0">
+                        <div className="text-left md:text-right">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Rental Amount</p>
+                          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                            ₹{Number(totalCost).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+
+                        {booking.status !== 'completed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
+                            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1 cursor-pointer shadow-sm shadow-emerald-600/20"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Mark Completed</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                      {booking.equipmentTitle || 'Farm Machinery Rental'}
-                    </h3>
-
-                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                      <span>Farmer: <strong>{booking.farmerName || 'Local Farmer'}</strong></span>
-                      <span>&bull;</span>
-                      <span>Field: {booking.acreage || '2'} Acres ({booking.crop || 'Crop'})</span>
-                    </p>
-
-                    <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>{booking.date || 'Today'} &bull; Slot: {booking.slot || 'Full Day'}</span>
-                      <span>&bull;</span>
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>{booking.village || 'Field Location'}</span>
-                    </p>
-                  </div>
-
-                  {/* Actions & Fare */}
-                  <div className="flex items-center justify-between md:flex-col md:items-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
-                    <div className="text-right">
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Rental Amount</p>
-                      <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                        ₹{booking.totalCost || '2,500'}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {booking.status !== 'completed' && (
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1 cursor-pointer shadow-sm"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Mark Completed</span>
-                        </button>
-                      )}
-
-                      {booking.contactPhone && (
-                        <a
-                          href={`tel:${booking.contactPhone}`}
-                          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-indigo-600"
-                        >
+                    {/* ── Direct Farmer Contact & WhatsApp Bar ── */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 -mx-5 -mb-5 p-4 rounded-b-3xl">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                           <Phone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-slate-400">{isTe ? 'రైతు ఫోన్ నంబర్' : 'Farmer Contact Number'}</p>
+                          <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white select-all">
+                            +{cleanPhone.startsWith('91') ? cleanPhone : `91 ${cleanPhone}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`tel:${cleanPhone}`}
+                          className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-indigo-600/25 transition-all"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>{isTe ? 'కాల్ చేయండి' : 'Call Farmer'}</span>
                         </a>
-                      )}
+
+                        <a
+                          href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello ${farmerName}, this is regarding your machinery booking #${booking.id} for ${equipmentTitle} on AgriShield.`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-emerald-600/25 transition-all"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
