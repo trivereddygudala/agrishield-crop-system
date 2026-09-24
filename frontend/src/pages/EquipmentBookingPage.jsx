@@ -1398,16 +1398,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
     window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: bookingNotif }));
     window.dispatchEvent(new CustomEvent('newBookingNotification', { detail: bookingNotif }));
 
-    // Launch WhatsApp notification directly
-    const waText = isTe
-      ? `*కొత్త యంత్ర బుకింగ్ నిర్ధారణ (#${bookingId})* 🚜\n\nపరికరం: ${equipment.teluguTitle || equipment.title}\nరైతు: ${farmerName} (${farmerPhone})\nలొకేషన్: ${serviceLocation.village}, ${serviceLocation.mandal}\nతేదీ: ${serviceDate} (${timeSlot})\nపొలం స్థితి: ${fieldStatus}\nపని రకం: ${effectiveOperation}\nవిస్తీర్ణం: ${quantity} ఎకరాలు\nఆపరేటర్: ${includeOperator ? 'అవును' : 'కాదు'}\nడీజిల్: ${includeDiesel ? 'యజమానిదే' : 'రైతుదే'}\nమొత్తం అంచనా: ₹${totalCost}\n\nదయచేసి స్లాట్‌ను నిర్ధారించండి.`
-      : `*NEW MACHINERY BOOKING CONFIRMATION (#${bookingId})* 🚜\n\nEquipment: ${equipment.title}\nFarmer: ${farmerName} (${farmerPhone})\nLocation: ${serviceLocation.village}, ${serviceLocation.mandal}\nDate: ${serviceDate} (${timeSlot})\nField Condition: ${fieldStatus}\nSpecific Operation: ${effectiveOperation}\nArea: ${quantity} Acres\nOperator: ${includeOperator ? 'Yes' : 'Self'}\nDiesel: ${includeDiesel ? 'Included' : 'By Farmer'}\nEstimated Total: ₹${totalCost}\n\nPlease verify arrival time.`;
-
-    const cleanPhone = String(equipment?.phone || equipment?.contactPhone || '').replace(/[^0-9]/g, '');
-    if (cleanPhone) {
-      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`;
-      window.open(waUrl, '_blank');
-    }
+    // Notification dispatched and synced to provider dashboard
   };
 
   return (
@@ -1706,7 +1697,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-md shadow-emerald-600/30 cursor-pointer"
             >
               <Zap className="w-4 h-4 fill-white" />
-              <span>{isTe ? 'బుకింగ్ నిర్ధారించండి & వాట్సాప్ పంపండి' : 'Confirm & Send WhatsApp Voucher'}</span>
+              <span>{isTe ? 'బుకింగ్‌ను నిర్ధారించండి' : 'Confirm Rental Booking'}</span>
             </button>
           </div>
         </form>

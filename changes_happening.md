@@ -2,6 +2,18 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v237) - Removed Forced WhatsApp Redirect from Modal & Updated Button to Confirm Rental Booking
+- **Summary:** Removed the automatic popup/redirect to WhatsApp upon modal submission, changing the button text to 'Confirm Rental Booking' and preserving optional WhatsApp voucher sharing on the booking ledger card:
+  1. ⚡ **Updated Modal Submit Button ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Replaced `Confirm & Send WhatsApp Voucher` / `బుకింగ్ నిర్ధారించండి & వాట్సాప్ పంపండి` with clean `⚡ Confirm Rental Booking` / `⚡ బుకింగ్‌ను నిర్ధారించండి`.
+  2. 🚫 **Removed Disruptive Automatic WhatsApp Redirection ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Removed `window.open(waUrl, '_blank')` from `handleSubmit`.
+     - When farmers tap the confirm button, their booking is confirmed cleanly in the app, persisted across devices via the backend API, and notified in real time to the provider.
+  3. 💬 **Optional WhatsApp Dispatch Preserved on Booking Passbook:**
+     - The farmer can still choose to send the WhatsApp voucher at their convenience using the dedicated `[ 💬 WhatsApp Voucher ]` button directly on the confirmed booking card in the "My Bookings" tab.
+  4. 🧪 **Verified Production Build:**
+     - Compiled with `npm run build` (3,168 modules compiled cleanly with 0 errors in 28.80s).
+
 ## 2026-09-24 (v236) - Fixed Cross-Device Booking Synchronization & Dedicated Machinery Booking Review in Notifications
 - **Summary:** Resolved the cross-device booking synchronization issue between farmer and provider, and fixed the notification "See Full Review" button displaying disease diagnostics ("Healthy Foliage") for machinery booking alerts:
   1. 🔄 **Multi-Device & Cross-Browser Real-Time Equipment Booking API ([`equipment.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/equipment.py) & [`main.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/main.py)):**
