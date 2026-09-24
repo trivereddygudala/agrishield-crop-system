@@ -378,8 +378,30 @@ export default function ProviderDashboardPage() {
   };
 
   const handleToggleMachineAvailability = (id) => {
-    setFleetList(prev => prev.map(m => m.id === id ? { ...m, available: !m.available } : m));
-    toast.info('Status Updated', 'Machine availability has been updated.');
+    let nextAvailable = false;
+    const updated = fleetList.map(m => {
+      if (m.id === id) {
+        nextAvailable = !m.available;
+        return { ...m, available: nextAvailable };
+      }
+      return m;
+    });
+    setFleetList(updated);
+    try {
+      localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
+      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
+      window.dispatchEvent(new Event('agrishield_equipment_updated'));
+    } catch (e) {}
+
+    // Multi-device backend sync
+    API.patch(`/api/v1/equipment/fleet/${id}/availability`, { available: nextAvailable }).catch(() => {});
+
+    toast.info(
+      isTe ? 'లభ్యత నవీకరించబడింది' : 'Availability Updated',
+      nextAvailable
+        ? (isTe ? 'యంత్రం అందుబాటులో ఉన్నట్లుగా గుర్తించబడింది.' : 'Machinery marked as Available.')
+        : (isTe ? 'యంత్రం బుక్ చేయబడినట్లుగా మార్చబడింది (రైతుల స్క్రీన్‌లో బుక్ చేయబడింది అని కనిపిస్తుంది).' : 'Machinery marked as Booked (Farmers will see it as Booked).')
+    );
   };
 
   const handleDeleteMachine = (id) => {
@@ -414,6 +436,46 @@ export default function ProviderDashboardPage() {
     API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }).catch(err => {
       console.warn('Backend status patch notice:', err);
     });
+
+    // Auto-sync machine availability when booking is confirmed or completed
+    if (targetBooking) {
+      const targetEquipId = targetBooking.equipmentId || targetBooking.machineId;
+      const targetEquipTitle = targetBooking.equipmentTitle || targetBooking.title;
+
+      if (nextStatus === 'confirmed') {
+        // Machine is now booked
+        setFleetList(prev => {
+          const synced = prev.map(m => {
+            if ((targetEquipId && m.id === targetEquipId) || (targetEquipTitle && m.title === targetEquipTitle)) {
+              return { ...m, available: false };
+            }
+            return m;
+          });
+          try {
+            localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(synced));
+            localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(synced));
+            window.dispatchEvent(new Event('agrishield_equipment_updated'));
+          } catch (e) {}
+          return synced;
+        });
+      } else if (nextStatus === 'completed') {
+        // Machine is freed up
+        setFleetList(prev => {
+          const synced = prev.map(m => {
+            if ((targetEquipId && m.id === targetEquipId) || (targetEquipTitle && m.title === targetEquipTitle)) {
+              return { ...m, available: true };
+            }
+            return m;
+          });
+          try {
+            localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(synced));
+            localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(synced));
+            window.dispatchEvent(new Event('agrishield_equipment_updated'));
+          } catch (e) {}
+          return synced;
+        });
+      }
+    }
 
     // Dispatch real-time farmer notification for Accept/Reject/Complete
     if (targetBooking) {

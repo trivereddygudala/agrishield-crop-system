@@ -33,7 +33,8 @@ import {
   Compass,
   ArrowRight,
   Info,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { useFarm } from '../context/FarmContext';
 import { useAuth } from '../context/AuthContext';
@@ -77,12 +78,13 @@ export default function EquipmentBookingPage() {
   // 100% Real User Equipment Database with Multi-Store & Fleet LocalStorage sync
   const loadMergedEquipment = useCallback(() => {
     try {
-      const customSaved = JSON.parse(localStorage.getItem('agrishield_custom_equipment_listings') || '[]');
       const providerSaved = JSON.parse(localStorage.getItem('agrishield_provider_fleet_inventory') || '[]');
+      const customSaved = JSON.parse(localStorage.getItem('agrishield_custom_equipment_listings') || '[]');
 
+      // providerSaved takes priority as it represents the provider's latest active status and toggles
       const allItems = [
-        ...(Array.isArray(customSaved) ? customSaved : []),
-        ...(Array.isArray(providerSaved) ? providerSaved : [])
+        ...(Array.isArray(providerSaved) ? providerSaved : []),
+        ...(Array.isArray(customSaved) ? customSaved : [])
       ];
 
       const validItems = allItems.filter(item => item && !item.id?.startsWith('eq-tr-') && !item.id?.startsWith('eq-dr-') && !item.id?.startsWith('eq-ir-') && !item.id?.startsWith('eq-hv-'));
@@ -134,6 +136,7 @@ export default function EquipmentBookingPage() {
         const id = item.id || `eq-${item.title}`;
         if (seen.has(id)) continue;
         seen.add(id);
+        const isItemAvailable = item.available !== false;
         result.push({
           ...item,
           id,
@@ -149,8 +152,8 @@ export default function EquipmentBookingPage() {
           ratePerHour: Number(item.hourlyRate) || Number(item.ratePerHour) || 800,
           implements: Array.isArray(item.implements) ? item.implements : Array.isArray(item.implementsIncluded) ? item.implementsIncluded : ['Rotavator', 'Plough'],
           implementsIncluded: Array.isArray(item.implementsIncluded) ? item.implementsIncluded : Array.isArray(item.implements) ? item.implements : ['Rotavator', 'Plough'],
-          available: item.available !== false,
-          availableToday: item.availableToday !== false,
+          available: isItemAvailable,
+          availableToday: isItemAvailable && item.availableToday !== false,
           operatorIncluded: item.operatorIncluded !== false,
           rating: item.rating || 5.0,
           specs: item.specs || `${item.horsepower || ''} available for immediate field hire in ${item.village || item.locationVillage || 'Pasupugallu'}.`
@@ -273,6 +276,32 @@ export default function EquipmentBookingPage() {
       } catch (err) {}
     };
     fetchRemoteBookings();
+  }, []);
+
+  // Fetch remote fleet availability from backend for multi-device cross-browser sync
+  useEffect(() => {
+    const fetchFleetStatus = async () => {
+      try {
+        const res = await API.get('/api/v1/equipment/fleet/status');
+        if (res.data?.availability && typeof res.data.availability === 'object') {
+          const availMap = res.data.availability;
+          setEquipmentList(prev => prev.map(item => {
+            if (availMap[item.id] !== undefined) {
+              const isAvail = Boolean(availMap[item.id]);
+              return {
+                ...item,
+                available: isAvail,
+                availableToday: isAvail && item.availableToday !== false
+              };
+            }
+            return item;
+          }));
+        }
+      } catch (err) {}
+    };
+    fetchFleetStatus();
+    const interval = setInterval(fetchFleetStatus, 6000);
+    return () => clearInterval(interval);
   }, []);
 
   // Derived cascading dropdowns for Location Switcher Modal
@@ -567,13 +596,22 @@ export default function EquipmentBookingPage() {
                 : { label: isTe ? 'హార్వెస్టర్' : 'Harvester', color: 'bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-800', icon: Wrench };
 
               const CategoryIcon = categoryBadge.icon;
+              const isMachineBooked = item.available === false ||
+                myBookings.some(b => 
+                  (b.equipmentId === item.id || b.equipmentTitle === item.title) && 
+                  (b.status === 'confirmed' || b.status === 'in_progress')
+                );
 
               return (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-700 transition-all flex flex-col justify-between"
+                  className={`bg-white dark:bg-slate-900 rounded-3xl p-5 border shadow-sm transition-all flex flex-col justify-between ${
+                    isMachineBooked
+                      ? 'border-amber-200/90 dark:border-amber-950/60 bg-amber-500/[0.02]'
+                      : 'border-slate-200/80 dark:border-slate-800 hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-700'
+                  }`}
                 >
                   <div>
                     {/* Top Row: Category Badge + Distance + Rating */}
@@ -611,7 +649,12 @@ export default function EquipmentBookingPage() {
                       <span>•</span>
                       <span>{item.village}, {item.mandal}</span>
                       <span>•</span>
-                      {isProviderOnline ? (
+                      {isMachineBooked ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                          <span>{isTe ? 'ప్రొవైడర్ సర్వీస్‌లో ఉన్నారు (బుక్ చేయబడింది)' : 'Provider Busy (Currently Booked)'}</span>
+                        </span>
+                      ) : isProviderOnline ? (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                           <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -682,7 +725,12 @@ export default function EquipmentBookingPage() {
                             {isTe ? 'ఆపరేటర్ ఉచితం' : 'Driver Included'}
                           </span>
                         )}
-                        {item.availableToday ? (
+                        {isMachineBooked ? (
+                          <span className="px-2.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 font-bold text-[10px] flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                            {isTe ? 'ప్రస్తుతం బుక్ చేయబడింది' : 'Currently Booked'}
+                          </span>
+                        ) : item.availableToday ? (
                           <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold text-[10px] flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             {isTe ? 'ఈరోజు అందుబాటులో ఉంది' : 'Available Today'}
@@ -718,14 +766,26 @@ export default function EquipmentBookingPage() {
                         <MessageSquare className="w-4 h-4" />
                       </a>
 
-                      <button
-                        type="button"
-                        onClick={() => handleOpenBooking(item)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-600/30 transition-all active:scale-[0.98] cursor-pointer"
-                      >
-                        <Zap className="w-4 h-4 fill-white" />
-                        <span>{isTe ? 'ఇప్పుడే బుక్ చేయండి' : 'Book This Slot'}</span>
-                      </button>
+                      {isMachineBooked ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs border border-slate-200 dark:border-slate-700 cursor-not-allowed select-none opacity-90 shadow-none"
+                          title={isTe ? 'ఈ యంత్రం ప్రస్తుతం బుక్ చేయబడింది' : 'This machinery is currently booked'}
+                        >
+                          <Lock className="w-4 h-4 text-slate-400" />
+                          <span>{isTe ? 'ఈ స్లాట్ బుక్ చేయబడింది' : 'Currently Booked (Slot Busy)'}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenBooking(item)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-600/30 transition-all active:scale-[0.98] cursor-pointer"
+                        >
+                          <Zap className="w-4 h-4 fill-white" />
+                          <span>{isTe ? 'ఇప్పుడే బుక్ చేయండి' : 'Book This Slot'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>

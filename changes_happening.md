@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v238) - Synchronized Machine Booked Status, Provider In-Field Availability & Locked Booking Slots on Farmer Catalog
+- **Summary:** Fulfilled the user requirement to reflect the provider's machine booking status directly onto the machinery cards in the farmer profile:
+  1. 🔴 **Live Machinery Booked Status Badge ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - When the provider toggles machine availability to `Booked` in their Fleet Hub, or when an active confirmed/in-progress booking exists:
+       * The bottom badge automatically transitions from `🟢 Available Today` to `🔴 Currently Booked` / `ప్రస్తుతం బుక్ చేయబడింది`.
+  2. 🔒 **Disabled & Locked Booking Slot Button ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Replaced the clickable `⚡ Book This Slot` button with a locked, disabled button displaying `🔒 Currently Booked (Slot Busy)` / `ఈ స్లాట్ బుక్ చేయబడింది` (`cursor-not-allowed`) preventing double-booking of busy machinery.
+  3. 🚜 **Service Provider Live Duty Status Badge ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Under the machinery title next to provider agency and location:
+       * If machine is booked: renders `🟡 Provider Busy (Currently Booked)` / `ప్రొవైడర్ సర్వీస్‌లో ఉన్నారు (బుక్ చేయబడింది)` with an animated amber beacon.
+       * If provider is online and machine is free: renders `🟢 Provider Online Today` / `ప్రొవైడర్ ఆన్‌లైన్`.
+       * If provider is offline: renders `⚪ Provider Offline Today` / `ప్రొవైడర్ ఆఫ్‌లైన్`.
+  4. 🔄 **Cross-Device Machinery Availability Backend API & Real-Time Sync ([`equipment.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/equipment.py) & [`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx)):**
+     - Added `GET /api/v1/equipment/fleet/status` and `PATCH /api/v1/equipment/fleet/{id}/availability`.
+     - In `ProviderDashboardPage.jsx`, toggling `Available` / `Booked` immediately updates both local storage keys, fires window events, and patches the backend API.
+     - When a provider accepts an order (`nextStatus === 'confirmed'`), the machine automatically transitions to `Booked` (`available: false`).
+     - In `EquipmentBookingPage.jsx`, added polling interval to sync remote fleet status across devices.
+  5. 🧪 **Verified Production Build:**
+     - Compiled with `npm run build` (3,168 modules compiled cleanly with 0 errors).
+
 ## 2026-09-24 (v237) - Removed Forced WhatsApp Redirect from Modal & Updated Button to Confirm Rental Booking
 - **Summary:** Removed the automatic popup/redirect to WhatsApp upon modal submission, changing the button text to 'Confirm Rental Booking' and preserving optional WhatsApp voucher sharing on the booking ledger card:
   1. ⚡ **Updated Modal Submit Button ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**

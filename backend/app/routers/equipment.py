@@ -217,3 +217,47 @@ async def delete_booking(booking_id: str):
             pass
 
     return {"success": True, "message": f"Booking {booking_id} deleted"}
+
+
+# In-memory fleet availability map
+_fleet_availability: Dict[str, bool] = {}
+
+@router.get("/fleet/status")
+async def get_fleet_status():
+    """
+    Get live availability status of all equipment across devices.
+    """
+    return {
+        "success": True,
+        "availability": _fleet_availability
+    }
+
+
+@router.patch("/fleet/{equipment_id}/availability")
+async def update_equipment_availability(
+    equipment_id: str,
+    payload: Dict[str, Any] = Body(...)
+):
+    """
+    Update machine availability status (available: true/false).
+    """
+    global _fleet_availability
+    available = bool(payload.get("available", True))
+    _fleet_availability[equipment_id] = available
+
+    # Also update in MongoDB if available
+    if db_instance.db is not None:
+        try:
+            await db_instance.db["equipment_fleet_status"].update_one(
+                {"equipment_id": equipment_id},
+                {"$set": {"available": available, "updatedAt": datetime.now().isoformat()}},
+                upsert=True
+            )
+        except Exception:
+            pass
+
+    return {
+        "success": True,
+        "equipment_id": equipment_id,
+        "available": available
+    }
