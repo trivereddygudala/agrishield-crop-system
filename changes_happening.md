@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v240) - Removed Unwanted Software-Only Mode from Provider Profile & Fixed Provider Hub Persistence
+- **Summary:** Explained the purpose of Software-Only Mode, completely removed it and farmer-testing elements from the Equipment Provider profile, fixed provider profile field persistence in backend schemas and routers, and added dedicated Machinery Hub & Payout settings:
+  1. 🚫 **Removed Unwanted Software-Only Mode from Equipment Provider ([`SettingsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/SettingsPage.jsx)):**
+     - **Root Cause Explained:** "Software-Only Mode (Farmer Testing)" was designed for farmers and QA testers who do not possess physical ESP32 leaf microcontrollers, LoRa sensors, or soil probes so they can hide IoT hardware gauges. Because `SettingsPage.jsx` previously lacked role checking on the IoT card, it was inadvertently shown to equipment providers (who operate tractors, harvesters, and drones, not ESP32 sensors).
+     - **Action Taken:** Wrapped the entire `Hardware & IoT Setup` block and the `Farmer Mode` toggle with `!isEquipmentProvider`. Equipment providers now have a streamlined, distraction-free interface.
+  2. 🚜 **Dedicated Machinery Hub & Payout Settings ([`SettingsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/SettingsPage.jsx)):**
+     - Replaced the unwanted IoT card for equipment providers with a purpose-built **Machinery Hub Operations & Payouts** card:
+       * **Machinery Hub / Agency Name** (`hubName`)
+       * **Dispatch Contact Phone / WhatsApp** (`dispatchPhone`) with helper badge explaining this phone receives farmer booking orders.
+       * **Payout UPI ID** (`payoutUpiId`) for direct bank rental settlement.
+       * **Service Coverage Radius** (`serviceRadiusKm`: 10km, 25km, 50km, 100km).
+       * **Operating Dispatch Hours** (`operatingTimings`).
+     - Added quick access buttons directly to **Machinery Fleet Hub** (`/provider/dashboard?tab=fleet`) and **Farmer Rental Orders** (`/provider/dashboard?tab=orders`).
+  3. 💾 **Fixed Root Cause of Provider Profile Dropping in Backend ([`schemas.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/models/schemas.py), [`auth.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/auth.py), [`ProfilePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/ProfilePage.jsx)):**
+     - `UserBase` and `ProfileUpdate` Pydantic models previously omitted `phone`, `mobile`, and `provider_profile`, causing FastAPI to silently drop them during profile updates.
+     - Added `phone`, `mobile`, and `provider_profile` to `UserBase` and `ProfileUpdate`.
+     - In `auth.py`'s `update_profile`, explicitly persisted `provider_profile`, `phone`, and `mobile` to the user's MongoDB record, keeping dispatch contact phone in permanent sync with incoming farmer equipment bookings.
+  4. 🧪 **Validation:**
+     - Verified FastAPI route loading: 290 routes loaded with 0 errors.
+     - Verified Frontend production build: 3,168 modules compiled cleanly in 32.20s with 0 errors.
+- **Files modified**: `frontend/src/pages/SettingsPage.jsx`, `frontend/src/pages/ProfilePage.jsx`, `backend/app/models/schemas.py`, `backend/app/routers/auth.py`, `changes_happening.md`.
+
 ## 2026-09-24 (v239) - Provider Booking Association Fix, Dual Router Mounting & Architecture Separation
 - **Summary:** Resolved the root issue causing equipment providers to not receive new machinery bookings, separated clustered routers into dedicated architectural modules, and enabled dual route mounting and dynamic CORS compatibility:
   1. 🚜 **Provider Booking Association Fixed ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**

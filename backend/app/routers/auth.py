@@ -370,6 +370,19 @@ async def update_profile(
         update_dict["color_theme"] = update_data.color_theme
     if update_data.navbar_theme is not None:
         update_dict["navbar_theme"] = update_data.navbar_theme
+    if update_data.mobile is not None:
+        update_dict["mobile"] = update_data.mobile
+        update_dict["phone"] = update_data.mobile
+    if update_data.phone is not None:
+        update_dict["phone"] = update_data.phone
+        if "mobile" not in update_dict:
+            update_dict["mobile"] = update_data.phone
+    if update_data.provider_profile is not None:
+        update_dict["provider_profile"] = update_data.provider_profile
+        dispatch_p = update_data.provider_profile.get("dispatch_phone") or update_data.provider_profile.get("dispatchPhone")
+        if dispatch_p:
+            update_dict["phone"] = dispatch_p
+            update_dict["mobile"] = dispatch_p
 
     user_id_raw = str(current_user.get("id") or current_user.get("_id") or "")
     user_query = {"$or": [{"_id": ObjectId(user_id_raw) if ObjectId.is_valid(user_id_raw) else user_id_raw}, {"email": current_user.get("email")}]}

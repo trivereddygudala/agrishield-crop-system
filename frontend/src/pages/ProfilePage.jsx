@@ -320,6 +320,8 @@ const ProfilePage = () => {
         };
         localStorage.setItem('agrishield_provider_hub_profile', JSON.stringify(providerData));
         updatePayload.provider_profile = providerData;
+        updatePayload.phone = dispatchPhone.trim();
+        updatePayload.mobile = dispatchPhone.trim();
       } else {
         const fullLocationString = [village, mandal, district, state].filter(Boolean).join(', ') || farmLocation.trim();
         updatePayload.farm_location = fullLocationString;

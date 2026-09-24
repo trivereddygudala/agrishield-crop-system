@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, ShieldCheck, Globe, Key, Save, LogOut, Check, AlertCircle, Sprout, ArrowRight, ChevronRight,
-  Sun, Type, Contrast, Monitor, Cpu, Fingerprint, ScanFace, Smartphone, Trash2, Sparkles
+  Sun, Type, Contrast, Monitor, Cpu, Fingerprint, ScanFace, Smartphone, Trash2, Sparkles,
+  Truck, Phone, Clock, DollarSign, Calendar
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API from '../services/api';
@@ -20,15 +21,48 @@ const SettingsPage = () => {
   const isTe = i18n.language === 'te';
   const userRole = user?.role?.toLowerCase() || 'farmer';
   const isFarmer = userRole === 'farmer';
+  const isEquipmentProvider = userRole === 'equipment_provider';
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
 
   const [fullName, setFullName] = useState(user?.name || '');
-  const [mobileNumber, setMobileNumber] = useState(user?.mobile || '');
+  const [mobileNumber, setMobileNumber] = useState(user?.mobile || user?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
   const [language, setLanguage] = useState(user?.preferred_language || 'en');
+
+  // Provider Hub Attributes
+  const [hubName, setHubName] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.hub_name || saved.hubName || user?.provider_profile?.hub_name || user?.name || '';
+    } catch { return user?.provider_profile?.hub_name || user?.name || ''; }
+  });
+  const [dispatchPhone, setDispatchPhone] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.dispatch_phone || saved.dispatchPhone || user?.provider_profile?.dispatch_phone || user?.mobile || user?.phone || '';
+    } catch { return user?.provider_profile?.dispatch_phone || user?.mobile || user?.phone || ''; }
+  });
+  const [serviceRadiusKm, setServiceRadiusKm] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return String(saved.service_radius_km || saved.serviceRadiusKm || user?.provider_profile?.service_radius_km || '25');
+    } catch { return String(user?.provider_profile?.service_radius_km || '25'); }
+  });
+  const [payoutUpiId, setPayoutUpiId] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.payout_upi_id || saved.payoutUpiId || user?.provider_profile?.payout_upi_id || '';
+    } catch { return user?.provider_profile?.payout_upi_id || ''; }
+  });
+  const [operatingTimings, setOperatingTimings] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.operating_timings || saved.operatingTimings || user?.provider_profile?.operating_timings || '06:00 AM - 07:00 PM';
+    } catch { return user?.provider_profile?.operating_timings || '06:00 AM - 07:00 PM'; }
+  });
 
   // ── Display Accessibility Modes ──
   const [fieldMode, setFieldMode] = useState(() => localStorage.getItem('fieldMode') === 'true');
@@ -153,15 +187,29 @@ const SettingsPage = () => {
       const payload = {
         name: fullName,
         mobile: mobileNumber,
+        phone: mobileNumber,
         preferred_language: user?.preferred_language || i18n.language || 'en',
       };
+
+      if (isEquipmentProvider) {
+        const providerData = {
+          hub_name: hubName.trim(),
+          dispatch_phone: dispatchPhone.trim() || mobileNumber.trim(),
+          service_radius_km: serviceRadiusKm,
+          payout_upi_id: payoutUpiId.trim(),
+          operating_timings: operatingTimings.trim(),
+          updated_at: new Date().toISOString()
+        };
+        payload.provider_profile = providerData;
+        localStorage.setItem('agrishield_provider_hub_profile', JSON.stringify(providerData));
+      }
 
       if (password) {
         payload.password = password;
       }
 
       await updateProfile(payload);
-      setToastMsg('Account profile updated successfully!');
+      setToastMsg(isTe ? 'ఖాతా వివరాలు విజయవంతంగా భద్రపరచబడ్డాయి!' : 'Account profile updated successfully!');
       setPassword('');
       setConfirmPassword('');
     } catch (err) {
@@ -182,19 +230,50 @@ const SettingsPage = () => {
       {/* Title Header */}
       <div className="flex flex-col gap-1 pb-4 border-b border-slate-200/80 dark:border-white/10">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-          {t('settings_page.title', 'System Settings')}
+          {isEquipmentProvider ? (isTe ? 'మెషినరీ ప్రొవైడర్ హబ్ సెట్టింగ్‌లు' : 'Machinery Provider Hub Settings') : t('settings_page.title', 'System Settings')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
-          {t('settings_page.subtitle', 'Manage your account, preferences, and notifications.')}
+          {isEquipmentProvider 
+            ? (isTe ? 'మీ యంత్రాల హబ్ కార్యకలాపాలు, డిస్పాచ్ మొబైల్, చెల్లింపు యూపీఐ మరియు భద్రతా సెట్టింగ్‌లు నిర్వహించండి.' : 'Manage your machinery hub operations, dispatch contact, payout UPI, biometric unlock, and account credentials.')
+            : t('settings_page.subtitle', 'Manage your account, preferences, and notifications.')}
         </p>
       </div>
 
-      {/* Notifications Quick Link */}
+      {/* Notifications & Provider Quick Links */}
       <div className="space-y-3">
         <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
-          {userRole === 'admin' ? t('settings_page.admin_access', 'Administrative Quick Access') : t('settings_page.inbox_alerts', 'Inbox & Alerts')}
+          {userRole === 'admin' ? t('settings_page.admin_access', 'Administrative Quick Access') : isEquipmentProvider ? (isTe ? 'హబ్ త్వరిత లింక్‌లు' : 'Machinery Hub Quick Access') : t('settings_page.inbox_alerts', 'Inbox & Alerts')}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {isEquipmentProvider && (
+            <>
+              <Link to="/provider/dashboard?tab=fleet" className="block">
+                <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-indigo-500/30 bg-indigo-500/[0.03] hover:border-indigo-500/60">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🚜</span>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{isTe ? 'మెషినరీ ఫ్లీట్ హబ్' : 'Machinery Fleet Hub'}</p>
+                      <p className="text-[10px] text-slate-450 dark:text-white/30">{isTe ? 'ట్రాక్టర్లు, డ్రోన్లు మరియు లభ్యత నిర్వహణ' : 'Manage tractors, drones, rates & machine availability'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-indigo-500 shrink-0" />
+                </Card>
+              </Link>
+
+              <Link to="/provider/dashboard?tab=orders" className="block">
+                <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-amber-500/30 bg-amber-500/[0.03] hover:border-amber-500/60">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📅</span>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-amber-600 dark:text-amber-400">{isTe ? 'రైతు అద్దె బుకింగ్‌లు' : 'Farmer Rental Orders'}</p>
+                      <p className="text-[10px] text-slate-450 dark:text-white/30">{isTe ? 'ఇన్‌కమింగ్ స్లాట్ ఆర్డర్లు & ఆమోదాలు' : 'View incoming farmer requests & dispatch status'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-amber-500 shrink-0" />
+                </Card>
+              </Link>
+            </>
+          )}
           <Link to="/notifications" className="block">
             <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-slate-200/80 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] hover:border-emerald-500/30">
               <div className="flex items-center gap-3">
@@ -290,45 +369,47 @@ const SettingsPage = () => {
             </div>
           </button>
 
-          {/* Farmer Mode Toggle */}
-          <button
-            type="button"
-            id="farmer-mode-toggle"
-            onClick={() => setFarmerMode(v => !v)}
-            className={`no-touch-target text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-3 min-h-0 ${
-              farmerMode
-                ? 'bg-emerald-50 border-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-500'
-                : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-emerald-300/50'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl border shrink-0 ${
+          {/* Farmer Mode Toggle (Farmers / Testers only) */}
+          {!isEquipmentProvider && (
+            <button
+              type="button"
+              id="farmer-mode-toggle"
+              onClick={() => setFarmerMode(v => !v)}
+              className={`no-touch-target text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-3 min-h-0 ${
                 farmerMode
-                  ? 'bg-emerald-400/20 border-emerald-400/40 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
-              }`}>
-                <Type className="w-5 h-5" />
-              </div>
-              <div>
-                <p className={`text-sm font-black leading-tight ${
-                  farmerMode ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-white'
+                  ? 'bg-emerald-50 border-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-500'
+                  : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-emerald-300/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-xl border shrink-0 ${
+                  farmerMode
+                    ? 'bg-emerald-400/20 border-emerald-400/40 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
                 }`}>
-                  🌾 {t('settings_page.farmer_mode', 'Farmer Mode')}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-white/35 mt-0.5 leading-relaxed">
-                  {t('settings_page.farmer_mode_desc', 'Larger text (120%) • Easier reading • Better accessibility')}
-                </p>
+                  <Type className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className={`text-sm font-black leading-tight ${
+                    farmerMode ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-white'
+                  }`}>
+                    🌾 {t('settings_page.farmer_mode', 'Farmer Mode')}
+                  </p>
+                  <p className="text-[10px] text-slate-500 dark:text-white/35 mt-0.5 leading-relaxed">
+                    {t('settings_page.farmer_mode_desc', 'Larger text (120%) • Easier reading • Better accessibility')}
+                  </p>
+                </div>
               </div>
-            </div>
-            {/* Toggle Switch */}
-            <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
-              farmerMode ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-white/10'
-            }`}>
-              <span className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all duration-200 ${
-                farmerMode ? 'left-[23px]' : 'left-[3px]'
-              }`} />
-            </div>
-          </button>
+              {/* Toggle Switch */}
+              <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
+                farmerMode ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-white/10'
+              }`}>
+                <span className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all duration-200 ${
+                  farmerMode ? 'left-[23px]' : 'left-[3px]'
+                }`} />
+              </div>
+            </button>
+          )}
 
         </div>
 
@@ -429,67 +510,69 @@ const SettingsPage = () => {
         </Card>
       </div>
 
-      {/* ── Hardware & IoT Integration Setup Mode ── */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
-          {t('settings_page.iot_mode', 'Hardware & IoT Setup')}
-        </h3>
-        <button
-          type="button"
-          id="hardware-mode-toggle"
-          onClick={toggleHardwareMode}
-          className={`w-full text-left p-4 sm:p-5 rounded-2xl border-2 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-            hardwareMode
-              ? 'bg-cyan-500/10 border-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500 shadow-md shadow-cyan-500/5'
-              : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
-          }`}
-        >
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className={`p-3 rounded-2xl border shrink-0 ${
+      {/* ── Hardware & IoT Integration Setup Mode (Farmers & Testers Only) ── */}
+      {!isEquipmentProvider && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
+            {t('settings_page.iot_mode', 'Hardware & IoT Setup')}
+          </h3>
+          <button
+            type="button"
+            id="hardware-mode-toggle"
+            onClick={toggleHardwareMode}
+            className={`w-full text-left p-4 sm:p-5 rounded-2xl border-2 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
               hardwareMode
-                ? 'bg-cyan-500/20 border-cyan-400/40 text-cyan-600 dark:text-cyan-400'
-                : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
-            }`}>
-              <Cpu className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className={`text-base font-black leading-tight ${
-                  hardwareMode ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-800 dark:text-white'
-                }`}>
-                  {hardwareMode ? `🔌 ${t('settings_page.iot_enabled', 'Hardware / IoT Setup: ENABLED')}` : `🌱 ${t('settings_page.software_mode', 'Software-Only Mode (Farmer Testing)')}`}
-                </p>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                  hardwareMode
-                    ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/40'
-                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                }`}>
-                  {hardwareMode ? t('settings_page.hw_active', 'All Hardware Features Active') : t('settings_page.hw_hidden', 'IoT Menus Hidden')}
-                </span>
+                ? 'bg-cyan-500/10 border-cyan-400 dark:bg-cyan-950/40 dark:border-cyan-500 shadow-md shadow-cyan-500/5'
+                : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+            }`}
+          >
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className={`p-3 rounded-2xl border shrink-0 ${
+                hardwareMode
+                  ? 'bg-cyan-500/20 border-cyan-400/40 text-cyan-600 dark:text-cyan-400'
+                  : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
+              }`}>
+                <Cpu className="w-6 h-6" />
               </div>
-              <p className="text-xs text-slate-500 dark:text-white/45 mt-1 leading-relaxed max-w-xl">
-                {hardwareMode
-                  ? t('settings_page.hw_enabled_desc', 'Showing all ESP32 devices, Node Control Panel, MicroSD Storage, and live sensor telemetry streams.')
-                  : t('settings_page.hw_disabled_desc', 'Farmer testing mode — hides ESP32 menus, battery statuses, and sensor gauges for a clean experience.')}
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className={`text-base font-black leading-tight ${
+                    hardwareMode ? 'text-cyan-700 dark:text-cyan-300' : 'text-slate-800 dark:text-white'
+                  }`}>
+                    {hardwareMode ? `🔌 ${t('settings_page.iot_enabled', 'Hardware / IoT Setup: ENABLED')}` : `🌱 ${t('settings_page.software_mode', 'Software-Only Mode (Farmer Testing)')}`}
+                  </p>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    hardwareMode
+                      ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/40'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {hardwareMode ? t('settings_page.hw_active', 'All Hardware Features Active') : t('settings_page.hw_hidden', 'IoT Menus Hidden')}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-white/45 mt-1 leading-relaxed max-w-xl">
+                  {hardwareMode
+                    ? t('settings_page.hw_enabled_desc', 'Showing all ESP32 devices, Node Control Panel, MicroSD Storage, and live sensor telemetry streams.')
+                    : t('settings_page.hw_disabled_desc', 'Farmer testing mode — hides ESP32 menus, battery statuses, and sensor gauges for a clean experience.')}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Large Toggle Switch */}
-          <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
-            <span className="text-xs font-bold text-slate-500 dark:text-white/40 hidden sm:inline">
-              {hardwareMode ? t('settings_page.turn_off', 'Turn OFF') : t('settings_page.turn_on', 'Turn ON')}
-            </span>
-            <div className={`relative w-14 h-8 rounded-full transition-colors duration-200 shrink-0 ${
-              hardwareMode ? 'bg-cyan-500' : 'bg-slate-300 dark:bg-white/15'
-            }`}>
-              <span className={`absolute top-[4px] w-[24px] h-[24px] rounded-full bg-white shadow-md transition-all duration-200 ${
-                hardwareMode ? 'left-[26px]' : 'left-[4px]'
-              }`} />
+            {/* Large Toggle Switch */}
+            <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
+              <span className="text-xs font-bold text-slate-500 dark:text-white/40 hidden sm:inline">
+                {hardwareMode ? t('settings_page.turn_off', 'Turn OFF') : t('settings_page.turn_on', 'Turn ON')}
+              </span>
+              <div className={`relative w-14 h-8 rounded-full transition-colors duration-200 shrink-0 ${
+                hardwareMode ? 'bg-cyan-500' : 'bg-slate-300 dark:bg-white/15'
+              }`}>
+                <span className={`absolute top-[4px] w-[24px] h-[24px] rounded-full bg-white shadow-md transition-all duration-200 ${
+                  hardwareMode ? 'left-[26px]' : 'left-[4px]'
+                }`} />
+              </div>
             </div>
-          </div>
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
 
       {/* Redirect Banner to Dedicated Farm Tab — Farmer only */}
       {isFarmer && (
@@ -529,6 +612,79 @@ const SettingsPage = () => {
       )}
 
       <form onSubmit={handleSaveProfile} className="space-y-6">
+        {/* Dedicated Machinery Hub & Payout Settings for Equipment Provider */}
+        {isEquipmentProvider && (
+          <Card glass className="p-6 space-y-6 border border-amber-500/20 bg-amber-500/[0.02] dark:bg-amber-950/10 backdrop-blur-md">
+            <div className="flex items-center gap-3 border-b border-amber-500/15 pb-4">
+              <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/25">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                  {isTe ? 'మెషినరీ హబ్ & చెల్లింపుల వివరాలు' : 'Machinery Hub Operations & Payouts'}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">
+                  {isTe ? 'రైతులకు కనిపించే డిస్పాచ్ మొబైల్, ఏజెన్సీ పేరు మరియు చెల్లింపు యూపీఐ ఐడీ.' : 'Dispatch contact and UPI settlement ID linked to all incoming farmer rental bookings.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label={isTe ? 'మెషినరీ హబ్ / ఏజెన్సీ పేరు' : 'Machinery Hub / Agency Name'}
+                value={hubName}
+                onChange={(e) => setHubName(e.target.value)}
+                placeholder="e.g. Balaji Agro Custom Hiring Center"
+                leftIcon={<Truck className="w-4 h-4 text-slate-400" />}
+                className="bg-white dark:bg-slate-900 text-xs font-bold"
+              />
+              <Input
+                label={isTe ? 'డిస్పాచ్ మొబైల్ / వాట్సాప్ (రైతు బుకింగ్స్)' : 'Dispatch Contact Phone / WhatsApp'}
+                value={dispatchPhone}
+                onChange={(e) => {
+                  setDispatchPhone(e.target.value);
+                  if (!mobileNumber) setMobileNumber(e.target.value);
+                }}
+                placeholder="e.g. +91 9876543210"
+                leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
+                helperText={isTe ? 'ఈ నంబర్ ఆధారంగా రైతుల బుకింగ్‌లు మీ ప్రొవైడర్ ఖాతాకు వస్తాయి.' : 'Incoming farmer bookings link directly to this phone number.'}
+                className="bg-white dark:bg-slate-900 text-xs font-bold"
+              />
+              <Input
+                label={isTe ? 'చెల్లింపుల యూపీఐ ఐడీ (UPI ID)' : 'Payout UPI ID (Direct Bank Settlement)'}
+                value={payoutUpiId}
+                onChange={(e) => setPayoutUpiId(e.target.value)}
+                placeholder="e.g. balajihub@oksbi"
+                leftIcon={<DollarSign className="w-4 h-4 text-emerald-500" />}
+                helperText={isTe ? 'రైతుల అద్దె డిపాజిట్లు ఈ యూపీఐ ఖాతాకు జమ చేయబడతాయి.' : 'Direct settlement account for farmer rental payments.'}
+                className="bg-white dark:bg-slate-900 text-xs font-bold"
+              />
+              <Select
+                label={isTe ? 'సేవా పరిధి (కి.మీ)' : 'Service Coverage Radius'}
+                value={serviceRadiusKm}
+                onChange={(e) => setServiceRadiusKm(e.target.value)}
+                options={[
+                  { value: '10', label: '10 km (Local Village Radius)' },
+                  { value: '25', label: '25 km (Mandal / Taluka Range)' },
+                  { value: '50', label: '50 km (District Level)' },
+                  { value: '100', label: '100 km (Regional Fleet Dispatch)' }
+                ]}
+                className="text-xs font-bold text-slate-800 dark:text-white"
+              />
+              <div className="sm:col-span-2">
+                <Input
+                  label={isTe ? 'రోజువారీ పని వేళలు' : 'Operating Dispatch Hours'}
+                  value={operatingTimings}
+                  onChange={(e) => setOperatingTimings(e.target.value)}
+                  placeholder="e.g. 06:00 AM - 07:00 PM"
+                  leftIcon={<Clock className="w-4 h-4 text-slate-400" />}
+                  className="bg-white dark:bg-slate-900 text-xs font-bold"
+                />
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Personal Details */}
         <Card glass className="p-6 space-y-6 border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md">
           <div className="flex items-center gap-3 border-b border-slate-100 dark:border-white/5 pb-4">
@@ -543,7 +699,7 @@ const SettingsPage = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label={t('profile_page.form.full_name', 'Full Name')}
+              label={isEquipmentProvider ? (isTe ? 'ప్రొవైడర్ / యజమాని పూర్తి పేరు' : 'Provider / Owner Full Name') : t('profile_page.form.full_name', 'Full Name')}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required

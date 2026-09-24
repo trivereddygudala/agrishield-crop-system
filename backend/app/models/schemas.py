@@ -19,6 +19,9 @@ class UserBase(BaseModel):
     notification_settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
     color_theme: Optional[str] = Field(default="agrishield-default")
     navbar_theme: Optional[str] = Field(default="farmer-dynamic")
+    phone: Optional[str] = Field(default=None)
+    mobile: Optional[str] = Field(default=None)
+    provider_profile: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     @model_validator(mode='before')
     @classmethod
@@ -66,6 +69,9 @@ class ProfileUpdate(BaseModel):
     notification_settings: Optional[Dict[str, Any]] = None
     color_theme: Optional[str] = None
     navbar_theme: Optional[str] = None
+    phone: Optional[str] = None
+    mobile: Optional[str] = None
+    provider_profile: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(extra="ignore")
 
