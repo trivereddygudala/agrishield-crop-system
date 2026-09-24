@@ -2,6 +2,29 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v236) - Fixed Cross-Device Booking Synchronization & Dedicated Machinery Booking Review in Notifications
+- **Summary:** Resolved the cross-device booking synchronization issue between farmer and provider, and fixed the notification "See Full Review" button displaying disease diagnostics ("Healthy Foliage") for machinery booking alerts:
+  1. 🔄 **Multi-Device & Cross-Browser Real-Time Equipment Booking API ([`equipment.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/equipment.py) & [`main.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/main.py)):**
+     - **Root Cause of Picture 1 vs Picture 2:** Bookings were previously stored strictly in browser `localStorage`. Because `localStorage` is physically isolated to the device/browser, a booking made on a PC browser (#BK-84478 in Picture 1) was never transmitted to the provider's Android phone (Picture 2).
+     - **Backend Router Created:** Built `backend/app/routers/equipment.py` with endpoints:
+       * `GET /api/v1/equipment/bookings`: Multi-device fetch across MongoDB and persistent JSON disk cache.
+       * `POST /api/v1/equipment/bookings`: Immediate persistence of farmer bookings.
+       * `PATCH /api/v1/equipment/bookings/{id}/status`: Real-time status update for Accept/Reject/Complete.
+     - Registered `equipment.router` in `backend/app/main.py`.
+  2. 📱 **Frontend Multi-Device Real-Time Sync ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx) & [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - In `ProviderDashboardPage.jsx`: Added `fetchProviderBookings` querying the backend API on mount, on switching to the orders tab, and polling every 6 seconds. Added event listeners for `agrishield_bookings_updated` and `storage`.
+     - In `EquipmentBookingPage.jsx`: On booking confirmation, immediately posts to `/api/v1/equipment/bookings` and broadcasts `agrishield_bookings_updated`.
+     - In `NotificationsPage.jsx`: Synthesizes notifications from remote bookings so incoming orders trigger notifications on any logged-in provider phone.
+  3. 🚜 **Dedicated Machinery Booking Voucher & Order Review Screen ([`GoogleMessageReader.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/common/GoogleMessageReader.jsx)):**
+     - **Root Cause of Picture 3 vs Picture 4:** In `GoogleMessageReader.jsx`, the "See Full Review" button unconditionally opened the plant disease diagnostic screen. Because booking alerts had no disease name, `getDiseaseDetails` defaulted to "Healthy Foliage" with fungicide/insecticide advice.
+     - **Dedicated Booking Review Screen:** Implemented mode branching:
+       * When `isBooking` is true: Renders the **Machinery Booking Voucher & Order Status** dashboard with Booking ID, Status badge (Pending / Confirmed / Completed / Declined), Equipment details, Farmer contact info, Field stage, Operation, Date, Time Slot, and Rental Amount.
+       * Added direct action buttons inside the full review screen: `[ 📞 Call Farmer ]`, `[ 💬 WhatsApp ]`, `[ ✓ Accept Booking ]`, `[ ✕ Decline ]`, and `[ 🚜 Open Provider Fleet Hub ]`.
+       * When `isDisease` is true: Renders the plant disease diagnostic review with pathology and chemical/organic treatments.
+     - Updated bottom action bar text and icon: `[ 🚜 See Booking Voucher & Order Status ]`.
+  4. 🧪 **Verified Production Build:**
+     - Compiled with `npm run build` (3,168 modules transformed and built cleanly with 0 errors in 30.47s).
+
 ## 2026-09-24 (v235) - Replaced Target Crop with Dynamic Field Condition & Added Provider-Specific Agricultural Operations
 - **Summary:** Fulfilled the user requirement in the machinery booking modal for farmers:
   1. 🌾 **Replaced Static "Target Crop" with Comprehensive Field Land Status ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**

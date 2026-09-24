@@ -117,7 +117,7 @@ app.add_middleware(
 # Serve uploads folder statically
 app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
-from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support
+from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment
 
 # 1. Include legacy routers for frontend backwards compatibility
 app.include_router(auth.router)
@@ -135,6 +135,7 @@ app.include_router(intelligence.router)
 app.include_router(firmware.router)
 app.include_router(market.router)
 app.include_router(support.router)
+app.include_router(equipment.router)
 
 # 3. Dynamic V1 Router construction mapping legacy routers to v1 paths
 v1_router = APIRouter(prefix="/api/v1")

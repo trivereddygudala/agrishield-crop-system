@@ -107,7 +107,17 @@ export default function NotificationsPage() {
       // If equipment provider, synthesize notifications from recorded machinery bookings
       if (isEquipmentProvider) {
         try {
-          const bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
+          let bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
+          try {
+            const bRes = await API.get('/api/v1/equipment/bookings');
+            if (bRes.data?.bookings && Array.isArray(bRes.data.bookings)) {
+              const bMap = new Map();
+              bRes.data.bookings.forEach(b => { if (b && b.id) bMap.set(b.id, b); });
+              bookings.forEach(b => { if (b && b.id && !bMap.has(b.id)) bMap.set(b.id, b); });
+              bookings = Array.from(bMap.values());
+            }
+          } catch (e) {}
+
           if (Array.isArray(bookings)) {
             bookings.forEach((b) => {
               const bId = b.id || `BK-${Math.floor(10000 + Math.random() * 90000)}`;

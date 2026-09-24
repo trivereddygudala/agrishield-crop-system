@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useFarm } from '../context/FarmContext';
 import { useAuth } from '../context/AuthContext';
+import API from '../services/api';
 import {
   INDIA_STATES,
   getDistricts,
@@ -249,6 +250,30 @@ export default function EquipmentBookingPage() {
       localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(myBookings));
     } catch (e) {}
   }, [myBookings]);
+
+  // Fetch remote bookings from backend for multi-device sync
+  useEffect(() => {
+    const fetchRemoteBookings = async () => {
+      try {
+        const res = await API.get('/api/v1/equipment/bookings');
+        if (res.data?.bookings && Array.isArray(res.data.bookings)) {
+          setMyBookings(prev => {
+            const existingIds = new Set(prev.map(b => b.id));
+            const newItems = res.data.bookings.filter(b => b && b.id && !existingIds.has(b.id));
+            if (newItems.length > 0) {
+              const merged = [...newItems, ...prev];
+              try {
+                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
+              } catch (e) {}
+              return merged;
+            }
+            return prev;
+          });
+        }
+      } catch (err) {}
+    };
+    fetchRemoteBookings();
+  }, []);
 
   // Derived cascading dropdowns for Location Switcher Modal
   const availableDistricts = useMemo(() => getDistricts(locationState), [locationState]);
@@ -1009,6 +1034,15 @@ export default function EquipmentBookingPage() {
             onClose={() => setIsBookModalOpen(false)}
             onConfirm={(newBooking) => {
               setMyBookings((prev) => [newBooking, ...prev]);
+              try {
+                const existing = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
+                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify([newBooking, ...existing.filter(b => b.id !== newBooking.id)]));
+                window.dispatchEvent(new Event('agrishield_bookings_updated'));
+              } catch (e) {}
+              // Dispatch to backend API for multi-device cross-browser persistence
+              API.post('/api/v1/equipment/bookings', newBooking).catch(err => {
+                console.warn('Backend booking sync notice:', err);
+              });
               setIsBookModalOpen(false);
               setActiveTab('bookings');
             }}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -216,7 +216,7 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
   }, [fleetList]);
 
-  // ── Incoming Farmer Bookings State ──
+  // ── Incoming Farmer Bookings State (Multi-Device & Cross-Browser Real-Time Sync) ──
   const [bookingsList, setBookingsList] = useState(() => {
     try {
       const saved = localStorage.getItem('agrishield_equipment_bookings');
@@ -228,9 +228,59 @@ export default function ProviderDashboardPage() {
     return [];
   });
 
+  const fetchProviderBookings = useCallback(async () => {
+    try {
+      let local = [];
+      try {
+        const saved = localStorage.getItem('agrishield_equipment_bookings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) local = parsed;
+        }
+      } catch (e) {}
+
+      // Fetch from backend API to pick up bookings made on PC / other phones
+      try {
+        const res = await API.get('/api/v1/equipment/bookings');
+        if (res.data?.bookings && Array.isArray(res.data.bookings)) {
+          const remote = res.data.bookings;
+          const mergedMap = new Map();
+          remote.forEach(b => { if (b && b.id) mergedMap.set(b.id, b); });
+          local.forEach(b => {
+            if (b && b.id) {
+              if (!mergedMap.has(b.id)) {
+                mergedMap.set(b.id, b);
+              } else {
+                const existing = mergedMap.get(b.id);
+                mergedMap.set(b.id, { ...existing, ...b });
+              }
+            }
+          });
+          const merged = Array.from(mergedMap.values());
+          setBookingsList(merged);
+          localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
+          return;
+        }
+      } catch (err) {}
+
+      if (local.length > 0) {
+        setBookingsList(local);
+      }
+    } catch (e) {}
+  }, []);
+
+  // Poll backend & listen to window/storage updates
   useEffect(() => {
-    localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(bookingsList));
-  }, [bookingsList]);
+    fetchProviderBookings();
+    const interval = setInterval(fetchProviderBookings, 6000); // 6s fast multi-device sync
+    window.addEventListener('agrishield_bookings_updated', fetchProviderBookings);
+    window.addEventListener('storage', fetchProviderBookings);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('agrishield_bookings_updated', fetchProviderBookings);
+      window.removeEventListener('storage', fetchProviderBookings);
+    };
+  }, [fetchProviderBookings]);
 
   // Add Equipment Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -359,6 +409,11 @@ export default function ProviderDashboardPage() {
       localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
       window.dispatchEvent(new Event('agrishield_bookings_updated'));
     } catch (e) {}
+
+    // Dispatch status update to backend API for multi-device cross-browser persistence
+    API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }).catch(err => {
+      console.warn('Backend status patch notice:', err);
+    });
 
     // Dispatch real-time farmer notification for Accept/Reject/Complete
     if (targetBooking) {
