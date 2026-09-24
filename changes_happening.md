@@ -2,6 +2,25 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v222) - Eliminated Raw Asterisks, Stripped Bracketed English TTS Clutter & Mobile Screen Fit for AgriShield Live
+- **Summary:** Resolved the voice assistant speech synthesis issue where non-English text read out only bracketed English words, removed ugly raw markdown `**` asterisks from chat bubbles, and made the modal 100% responsive and screen-fitted on mobile devices without header truncation:
+  1. 🗣️ **Fixed "Only English Words Read Out" TTS Bug (`speechSanitizer.js` & `VoiceCropDoctorModal.jsx`):**
+     - **Root Cause:** When the LLM generated responses with parenthetical English translations (e.g. `(Verdict)`, `(Not Safe to Spray)`, `(Live Satellite Data)`, `(Light rain)`), Windows/browsers without a native Telugu TTS voice fell back to the default English voice (Microsoft David). The English voice skipped non-Latin Telugu script and spoke *only* the English words inside parentheses!
+     - **Fix:** In `speechSanitizer.js`, any parenthetical/bracketed English text is stripped completely for regional languages (`te`, `hi`, `ta`, `kn`, `or`).
+     - **Voice Loader:** Updated `VoiceCropDoctorModal.jsx` to dynamically load voices on `onvoiceschanged`, matching exact BCP-47 codes, language prefixes, and Indian/regional cloud voice names (e.g. `Mohan`, `Shruti`, `Swara`, `Pallavi`, `Gagan`).
+  2. ✨ **Cleaned Raw Markdown Asterisks `**` (`cleanChatBubbleText` in `speechSanitizer.js`):**
+     - Excised raw markdown asterisks `**` and orphaned symbols from conversational chat bubbles.
+     - Stripped bracketed English terms in regional mode so farmers read clean, natural prose in their native script without confusing programmer characters.
+  3. 📱 **Mobile Screen Fit & Zero Truncation Header (`VoiceCropDoctorModal.jsx`):**
+     - **Eliminated Title Cut-Off (`AgriShiel...`):** Reorganized the header into a responsive layout where the title and `Live Assistant` badge remain fully visible with `whitespace-nowrap`, while the 6 regional language buttons adapt into a scrollable horizontal pill bar.
+     - **Full-Screen Mobile Fit:** On mobile viewports (`<sm`), the modal expands edge-to-edge (`w-full h-full rounded-none`), eliminating awkward margins, clipped dialogs, or keyboard overflow. On desktop (`sm:`), it retains its centered rounded dialog format.
+     - **Optimized Vertical Space:** Streamlined the visualizer orb padding so conversational chat messages have ample screen space.
+  4. 🤖 **Backend Prompt Enforcement (`nvidia_service.py`):**
+     - Explicitly forbade the LLM from adding English translations in parentheses/brackets for common terms, headings, verdicts, or weather conditions in regional languages.
+  5. 🧪 **Full Production Build Verification:**
+     - `npm run build` compiled 3,158 modules cleanly in 49.22s with 0 errors.
+- **Files modified:** `backend/app/services/nvidia_service.py`, `frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`, `frontend/src/utils/speechSanitizer.js`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-24 (v221) - 1-Tap District / Regional Macro Heatmap & Parcel Dual-Scope Switcher in Satellite NDVI Viewer
 - **Summary:** Engineered the dual-scope Satellite NDVI Heatmap system allowing farmers to seamlessly switch between their micro farm parcel and the entire district/regional macro vegetation heatmap with a single tap:
   1. 🗺️ **1-Tap Dual-Scope Switcher (`SatelliteNDVIViewer.jsx`):**

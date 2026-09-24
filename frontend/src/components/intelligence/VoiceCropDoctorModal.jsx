@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFarm } from '../../context/FarmContext';
-import { sanitizeTextForSpeech } from '../../utils/speechSanitizer';
+import { sanitizeTextForSpeech, cleanChatBubbleText } from '../../utils/speechSanitizer';
 import API from '../../services/api';
 
 // 6 Official Supported Regional Languages for AgriShield Live
@@ -42,6 +42,7 @@ export const VoiceCropDoctorModal = ({
   const [textInput, setTextInput] = useState('');
   const [conversation, setConversation] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState([]);
 
   const recognitionRef = useRef(null);
   const synthRef = useRef(typeof window !== 'undefined' ? window.speechSynthesis : null);
@@ -92,7 +93,7 @@ export const VoiceCropDoctorModal = ({
     ]
   };
 
-  // Human-like Greetings in All 6 Languages
+  // Human-like Greetings in All 6 Languages (Clean sentences, zero brackets)
   const GREETINGS = {
     te: `నమస్కారం! నేను మీ అగ్రిషీల్డ్ లైవ్ వ్యవసాయ AI సహాయకుడిని. ${farmLocation} లో మీ ${currentCrop} పంట సాగు, నేటి వాతావరణం, ప్రభుత్వ పథకాలు లేదా మార్కెట్ ధరల గురించి నాతో నేరుగా మాట్లాడండి.`,
     en: `Hello! I am your AgriShield Live Smart Farm Assistant. Feel free to talk to me about your ${currentCrop} crop, today's weather in ${farmLocation}, government schemes, or Mandi market prices.`,
@@ -101,6 +102,21 @@ export const VoiceCropDoctorModal = ({
     kn: `ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ಅಗ್ರಿಶೀಲ್ಡ್ ಲೈವ್ ಕೃಷಿ AI ಸಹಾಯಕ. ${farmLocation} ನಲ್ಲಿ ನಿಮ್ಮ ${currentCrop} ಬೆಳೆ, ಇಂದಿನ ಹವಾಮಾನ, ಸರ್ಕಾರಿ ಸಬ್ಸಿಡಿ ಅಥವಾ ಮಂಡಿ ದರಗಳ ಬಗ್ಗೆ ನೇರವಾಗಿ ಮಾತನಾಡಿ.`,
     or: `ନମସ୍କାର! ମୁଁ ଆପଣଙ୍କ ଏଗ୍ରିଶିଲ୍ଡ ଲାଇଭ୍ କୃଷି AI ସହାୟକ। ${farmLocation} ରେ ଆପଣଙ୍କ ${currentCrop} ଫସଲ, ଆଜିର ପାଗ, ସରକାରୀ ଯୋଜନା ବା ମଣ୍ଡି ଦର ବିଷୟରେ ପଚାରନ୍ତୁ।`
   };
+
+  // Populate and listen for available system TTS voices
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const updateVoices = () => {
+      try {
+        const v = window.speechSynthesis.getVoices();
+        if (v && v.length > 0) setAvailableVoices(v);
+      } catch {}
+    };
+    updateVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+  }, []);
 
   // Speech-to-Text Setup with continuous listening
   const startSpeechRecognition = useCallback(() => {
@@ -191,12 +207,14 @@ export const VoiceCropDoctorModal = ({
     }
   };
 
-  // High-Precision Speech Synthesis (Never reads UI timestamps, labels, brackets, or symbols)
+  // High-Precision Multi-Language Speech Synthesis
+  // - Never reads UI timestamps, labels, brackets, or isolated English words
+  // - Adapts to best regional voice or smooth natural cadence
   const speakAnswer = useCallback((text, lang) => {
     if (!synthRef.current) return;
     synthRef.current.cancel();
 
-    // Sanitize completely: strips brackets, stars, commas, timestamps, symbols, emojis
+    // Sanitize completely: strips bracketed English words, asterisks, commas, timestamps, symbols, emojis
     const cleanSpeech = sanitizeTextForSpeech(text, lang);
     if (!cleanSpeech) return;
 
@@ -208,12 +226,43 @@ export const VoiceCropDoctorModal = ({
     utterance.lang = langConfig.bcp;
 
     // Pick best native voice matching the language
-    const voices = synthRef.current.getVoices();
-    let matchingVoice = voices.find(v => v.lang && (v.lang === langConfig.bcp || v.lang.replace('_', '-').startsWith(lang)));
-    if (!matchingVoice && lang === 'or') {
-      // Fallback for Odia voice
-      matchingVoice = voices.find(v => v.lang && (v.lang.startsWith('hi') || v.lang.startsWith('bn') || v.lang.startsWith('en')));
+    const synth = synthRef.current || window.speechSynthesis;
+    const voices = availableVoices.length > 0 ? availableVoices : (synth ? synth.getVoices() : []);
+    
+    let matchingVoice = null;
+    const targetBcp = langConfig.bcp.toLowerCase();
+    const targetCode = lang.toLowerCase();
+
+    // 1. Exact BCP-47 match (e.g. "te-IN", "hi-IN", "ta-IN")
+    matchingVoice = voices.find(v => v.lang && v.lang.toLowerCase() === targetBcp);
+
+    // 2. Starts with primary code (e.g. "te", "hi", "ta", "kn")
+    if (!matchingVoice) {
+      matchingVoice = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith(targetCode));
     }
+
+    // 3. Match native Microsoft / Google Cloud regional voice names
+    if (!matchingVoice) {
+      const nameKeywords = {
+        te: ['telugu', 'mohan', 'shruti'],
+        hi: ['hindi', 'swara', 'madhur', 'kalpana', 'hemant'],
+        ta: ['tamil', 'pallavi', 'valluvar'],
+        kn: ['kannada', 'gagan', 'sapna'],
+        or: ['odia', 'oriya'],
+        en: ['india', 'ravi', 'heera', 'neerja', 'english']
+      };
+      const kws = nameKeywords[targetCode] || [];
+      matchingVoice = voices.find(v => {
+        const vName = (v.name || '').toLowerCase();
+        return kws.some(k => vName.includes(k));
+      });
+    }
+
+    // 4. Fallback to an Indian English or local Indian voice if no regional voice is installed
+    if (!matchingVoice && targetCode !== 'en') {
+      matchingVoice = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || (v.name || '').toLowerCase().includes('india')));
+    }
+
     if (matchingVoice) utterance.voice = matchingVoice;
 
     utterance.onstart = () => setIsSpeaking(true);
@@ -221,7 +270,7 @@ export const VoiceCropDoctorModal = ({
     utterance.onerror = () => setIsSpeaking(false);
 
     synthRef.current.speak(utterance);
-  }, []);
+  }, [availableVoices]);
 
   const stopSpeaking = useCallback(() => {
     if (synthRef.current) {
@@ -309,7 +358,7 @@ export const VoiceCropDoctorModal = ({
       console.warn("Backend chat unavailable, using local high-precision engine:", err);
     }
 
-    // 2. High-Precision Conversational Engine (Zero timestamps or robotic ranges in speech!)
+    // 2. High-Precision Conversational Engine (Zero timestamps or bracketed English clutter)
     const q = text.toLowerCase();
     const l = selectedLang;
     let reply = '';
@@ -393,52 +442,64 @@ export const VoiceCropDoctorModal = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-xl">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-xl">
         <motion.div
-          initial={{ opacity: 0, scale: 0.94, y: 15 }}
+          initial={{ opacity: 0, scale: 0.96, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.94, y: 15 }}
+          exit={{ opacity: 0, scale: 0.96, y: 10 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="w-full max-w-2xl bg-[#070d15] border border-emerald-500/35 rounded-3xl shadow-2xl shadow-black overflow-hidden flex flex-col max-h-[94vh] relative"
+          className="w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-2xl bg-[#070d15] sm:border sm:border-emerald-500/35 sm:rounded-3xl rounded-none shadow-2xl shadow-black overflow-hidden flex flex-col relative"
         >
           {/* Subtle Radial Glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-gradient-to-b from-emerald-500/20 via-teal-500/10 to-transparent blur-3xl pointer-events-none -z-0" />
 
-          {/* AgriShield Live Header */}
-          <div className="p-3.5 sm:p-4 bg-white/[0.02] border-b border-white/10 flex items-center justify-between relative z-10 gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="relative shrink-0">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-400 p-[1.5px] shadow-lg shadow-emerald-500/20">
-                  <div className="w-full h-full rounded-2xl bg-[#070d15] flex items-center justify-center text-emerald-400">
-                    <Sparkles className="w-4 h-4 animate-pulse" />
+          {/* AgriShield Live Header (Fully Responsive on Mobile & Desktop) */}
+          <div className="p-3 sm:p-4 bg-white/[0.02] border-b border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between relative z-10 gap-2.5">
+            <div className="flex items-center justify-between min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="relative shrink-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-emerald-400 p-[1.5px] shadow-lg shadow-emerald-500/20">
+                    <div className="w-full h-full rounded-2xl bg-[#070d15] flex items-center justify-center text-emerald-400">
+                      <Sparkles className="w-4 h-4 animate-pulse" />
+                    </div>
                   </div>
+                  {(isListening || isSpeaking) && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                    </span>
+                  )}
                 </div>
-                {(isListening || isSpeaking) && (
-                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                  </span>
-                )}
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-sm sm:text-base font-black text-white whitespace-nowrap" style={{ fontFamily: 'var(--font-display)' }}>
+                      AgriShield Live
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[9px] sm:text-[10px] font-black text-emerald-300 uppercase tracking-wider shrink-0">
+                      Live Assistant
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-[11px] text-white/50 truncate">
+                    {currentCrop} · {farmLocation}
+                  </p>
+                </div>
               </div>
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-black text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>
-                    AgriShield Live
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-black text-emerald-300 uppercase tracking-wider shrink-0">
-                    Live Assistant
-                  </span>
-                </div>
-                <p className="text-[11px] text-white/50 truncate">
-                  {currentCrop} · {farmLocation}
-                </p>
-              </div>
+              {/* Mobile Close Button */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="sm:hidden p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {/* 6 Regional Language Switcher */}
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 text-xs overflow-x-auto max-w-[190px] sm:max-w-none no-scrollbar">
+            <div className="flex items-center gap-1.5 justify-between sm:justify-end">
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/10 text-xs overflow-x-auto w-full sm:w-auto no-scrollbar">
                 {SUPPORTED_LANGUAGES.map(lang => (
                   <button
                     key={lang.code}
@@ -448,10 +509,10 @@ export const VoiceCropDoctorModal = ({
                       stopSpeaking();
                       stopListening();
                     }}
-                    className={`px-2 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer whitespace-nowrap ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                       selectedLang === lang.code
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-white/60 hover:text-white'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40'
+                        : 'text-white/60 hover:text-white hover:bg-white/[0.04]'
                     }`}
                   >
                     {lang.label}
@@ -459,10 +520,11 @@ export const VoiceCropDoctorModal = ({
                 ))}
               </div>
 
+              {/* Desktop Close Button */}
               <button
                 type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0 ml-1"
+                className="hidden sm:flex p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -470,37 +532,43 @@ export const VoiceCropDoctorModal = ({
             </div>
           </div>
 
-          {/* Central Live Glowing Orb */}
-          <div className="p-4 sm:p-5 flex flex-col items-center justify-center bg-gradient-to-b from-white/[0.015] to-transparent relative z-10">
+          {/* Central Conversational Visualizer / Glowing Orb Section */}
+          <div className="py-3 sm:py-5 px-4 flex flex-col items-center justify-center relative z-10 border-b border-white/5 bg-black/20">
             <div className="relative flex items-center justify-center">
-              {/* Concentric sound wave pulses */}
-              {isSpeaking && (
-                <>
-                  <motion.div
-                    animate={{ scale: [1, 1.45, 1.8], opacity: [0.6, 0.25, 0] }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "easeOut" }}
-                    className="absolute w-24 h-24 rounded-full border-2 border-emerald-400/60 pointer-events-none"
-                  />
-                  <motion.div
-                    animate={{ scale: [1, 1.3, 1.6], opacity: [0.5, 0.2, 0] }}
-                    transition={{ repeat: Infinity, duration: 2, delay: 0.6, ease: "easeOut" }}
-                    className="absolute w-24 h-24 rounded-full border border-teal-400/50 pointer-events-none"
-                  />
-                </>
-              )}
+              {/* Outer pulsing ring */}
+              <motion.div
+                animate={{
+                  scale: isListening ? [1, 1.35, 1] : isSpeaking ? [1, 1.25, 1] : [1, 1.08, 1],
+                  opacity: isListening ? [0.4, 0.9, 0.4] : isSpeaking ? [0.4, 0.8, 0.4] : [0.2, 0.4, 0.2]
+                }}
+                transition={{ repeat: Infinity, duration: isListening ? 1.4 : isSpeaking ? 1.8 : 2.8, ease: "easeInOut" }}
+                className={`absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full ${
+                  isListening ? 'bg-rose-500/25' : 'bg-emerald-500/25'
+                } blur-xl`}
+              />
 
-              {/* Glowing Orb */}
+              {/* Middle acoustic wave ring */}
+              <motion.div
+                animate={{
+                  scale: isSpeaking ? [1, 1.18, 1] : [1, 1.04, 1],
+                  rotate: [0, 180, 360]
+                }}
+                transition={{ repeat: Infinity, duration: isSpeaking ? 2.5 : 8, ease: "linear" }}
+                className="absolute w-20 h-20 sm:w-24 sm:h-24 rounded-full border border-emerald-400/30 border-dashed"
+              />
+
+              {/* Interactive Orb Button */}
               <motion.div
                 animate={
-                  isSpeaking
-                    ? { scale: [1, 1.1, 0.98, 1.06, 1], rotate: [0, 90, 180, 270, 360] }
-                    : isListening
-                    ? { scale: [1, 1.06, 1], rotate: [0, 30, 0] }
-                    : { scale: 1 }
+                  isListening
+                    ? { scale: [1, 1.08, 1] }
+                    : isSpeaking
+                    ? { scale: [1, 1.05, 1] }
+                    : { scale: [1, 1.02, 1] }
                 }
                 transition={{ repeat: Infinity, duration: isSpeaking ? 4 : 3, ease: "easeInOut" }}
                 onClick={toggleListening}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full cursor-pointer relative flex items-center justify-center shadow-2xl transition-all active:scale-95 group"
+                className="w-18 h-18 sm:w-22 sm:h-22 rounded-full cursor-pointer relative flex items-center justify-center shadow-2xl transition-all active:scale-95 group"
                 style={{
                   background: isListening
                     ? 'radial-gradient(circle at 35% 35%, #f43f5e 0%, #e11d48 40%, #881337 100%)'
@@ -510,25 +578,25 @@ export const VoiceCropDoctorModal = ({
                     : '0 0 45px rgba(16,185,129,0.45)'
                 }}
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center text-white">
                   {isListening ? (
-                    <Mic className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse text-white" />
+                    <Mic className="w-5 h-5 animate-pulse text-white" />
                   ) : isSpeaking ? (
-                    <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-bounce" />
+                    <Volume2 className="w-5 h-5 text-white animate-bounce" />
                   ) : (
-                    <Mic className="w-5 h-5 sm:w-6 sm:h-6 text-white/90 group-hover:scale-110 transition-transform" />
+                    <Mic className="w-5 h-5 text-white/90 group-hover:scale-110 transition-transform" />
                   )}
                 </div>
               </motion.div>
             </div>
 
             {/* Live Audio State Caption */}
-            <div className="mt-3 text-center">
+            <div className="mt-2 text-center">
               <span className="text-xs font-bold text-white/90 block">
                 {isListening 
                   ? (selectedLang === 'te' ? '🎙️ వింటున్నాను... మాట్లాడండి' : selectedLang === 'hi' ? '🎙️ सुन रहा हूँ... बोलिए' : selectedLang === 'ta' ? '🎙️ கேட்கிறேன்... பேசுங்கள்' : selectedLang === 'kn' ? '🎙️ ಕೇಳುತ್ತಿದ್ದೇನೆ... ಮಾತನಾಡಿ' : selectedLang === 'or' ? '🎙️ ଶୁଣୁଛି... କୁହନ୍ତୁ' : '🎙️ Listening to you... Speak freely')
                   : isSpeaking
-                  ? (selectedLang === 'te' ? '🔊 అగ్రిషీల్డ్ లైవ్ సమాధానం చెబుతున్నారు...' : selectedLang === 'hi' ? '🔊 एग्रीशील्ड लाइव बोल रहा है...' : selectedLang === 'ta' ? '🔊 அக்ரிஷீல்ட் லைவ் பேசுகிறது...' : selectedLang === 'kn' ? '🔊 ಅಗ್ರಿಶೀಲ್ಡ್ ಲೈವ್ ಮಾತನಾಡುತ್ತಿದೆ...' : selectedLang === 'or' ? '🔊 ଏଗ୍ରିଶିଲ୍ଡ ଲାଇଭ୍ ଉତ୍ତର ଦେଉଛି...' : '🔊 AgriShield Live speaking...')
+                  ? (selectedLang === 'te' ? '🔊 అగ్రిషీల్డ్ లైవ్ మాట్లాడుతున్నారు...' : selectedLang === 'hi' ? '🔊 एग्रीशील्ड लाइव बोल रहा है...' : selectedLang === 'ta' ? '🔊 அக்ரிஷீல்ட் லைவ் பேசுகிறது...' : selectedLang === 'kn' ? '🔊 ಅಗ್ರಿಶೀಲ್ಡ್ ಲೈವ್ ಮಾತನಾಡುತ್ತಿದೆ...' : selectedLang === 'or' ? '🔊 ଏଗ୍ରିଶିଲ୍ଡ ଲାଇଭ୍ ଉତ୍ତର ଦେଉଛି...' : '🔊 AgriShield Live speaking...')
                   : (selectedLang === 'te' ? 'మైక్ నొక్కి మాట్లాడండి' : selectedLang === 'hi' ? 'माइक दबाकर बात करें' : selectedLang === 'ta' ? 'மைக் தொட்டு பேசவும்' : selectedLang === 'kn' ? 'ಮೈಕ್ ಒತ್ತಿ ಮಾತನಾಡಿ' : selectedLang === 'or' ? 'ମାଇକ୍ ଛୁଇଁ କଥାବାର୍ତ୍ତା କରନ୍ତୁ' : 'Tap orb to start talking')}
               </span>
               <span className="text-[10px] text-emerald-400/80 font-medium block mt-0.5">
@@ -540,7 +608,7 @@ export const VoiceCropDoctorModal = ({
           {/* Conversation Stream Scroll Area */}
           <div 
             ref={chatScrollRef}
-            className="flex-1 overflow-y-auto px-4 py-3 sm:p-5 space-y-3 bg-black/25 no-scrollbar"
+            className="flex-1 overflow-y-auto px-3.5 sm:px-5 py-3 space-y-3 bg-black/25 no-scrollbar"
           >
             {conversation.map((msg, idx) => {
               const isAssistant = msg.sender === 'assistant';
@@ -555,12 +623,15 @@ export const VoiceCropDoctorModal = ({
                     </div>
                   )}
 
-                  <div className={`max-w-[88%] sm:max-w-[80%] rounded-2xl p-3 text-xs sm:text-sm leading-relaxed shadow-md ${
+                  <div className={`max-w-[88%] sm:max-w-[82%] rounded-2xl p-3 text-xs sm:text-sm leading-relaxed shadow-md ${
                     isAssistant 
                       ? 'bg-white/[0.04] border border-white/10 text-white/95'
                       : 'bg-emerald-600 text-white font-medium'
                   }`}>
-                    <p className="whitespace-pre-line">{msg.text}</p>
+                    {/* Cleaned conversational text without raw asterisks or bracket clutter */}
+                    <p className="whitespace-pre-line leading-relaxed">
+                      {isAssistant ? cleanChatBubbleText(msg.text, selectedLang) : msg.text}
+                    </p>
                     {isAssistant && (
                       <div className="mt-1.5 flex items-center justify-end border-t border-white/5 pt-1">
                         <button
@@ -608,7 +679,7 @@ export const VoiceCropDoctorModal = ({
             <button
               type="button"
               onClick={toggleListening}
-              className={`p-2.5 sm:p-3 rounded-2xl font-bold flex items-center justify-center transition-all cursor-pointer ${
+              className={`p-2.5 sm:p-3 rounded-2xl font-bold flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                 isListening
                   ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-950 scale-105'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950'
@@ -618,7 +689,7 @@ export const VoiceCropDoctorModal = ({
               {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
 
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-w-0">
               <input
                 type="text"
                 value={textInput}
@@ -645,7 +716,7 @@ export const VoiceCropDoctorModal = ({
               type="button"
               onClick={() => handleSend()}
               disabled={!textInput.trim()}
-              className="p-2.5 sm:p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white transition-all cursor-pointer active:scale-95"
+              className="p-2.5 sm:p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white transition-all cursor-pointer active:scale-95 shrink-0"
             >
               <Send className="w-4 h-4" />
             </button>

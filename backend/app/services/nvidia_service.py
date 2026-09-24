@@ -1431,7 +1431,8 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                     f"- The user's chosen interface language is: {lang_name} ({native_name}).\n"
                     f"- You MUST generate your ENTIRE response 100% in {lang_name} script ({native_name}).\n"
                     f"- DO NOT write your response in English. Writing in English is a severe failure.\n"
-                    f"- You may keep technical brand names, chemical formulas, or scientific disease names in English brackets (e.g., 'ఇర్లీ బ్లైట్ (Early Blight)'), but the entire explanation, dosage, greetings, headings, and field instructions MUST be written in {lang_name} ({native_name}).\n"
+                    f"- DO NOT include English words in parentheses or brackets for common terms, headings, verdicts, or weather (ABSOLUTELY FORBIDDEN to write 'తీర్పు (Verdict)', 'సురక్షితం కాదు (Not Safe to Spray)', 'వాతావరణ కారణాలు (Weather Reasons)', 'తేమ (Humidity)'). Write pure, natural, fluent sentences in {lang_name} ({native_name}) without English bracket clutter so farmers and Text-to-Speech voice assistants can speak it naturally without stumbling.\n"
+                    f"- In conversational mode, keep responses natural, direct, and free of unnecessary markdown clutter.\n"
                     f"=======================================================\n"
                 )
 

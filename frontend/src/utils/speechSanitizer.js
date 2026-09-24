@@ -1,18 +1,22 @@
 /**
  * speechSanitizer.js
  * 
- * High-Precision Multi-Language Speech Sanitizer for AgriShield Live.
+ * High-Precision Multi-Language Speech Sanitizer & Chat Formatter for AgriShield Live.
  * 
  * Supports: Telugu (te), English (en), Hindi (hi), Tamil (ta), Kannada (kn), Odia (or).
  * 
  * Ensures natural, human-like voice synthesis:
  * - Strips all brackets, parentheses, colons, hyphens, asterisks, hashtags, emojis.
- * - Strips any UI timestamps (e.g. "09:43 AM", "10:15 PM") so the assistant never recites times.
+ * - Strips parenthetical English translations in regional languages so voices never recite English fragments.
+ * - Strips UI timestamps (e.g. "09:43 AM", "10:15 PM") so the assistant never recites times.
  * - Normalizes agricultural units into native spoken words (16L -> 16 liter pump, etc.).
  * - Normalizes temperatures (29°C -> 29 degrees).
  * - Leaves natural sentence breathing pauses so the voice sounds conversational and human.
  */
 
+/**
+ * Sanitize text specifically for browser SpeechSynthesis / TTS audio readout
+ */
 export function sanitizeTextForSpeech(text, lang = 'en') {
   if (!text || typeof text !== 'string') return '';
 
@@ -34,7 +38,15 @@ export function sanitizeTextForSpeech(text, lang = 'en') {
   // 4. Strip UI control words if accidentally caught
   s = s.replace(/\b(Listen|Assistant speaking|Live Assistant|AgriShield Live)\b/gi, ' ');
 
-  // 5. Temperature normalization (°C / °)
+  // 5. If regional language (te, hi, ta, kn, or), STRIP bracketed English translations
+  // e.g. "(Verdict)", "(Not Safe to Spray)", "(Weather Reasons)", "(Light rain)"
+  // This prevents an English or mixed voice from reading out ONLY the English words!
+  if (l !== 'en') {
+    s = s.replace(/\s*\([A-Za-z0-9\s.,'/%:+-]+\)/g, ' ');
+    s = s.replace(/\s*\[[A-Za-z0-9\s.,'/%:+-]+\]/g, ' ');
+  }
+
+  // 6. Temperature normalization (°C / °)
   if (l === 'te') {
     s = s.replace(/(\d+)\s*°\s*C?/gi, '$1 డిగ్రీల ఉష్ణోగ్రత');
   } else if (l === 'hi') {
@@ -49,7 +61,7 @@ export function sanitizeTextForSpeech(text, lang = 'en') {
     s = s.replace(/(\d+)\s*°\s*C?/gi, '$1 degrees Celsius');
   }
 
-  // 6. Agricultural unit expansions across all 6 regional languages
+  // 7. Agricultural unit expansions across all 6 regional languages
   if (l === 'te') {
     s = s.replace(/(\d+)\s*g(?:rams?)?\s*\/\s*L(?:iter)?/gi, '$1 గ్రాములు లీటరుకు');
     s = s.replace(/(\d+)\s*ml\s*\/\s*L(?:iter)?/gi, '$1 మిల్లీలీటర్లు లీటరుకు');
@@ -94,7 +106,7 @@ export function sanitizeTextForSpeech(text, lang = 'en') {
     s = s.replace(/(\d+)\s*%/g, '$1 percent');
   }
 
-  // 7. Strip markdown formatting: headers, bold, italics, strikethrough
+  // 8. Strip markdown formatting: headers, bold, italics, strikethrough
   s = s.replace(/^#{1,6}\s+/gm, ''); // # H1, ## H2
   s = s.replace(/\*\*([^*]+)\*\*/g, '$1'); // **bold**
   s = s.replace(/\*([^*]+)\*/g, '$1'); // *italic*
@@ -102,38 +114,78 @@ export function sanitizeTextForSpeech(text, lang = 'en') {
   s = s.replace(/_([^_]+)_/g, '$1'); // _italic_
   s = s.replace(/~~([^~]+)~~/g, '$1'); // ~~strikethrough~~
 
-  // 8. Strip all emojis and pictographs
+  // Remove any remaining raw asterisks so the voice never pronounces "star" or "asterisk"
+  s = s.replace(/\*+/g, '');
+
+  // 9. Strip all emojis and pictographs
   try {
     s = s.replace(/\p{Extended_Pictographic}/gu, ' ');
   } catch {
     s = s.replace(/[\uD83C-\uDBFF\uDC00-\uDFFF]+/g, ' ');
   }
 
-  // 9. Strip all brackets, parentheses, braces, chevrons
-  // (Prevents voice from pronouncing "bracket", "open paren", "close paren")
+  // 10. Strip list numbers like "1. ", "2. " so voice reads sentences smoothly
+  s = s.replace(/^\s*\d+\.\s*/gm, '');
+
+  // 11. Strip all brackets, parentheses, braces, chevrons
   s = s.replace(/[()[\]{}<>]/g, ' ');
 
-  // 10. Strip bullet characters, arrows, checks, symbols
+  // 12. Strip bullet characters, arrows, checks, symbols
   s = s.replace(/[•◦▪▫►▸✓✔❌⚠️*~_|+=\\^%$#@&]/g, ' ');
 
-  // 11. Replace quotes and backticks with light pause
+  // 13. Replace quotes and backticks with light pause
   s = s.replace(/["'“”‘’`]/g, ' ');
 
-  // 12. Convert hyphens and colons into natural speech pauses
+  // 14. Convert hyphens and colons into natural speech pauses
   s = s.replace(/\s+[-–—]\s+/g, ', ');
   s = s.replace(/^[-–—]\s+/gm, '');
   s = s.replace(/[:;]/g, ', ');
 
-  // 13. Clean up slashes
+  // 15. Clean up slashes
   s = s.replace(/[/|\\]/g, ' ');
 
-  // 14. Normalize multiple punctuation and spacing
+  // 16. Normalize multiple punctuation and spacing
   s = s.replace(/([.,?!])\1+/g, '$1');
   s = s.replace(/\s*,\s*,/g, ',');
   s = s.replace(/\s*([.,?!])/g, '$1 ');
 
-  // 15. Collapse redundant whitespace
+  // 17. Collapse redundant whitespace
   s = s.replace(/\s+/g, ' ').trim();
+
+  return s;
+}
+
+/**
+ * Clean & Format raw assistant text for conversational chat bubble display
+ * - Strips raw markdown asterisks (**) so the UI looks clean, professional, and elegant.
+ * - In regional languages, cleans out parenthetical English duplicates (e.g. "(Verdict)", "(Not Safe to Spray)").
+ * - Formats headings and bullet points cleanly for farmers.
+ */
+export function cleanChatBubbleText(text, lang = 'en') {
+  if (!text || typeof text !== 'string') return '';
+
+  const l = (lang || 'en').split('-')[0].toLowerCase();
+  let s = text;
+
+  // 1. If regional language, remove bracketed English duplicate translations
+  if (l !== 'en') {
+    s = s.replace(/\s*\([A-Za-z0-9\s.,'/%:+-]+\)/g, '');
+    s = s.replace(/\s*\[[A-Za-z0-9\s.,'/%:+-]+\]/g, '');
+  }
+
+  // 2. Strip raw markdown asterisks **bold** -> clean text
+  s = s.replace(/\*\*([^*]+)\*\*/g, '$1');
+  s = s.replace(/\*([^*]+)\*/g, '$1');
+  s = s.replace(/\*+/g, '');
+
+  // 3. Clean up double colons or orphaned colons
+  s = s.replace(/:\s*:/g, ':');
+
+  // 4. Ensure clean bullet points
+  s = s.replace(/^\s*[-•]\s*/gm, '• ');
+
+  // 5. Trim excess empty lines
+  s = s.replace(/\n{3,}/g, '\n\n').trim();
 
   return s;
 }
