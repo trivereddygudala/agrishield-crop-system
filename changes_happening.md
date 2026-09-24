@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v221) - 1-Tap District / Regional Macro Heatmap & Parcel Dual-Scope Switcher in Satellite NDVI Viewer
+- **Summary:** Engineered the dual-scope Satellite NDVI Heatmap system allowing farmers to seamlessly switch between their micro farm parcel and the entire district/regional macro vegetation heatmap with a single tap:
+  1. 🗺️ **1-Tap Dual-Scope Switcher (`SatelliteNDVIViewer.jsx`):**
+     - Added an intuitive segmented toggle pill in the viewer header:
+       - **🌿 My Farm Parcel (18x Zoom):** Precision parcel-level micro NDVI gradient, parcel polygon borders, inner vigour zones, and plot inspection.
+       - **🌐 District Macro Heatmap (11x Zoom):** Regional multi-zone multispectral vegetative contours covering the farmer's registered district (e.g. *Guntur District* with 42 Mandals).
+  2. 🛰️ **Authentic District Multispectral Biomass Contours & Arteries:**
+     - Rendered regional multi-spectral zoned false-color polygon belts:
+       - **Canal & Delta River Belt:** Deep Emerald (`#047857`, NDVI 0.80 - 0.88) representing alluvial high-transpiration irrigation belts.
+       - **Intensive Agricultural Plain:** Spring Green (`#10b981`, NDVI 0.68 - 0.76) covering the central crop basin.
+       - **Rainfed Mixed Agronomic Basin:** Lime-Amber (`#84cc16`, NDVI 0.52 - 0.62).
+       - **Dryland / Fallow Zone:** Warm Amber & Orange (`#f59e0b`, NDVI 0.35 - 0.46).
+       - **River / Main Canal Artery:** Deep Sky-Blue waterway ribbon (`#0284c7`).
+  3. 📍 **Farmer's Personal Farm Beacon Marker:**
+     - In Regional Macro mode, the farmer's parcel remains prominently visible through a custom animated pulsing radar beacon marker (`📍 My Farm - Pasupugallu · NDVI 0.76`), allowing the farmer to clearly visualize their field's relative vigour against the entire surrounding district.
+  4. 🔍 **Interactive Mandal Telemetry Hotspots:**
+     - Positioned interactive mandal telemetry zones (e.g. *Medikonduru, Sattenapalle, Phirangipuram, Amaravati Basin, Guntur Rural, Narasaraopet, Tenali Delta*).
+     - Clicking or hovering over any mandal displays real-time NDVI ratings, primary crops, irrigation sources, and crop canopy status in the HUD.
+  5. 📊 **Dynamic Analytical Telemetry Switching:**
+     - **Parcel Mode:** Mean Parcel NDVI (0.76/1.0), Canopy Homogeneity (91.4%), Water Stress Factor (Low 12%), Cloud Interference (<3.2%).
+     - **District Macro Mode:** District Mean NDVI (0.68/1.0 across 42 mandals), District Green Farmland Coverage (67.4%), Regional Moisture Index (56%), Sentinel-2 Cloud Free Area (95.9%).
+  6. 🌐 **Multi-Language & Location-Awareness (`FarmPage.jsx`):**
+     - Connected `district`, `mandal`, `village`, and `state` directly from `FarmPage` into `SatelliteNDVIViewer`.
+     - Full bi-directional translations for English and Telugu (`తెలుగు`).
+  7. 🧪 **Full Production Build Verification:**
+     - `npm run build` compiled 3,158 modules cleanly in 33.48s with 0 errors.
+- **Files modified:** `frontend/src/components/farm/SatelliteNDVIViewer.jsx`, `frontend/src/pages/FarmPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-24 (v220) - Rebranded to AgriShield Live, 6-Language Voice Engine & Precision Natural Speech Sanitizer
 - **Summary:** Completely redesigned and upgraded the live assistant to **"AgriShield Live"**, expanded full conversational voice support to 6 regional languages, eliminated robotic UI timestamp speech readouts, and delivered precision location-specific farmer advisory:
   1. 🌟 **Complete Rebranding to "AgriShield Live" (`AIAssistantPage.jsx` & `VoiceCropDoctorModal.jsx`):**

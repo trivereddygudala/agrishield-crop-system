@@ -1312,6 +1312,10 @@ const FarmPage = () => {
             latitude={effectiveLat}
             longitude={effectiveLng}
             boundaryCoordinates={boundaryCoordinates}
+            district={district || activeFarm?.district || 'Guntur'}
+            mandal={mandal || activeFarm?.mandal || 'Medikonduru'}
+            village={village || activeFarm?.village || 'Pasupugallu'}
+            state={state || activeFarm?.state || 'Andhra Pradesh'}
           />
         </motion.div>
       )}
