@@ -166,10 +166,17 @@ export default function ProviderDashboardPage() {
   const toggleOnlineStatus = () => {
     const nextVal = !isOnline;
     setIsOnline(nextVal);
-    localStorage.setItem('agrishield_provider_online_status', String(nextVal));
+    try {
+      localStorage.setItem('agrishield_provider_online_status', String(nextVal));
+      window.dispatchEvent(new CustomEvent('agrishield_provider_status_changed', { detail: { isOnline: nextVal } }));
+      window.dispatchEvent(new Event('agrishield_equipment_updated'));
+    } catch (e) {}
+
     toast.success(
-      nextVal ? 'Provider Hub is Online' : 'Provider Hub is Paused',
-      nextVal ? 'Farmers can now send rental booking requests.' : 'Incoming new rental orders temporarily paused.'
+      nextVal ? (isTe ? 'ప్రొవైడర్ హబ్: ఆన్‌లైన్' : 'Provider Hub: Online Today') : (isTe ? 'ప్రొవైడర్ హబ్: ఆఫ్‌లైన్' : 'Provider Hub: Offline Today'),
+      nextVal 
+        ? (isTe ? 'రైతులు ఇప్పుడు మీరు ఆన్‌లైన్‌లో ఉన్నట్లు చూస్తారు మరియు బుకింగ్‌లు పంపగలరు.' : 'Farmers can now see you Online and send rental booking requests.') 
+        : (isTe ? 'కొత్త ఆర్డర్లు తాత్కాలికంగా నిలిపివేయబడ్డాయి. రైతులు మిమ్మల్ని ఆఫ్‌లైన్‌లో ఉన్నట్లు చూస్తారు.' : 'Incoming new rental orders paused. Farmers will see you as Offline Today.')
     );
   };
 
@@ -339,14 +346,95 @@ export default function ProviderDashboardPage() {
   };
 
   const handleUpdateBookingStatus = (bookingId, nextStatus) => {
-    setBookingsList(prev => prev.map(b => b.id === bookingId ? { ...b, status: nextStatus } : b));
-    toast.success('Order Updated', `Booking #${bookingId} marked as ${nextStatus}.`);
+    let targetBooking = null;
+    const updated = bookingsList.map(b => {
+      if (b.id === bookingId) {
+        targetBooking = { ...b, status: nextStatus };
+        return targetBooking;
+      }
+      return b;
+    });
+    setBookingsList(updated);
+    try {
+      localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
+      window.dispatchEvent(new Event('agrishield_bookings_updated'));
+    } catch (e) {}
+
+    // Dispatch real-time farmer notification for Accept/Reject/Complete
+    if (targetBooking) {
+      const equipTitle = targetBooking.equipmentTitle || targetBooking.title || 'Machinery';
+      const bookingDate = targetBooking.bookingDate || targetBooking.date || 'Scheduled Slot';
+
+      let notifTitle = '';
+      let notifMsg = '';
+
+      if (nextStatus === 'confirmed') {
+        notifTitle = isTe ? `✅ బుకింగ్ ధృవీకరించబడింది (#${bookingId})` : `✅ Machinery Booking Accepted (#${bookingId})`;
+        notifMsg = isTe
+          ? `ప్రొవైడర్ మీ ${equipTitle} బుకింగ్‌ను ఆమోదించారు! షెడ్యూల్ తేదీ: ${bookingDate}. పరికరం సమయానికి చేరుకుంటుంది.`
+          : `Great news! The equipment provider has ACCEPTED your booking for ${equipTitle}. Scheduled for ${bookingDate}.`;
+      } else if (nextStatus === 'rejected') {
+        notifTitle = isTe ? `❌ బుకింగ్ తిరస్కరించబడింది (#${bookingId})` : `❌ Machinery Booking Declined (#${bookingId})`;
+        notifMsg = isTe
+          ? `క్షమించండి, ప్రొవైడర్ వేరొక షెడ్యూల్‌లో ఉండటం వల్ల మీ బుకింగ్ (#${bookingId}) అంగీకరించలేకపోయారు. దయచేసి సమీపంలోని ఇతర యంత్రాలను చూడండి.`
+          : `The equipment provider is unable to accept booking #${bookingId} due to prior commitments. Please explore other available machinery.`;
+      } else if (nextStatus === 'completed') {
+        notifTitle = isTe ? `🎉 పని పూర్తయింది (#${bookingId})` : `🎉 Machinery Service Completed (#${bookingId})`;
+        notifMsg = isTe
+          ? `మీ ${equipTitle} అద్దె సేవ విజయవంతంగా పూర్తయింది. ఖాతా రికార్డు నవీకరించబడింది.`
+          : `Rental service for ${equipTitle} (#${bookingId}) has been marked COMPLETED.`;
+      }
+
+      if (notifTitle) {
+        const notifObj = {
+          notification_id: `notif-stat-${bookingId}-${Date.now()}`,
+          id: `notif-stat-${bookingId}`,
+          type: 'booking_status',
+          category: 'booking',
+          priority: 'HIGH',
+          title: notifTitle,
+          title_te: notifTitle,
+          message: notifMsg,
+          message_te: notifMsg,
+          booking_id: bookingId,
+          bookingId: bookingId,
+          read: false,
+          created_at: new Date().toISOString(),
+          timestamp: new Date().toISOString()
+        };
+
+        try {
+          const userNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+          localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...userNotifs.filter(n => n.id !== notifObj.id)]));
+        } catch (e) {}
+
+        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+      }
+    }
+
+    if (nextStatus === 'confirmed') {
+      toast.success(
+        isTe ? 'బుకింగ్ ఆమోదించబడింది!' : 'Booking Accepted!',
+        isTe ? 'రైతుకు ఆర్డర్ ధృవీకరణ నోటిఫికేషన్ పంపబడింది.' : 'Farmer has been notified that machinery is confirmed.'
+      );
+    } else if (nextStatus === 'rejected') {
+      toast.info(
+        isTe ? 'బుకింగ్ తిరస్కరించబడింది' : 'Booking Declined',
+        isTe ? 'ఆర్డర్ తిరస్కరించబడింది & రైతుకు సమాచారం అందించబడింది.' : 'Order declined and farmer was updated.'
+      );
+    } else if (nextStatus === 'completed') {
+      toast.success(
+        isTe ? 'పని పూర్తయింది!' : 'Job Completed!',
+        isTe ? 'ఆర్డర్ పూర్తయినట్లు నమోదు చేయబడింది.' : 'Service marked completed and earnings logged.'
+      );
+    }
   };
 
   // Metrics
   const totalFleetCount = fleetList.length;
   const availableFleetCount = fleetList.filter(f => f.available).length;
-  const pendingOrdersCount = bookingsList.filter(b => b.status === 'confirmed' || b.status === 'pending').length;
+  const pendingOrdersCount = bookingsList.filter(b => b.status === 'confirmed' || b.status === 'pending' || !b.status).length;
+  const actionablePendingCount = bookingsList.filter(b => b.status === 'pending' || !b.status).length;
   const completedOrdersCount = bookingsList.filter(b => b.status === 'completed').length;
   const totalEarnings = bookingsList
     .filter(b => b.status === 'completed')
@@ -513,18 +601,39 @@ export default function ProviderDashboardPage() {
           </div>
 
           {/* Action Pills */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* ── HIGH VISIBILITY ONLINE / OFFLINE TOGGLE BUTTON ── */}
             <button
               type="button"
               onClick={toggleOnlineStatus}
-              className={`px-4 py-2 rounded-2xl border text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              className={`group relative px-4 py-2 rounded-2xl border text-xs font-black flex items-center gap-3 transition-all cursor-pointer shadow-sm select-none ${
                 isOnline
-                  ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-700 dark:text-rose-300'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500/80 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
+                  : 'bg-rose-50 dark:bg-rose-950/60 border-rose-500/80 text-rose-800 dark:text-rose-200 hover:bg-rose-100 dark:hover:bg-rose-900/60'
               }`}
+              title={isOnline ? 'Click to toggle Offline / Pause bookings' : 'Click to toggle Online / Start taking bookings'}
             >
-              <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-ping' : 'bg-rose-500'}`} />
-              <span>{isOnline ? (isTe ? 'ఆన్‌లైన్ (ఆర్డర్లు స్వీకరిస్తోంది)' : 'Status: Online (Taking Orders)') : (isTe ? 'విరామం (ఆఫ్‌లైన్)' : 'Status: Paused')}</span>
+              <div className="flex items-center gap-2">
+                <div className="relative flex items-center justify-center">
+                  <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  {isOnline && <span className="absolute w-4 h-4 rounded-full bg-emerald-400 opacity-75 animate-ping" />}
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold leading-none mb-0.5">
+                    {isTe ? 'నేటి లభ్యత' : "Today's Status"}
+                  </p>
+                  <span className="text-xs font-black leading-none">
+                    {isOnline
+                      ? (isTe ? 'ఆన్‌లైన్ (ఆర్డర్లు స్వీకరిస్తున్నారు)' : 'Online Today (Taking Bookings)')
+                      : (isTe ? 'ఆఫ్‌లైన్ (ఆర్డర్లు నిలిపివేయబడ్డాయి)' : 'Offline Today (Orders Paused)')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Modern Switch Pill Graphic */}
+              <div className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out flex items-center ${isOnline ? 'bg-emerald-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'}`}>
+                <div className="w-4 h-4 rounded-full bg-white shadow-md transform transition-transform" />
+              </div>
             </button>
 
             <Button
@@ -534,19 +643,6 @@ export default function ProviderDashboardPage() {
               <Plus className="w-4 h-4" />
               <span>{isTe ? 'కొత్త యంత్రం జోడించండి' : 'Add Machinery'}</span>
             </Button>
-
-            <button
-              type="button"
-              onClick={() => switchTab('copilot')}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-2xl px-3.5 py-2 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/25 transition-all cursor-pointer"
-            >
-              <Bot className="w-4 h-4" />
-              <span>{isTe ? 'AI కోపైలట్' : 'AI Copilot'}</span>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-              </span>
-            </button>
           </div>
         </div>
 
@@ -780,11 +876,17 @@ export default function ProviderDashboardPage() {
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                             booking.status === 'completed'
                               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                              : booking.status === 'cancelled'
+                              : booking.status === 'rejected' || booking.status === 'cancelled'
                               ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                              : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                              : booking.status === 'confirmed'
+                              ? 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
+                              : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse'
                           }`}>
-                            {booking.status}
+                            {(!booking.status || booking.status === 'pending') 
+                              ? (isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Action')
+                              : booking.status === 'confirmed'
+                              ? (isTe ? 'షెడ్యూల్ చేయబడింది' : 'Confirmed')
+                              : booking.status}
                           </span>
                         </div>
 
@@ -807,25 +909,76 @@ export default function ProviderDashboardPage() {
                         </p>
                       </div>
 
-                      {/* Fare & Status Actions */}
-                      <div className="flex items-center md:flex-col md:items-end justify-between gap-2 border-t md:border-t-0 pt-2 md:pt-0 border-slate-100 dark:border-slate-800 shrink-0">
+                      {/* Fare & Status Actions (Accept / Reject / Complete) */}
+                      <div className="flex flex-col md:items-end justify-between gap-2.5 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 dark:border-slate-800 shrink-0">
                         <div className="text-left md:text-right">
-                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Rental Amount</p>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{isTe ? 'అద్దె మొత్తం' : 'Rental Amount'}</p>
                           <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
                             ₹{Number(totalCost).toLocaleString('en-IN')}
                           </p>
                         </div>
 
-                        {booking.status !== 'completed' && (
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
-                            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1 cursor-pointer shadow-sm shadow-emerald-600/20"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Mark Completed</span>
-                          </button>
-                        )}
+                        {/* Interactive Action Controls */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {(!booking.status || booking.status === 'pending') && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
+                                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
+                                title={isTe ? 'బుకింగ్‌ను ఆమోదించండి' : 'Accept Farmer Booking'}
+                              >
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>{isTe ? 'ఆమోదించండి' : 'Accept Booking'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBookingStatus(booking.id, 'rejected')}
+                                className="px-3 py-1.5 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                                title={isTe ? 'బుకింగ్‌ను తిరస్కరించండి' : 'Decline Booking'}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span>{isTe ? 'తిరస్కరించండి' : 'Decline'}</span>
+                              </button>
+                            </>
+                          )}
+
+                          {booking.status === 'confirmed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
+                              title={isTe ? 'పని పూర్తయినట్లు నమోదు చేయండి' : 'Mark Service as Completed'}
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              <span>{isTe ? 'పూర్తయినట్లు గుర్తించండి' : 'Mark Completed'}</span>
+                            </button>
+                          )}
+
+                          {booking.status === 'completed' && (
+                            <span className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>{isTe ? 'పూర్తయింది & సెటిల్ అయింది' : 'Completed & Settled'}</span>
+                            </span>
+                          )}
+
+                          {booking.status === 'rejected' && (
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-black flex items-center gap-1">
+                                <X className="w-3.5 h-3.5 text-rose-500" />
+                                <span>{isTe ? 'తిరస్కరించబడింది' : 'Declined'}</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
+                                className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                              >
+                                {isTe ? 'మళ్లీ ఆమోదించండి' : 'Re-open & Accept'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 

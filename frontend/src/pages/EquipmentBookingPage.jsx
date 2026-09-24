@@ -164,6 +164,29 @@ export default function EquipmentBookingPage() {
 
   const [equipmentList, setEquipmentList] = useState(loadMergedEquipment);
 
+  // Provider Online / Offline Status Sync
+  const [isProviderOnline, setIsProviderOnline] = useState(() => {
+    const saved = localStorage.getItem('agrishield_provider_online_status');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  useEffect(() => {
+    const handleStatusSync = (e) => {
+      if (e?.detail?.isOnline !== undefined) {
+        setIsProviderOnline(e.detail.isOnline);
+      } else {
+        const saved = localStorage.getItem('agrishield_provider_online_status');
+        setIsProviderOnline(saved !== null ? saved === 'true' : true);
+      }
+    };
+    window.addEventListener('agrishield_provider_status_changed', handleStatusSync);
+    window.addEventListener('storage', handleStatusSync);
+    return () => {
+      window.removeEventListener('agrishield_provider_status_changed', handleStatusSync);
+      window.removeEventListener('storage', handleStatusSync);
+    };
+  }, []);
+
   // Real-time synchronization when equipment provider adds/updates/deletes fleet assets
   useEffect(() => {
     const handleSync = () => {
@@ -195,6 +218,30 @@ export default function EquipmentBookingPage() {
     } catch (e) {}
     return [];
   });
+
+  // Real-time synchronization when equipment provider updates bookings (Accept/Reject/Complete)
+  useEffect(() => {
+    const handleBookingsSync = () => {
+      try {
+        const saved = localStorage.getItem('agrishield_equipment_bookings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setMyBookings(parsed.filter(b => b && b.id !== 'BK-78210').map(b => ({
+              ...b,
+              phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
+            })));
+          }
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('agrishield_bookings_updated', handleBookingsSync);
+    window.addEventListener('storage', handleBookingsSync);
+    return () => {
+      window.removeEventListener('agrishield_bookings_updated', handleBookingsSync);
+      window.removeEventListener('storage', handleBookingsSync);
+    };
+  }, []);
 
   // Save bookings to localStorage
   useEffect(() => {
@@ -530,14 +577,29 @@ export default function EquipmentBookingPage() {
                       {isTe && item.teluguTitle ? item.teluguTitle : item.title}
                     </h3>
 
-                    {/* Provider Tag & Village */}
-                    <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    {/* Provider Tag, Village, and Live Online/Offline Status */}
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
                       <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                         <span>{item.providerName}</span>
                       </span>
                       <span>•</span>
                       <span>{item.village}, {item.mandal}</span>
+                      <span>•</span>
+                      {isProviderOnline ? (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span>{isTe ? 'ప్రొవైడర్ ఆన్‌లైన్' : 'Provider Online Today'}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
+                          <span className="w-2 h-2 rounded-full bg-rose-500" />
+                          <span>{isTe ? 'ప్రొవైడర్ ఆఫ్‌లైన్' : 'Provider Offline Today'}</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Key Specs & Highlights */}
@@ -743,8 +805,9 @@ export default function EquipmentBookingPage() {
             ) : (
               myBookings.map((b) => {
               const statusBadge = {
-                pending: { label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Confirmation', color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300' },
+                pending: { label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Provider Approval', color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300' },
                 confirmed: { label: isTe ? 'ధృవీకరించబడింది & షెడ్యూల్' : 'Confirmed & Scheduled', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' },
+                rejected: { label: isTe ? 'ఆర్డర్ తిరస్కరించబడింది' : 'Declined / Unavailable', color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300' },
                 'in-progress': { label: isTe ? 'పని జరుగుతోంది' : 'Work In Progress', color: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300' },
                 completed: { label: isTe ? 'పూర్తయింది' : 'Completed', color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300' }
               }[b.status] || { label: b.status, color: 'bg-slate-100 text-slate-700' };
@@ -929,6 +992,7 @@ export default function EquipmentBookingPage() {
               mandal: locationMandal,
               village: locationVillage
             }}
+            isProviderOnline={isProviderOnline}
             isTe={isTe}
             onClose={() => setIsBookModalOpen(false)}
             onConfirm={(newBooking) => {
@@ -1066,7 +1130,7 @@ export default function EquipmentBookingPage() {
 // ═══════════════════════════════════════════════════════════════════
 // SUB-COMPONENT: BOOKING MODAL WITH ALL REQUIRED FIELDS & LIVE MATH
 // ═══════════════════════════════════════════════════════════════════
-function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isTe, onClose, onConfirm }) {
+function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isProviderOnline, isTe, onClose, onConfirm }) {
   const [farmerName, setFarmerName] = useState(user?.name || 'Farmer');
   const [farmerPhone, setFarmerPhone] = useState(user?.phone || '9440182736');
   const [farmSector, setFarmSector] = useState(activeFarm?.farm_name || 'My Farm Field 1');
@@ -1134,7 +1198,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isTe
       totalCost,
       paymentMode: paymentPreference,
       specialInstructions,
-      status: 'confirmed',
+      status: 'pending',
       createdAt: new Date().toISOString(),
       syncedToKhata: false
     };
@@ -1221,6 +1285,36 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isTe
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* ── Live Provider Online / Offline Status Announcement ── */}
+        {isProviderOnline ? (
+          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200">
+            <div className="relative flex items-center justify-center shrink-0">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping absolute" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 relative" />
+            </div>
+            <div className="text-left">
+              <p className="text-[11px] font-black leading-tight">
+                {isTe ? '🟢 ప్రొవైడర్ ఈరోజు ఆన్‌లైన్‌లో ఉన్నారు' : '🟢 Equipment Provider is Online Today'}
+              </p>
+              <p className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 font-medium leading-tight mt-0.5">
+                {isTe ? 'మీ బుకింగ్ అభ్యర్థన నేరుగా ప్రొవైడర్‌కు చేరుతుంది మరియు వెంటనే ఆమోదించబడుతుంది.' : 'Your booking request will be dispatched instantly to the provider for approval.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200">
+            <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+            <div className="text-left">
+              <p className="text-[11px] font-black leading-tight">
+                {isTe ? '🔴 ప్రొవైడర్ ఈరోజు ఆఫ్‌లైన్‌లో ఉన్నారు' : '🔴 Equipment Provider is Offline Today'}
+              </p>
+              <p className="text-[10px] text-rose-700/80 dark:text-rose-300/80 font-medium leading-tight mt-0.5">
+                {isTe ? 'మీ బుకింగ్ క్యూ చేయబడుతుంది మరియు ప్రొవైడర్ లాగిన్ అయినప్పుడు పరిశీలిస్తారు.' : 'Your booking will be placed in their pending queue and reviewed once online.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Section 1: Farmer & Field Details */}
