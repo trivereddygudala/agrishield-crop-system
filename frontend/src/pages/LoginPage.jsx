@@ -12,7 +12,6 @@ import NatureParticles from '../components/animations/NatureParticles';
 import LoginSuccessOverlay from '../components/animations/LoginSuccessOverlay';
 import { authenticateWithBiometrics, isBiometricSupported } from '../utils/biometricAuth';
 import FarmerBiometricModal from '../components/common/FarmerBiometricModal';
-import PreLoginFeatureShowcase from '../components/common/PreLoginFeatureShowcase';
 
 const LoginPage = () => {
   const { t, i18n } = useTranslation();
@@ -316,15 +315,8 @@ const LoginPage = () => {
 
         <LanguageSelectModal isOpen={langModalOpen} onClose={() => setLangModalOpen(false)} />
 
-        {/* ── Responsive Two-Column Layout: System Showcase (Left) + Login Card (Right) ── */}
-        <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 relative z-10 py-6">
-          {/* Left Column: Interactive Pre-Login Interface & IoT Showcase */}
-          <div className="w-full lg:w-7/12">
-            <PreLoginFeatureShowcase />
-          </div>
-
-          {/* Right Column: Main Login Card */}
-          <div className="w-full lg:w-5/12 max-w-md">
+        {/* ── Main Centered Login Card ── */}
+        <div className="w-full max-w-md mx-auto relative z-10 py-6">
             <motion.div
               initial={{ opacity: 0, y: 35, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -607,9 +599,8 @@ const LoginPage = () => {
             </p>
           </motion.div>
         </motion.div>
-          </div>
-        </div>
       </div>
+    </div>
 
       {/* ── Farmer Biometric Guidance Modal for 1-Tap Sign-In ── */}
       <FarmerBiometricModal
