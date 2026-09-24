@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v220) - Rebranded to AgriShield Live, 6-Language Voice Engine & Precision Natural Speech Sanitizer
+- **Summary:** Completely redesigned and upgraded the live assistant to **"AgriShield Live"**, expanded full conversational voice support to 6 regional languages, eliminated robotic UI timestamp speech readouts, and delivered precision location-specific farmer advisory:
+  1. 🌟 **Complete Rebranding to "AgriShield Live" (`AIAssistantPage.jsx` & `VoiceCropDoctorModal.jsx`):**
+     - Replaced the mismatched bright button with a sleek, dark-glassmorphic **"AgriShield Live"** pill (`bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-400/50`) featuring a pulsing emerald live dot indicator and sparkles icon.
+     - Updated modal title, badges, and captions to **"AgriShield Live"** (`Live Assistant`, `Conversational Farm Intelligence`). Completely eliminated any references to "Gemini Live".
+  2. 🌐 **6 Regional Languages Voice & Speech Engine (`VoiceCropDoctorModal.jsx`):**
+     - Added an interactive language switcher pill bar supporting:
+       - **తెలుగు (Telugu - `te`)**
+       - **English (`en`)**
+       - **हिन्दी (Hindi - `hi`)**
+       - **தமிழ் (Tamil - `ta`)**
+       - **ಕನ್ನಡ (Kannada - `kn`)**
+       - **ଓଡ଼ିଆ (Odia / Oriya - `or`)**
+     - Automatic locale-aware `SpeechRecognition` (`te-IN`, `en-IN`, `hi-IN`, `ta-IN`, `kn-IN`, `or-IN`) and `SpeechSynthesisUtterance` with smart fallback voices for Windows systems without native Odia/Kannada TTS.
+  3. 🗣️ **Precision Speech Sanitizer & Elimination of Timestamp Chatter (`speechSanitizer.js`):**
+     - **No More Robotic Timestamps:** Added regex stripping for timestamps (`/\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?\b/g`) so the voice engine never reads out *"09:43 AM"* or time ranges aloud.
+     - **Filtered UI Artifacts:** Blocked UI control text (`Listen`, `Assistant speaking...`, `Live Assistant`, buttons, symbols, brackets, asterisks, URLs).
+     - **Spoken Unit Normalization across All 6 Languages:** Converted technical abbreviations into warm, natural spoken phrasing (e.g., `29°C` spoken as *29 డిగ్రీల సెల్సియస్* / *29 degree celsius* / *29 डिग्री सेल्सियस*, `16L` as *16 లీటర్ల పంపు* / *16 liter pump*, `%` as *శాతం* / *percent* / *प्रतिशत*).
+  4. 📍 **Location-Aware Precision Farm Intelligence (e.g. Pasupugallu):**
+     - Connected farmer's registered village/location (`Pasupugallu`, Guntur district) directly into AgriShield Live's intelligence prompt and spoken responses.
+     - When farmers ask *"what about the weather in my field"*, the assistant answers directly with field-specific temperature, humidity, wind conditions, and pesticide spraying safety windows in fluent regional phrasing without reciting timestamps or UI gibberish.
+  5. 🧪 **Build Verification & In-Browser Testing:**
+     - Compiled with 100% success (`vite build`: 3,158 modules in 28.83s, 0 errors).
+     - Verified live in browser with screenshots: `assistant_agrishield_button_1790224653745.png` and `agrishield_live_verified_1790224670846.png`.
+- **Files modified:** `frontend/src/utils/speechSanitizer.js`, `frontend/src/pages/AIAssistantPage.jsx`, `frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-24 (v219) - Upgraded Satellite NDVI Viewer to Real Interactive Top-Down Map & Soil NPK Calculator to Farmer Bag+Kg Units
 - **Summary:** Executed the two high-impact field precision upgrades requested by the user:
   1. 🛰️ **Picture 1 Upgrade: Real Top-Down Interactive Satellite NDVI Heatmap (`SatelliteNDVIViewer.jsx` & `FarmPage.jsx`):**

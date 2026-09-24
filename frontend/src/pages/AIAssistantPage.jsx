@@ -1032,14 +1032,18 @@ const AIAssistantPage = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Gemini Live Assistant Button */}
+            {/* AgriShield Live Assistant Button */}
             <button
               onClick={() => setShowVoiceDoctor(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-black shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
-              title="Open Gemini Live Smart Assistant"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 dark:text-emerald-300 text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+              title={isTe ? "అగ్రిషీల్డ్ లైవ్ అసిస్టెంట్ తెరవండి" : "Open AgriShield Live Assistant"}
             >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
-              <span>Gemini Live</span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-extrabold tracking-wide">AgriShield Live</span>
             </button>
 
             <button 
