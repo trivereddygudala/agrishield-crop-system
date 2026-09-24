@@ -14,6 +14,7 @@ import { INDIA_STATES, getDistricts } from '../data/indiaLocations';
 import API from '../services/api';
 import { useTranslation } from 'react-i18next';
 import { translateCrop } from '../utils/diseaseAdvisoryData';
+import YieldProfitEstimator from '../components/market/YieldProfitEstimator';
 
 // Crop Icons & Metadata Mapping
 const CROP_ICONS = {
@@ -362,6 +363,12 @@ const MarketPricesPage = () => {
           </div>
         </div>
       )}
+
+      {/* ── Enterprise Crop Yield & Harvest Profit Estimator ── */}
+      <YieldProfitEstimator 
+        initialCrop={selectedCrop !== 'All' ? selectedCrop : (activeFarm?.crop_type || "Tomato")}
+        initialAcres={activeFarm?.farm_size || 2.0}
+      />
 
       {/* 3. Professional Hierarchical Filter Bar: State -> District -> Mandi Market Yard */}
       <Card glass className="p-5 border-slate-200/90 dark:border-slate-800 space-y-4 shadow-sm">

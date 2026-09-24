@@ -20,6 +20,8 @@ import FieldBoundaryMap from '../components/farm/FieldBoundaryMap';
 import FarmRoutineWidget from '../components/intelligence/FarmRoutineWidget';
 import LiveWeatherWidget from '../components/intelligence/LiveWeatherWidget';
 import SprayAdvisorWidget from '../components/intelligence/SprayAdvisorWidget';
+import SoilNPKCalculatorModal from '../components/farm/SoilNPKCalculatorModal';
+import SatelliteNDVIViewer from '../components/farm/SatelliteNDVIViewer';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -263,6 +265,18 @@ const FarmPage = () => {
       id: 'crop-lifecycle', 
       title: isTe ? 'పంట జీవితచక్రం & స్ప్రే క్యాలెండర్' : 'Crop Lifecycle & Spray Calendar', 
       subtitle: isTe ? 'దశ టైమ్‌లైన్ & స్ప్రే షెడ్యూల్' : 'Stage timeline & spray schedule',
+      action: 'inline'
+    },
+    { 
+      id: 'soil-npk', 
+      title: isTe ? 'నేల ఆరోగ్యం & NPK ఎరువుల కాలిక్యులేటర్' : 'Soil Health & NPK Calculator', 
+      subtitle: isTe ? 'ICAR నేల రకాలు, యూరియా/DAP/MOP బస్తాలు & స్ప్రేయర్ మోతాదు' : 'ICAR soil types, Urea/DAP/MOP bag math & foliar spray',
+      action: 'inline'
+    },
+    { 
+      id: 'satellite-ndvi', 
+      title: isTe ? 'ఉపగ్రహ NDVI పంట ఆరోగ్యం & బయోమాస్' : 'Satellite NDVI & Biomass Heatmap', 
+      subtitle: isTe ? 'Sentinel-2 ఉపగ్రహ విశ్లేషణ, క్లోరోఫిల్ & నీటి ఒత్తిడి' : 'Sentinel-2 multispectral pass, chlorophyll & water stress',
       action: 'inline'
     }
   ];
@@ -1273,6 +1287,29 @@ const FarmPage = () => {
               </Button>
             </div>
           </form>
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Soil Health & NPK Calculator ═══════ */}
+      {activeTab === 'soil-npk' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <SoilNPKCalculatorModal
+            isOpen={true}
+            onClose={() => setActiveTab('modules')}
+            initialCrop={cropName || 'Tomato'}
+            initialAcres={parseFloat(farmSize) || 2.0}
+          />
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Satellite NDVI Crop Health & Biomass ═══════ */}
+      {activeTab === 'satellite-ndvi' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <SatelliteNDVIViewer
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            acreage={parseFloat(farmSize) || 2.0}
+            cropName={cropName || 'Tomato'}
+          />
         </motion.div>
       )}
     </div>

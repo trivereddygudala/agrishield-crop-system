@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldAlert, CheckCircle2, AlertTriangle, Wind, Droplets, Sun, Clock, ThermometerSnowflake, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import WhatsAppAlertButton from './WhatsAppAlertButton';
 
 const SprayAdvisorWidget = ({ telemetry, weatherData }) => {
   const { t, i18n } = useTranslation();
@@ -154,11 +155,22 @@ const SprayAdvisorWidget = ({ telemetry, weatherData }) => {
           </p>
         </div>
         
-        <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex flex-wrap gap-2">
-          <ConditionPill label={isTelugu ? 'గాలి' : 'Wind'} state={windStatus} icon={Wind} detail={`${windSpeed} km/h`} />
-          <ConditionPill label={isTelugu ? 'వర్షం' : 'Rain'} state={rainStatus} icon={Droplets} detail={isRaining ? 'Raining' : 'Clear'} />
-          <ConditionPill label={isTelugu ? 'ఉష్ణోగ్రత' : 'Temp'} state={tempStatus} icon={ThermometerSnowflake} detail={`${temp}°C`} />
-          <ConditionPill label={isTelugu ? 'ఎండ' : 'Sun/UV'} state={sunStatus} icon={Sun} detail={lux > 25000 ? 'High UV' : 'Mild'} />
+        <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <ConditionPill label={isTelugu ? 'గాలి' : 'Wind'} state={windStatus} icon={Wind} detail={`${windSpeed} km/h`} />
+            <ConditionPill label={isTelugu ? 'వర్షం' : 'Rain'} state={rainStatus} icon={Droplets} detail={isRaining ? 'Raining' : 'Clear'} />
+            <ConditionPill label={isTelugu ? 'ఉష్ణోగ్రత' : 'Temp'} state={tempStatus} icon={ThermometerSnowflake} detail={`${temp}°C`} />
+            <ConditionPill label={isTelugu ? 'ఎండ' : 'Sun/UV'} state={sunStatus} icon={Sun} detail={lux > 25000 ? 'High UV' : 'Mild'} />
+          </div>
+
+          <WhatsAppAlertButton
+            cropName="Farm Crops"
+            sectorName="Sector A"
+            riskLevel={isOptimal ? "Optimal Spray Window" : status}
+            temperature={temp}
+            humidity={humidity}
+            prescription={isOptimal ? "Apply preventative bio-fungicide or scheduled fertilizer spray." : message}
+          />
         </div>
       </div>
     </motion.div>

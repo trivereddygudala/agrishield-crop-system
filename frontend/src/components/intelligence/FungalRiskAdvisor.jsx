@@ -8,6 +8,7 @@ import {
 import { Card, Badge, Button } from '../ui/index';
 import API from '../../services/api';
 import { getFungalRiskData } from '../../utils/regionalLocale';
+import WhatsAppAlertButton from './WhatsAppAlertButton';
 
 export default function FungalRiskAdvisor({ compact = false }) {
   const { t, i18n } = useTranslation();
@@ -143,14 +144,26 @@ export default function FungalRiskAdvisor({ compact = false }) {
             <span className="font-extrabold text-amber-300">{advice.crops}</span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            <span>{expanded ? t('advisor.hide_details', 'Hide Details') : t('advisor.view_protocol', 'View Action Protocol')}</span>
-            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
-          </button>
+          <div className="flex items-center gap-3">
+            <WhatsAppAlertButton
+              cropName={advice.crops?.split(',')[0] || "Vegetable Crops"}
+              sectorName="Field Parcel"
+              riskLevel={isHighRisk ? "Severe Fungal Spore Risk" : "Moderate Fungal Risk"}
+              temperature={temp}
+              humidity={humidity}
+              prescription={isHighRisk ? "Foliar spray of Mancozeb 75% WP (Indofil M-45 @ 40g/20L tank) or Trichoderma viride." : "Preventative spray recommended before rain."}
+              isUrgent={isHighRisk}
+            />
+
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <span>{expanded ? t('advisor.hide_details', 'Hide Details') : t('advisor.view_protocol', 'View Action Protocol')}</span>
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Expanded Protocol Details */}
