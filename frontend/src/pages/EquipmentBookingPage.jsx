@@ -258,15 +258,15 @@ export default function EquipmentBookingPage() {
   useEffect(() => {
     const fetchRemoteBookings = async () => {
       try {
-        let res = await API.get('/api/v1/equipment/bookings');
+        let res = await API.get('/api/v1/equipment/bookings?limit=2500');
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await API.get('/api/equipment/bookings'); } catch (_) {}
+          try { res = await API.get('/api/equipment/bookings?limit=2500'); } catch (_) {}
         }
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
         }
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+          try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
         }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           setMyBookings(prev => {

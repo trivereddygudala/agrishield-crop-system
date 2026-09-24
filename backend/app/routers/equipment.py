@@ -74,12 +74,15 @@ _load_disk_catalog()
 async def get_all_bookings(
     provider_phone: Optional[str] = Query(None, description="Filter by equipment provider phone"),
     farmer_phone: Optional[str] = Query(None, description="Filter by farmer phone"),
-    status: Optional[str] = Query(None, description="Filter by status (pending, confirmed, completed, rejected)")
+    status: Optional[str] = Query(None, description="Filter by status (pending, confirmed, completed, rejected)"),
+    limit: Optional[int] = Query(2500, description="Max bookings to return (default 2500 for stress testing)")
 ):
     """
     Fetch all machinery bookings across devices with optional phone/status filters.
+    Supports up to 2500+ records for large-scale farm fleet management and stress-testing.
     """
     bookings = []
+    fetch_limit = limit or 2500
     
     # 1. Try MongoDB if active
     if db_instance.db is not None:
@@ -88,7 +91,7 @@ async def get_all_bookings(
             if status:
                 query["status"] = status
             cursor = db_instance.db["equipment_bookings"].find(query).sort("createdAt", -1)
-            docs = await cursor.to_list(length=100)
+            docs = await cursor.to_list(length=fetch_limit)
             for doc in docs:
                 doc.pop("_id", None)
                 bookings.append(doc)
@@ -103,7 +106,7 @@ async def get_all_bookings(
         for local_b in _in_memory_bookings:
             if local_b.get("id") and local_b.get("id") not in existing_ids:
                 bookings.append(local_b)
-        _in_memory_bookings = bookings
+        _in_memory_bookings = bookings[:fetch_limit]
         _save_disk_bookings()
     else:
         # Fallback to in-memory / disk cache
@@ -200,6 +203,94 @@ async def create_booking(booking_data: Dict[str, Any] = Body(...)):
         "success": True,
         "message": "Booking recorded and synced successfully",
         "booking": booking_data
+    }
+
+
+@router.post("/bookings/batch")
+async def create_bookings_batch(bookings_data: List[Dict[str, Any]] = Body(...)):
+    """
+    High-throughput bulk booking endpoint to create or sync up to 1000+ bookings in one round-trip.
+    Ideal for large farm cooperatives, automated dispatch testing, and instant multi-order pipelines.
+    """
+    global _in_memory_bookings
+    if not bookings_data or not isinstance(bookings_data, list):
+        raise HTTPException(status_code=400, detail="A list of booking objects is required")
+
+    now_iso = datetime.now().isoformat()
+    processed_bookings = []
+    mongo_ops = []
+
+    _load_disk_bookings()
+    existing_map = {b.get("id"): b for b in _in_memory_bookings if b.get("id")}
+
+    from pymongo import UpdateOne
+    for idx, b in enumerate(bookings_data):
+        b_id = b.get("id") or b.get("bookingId") or f"BK-{int(datetime.now().timestamp() * 1000) % 90000 + idx + 10000}"
+        b["id"] = b_id
+        b["bookingId"] = b_id
+        if not b.get("status"):
+            b["status"] = "pending"
+        if not b.get("createdAt"):
+            b["createdAt"] = now_iso
+        b["updatedAt"] = now_iso
+
+        processed_bookings.append(b)
+        existing_map[b_id] = b
+
+        if db_instance.db is not None:
+            clean_b = {k: v for k, v in b.items() if k != "_id"}
+            mongo_ops.append(
+                UpdateOne({"id": b_id}, {"$set": clean_b}, upsert=True)
+            )
+
+    # 1. Update in-memory / disk cache
+    _in_memory_bookings = list(existing_map.values())
+    _save_disk_bookings()
+
+    # 2. Bulk upsert to MongoDB
+    if db_instance.db is not None and mongo_ops:
+        try:
+            await db_instance.db["equipment_bookings"].bulk_write(mongo_ops, ordered=False)
+        except Exception as e:
+            print(f"⚠️ [EquipmentBookings] Mongo bulk_write notice: {e}")
+
+    # 3. Dispatch high-level summary notification to Provider
+    if db_instance.db is not None and processed_bookings:
+        try:
+            from backend.app.services.notification_service import NotificationService
+            from backend.app.models.notification import NotificationCreate
+            first_b = processed_bookings[0]
+            p_phone = first_b.get("providerPhone") or first_b.get("provider_phone") or ""
+            clean_p = "".join(filter(str.isdigit, str(p_phone)))
+            prov_user = None
+            if clean_p:
+                prov_user = await db_instance.db["users"].find_one({
+                    "$or": [
+                        {"phone": clean_p},
+                        {"mobile": clean_p},
+                        {"phone": {"$regex": clean_p[-10:]}},
+                        {"role": "equipment_provider"}
+                    ]
+                })
+            target_uid = str(prov_user["_id"]) if prov_user else "provider_hub"
+            await NotificationService.create_notification(
+                db_instance.db,
+                NotificationCreate(
+                    user_id=target_uid,
+                    title=f"🚜 {len(processed_bookings)} New Machinery Bookings Received!",
+                    message=f"Farmer {first_b.get('farmerName', 'Farmer')} submitted a high-volume booking batch of {len(processed_bookings)} equipment reservations.",
+                    category="equipment_booking",
+                    priority="High",
+                    action_url="/provider/dashboard?tab=orders"
+                )
+            )
+        except Exception as n_err:
+            print(f"⚠️ [EquipmentBookings] Batch provider notification notice: {n_err}")
+
+    return {
+        "success": True,
+        "count": len(processed_bookings),
+        "message": f"Successfully created and synchronized {len(processed_bookings)} bookings."
     }
 
 
