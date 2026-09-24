@@ -2,6 +2,15 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v234) - Fixed ReferenceError: useCallback is not defined in EquipmentBookingPage
+- **Summary:** Resolved the runtime rendering crash on the farmer profile "Farm Machinery, Drone and Pump Rental" tab:
+  1. 🛠️ **Fixed Missing `useCallback` Hook Import ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - **Root Cause:** `loadMergedEquipment` was defined with `useCallback(...)`, but `useCallback` was omitted from the React named imports on line 1 (`import React, { useState, useEffect, useMemo } from 'react';`).
+     - **Fix:** Added `useCallback` to line 1 (`import React, { useState, useEffect, useMemo, useCallback } from 'react';`).
+     - Completely eliminated the `ReferenceError: useCallback is not defined` crash when farmers navigate to the rental tab.
+  2. 🧪 **Verified Production Build:**
+     - Compiled with `npm run build` (3,168 modules transformed and built cleanly with 0 errors).
+
 ## 2026-09-24 (v233) - Provider Online/Offline Status Synchronization, Real-Time Accept/Reject Booking Controls & Strategic Provider Roadmap
 - **Summary:** Implemented all three user requirements for the Equipment Provider and Farmer ecosystem:
   1. 🟢 **Provider Online / Offline Today Toggle Switch ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx) & [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
