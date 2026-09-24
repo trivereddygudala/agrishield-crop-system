@@ -39,23 +39,19 @@ from backend.app.core.rate_limiter import check_rate_limit
 
 # 1. Password Policy Tests
 def test_password_policy_validation():
-    valid, msg = validate_password_strength("Short1!")
+    # Less than 4 characters should fail
+    valid, msg = validate_password_strength("abc")
     assert not valid
-    assert "at least 12 characters" in msg
+    assert "at least 4 characters" in msg
 
-    valid, msg = validate_password_strength("alllowercase123!")
+    valid, msg = validate_password_strength("")
     assert not valid
-    assert "uppercase letter" in msg
 
-    valid, msg = validate_password_strength("ALLUPPERCASE123!")
-    assert not valid
-    assert "lowercase letter" in msg
+    # 4 characters or more meets requirement for farmer accessibility
+    valid, msg = validate_password_strength("1234")
+    assert valid
 
-    valid, msg = validate_password_strength("NoSpecialChar123")
-    assert not valid
-    assert "special character" in msg
-
-    valid, msg = validate_password_strength("StrongP@ssw0rd2026!")
+    valid, msg = validate_password_strength("Farmer1@1234")
     assert valid
 
 # 2. Hashing & Constant-time Verification Tests
