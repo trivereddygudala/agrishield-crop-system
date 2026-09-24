@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Lock, Eye, EyeOff, ShieldCheck, Sparkles, Globe, Fingerprint, ScanFace } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ShieldCheck, Sparkles, Globe, Fingerprint, ScanFace, Truck, Sprout } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/index';
 import { useToast } from '../components/ui/toast';
@@ -12,6 +12,8 @@ import NatureParticles from '../components/animations/NatureParticles';
 import LoginSuccessOverlay from '../components/animations/LoginSuccessOverlay';
 import { authenticateWithBiometrics, isBiometricSupported } from '../utils/biometricAuth';
 import FarmerBiometricModal from '../components/common/FarmerBiometricModal';
+import AuthWorkstationIllustration from '../components/auth/AuthWorkstationIllustration';
+import API from '../services/api';
 
 const LoginPage = () => {
   const { t, i18n } = useTranslation();
@@ -23,13 +25,14 @@ const LoginPage = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('farmer'); // 'farmer' | 'equipment_provider'
   const [rememberMe, setRememberMe] = useState(true);
   const [botTrap, setBotTrap] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [langModalOpen, setLangModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [scanProgress, setScanProgress] = useState(0); // 0–100 while loading
+  const [scanProgress, setScanProgress] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successUser, setSuccessUser] = useState(null);
   const isLoggingInRef = useRef(false);
@@ -57,15 +60,19 @@ const LoginPage = () => {
     checkBio();
   }, []);
 
-  // Destination after login
   const from = location.state?.from || null;
   const currentLang = getLanguageByCode(i18n.language);
 
-  // Redirect only if user was ALREADY logged in before visiting /login (not during active login animation)
+  // Redirect only if user was ALREADY logged in before visiting /login
   useEffect(() => {
     if (user && !isLoggingInRef.current && !showSuccess) {
-      const targetPath = user.role === 'admin' ? '/admin' : '/dashboard';
-      navigate(targetPath, { replace: true });
+      if (user.role === 'equipment_provider') {
+        navigate('/provider/dashboard', { replace: true });
+      } else if (user.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
   }, [user, navigate, showSuccess]);
 
@@ -96,10 +103,15 @@ const LoginPage = () => {
   const handleSuccessDone = useCallback(() => {
     setShowSuccess(false);
     isLoggingInRef.current = false;
-    const userRole = successUser?.role || (successUser?.user?.role) || user?.role;
-    const defaultPath = userRole === 'admin' ? '/admin' : (from || '/dashboard');
-    navigate(defaultPath, { replace: true });
-  }, [successUser, user, navigate, from]);
+    const userRole = successUser?.role || (successUser?.user?.role) || user?.role || role;
+    if (userRole === 'equipment_provider') {
+      navigate('/provider/dashboard', { replace: true });
+    } else if (userRole === 'admin') {
+      navigate('/admin', { replace: true });
+    } else {
+      navigate(from || '/dashboard', { replace: true });
+    }
+  }, [successUser, user, navigate, from, role]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -114,13 +126,12 @@ const LoginPage = () => {
     setLoading(true);
     setErrorMsg('');
     setScanProgress(15);
-    isLoggingInRef.current = true; // Lock redirection so overlay can play
+    isLoggingInRef.current = true;
 
     try {
       const loggedUser = await login(email, password, rememberMe, botTrap);
       setScanProgress(100);
       setSuccessUser(loggedUser);
-      // Immediately display the full-screen cinematic overlay
       setShowSuccess(true);
       toast.success(
         t('auth.login.welcome_back_toast', 'Welcome Back!'),
@@ -141,11 +152,9 @@ const LoginPage = () => {
     }
   };
 
-  // Biometric 1-Tap sign-in handler (WebAuthn)
   const handleBiometricSignIn = async () => {
     if (loading || biometricLoading || showSuccess) return;
     
-    // Check if account username or email is provided
     const accountToUse = (email || savedBiometricUser?.email || '').trim();
     if (!accountToUse) {
       const msg = isTe 
@@ -160,7 +169,6 @@ const LoginPage = () => {
     setErrorMsg('');
 
     try {
-      // 1. Pre-flight check: Verify if this account has enrolled biometrics on the server
       let targetCredentialId = savedBiometricUser?.credentialId || null;
       try {
         const checkRes = await API.get('/api/auth/biometric/check', {
@@ -169,15 +177,11 @@ const LoginPage = () => {
         const bioInfo = checkRes.data;
 
         if (bioInfo && !bioInfo.biometric_enabled) {
-          // Account does not have biometrics enabled yet
           const setupNeededMsg = isTe
             ? `ఈ ఖాతా (${accountToUse}) లో బయోమెట్రిక్ ఇంకా సక్రియం చేయబడలేదు. దయచేసి ముందుగా పాస్‌వర్డ్‌తో లాగిన్ అయ్యి సెట్టింగ్స్‌లో మీ వేలిముద్ర లేదా ఫేస్ లాక్‌ని ప్రారంభించండి.`
             : `Biometric sign-in is not yet enabled for this account (${accountToUse}). Please sign in with your password first, then enable Fingerprint / Face ID in Settings.`;
           setErrorMsg(setupNeededMsg);
-          toast.info(
-            isTe ? 'బయోమెట్రిక్ ఇంకా ప్రారంభం కాలేదు' : 'Biometric Setup Required',
-            setupNeededMsg
-          );
+          toast.info(isTe ? 'బయోమెట్రిక్ ఇంకా ప్రారంభం కాలేదు' : 'Biometric Setup Required', setupNeededMsg);
           setBiometricLoading(false);
           return;
         }
@@ -189,7 +193,6 @@ const LoginPage = () => {
         console.warn('Biometric account check failed, trying local credential:', checkErr);
       }
 
-      // If no credential ID is known from either server or localStorage, avoid triggering Google prompt
       if (!targetCredentialId) {
         const noCredMsg = isTe
           ? 'ఈ ఖాతాకి నమోదు చేసిన బయోమెట్రిక్ కీ కనుగొనబడలేదు. దయచేసి పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి.'
@@ -200,7 +203,6 @@ const LoginPage = () => {
         return;
       }
 
-      // Open guidance modal and execute scan
       setBioModalAccount(accountToUse);
       setBioModalTargetCid(targetCredentialId);
       setBioModalError('');
@@ -240,7 +242,6 @@ const LoginPage = () => {
         return;
       }
 
-      // 3. Complete authentication on backend
       setShowBioLoginModal(false);
       isLoggingInRef.current = true;
       const loggedUser = await biometricLogin(accountToUse, result.credential_id);
@@ -248,17 +249,15 @@ const LoginPage = () => {
       setShowSuccess(true);
       toast.success(
         t('auth.login.welcome_back_toast', 'Welcome Back!'),
-        isTe ? 'ఖాతా బయోమెట్రిక్ ధృవీకరణ విజయవంతమైంది.' : 'Account biometric authenticated successfully.'
+        t('auth.login.login_success', 'Biometric identity verified successfully.')
       );
     } catch (err) {
       isLoggingInRef.current = false;
-      console.error('Biometric sign-in error:', err);
+      console.error('Biometric authentication failed:', err);
       const raw = err.response?.data?.detail;
-      const detail = typeof raw === 'string'
-        ? raw
-        : (raw?.[0]?.msg || (isTe ? 'బయోమెట్రిక్ లాగిన్ విఫలమైంది. దయచేసి పాస్‌వర్డ్ ఉపయోగించండి.' : 'Biometric authentication failed. Please use your password.'));
-      setBioModalError(detail);
-      setErrorMsg(detail);
+      const msg = typeof raw === 'string' ? raw : (isTe ? 'బయోమెట్రిక్ ధృవీకరణ విఫలమైంది.' : 'Biometric sign-in failed.');
+      setBioModalError(msg);
+      toast.error('Biometric Login Failed', msg);
     } finally {
       setBiometricLoading(false);
     }
@@ -266,47 +265,28 @@ const LoginPage = () => {
 
   return (
     <>
-      {/* ── Login Success Overlay ── */}
       {showSuccess && (
         <LoginSuccessOverlay
-          userName={successUser?.name || successUser?.user?.name || user?.name || email.split('@')[0] || 'Farmer'}
-          onDone={handleSuccessDone}
+          userName={successUser?.username || email.split('@')[0]}
+          userRole={successUser?.role || role}
+          isBiometric={Boolean(bioModalAccount)}
+          onAnimationDone={handleSuccessDone}
         />
       )}
 
-      <div className="dark relative min-h-screen bg-[#030a06] text-white flex items-center justify-center px-4 py-12 overflow-hidden select-none">
+      <div className="relative min-h-screen bg-gradient-to-br from-indigo-900/40 via-[#030a06] to-slate-950 text-white flex items-center justify-center p-4 sm:p-6 lg:p-10 select-none overflow-x-hidden">
+        <NatureParticles count={18} />
 
-        {/* ── Nature particle background ── */}
-        <NatureParticles count={22} />
+        {/* Deep ambient backdrop circles */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[550px] w-[550px] rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
 
-        {/* ── Deep green radial background ── */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(5,30,14,0.85) 0%, rgba(3,10,6,1) 70%)',
-          }}
-        />
-
-        {/* ── Background grid overlay ── */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(52,211,153,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(52,211,153,0.025)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)] pointer-events-none" />
-
-        {/* ── Slow pulsing radar scan line ── */}
-        <motion.div
-          className="absolute left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent pointer-events-none z-0"
-          animate={{ y: ['-10vh', '110vh'] }}
-          transition={{ repeat: Infinity, duration: 10, ease: 'linear' }}
-        />
-
-        {/* ── Ambient glow orbs ── */}
-        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[500px] w-[500px] rounded-full bg-emerald-500/6 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[400px] w-[400px] rounded-full bg-teal-500/5 blur-3xl" />
-
-        {/* ── Language switcher ── */}
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        {/* Language switcher */}
+        <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
           <button
             type="button"
             onClick={() => setLangModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-slate-200 transition-all backdrop-blur-md shadow-lg hover:border-emerald-500/40"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold text-slate-100 transition-all backdrop-blur-md shadow-lg hover:border-emerald-400/50"
           >
             <Globe className="w-4 h-4 text-emerald-400" />
             <span>{currentLang?.nativeName || 'English'}</span>
@@ -315,294 +295,229 @@ const LoginPage = () => {
 
         <LanguageSelectModal isOpen={langModalOpen} onClose={() => setLangModalOpen(false)} />
 
-        {/* ── Main Centered Login Card ── */}
-        <div className="w-full max-w-md mx-auto relative z-10 py-6">
-            <motion.div
-              initial={{ opacity: 0, y: 35, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full relative"
-            >
-              {/* Logo + Title */}
-          <div className="text-center mb-8 flex flex-col items-center">
-            <Link to="/" className="inline-flex items-center gap-3 mb-5 group">
-              {/* Scan ring logo */}
-              <div className="relative">
-                {/* Pulsing outer ring */}
-                <motion.div
-                  className="absolute inset-0 rounded-2xl border border-emerald-500/40"
-                  animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <motion.div
-                  className="absolute inset-0 rounded-2xl border border-teal-400/25"
-                  animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
-                />
-                <div className="bg-gradient-to-br from-emerald-400 to-teal-600 p-3.5 rounded-2xl shadow-[0_0_40px_rgba(52,211,153,0.5)] relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                  {/* Interior scan line */}
-                  <motion.div
-                    className="absolute left-0 right-0 h-[2px] bg-white/60 shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-                    animate={{ y: [0, 44, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                    style={{ top: 0 }}
-                  />
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-7 w-7 relative z-10"
-                  >
-                    <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
-                    <path d="M2 22 C2 22 8 16 12 12" />
-                  </svg>
-                </div>
-              </div>
-              <span className="font-black text-white tracking-tight text-2xl">
-                AgriShield <span className="text-emerald-400">AI</span>
-              </span>
-            </Link>
-
-            <motion.h2
-              className="font-black text-white text-3xl tracking-tight"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              {t('auth.login.title', 'Welcome Back')}
-            </motion.h2>
-            <motion.p
-              className="text-slate-400 text-xs sm:text-sm mt-2 leading-relaxed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25 }}
-            >
-              {t('auth.login.subtitle', 'Enter credentials to access your AI Farm Sentinel dashboard')}
-            </motion.p>
-          </div>
-
-          {/* Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="p-8 border border-emerald-500/15 bg-[#040d07]/70 backdrop-blur-xl relative overflow-hidden rounded-[24px] shadow-[0_0_60px_-12px_rgba(52,211,153,0.2)]"
-          >
-            {/* Top accent line */}
-            <motion.div
-              className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500"
-              animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-            />
-
-            {/* Corner leaf decorations */}
-            <div className="absolute top-3 right-4 opacity-10">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="rgba(52,211,153,1)">
-                <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
-              </svg>
-            </div>
-            <div className="absolute bottom-3 left-4 opacity-8 rotate-180">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(20,184,166,1)">
-                <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
-              </svg>
-            </div>
-
-            {/* Quick 1-Tap Biometric Sign-In Option */}
-            {biometricSupported && (
-              <div className="mb-6 relative z-10">
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={biometricLoading || loading}
-                  onClick={handleBiometricSignIn}
-                  className="w-full relative overflow-hidden group p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/20 text-emerald-300 font-bold text-xs flex items-center justify-between gap-3 transition-all shadow-[0_0_20px_rgba(52,211,153,0.12)] hover:shadow-[0_0_28px_rgba(52,211,153,0.25)]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 group-hover:scale-110 transition-transform">
-                      {biometricLoading ? (
-                        <ScanFace className="w-5 h-5 animate-spin text-emerald-300" />
-                      ) : (
-                        <Fingerprint className="w-5 h-5 text-emerald-400" />
-                      )}
-                    </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-white font-extrabold text-xs tracking-tight">
-                          {biometricLoading
-                            ? (isTe ? 'ధృవీకరిస్తోంది...' : 'Verifying Biometrics...')
-                            : (isTe ? 'వేలిముద్ర లేదా ఫేస్ లాగిన్' : 'Sign in with Biometrics')}
-                        </span>
-                        <span className="text-[9px] bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.2 rounded-full font-black tracking-wider uppercase">
-                          {isTe ? '1-ట్యాప్' : '1-Tap'}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                        {isTe
-                          ? 'ఖాతా కోసం వేలిముద్ర లేదా ఫేస్ ఐడీతో లాగిన్ అవ్వండి'
-                          : 'Touch fingerprint or Face ID to unlock account'}
-                      </p>
-                    </div>
+        {/* ── Modern Split-Card Presentation Container (Reference Aesthetic) ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-5xl rounded-3xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_20px_70px_rgba(0,0,0,0.55)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 my-4"
+        >
+          {/* ══ LEFT SIDE: Clean Elevated Auth Form Card ══ */}
+          <div className="lg:col-span-6 p-6 sm:p-10 flex flex-col justify-between bg-white dark:bg-[#070e17] text-slate-900 dark:text-white border-b lg:border-b-0 lg:border-r border-slate-200/80 dark:border-slate-800">
+            <div>
+              {/* Header: Title & Switch Link */}
+              <div className="flex items-center justify-between mb-2">
+                <Link to="/" className="inline-flex items-center gap-2 group">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+                    <Sprout className="w-5 h-5 text-white" />
                   </div>
-                  <ScanFace className="w-4 h-4 text-emerald-400/60 group-hover:text-emerald-300 transition-colors shrink-0" />
-                </motion.button>
-
-                {/* Divider */}
-                <div className="relative my-4 flex items-center justify-center">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10" />
-                  </div>
-                  <span className="relative px-3 bg-[#040d07] text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    {isTe ? 'లేదా పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి' : 'OR SIGN IN WITH PASSWORD'}
+                  <span className="font-black text-slate-900 dark:text-white tracking-tight text-lg">
+                    AgriShield <span className="text-emerald-500">AI</span>
                   </span>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-              {/* Wall 4: Ghost Honeypot Bot Trap */}
-              <input
-                type="text"
-                name="bot_trap"
-                value={botTrap}
-                onChange={(e) => setBotTrap(e.target.value)}
-                tabIndex={-1}
-                autoComplete="off"
-                aria-hidden="true"
-                style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
-              />
-
-              {/* Error message */}
-              <AnimatePresence>
-                {errorMsg && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, height: 0 }}
-                    animate={{ opacity: 1, y: 0, height: 'auto' }}
-                    exit={{ opacity: 0, y: -8, height: 0 }}
-                    className="p-3.5 bg-rose-500/12 border border-rose-500/25 text-rose-400 text-xs font-bold rounded-2xl flex items-center gap-2"
-                  >
-                    <span>⚠️</span> {errorMsg}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Email / Username */}
-              <div className="space-y-1">
-                <label htmlFor="email" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                  {t('auth.login.username_or_email', 'Username or Email')}
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-400 transition-colors">
-                    <User className="h-4 w-4" />
-                  </div>
-                  <input
-                    id="email"
-                    type="text"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth.login.username_placeholder', 'e.g. farmer1 or your email')}
-                    className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/20 transition-all hover:border-white/20"
-                    required
-                  />
-                </div>
+                </Link>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  {role === 'equipment_provider' ? 'Provider Portal' : 'Farmer Access'}
+                </span>
               </div>
 
-              {/* Password */}
-              <div className="space-y-1">
-                <label htmlFor="password" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                  {t('auth.login.password', 'Password')}
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-400 transition-colors">
-                    <Lock className="h-4 w-4" />
-                  </div>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="block w-full pl-10 pr-10 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono hover:border-white/20"
-                    required
-                  />
+              <div className="mt-4 mb-6">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {t('auth.login.title', 'Sign In')}
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {isTe ? 'ఖాతా లేదా?' : "Don't have an account yet?"}{' '}
+                  <Link to="/register" className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
+                    {t('auth.login.create_account', 'Sign Up')}
+                  </Link>
+                </p>
+              </div>
+
+              {/* ── ROLE SELECTOR (Farmer vs Equipment Provider) ── */}
+              <div className="mb-6 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRole('farmer')}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    role === 'farmer'
+                      ? 'bg-white dark:bg-emerald-600 text-emerald-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Sprout className="w-4 h-4" />
+                  <span>{isTe ? 'రైతు (Farmer)' : 'Farmer'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRole('equipment_provider')}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    role === 'equipment_provider'
+                      ? 'bg-white dark:bg-indigo-600 text-indigo-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>{isTe ? 'యంత్రాల ప్రదాత' : 'Equipment Provider'}</span>
+                </button>
+              </div>
+
+              {/* Quick Biometric 1-Tap Sign-In Box */}
+              {biometricSupported && (
+                <div className="mb-5">
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label="Toggle password visibility"
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-emerald-400 focus:outline-none transition-colors"
+                    disabled={biometricLoading || loading}
+                    onClick={handleBiometricSignIn}
+                    className="w-full p-3 rounded-2xl bg-emerald-50/70 hover:bg-emerald-50 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border border-emerald-200/90 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between transition-all"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-emerald-500 text-white">
+                        {biometricLoading ? <ScanFace className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
+                      </div>
+                      <span className="font-extrabold">
+                        {isTe ? 'వేలిముద్ర లేదా ఫేస్ లాగిన్' : '1-Tap Biometric Sign In'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                      Fast
+                    </span>
                   </button>
+
+                  <div className="relative my-4 flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-slate-200 dark:border-slate-800" />
+                    </div>
+                    <span className="relative px-3 bg-white dark:bg-[#070e17] text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      {isTe ? 'లేదా పాస్‌వర్డ్' : 'OR WITH PASSWORD'}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Remember me */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 font-bold text-slate-500 cursor-pointer select-none hover:text-slate-300 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="h-4 w-4 rounded border-white/10 text-emerald-500 focus:ring-0 bg-[#0d1527] cursor-pointer accent-emerald-500"
-                  />
-                  {t('auth.login.remember_me', 'Remember Me')}
-                </label>
-              </div>
+              {/* Login Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Honeypot Bot Trap */}
+                <input
+                  type="text"
+                  name="bot_trap"
+                  value={botTrap}
+                  onChange={(e) => setBotTrap(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
+                />
 
-              {/* Submit button with scan progress bar */}
-              <div className="relative mt-2">
-                <Button
-                  type="submit"
-                  loading={loading}
-                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-[0_0_30px_rgba(52,211,153,0.3)] hover:shadow-[0_0_40px_rgba(52,211,153,0.5)] transition-all duration-300"
-                >
-                  {loading
-                    ? t('auth.login.scanning', '🔍 Scanning Field...')
-                    : t('auth.login.sign_in_btn', 'Sign In to Account')}
-                </Button>
+                {errorMsg && (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold rounded-2xl flex items-center gap-2">
+                    <span>⚠️</span> {errorMsg}
+                  </div>
+                )}
 
-                {/* Scan progress sweep under button */}
-                <AnimatePresence>
-                  {loading && (
-                    <motion.div
-                      className="absolute bottom-0 left-0 h-[2px] rounded-b-2xl bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400"
-                      initial={{ width: '0%' }}
-                      animate={{ width: `${scanProgress}%` }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.4, ease: 'easeOut' }}
+                {/* Email / Username Input */}
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    {role === 'equipment_provider' 
+                      ? (isTe ? 'ప్రదాత ఈమెయిల్ లేదా యూజర్‌నేమ్' : 'Provider Email or Username')
+                      : t('auth.login.username_or_email', 'Email Address or Username')}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={role === 'equipment_provider' ? 'e.g. provider@agrishield.com' : 'you@example.com or farmer1'}
+                      className="w-full pl-10 pr-3 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                      required
                     />
-                  )}
-                </AnimatePresence>
-              </div>
-            </form>
+                  </div>
+                </div>
 
-            {/* Footer badges */}
-            <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-600">
-              <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                {t('auth.login.agrishield_secure', 'AgriShield Secure')}
-              </span>
-              <span className="flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                {t('auth.login.pytorch_diagnostic', 'PyTorch Diagnostic')}
-              </span>
+                {/* Password Input */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      {t('auth.login.password', 'Password')}
+                    </label>
+                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
+                      {isTe ? 'పాస్‌వర్డ్ మర్చిపోయారా?' : 'Forgot Password?'}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter 4 characters or more"
+                      className="w-full pl-10 pr-10 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-mono"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remember Me */}
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                    />
+                    <span>{t('auth.login.remember_me', 'Remember me')}</span>
+                  </label>
+                </div>
+
+                {/* Submit Action Button */}
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    loading={loading}
+                    className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg transition-all duration-300 ${
+                      role === 'equipment_provider'
+                        ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
+                        : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                    }`}
+                  >
+                    {loading
+                      ? (isTe ? 'ధృవీకరిస్తోంది...' : 'Signing in...')
+                      : (isTe ? 'లాగిన్ అవ్వండి' : 'LOGIN')}
+                  </Button>
+                </div>
+              </form>
             </div>
 
-            <p className="text-center text-xs text-slate-500 mt-5 font-bold">
-              {t('auth.login.new_to_agrishield', 'New to AgriShield?')}{' '}
-              <Link to="/register" className="font-extrabold text-emerald-400 hover:text-emerald-300 hover:underline transition-colors">
-                {t('auth.login.create_account', 'Create an account')}
-              </Link>
-            </p>
-          </motion.div>
+            {/* Bottom Footer Info */}
+            <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+              <span className="flex items-center gap-1.5 font-bold">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                AgriShield Guard v2.0
+              </span>
+              <span>256-bit SSL Protected</span>
+            </div>
+          </div>
+
+          {/* ══ RIGHT SIDE: Modern Workstation Vector Illustration ══ */}
+          <div className="lg:col-span-6 p-4 sm:p-6 lg:p-8 flex items-center justify-center bg-slate-50 dark:bg-slate-900/40">
+            <AuthWorkstationIllustration role={role} isTe={isTe} />
+          </div>
         </motion.div>
       </div>
-    </div>
 
-      {/* ── Farmer Biometric Guidance Modal for 1-Tap Sign-In ── */}
+      {/* Biometric Guidance Modal */}
       <FarmerBiometricModal
         isOpen={showBioLoginModal}
         onClose={() => setShowBioLoginModal(false)}

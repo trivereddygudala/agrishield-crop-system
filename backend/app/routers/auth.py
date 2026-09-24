@@ -144,6 +144,8 @@ async def register(request: Request, user_data: UserRegister, db = Depends(get_d
         "farm_location": user_data.farm_location,
         "preferred_language": user_data.preferred_language or "en",
         "crop_history": user_data.crop_history or [],
+        "selected_crops": user_data.selected_crops or [],
+        "equipment_types": user_data.equipment_types or [],
         "farming_practices": user_data.farming_practices or "Conventional",
         "farm_profile_completed": False,
         "active_farm_id": None,

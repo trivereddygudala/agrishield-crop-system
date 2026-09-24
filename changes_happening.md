@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v227) - Redesigned Login/Register Aesthetic with Dual Roles (Farmer & Equipment Provider), 8-Crop AI Selector, and Dedicated Provider Portal
+- **Summary:** Complete redesign and isolation of authentication and role pathways based on the user's reference modern workstation UI:
+  1. 🎨 **Split-Card Login & Registration Redesign (`LoginPage.jsx` & `RegisterPage.jsx`):**
+     - Crafted split layout matching the reference user illustration: left elevated authentication card and right agricultural workstation vector illustration (`AuthWorkstationIllustration.jsx`) featuring an AI agronomist desk, leaf telemetry screens, status bubbles, and crop diagnostic monitors.
+     - Dual-role toggle selector pills: `[👨‍🌾 Farmer / రైతు]` vs `[🚜 Equipment Provider / యంత్రాల ప్రదాత]`.
+     - Retained 1-Tap Biometric (WebAuthn Fingerprint & Face ID) sign-in and honeypot bot trap defenses.
+  2. 🌾 **Farmer 8-Crop Selection Component (`FarmerCropPicker.jsx`):**
+     - Built an interactive crop selector allowing farmers to pick up to 8 primary crops during registration from the 14 supported AI crops (Tomato, Chilli, Paddy/Rice, Cotton, Corn, Potato, Wheat, Bell Pepper, Grape, Apple, Mango, Sugarcane, Banana, Soybean).
+     - Bilingual labels (English & Telugu), crop category tags, and active count badge (`[Selected: X / 8]`).
+     - Stored in backend user schema (`selected_crops`) to pre-scope disease inference pipelines, reduce server memory load, and increase AI accuracy.
+  3. 🚜 **Dedicated Equipment Provider Portal (`ProviderDashboardPage.jsx` at `/provider/dashboard`):**
+     - Clean, structured boxes, elevated cards, and crisp borders tailored for Machinery Owners and Custom Hiring Centers (CHCs).
+     - **Fleet Hub:** Manage active tractors, drones, irrigation pumps, and harvesters with hourly/daily rent rates, horsepower, implement attachments, and live availability toggles.
+     - **Incoming Farmer Orders:** Real-time dashboard for receiving rental booking requests from farmers with contact buttons, crop/field details, and status updates (Pending, Confirmed, Completed).
+     - **Earnings & Ledger:** Direct payout ledger tracking total revenue, completed jobs, and 0% platform fee confirmation.
+     - **Coverage Settings:** Set base hub village/mandal and operational radius (5 km to 100 km).
+  4. 🛡️ **Navigation Isolation (`AppLayout.jsx`):**
+     - Isolated sidebar and mobile dock navigation for `equipment_provider` role (Fleet Hub, Farmer Orders, Earnings Ledger, Profile, Settings) without any mixing of farmer-specific tabs (AI leaf camera scan, crop lifecycle, IoT sensors, and soil diagnostics are hidden from providers).
+     - Farmer navigation remains streamlined for agricultural scanning and crop advisory.
+  5. 🧹 **Farmer Equipment Booking View Sanitization (`EquipmentBookingPage.jsx`):**
+     - Removed the "Register My Equipment for Rent" tab from the farmer's profile so farmers strictly browse, filter, and book machinery.
+     - Added a direct notice banner for equipment providers pointing them to their dedicated Provider Hub.
+  6. 🧪 **Build & Lint Verification:**
+     - Verified with `npm run build` (3166 modules transformed, 0 compile errors).
+- **Files modified:** `frontend/src/pages/LoginPage.jsx`, `frontend/src/pages/RegisterPage.jsx`, `frontend/src/components/auth/AuthWorkstationIllustration.jsx`, `frontend/src/components/auth/FarmerCropPicker.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/EquipmentBookingPage.jsx`, `frontend/src/components/AppLayout.jsx`, `frontend/src/App.jsx`, `frontend/src/context/AuthContext.jsx`, `backend/app/models/schemas.py`, `backend/app/routers/auth.py`, `changes_happening.md`.
+
 ## 2026-09-24 (v226) - Completely Purged All Mock Machinery & Dummy Bookings Data
 - **Summary:** Removed all 12 hardcoded seed machinery profiles (Tractors, Drones, Irrigation Pumps) and dummy sample booking `#BK-78210` from `EquipmentBookingPage.jsx`. Transitioned the Custom Hiring Center Hub to 100% authentic, user-registered machinery data:
   1. 🧹 **Purged Seed Data (`INITIAL_EQUIPMENT_CATALOG`):**

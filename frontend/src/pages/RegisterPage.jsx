@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Lock, Eye, EyeOff, MapPin, ShieldCheck, Sparkles, Globe } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, MapPin, ShieldCheck, Sparkles, Globe, Sprout, Truck, ArrowRight, ArrowLeft, Check, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/index';
 import { useToast } from '../components/ui/toast';
@@ -9,23 +9,46 @@ import { useTranslation } from 'react-i18next';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
 import NatureParticles from '../components/animations/NatureParticles';
+import FarmerCropPicker from '../components/auth/FarmerCropPicker';
+import AuthWorkstationIllustration from '../components/auth/AuthWorkstationIllustration';
+
+const PROVIDER_EQUIPMENT_OPTIONS = [
+  { id: 'tractor', name: 'Tractor & Implements', teluguName: 'ట్రాక్టర్ & నాగలి', icon: '🚜', desc: 'Ploughing, rotavating, sowing & hauling' },
+  { id: 'drone', name: 'AI Spraying Drone', teluguName: 'స్ప్రేయింగ్ డ్రోన్', icon: '🛸', desc: 'Ultra-low volume pesticide & fertilizer spray' },
+  { id: 'irrigation', name: 'Irrigation & Borewell Pumps', teluguName: 'నీటి పంపులు', icon: '💧', desc: 'Diesel/solar pumps, drip & sprinkler lines' },
+  { id: 'harvester', name: 'Combine Harvester', teluguName: 'కోత యంత్రం', icon: '🌾', desc: 'Paddy, maize, wheat & sugarcane harvesting' }
+];
 
 const RegisterPage = () => {
   const { t, i18n } = useTranslation();
+  const isTe = i18n.language === 'te';
   const { register, user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
+  // Multi-step registration flow: Step 1 = Account Credentials, Step 2 = Role Configuration (Crops for Farmer / Fleet for Provider)
+  const [step, setStep] = useState(1);
+  const [role, setRole] = useState('farmer'); // 'farmer' | 'equipment_provider'
+
+  // Step 1: Identity & Credentials
   const [name, setName] = useState('');
+  const [emailInput, setEmailInput] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [village, setVillage] = useState('');
+  const [district, setDistrict] = useState('Prakasam');
   const [botTrap, setBotTrap] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [village, setVillage] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState(i18n.language || 'en');
-  const [activeStep, setActiveStep] = useState(0); // Onboarding slides index
   const [langModalOpen, setLangModalOpen] = useState(false);
+
+  // Step 2 (Farmer): 8 Selected Crops
+  const [selectedCrops, setSelectedCrops] = useState(['Tomato', 'Chilli', 'Rice', 'Cotton']);
+
+  // Step 2 (Equipment Provider): Fleet Types & Hub
+  const [equipmentTypes, setEquipmentTypes] = useState(['tractor']);
+  const [providerRadiusKm, setProviderRadiusKm] = useState(25);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -42,36 +65,58 @@ const RegisterPage = () => {
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
-      navigate('/dashboard', { replace: true });
+      if (user.role === 'equipment_provider') {
+        navigate('/provider/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
   }, [user, navigate]);
 
-  const onboardingSlides = [
-    { 
-      title: t('auth.register.step1_title', '📸 Step 1: Snap Leaf Photo'), 
-      desc: t('auth.register.step1_desc', 'Take a clear, close-up picture of the infected crop leaf using your phone camera.') 
-    },
-    { 
-      title: t('auth.register.step2_title', '🟢 Step 2: Instant AI Scan'), 
-      desc: t('auth.register.step2_desc', 'AgriShield AI uses NIM endpoints to scan and detect symptoms in under 5 seconds.') 
-    },
-    { 
-      title: t('auth.register.step3_title', '🌾 Step 3: Treatment & Spray Advice'), 
-      desc: t('auth.register.step3_desc', 'Get organic & chemical recommendations, water guidance, and spray dosages.') 
+  const toggleEquipmentType = (typeId) => {
+    if (equipmentTypes.includes(typeId)) {
+      if (equipmentTypes.length > 1) {
+        setEquipmentTypes(equipmentTypes.filter(t => t !== typeId));
+      } else {
+        toast.info('At least one machinery type is required');
+      }
+    } else {
+      setEquipmentTypes([...equipmentTypes, typeId]);
     }
-  ];
+  };
 
-  useEffect(() => {
-    const slideTimer = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % onboardingSlides.length);
-    }, 4500);
-    return () => clearInterval(slideTimer);
-  }, [onboardingSlides.length]);
+  const validateStep1 = () => {
+    setErrorMsg('');
+    const trimmedName = name.trim();
+    if (!trimmedName || !password || !confirmPassword || !village) {
+      const msg = t('auth.register.validation_all_required', 'All credential and location fields are required.');
+      setErrorMsg(msg);
+      toast.error('Validation Error', msg);
+      return false;
+    }
 
-  const handleLanguageChange = (code) => {
-    setPreferredLanguage(code);
-    i18n.changeLanguage(code);
-    localStorage.setItem('i18nextLng', code);
+    if (password.length < 4) {
+      const msg = t('auth.register.validation_password_length', 'Password must be at least 4 characters long.');
+      setErrorMsg(msg);
+      toast.error('Validation Error', msg);
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      const msg = t('auth.register.validation_password_mismatch', 'Passwords do not match. Please re-enter.');
+      setErrorMsg(msg);
+      toast.error('Validation Error', msg);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleNextStep = (e) => {
+    e.preventDefault();
+    if (validateStep1()) {
+      setStep(2);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -79,44 +124,77 @@ const RegisterPage = () => {
     if (loading) return;
     setErrorMsg('');
 
+    // Ensure step 1 is valid
+    if (!validateStep1()) {
+      setStep(1);
+      return;
+    }
+
+    // Role-specific step 2 validation
+    if (role === 'farmer' && selectedCrops.length === 0) {
+      const msg = isTe ? 'దయచేసి కనీసం 1 పంటను ఎంచుకోండి.' : 'Please select at least 1 crop.';
+      setErrorMsg(msg);
+      toast.warning('Crop Selection Required', msg);
+      return;
+    }
+
+    if (role === 'equipment_provider' && equipmentTypes.length === 0) {
+      const msg = isTe ? 'దయచేసి కనీసం 1 యంత్రాల రకాన్ని ఎంచుకోండి.' : 'Please select at least 1 machinery category.';
+      setErrorMsg(msg);
+      toast.warning('Equipment Category Required', msg);
+      return;
+    }
+
     const trimmedName = name.trim();
-    if (!trimmedName || !password || !confirmPassword || !village) {
-      const msg = t('auth.register.validation_all_required', 'All fields are required.');
-      setErrorMsg(msg);
-      toast.error('Validation Error', msg);
-      return;
+    let email = emailInput.trim();
+    if (!email) {
+      email = trimmedName.includes('@')
+        ? trimmedName.toLowerCase()
+        : `${trimmedName.toLowerCase().replace(/\s+/g, '')}@agrishield.com`;
     }
-
-    if (password.length < 4) {
-      const msg = t('auth.register.validation_password_length', 'Password must be at least 4 characters long.');
-      setErrorMsg(msg);
-      toast.error('Validation Error', msg);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      const msg = t('auth.register.validation_password_mismatch', 'Passwords do not match. Please re-enter.');
-      setErrorMsg(msg);
-      toast.error('Validation Error', msg);
-      return;
-    }
-
-    // Auto-generate clean login email/identifier from username if not already an email
-    const email = trimmedName.includes('@')
-      ? trimmedName.toLowerCase()
-      : `${trimmedName.toLowerCase().replace(/\s+/g, '')}@agrishield.com`;
 
     setLoading(true);
-    
+
     try {
-      await register(trimmedName, email, password, preferredLanguage, botTrap);
-      // Store village details in localStorage to save farmer metadata locally
-      localStorage.setItem('farmer_village', village);
-      toast.success(
-        t('auth.register.success_title', 'Account Created!'), 
-        t('auth.register.success_desc', 'Welcome to AgriShield AI.')
+      const farmLocation = {
+        village,
+        district,
+        state: 'Andhra Pradesh',
+        radius_km: role === 'equipment_provider' ? providerRadiusKm : undefined
+      };
+
+      await register(
+        trimmedName,
+        email,
+        password,
+        preferredLanguage,
+        botTrap,
+        role,
+        role === 'farmer' ? selectedCrops : [],
+        role === 'equipment_provider' ? equipmentTypes : [],
+        farmLocation
       );
-      navigate('/dashboard', { replace: true });
+
+      localStorage.setItem('farmer_village', village);
+      localStorage.setItem('farmer_district', district);
+      localStorage.setItem('user_role', role);
+
+      if (role === 'farmer') {
+        localStorage.setItem('agrishield_selected_crops', JSON.stringify(selectedCrops));
+      }
+
+      toast.success(
+        t('auth.register.success_title', 'Account Created!'),
+        role === 'equipment_provider'
+          ? (isTe ? 'యంత్రాల ప్రదాత పోర్టల్‌కి స్వాగతం!' : 'Welcome to the Equipment Provider Hub!')
+          : (isTe ? 'అగ్రిషీల్డ్ రైతు వేదికకు స్వాగతం!' : 'Welcome to AgriShield AI!')
+      );
+
+      if (role === 'equipment_provider') {
+        navigate('/provider/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       console.error(err);
       const raw = err.response?.data?.detail;
@@ -131,39 +209,19 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="dark relative min-h-screen bg-[#030a06] text-white flex items-center justify-center px-4 py-12 overflow-hidden select-none">
-
-      {/* Nature particle background */}
+    <div className="relative min-h-screen bg-gradient-to-br from-indigo-900/40 via-[#030a06] to-slate-950 text-white flex items-center justify-center p-4 sm:p-6 lg:p-10 select-none overflow-x-hidden">
       <NatureParticles count={18} />
 
-      {/* Deep green radial background */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 80% 70% at 50% 50%, rgba(5,30,14,0.85) 0%, rgba(3,10,6,1) 70%)',
-        }}
-      />
+      {/* Deep ambient backdrop circles */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[550px] w-[550px] rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
 
-      {/* Grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(52,211,153,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(52,211,153,0.025)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)] pointer-events-none" />
-
-      {/* Slow radar scan line */}
-      <motion.div
-        className="absolute left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent pointer-events-none z-0"
-        animate={{ y: ['-10vh', '110vh'] }}
-        transition={{ repeat: Infinity, duration: 10, ease: 'linear' }}
-      />
-
-      {/* Ambient glow orbs */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 -z-10 h-[500px] w-[500px] rounded-full bg-emerald-500/6 blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 -z-10 h-[400px] w-[400px] rounded-full bg-teal-500/5 blur-3xl" />
-
-      {/* Floating Language Switcher in Top-Right Corner */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+      {/* Language switcher */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
         <button
           type="button"
           onClick={() => setLangModalOpen(true)}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-bold text-slate-200 transition-all backdrop-blur-md shadow-lg hover:border-emerald-500/40"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold text-slate-100 transition-all backdrop-blur-md shadow-lg hover:border-emerald-400/50"
         >
           <Globe className="w-4 h-4 text-emerald-400" />
           <span>{currentLang?.nativeName || 'English'}</span>
@@ -172,273 +230,358 @@ const RegisterPage = () => {
 
       <LanguageSelectModal isOpen={langModalOpen} onClose={() => setLangModalOpen(false)} />
 
-      {/* ── Main Centered Registration Card ── */}
-      <div className="w-full max-w-md mx-auto relative z-10 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 35, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full relative"
-        >
-        <div className="text-center mb-8 flex flex-col items-center">
-          <Link to="/" className="inline-flex items-center gap-3 mb-5 group">
-            {/* Scan ring logo */}
-            <div className="relative">
-              <motion.div
-                className="absolute inset-0 rounded-2xl border border-emerald-500/40"
-                animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.div
-                className="absolute inset-0 rounded-2xl border border-teal-400/25"
-                animate={{ scale: [1, 1.6, 1], opacity: [0.4, 0, 0.4] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
-              />
-              <div className="bg-gradient-to-br from-emerald-400 to-teal-600 p-3.5 rounded-2xl shadow-[0_0_40px_rgba(52,211,153,0.5)] relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                <motion.div
-                  className="absolute left-0 right-0 h-[2px] bg-white/60 shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-                  animate={{ y: [0, 44, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                  style={{ top: 0 }}
-                />
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 relative z-10">
-                  <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
-                  <path d="M2 22 C2 22 8 16 12 12" />
-                </svg>
+      {/* ── Modern Split-Card Presentation Container ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-5xl rounded-3xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_20px_70px_rgba(0,0,0,0.55)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 my-4"
+      >
+        {/* ══ LEFT SIDE: Clean Elevated Auth Form Card ══ */}
+        <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-between bg-white dark:bg-[#070e17] text-slate-900 dark:text-white border-b lg:border-b-0 lg:border-r border-slate-200/80 dark:border-slate-800">
+          <div>
+            {/* Header: Title & Switch Link */}
+            <div className="flex items-center justify-between mb-2">
+              <Link to="/" className="inline-flex items-center gap-2 group">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+                  <Sprout className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-black text-slate-900 dark:text-white tracking-tight text-lg">
+                  AgriShield <span className="text-emerald-500">AI</span>
+                </span>
+              </Link>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  step === 1 ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                }`}>
+                  Step {step} of 2
+                </span>
               </div>
             </div>
-            <span className="font-black text-white tracking-tight text-2xl">
-              AgriShield <span className="text-emerald-400">AI</span>
-            </span>
-          </Link>
-          
-          <h2 className="font-display font-black text-white text-3xl tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-            {t('auth.register.title', 'Create Account')}
-          </h2>
-          <p className="text-slate-400 text-xs sm:text-sm mt-2 leading-relaxed">
-            {t('auth.register.subtitle', 'Start protecting your crops with machine intelligence')}
-          </p>
-        </div>
-        {/* Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="p-8 border border-emerald-500/15 bg-[#040d07]/70 backdrop-blur-xl relative overflow-hidden rounded-[24px] shadow-[0_0_60px_-12px_rgba(52,211,153,0.2)]"
-        >
-          {/* Animated top accent line */}
-          <motion.div
-            className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500"
-            animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-          />
-          {/* Corner decoration */}
-          <div className="absolute top-3 right-4 opacity-10">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(52,211,153,1)">
-              <path d="M2 22 C2 22 7 17 12 12 C17 7 22 2 22 2 C22 2 22 9 18 14 C14 19 7 22 2 22 Z" />
-            </svg>
-          </div>
-          
-          {/* Illustrated Picture-Based Onboarding Slides */}
-          <div className="mb-6 bg-white/[0.03] border border-white/5 p-4 rounded-2xl overflow-hidden relative min-h-[90px] flex flex-col justify-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeStep}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.35 }}
-                className="space-y-1 text-center"
-              >
-                <h4 className="text-xs font-black text-emerald-450 tracking-wide uppercase">
-                  {onboardingSlides[activeStep].title}
-                </h4>
-                <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
-                  {onboardingSlides[activeStep].desc}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-            <div className="flex items-center justify-center gap-1.5 mt-3">
-              {onboardingSlides.map((_, idx) => (
-                <span
-                  key={idx}
-                  className={`h-1 rounded-full transition-all duration-300 ${
-                    idx === activeStep ? 'w-4 bg-emerald-500' : 'w-1 bg-white/20'
-                  }`}
-                />
-              ))}
+
+            <div className="mt-3 mb-5">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                {step === 1 ? (isTe ? 'కొత్త ఖాతా సృష్టించండి' : 'Create Account') : (role === 'farmer' ? (isTe ? 'మీ 8 పంటల ఎంపిక' : 'Your 8 AI Crops') : (isTe ? 'యంత్రాల వివరాలు' : 'Machinery Fleet Setup'))}
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {isTe ? 'ఇప్పటికే ఖాతా ఉందా?' : 'Already have an account?'}{' '}
+                <Link to="/login" className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
+                  {t('auth.register.login_link', 'Sign In')}
+                </Link>
+              </p>
             </div>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-            {/* Wall 4: Ghost Honeypot Bot Trap */}
-            <input
-              type="text"
-              name="bot_trap"
-              value={botTrap}
-              onChange={(e) => setBotTrap(e.target.value)}
-              tabIndex={-1}
-              autoComplete="off"
-              aria-hidden="true"
-              style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
-            />
+            {/* ── ROLE SELECTOR (Always visible so user knows their portal type) ── */}
+            {step === 1 && (
+              <div className="mb-5 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRole('farmer')}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    role === 'farmer'
+                      ? 'bg-white dark:bg-emerald-600 text-emerald-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Sprout className="w-4 h-4" />
+                  <span>{isTe ? 'రైతు (Farmer)' : 'Farmer (రైతు)'}</span>
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() => setRole('equipment_provider')}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    role === 'equipment_provider'
+                      ? 'bg-white dark:bg-indigo-600 text-indigo-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Truck className="w-4 h-4" />
+                  <span>{isTe ? 'యంత్రాల ప్రదాత' : 'Equipment Provider'}</span>
+                </button>
+              </div>
+            )}
+
+            {/* Error Banner */}
             {errorMsg && (
-              <div className="p-3.5 bg-rose-500/15 border border-rose-500/25 text-rose-450 text-xs font-bold rounded-2xl flex items-center gap-2">
+              <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-bold rounded-2xl flex items-center gap-2">
                 <span>⚠️</span> {errorMsg}
               </div>
             )}
 
-            <div className="space-y-1">
-              <label htmlFor="name" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.register.full_name', 'Full Name or Username')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <User className="h-4 w-4" />
-                </div>
+            {/* ══ STEP 1: Account Credentials & Farm Location ══ */}
+            {step === 1 && (
+              <form onSubmit={handleNextStep} className="space-y-3.5">
+                {/* Honeypot Bot Trap */}
                 <input
-                  id="name"
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t('auth.register.full_name_placeholder', 'e.g. Ramesh or farmer1')}
-                  className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label htmlFor="password" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.register.password', 'Password')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="h-4 w-4" />
-                </div>
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t('auth.register.password_placeholder', 'Enter password (e.g. 1234)')}
-                  className="block w-full pl-10 pr-10 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition-colors"
+                  name="bot_trap"
+                  value={botTrap}
+                  onChange={(e) => setBotTrap(e.target.value)}
                   tabIndex={-1}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label htmlFor="confirmPassword" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.register.confirm_password', 'Confirm Password')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="h-4 w-4" />
-                </div>
-                <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder={t('auth.register.confirm_password_placeholder', 'Re-enter password')}
-                  className="block w-full pl-10 pr-10 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono"
-                  required
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ display: 'none', position: 'absolute', left: '-9999px', opacity: 0 }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white transition-colors"
-                  tabIndex={-1}
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
 
-            <div className="space-y-1">
-              <label htmlFor="village" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.register.village', 'Village / District')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <MapPin className="h-4 w-4" />
+                {/* Name */}
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    {role === 'equipment_provider' ? (isTe ? 'ప్రదాత / ఏజెన్సీ పేరు' : 'Provider / Business Name') : t('auth.register.full_name', 'Full Name')}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={role === 'equipment_provider' ? 'e.g. Balaji Agro Machinery Hub' : 'e.g. Ramesh Reddy'}
+                      className="w-full pl-10 pr-3 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                      required
+                    />
+                  </div>
                 </div>
-                <input
-                  id="village"
-                  type="text"
-                  value={village}
-                  onChange={(e) => setVillage(e.target.value)}
-                  placeholder={t('auth.register.village_placeholder', 'e.g. Rampur, Bihar')}
-                  className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-2xl bg-white/[0.02] text-xs font-bold text-white placeholder-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
-                  required
-                />
-              </div>
-            </div>
 
-            <div className="space-y-1">
-              <label htmlFor="language" className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                {t('auth.register.preferred_language', 'Preferred Language')}
-              </label>
-              <select
-                id="language"
-                value={preferredLanguage}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="block w-full px-3 py-3 border border-white/10 rounded-2xl bg-[#0d1527] text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
-              >
-                <option value="en">English (English)</option>
-                <option value="hi">हिन्दी (Hindi)</option>
-                <option value="te">తెలుగు (Telugu)</option>
-                <option value="ta">தமிழ் (Tamil)</option>
-                <option value="kn">ಕನ್ನಡ (Kannada)</option>
-                <option value="ml">മലയാളം (Malayalam)</option>
-                <option value="bn">বাংলা (Bengali)</option>
-                <option value="mr">मराठी (Marathi)</option>
-                <option value="gu">ગુજરાતી (Gujarati)</option>
-                <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
-                <option value="ur">اردو (Urdu)</option>
-                <option value="or">ଓଡ଼ିଆ (Odia)</option>
-                <option value="as">অসমীয়া (Assamese)</option>
-              </select>
-            </div>
+                {/* Optional Email / Username */}
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    {t('auth.login.username_or_email', 'Mobile / Email')}
+                  </label>
+                  <input
+                    type="text"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="e.g. 9876543210 or name@agrishield.com"
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                  />
+                </div>
 
-            <Button 
-              type="submit" 
-              loading={loading} 
-              className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all mt-2"
-            >
-              {t('auth.register.register_btn', 'Register & Start Scanning')}
-            </Button>
-          </form>
+                {/* Passwords in 2 columns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      {t('auth.register.password', 'Password')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3.5 pr-9 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-mono"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </div>
 
-          {/* Project thematic details panel */}
-          <div className="mt-6 pt-5 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500">
-            <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> {t('auth.login.agrishield_secure', 'AgriShield Secure')}</span>
-            <span className="flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" /> {t('auth.login.pytorch_diagnostic', 'PyTorch Diagnostic')}</span>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      {t('auth.register.confirm_password', 'Confirm')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3.5 pr-9 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all font-mono"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location: Village & District */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>{role === 'equipment_provider' ? (isTe ? 'బేస్ హబ్ గ్రామం / నగరం' : 'Base Hub Village / Town') : (isTe ? 'గ్రామం' : 'Village')}</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={village}
+                      onChange={(e) => setVillage(e.target.value)}
+                      placeholder="e.g. Pasupugallu"
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      {isTe ? 'జిల్లా' : 'District'}
+                    </label>
+                    <input
+                      type="text"
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      placeholder="e.g. Prakasam"
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Next Step Button */}
+                <div className="pt-3">
+                  <Button
+                    type="submit"
+                    className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg flex items-center justify-center gap-2 transition-all ${
+                      role === 'equipment_provider'
+                        ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
+                        : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                    }`}
+                  >
+                    <span>{role === 'farmer' ? (isTe ? 'పంటల ఎంపికకు వెళ్లండి' : 'Next: Select 8 Crops') : (isTe ? 'యంత్రాల వివరాలకు వెళ్లండి' : 'Next: Setup Fleet')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* ══ STEP 2: Role Configuration ══ */}
+            {step === 2 && (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* 2A: For Farmer -> 8 Selected Crops Picker */}
+                {role === 'farmer' ? (
+                  <div>
+                    <FarmerCropPicker
+                      selectedCrops={selectedCrops}
+                      onChange={setSelectedCrops}
+                      isTe={isTe}
+                      maxCrops={8}
+                    />
+                  </div>
+                ) : (
+                  /* 2B: For Equipment Provider -> Fleet Categories */
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-black text-slate-800 dark:text-slate-200">
+                        {isTe ? 'మీరు అద్దెకు అందించే యంత్రాల రకాలను ఎంచుకోండి' : 'Select Equipment Categories You Provide for Rent'}
+                      </label>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {isTe ? 'రైతు బుకింగ్‌లు ఈ కేటగిరీల ప్రకారం మీ ప్రొఫైల్‌కు వస్తాయి.' : 'Farmers in your area will send rental booking orders for these categories.'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {PROVIDER_EQUIPMENT_OPTIONS.map((item) => {
+                        const isSelected = equipmentTypes.includes(item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => toggleEquipmentType(item.id)}
+                            className={`p-3 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 text-indigo-950 dark:text-white shadow-sm'
+                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            <span className="text-2xl">{item.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-black truncate">{isTe ? item.teluguName : item.name}</p>
+                                {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                              </div>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{item.desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Operational Coverage Radius */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-black text-slate-800 dark:text-slate-200">
+                          {isTe ? 'కార్యాచరణ సేవా పరిధి' : 'Service Coverage Radius'}
+                        </label>
+                        <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                          {providerRadiusKm} km
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="100"
+                        step="5"
+                        value={providerRadiusKm}
+                        onChange={(e) => setProviderRadiusKm(Number(e.target.value))}
+                        className="w-full accent-indigo-600 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>5 km (Local Village)</span>
+                        <span>50 km (Mandal)</span>
+                        <span>100 km (District)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Back and Final Submit Actions */}
+                <div className="flex items-center gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>{isTe ? 'వెనుకకు' : 'Back'}</span>
+                  </button>
+
+                  <Button
+                    type="submit"
+                    loading={loading}
+                    className={`flex-1 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg transition-all ${
+                      role === 'equipment_provider'
+                        ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
+                        : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                    }`}
+                  >
+                    {loading
+                      ? (isTe ? 'ఖాతా సృష్టిస్తోంది...' : 'Creating Account...')
+                      : (isTe ? 'ఖాతా నమోదు పూర్తి చేయండి' : 'COMPLETE REGISTRATION')}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
 
-          <p className="text-center text-xs text-slate-500 mt-5 font-bold">
-            {t('auth.register.already_have_account', 'Already have an account?')}{' '}
-            <Link to="/login" className="font-extrabold text-emerald-400 hover:text-emerald-300 hover:underline transition-colors">
-              {t('auth.register.sign_in', 'Sign In')}
-            </Link>
-          </p>
-        </motion.div>
+          {/* Bottom Footer Info */}
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <span className="flex items-center gap-1.5 font-bold">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              AgriShield Verified Platform
+            </span>
+            <span>Zero Brokerage &bull; Direct Connect</span>
+          </div>
+        </div>
+
+        {/* ══ RIGHT SIDE: Modern Workstation Vector Illustration ══ */}
+        <div className="lg:col-span-5 p-4 sm:p-6 lg:p-8 flex items-center justify-center bg-slate-50 dark:bg-slate-900/40">
+          <AuthWorkstationIllustration role={role} isTe={isTe} />
+        </div>
       </motion.div>
     </div>
-  </div>
-);
+  );
 };
 
 export default RegisterPage;

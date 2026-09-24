@@ -11,6 +11,8 @@ class UserBase(BaseModel):
     preferred_language: Optional[str] = Field(default="en")
     farmer_mode: Optional[bool] = Field(default=False)
     crop_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+    selected_crops: Optional[List[str]] = Field(default_factory=list)
+    equipment_types: Optional[List[str]] = Field(default_factory=list)
     farming_practices: Optional[str] = Field(default="Conventional")
     farm_profile_completed: Optional[bool] = Field(default=False)
     active_farm_id: Optional[str] = Field(default=None)

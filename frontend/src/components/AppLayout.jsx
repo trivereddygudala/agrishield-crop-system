@@ -54,7 +54,9 @@ import {
   Sliders, 
   UploadCloud,
   Radio,
-  Clock
+  Clock,
+  Truck,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
@@ -969,6 +971,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const isTester = user?.role?.toLowerCase() === 'tester';
+  const isEquipmentProvider = user?.role?.toLowerCase() === 'equipment_provider';
 
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'users';
@@ -998,6 +1001,23 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       items: [
         { key: "nav.profile", path: "/profile", icon: User, label: "Admin Profile" },
         { key: "nav.settings", path: "/settings", icon: SettingsIcon, label: "System Settings" },
+      ]
+    }
+  ] : isEquipmentProvider ? [
+    {
+      title: "Machinery Fleet & Rental Hub",
+      items: [
+        { key: "nav.provider_hub", path: "/provider/dashboard", icon: Truck, label: "Machinery Fleet Hub", color: "text-indigo-500" },
+        { key: "nav.provider_orders", path: "/provider/dashboard", icon: Calendar, label: "Farmer Rental Orders", color: "text-amber-500" },
+        { key: "nav.provider_earnings", path: "/provider/dashboard", icon: TrendingUp, label: "Earnings & Ledger", color: "text-emerald-500" },
+      ]
+    },
+    {
+      title: "Provider Account",
+      items: [
+        { key: "nav.profile", path: "/profile", icon: User, label: "Provider Profile", color: "text-violet-500" },
+        { key: "nav.settings", path: "/settings", icon: SettingsIcon, label: "Hub Settings", color: "text-slate-400" },
+        { key: "nav.help", path: "/support", icon: HelpCircle, label: "Help & Support", color: "text-sky-500" },
       ]
     }
   ] : isTester ? [
@@ -1236,7 +1256,41 @@ export const BottomNav = () => {
     },
   ];
 
-  const bottomTabs = isAdmin ? adminTabs : farmerTabs;
+  const isEquipmentProvider = user?.role?.toLowerCase() === 'equipment_provider';
+
+  // Equipment Provider tabs (Machinery Fleet Hub, Orders, Earnings, Profile - no farmer mixing)
+  const providerTabs = [
+    {
+      key: 'hub',
+      label: t('nav.provider_hub', 'Fleet Hub'),
+      path: '/provider/dashboard',
+      Icon: Truck,
+      matchPaths: ['/provider/dashboard', '/provider'],
+    },
+    {
+      key: 'orders',
+      label: t('nav.provider_orders', 'Orders'),
+      path: '/provider/dashboard',
+      Icon: Calendar,
+      matchPaths: ['/provider/dashboard'],
+    },
+    {
+      key: 'earnings',
+      label: t('nav.provider_earnings', 'Earnings'),
+      path: '/provider/dashboard',
+      Icon: TrendingUp,
+      matchPaths: ['/provider/dashboard'],
+    },
+    {
+      key: 'profile',
+      label: t('nav.profile', 'Profile'),
+      path: '/profile',
+      Icon: User,
+      matchPaths: ['/profile', '/settings'],
+    },
+  ];
+
+  const bottomTabs = isAdmin ? adminTabs : isEquipmentProvider ? providerTabs : farmerTabs;
 
   return (
     <nav

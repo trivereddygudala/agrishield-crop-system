@@ -154,10 +154,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, preferred_language = 'en', botTrap = '') => {
+  const register = async (name, email, password, preferred_language = 'en', botTrap = '', role = 'farmer', extraData = {}) => {
     setLoading(true);
     try {
-      const payload = { name, email, password, role: 'farmer', preferred_language };
+      const payload = {
+        name,
+        email,
+        password,
+        role: role || 'farmer',
+        preferred_language,
+        selected_crops: extraData.selected_crops || [],
+        equipment_types: extraData.equipment_types || [],
+        farm_location: extraData.farm_location || ''
+      };
       if (botTrap) payload.bot_trap = botTrap;
       const res = await API.post('/api/auth/register', payload);
       // Auto-login with permanent persistence (rememberMe = true)

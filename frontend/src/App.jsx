@@ -46,6 +46,7 @@ const LanguagesPage = lazyWithRetry(() => import('./pages/LanguagesPage'));
 const FieldAreaCalculatorPage = lazyWithRetry(() => import('./pages/FieldAreaCalculatorPage'));
 const HelpSupportPage = lazyWithRetry(() => import('./pages/HelpSupportPage'));
 const EquipmentBookingPage = lazyWithRetry(() => import('./pages/EquipmentBookingPage'));
+const ProviderDashboardPage = lazyWithRetry(() => import('./pages/provider/ProviderDashboardPage'));
 
 // Layout wrapper for internal dashboard views
 const DashboardLayout = () => {
@@ -173,6 +174,8 @@ function App() {
                           <Route path="/farm" element={<FarmPage />} />
                           <Route path="/field-calculator" element={<FieldAreaCalculatorPage />} />
                           <Route path="/equipment-booking" element={<EquipmentBookingPage />} />
+                          <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
+                          <Route path="/provider" element={<Navigate to="/provider/dashboard" replace />} />
                           <Route path="/tractor-booking" element={<Navigate to="/equipment-booking" replace />} />
                           <Route path="/drone-booking" element={<Navigate to="/equipment-booking" replace />} />
                           <Route path="/area-calculator" element={<Navigate to="/field-calculator" replace />} />

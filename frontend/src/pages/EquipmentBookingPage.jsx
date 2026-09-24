@@ -249,7 +249,33 @@ export default function EquipmentBookingPage() {
         </div>
       </div>
 
-      {/* ═══════════ MAIN NAVIGATION TABS ═══════════ */}
+      {/* ── Optional Provider Notice Banner if user is equipment provider ── */}
+      {user?.role?.toLowerCase() === 'equipment_provider' && (
+        <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+              <Truck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-indigo-950 dark:text-indigo-200">
+                {isTe ? 'యంత్రాల ప్రదాత పోర్టల్ అందుబాటులో ఉంది' : 'Equipment Provider Hub Active'}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {isTe ? 'మీ యంత్రాల కేటలాగ్, రైతు బుకింగ్‌లు మరియు రాబడి లెడ్జర్‌ను నిర్వహించండి.' : 'Manage your machinery fleet, incoming farmer bookings, and earnings in your dedicated portal.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/provider/dashboard')}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shrink-0 transition-all shadow-sm"
+          >
+            {isTe ? 'ప్రదాత హబ్‌కి వెళ్లండి →' : 'Go to Provider Hub →'}
+          </button>
+        </div>
+      )}
+
+      {/* ═══════════ MAIN NAVIGATION TABS (Strictly Farmer Booking Focused) ═══════════ */}
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 overflow-x-auto no-scrollbar">
         <button
           type="button"
@@ -264,22 +290,6 @@ export default function EquipmentBookingPage() {
           <span>{isTe ? 'యంత్రాల జాబితా & బుకింగ్' : 'Browse & Book Machinery'}</span>
           <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-white/20 text-white font-bold ml-0.5">
             {displayedEquipment.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('register')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer ${
-            activeTab === 'register'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Plus className="w-4 h-4" />
-          <span>{isTe ? 'నా పరికరాన్ని రిజిస్టర్ చేయండి' : 'Register My Equipment'}</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold ml-0.5">
-            {isTe ? 'అద్దె సంపాదన' : 'Earn Rent'}
           </span>
         </button>
 
@@ -544,25 +554,25 @@ export default function EquipmentBookingPage() {
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
                 {isTe
-                  ? 'ఈ ప్రాంతంలో ట్రాక్టర్, డ్రోన్ లేదా నీటి పారుదల పంపును అద్దెకు ఇవ్వడానికి మీ పరికరాన్ని నమోదు చేసి సమీప రైతుల నుండి అద్దె సంపాదించండి.'
-                  : 'Be the first local provider to list your tractor, spraying drone, or irrigation pump for rent and earn income from nearby farmers.'}
+                  ? 'ఈ గ్రామంలో ప్రస్తుతానికి సరిపడే యంత్రాలు జాబితా చేయబడలేదు. సమీప గ్రామాల లేదా మండల పరిధిలోని పరికరాలను చూడటానికి లొకేషన్ మార్చండి లేదా ప్రభుత్వ CHC కేంద్రాల సహాయం పొందండి.'
+                  : 'No machinery registered in this specific village yet. Try changing your search location to view machinery available in nearby villages/mandals or explore Govt CHC centers.'}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('register')}
+                  onClick={() => setShowLocationModal(true)}
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>{isTe ? 'నా పరికరాన్ని రిజిస్టర్ చేయండి' : '+ Register My Equipment for Rent'}</span>
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>{isTe ? 'లొకేషన్ మార్చండి' : 'Change Search Location'}</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowLocationModal(true)}
+                  onClick={() => setActiveTab('chc-info')}
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
                 >
-                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{isTe ? 'లొకేషన్ మార్చండి' : 'Change Location'}</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{isTe ? 'ప్రభుత్వ CHC & సబ్సిడీలు' : 'Govt CHC Subsidies'}</span>
                 </button>
               </div>
             </div>
