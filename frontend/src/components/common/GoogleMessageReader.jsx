@@ -147,11 +147,11 @@ export default function GoogleMessageReader({
       if (r.data && typeof r.data === 'object') return;
     } catch (_) {}
     try {
-      await axios.patch(`https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus }, { timeout: 15000 });
+      await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus }, { timeout: 15000 });
       return;
     } catch (e) {}
     try {
-      await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus }, { timeout: 15000 });
+      await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus }, { timeout: 15000 });
     } catch (e) {}
   };
 

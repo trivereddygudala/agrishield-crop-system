@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v247) - Switch Primary Production Backend to Worker-1 and Worker-2: Seamless Cluster Migration Overcoming Render Monthly Free Quota Limit
+- **Summary:** Transitioned the primary production backend from the legacy/quota-exhausted main Render instance (`agrishield-crop-system.onrender.com`) to the dedicated, fully operational cluster instances (`agrishield-ai-worker-1.onrender.com` as primary and `agrishield-ai-worker-2.onrender.com` as secondary failover):
+  1. 🔄 **Vercel Gateway Migration ([`frontend/vercel.json`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/vercel.json)):**
+     - Updated production Vercel serverless rewrites so all `/api/*` and `/uploads/*` requests proxy directly to `https://agrishield-ai-worker-1.onrender.com` (which possesses all 250 OpenAPI endpoints, runs the latest build, and has fresh monthly instance hours).
+  2. 🌐 **Core API Service Architecture Re-pointing ([`frontend/src/services/api.js`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/services/api.js)):**
+     - Set `PRIMARY_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.com'`.
+     - Set `SECONDARY_RENDER_BACKEND = 'https://agrishield-ai-worker-2.onrender.com'`.
+     - Configured automated Axios interceptor retry so any request encountering a 404, network error, or timeout on worker-1 transparently fails over to worker-2.
+  3. 📱 **Frontend Direct Sync Reconfiguration:**
+     - Updated [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx), [`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx), [`NotificationsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/NotificationsPage.jsx), and [`GoogleMessageReader.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/common/GoogleMessageReader.jsx) to prioritize `agrishield-ai-worker-1.onrender.com` followed by `agrishield-ai-worker-2.onrender.com`.
+  4. 🧪 **Validation:**
+     - Probed both `worker-1` and `worker-2` live: verified both respond `HTTP 200 OK` on `/health` and serve all 250 endpoints with identical MongoDB Atlas synchronization.
+- **Files modified**: `frontend/vercel.json`, `frontend/src/services/api.js`, `frontend/src/pages/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/NotificationsPage.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-24 (v246) - Multi-Mobile Multi-Account Cross-Device Sync & Automated Worker-1 Cluster Failover
 - **Summary:** Resolved the issue where two different accounts opened on two separate mobile devices (e.g., Farmer on Mobile 1 and Equipment Provider on Mobile 2) failed to synchronize equipment bookings, machinery catalogs, and fleet availability due to HTTP 404 responses returned by the main Render backend (`agrishield-crop-system.onrender.com`):
   1. 🔍 **Root Cause Identified:**

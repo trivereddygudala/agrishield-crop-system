@@ -231,12 +231,12 @@ export default function ProviderDashboardPage() {
         } catch (_) {}
         if (!res?.data?.catalog && !res?.data?.equipment) {
           try {
-            res = await axios.get(`https://agrishield-crop-system.onrender.com${endpoint}`, { timeout: 10000 });
+            res = await axios.get(`https://agrishield-ai-worker-1.onrender.com${endpoint}`, { timeout: 10000 });
           } catch (_) {}
         }
         if (!res?.data?.catalog && !res?.data?.equipment) {
           try {
-            res = await axios.get(`https://agrishield-ai-worker-1.onrender.com${endpoint}`, { timeout: 10000 });
+            res = await axios.get(`https://agrishield-ai-worker-2.onrender.com${endpoint}`, { timeout: 10000 });
           } catch (_) {}
         }
         const catalogItems = res?.data?.catalog || res?.data?.equipment;
@@ -285,10 +285,10 @@ export default function ProviderDashboardPage() {
           try { res = await API.get('/api/equipment/bookings'); } catch (_) {}
         }
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
         }
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+          try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
         }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           const remote = res.data.bookings;
@@ -422,7 +422,9 @@ export default function ProviderDashboardPage() {
 
     // Multi-device backend sync so machinery appears on all devices
     API.post('/api/v1/equipment/catalog', newMachine).catch(() => {
-      axios.post('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', newMachine).catch(() => {});
+      axios.post('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', newMachine).catch(() => {
+        axios.post('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog', newMachine).catch(() => {});
+      });
     });
 
     setIsAddModalOpen(false);
@@ -498,11 +500,11 @@ export default function ProviderDashboardPage() {
         if (r.data && typeof r.data === 'object') return;
       } catch (_) {}
       try {
-        await axios.patch(`https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
+        await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
         return;
       } catch (_) {}
       try {
-        await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
+        await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
       } catch (err) {
         console.warn('Backend status patch notice:', err);
       }

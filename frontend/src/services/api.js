@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-export const PRIMARY_RENDER_BACKEND = 'https://agrishield-crop-system.onrender.com';
-export const WORKER_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.com';
+export const PRIMARY_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.com';
+export const SECONDARY_RENDER_BACKEND = 'https://agrishield-ai-worker-2.onrender.com';
+export const LEGACY_RENDER_BACKEND = 'https://agrishield-crop-system.onrender.com';
 
 export const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
-  // When running on production domains (e.g., Vercel), fall back to Render production backend
+  // When running on production domains (e.g., Vercel), route directly to healthy primary worker
   if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     return PRIMARY_RENDER_BACKEND;
   }
@@ -48,7 +49,7 @@ API.interceptors.response.use(
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
 
-    // Automated Cluster Failover: If primary Render backend returned 404 or network timeout, retry on worker-1
+    // Automated Cluster Failover: If primary worker-1 returned 404 or network timeout, retry on worker-2
     const shouldFailover = (
       (error.response && error.response.status === 404) ||
       error.code === 'ERR_NETWORK' ||
@@ -59,7 +60,7 @@ API.interceptors.response.use(
       originalRequest._failoverRetry = true;
       try {
         const fallbackConfig = { ...originalRequest };
-        fallbackConfig.baseURL = WORKER_RENDER_BACKEND;
+        fallbackConfig.baseURL = SECONDARY_RENDER_BACKEND;
         const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
         const token = storage.getItem('token');
         if (token && fallbackConfig.headers) {
@@ -67,7 +68,7 @@ API.interceptors.response.use(
         }
         return await axios(fallbackConfig);
       } catch (workerErr) {
-        // Fall through to regular error handling if worker fallback also fails
+        // Fall through to regular error handling if secondary fallback also fails
       }
     }
 

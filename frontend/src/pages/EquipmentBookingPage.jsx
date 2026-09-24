@@ -263,10 +263,10 @@ export default function EquipmentBookingPage() {
           try { res = await API.get('/api/equipment/bookings'); } catch (_) {}
         }
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
         }
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+          try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
         }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           setMyBookings(prev => {
@@ -297,12 +297,12 @@ export default function EquipmentBookingPage() {
         } catch (_) {}
         if (!res?.data?.availability) {
           try {
-            res = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/fleet/status', { timeout: 10000 });
+            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/fleet/status', { timeout: 10000 });
           } catch (_) {}
         }
         if (!res?.data?.availability) {
           try {
-            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/fleet/status', { timeout: 10000 });
+            res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/fleet/status', { timeout: 10000 });
           } catch (_) {}
         }
         if (res?.data?.availability && typeof res.data.availability === 'object') {
@@ -337,12 +337,12 @@ export default function EquipmentBookingPage() {
         } catch (_) {}
         if (!res?.data?.catalog && !res?.data?.equipment) {
           try {
-            res = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
+            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
           } catch (_) {}
         }
         if (!res?.data?.catalog && !res?.data?.equipment) {
           try {
-            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
+            res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
           } catch (_) {}
         }
         const catalogItems = res?.data?.catalog || res?.data?.equipment;
@@ -1170,11 +1170,11 @@ export default function EquipmentBookingPage() {
                   if (res.data && typeof res.data === 'object' && res.data.id) return res.data;
                 } catch (_) {}
                 try {
-                  const res = await axios.post('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', payload, { timeout: 15000 });
+                  const res = await axios.post('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', payload, { timeout: 15000 });
                   if (res.data) return res.data;
                 } catch (_) {}
                 try {
-                  const res = await axios.post('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', payload, { timeout: 15000 });
+                  const res = await axios.post('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings', payload, { timeout: 15000 });
                   return res.data;
                 } catch (err) {
                   console.warn('Backend booking sync notice:', err);
