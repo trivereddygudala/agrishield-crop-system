@@ -22,6 +22,11 @@ import LiveWeatherWidget from '../components/intelligence/LiveWeatherWidget';
 import SprayAdvisorWidget from '../components/intelligence/SprayAdvisorWidget';
 import SoilNPKCalculatorModal from '../components/farm/SoilNPKCalculatorModal';
 import SatelliteNDVIViewer from '../components/farm/SatelliteNDVIViewer';
+import DigitalFarmKhata from '../components/farm/DigitalFarmKhata';
+import SmartIrrigationScheduler from '../components/farm/SmartIrrigationScheduler';
+import GovernmentSchemeNavigator from '../components/farm/GovernmentSchemeNavigator';
+import WhatsAppDiagnosisHub from '../components/farm/WhatsAppDiagnosisHub';
+import CropGrowthTimeline from '../components/farm/CropGrowthTimeline';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -250,21 +255,39 @@ const FarmPage = () => {
       action: 'inline'
     },
     { 
-      id: 'nearby-radar', 
-      title: isTe ? 'సమీప పొలాలు & వ్యాధి నిఘా రాడార్' : 'Nearby Fields & Disease Radar', 
-      subtitle: isTe ? 'సమీప రైతులు, పంటలు, దూరం & క్రియాశీల వ్యాధి హెచ్చరికలు' : 'Nearby farmers, crops, distance & active disease alerts',
-      action: 'inline'
-    },
-    { 
-      id: 'farm-intelligence', 
-      title: isTe ? 'వ్యవసాయ ఇంటెలిజెన్స్ & షెడ్యూల్' : 'Farm Intelligence & Routine', 
-      subtitle: isTe ? 'స్వయంప్రతిపత్తి షెడ్యూల్, లైవ్ వాతావరణం & స్ప్రే సలహాదారు' : 'Autonomous routine, live weather & spray advisor',
+      id: 'farm-khata', 
+      title: isTe ? 'డిజిటల్ పొలం ఖాతా & పాస్‌బుక్' : 'Digital Farm Khata & Passbook', 
+      subtitle: isTe ? 'ఖర్చులు, దిగుబడి అమ్మకాలు, ఎకరాకు నికర లాభం & వాట్సాప్ లెడ్జర్' : 'Cultivation expenses, harvest sales, net profit/acre & WhatsApp report',
       action: 'inline'
     },
     { 
       id: 'crop-lifecycle', 
-      title: isTe ? 'పంట జీవితచక్రం & స్ప్రే క్యాలెండర్' : 'Crop Lifecycle & Spray Calendar', 
-      subtitle: isTe ? 'దశ టైమ్‌లైన్ & స్ప్రే షెడ్యూల్' : 'Stage timeline & spray schedule',
+      title: isTe ? 'పంట దశల టైమ్‌లైన్ & పనుల క్యాలెండర్' : 'Crop Growth Timeline & Tasks', 
+      subtitle: isTe ? 'విత్తిన తర్వాత రోజులు (DAS), దశల ప్రగతి & వారపు పనుల చెక్‌లిస్ట్' : 'Days after sowing (DAS), stage milestones & weekly actionable tasks',
+      action: 'inline'
+    },
+    { 
+      id: 'smart-irrigation', 
+      title: isTe ? 'స్మార్ట్ నీటి పారుదల & ET₀ మోటార్ షెడ్యూలర్' : 'Smart Irrigation & ET₀ Scheduler', 
+      subtitle: isTe ? 'ఉపగ్రహ బాష్పోత్సేకం, నేల తేమ లోటు & డ్రిప్ మోటార్ రన్-టైమ్' : 'Live satellite evapotranspiration, soil deficit & drip pump run-time',
+      action: 'inline'
+    },
+    { 
+      id: 'government-schemes', 
+      title: isTe ? 'ప్రభుత్వ పథకాలు & రాయితీల నావిగేటర్' : 'Govt Schemes & Subsidy Navigator', 
+      subtitle: isTe ? 'పీఎం కిసాన్, రైతు భరోసా, 90% డ్రిప్ సబ్సిడీ & పంట బీమా' : 'PM-Kisan, Rythu Bharosa, 90% Drip subsidy & crop insurance claims',
+      action: 'inline'
+    },
+    { 
+      id: 'whatsapp-diagnosis', 
+      title: isTe ? 'వాట్సాప్ ఫోటో వ్యాధి నిర్ధారణ బాట్' : 'WhatsApp Bot Photo Diagnosis', 
+      subtitle: isTe ? 'ఫోన్ నంబర్‌కు ఆకు ఫోటో పంపి తక్షణమే తెలుగు వాయిస్ సలహా పొందండి' : 'Send leaf photo on WhatsApp for instant AI diagnosis & voice note',
+      action: 'inline'
+    },
+    { 
+      id: 'satellite-ndvi', 
+      title: isTe ? 'ఉపగ్రహ NDVI పంట ఆరోగ్యం & బయోమాస్' : 'Satellite NDVI & Biomass Heatmap', 
+      subtitle: isTe ? 'Sentinel-2 ప్రత్యక్ష ఉపగ్రహ విశ్లేషణ, క్లోరోఫిల్ & జిల్లా హీట్‌మ్యాప్' : 'Sentinel-2 multispectral pass, chlorophyll & district heatmap',
       action: 'inline'
     },
     { 
@@ -274,9 +297,15 @@ const FarmPage = () => {
       action: 'inline'
     },
     { 
-      id: 'satellite-ndvi', 
-      title: isTe ? 'ఉపగ్రహ NDVI పంట ఆరోగ్యం & బయోమాస్' : 'Satellite NDVI & Biomass Heatmap', 
-      subtitle: isTe ? 'Sentinel-2 ఉపగ్రహ విశ్లేషణ, క్లోరోఫిల్ & నీటి ఒత్తిడి' : 'Sentinel-2 multispectral pass, chlorophyll & water stress',
+      id: 'nearby-radar', 
+      title: isTe ? 'సమీప పొలాలు & వ్యాధి నిఘా రాడార్' : 'Nearby Fields & Disease Radar', 
+      subtitle: isTe ? 'సమీప రైతులు, పంటలు, దూరం & క్రియాశీల వ్యాధి హెచ్చరికలు' : 'Nearby farmers, crops, distance & active disease alerts',
+      action: 'inline'
+    },
+    { 
+      id: 'farm-intelligence', 
+      title: isTe ? 'వ్యవసాయ ఇంటెలిజెన్స్ & షెడ్యూల్' : 'Farm Intelligence & Routine', 
+      subtitle: isTe ? 'స్వయంప్రతిపత్తి షెడ్యూల్, లైవ్ వాతావరణం & స్ప్రే సలహాదారు' : 'Autonomous routine, live weather & spray advisor',
       action: 'inline'
     }
   ];
@@ -1221,7 +1250,16 @@ const FarmPage = () => {
 
       {/* ═══════ DRILL: Crop Lifecycle & Spray Calendar ═══════ */}
       {activeTab === 'crop-lifecycle' && (
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+          <CropGrowthTimeline
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            cropName={cropName || 'Tomato'}
+            plantingDate={plantingDate || '2026-08-15'}
+            acreage={parseFloat(farmSize) || 2.0}
+            village={village || activeFarm?.village || 'Pasupugallu'}
+            onClose={() => setActiveTab('modules')}
+          />
+
           <form onSubmit={handleSaveFarm} className="space-y-5">
             <Card glass className="p-5 space-y-5">
               <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">
@@ -1230,10 +1268,10 @@ const FarmPage = () => {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    {isTe ? 'పంట జీవితచక్రం & స్ప్రే క్యాలెండర్' : 'Crop Lifecycle & Spray Calendar'}
+                    {isTe ? 'పంట వివరాల ఎడిటర్' : 'Crop Stage & Sowing Date Settings'}
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {isTe ? 'పంట రకం, దశ, నాటే తేదీ సెట్ చేయండి' : 'Specify active crop type, growth stage, and spray schedule.'}
+                    {isTe ? 'పంట రకం, దశ, నాటే తేదీ సెట్ చేయండి' : 'Specify active crop type, growth stage, and planting date.'}
                   </p>
                 </div>
               </div>
@@ -1287,6 +1325,63 @@ const FarmPage = () => {
               </Button>
             </div>
           </form>
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Digital Farm Khata & Passbook ═══════ */}
+      {activeTab === 'farm-khata' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <DigitalFarmKhata
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            acreage={parseFloat(farmSize) || 2.0}
+            cropName={cropName || 'Tomato'}
+            village={village || activeFarm?.village || 'Pasupugallu'}
+            onClose={() => setActiveTab('modules')}
+          />
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Smart Irrigation & ET₀ Scheduler ═══════ */}
+      {activeTab === 'smart-irrigation' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <SmartIrrigationScheduler
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            acreage={parseFloat(farmSize) || 2.0}
+            cropName={cropName || 'Tomato'}
+            growthStage={growthStage || 'Vegetative'}
+            latitude={effectiveLat}
+            longitude={effectiveLng}
+            district={district || activeFarm?.district || 'Prakasam'}
+            mandal={mandal || activeFarm?.mandal || 'Mundlamuru'}
+            village={village || activeFarm?.village || 'Pasupugallu'}
+            onClose={() => setActiveTab('modules')}
+          />
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Government Scheme & Subsidy Navigator ═══════ */}
+      {activeTab === 'government-schemes' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <GovernmentSchemeNavigator
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            acreage={parseFloat(farmSize) || 2.0}
+            cropName={cropName || 'Tomato'}
+            district={district || activeFarm?.district || 'Prakasam'}
+            village={village || activeFarm?.village || 'Pasupugallu'}
+            onClose={() => setActiveTab('modules')}
+          />
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: WhatsApp Bot Photo Diagnosis ═══════ */}
+      {activeTab === 'whatsapp-diagnosis' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <WhatsAppDiagnosisHub
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            village={village || activeFarm?.village || 'Pasupugallu'}
+            cropName={cropName || 'Tomato'}
+            onClose={() => setActiveTab('modules')}
+          />
         </motion.div>
       )}
 

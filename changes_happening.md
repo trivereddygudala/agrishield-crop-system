@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v224) - Launched 5 Flagship Upgrades: Digital Farm Khata, ET₀ Smart Irrigation, Govt Scheme Navigator, WhatsApp Bot Diagnosis & Crop Phenology Timeline
+- **Summary:** Engineered and integrated the 5 flagship high-impact agricultural and financial utilities requested by the farmer, directly expanding the Farm Hub into an end-to-end agrarian operating system:
+  1. 💰 **Digital Farm Khata & Investment Passbook (`DigitalFarmKhata.jsx`):**
+     - **Farmer Financial Ledger:** Full tracking of crop input costs across 8 categories (*Seeds, Fertilizers, Pesticides, Machinery/Tractor, Labour, Irrigation, Harvest, Miscellaneous*) and harvest sales revenue.
+     - **Calculations:** Real-time computation of Total Cultivation Cost, Gross Revenue, Net Profit/Deficit, Cost of Cultivation per Acre, and Return on Investment (ROI %).
+     - **1-Tap WhatsApp Summary:** Generates a formatted balance sheet in Telugu and English to share with family, cooperative societies, or bank loan officers.
+     - **Persistence:** LocalStorage persistence keyed to active farm name.
+  2. 💧 **Smart Irrigation & ET₀ Water Scheduler (`SmartIrrigationScheduler.jsx`):**
+     - **FAO-56 Penman-Monteith Evapotranspiration:** Uses live AgroMonitoring Sentinel-2 telemetry (surface temperature, atmospheric humidity, wind speed, solar radiation) to calculate reference ET₀ (mm/day).
+     - **Dynamic Crop Water Demand (ETc):** Factors in crop-specific growth coefficients ($K_c$ for Tomato, Chilli, Cotton, Paddy, Corn, Banana).
+     - **Available Soil Moisture Bucket:** Compares current live soil moisture (37.6%) against field capacity (40%) and wilting point (18%).
+     - **Skip Pump Optimization:** Recommends skipping irrigation when soil moisture is optimal (saving ~3,400L groundwater and ₹110 power per acre), or calculates precise motor run-times for Drip, Sprinkler, and Flood systems.
+  3. 🏛️ **Government Scheme & Subsidy Navigator (`GovernmentSchemeNavigator.jsx`):**
+     - **Comprehensive Welfare Directory:** PM-Kisan Samman Nidhi (₹6,000/yr), YSR Rythu Bharosa / Annadata Sukhibhava (₹13,500–₹20,000/yr), APMIP Micro-Irrigation 90% Drip Subsidy (saves ~₹55,000/acre), PMFBY Crop Loss Insurance, Village RSK Subsidized Seeds, and Kisan Credit Card (KCC) 4% loans.
+     - **Total Annual Benefit Estimator:** Dynamically calculates total qualifying cash transfers and subsidy savings based on the farmer's registered acreage.
+     - **Direct Official Links & Document Checklists:** 1-tap links to official portals (pmkisan.gov.in, apmip.ap.gov.in, pmfby.gov.in) with mandatory documents checklist (Aadhaar, 1B Pattadar Passbook, Bank IFSC).
+  4. 🤖 **Direct WhatsApp Bot Photo Diagnosis Hub (`WhatsAppDiagnosisHub.jsx`):**
+     - **Zero-Barrier Mobile Diagnosis:** For farmers who find complex web menus intimidating, demonstrates how to send leaf photos to the official WhatsApp business bot (+91 98765 43210).
+     - **Interactive Mobile Simulator:** Embedded WhatsApp chat interface with simulated scenarios (Tomato Early Blight, Chilli Leaf Curl, Pasupugallu weather safety) showing AI diagnosis, confidence scores, chemical recipes, and regional voice notes.
+     - **1-Tap WhatsApp Launcher:** Opens `api.whatsapp.com` with pre-filled diagnosis requests.
+  5. 📅 **Crop Growth Stage Timeline & Phenology Engine (`CropGrowthTimeline.jsx`):**
+     - **Days After Sowing (DAS) Tracking:** Dynamically computes days elapsed since the farmer's registered sowing date.
+     - **Milestone Progression Bar:** Visual horizontal stage milestones (*Nursery, Vegetative, Flowering & Budding, Fruit Set & Sizing, Harvest & Picking*).
+     - **Weekly Agronomic Checklist:** Interactive actionable tasks for the active stage (e.g. Boron 20% spray for flower drop, yellow sticky traps for thrips, 0-0-50 foliar nutrition) with 1-tap WhatsApp sharing.
+  6. 🧪 **Full Production Build Verification:**
+     - Compiled cleanly with `npm run build` (3,158 modules in 1m 21s with 0 errors).
+- **Files modified:** `frontend/src/components/farm/DigitalFarmKhata.jsx`, `frontend/src/components/farm/SmartIrrigationScheduler.jsx`, `frontend/src/components/farm/GovernmentSchemeNavigator.jsx`, `frontend/src/components/farm/WhatsAppDiagnosisHub.jsx`, `frontend/src/components/farm/CropGrowthTimeline.jsx`, `frontend/src/pages/FarmPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-24 (v223) - Fixed Satellite Location Mismatches, Seamless District NDVI Heatmap & Live AgroMonitoring Sentinel-2 Telemetry Integration
 - **Summary:** Corrected the location mismatch error where Guntur mandals (e.g. Sattenapalle) were displayed over Prakasam district, implemented seamless multi-zone vegetative false-color heatmaps blanketing Pasupugallu and Mundlamuru without blank holes, connected the live AgroMonitoring Sentinel-2 satellite API, and fixed mobile viewport container collapsing:
   1. 📍 **Eliminated Cross-District Location Mismatches (`SatelliteNDVIViewer.jsx` & `FarmPage.jsx`):**
