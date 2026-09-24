@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v244) - Comprehensive 3-Profile Role Optimization: Tailored Additions & Clutter Removals for Farmer, Equipment Provider, and Admin
+- **Summary:** Executed full role-tailored specialization and clutter elimination across all three user profiles (Farmer, Equipment Provider, and Administrator) in [`ProfilePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/ProfilePage.jsx) and [`SettingsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/SettingsPage.jsx):
+  1. 👨‍🌾 **Farmer Profile Optimization:**
+     - **Additions:** Added a 1-tap **Digital Farm Khata (Income / Expense Ledger)** shortcut card in [`SettingsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/SettingsPage.jsx) linking directly to `/farm?tab=khata`. Added a direct **"Go to My Farm / నా పొలం & పంటలు"** action button on the profile card.
+     - **Removings:** Ensured all machinery hub fields (Hub Name, dispatch phone, service radius, operator count, payout UPI ID, and SMAM licenses) remain strictly hidden and never render on a farmer's interface.
+     - **Preservations:** Kept Native Village/Mandal/District/State selector, Biometric Quick Sign-In, Farming Practice selector, and Display Accessibility (both Sunlight Field Mode and 120% Farmer Mode).
+  2. 🚜 **Equipment Provider Profile Optimization:**
+     - **Additions:** Replaced the generic avatar card with a purpose-built **Machinery Hub Operations Card** in [`ProfilePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/ProfilePage.jsx): displays Hub Name, `🚜 EQUIPMENT PROVIDER` badge, `🟢 Online Today` indicator, Dispatch Contact WhatsApp Phone, Service Radius (km), Trained Drivers count, Payout UPI ID, and a 1-tap **"Open Machinery Fleet / ఫ్లీట్ నిర్వహణ హబ్"** button. Added inputs for **Government SMAM 40% Subsidy / CHC License No.** and **Emergency Field Breakdown & Mechanic Phone** in both Profile and Settings pages.
+     - **Removings:** Completely removed the `Farming Practices` selector (*Conventional, Organic, Hydroponic, Regenerative*) from the provider profile form. Completely removed the 120% text `Farmer Mode` toggle from Settings (retaining outdoor sunlight `Field Mode`). Removed all crop cycle, IoT sensor pairing, and agricultural consumer redirect banners.
+  3. 🛡️ **Administrator Profile Optimization:**
+     - **Additions:** Replaced the generic avatar card with an **Admin Governance & System Health Card** in [`ProfilePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/ProfilePage.jsx): displays `🛡️ SYSTEM ADMIN` badge, Master Governance status, `🟢 290 Routes Active` status, and a 1-tap **"Open Admin Center / అడ్మిన్ కంట్రోల్ సెంటర్"** button. Elevated Admin Password reset validation to strict **12+ characters with uppercase, digit, and special character** (`!@#$%^&*`).
+     - **Removings:** Completely removed the entire **Display Accessibility** block (`Field Mode` and `Farmer Mode`) from the Admin settings view. Completely removed Village, Mandal, District, and State geographic dropdowns from the admin profile form. Completely removed all farming practices and machinery hub fields.
+  4. 🧪 **Validation:**
+     - Verified production build (`npm run build`): 3,168 modules compiled cleanly in 27.14s with 0 errors.
+- **Files modified**: `frontend/src/pages/ProfilePage.jsx`, `frontend/src/pages/SettingsPage.jsx`, `changes_happening.md`.
+
+
+
 ## 2026-09-24 (v243) - Comprehensive Multi-Role Router Audit (Admin, Farmer, Equipment Provider), Latency & Fat Payload Optimization, and Cross-Role Connectivity
 - **Summary:** Conducted an exhaustive, end-to-end audit across all backend API routers and frontend pages interconnecting the **Admin**, **Farmer**, and **Equipment Provider** roles. Audited every request lifecycle, examined request/response payload weights ("how fat they are"), optimized mobile network latency, diagnosed cross-role sync bottlenecks, identified 5 critical errors, and resolved all of them:
   1. 🛡️ **Role Rejection Error Fixed in Admin Router ([`backend/app/routers/admin.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/admin.py)):**

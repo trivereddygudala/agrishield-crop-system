@@ -64,6 +64,19 @@ const SettingsPage = () => {
     } catch { return user?.provider_profile?.operating_timings || '06:00 AM - 07:00 PM'; }
   });
 
+  const [smamLicenseNo, setSmamLicenseNo] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.smam_license_no || saved.smamLicenseNo || user?.provider_profile?.smam_license_no || '';
+    } catch { return user?.provider_profile?.smam_license_no || ''; }
+  });
+  const [emergencyPhone, setEmergencyPhone] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.emergency_phone || saved.emergencyPhone || user?.provider_profile?.emergency_phone || '';
+    } catch { return user?.provider_profile?.emergency_phone || ''; }
+  });
+
   // ── Display Accessibility Modes ──
   const [fieldMode, setFieldMode] = useState(() => localStorage.getItem('fieldMode') === 'true');
   const [farmerMode, setFarmerMode] = useState(() => localStorage.getItem('farmerMode') === 'true');
@@ -198,6 +211,8 @@ const SettingsPage = () => {
           service_radius_km: serviceRadiusKm,
           payout_upi_id: payoutUpiId.trim(),
           operating_timings: operatingTimings.trim(),
+          smam_license_no: smamLicenseNo.trim(),
+          emergency_phone: emergencyPhone.trim(),
           updated_at: new Date().toISOString()
         };
         payload.provider_profile = providerData;
@@ -274,6 +289,21 @@ const SettingsPage = () => {
               </Link>
             </>
           )}
+
+          {isFarmer && (
+            <Link to="/farm?tab=khata" className="block">
+              <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-emerald-500/30 bg-emerald-500/[0.03] hover:border-emerald-500/60">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📒</span>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{isTe ? 'డిజిటల్ ఫార్మ్ ఖాతా' : 'Digital Farm Khata'}</p>
+                    <p className="text-[10px] text-slate-450 dark:text-white/30">{isTe ? 'పంట ఖర్చులు, ఆదాయం & లాభాల లెక్కలు' : 'Track crop expenses, fertilizer costs & net profit'}</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-500 shrink-0" />
+              </Card>
+            </Link>
+          )}
           <Link to="/notifications" className="block">
             <Card hover className="p-4 flex items-center justify-between gap-3 h-20 border border-slate-200/80 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] hover:border-emerald-500/30">
               <div className="flex items-center gap-3">
@@ -322,108 +352,110 @@ const SettingsPage = () => {
         </div>
       </div>
 
-      {/* ── Display Accessibility Modes ── */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
-          {t('settings_page.display_modes', 'Display Accessibility')}
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* ── Display Accessibility Modes (Farmers & Equipment Providers Only; Hidden for Admin) ── */}
+      {userRole !== 'admin' && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
+            {t('settings_page.display_modes', 'Display Accessibility')}
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-          {/* Field Mode Toggle */}
-          <button
-            type="button"
-            id="field-mode-toggle"
-            onClick={() => setFieldMode(v => !v)}
-            className={`no-touch-target text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-3 min-h-0 ${
-              fieldMode
-                ? 'bg-amber-50 border-amber-400 dark:bg-amber-950/30 dark:border-amber-500'
-                : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-amber-300/50'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl border shrink-0 ${
-                fieldMode
-                  ? 'bg-amber-400/20 border-amber-400/40 text-amber-600 dark:text-amber-400'
-                  : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
-              }`}>
-                <Sun className="w-5 h-5" />
-              </div>
-              <div>
-                <p className={`text-sm font-black leading-tight ${
-                  fieldMode ? 'text-amber-700 dark:text-amber-400' : 'text-slate-800 dark:text-white'
-                }`}>
-                  ☀️ {t('settings_page.field_mode', 'Field Mode')}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-white/35 mt-0.5 leading-relaxed">
-                  {t('settings_page.field_mode_desc', 'High contrast • Max readability for outdoor sunlight')}
-                </p>
-              </div>
-            </div>
-            {/* Toggle Switch */}
-            <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
-              fieldMode ? 'bg-amber-400' : 'bg-slate-200 dark:bg-white/10'
-            }`}>
-              <span className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all duration-200 ${
-                fieldMode ? 'left-[23px]' : 'left-[3px]'
-              }`} />
-            </div>
-          </button>
-
-          {/* Farmer Mode Toggle (Farmers / Testers only) */}
-          {!isEquipmentProvider && (
+            {/* Field Mode Toggle (Outdoor Sunlight) */}
             <button
               type="button"
-              id="farmer-mode-toggle"
-              onClick={() => setFarmerMode(v => !v)}
+              id="field-mode-toggle"
+              onClick={() => setFieldMode(v => !v)}
               className={`no-touch-target text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-3 min-h-0 ${
-                farmerMode
-                  ? 'bg-emerald-50 border-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-500'
-                  : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-emerald-300/50'
+                fieldMode
+                  ? 'bg-amber-50 border-amber-400 dark:bg-amber-950/30 dark:border-amber-500'
+                  : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-amber-300/50'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-xl border shrink-0 ${
-                  farmerMode
-                    ? 'bg-emerald-400/20 border-emerald-400/40 text-emerald-600 dark:text-emerald-400'
+                  fieldMode
+                    ? 'bg-amber-400/20 border-amber-400/40 text-amber-600 dark:text-amber-400'
                     : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
                 }`}>
-                  <Type className="w-5 h-5" />
+                  <Sun className="w-5 h-5" />
                 </div>
                 <div>
                   <p className={`text-sm font-black leading-tight ${
-                    farmerMode ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-white'
+                    fieldMode ? 'text-amber-700 dark:text-amber-400' : 'text-slate-800 dark:text-white'
                   }`}>
-                    🌾 {t('settings_page.farmer_mode', 'Farmer Mode')}
+                    ☀️ {t('settings_page.field_mode', 'Field Mode')}
                   </p>
                   <p className="text-[10px] text-slate-500 dark:text-white/35 mt-0.5 leading-relaxed">
-                    {t('settings_page.farmer_mode_desc', 'Larger text (120%) • Easier reading • Better accessibility')}
+                    {t('settings_page.field_mode_desc', 'High contrast • Max readability for outdoor sunlight')}
                   </p>
                 </div>
               </div>
               {/* Toggle Switch */}
               <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
-                farmerMode ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-white/10'
+                fieldMode ? 'bg-amber-400' : 'bg-slate-200 dark:bg-white/10'
               }`}>
                 <span className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all duration-200 ${
-                  farmerMode ? 'left-[23px]' : 'left-[3px]'
+                  fieldMode ? 'left-[23px]' : 'left-[3px]'
                 }`} />
               </div>
             </button>
-          )}
 
-        </div>
+            {/* Farmer Mode Toggle (Farmers Only) */}
+            {isFarmer && (
+              <button
+                type="button"
+                id="farmer-mode-toggle"
+                onClick={() => setFarmerMode(v => !v)}
+                className={`no-touch-target text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-3 min-h-0 ${
+                  farmerMode
+                    ? 'bg-emerald-50 border-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-500'
+                    : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-emerald-300/50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl border shrink-0 ${
+                    farmerMode
+                      ? 'bg-emerald-400/20 border-emerald-400/40 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
+                  }`}>
+                    <Type className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className={`text-sm font-black leading-tight ${
+                      farmerMode ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-white'
+                    }`}>
+                      🌾 {t('settings_page.farmer_mode', 'Farmer Mode')}
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-white/35 mt-0.5 leading-relaxed">
+                      {t('settings_page.farmer_mode_desc', 'Larger text (120%) • Easier reading • Better accessibility')}
+                    </p>
+                  </div>
+                </div>
+                {/* Toggle Switch */}
+                <div className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${
+                  farmerMode ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-white/10'
+                }`}>
+                  <span className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all duration-200 ${
+                    farmerMode ? 'left-[23px]' : 'left-[3px]'
+                  }`} />
+                </div>
+              </button>
+            )}
 
-        {/* Status info */}
-        {(fieldMode || farmerMode) && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 text-[11px] font-bold">
-            <Monitor className="w-3.5 h-3.5 shrink-0" />
-            <span>
-              {[fieldMode && `☀️ ${t('settings_page.field_mode', 'Field Mode')} ON`, farmerMode && `🌾 ${t('settings_page.farmer_mode', 'Farmer Mode')} ON`].filter(Boolean).join(' · ')}
-              {' '}{t('settings_page.auto_saved', '— settings saved automatically.')}
-            </span>
           </div>
-        )}
-      </div>
+
+          {/* Status info */}
+          {(fieldMode || farmerMode) && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 text-[11px] font-bold">
+              <Monitor className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                {[fieldMode && `☀️ ${t('settings_page.field_mode', 'Field Mode')} ON`, farmerMode && `🌾 ${t('settings_page.farmer_mode', 'Farmer Mode')} ON`].filter(Boolean).join(' · ')}
+                {' '}{t('settings_page.auto_saved', '— settings saved automatically.')}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Biometric Quick Sign-In (Fingerprint / Face ID) ── */}
       <div className="space-y-3">
@@ -681,6 +713,24 @@ const SettingsPage = () => {
                   className="bg-white dark:bg-slate-900 text-xs font-bold"
                 />
               </div>
+
+              <Input
+                label={isTe ? 'ప్రభుత్వ SMAM 40% సబ్సిడీ / CHC రిజిస్ట్రేషన్ సంఖ్య (ఐచ్ఛికం)' : 'Government SMAM 40% Subsidy / CHC License No. (Optional)'}
+                value={smamLicenseNo}
+                onChange={(e) => setSmamLicenseNo(e.target.value)}
+                placeholder="e.g. AP-SMAM-CHC-2024-8841"
+                leftIcon={<ShieldCheck className="w-4 h-4 text-slate-400" />}
+                className="bg-white dark:bg-slate-900 text-xs font-bold"
+              />
+
+              <Input
+                label={isTe ? 'అత్యవసర బ్రేక్‌డౌన్ / మెకానిక్ ఫోన్' : 'Emergency Field Breakdown & Mechanic Phone'}
+                value={emergencyPhone}
+                onChange={(e) => setEmergencyPhone(e.target.value)}
+                placeholder="e.g. 9440182736"
+                leftIcon={<Phone className="w-4 h-4 text-rose-500" />}
+                className="bg-white dark:bg-slate-900 text-xs font-bold"
+              />
             </div>
           </Card>
         )}

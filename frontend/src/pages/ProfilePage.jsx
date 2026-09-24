@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Mail, Calendar, MapPin, Save, AlertCircle, Check, Palette, Sparkles, Truck, Phone, Clock, Users, DollarSign } from 'lucide-react';
+import { User, Mail, Calendar, MapPin, Save, AlertCircle, Check, Palette, Sparkles, Truck, Phone, Clock, Users, DollarSign, ShieldCheck, Sprout, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Input, Select, Badge } from '../components/ui/index';
@@ -233,6 +234,22 @@ const ProfilePage = () => {
     } catch { return '06:00 AM - 07:00 PM'; }
   });
 
+  const [smamLicenseNo, setSmamLicenseNo] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.smam_license_no || saved.smamLicenseNo || user?.provider_profile?.smam_license_no || '';
+    } catch { return ''; }
+  });
+  const [emergencyPhone, setEmergencyPhone] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.emergency_phone || saved.emergencyPhone || user?.provider_profile?.emergency_phone || '';
+    } catch { return ''; }
+  });
+
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+
   const availableDistricts = getDistricts(state);
   const availableMandals = getMandals(state, district);
   const availableVillages = getVillages(state, district, mandal);
@@ -256,6 +273,8 @@ const ProfilePage = () => {
         if (user.provider_profile.operator_count) setOperatorCount(String(user.provider_profile.operator_count));
         if (user.provider_profile.payout_upi_id) setPayoutUpiId(user.provider_profile.payout_upi_id);
         if (user.provider_profile.operating_timings) setOperatingTimings(user.provider_profile.operating_timings);
+        if (user.provider_profile.smam_license_no) setSmamLicenseNo(user.provider_profile.smam_license_no);
+        if (user.provider_profile.emergency_phone) setEmergencyPhone(user.provider_profile.emergency_phone);
       }
 
       if (user.farm_location && user.farm_location.includes(',')) {
@@ -285,8 +304,8 @@ const ProfilePage = () => {
         setErrorMsg('Password confirmation does not match.');
         return;
       }
-      if (adminPassword.length < 6) {
-        setErrorMsg('Password must be at least 6 characters.');
+      if (adminPassword.length < 12 || !/[A-Z]/.test(adminPassword) || !/[0-9]/.test(adminPassword) || !/[!@#$%^&*]/.test(adminPassword)) {
+        setErrorMsg('Admin password must be 12+ characters and contain uppercase, digit, and special symbol (!@#$%^&*).');
         return;
       }
     }
@@ -315,6 +334,8 @@ const ProfilePage = () => {
           operator_count: operatorCount,
           payout_upi_id: payoutUpiId.trim(),
           operating_timings: operatingTimings.trim(),
+          smam_license_no: smamLicenseNo.trim(),
+          emergency_phone: emergencyPhone.trim(),
           base_location: fullLocationString,
           updated_at: new Date().toISOString()
         };
@@ -416,31 +437,122 @@ const ProfilePage = () => {
         >
           {activeTab === 'profile' && (
             <div className="grid md:grid-cols-3 gap-6">
-              <Card glass className="p-6 text-center md:col-span-1 flex flex-col items-center justify-between border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md relative overflow-hidden group min-h-[300px]">
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400" />
-                <div className="flex flex-col items-center mt-3">
-                  <div className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 h-20 w-20 rounded-full flex items-center justify-center font-black text-3xl shadow-inner mb-3">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
-                  </div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-tight">
-                    {user?.name || 'Administrator'}
-                  </h3>
-                  <div className="mt-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-black tracking-wider uppercase">
-                      {user?.role ? user.role : 'ADMIN'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="border-t border-slate-100 dark:border-white/5 w-full mt-6 pt-4 text-left space-y-2.5 text-xs text-slate-500 dark:text-white/40">
-                  <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-slate-400 shrink-0" /> <span className="truncate">{user?.email || 'N/A'}</span></div>
-                  <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-slate-400 shrink-0" /> Joined {formattedDate}</div>
-                  {userRole !== 'admin' && user?.farm_location && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-slate-400 shrink-0" /> <span className="line-clamp-2 leading-relaxed">{user.farm_location}</span>
+              <Card glass className="p-6 text-center md:col-span-1 flex flex-col items-center justify-between border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md relative overflow-hidden group min-h-[340px]">
+                <div className={`absolute top-0 left-0 right-0 h-1.5 ${isEquipmentProvider ? 'bg-gradient-to-r from-amber-500 to-orange-400' : userRole === 'admin' ? 'bg-gradient-to-r from-sky-500 to-indigo-500' : 'bg-gradient-to-r from-emerald-500 to-teal-400'}`} />
+                
+                {isEquipmentProvider ? (
+                  <div className="flex flex-col items-center mt-3 w-full">
+                    <div className="bg-amber-500/10 text-amber-500 border border-amber-500/25 h-20 w-20 rounded-full flex items-center justify-center font-black text-3xl shadow-inner mb-3">
+                      🚜
                     </div>
-                  )}
-                </div>
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-tight">
+                      {hubName || user?.name || 'Machinery Hub'}
+                    </h3>
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black tracking-wider uppercase">
+                        🚜 {isTe ? 'మెషినరీ ప్రొవైడర్' : 'EQUIPMENT PROVIDER'}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-slate-100 dark:border-white/5 w-full mt-4 pt-3.5 text-left space-y-2 text-xs text-slate-600 dark:text-white/60">
+                      <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-amber-500 shrink-0" /> <span className="font-bold">{dispatchPhone || user?.phone || '9876543210'}</span></div>
+                      <div className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="line-clamp-1">{[village, mandal, district].filter(Boolean).join(', ') || user?.farm_location || 'Hub Location'}</span></div>
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 dark:border-white/5">
+                        <span className="text-slate-450 dark:text-white/40">Dispatch Radius:</span>
+                        <span className="font-bold text-amber-600 dark:text-amber-400">{serviceRadiusKm || '25'} km</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-450 dark:text-white/40">Trained Operators:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{operatorCount || '2'} Drivers</span>
+                      </div>
+                      {payoutUpiId && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-450 dark:text-white/40">Payout UPI:</span>
+                          <span className="font-bold text-emerald-500 truncate max-w-[120px]">{payoutUpiId}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="w-full pt-4 mt-auto">
+                      <Link to="/provider/dashboard?tab=fleet" className="w-full block">
+                        <Button size="sm" variant="outline" className="w-full text-xs font-bold border-amber-400 text-amber-600 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400">
+                          🚜 {isTe ? 'ఫ్లీట్ నిర్వహణ హబ్' : 'Open Machinery Fleet'}
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ) : userRole === 'admin' ? (
+                  <div className="flex flex-col items-center mt-3 w-full">
+                    <div className="bg-sky-500/10 text-sky-500 border border-sky-500/25 h-20 w-20 rounded-full flex items-center justify-center font-black text-3xl shadow-inner mb-3">
+                      🛡️
+                    </div>
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-tight">
+                      {user?.name || 'Administrator'}
+                    </h3>
+                    <div className="mt-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 text-[9px] font-black tracking-wider uppercase">
+                        🛡️ SYSTEM ADMIN
+                      </span>
+                    </div>
+
+                    <div className="border-t border-slate-100 dark:border-white/5 w-full mt-4 pt-3.5 text-left space-y-2 text-xs text-slate-600 dark:text-white/60">
+                      <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="truncate">{user?.email || 'admin@agrishield.com'}</span></div>
+                      <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" /> Joined {formattedDate}</div>
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 dark:border-white/5">
+                        <span className="text-slate-450 dark:text-white/40">Privilege:</span>
+                        <span className="font-bold text-sky-600 dark:text-sky-400">Master Governance</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-450 dark:text-white/40">API Status:</span>
+                        <span className="font-bold text-emerald-500">🟢 290 Routes Active</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full pt-4 mt-auto">
+                      <Link to="/admin" className="w-full block">
+                        <Button size="sm" variant="outline" className="w-full text-xs font-bold border-sky-400 text-sky-600 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-400">
+                          🛡️ {isTe ? 'అడ్మిన్ కంట్రోల్ సెంటర్' : 'Open Admin Center'}
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center mt-3 w-full">
+                    <div className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 h-20 w-20 rounded-full flex items-center justify-center font-black text-3xl shadow-inner mb-3">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : '👨‍🌾'}
+                    </div>
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-tight">
+                      {user?.name || 'Farmer'}
+                    </h3>
+                    <div className="mt-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-black tracking-wider uppercase">
+                        🌾 {isTe ? 'రైతు' : 'FARMER'}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-slate-100 dark:border-white/5 w-full mt-4 pt-3.5 text-left space-y-2 text-xs text-slate-500 dark:text-white/40">
+                      <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="truncate">{user?.email || 'N/A'}</span></div>
+                      <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" /> Joined {formattedDate}</div>
+                      {user?.farm_location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="line-clamp-2 leading-relaxed">{user.farm_location}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 dark:border-white/5">
+                        <span className="text-slate-450 dark:text-white/40">Farming Practice:</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{farmingPractices || 'Conventional'}</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full pt-4 mt-auto">
+                      <Link to="/farm" className="w-full block">
+                        <Button size="sm" variant="outline" className="w-full text-xs font-bold border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400">
+                          🌾 {isTe ? 'నా పొలం & పంటలు' : 'Go to My Farm'}
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </Card>
 
               <Card glass className="p-6 md:col-span-2 border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md">
@@ -635,9 +747,27 @@ const ProfilePage = () => {
                               leftIcon={<Clock className="w-4 h-4 text-slate-400" />}
                               className="bg-white dark:bg-slate-900 text-xs font-bold"
                             />
+
+                            <Input
+                              label={isTe ? 'ప్రభుత్వ SMAM 40% సబ్సిడీ / CHC లైసెన్స్ సంఖ్య (ఐచ్ఛికం)' : 'Government SMAM 40% Subsidy / CHC License No. (Optional)'}
+                              value={smamLicenseNo}
+                              onChange={(e) => setSmamLicenseNo(e.target.value)}
+                              placeholder="e.g. AP-SMAM-CHC-2024-8841"
+                              leftIcon={<ShieldCheck className="w-4 h-4 text-slate-400" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
+
+                            <Input
+                              label={isTe ? 'అత్యవసర బ్రేక్‌డౌన్ / మెకానిక్ ఫోన్' : 'Emergency Field Breakdown & Mechanic Phone'}
+                              value={emergencyPhone}
+                              onChange={(e) => setEmergencyPhone(e.target.value)}
+                              placeholder="e.g. 9440182736"
+                              leftIcon={<Phone className="w-4 h-4 text-rose-500" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
                           </div>
                         </div>
-                      ) : (
+                      ) : userRole === 'farmer' ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <Select
                             label={t('profile_page.form.farming_practice', 'Primary Farming Practice')}
@@ -652,7 +782,7 @@ const ProfilePage = () => {
                             className="text-xs font-bold text-slate-800 dark:text-white"
                           />
                         </div>
-                      )}
+                      ) : null}
                     </>
                   )}
 
