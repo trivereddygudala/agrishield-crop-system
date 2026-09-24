@@ -1309,6 +1309,9 @@ const FarmPage = () => {
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
             acreage={parseFloat(farmSize) || 2.0}
             cropName={cropName || 'Tomato'}
+            latitude={effectiveLat}
+            longitude={effectiveLng}
+            boundaryCoordinates={boundaryCoordinates}
           />
         </motion.div>
       )}

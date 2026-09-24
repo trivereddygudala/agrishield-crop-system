@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v219) - Upgraded Satellite NDVI Viewer to Real Interactive Top-Down Map & Soil NPK Calculator to Farmer Bag+Kg Units
+- **Summary:** Executed the two high-impact field precision upgrades requested by the user:
+  1. 🛰️ **Picture 1 Upgrade: Real Top-Down Interactive Satellite NDVI Heatmap (`SatelliteNDVIViewer.jsx` & `FarmPage.jsx`):**
+     - Replaced the previous static angled stock photo with a full **interactive Leaflet top-down Google Hybrid Satellite map** (`maxZoom: 22`, `maxNativeZoom: 20` with subdomains `0,1,2,3`).
+     - Connected real parcel GPS coordinates (`effectiveLat`, `effectiveLng`, `boundaryCoordinates`), automatically fitting the camera view to the farmer's registered parcel with acreage badge (`{farmName} · {acreage} Acres`).
+     - Engineered an authentic multispectral **NDVI False-Color Gradient Heatmap overlay** with opacity slider (`30%` to `100%`) showing multi-zone biomass contours: Deep Emerald (0.76 - 0.88 Optimal Vigour), Spring Green (0.60 - 0.75 Healthy Canopy), Amber (0.40 - 0.55 Marginal), and Orange/Red (<0.35 Bund/Soil).
+     - Added an interactive **Pixel Inspection HUD** on cursor hover/tap displaying live coordinates, pixel NDVI index, and biomass status.
+     - Added layer toggles: **🌿 NDVI Heatmap**, **📸 Optical (True-Color Satellite)**, and **💧 Moisture EVI (NDWI Blue Spectrum)**, plus 1-tap Recenter, Zoom (+/-), and Fullscreen buttons.
+  2. 🧪 **Picture 2 Upgrade: Farmer-Friendly Whole Bags + Loose Kg Units & Cut-Off Elimination (`SoilNPKCalculatorModal.jsx`):**
+     - Replaced confusing decimal bag units (e.g. `2.3 Bags` or `1.6 Bags`) with **Farmer-Friendly Whole Bags + Loose Kg**:
+       - Urea (45kg bag): **`4 Bags + 33 kg`** *(Total 213 kg)*
+       - DAP (50kg bag): **`3 Bags + 7 kg`** *(Total 157 kg)*
+       - MOP / Potash (50kg bag): **`3 Bags + 8 kg`** *(Total 158 kg)*
+     - Eliminated layout cut-off: streamlined padding and container height so that all 3 stages of the **Fertigation Application Timeline** (Basal at Day 0, Vegetative at 25–30 DAS, and Flowering/Fruit Set at 50–60 DAS) and the **20L Backpack Knapsack foliar recipe** are prominently visible and scrollable with a styled emerald scrollbar.
+     - Updated WhatsApp 1-tap sharing message to automatically format all fertilizer dosages in farmer-friendly bags + loose kg in Telugu and English.
+  3. 🧪 **Full Production Build & Browser Verification:**
+     - Compiled with 100% success (`vite build`: 3,158 modules transformed in 26.94s and 38.62s with 0 errors).
+     - Verified live in browser with screenshots: `upgraded_picture_1_satellite_ndvi_1790223876340.png` and `upgraded_picture_2_soil_npk_modal_1790223935988.png`.
+- **Files modified:** `frontend/src/components/farm/SatelliteNDVIViewer.jsx`, `frontend/src/components/farm/SoilNPKCalculatorModal.jsx`, `frontend/src/pages/FarmPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-24 (v218) - Upgraded AI Assistant to Smart Farm Advisor, Gemini Live Conversational Interface & Speech Sanitizer
 - **Summary:** Completely transformed the specialist AI assistant into a universal, versatile Smart Farm & Agriculture Assistant, polished UI/UX aesthetics, and upgraded audio/voice systems:
   1. 🌾 **Universal Smart Farm & Agriculture Assistant Persona (`AIAssistantPage.jsx`):**
