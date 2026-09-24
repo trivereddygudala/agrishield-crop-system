@@ -69,6 +69,7 @@ const MorePage = () => {
   const { user, logout } = useAuth();
   const { hardwareMode, setHardwareMode } = useHardwareMode();
   const isAdmin = user?.role === 'admin';
+  const isEquipmentProvider = user?.role === 'provider' || user?.role === 'equipment_provider' || user?.profile_type === 'provider' || user?.account_type === 'provider';
   const [aboutOpen, setAboutOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
@@ -158,8 +159,12 @@ const MorePage = () => {
   const ACCOUNT_TOOLS = [
     {
       icon: Headphones,
-      label: isTe ? 'రైతు మద్దతు & హెల్ప్‌డెస్క్' : 'Help & Support Team',
-      description: isTe ? '24x7 వాట్సాప్ సహాయం, 15 నిమిషాల కాల్‌బ్యాక్ & సాంకేతిక టికెట్ సేవ' : '24x7 WhatsApp desk, 15-min phone callback & tech tickets',
+      label: isEquipmentProvider 
+        ? (isTe ? 'మెషినరీ ప్రొవైడర్ సపోర్ట్ & హెల్ప్‌డెస్క్' : 'Provider Support & Help Desk')
+        : (isTe ? 'రైతు మద్దతు & హెల్ప్‌డెస్క్' : 'Help & Support Team'),
+      description: isEquipmentProvider
+        ? (isTe ? '24x7 యంత్రాల డిస్పాచ్, రైతు బుకింగ్ వివాదాలు & అద్దె చెల్లింపుల మద్దతు' : '24x7 machinery dispatch, booking disputes & rental payouts desk')
+        : (isTe ? '24x7 వాట్సాప్ సహాయం, 15 నిమిషాల కాల్‌బ్యాక్ & సాంకేతిక టికెట్ సేవ' : '24x7 WhatsApp desk, 15-min phone callback & tech tickets'),
       path: '/support',
       iconColor: 'text-indigo-600 dark:text-indigo-400',
       iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
@@ -192,12 +197,8 @@ const MorePage = () => {
       description: t('more.tools.settings.desc', 'Theme, display accessibility, and Hardware Mode switch'),
       path: '/settings',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
-      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
-      accent: 'border-l-emerald-500'
     },
   ];
-
-  const isEquipmentProvider = user?.role === 'equipment_provider';
 
   const PROVIDER_HUB_TOOLS = [
     {

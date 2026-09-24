@@ -35,9 +35,10 @@ import {
   Send,
   RefreshCw,
   ArrowLeft,
-  RotateCcw
+  RotateCcw,
+  Headphones
 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -47,6 +48,7 @@ import { Button } from '../../components/ui/index';
 export default function ProviderDashboardPage() {
   const { t, i18n } = useTranslation();
   const isTe = i18n.language === 'te';
+  const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
 
@@ -780,6 +782,16 @@ export default function ProviderDashboardPage() {
               <Plus className="w-4 h-4" />
               <span>{isTe ? 'కొత్త యంత్రం జోడించండి' : 'Add Machinery'}</span>
             </Button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/support')}
+              className="px-3.5 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="Provider Support & Help Desk"
+            >
+              <Headphones className="w-4 h-4 text-sky-500" />
+              <span className="hidden sm:inline">{isTe ? 'హెల్ప్‌డెస్క్ సపోర్ట్' : 'Help Desk'}</span>
+            </button>
           </div>
         </div>
 

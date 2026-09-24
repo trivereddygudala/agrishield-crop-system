@@ -2,6 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v242) - Overhauled Equipment Provider Support & Help Desk with Tailored Issue Categories and Dynamic Reason Guidance
+- **Summary:** Inspected and upgraded the Help & Support Desk (`/support`) to address user confusion regarding issue categories. Replaced the farmer-only categories (such as IoT hardware nodes and leaf crop scanning) with 7 dedicated equipment provider issue categories, quick-select chips, an interactive "Why Select This Category?" guidance banner, provider-specific ticket fields, tailored 1-tap WhatsApp support, and provider FAQs:
+  1. 🔍 **Root Cause Identified & Addressed:**
+     - The previous Support page was hardcoded solely for farmers with categories like `hardware_iot` (ESP32 microcontrollers, LoRa sensors) and `crop_disease` (leaf disease scan reviews).
+     - When an equipment provider wanted to lodge a complaint or report a problem (such as tractor booking disputes, rent payouts, implement catalog discrepancies, or GPS coverage radius), none of the existing options made sense, leaving providers uncertain about which category to pick and what reasoning applied.
+  2. 🚜 **Dedicated Equipment Provider Issue Categories ([`HelpSupportPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/HelpSupportPage.jsx)):**
+     - Designed 7 provider-specific categories with bilingual titles, icons, badges, and comprehensive operational reasons:
+       * **`machinery_listing` (🚜 Fleet & Implement Catalog / యంత్రాల జాబితా & పరికరాలు):** Visible when machinery is not showing in village search, per-acre rates need updating, or tractor implement attachments need correction.
+       * **`booking_disputes` (📅 Booking Disputes & Cancellations / బుకింగ్ వివాదాలు & రద్దులు):** Used when a farmer fails to arrive at the field, unannounced last-minute cancellations occur, or time-slot scheduling conflicts arise.
+       * **`payouts_settlements` (💰 Rental Payouts & Bank Settlements / అద్దె చెల్లింపులు & బ్యాంక్ సెటిల్‌మెంట్):** Used when direct bank/UPI rental transfers are delayed, acreage calculation mismatches occur, or payout receipts are required.
+       * **`coverage_gps_dispatch` (📍 Service Radius & Dispatch Navigation / సేవా పరిధి & జీపీఎస్ రూట్):** Used when the hub dispatch location/mandal is inaccurate, service radius needs expansion, or farmer field navigation links have errors.
+       * **`breakdown_operational_aid` (⚙️ Field Breakdown & Emergency Support / పొలంలో యంత్రం మొరాయింపు):** Used for urgent mechanical breakdowns, engine overheating in fields, or requesting replacement machinery dispatch.
+       * **`agency_profile_verification` (🏛️ Agency Hub Profile & Verification / ఏజెన్సీ ప్రొఫైల్ & వెరిఫికేషన్):** Used when updating registered dispatch WhatsApp phone numbers, operator/driver credentials, or SMAM 40% subsidy documentation.
+       * **`general_provider` (💬 General Inquiry & Feedback / సాధారణ విచారణ & అభిప్రాయం):** Used for general platform questions, suggestions, or Custom Hiring Center partnership inquiries.
+  3. 📋 **Interactive "Why Select This Category? (Reason & Guidance)" Dynamic Card:**
+     - Added an interactive explanatory card that dynamically renders bilingual guidance explaining *why* the currently selected category is the correct choice, what information to prepare, and how the support team will resolve it.
+  4. 🏷️ **Tactile Quick-Select Category Chips & Provider Form Customizations:**
+     - Added one-click quick-select pills above the ticket form for rapid, visual category selection.
+     - Updated form placeholders: Subject (`e.g., Booking #BK-94812 farmer absent at field`), Description, and replaced "Hardware Node ID" with "Machinery ID or Booking Reference (#BK-XXXXX) (Optional)".
+     - Customized 1-Tap WhatsApp Support message to automatically include Provider Name, Hub Dispatch Phone, Hub Location, and machinery complaint details.
+     - Customized 15-Minute Callback Request modal for machinery operations supervisors.
+  5. ❓ **Comprehensive Equipment Provider FAQs:**
+     - Added dedicated provider FAQs covering rental payouts, farmer last-minute cancellations, locking machine availability during maintenance, expanding service coverage beyond 25 km, and SMAM 40% government machinery subsidies.
+  6. 🔗 **Provider Navigation Links ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx) & [`MorePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/MorePage.jsx)):**
+     - Added a dedicated "Help Desk / సహాయం & హెల్ప్‌డెస్క్" button to the top action pill row of the Equipment Provider Dashboard.
+     - Updated More Page menu item to read "Provider Support & Help Desk / మెషినరీ ప్రొవైడర్ సపోర్ట్ & హెల్ప్‌డెస్క్" for providers.
+  7. 🧪 **Validation:**
+     - Verified frontend production build: 3,168 modules compiled cleanly in 26.23s with 0 errors.
+
 ## 2026-09-24 (v241) - Multi-Device Equipment Booking Sync Fix & Vercel Reverse Proxy Configuration
 - **Summary:** Diagnosed and rectified the root cause why equipment bookings appeared on Mobile 1 (after logging out of farmer and into provider on the same phone) but failed to appear on Mobile 2 (provider phone). Implemented full reverse proxy routing, multi-endpoint fallbacks, and resilient cross-device data synchronization:
   1. 🔍 **Root Cause Identified & Explained:**
