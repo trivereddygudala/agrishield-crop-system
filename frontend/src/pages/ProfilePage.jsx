@@ -143,7 +143,8 @@ const COLOR_THEMES = [
 
 const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isTe = i18n?.language === 'te';
   const userRole = user?.role?.toLowerCase() || 'farmer';
   const { theme, setTheme: handleNavbarThemeChange } = useNavbarTheme();
   const { colorTheme, setColorTheme: handleColorThemeChange } = useColorTheme();

@@ -1004,9 +1004,10 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     {
       title: "Machinery Fleet & Rental Hub",
       items: [
-        { key: "nav.provider_hub", path: "/provider/dashboard", icon: Truck, label: "Machinery Fleet Hub", color: "text-indigo-500" },
-        { key: "nav.provider_orders", path: "/provider/dashboard", icon: Calendar, label: "Farmer Rental Orders", color: "text-amber-500" },
-        { key: "nav.provider_earnings", path: "/provider/dashboard", icon: TrendingUp, label: "Earnings & Ledger", color: "text-emerald-500" },
+        { key: "nav.provider_hub", path: "/provider/dashboard?tab=fleet", icon: Truck, label: "Machinery Fleet Hub", color: "text-indigo-500" },
+        { key: "nav.provider_orders", path: "/provider/dashboard?tab=orders", icon: Calendar, label: "Farmer Rental Orders", color: "text-amber-500" },
+        { key: "nav.provider_earnings", path: "/provider/dashboard?tab=earnings", icon: TrendingUp, label: "Earnings & Ledger", color: "text-emerald-500" },
+        { key: "nav.provider_copilot", path: "/provider/dashboard?tab=copilot", icon: Bot, label: "AI Machinery Copilot", color: "text-purple-500" },
       ]
     },
     {
@@ -1121,10 +1122,18 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isItemAdmin = item.path.startsWith('/admin');
-                const itemTab = isItemAdmin ? (new URLSearchParams(item.path.split('?')[1] || '').get('tab') || 'users') : null;
+                const isItemProvider = item.path.startsWith('/provider/dashboard');
+                const itemTab = isItemAdmin 
+                  ? (new URLSearchParams(item.path.split('?')[1] || '').get('tab') || 'users') 
+                  : isItemProvider
+                    ? (new URLSearchParams(item.path.split('?')[1] || '').get('tab') || 'fleet')
+                    : null;
+                const currentProviderTab = searchParams.get('tab') || 'fleet';
                 const isActive = isItemAdmin 
                   ? (currentPath === '/admin' && currentTab === itemTab)
-                  : currentPath === item.path;
+                  : isItemProvider
+                    ? (currentPath === '/provider/dashboard' && currentProviderTab === itemTab)
+                    : currentPath === item.path;
                 return (
                   <Link
                     key={item.key}
@@ -1299,10 +1308,21 @@ export const BottomNav = () => {
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
         {bottomTabs.map((tab) => {
           const { Icon } = tab;
-          const isActive =
-            tab.matchPaths?.some((p) =>
-              p === currentPath || currentPath.startsWith(p + '/')
-            ) ?? currentPath === tab.path;
+          const searchParams = new URLSearchParams(location.search);
+          const tabParam = searchParams.get('tab');
+
+          let isActive = false;
+          if (isEquipmentProvider) {
+            if (tab.key === 'orders') {
+              isActive = location.pathname === '/provider/dashboard' && tabParam === 'orders';
+            } else if (tab.key === 'hub') {
+              isActive = (location.pathname === '/provider/dashboard' && tabParam !== 'orders') || location.pathname === '/provider';
+            } else {
+              isActive = tab.matchPaths?.some((p) => p === currentPath || currentPath.startsWith(p + '/')) ?? currentPath === tab.path;
+            }
+          } else {
+            isActive = tab.matchPaths?.some((p) => p === currentPath || currentPath.startsWith(p + '/')) ?? currentPath === tab.path;
+          }
 
           /* ── CENTER ACTION BUTTON (Camera for Farmer, Copilot for Admin) ── */
           if (tab.isCenter) {

@@ -387,6 +387,19 @@ export default function ProviderDashboardPage() {
               <Plus className="w-4 h-4" />
               <span>{isTe ? 'కొత్త యంత్రం జోడించండి' : 'Add Machinery'}</span>
             </Button>
+
+            <button
+              type="button"
+              onClick={() => switchTab('copilot')}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-2xl px-3.5 py-2 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-600/25 transition-all cursor-pointer"
+            >
+              <Bot className="w-4 h-4" />
+              <span>{isTe ? 'AI కోపైలట్' : 'AI Copilot'}</span>
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+            </button>
           </div>
         </div>
 
@@ -424,37 +437,73 @@ export default function ProviderDashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* ── AI ADVISORY QUICK BANNER (Prominent AI Chat Entry Point) ── */}
+        <div 
+          onClick={() => switchTab('copilot')} 
+          className="mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent border border-purple-200/80 dark:border-purple-900/50 flex items-center justify-between gap-3 cursor-pointer hover:border-purple-400 dark:hover:border-purple-700 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-purple-500/30 group-hover:scale-105 transition-transform">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-black text-slate-900 dark:text-white">
+                  {isTe ? 'అగ్రిషీల్డ్ మెషినరీ AI కోపైలట్ (AI చాట్ బాట్)' : 'AgriShield Machinery & Fleet AI Copilot'}
+                </p>
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-extrabold flex items-center gap-0.5">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  AI ASSISTANT
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                {isTe ? 'ట్రాక్టర్ ఇంజిన్ నిర్వహణ, డ్రోన్ లిపో బ్యాటరీలు, డీజిల్ లెక్కలు & అద్దె ధరల కోసం నొక్కండి.' : 'Ask about tractor maintenance, drone LiPo battery care, per-acre diesel formulas & rental rates.'}
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-purple-600 dark:text-purple-400 shrink-0 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            {isTe ? 'చాట్ చేయండి' : 'Open Copilot'} <ArrowRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
       </div>
 
-      {/* ── CLEAN TAB BAR NAVIGATION (Only Provider Focused) ── */}
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 overflow-x-auto">
+      {/* ── CLEAN TAB BAR NAVIGATION (Responsive 2x2 Grid On Mobile, 4 Cols On Desktop) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800">
         <button
           type="button"
           onClick={() => switchTab('fleet')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'fleet'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              : 'bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          <Truck className="w-4 h-4" />
-          <span>{isTe ? 'యంత్రాల జాబితా (Fleet)' : 'My Machinery Fleet'} ({fleetList.length})</span>
+          <Truck className="w-4 h-4 shrink-0" />
+          <span className="truncate">{isTe ? 'యంత్రాలు' : 'Machinery Fleet'}</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'fleet' ? 'bg-white/20 text-white' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'}`}>
+            {fleetList.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => switchTab('orders')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'orders'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              : 'bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>{isTe ? 'రైతు బుకింగ్ ఆర్డర్లు' : 'Farmer Booking Orders'}</span>
-          {pendingOrdersCount > 0 && (
+          <Calendar className="w-4 h-4 shrink-0" />
+          <span className="truncate">{isTe ? 'బుకింగ్ ఆర్డర్లు' : 'Booking Orders'}</span>
+          {pendingOrdersCount > 0 ? (
             <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-400 text-amber-950 font-black">
               {pendingOrdersCount}
+            </span>
+          ) : (
+            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
+              0
             </span>
           )}
         </button>
@@ -462,28 +511,28 @@ export default function ProviderDashboardPage() {
         <button
           type="button"
           onClick={() => switchTab('earnings')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'earnings'
               ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+              : 'bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          <DollarSign className="w-4 h-4" />
-          <span>{isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}</span>
+          <DollarSign className="w-4 h-4 shrink-0" />
+          <span className="truncate">{isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}</span>
         </button>
 
         <button
           type="button"
           onClick={() => switchTab('copilot')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'copilot'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm ring-2 ring-indigo-500/30'
-              : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
+              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md ring-2 ring-purple-500/40'
+              : 'bg-purple-50/70 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60 hover:bg-purple-100 dark:hover:bg-purple-900/40'
           }`}
         >
-          <Bot className="w-4 h-4" />
-          <span>{isTe ? 'మెషినరీ AI కోపైలట్' : 'AI Machinery Copilot'}</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300 font-extrabold flex items-center gap-0.5">
+          <Bot className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-300" />
+          <span className="truncate">{isTe ? 'AI కోపైలట్' : 'AI Copilot'}</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-purple-600 text-white font-extrabold flex items-center gap-0.5 shadow-xs">
             <Sparkles className="w-2.5 h-2.5" />
             AI
           </span>
@@ -1058,6 +1107,25 @@ export default function ProviderDashboardPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ── FLOATING AI COPILOT LAUNCHER (Always Visible On Mobile & Desktop) ── */}
+      {activeTab !== 'copilot' && (
+        <button
+          type="button"
+          onClick={() => {
+            switchTab('copilot');
+            window.scrollTo({ top: 320, behavior: 'smooth' });
+          }}
+          aria-label="Open Machinery AI Copilot"
+          className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-3 rounded-2xl shadow-xl shadow-purple-600/35 border border-purple-400/40 flex items-center gap-2.5 text-xs font-black transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <div className="relative">
+            <Bot className="w-5 h-5 text-white" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-purple-600 animate-pulse" />
+          </div>
+          <span className="tracking-wide">{isTe ? '🚜 AI కోపైలట్ చాట్' : '🚜 AI Copilot'}</span>
+        </button>
       )}
     </div>
   );

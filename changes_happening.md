@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v232) - Fixed Profile ReferenceError, Removed My Farm from Provider More Tab, Corrected Orders Bottom Nav Highlight & Enhanced AI Copilot Visibility
+- **Summary:** Addressed all 4 specific user issues for the Equipment Provider profile:
+  1. 🛠️ **Fixed `ReferenceError: isTe is not defined` in [`ProfilePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/ProfilePage.jsx):**
+     - Declared `const { t, i18n } = useTranslation(); const isTe = i18n?.language === 'te';` at the top of `ProfilePage`.
+     - Completely eliminated the rendering crash when equipment providers visit their profile page.
+  2. 🚜 **Removed "My Farm & Operations" from More Page ([`MorePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/MorePage.jsx)):**
+     - Removed `My Farm & Operations` from `PROVIDER_HUB_TOOLS` as it is not needed for machinery providers.
+     - Added a dedicated card for **"AI Machinery & Fleet Copilot"** with an `AI Assistant` badge linking directly to `/provider/dashboard?tab=copilot`.
+  3. 📱 **Fixed Bottom Navigation Dock "Orders" Tab Highlight ([`AppLayout.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/AppLayout.jsx)):**
+     - Fixed `BottomNav` active tab logic to verify `location.search` (`tab=orders`).
+     - Tapping the `Orders` bottom tab now accurately lights up the `Orders` icon and label, while `Fleet Hub` remains inactive.
+     - Synchronized desktop sidebar links with explicit query parameters (`?tab=fleet`, `?tab=orders`, `?tab=earnings`, `?tab=copilot`).
+  4. 🤖 **Made Equipment Provider AI Chatbot Prominent & Unmissable ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx)):**
+     - Replaced horizontal-overflow tabs with a clean, structured responsive **2x2 grid on mobile screens** (`grid grid-cols-2 md:grid-cols-4 gap-2`) so all 4 tabs (`Fleet`, `Orders`, `Earnings`, `AI Copilot ✨`) are 100% visible on any screen with zero truncation.
+     - Added an **"AI Copilot"** button in the top hero bar with a live pulsing indicator right next to `Add Machinery`.
+     - Added an **Interactive Advisory Quick-Banner** right below key metrics linking directly into the machinery AI assistant.
+     - Added a **Floating Action Button** (`🚜 AI Copilot`) fixed above the bottom dock for 1-tap instant chat access from anywhere on the page.
+  5. 🧪 **Verified Production Build:**
+     - Ran `npm run build` with 0 errors (Vite built cleanly in 29.29s).
+
 ## 2026-09-24 (v231) - Implemented Dedicated Equipment Provider Profile & Hub Settings, Navbar Avatar Menu Simplification, Instant Login Navigation & Specialized AI Copilot
 - **Summary:** Fulfilled all user requirements for Equipment Provider profiles, login responsiveness, and dedicated machinery AI capabilities:
   1. 👤 **Top Navbar Profile Avatar Menu Simplification ([`AppLayout.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/AppLayout.jsx)):**

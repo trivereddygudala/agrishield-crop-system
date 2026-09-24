@@ -230,13 +230,14 @@ const MorePage = () => {
       accent: 'border-l-emerald-500'
     },
     {
-      icon: Sprout,
-      label: isTe ? 'నా పొలం & వ్యవసాయ కార్యకలాపాలు' : 'My Farm & Operations',
-      description: isTe ? 'వ్యవసాయ కార్యకలాపాలు, క్షేత్ర విత్తనాలు మరియు పొలం వివరాలు' : 'Farm management, personal crop logs, and agronomy records',
-      path: '/farm',
-      iconColor: 'text-teal-600 dark:text-teal-400',
-      iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
-      accent: 'border-l-teal-500'
+      icon: Bot,
+      label: isTe ? 'AI మెషినరీ & ఫ్లీట్ కోపైలట్ (AI చాట్ బాట్)' : 'AI Machinery & Fleet Copilot',
+      description: isTe ? 'ట్రాక్టర్ ఇంజిన్ నిర్వహణ, డ్రోన్ బ్యాటరీలు, డీజిల్ వినియోగం & అద్దె ధరల AI సలహాదారు' : 'AI chatbot for tractor maintenance, drone battery SOPs, per-acre diesel & rental pricing',
+      path: '/provider/dashboard?tab=copilot',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      iconBg: 'bg-purple-100 dark:bg-purple-950/70 border border-purple-300 dark:border-purple-800',
+      accent: 'border-l-purple-500',
+      badge: isTe ? 'AI చాట్ బాట్' : 'AI Assistant'
     },
     {
       icon: Ruler,
