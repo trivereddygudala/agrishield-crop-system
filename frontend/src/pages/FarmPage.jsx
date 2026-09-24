@@ -156,8 +156,8 @@ const FarmPage = () => {
     fetchDevices();
   }, []);
 
-  // Compute dynamic farmer center coordinates: use manual/GPS coordinates if valid, else resolve from district/state
-  const [districtDefaultLat, districtDefaultLng] = getCoordinatesForLocation(state, district);
+  // Compute dynamic farmer center coordinates: use manual/GPS coordinates if valid, else resolve from village/mandal/district/state
+  const [districtDefaultLat, districtDefaultLng] = getCoordinatesForLocation(state, district, mandal, village);
   const effectiveLat = latitude && !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : districtDefaultLat;
   const effectiveLng = longitude && !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : districtDefaultLng;
 
@@ -1312,8 +1312,8 @@ const FarmPage = () => {
             latitude={effectiveLat}
             longitude={effectiveLng}
             boundaryCoordinates={boundaryCoordinates}
-            district={district || activeFarm?.district || 'Guntur'}
-            mandal={mandal || activeFarm?.mandal || 'Medikonduru'}
+            district={district || activeFarm?.district || 'Prakasam'}
+            mandal={mandal || activeFarm?.mandal || 'Mundlamuru'}
             village={village || activeFarm?.village || 'Pasupugallu'}
             state={state || activeFarm?.state || 'Andhra Pradesh'}
           />
