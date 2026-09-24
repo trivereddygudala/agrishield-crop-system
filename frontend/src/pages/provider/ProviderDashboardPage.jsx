@@ -114,9 +114,40 @@ export default function ProviderDashboardPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('tractor');
   const [newHp, setNewHp] = useState('45 HP');
+  const [newAcreRate, setNewAcreRate] = useState(1200);
   const [newHourlyRate, setNewHourlyRate] = useState(800);
-  const [newDailyRate, setNewDailyRate] = useState(6000);
-  const [newImplements, setNewImplements] = useState('Rotavator, Plough');
+  const [newAvailableFrom, setNewAvailableFrom] = useState('06:00 AM');
+  const [newAvailableTo, setNewAvailableTo] = useState('06:00 PM');
+  const [selectedImplements, setSelectedImplements] = useState(['Rotavator', 'Cultivator']);
+  const [customImplementInput, setCustomImplementInput] = useState('');
+
+  const IMPLEMENT_OPTIONS = [
+    'Rotavator',
+    'Cultivator',
+    'Disc Plough',
+    'Seed Drill / Sowing',
+    'Paddy Harvester Cutter',
+    'Trailer / Trolley',
+    'Laser Land Leveler',
+    'Sprayer Tank & Boom',
+    'Subsoiler / Ridger',
+    'Drip / Hose Reel'
+  ];
+
+  const toggleImplement = (imp) => {
+    setSelectedImplements(prev =>
+      prev.includes(imp) ? prev.filter(item => item !== imp) : [...prev, imp]
+    );
+  };
+
+  const handleAddCustomImplement = (e) => {
+    e.preventDefault();
+    const trimmed = customImplementInput.trim();
+    if (trimmed && !selectedImplements.includes(trimmed)) {
+      setSelectedImplements(prev => [...prev, trimmed]);
+      setCustomImplementInput('');
+    }
+  };
 
   const handleAddEquipment = (e) => {
     e.preventDefault();
@@ -128,15 +159,34 @@ export default function ProviderDashboardPage() {
     const newMachine = {
       id: `FL-${Date.now().toString().slice(-4)}`,
       title: newTitle.trim(),
+      teluguTitle: newTitle.trim(),
       category: newCategory,
       horsepower: newHp,
-      hourlyRate: Number(newHourlyRate),
-      dailyRate: Number(newDailyRate),
+      ratePerAcre: Number(newAcreRate) || 1200,
+      hourlyRate: Number(newHourlyRate) || Math.round(Number(newAcreRate) * 0.8) || 800,
+      ratePerHour: Number(newHourlyRate) || Math.round(Number(newAcreRate) * 0.8) || 800,
+      dailyRate: Number(newAcreRate) * 4,
       available: true,
-      implementsIncluded: newImplements.split(',').map(s => s.trim()).filter(Boolean),
+      availableToday: true,
+      availableTime: `${newAvailableFrom} - ${newAvailableTo}`,
+      dailyAvailableTime: `${newAvailableFrom} - ${newAvailableTo}`,
+      implements: selectedImplements.length > 0 ? selectedImplements : ['Standard Attachments'],
+      implementsIncluded: selectedImplements.length > 0 ? selectedImplements : ['Standard Attachments'],
+      village: user?.farm_location?.village || 'Pasupugallu',
       locationVillage: user?.farm_location?.village || 'Pasupugallu',
+      district: user?.farm_location?.district || 'Prakasam',
       locationDistrict: user?.farm_location?.district || 'Prakasam',
+      mandal: user?.farm_location?.mandal || 'Mundlamuru',
+      state: user?.farm_location?.state || 'Andhra Pradesh',
+      phone: user?.phone || '9876543210',
       contactPhone: user?.phone || '9876543210',
+      providerName: user?.name || user?.username || 'Agro Equipment Provider',
+      ownerName: user?.name || user?.username || 'Agro Equipment Provider',
+      operatorIncluded: true,
+      fuelIncluded: true,
+      rating: 5.0,
+      bookingsCount: 0,
+      specs: `Available for booking from ${newAvailableFrom} to ${newAvailableTo}. Implements: ${selectedImplements.join(', ')}.`,
       createdAt: new Date().toISOString()
     };
 
@@ -145,13 +195,7 @@ export default function ProviderDashboardPage() {
     // Also mirror to global equipment listings so farmers can discover it immediately
     try {
       const globalCustom = JSON.parse(localStorage.getItem('agrishield_custom_equipment_listings') || '[]');
-      globalCustom.unshift({
-        ...newMachine,
-        ownerName: user?.name || user?.username || 'Agro Equipment Provider',
-        verified: true,
-        rating: 5.0,
-        bookingCount: 0
-      });
+      globalCustom.unshift(newMachine);
       localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(globalCustom));
     } catch (e) {}
 
@@ -375,15 +419,15 @@ export default function ProviderDashboardPage() {
                     </button>
                   </div>
 
-                  {/* Pricing Box */}
+                  {/* Pricing & Timing Box */}
                   <div className="mt-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 grid grid-cols-2 gap-2 text-center">
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Hourly Rate</p>
-                      <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">₹{machine.hourlyRate} / hr</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">{isTe ? 'ఎకరాకు అద్దె' : 'Rent per Acre'}</p>
+                      <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">₹{machine.ratePerAcre || machine.hourlyRate || 1200} / acre</p>
                     </div>
                     <div className="border-l border-slate-200 dark:border-slate-800">
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Daily Rate</p>
-                      <p className="text-sm font-black text-slate-900 dark:text-white">₹{machine.dailyRate} / day</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">{isTe ? 'అందుబాటు సమయం' : 'Available Time'}</p>
+                      <p className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{machine.availableTime || machine.dailyAvailableTime || '6:00 AM - 6:00 PM'}</p>
                     </div>
                   </div>
 
@@ -666,12 +710,13 @@ export default function ProviderDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase">
-                    Hourly Rent (₹)
+                    Rent per Acre (₹) *
                   </label>
                   <input
                     type="number"
-                    value={newHourlyRate}
-                    onChange={(e) => setNewHourlyRate(e.target.value)}
+                    value={newAcreRate}
+                    onChange={(e) => setNewAcreRate(e.target.value)}
+                    placeholder="e.g. 1200"
                     className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
                     required
                   />
@@ -679,29 +724,116 @@ export default function ProviderDashboardPage() {
 
                 <div className="space-y-1">
                   <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase">
-                    Daily Rent (₹)
+                    Hourly Rate (₹) [Optional]
                   </label>
                   <input
                     type="number"
-                    value={newDailyRate}
-                    onChange={(e) => setNewDailyRate(e.target.value)}
+                    value={newHourlyRate}
+                    onChange={(e) => setNewHourlyRate(e.target.value)}
+                    placeholder="e.g. 800"
                     className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                    required
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase">
-                  Available Implements / Accessories
+              {/* Operating Available Timings (Replacing Daily Rate) */}
+              <div className="space-y-1.5 p-3 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40">
+                <label className="text-[11px] font-black text-indigo-950 dark:text-indigo-200 uppercase flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span>Available Operating Hours (Daily Timings)</span>
                 </label>
-                <input
-                  type="text"
-                  value={newImplements}
-                  onChange={(e) => setNewImplements(e.target.value)}
-                  placeholder="e.g. Rotavator, Cultivator, Sowing Machine"
-                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block mb-1">From Time:</span>
+                    <input
+                      type="text"
+                      value={newAvailableFrom}
+                      onChange={(e) => setNewAvailableFrom(e.target.value)}
+                      placeholder="e.g. 06:00 AM"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold block mb-1">To Time:</span>
+                    <input
+                      type="text"
+                      value={newAvailableTo}
+                      onChange={(e) => setNewAvailableTo(e.target.value)}
+                      placeholder="e.g. 06:00 PM"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {['06:00 AM - 12:00 PM (Morning)', '02:00 PM - 07:00 PM (Evening)', '06:00 AM - 06:00 PM (Full Day)'].map(timing => (
+                    <button
+                      key={timing}
+                      type="button"
+                      onClick={() => {
+                        const [from, to] = timing.split('(')[0].trim().split(' - ');
+                        setNewAvailableFrom(from);
+                        setNewAvailableTo(to);
+                      }}
+                      className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 transition-colors cursor-pointer"
+                    >
+                      {timing}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Multi-Select Implements & Accessories */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase">
+                    Available Implements / Accessories (Multiple Select)
+                  </label>
+                  <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                    {selectedImplements.length} Selected
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
+                  {IMPLEMENT_OPTIONS.map((imp) => {
+                    const isSelected = selectedImplements.includes(imp);
+                    return (
+                      <button
+                        key={imp}
+                        type="button"
+                        onClick={() => toggleImplement(imp)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 hover:border-indigo-300'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        <span>{imp}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={customImplementInput}
+                    onChange={(e) => setCustomImplementInput(e.target.value)}
+                    placeholder="+ Add custom implement (e.g. Ridge Maker)"
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-medium"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomImplement(e);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomImplement}
+                    className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-300 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3">

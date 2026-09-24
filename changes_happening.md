@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v230) - Fixed Equipment Rental 'replace' TypeError, Added Rent per Acre, Available Operating Hours & Multi-Select Implements
+- **Summary:** Resolved the runtime exception in Farm Machinery, Drone & Pump Rental page and completed requested provider rental features:
+  1. 🛠️ **Fixed `TypeError: Cannot read properties of undefined (reading 'replace')` in [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx):**
+     - Safely normalized all phone number evaluations with fallback chains (`(item.phone || item.contactPhone) ? String(...).replace(/[^0-9]/g, '') : ''`) for browse cards, WhatsApp vouchers, booking history, and modal triggers.
+     - Added automatic sanitization of legacy equipment listings in `localStorage` to guarantee `phone`, `village`, `district`, `ratePerAcre`, and `providerName` are never undefined.
+     - Hardened `item.implements` with type-safe array/string normalization so custom equipment listings never trigger array mapping crashes.
+  2. 🌾 **Rent per Acre as Primary Pricing ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx)):**
+     - Replaced hourly rent with **Rent per Acre (₹/acre)** as the primary fee structure for farmers, with hourly rates optionally secondary.
+  3. ⏰ **Available Operating Timings (Daily Time Scope):**
+     - Replaced ambiguous daily flat rent with interactive **Available Operating Hours** (e.g., `From: 06:00 AM` to `To: 06:00 PM`), complete with quick-select presets (`Morning`, `Evening`, `Full Day`) to inform farmers exactly when the tractor or drone is available for field operations.
+  4. 🏷️ **Multi-Select Implements & Accessories:**
+     - Added interactive multi-select chips/pills for attachments (Rotavator, Cultivator, Disc Plough, Seed Drill / Sowing, Harvester Cutter, Laser Land Leveler, Trailer / Trolley, Sprayer Tank & Boom, Subsoiler) plus write-in custom implement addition.
+     - Synchronized both `implements` and `implementsIncluded` fields across provider and farmer booking databases.
+  5. 🧪 **Production Bundle Verification:**
+     - Verified with `npm run build` (3,168 modules transformed, 0 errors).
+
 ## 2026-09-24 (v229) - Integrated 100% Photorealistic Smart Agriculture Field Photography
 - **Summary:** Replaced all digital / illustrated art with an authentic, 8K ultra-photorealistic agricultural documentary photograph:
   1. 📸 **Authentic Field Photography (`agrishield_auth_showcase.jpg`):**

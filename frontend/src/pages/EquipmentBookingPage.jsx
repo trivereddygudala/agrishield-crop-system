@@ -80,8 +80,19 @@ export default function EquipmentBookingPage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Exclude any legacy mock items starting with eq-tr, eq-dr, eq-ir, eq-hv
-          return parsed.filter(item => !item.id?.startsWith('eq-tr-') && !item.id?.startsWith('eq-dr-') && !item.id?.startsWith('eq-ir-') && !item.id?.startsWith('eq-hv-'));
+          // Exclude any legacy mock items starting with eq-tr, eq-dr, eq-ir, eq-hv and normalize fields
+          return parsed
+            .filter(item => item && !item.id?.startsWith('eq-tr-') && !item.id?.startsWith('eq-dr-') && !item.id?.startsWith('eq-ir-') && !item.id?.startsWith('eq-hv-'))
+            .map(item => ({
+              ...item,
+              phone: item.phone || item.contactPhone || '9876543210',
+              contactPhone: item.contactPhone || item.phone || '9876543210',
+              providerName: item.providerName || item.ownerName || 'Local Machinery Provider',
+              village: item.village || item.locationVillage || 'Pasupugallu',
+              mandal: item.mandal || 'Mundlamuru',
+              district: item.district || item.locationDistrict || 'Prakasam',
+              ratePerAcre: item.ratePerAcre || item.hourlyRate || 1200
+            }));
         }
       }
     } catch (e) {
@@ -97,7 +108,12 @@ export default function EquipmentBookingPage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(b => b.id !== 'BK-78210');
+          return parsed
+            .filter(b => b && b.id !== 'BK-78210')
+            .map(b => ({
+              ...b,
+              phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
+            }));
         }
       }
     } catch (e) {}
@@ -454,18 +470,28 @@ export default function EquipmentBookingPage() {
                     </p>
 
                     {/* Implements Tags */}
-                    {item.implements && item.implements.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {item.implements.map((imp, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                          >
-                            ✓ {imp}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    {(() => {
+                      const impList = Array.isArray(item.implements)
+                        ? item.implements
+                        : Array.isArray(item.implementsIncluded)
+                        ? item.implementsIncluded
+                        : typeof (item.implements || item.implementsIncluded) === 'string'
+                        ? (item.implements || item.implementsIncluded).split(',').map((s) => s.trim()).filter(Boolean)
+                        : [];
+                      if (impList.length === 0) return null;
+                      return (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {impList.map((imp, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                            >
+                              ✓ {imp}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Bottom Block: Pricing & Action Buttons */}
@@ -508,7 +534,7 @@ export default function EquipmentBookingPage() {
 
                     <div className="flex items-center gap-2">
                       <a
-                        href={`tel:${item.phone}`}
+                        href={`tel:${item.phone || item.contactPhone || ''}`}
                         className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                         title={isTe ? 'ఫోన్ చేయండి' : 'Call Provider'}
                       >
@@ -516,10 +542,10 @@ export default function EquipmentBookingPage() {
                       </a>
 
                       <a
-                        href={`https://wa.me/${item.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        href={`https://wa.me/${String(item.phone || item.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
                           isTe
-                            ? `నమస్తే! నేను అగ్రిషీల్డ్ యాప్ ద్వారా మీ ${item.teluguTitle || item.title} బుకింగ్ కోసం సంప్రదిస్తున్నాను. లొకేషన్: ${locationVillage}, ${locationMandal}. వివరాలు తెలపగలరు.`
-                            : `Hello! Inquiring to book your ${item.title} via AgriShield AI for my farm in ${locationVillage}, ${locationMandal}. Please share availability.`
+                            ? `నమస్తే! నేను అగ్రిషీల్డ్ యాప్ ద్వారా మీ ${item.teluguTitle || item.title || 'యంత్రం'} బుకింగ్ కోసం సంప్రదిస్తున్నాను. లొకేషన్: ${locationVillage || ''}, ${locationMandal || ''}. వివరాలు తెలపగలరు.`
+                            : `Hello! Inquiring to book your ${item.title || 'machinery'} via AgriShield AI for my farm in ${locationVillage || ''}, ${locationMandal || ''}. Please share availability.`
                         )}`}
                         target="_blank"
                         rel="noreferrer"
@@ -700,15 +726,15 @@ export default function EquipmentBookingPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <a
-                        href={`tel:${b.phone}`}
+                        href={`tel:${b.phone || b.farmerPhone || b.contactPhone || ''}`}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold"
                       >
                         <Phone className="w-3.5 h-3.5" />
                         <span>{isTe ? 'కాల్ చేయండి' : 'Call Provider'}</span>
                       </a>
                       <a
-                        href={`https://wa.me/${b.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                          `Booking ID #${b.id}: Confirming ${b.title} scheduled for ${b.bookingDate} (${b.timeSlot}) for ${b.acres} Acres.`
+                        href={`https://wa.me/${String(b.phone || b.farmerPhone || b.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                          `Booking ID #${b.id || ''}: Confirming ${b.title || 'Equipment'} scheduled for ${b.bookingDate || ''} (${b.timeSlot || ''}) for ${b.acres || 0} Acres.`
                         )}`}
                         target="_blank"
                         rel="noreferrer"
@@ -1036,8 +1062,11 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isTe
       ? `*కొత్త యంత్ర బుకింగ్ నిర్ధారణ (#${bookingId})* 🚜\n\nపరికరం: ${equipment.teluguTitle || equipment.title}\nరైతు: ${farmerName} (${farmerPhone})\nలొకేషన్: ${serviceLocation.village}, ${serviceLocation.mandal}\nతేదీ: ${serviceDate} (${timeSlot})\nవిస్తీర్ణం: ${quantity} ఎకరాలు (${targetCrop})\nఆపరేటర్: ${includeOperator ? 'అవును' : 'కాదు'}\nడీజిల్: ${includeDiesel ? 'యజమానిదే' : 'రైతుదే'}\nమొత్తం అంచనా: ₹${totalCost}\n\nదయచేసి స్లాట్‌ను నిర్ధారించండి.`
       : `*NEW MACHINERY BOOKING CONFIRMATION (#${bookingId})* 🚜\n\nEquipment: ${equipment.title}\nFarmer: ${farmerName} (${farmerPhone})\nLocation: ${serviceLocation.village}, ${serviceLocation.mandal}\nDate: ${serviceDate} (${timeSlot})\nArea: ${quantity} Acres (${targetCrop})\nOperator: ${includeOperator ? 'Yes' : 'Self'}\nDiesel: ${includeDiesel ? 'Included' : 'By Farmer'}\nEstimated Total: ₹${totalCost}\n\nPlease verify arrival time.`;
 
-    const waUrl = `https://wa.me/${equipment.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`;
-    window.open(waUrl, '_blank');
+    const cleanPhone = String(equipment?.phone || equipment?.contactPhone || '').replace(/[^0-9]/g, '');
+    if (cleanPhone) {
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`;
+      window.open(waUrl, '_blank');
+    }
   };
 
   return (
