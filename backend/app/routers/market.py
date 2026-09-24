@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import random
 
-router = APIRouter(prefix="/api/v1/market", tags=["Market & Mandi Intelligence"])
+router = APIRouter(tags=["Market & Mandi Intelligence"])
 
 # Official Government Minimum Support Prices (MSP) Benchmark for 2025-2026 Season (₹ / Quintal)
 GOVT_MSP_DATABASE = {

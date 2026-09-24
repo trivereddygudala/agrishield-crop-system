@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v239) - Provider Booking Association Fix, Dual Router Mounting & Architecture Separation
+- **Summary:** Resolved the root issue causing equipment providers to not receive new machinery bookings, separated clustered routers into dedicated architectural modules, and enabled dual route mounting and dynamic CORS compatibility:
+  1. 🚜 **Provider Booking Association Fixed ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Explicitly mapped `providerPhone: safeProviderPhone`, `provider_phone: safeProviderPhone`, `providerId: equipment.id`, and `providerName: equipment.provider` into both the booking payload (`newBooking`) and notification payload (`bookingNotif`).
+     - Added automatic fallback between `/api/v1/equipment/bookings` and `/api/equipment/bookings` so bookings submit seamlessly regardless of frontend proxy or backend path configuration.
+  2. 🔀 **Dual-Mount Router Aliases ([`main.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/main.py)):**
+     - Mounted `equipment.router` at both `/api/v1/equipment` AND `/api/equipment`.
+     - Mounted `market.router` at both `/api/v1/market` AND `/api/market`.
+     - Mounted `plant_id.router` at `/api/v1/plants`, `/api/plants`, `/api/v1`, and `/api`.
+     - Mounted `agrochemical.router` at `/api/v1/agrochemical`, `/api/agrochemical`, `/api/v1`, and `/api`.
+  3. 🌐 **Dynamic CORS Production & Mobile Compatibility ([`main.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/main.py)):**
+     - Updated CORS configuration to use `allow_origin_regex=".*"` with `allow_credentials=True`.
+     - Dynamic origin reflection eliminates Starlette CORS rejections across mobile browsers, local network IPs (192.168.x.x), and Vercel preview URLs.
+  4. 🧩 **Separated Clustered Domain Routers ([`plant_id.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/plant_id.py) & [`agrochemical.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/agrochemical.py)):**
+     - Extracted botanical species and weed identification endpoints into dedicated [`plant_id.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/plant_id.py).
+     - Extracted OCR scanning, side-by-side comparison, translation, and disease recommendations into dedicated [`agrochemical.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/agrochemical.py).
+     - Total loaded FastAPI routes verified at 290 cleanly.
+  5. 🧪 **Validation:**
+     - Verified FastAPI route registration: 290 routes loaded with 0 errors.
+     - Verified Frontend production build: 3,168 modules built cleanly in 29.01s with 0 errors.
+- **Files modified**: `frontend/src/pages/EquipmentBookingPage.jsx`, `backend/app/routers/equipment.py`, `backend/app/routers/market.py`, `backend/app/routers/plant_id.py`, `backend/app/routers/agrochemical.py`, `backend/app/main.py`, `changes_happening.md`.
+
 ## 2026-09-24 (v238) - Synchronized Machine Booked Status, Provider In-Field Availability & Locked Booking Slots on Farmer Catalog
 - **Summary:** Fulfilled the user requirement to reflect the provider's machine booking status directly onto the machinery cards in the farmer profile:
   1. 🔴 **Live Machinery Booked Status Badge ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**

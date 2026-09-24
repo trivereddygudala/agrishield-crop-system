@@ -1099,8 +1099,10 @@ export default function EquipmentBookingPage() {
                 localStorage.setItem('agrishield_equipment_bookings', JSON.stringify([newBooking, ...existing.filter(b => b.id !== newBooking.id)]));
                 window.dispatchEvent(new Event('agrishield_bookings_updated'));
               } catch (e) {}
-              // Dispatch to backend API for multi-device cross-browser persistence
-              API.post('/api/v1/equipment/bookings', newBooking).catch(err => {
+              // Dispatch to backend API for multi-device cross-browser persistence (with fallback)
+              API.post('/api/v1/equipment/bookings', newBooking).catch(() => {
+                return API.post('/api/equipment/bookings', newBooking);
+              }).catch(err => {
                 console.warn('Backend booking sync notice:', err);
               });
               setIsBookModalOpen(false);
@@ -1378,14 +1380,18 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       : operationType;
 
     const safeFarmerPhone = farmerPhone || user?.phone || '9440182736';
+    const safeProviderPhone = equipment.phone || equipment.contactPhone || '9440182736';
     const newBooking = {
       id: bookingId,
       equipmentId: equipment.id,
+      providerId: equipment.id,
       title: equipment.title,
       equipmentTitle: equipment.title,
       teluguTitle: equipment.teluguTitle,
       category: equipment.category,
-      providerName: equipment.providerName,
+      providerName: equipment.providerName || equipment.ownerName || 'Agro Fleet Service (Pasupugallu)',
+      providerPhone: safeProviderPhone,
+      provider_phone: safeProviderPhone,
       phone: safeFarmerPhone,
       farmerPhone: safeFarmerPhone,
       contactPhone: safeFarmerPhone,
@@ -1437,6 +1443,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       farmer_phone: safeFarmerPhone,
       farmerPhone: safeFarmerPhone,
       phone: safeFarmerPhone,
+      provider_phone: safeProviderPhone,
+      providerPhone: safeProviderPhone,
+      provider_name: newBooking.providerName,
+      providerName: newBooking.providerName,
       equipment_title: equipment.title,
       equipmentTitle: equipment.title,
       total_cost: totalCost,

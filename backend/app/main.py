@@ -107,8 +107,8 @@ else:
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if env_mode == "production" else [],
-    allow_origin_regex=None if env_mode == "production" else ".*",
+    allow_origins=origins if (env_mode == "production" and "*" not in origins) else [],
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -117,15 +117,15 @@ app.add_middleware(
 # Serve uploads folder statically
 app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
-from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment
+from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment, plant_id, agrochemical
 
-# 1. Include legacy routers for frontend backwards compatibility
+# 1. Include core and AI routers
 app.include_router(auth.router)
 app.include_router(predict.router)
 app.include_router(ai.router)
 app.include_router(admin.router)
 
-# 2. Include new Batch 3 Hardware Integration, Market & Support routers
+# 2. Include Hardware Integration, Farm Profiles & Support routers
 app.include_router(iot.router)
 app.include_router(devices.router)
 app.include_router(farm_profiles.router)
@@ -133,9 +133,28 @@ app.include_router(notifications.router)
 app.include_router(analytics.router)
 app.include_router(intelligence.router)
 app.include_router(firmware.router)
-app.include_router(market.router)
 app.include_router(support.router)
-app.include_router(equipment.router)
+
+# 3. Dual-Mount Dedicated Domain Routers (/api/v1/* AND /api/*) for Zero-Error Compatibility
+# Equipment Rental & Booking Router
+app.include_router(equipment.router, prefix="/api/v1/equipment")
+app.include_router(equipment.router, prefix="/api/equipment")
+
+# Agricultural Marketplace & Stores Router
+app.include_router(market.router, prefix="/api/v1/market")
+app.include_router(market.router, prefix="/api/market")
+
+# Botanical Plant & Weed Identification Router
+app.include_router(plant_id.router, prefix="/api/v1/plants")
+app.include_router(plant_id.router, prefix="/api/plants")
+app.include_router(plant_id.router, prefix="/api/v1")
+app.include_router(plant_id.router, prefix="/api")
+
+# Agrochemical OCR Scanning, Comparison & Recommendation Router
+app.include_router(agrochemical.router, prefix="/api/v1/agrochemical")
+app.include_router(agrochemical.router, prefix="/api/agrochemical")
+app.include_router(agrochemical.router, prefix="/api/v1")
+app.include_router(agrochemical.router, prefix="/api")
 
 # 3. Dynamic V1 Router construction mapping legacy routers to v1 paths
 v1_router = APIRouter(prefix="/api/v1")

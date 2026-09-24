@@ -12,7 +12,7 @@ import os
 import asyncio
 from backend.app.db.mongodb import db_instance
 
-router = APIRouter(prefix="/api/v1/equipment", tags=["Equipment & Farm Machinery Bookings"])
+router = APIRouter(tags=["Equipment & Farm Machinery Bookings"])
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "equipment_bookings.json")
 
@@ -90,7 +90,7 @@ async def get_all_bookings(
         result = [b for b in result if str(b.get("status", "")).lower() == status.lower()]
     if provider_phone:
         clean_p = "".join(filter(str.isdigit, provider_phone))
-        result = [b for b in result if clean_p in "".join(filter(str.isdigit, str(b.get("providerPhone") or b.get("contactPhone") or "")))]
+        result = [b for b in result if clean_p in "".join(filter(str.isdigit, str(b.get("providerPhone") or b.get("provider_phone") or b.get("contactPhone") or "")))]
     if farmer_phone:
         clean_f = "".join(filter(str.isdigit, farmer_phone))
         result = [b for b in result if clean_f in "".join(filter(str.isdigit, str(b.get("farmerPhone") or b.get("phone") or "")))]
