@@ -25,7 +25,8 @@ import {
   TrendingUp,
   Globe,
   Ruler,
-  Headphones
+  Headphones,
+  Truck
 } from 'lucide-react';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
@@ -74,6 +75,16 @@ const MorePage = () => {
   const currentLang = getLanguageByCode(i18n.language);
 
   const FARMING_TOOLS = [
+    {
+      icon: Truck,
+      label: isTe ? 'వ్యవసాయ పరికరాలు, ట్రాక్టర్ & డ్రోన్ అద్దె' : 'Farm Machinery, Drone & Pump Rental',
+      description: isTe ? 'ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు & నీటిపారుదల పంపుల బుకింగ్ లేదా మీ యంత్రాల రిజిస్ట్రేషన్' : 'Book nearby tractors, spraying drones & irrigation pumps or list your equipment',
+      path: '/equipment-booking',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',
+      accent: 'border-l-amber-500',
+      badge: isTe ? 'రైతు అద్దె సేవలు' : 'Live Rentals'
+    },
     {
       icon: Ruler,
       label: isTe ? 'పొలం విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator',
