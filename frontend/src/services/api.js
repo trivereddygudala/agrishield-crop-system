@@ -1,10 +1,13 @@
 import axios from 'axios';
 
+export const PRIMARY_RENDER_BACKEND = 'https://agrishield-crop-system.onrender.com';
+export const WORKER_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.com';
+
 export const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
   // When running on production domains (e.g., Vercel), fall back to Render production backend
   if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return 'https://agrishield-crop-system.onrender.com';
+    return PRIMARY_RENDER_BACKEND;
   }
   return ''; // Always use local Vite proxy for localhost setup
 };
@@ -38,11 +41,36 @@ API.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors globally
+// Response interceptor to handle errors globally with automated multi-host cluster failover
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) return Promise.reject(error);
+
+    // Automated Cluster Failover: If primary Render backend returned 404 or network timeout, retry on worker-1
+    const shouldFailover = (
+      (error.response && error.response.status === 404) ||
+      error.code === 'ERR_NETWORK' ||
+      error.code === 'ECONNABORTED'
+    );
+
+    if (shouldFailover && !originalRequest._failoverRetry) {
+      originalRequest._failoverRetry = true;
+      try {
+        const fallbackConfig = { ...originalRequest };
+        fallbackConfig.baseURL = WORKER_RENDER_BACKEND;
+        const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
+        const token = storage.getItem('token');
+        if (token && fallbackConfig.headers) {
+          fallbackConfig.headers.Authorization = `Bearer ${token}`;
+        }
+        return await axios(fallbackConfig);
+      } catch (workerErr) {
+        // Fall through to regular error handling if worker fallback also fails
+      }
+    }
+
     // Session expired or invalid token
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

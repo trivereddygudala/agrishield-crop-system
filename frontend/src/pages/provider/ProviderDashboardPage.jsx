@@ -224,13 +224,27 @@ export default function ProviderDashboardPage() {
     const fetchRemoteFleet = async () => {
       try {
         const phone = user?.phone;
-        const url = phone ? `/api/v1/equipment/catalog?provider_phone=${encodeURIComponent(phone)}` : '/api/v1/equipment/catalog';
-        const res = await API.get(url);
-        if (res.data?.catalog && Array.isArray(res.data.catalog) && res.data.catalog.length > 0) {
+        const endpoint = phone ? `/api/v1/equipment/catalog?provider_phone=${encodeURIComponent(phone)}` : '/api/v1/equipment/catalog';
+        let res;
+        try {
+          res = await API.get(endpoint);
+        } catch (_) {}
+        if (!res?.data?.catalog && !res?.data?.equipment) {
+          try {
+            res = await axios.get(`https://agrishield-crop-system.onrender.com${endpoint}`, { timeout: 10000 });
+          } catch (_) {}
+        }
+        if (!res?.data?.catalog && !res?.data?.equipment) {
+          try {
+            res = await axios.get(`https://agrishield-ai-worker-1.onrender.com${endpoint}`, { timeout: 10000 });
+          } catch (_) {}
+        }
+        const catalogItems = res?.data?.catalog || res?.data?.equipment;
+        if (catalogItems && Array.isArray(catalogItems) && catalogItems.length > 0) {
           setFleetList(prev => {
             const map = new Map();
             prev.forEach(item => map.set(item.id, item));
-            res.data.catalog.forEach(item => {
+            catalogItems.forEach(item => {
               if (!map.has(item.id)) map.set(item.id, item);
             });
             return Array.from(map.values());
@@ -272,6 +286,9 @@ export default function ProviderDashboardPage() {
         }
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
           try { res = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+        }
+        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
+          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
         }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           const remote = res.data.bookings;
@@ -404,8 +421,8 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
 
     // Multi-device backend sync so machinery appears on all devices
-    API.post('/api/v1/equipment/catalog', newMachine).catch(err => {
-      console.warn('Backend equipment catalog sync error:', err);
+    API.post('/api/v1/equipment/catalog', newMachine).catch(() => {
+      axios.post('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', newMachine).catch(() => {});
     });
 
     setIsAddModalOpen(false);
@@ -482,6 +499,10 @@ export default function ProviderDashboardPage() {
       } catch (_) {}
       try {
         await axios.patch(`https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
+        return;
+      } catch (_) {}
+      try {
+        await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
       } catch (err) {
         console.warn('Backend status patch notice:', err);
       }

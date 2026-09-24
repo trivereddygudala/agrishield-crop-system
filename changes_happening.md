@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v246) - Multi-Mobile Multi-Account Cross-Device Sync & Automated Worker-1 Cluster Failover
+- **Summary:** Resolved the issue where two different accounts opened on two separate mobile devices (e.g., Farmer on Mobile 1 and Equipment Provider on Mobile 2) failed to synchronize equipment bookings, machinery catalogs, and fleet availability due to HTTP 404 responses returned by the main Render backend (`agrishield-crop-system.onrender.com`):
+  1. 🔍 **Root Cause Identified:**
+     - Live Render production logs showed two different mobile IPs (`152.57.92.255` and `171.78.51.141`) continually requesting `GET /api/v1/equipment/catalog`, `GET /api/v1/equipment/bookings`, and `GET /api/v1/equipment/fleet/status`, all receiving `404 Not Found`.
+     - Live OpenAPI inspection revealed `agrishield-crop-system.onrender.com` had 0 equipment endpoints registered (running an older deployment build), while `agrishield-ai-worker-1.onrender.com` had all 14 equipment endpoints active and returning `HTTP 200 OK`.
+  2. 🌐 **Automated Multi-Cluster Failover ([`frontend/src/services/api.js`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/services/api.js)):**
+     - Configured Axios interceptor with smart cluster failover: if any request to `PRIMARY_RENDER_BACKEND` (`https://agrishield-crop-system.onrender.com`) returns a `404 Not Found`, network timeout, or connection abort, Axios automatically and transparently retries the request against `WORKER_RENDER_BACKEND` (`https://agrishield-ai-worker-1.onrender.com`), ensuring uninterrupted multi-device synchronization without user intervention.
+  3. 📱 **Multi-Device Sync Hardening Across Frontend Pages:**
+     - In [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx), updated `fetchRemoteBookings`, `fetchFleetStatus`, `fetchRemoteCatalog`, and `syncBookingToServer` to automatically fallback to `https://agrishield-ai-worker-1.onrender.com`.
+     - In [`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx), updated `fetchRemoteFleet`, `fetchProviderBookings`, `handleAddMachineSubmit`, and `patchStatusToServer` to automatically fallback to `https://agrishield-ai-worker-1.onrender.com`.
+     - In [`NotificationsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/NotificationsPage.jsx) and [`GoogleMessageReader.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/common/GoogleMessageReader.jsx), added fallback hooks to `https://agrishield-ai-worker-1.onrender.com`.
+  4. 🧪 **Validation:**
+     - Verified production build (`npm run build`): compiled 100% cleanly in 36.83s with 0 errors.
+- **Files modified**: `frontend/src/services/api.js`, `frontend/src/pages/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/NotificationsPage.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-24 (v245) - Fix Render Production Deploy Boot Crash: Resolved Missing Dict/Any Type Annotation Import in admin.py
 - **Summary:** Resolved a critical production container boot failure on Render cloud deployment (`agrishield-ai-worker-1`). During service startup, Uvicorn raised `NameError: name 'Dict' is not defined` when evaluating `UserEditRequest` and `AdminCreateUserRequest` in [`backend/app/routers/admin.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/admin.py):
   1. 🛠️ **Import Correction:** Updated line 2 of [`backend/app/routers/admin.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/admin.py) from `from typing import List, Optional` to `from typing import List, Optional, Dict, Any`.
