@@ -2,6 +2,10 @@ import axios from 'axios';
 
 export const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  // When running on production domains (e.g., Vercel), fall back to Render production backend
+  if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    return 'https://agrishield-crop-system.onrender.com';
+  }
   return ''; // Always use local Vite proxy for localhost setup
 };
 

@@ -38,6 +38,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
@@ -241,7 +242,13 @@ export default function ProviderDashboardPage() {
 
       // Fetch from backend API to pick up bookings made on PC / other phones
       try {
-        const res = await API.get('/api/v1/equipment/bookings');
+        let res = await API.get('/api/v1/equipment/bookings');
+        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
+          try { res = await API.get('/api/equipment/bookings'); } catch (_) {}
+        }
+        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
+          try { res = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+        }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           const remote = res.data.bookings;
           const mergedMap = new Map();
@@ -433,9 +440,22 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
 
     // Dispatch status update to backend API for multi-device cross-browser persistence
-    API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }).catch(err => {
-      console.warn('Backend status patch notice:', err);
-    });
+    const patchStatusToServer = async () => {
+      try {
+        const r = await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus });
+        if (r.data && typeof r.data === 'object') return;
+      } catch (_) {}
+      try {
+        const r = await API.patch(`/api/equipment/bookings/${bookingId}/status`, { status: nextStatus });
+        if (r.data && typeof r.data === 'object') return;
+      } catch (_) {}
+      try {
+        await axios.patch(`https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
+      } catch (err) {
+        console.warn('Backend status patch notice:', err);
+      }
+    };
+    patchStatusToServer();
 
     // Auto-sync machine availability when booking is confirmed or completed
     if (targetBooking) {

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Card, Button, Input, Select, Badge, Dialog, EmptyState, Skeleton, Switch } from '../components/ui/index';
 import API from '../services/api';
+import axios from 'axios';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo, formatDateTime } from '../utils/dateUtils';
@@ -109,7 +110,13 @@ export default function NotificationsPage() {
         try {
           let bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
           try {
-            const bRes = await API.get('/api/v1/equipment/bookings');
+            let bRes = await API.get('/api/v1/equipment/bookings');
+            if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
+              try { bRes = await API.get('/api/equipment/bookings'); } catch (_) {}
+            }
+            if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
+              try { bRes = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+            }
             if (bRes.data?.bookings && Array.isArray(bRes.data.bookings)) {
               const bMap = new Map();
               bRes.data.bookings.forEach(b => { if (b && b.id) bMap.set(b.id, b); });

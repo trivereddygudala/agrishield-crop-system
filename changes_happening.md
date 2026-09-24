@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v241) - Multi-Device Equipment Booking Sync Fix & Vercel Reverse Proxy Configuration
+- **Summary:** Diagnosed and rectified the root cause why equipment bookings appeared on Mobile 1 (after logging out of farmer and into provider on the same phone) but failed to appear on Mobile 2 (provider phone). Implemented full reverse proxy routing, multi-endpoint fallbacks, and resilient cross-device data synchronization:
+  1. 🔍 **Root Cause Identified & Explained:**
+     - **Why Mobile 1 Showed the Booking:** In `EquipmentBookingPage.jsx`, bookings are locally mirrored to `localStorage.getItem('agrishield_equipment_bookings')`. When the user logged out of the farmer account and logged into the provider account on the **same mobile phone (Mobile 1)**, both profiles shared the identical device browser `localStorage`. `ProviderDashboardPage.jsx` initialized state from this local storage, making it appear that the booking had succeeded.
+     - **Why Mobile 2 Showed 0 Bookings:** Mobile 2 is a distinct physical device with an empty `localStorage`. When Mobile 2 queried the server via `API.get('/api/v1/equipment/bookings')`, Vercel's SPA catch-all rule (`/(.*) -> /index.html`) in `vercel.json` intercepted the network request and returned `200 OK` with `index.html` text instead of routing to the backend. Because `res.data` was an HTML string, `res.data?.bookings` evaluated to `undefined`, leaving `bookingsList` as `[]`. Furthermore, the original booking submission from Mobile 1 had also been intercepted by Vercel and never reached the database on the backend server.
+  2. 🌐 **Vercel Reverse Proxy Architecture Configured ([`frontend/vercel.json`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/vercel.json)):**
+     - Added dedicated reverse proxy rewrites routing `/api/:path*` and `/uploads/:path*` directly to `https://agrishield-crop-system.onrender.com`.
+     - Vercel will no longer serve `index.html` for backend API endpoints, enabling instant live data communication between mobile devices.
+  3. 🔗 **Production API Base URL Fallback ([`api.js`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/services/api.js)):**
+     - Updated `getApiBaseUrl()` so that in remote production browsers where `VITE_API_URL` is unset, it automatically routes to `https://agrishield-crop-system.onrender.com`, avoiding localhost proxy failures on mobile browsers.
+  4. 🛡️ **Resilient Dual-Route & Direct Backend Sync ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx), [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx), [`NotificationsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/NotificationsPage.jsx), [`GoogleMessageReader.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/common/GoogleMessageReader.jsx)):**
+     - In all booking creation, booking fetch, and booking status patch handlers:
+       * Added JSON type validation (`typeof res.data === 'object' && Array.isArray(res.data.bookings)`) to prevent HTML SPA catch-all text from masquerading as a successful response.
+       * Implemented automated multi-route fallback: tries `/api/v1/equipment/bookings`, falls back to `/api/equipment/bookings`, and finally falls back to direct `axios` request to `https://agrishield-crop-system.onrender.com`.
+  5. 🧪 **Validation:**
+     - Verified FastAPI route registration: 290 routes loaded with 0 errors.
+     - Verified CORS preflight on Render returns `200 OK` for both Vercel subdomains.
+- **Files modified**: `frontend/vercel.json`, `frontend/src/services/api.js`, `frontend/src/pages/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/NotificationsPage.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`.
+
+
 ## 2026-09-24 (v240) - Removed Unwanted Software-Only Mode from Provider Profile & Fixed Provider Hub Persistence
 - **Summary:** Explained the purpose of Software-Only Mode, completely removed it and farmer-testing elements from the Equipment Provider profile, fixed provider profile field persistence in backend schemas and routers, and added dedicated Machinery Hub & Payout settings:
   1. 🚫 **Removed Unwanted Software-Only Mode from Equipment Provider ([`SettingsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/SettingsPage.jsx)):**

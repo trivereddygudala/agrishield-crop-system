@@ -258,7 +258,13 @@ export default function EquipmentBookingPage() {
   useEffect(() => {
     const fetchRemoteBookings = async () => {
       try {
-        const res = await API.get('/api/v1/equipment/bookings');
+        let res = await API.get('/api/v1/equipment/bookings');
+        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
+          try { res = await API.get('/api/equipment/bookings'); } catch (_) {}
+        }
+        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
+          try { res = await axios.get('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
+        }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           setMyBookings(prev => {
             const existingIds = new Set(prev.map(b => b.id));
@@ -1099,12 +1105,24 @@ export default function EquipmentBookingPage() {
                 localStorage.setItem('agrishield_equipment_bookings', JSON.stringify([newBooking, ...existing.filter(b => b.id !== newBooking.id)]));
                 window.dispatchEvent(new Event('agrishield_bookings_updated'));
               } catch (e) {}
-              // Dispatch to backend API for multi-device cross-browser persistence (with fallback)
-              API.post('/api/v1/equipment/bookings', newBooking).catch(() => {
-                return API.post('/api/equipment/bookings', newBooking);
-              }).catch(err => {
-                console.warn('Backend booking sync notice:', err);
-              });
+              // Dispatch to backend API for multi-device cross-browser persistence (with dual-endpoint & direct fallback)
+              const syncBookingToServer = async (payload) => {
+                try {
+                  const res = await API.post('/api/v1/equipment/bookings', payload);
+                  if (res.data && typeof res.data === 'object' && res.data.id) return res.data;
+                } catch (_) {}
+                try {
+                  const res = await API.post('/api/equipment/bookings', payload);
+                  if (res.data && typeof res.data === 'object' && res.data.id) return res.data;
+                } catch (_) {}
+                try {
+                  const res = await axios.post('https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings', payload, { timeout: 15000 });
+                  return res.data;
+                } catch (err) {
+                  console.warn('Backend booking sync notice:', err);
+                }
+              };
+              syncBookingToServer(newBooking);
               setIsBookModalOpen(false);
               setActiveTab('bookings');
             }}

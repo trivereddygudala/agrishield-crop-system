@@ -11,6 +11,7 @@ import { formatDateTime, timeAgo } from '../../utils/dateUtils';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../../utils/diseaseAdvisoryData';
 import API from '../../services/api';
+import axios from 'axios';
 
 export default function GoogleMessageReader({
   message,
@@ -136,9 +137,17 @@ export default function GoogleMessageReader({
       }
     } catch (e) {}
 
-    // 2. Dispatch to backend API
+    // 2. Dispatch to backend API with fallback
     try {
-      await API.patch(`/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus });
+      const r = await API.patch(`/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus });
+      if (r.data && typeof r.data === 'object') return;
+    } catch (_) {}
+    try {
+      const r = await API.patch(`/api/equipment/bookings/${bId}/status`, { status: nextStatus });
+      if (r.data && typeof r.data === 'object') return;
+    } catch (_) {}
+    try {
+      await axios.patch(`https://agrishield-crop-system.onrender.com/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus }, { timeout: 15000 });
     } catch (e) {}
   };
 
