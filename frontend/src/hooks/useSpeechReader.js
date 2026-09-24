@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSpeechLocale } from '../utils/regionalLocale';
+import { sanitizeTextForSpeech } from '../utils/speechSanitizer';
 
 export const useSpeechReader = () => {
   const [speakingId, setSpeakingId] = useState(null);
@@ -96,12 +97,8 @@ export const useSpeechReader = () => {
 
     synth.cancel();
 
-    // Clean formatting for natural speech
-    const cleanText = (text || '')
-      .replace(/[*_#`~[\]()<>]/g, ' ')
-      .replace(/https?:\/\/\S+/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    // Clean formatting for natural speech without reading brackets, punctuation or symbols
+    const cleanText = sanitizeTextForSpeech(text, lang);
 
     if (!cleanText) return;
 

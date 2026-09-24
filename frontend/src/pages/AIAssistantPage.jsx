@@ -263,24 +263,24 @@ const AIAssistantPage = () => {
       ]
     },
     farmer: {
-      title: isTe ? "వ్యవసాయ AI సహాయకుడు" : t('assistant_page.title', "AgriShield Smart Agronomist AI"),
-      modelTag: isTe ? "రైతు మిత్ర AI" : t('assistant_page.tag', "Smart Agronomist Pro"),
+      title: isTe ? "వ్యవసాయ AI సహాయకుడు" : "AgriShield Smart Farm Assistant",
+      modelTag: isTe ? "రైతు మిత్ర AI" : "Smart Farm AI",
       badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300",
       welcomeMsg: isTe 
-        ? `నమస్కారం **${user?.name || 'రైతు సోదరులారా'}**! నేను మీ **అగ్రిషీల్డ్ స్మార్ట్ వ్యవసాయ AI సహాయకుడిని**.\n\nమీ పంటకు వచ్చే తెగుళ్ల గుర్తింపు, 16 లీటర్ల పంపుకి సరైన మందుల మోతాదు, నేల తేమ & నీటి తడులు, మరియు మార్కెట్ ధరల గురించి ఏ సందేహం ఉన్నా నన్ను అడగండి.`
-        : t('assistant_page.welcome', { name: user?.name || 'Farmer', defaultValue: `Hello **${user?.name || 'Farmer'}**! I am your **AgriShield Smart Agronomist AI**.\n\nI can help you diagnose crop diseases, calculate fertilizer dosages, optimize drip irrigation, and check daily market prices.` }),
+        ? `🌾 **నమస్కారం ${user?.name || 'రైతు సోదరులారా'}! నేను మీ అగ్రిషీల్డ్ స్మార్ట్ వ్యవసాయ AI సహాయకుడిని.**\n\nపంటల సాగు పద్ధతులు, తెగుళ్ల నివారణ & సరైన మందుల మోతాదు, నేటి వాతావరణ నివేదికలు & వర్ష సూచన, ప్రభుత్వ వ్యవసాయ పథకాలు (PM-కిసాన్, రైతు భరోసా, సబ్సిడీలు, ఈ-పంట నమోదు), మండి మార్కెట్ ధరలు లేదా ఇతర వ్యవసాయ సంబంధిత విషయాల గురించి మీకు కావలసిన సమాచారాన్ని నన్ను అడగండి!`
+        : `🌾 **Hello ${user?.name || 'Farmer'}! I am your AgriShield Smart Farm Assistant.**\n\nI can help you with crop cultivation practices, pest & disease remedies with knapsack pump dosages, live weather reports & rain spray windows, central & state government schemes (PM-Kisan, Rythu Bharosa, Subsidies, e-Crop), daily APMC Mandi market prices, and modern agricultural news. How can I help you today?`,
       suggestionCards: isTe ? [
-        { icon: Leaf, title: "🌿 ఆకుముడత & పురుగుల నివారణ మందులు", prompt: "మిరప, టమోటా, వరి పంటలకు ఆకుముడత మరియు పురుగుల నివారణకు సరైన మందులు తెలపండి." },
-        { icon: Droplets, title: "🧪 16 లీటర్ల పంపుకి మందు మోతాదు", prompt: "నా పంటకు 16 లీటర్ల స్ప్రే పంపులో ఏ మందు ఎంత మోతాదులో కలపాలి?" },
-        { icon: CloudRain, title: "🌦️ నేడు వర్షం వస్తుందా? పిచికారీ చేయవచ్చా?", prompt: "నేటి వాతావరణం మరియు వర్ష సూచన ప్రకారం పంటకు మందులు పిచికారీ చేయవచ్చా?" },
-        { icon: Sparkles, title: "🌾 ఎరువుల మోతాదు (యూరియా, DAP)", prompt: "ప్రస్తుత పంట ఎదుగుదల దశకు తగిన యూరియా, డీఏపీ, పొటాష్ ఎరువుల మోతాదు తెలపండి." },
-        { icon: Globe, title: "💰 నేటి మండి మార్కెట్ ధరలు", prompt: "నా జిల్లా / సమీప మార్కెట్ యార్డులో నేటి పంట ధరలు ఎలా ఉన్నాయి?" }
+        { icon: Leaf, title: "🌿 పంట సాగు & తెగుళ్ల నివారణ మందులు", prompt: "మిరప, టమోటా, వరి పంటలకు తెగుళ్ల నివారణ మరియు 16 లీటర్ల పంపుకి సరైన మందుల మోతాదు తెలపండి." },
+        { icon: CloudRain, title: "🌦️ నేటి వాతావరణం & వర్షంలో స్ప్రే చేయవచ్చా?", prompt: "నేటి వాతావరణం మరియు వర్ష సూచన ప్రకారం ఈ రోజు పంటకు మందులు పిచికారీ చేయడం సురక్షితమేనా?" },
+        { icon: Building2, title: "🏛️ ప్రభుత్వ పథకాలు (రైతు భరోసా, PM-కిసాన్, సబ్సిడీలు)", prompt: "రైతు భరోసా, పీఎం-కిసాన్, సబ్సిడీ ఎరువులు, విత్తనాలు మరియు ఈ-పంట నమోదు వివరాలు తెలపండి." },
+        { icon: Globe, title: "💰 నేటి మార్కెట్ మండి ధరలు & ట్రెండ్స్", prompt: "మా ప్రాంతంలో ప్రధాన వ్యవసాయ పంటల నేటి హోల్‌సేల్ మండి మార్కెట్ ధరలు మరియు క్వింటాల్ రేట్లు ఏమిటి?" },
+        { icon: Sparkles, title: "📰 తాజా వ్యవసాయ సమాచారం & సేంద్రీయ పద్ధతులు", prompt: "జీవామృతం, వేప కషాయం తయారీ విధానం మరియు ఆధునిక వ్యవసాయ పద్ధతులు వివరించండి." }
       ] : [
-        { icon: ImageIcon, title: "Diagnose crop leaf disease", prompt: "How do I prevent Tomato Early Blight & Chilli leaf curl — organic and chemical treatments?" },
-        { icon: Droplets, title: "16L spray pump dosage", prompt: "Calculate exact pesticide & fertilizer dosage for one 16-litre spray pump." },
-        { icon: CloudRain, title: "Spraying weather & rain safety", prompt: "Based on today's weather and rain forecast, is it safe to spray pesticides today?" },
-        { icon: Sparkles, title: "Fertilizer dosage (NPK)", prompt: "Calculate exact NPK fertilizer dosage for my current crop growth stage." },
-        { icon: Globe, title: "Today's Mandi market rates", prompt: "What are today's wholesale Mandi prices for major agricultural crops in my region?" }
+        { icon: Leaf, title: "🌿 Crop Cultivation & Pest Remedies", prompt: "What are the recommended treatments and exact 16L spray pump dosages for major crop diseases?" },
+        { icon: CloudRain, title: "🌦️ Today's Weather & Rain Spray Safety", prompt: "Based on today's weather and rain forecast, is it safe to spray pesticides today?" },
+        { icon: Building2, title: "🏛️ Govt Schemes, Subsidies & PM-Kisan", prompt: "What government schemes, PM-Kisan benefits, Rythu Bharosa funds, and seed/fertilizer subsidies are currently available?" },
+        { icon: Globe, title: "💰 Mandi Market Prices & Rates", prompt: "What are today's wholesale Mandi prices for major agricultural crops in my region?" },
+        { icon: Sparkles, title: "📰 Modern Farming News & Organic Methods", prompt: "How do I prepare organic bio-pesticide using Neem and Jeevamrutha, and what are the latest farming practices?" }
       ]
     }
   };
@@ -808,7 +808,7 @@ const AIAssistantPage = () => {
       setIsListening(false);
     } else {
       const rec = new SpeechRecognition();
-      rec.continuous = false;
+      rec.continuous = true;
       rec.interimResults = true;
       const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', gu: 'gu-IN', pa: 'pa-IN', ur: 'ur-IN', or: 'or-IN', as: 'as-IN', en: 'en-IN' };
       const activeLangKey = (i18n.language || 'en').split('-')[0];
@@ -1032,14 +1032,14 @@ const AIAssistantPage = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Voice Doctor Consultation Button */}
+            {/* Gemini Live Assistant Button */}
             <button
               onClick={() => setShowVoiceDoctor(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer"
-              title="Speak with Dr. AgriShield (Voice Doctor)"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs font-black shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
+              title="Open Gemini Live Smart Assistant"
             >
-              <Stethoscope className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Voice Doctor</span>
+              <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
+              <span>Gemini Live</span>
             </button>
 
             <button 
@@ -1074,11 +1074,13 @@ const AIAssistantPage = () => {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-sm">
                   <Sparkles className="w-6 h-6" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                  {isTe ? "నమస్కారం! మీ పంటకు సంబంధించి ఏదైనా అడగండి" : "How can I help you today?"}
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                  {isTe ? "నమస్కారం! వ్యవసాయం గురించి ఏదైనా అడగండి" : "AgriShield Smart Farm Assistant"}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {isTe ? "తెగుళ్ల నివారణ, పిచికారీ మోతాదు, ఎరువుల లెక్క మరియు మార్కెట్ ధరలు" : "Smart agronomy advice, crop pathology & precision farming"}
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto">
+                  {isTe 
+                    ? "పంటల సాగు, తెగుళ్లు, నేటి వాతావరణం, ప్రభుత్వ పథకాలు మరియు మండి ధరలు" 
+                    : "Crops, pest remedies, weather reports, government schemes & Mandi prices"}
                 </p>
               </div>
 
@@ -1452,9 +1454,9 @@ const AIAssistantPage = () => {
                   {/* ChatGPT Style Message Action Toolbar under Assistant response (Picture 2) */}
                   {!isUser && (
                     <div className="flex items-center gap-1 mt-2.5 text-slate-400">
-                      {/* Voice Readout Button with Feature 7 Speed and Equalizer */}
+                      {/* Single Clean Voice Readout Button */}
                       <button 
-                        onClick={() => speak(msg.content, msg.id, i18n.language || 'en', audioSpeed)}
+                        onClick={() => speak(msg.content, msg.id, i18n.language || 'en', 1.0)}
                         className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
                           speakingId === msg.id 
                             ? 'bg-emerald-500/20 text-emerald-400 animate-pulse' 
@@ -1464,7 +1466,6 @@ const AIAssistantPage = () => {
                       >
                         {speakingId === msg.id ? <VolumeX className="w-4 h-4 text-emerald-400" /> : <Volume2 className="w-4 h-4" />}
                         <span className="text-[10px] hidden sm:inline">{speakingId === msg.id ? 'Stop' : 'Listen'}</span>
-                        {/* Feature 7: WhatsApp Style Sound Waveform */}
                         {speakingId === msg.id && (
                           <span className="flex items-center gap-0.5 ml-1 h-3">
                             <span className="w-0.5 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0s]" />
@@ -1472,16 +1473,6 @@ const AIAssistantPage = () => {
                             <span className="w-0.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.3s]" />
                           </span>
                         )}
-                      </button>
-
-                      {/* Speed Controller Badge */}
-                      <button
-                        type="button"
-                        onClick={() => setAudioSpeed(s => s === 1.0 ? 1.25 : s === 1.25 ? 0.75 : 1.0)}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-black border border-slate-200 dark:border-[#2a2a2a] bg-slate-50 dark:bg-[#1a1a1a] text-slate-600 dark:text-slate-300 hover:text-emerald-500 hover:border-emerald-500 transition-colors"
-                        title="Voice speed"
-                      >
-                        {audioSpeed}x
                       </button>
 
                       <button 
@@ -1506,14 +1497,6 @@ const AIAssistantPage = () => {
                         title="Bad response"
                       >
                         <ThumbsDown className="w-4 h-4" />
-                      </button>
-
-                      <button 
-                        onClick={() => toggleSpeech(msg.content, msg.id)}
-                        className={`p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#212121] transition-colors ${speakingId === msg.id ? 'text-emerald-500 animate-pulse' : 'hover:text-slate-700 dark:hover:text-slate-200'}`}
-                        title="Read aloud"
-                      >
-                        {speakingId === msg.id ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                       </button>
 
                       <button 
@@ -1645,26 +1628,7 @@ const AIAssistantPage = () => {
             )}
           </AnimatePresence>
 
-          {/* ── KISAN QUICK QUESTION CHIPS (1-TAP ACTION SHORTCUTS) ── */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 mb-1 scrollbar-none no-scrollbar">
-            {kisanQuickChips.map((chip, idx) => {
-              const activeLang = (i18n.language || 'en').split('-')[0];
-              const label = chip.label[activeLang] || chip.label.en;
-              const queryText = typeof chip.query === 'object' ? (chip.query[activeLang] || chip.query.en) : chip.query;
-              const IconComp = chip.icon;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSendMessage(queryText)}
-                  className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-[#1a1a1a] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-slate-200 dark:border-[#2b2b2b] hover:border-emerald-400/50 text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 text-[11px] font-bold flex items-center gap-1 shrink-0 transition-all shadow-2xs active:scale-95 whitespace-nowrap"
-                >
-                  <IconComp className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>{label}</span>
-                </button>
-              );
-            })}
-          </div>
+
 
           {/* Active Voice Listening Banner */}
           <AnimatePresence>

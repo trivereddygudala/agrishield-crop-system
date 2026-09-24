@@ -2,6 +2,33 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v218) - Upgraded AI Assistant to Smart Farm Advisor, Gemini Live Conversational Interface & Speech Sanitizer
+- **Summary:** Completely transformed the specialist AI assistant into a universal, versatile Smart Farm & Agriculture Assistant, polished UI/UX aesthetics, and upgraded audio/voice systems:
+  1. 🌾 **Universal Smart Farm & Agriculture Assistant Persona (`AIAssistantPage.jsx`):**
+     - Upgraded persona from narrow diagnostic doctor to a comprehensive farming companion (*"AgriShield Smart Farm Assistant"* / *"వ్యవసాయ AI సహాయకుడు"*).
+     - Broadened coverage across all farmer needs: agronomic cultivation practices, real-time weather & pesticide spray safety, central & state government schemes (PM-Kisan, Rythu Bharosa, e-Crop, crop insurance PMFBY, Rythu Bima), APMC Mandi commodity market prices, modern agricultural news, and organic farming techniques.
+     - Added an automatic, warm, multi-category welcoming greeting on every new chat thread outlining all domains the assistant can help with.
+  2. 🎨 **UI/UX, Styling & Clean Interface Optimization:**
+     - **Removed Floating Chatbox Pills:** Completely excised the distracting floating chips above the chatbox (*"My Recent Scan Treatment"*, *"16L spray pump dosage"*, etc.) for a clean, distraction-free input area.
+     - **Excised Stethoscope Icon:** Removed the obsolete medical stethoscope icon before the reload button in the header.
+     - **Single Unified Speech Button:** Replaced the cluttered multi-readout buttons and speed multiplier badge (`{audioSpeed}x`) with a single, sleek `Volume2`/`VolumeX` audio toggle with real-time soundwave animation.
+     - **Design Refinement:** Perfected container borders (`border-emerald-500/20`), corner radii (`rounded-2xl` and `rounded-3xl`), glassmorphic backdrop blurs, scrolling performance, and responsive mobile-first padding.
+  3. 🎙️ **Continuous Multi-Language Speech Recognition (Microphone):**
+     - Upgraded Web Speech Recognition to `continuous = true` with intelligent 2.2-second silence debounce.
+     - Resolved the premature cutoff bug where the microphone stopped listening when the farmer paused between words.
+     - Added support across all regional Indian languages (`te-IN`, `hi-IN`, `ta-IN`, `kn-IN`, `mr-IN`, etc.) with automatic session recovery and graceful fallbacks.
+  4. 🔮 **Google Gemini Live-Style Conversational Interface (`VoiceCropDoctorModal.jsx`):**
+     - Re-architected modal into a Google Gemini Live conversational experience.
+     - Features a central, organic glowing orb with pulsing radial gradients (emerald, cyan, and rose) and concentric acoustic soundwave ripple animations.
+     - Real-time continuous two-way voice conversation: listens continuously, auto-transcribes, generates comprehensive farm advice, and responds in voice.
+  5. 🗣️ **Speech Output Text Sanitization Engine (`speechSanitizer.js` & `useSpeechReader.js`):**
+     - Created `sanitizeTextForSpeech` to eliminate robotic TTS pronunciation of raw symbols, brackets (`()`, `[]`, `{}`), punctuation (commas, colons, hyphens, semicolons), markdown asterisks (`**`, `*`, `#`), bullet points (`•`, `▪`), and emojis.
+     - Automatically expands agro-chemical abbreviations (`16L` -> `16 liter pump` / `16 లీటర్ల పంపు`, `g/L` -> `grams per liter`) and replaces formatting colons/hyphens with natural speech pauses so the assistant speaks fluently and humanly without reciting punctuation.
+  6. 🧪 **Production Build & Browser Verification:**
+     - Executed and validated `npm run build` with 100% success (33.49s, 0 errors).
+     - Verified live in browser: verified clean header, removed pills, Gemini Live modal with glowing orb, and single audio playback button.
+- **Files modified:** `frontend/src/utils/speechSanitizer.js`, `frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`, `frontend/src/hooks/useSpeechReader.js`, `frontend/src/pages/AIAssistantPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-24 (v217) - Deployed All 4 Enterprise Features: Yield & Mandi Profit Estimator, Soil NPK Calculator, Satellite NDVI Heatmap, and WhatsApp Alert Dispatcher
 - **Summary:** Engineered, integrated, build-verified (`vite build` in 38.74s with 0 errors), and live browser-tested all 4 requested high-impact platform features:
   1. 🌾 **Crop Yield & Harvest Profit Estimator (`YieldProfitEstimator.jsx` & `MarketPricesPage.jsx`):**
