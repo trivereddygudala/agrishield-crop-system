@@ -852,14 +852,26 @@ export default function EquipmentBookingPage() {
                       <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">{b.timeSlot}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'విస్తీర్ణం / పంట' : 'Acres / Crop'}</span>
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{b.acres} Acres ({b.targetCrop})</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'విస్తీర్ణం / పొలం స్థితి' : 'Acres / Field Stage'}</span>
+                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{b.acres} Acres ({b.fieldStatus || b.targetCrop})</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'చెల్లింపు విధానం' : 'Payment'}</span>
                       <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">{b.paymentMode}</span>
                     </div>
                   </div>
+
+                  {b.operation && (
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                      <span className="flex items-center gap-1.5">
+                        <span>⚙️ {isTe ? 'పని రకం:' : 'Operation:'}</span>
+                        <strong className="text-indigo-900 dark:text-indigo-200">{b.operation}</strong>
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        🌱 {b.fieldStatus || b.targetCrop || 'Field Stage'}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Action Buttons: Call, WhatsApp, Add to Farm Khata */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
@@ -1134,8 +1146,112 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
   const [farmerName, setFarmerName] = useState(user?.name || 'Farmer');
   const [farmerPhone, setFarmerPhone] = useState(user?.phone || '9440182736');
   const [farmSector, setFarmSector] = useState(activeFarm?.farm_name || 'My Farm Field 1');
-  const [targetCrop, setTargetCrop] = useState(activeFarm?.crop_name || 'Chilli');
   const [approachRoad, setApproachRoad] = useState('Tractor Accessible Road');
+
+  // ── Land Status & Field Condition Options (Replacing static Target Crop) ──
+  const FIELD_STATUS_OPTIONS = useMemo(() => [
+    { value: 'Empty Field / Dry Fallow Land', label: isTe ? '🌱 ఖాళీ పొలం / బీడు భూమి (దుక్కికి సిద్ధం)' : '🌱 Empty Field / Dry Fallow Land (Ready for Ploughing)' },
+    { value: 'Ploughed Soil / Rough Tilled', label: isTe ? '🚜 దున్నిన పొలం (రోటవేటర్ / లెవలింగ్ కోసం)' : '🚜 Ploughed Soil / Rough Tilled (Needs Rotavator/Harrow)' },
+    { value: 'Seedbed Ready / Pre-Sowing', label: isTe ? '🌾 విత్తేందుకు సిద్ధమైన నేల (బోదెలు / బెడ్స్)' : '🌾 Seedbed Ready / Pre-Sowing (Bed / Furrows Ready)' },
+    { value: 'Planted Field / Young Sprouts', label: isTe ? '🌿 నాటిన చిన్న పైరు / మొలకలు (కలుపు తీత)' : '🌿 Planted Field / Young Sprouts (Weeding / Interculture)' },
+    { value: 'Standing Growing Crop Field', label: isTe ? '🌽 ఎదుగుతున్న పంట పొలం (స్ప్రేయింగ్ / ఎరువులు)' : '🌽 Standing / Growing Crop Field (Spraying / Fertilizer)' },
+    { value: 'Flowering & Fruiting Stage Field', label: isTe ? '🍅 పూత & కాత దశలో ఉన్న పొలం (సస్యరక్షణ)' : '🍅 Flowering & Fruiting Stage Field (Pest Control)' },
+    { value: 'Mature / Ready for Harvest Field', label: isTe ? '🌾 కోతకు సిద్ధమైన పంట పొలం (హార్వెస్టింగ్)' : '🌾 Mature / Ready for Harvest Field (Harvesting)' },
+    { value: 'Post-Harvest Stubble Field', label: isTe ? '🪵 పంట కోసిన తర్వాత మొద్దులున్న పొలం (మల్చర్)' : '🪵 Post-Harvest Stubble Field (Mulcher / Clearing)' },
+    { value: 'Paddy Wetland / Muddy Puddle', label: isTe ? '💧 వరి దమ్ము పొలం / బురద నేల (కేజ్ వీల్స్)' : '💧 Paddy Wetland / Muddy Puddle (Cage Wheels Puddling)' },
+    { value: 'Orchard / Tree Plantation Field', label: isTe ? '🌳 తోటల భూమి (మిరప, పండ్ల తోటలు)' : '🌳 Orchard / Tree Plantation (Chilli, Mango, Citrus)' },
+  ], [isTe]);
+
+  const [fieldStatus, setFieldStatus] = useState('Empty Field / Dry Fallow Land');
+
+  // ── Specific Operations matching the Provider's Registered Equipment & Machinery ──
+  const availableOperations = useMemo(() => {
+    const list = [];
+    const cat = (equipment.category || '').toLowerCase();
+    const isDrone = cat === 'drone' || equipment.title?.toLowerCase().includes('drone');
+    const isHarvester = cat === 'harvester' || equipment.title?.toLowerCase().includes('harvester');
+    const isPump = cat === 'irrigation' || cat === 'pump' || equipment.title?.toLowerCase().includes('pump');
+
+    // 1. Priority: Implements specifically registered by this equipment provider
+    const imps = Array.isArray(equipment.implementsIncluded) && equipment.implementsIncluded.length > 0
+      ? equipment.implementsIncluded
+      : Array.isArray(equipment.implements) && equipment.implements.length > 0
+      ? equipment.implements
+      : typeof (equipment.implements || equipment.implementsIncluded) === 'string'
+      ? (equipment.implements || equipment.implementsIncluded).split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+
+    if (imps.length > 0) {
+      imps.forEach(imp => {
+        list.push({
+          value: `${imp} Operation`,
+          label: `★ ${imp} (${isTe ? 'ప్రొవైడర్ అందించే పరికరం' : 'Provider Equipped Attachment'})`
+        });
+      });
+    }
+
+    // 2. Comprehensive operations categorized by machine category
+    if (isDrone) {
+      list.push(
+        { value: 'Foliar Spraying (Nano Urea / Micronutrients)', label: isTe ? 'ఆకులపై స్ప్రే (నానో యూరియా / సూక్ష్మపోషకాలు)' : 'Foliar Spraying (Nano Urea / Micronutrients)' },
+        { value: 'Pesticide & Insecticide Ultra-Low Spraying', label: isTe ? 'పురుగు & తెగుళ్ల మందుల పిచికారీ' : 'Pesticide & Insecticide Ultra-Low Spraying' },
+        { value: 'Fungicide Canopy Protection Spray', label: isTe ? 'శిలీంద్ర సంహారిణి కానోపీ స్ప్రే' : 'Fungicide Canopy Protection Spray' },
+        { value: 'Granular Fertilizer / Seed Broadcasting', label: isTe ? 'గుళికల ఎరువులు / విత్తనాలు వెదజల్లుట' : 'Granular Fertilizer / Seed Broadcasting' },
+        { value: 'Multi-Spectral Crop Health & Stress Survey', label: isTe ? 'మల్టీ-స్పెక్ట్రల్ పైరు ఆరోగ్య సర్వే' : 'Multi-Spectral Crop Health & Stress Survey' }
+      );
+    } else if (isHarvester) {
+      list.push(
+        { value: 'Paddy Combine Harvesting & Threshing', label: isTe ? 'వరి కోత మరియు నూర్పిడి' : 'Paddy Combine Harvesting & Threshing' },
+        { value: 'Maize / Corn Combine Harvesting', label: isTe ? 'మొక్కజొన్న కోత' : 'Maize / Corn Combine Harvesting' },
+        { value: 'Pulse / Groundnut Threshing', label: isTe ? 'వేరుశనగ / పప్పుధాన్యాల నూర్పిడి' : 'Pulse / Groundnut Threshing' },
+        { value: 'Straw Baling / Residue Collection', label: isTe ? 'గడ్డి చుట్టలు కట్టుట' : 'Straw Baling / Residue Collection' }
+      );
+    } else if (isPump) {
+      list.push(
+        { value: 'High-Volume Flood Irrigation Pumping', label: isTe ? 'బోరు / బావి నుండి నీటి తోడుట' : 'High-Volume Flood Irrigation Pumping' },
+        { value: 'Portable Diesel Engine Field Irrigation', label: isTe ? 'డీజిల్ ఇంజిన్ నీటి పారుదల' : 'Portable Diesel Engine Field Irrigation' },
+        { value: 'Drip System Pressurized Fertigation', label: isTe ? 'డ్రిప్ సిస్టమ్ ఫెర్టిగేషన్ & ఫ్లషింగ్' : 'Drip System Pressurized Fertigation' },
+        { value: 'Farm Pond Dewatering & Transfer', label: isTe ? 'రైతు గుంట నీటి బదిలీ' : 'Farm Pond Dewatering & Transfer' }
+      );
+    } else {
+      // Tractor & Primary/Secondary Tillage Machinery
+      list.push(
+        { value: 'Rotavator / Secondary Tillage', label: isTe ? '🚜 రోటవేటర్ - మట్టిని మెత్తగా చేయుట (Secondary Tillage)' : '🚜 Rotavator / Secondary Tillage' },
+        { value: 'Disc Plough / Deep Primary Ploughing', label: isTe ? '🚜 డిస్క్ నాగలి - లోతు దుక్కి దున్నుట (Deep Ploughing)' : '🚜 Disc Plough / Deep Primary Ploughing' },
+        { value: 'Cultivator 9-Tyne Harrowing & Clod Crushing', label: isTe ? '🚜 కల్టివేటర్ 9-టైన్ - గడ్డలు పగులగొట్టుట (Harrowing)' : '🚜 Cultivator 9-Tyne Harrowing & Clod Crushing' },
+        { value: 'Laser Land Leveling', label: isTe ? '🚜 లేజర్ ల్యాండ్ లెవలింగ్ (భూమి సమాంతరీకరణ)' : '🚜 Laser Land Leveling (Precision Grading)' },
+        { value: 'Ridges & Furrows Formation', label: isTe ? '🚜 బోదెలు & కాలువలు వేయుట (Ridger)' : '🚜 Ridges & Furrows Formation' },
+        { value: 'Automatic Seed Drill Sowing', label: isTe ? '🚜 సీడ్ డ్రిల్ విత్తనం విత్తుట & ఎరువు వేయుట' : '🚜 Automatic Seed Drill Sowing & Fertilization' },
+        { value: 'Tractor Trolley / Heavy Haulage', label: isTe ? '🚜 ట్రాక్టర్ ట్రాలీ - ఎరువులు / పంట రవాణా' : '🚜 Tractor Trolley / Heavy Farm Haulage' },
+        { value: 'Paddy Wetland Puddling with Cage Wheels', label: isTe ? '🚜 వరి దమ్ము చేయుట (కేజ్ వీల్స్)' : '🚜 Paddy Wetland Puddling with Cage Wheels' },
+        { value: 'Subsoiler Hardpan Breaking', label: isTe ? '🚜 సబ్ సాయిలర్ - గట్టి నేల లోతు బద్దలు కొట్టుట' : '🚜 Subsoiler Hardpan Breaking' },
+        { value: 'Mulcher / Crop Stubble Shredding', label: isTe ? '🚜 మల్చర్ - పత్తి/మిర్చి మొద్దులు కత్తిరించుట' : '🚜 Mulcher / Crop Stubble Shredding' },
+        { value: 'Inter-row Weed Cultivation', label: isTe ? '🚜 వరుసల మధ్య చిన్న నాగలితో కలుపు తీత' : '🚜 Inter-row Weed Cultivation' }
+      );
+    }
+
+    list.push({
+      value: 'Other Custom Operation',
+      label: isTe ? '✏️ ఇతర పని (కస్టమ్ వివరణ రాయండి)...' : '✏️ Other Custom Operation (Type Note)...'
+    });
+
+    return list;
+  }, [equipment, isTe]);
+
+  // Initial operation value matching the first implement or standard
+  const [operationType, setOperationType] = useState(() => {
+    const imps = Array.isArray(equipment.implementsIncluded) && equipment.implementsIncluded.length > 0
+      ? equipment.implementsIncluded
+      : Array.isArray(equipment.implements) && equipment.implements.length > 0
+      ? equipment.implements
+      : [];
+    if (imps.length > 0) return `${imps[0]} Operation`;
+    if (equipment.category === 'drone') return 'Foliar Spraying (Nano Urea / Micronutrients)';
+    if (equipment.category === 'harvester') return 'Paddy Combine Harvesting & Threshing';
+    if (equipment.category === 'irrigation') return 'High-Volume Flood Irrigation Pumping';
+    return 'Rotavator / Secondary Tillage';
+  });
+  const [customOperationNote, setCustomOperationNote] = useState('');
 
   const [serviceDate, setServiceDate] = useState(() => {
     const tomorrow = new Date(Date.now() + 86400000);
@@ -1146,9 +1262,6 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
   // Quantity in Acres or Hours
   const [unitMode, setUnitMode] = useState('acres'); // 'acres' | 'hours'
   const [quantity, setQuantity] = useState(parseFloat(activeFarm?.farm_size) || 2.0);
-  const [operationType, setOperationType] = useState(
-    equipment.category === 'drone' ? 'Foliar Spraying (Nano-Urea / Pesticide)' : 'Rotavator / Secondary Tillage'
-  );
 
   const [includeOperator, setIncludeOperator] = useState(true);
   const [includeDiesel, setIncludeDiesel] = useState(equipment.fuelIncluded);
@@ -1166,6 +1279,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
     e.preventDefault();
     const bookingId = `BK-${Math.floor(10000 + Math.random() * 90000)}`;
 
+    const effectiveOperation = (operationType === 'Other Custom Operation' && customOperationNote.trim())
+      ? customOperationNote.trim()
+      : operationType;
+
     const safeFarmerPhone = farmerPhone || user?.phone || '9440182736';
     const newBooking = {
       id: bookingId,
@@ -1180,8 +1297,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       contactPhone: safeFarmerPhone,
       farmerName: farmerName || user?.name || 'Local Farmer',
       farmSector,
-      targetCrop,
-      crop: targetCrop,
+      fieldStatus,
+      targetCrop: fieldStatus,
+      crop: fieldStatus,
       approachRoad,
       location: serviceLocation,
       village: serviceLocation?.village || 'Field Location',
@@ -1192,7 +1310,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       unitMode,
       acres: quantity,
       acreage: quantity,
-      operation: operationType,
+      operation: effectiveOperation,
       includeOperator,
       includeDiesel,
       totalCost,
@@ -1215,9 +1333,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       title: isTe ? `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bookingId})` : `🚜 New Machinery Booking Received (#${bookingId})`,
       title_te: `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bookingId})`,
       message: isTe
-        ? `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`
-        : `Farmer ${newBooking.farmerName} booked your ${equipment.title} (${quantity} Acres, ${newBooking.village}). Total: ₹${totalCost}. Contact: ${safeFarmerPhone}.`,
-      message_te: `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`,
+        ? `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${fieldStatus}, పని: ${effectiveOperation}, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`
+        : `Farmer ${newBooking.farmerName} booked your ${equipment.title} (${quantity} Acres, ${fieldStatus}, Operation: ${effectiveOperation}, ${newBooking.village}). Total: ₹${totalCost}. Contact: ${safeFarmerPhone}.`,
+      message_te: `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${fieldStatus}, పని: ${effectiveOperation}, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`,
       booking_id: bookingId,
       bookingId: bookingId,
       farmer_name: newBooking.farmerName,
@@ -1231,6 +1349,8 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       totalCost: totalCost,
       date: serviceDate,
       village: newBooking.village,
+      field_status: fieldStatus,
+      operation: effectiveOperation,
       created_at: new Date().toISOString(),
       timestamp: new Date().toISOString(),
       read: false
@@ -1246,8 +1366,8 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
     // Launch WhatsApp notification directly
     const waText = isTe
-      ? `*కొత్త యంత్ర బుకింగ్ నిర్ధారణ (#${bookingId})* 🚜\n\nపరికరం: ${equipment.teluguTitle || equipment.title}\nరైతు: ${farmerName} (${farmerPhone})\nలొకేషన్: ${serviceLocation.village}, ${serviceLocation.mandal}\nతేదీ: ${serviceDate} (${timeSlot})\nవిస్తీర్ణం: ${quantity} ఎకరాలు (${targetCrop})\nఆపరేటర్: ${includeOperator ? 'అవును' : 'కాదు'}\nడీజిల్: ${includeDiesel ? 'యజమానిదే' : 'రైతుదే'}\nమొత్తం అంచనా: ₹${totalCost}\n\nదయచేసి స్లాట్‌ను నిర్ధారించండి.`
-      : `*NEW MACHINERY BOOKING CONFIRMATION (#${bookingId})* 🚜\n\nEquipment: ${equipment.title}\nFarmer: ${farmerName} (${farmerPhone})\nLocation: ${serviceLocation.village}, ${serviceLocation.mandal}\nDate: ${serviceDate} (${timeSlot})\nArea: ${quantity} Acres (${targetCrop})\nOperator: ${includeOperator ? 'Yes' : 'Self'}\nDiesel: ${includeDiesel ? 'Included' : 'By Farmer'}\nEstimated Total: ₹${totalCost}\n\nPlease verify arrival time.`;
+      ? `*కొత్త యంత్ర బుకింగ్ నిర్ధారణ (#${bookingId})* 🚜\n\nపరికరం: ${equipment.teluguTitle || equipment.title}\nరైతు: ${farmerName} (${farmerPhone})\nలొకేషన్: ${serviceLocation.village}, ${serviceLocation.mandal}\nతేదీ: ${serviceDate} (${timeSlot})\nపొలం స్థితి: ${fieldStatus}\nపని రకం: ${effectiveOperation}\nవిస్తీర్ణం: ${quantity} ఎకరాలు\nఆపరేటర్: ${includeOperator ? 'అవును' : 'కాదు'}\nడీజిల్: ${includeDiesel ? 'యజమానిదే' : 'రైతుదే'}\nమొత్తం అంచనా: ₹${totalCost}\n\nదయచేసి స్లాట్‌ను నిర్ధారించండి.`
+      : `*NEW MACHINERY BOOKING CONFIRMATION (#${bookingId})* 🚜\n\nEquipment: ${equipment.title}\nFarmer: ${farmerName} (${farmerPhone})\nLocation: ${serviceLocation.village}, ${serviceLocation.mandal}\nDate: ${serviceDate} (${timeSlot})\nField Condition: ${fieldStatus}\nSpecific Operation: ${effectiveOperation}\nArea: ${quantity} Acres\nOperator: ${includeOperator ? 'Yes' : 'Self'}\nDiesel: ${includeDiesel ? 'Included' : 'By Farmer'}\nEstimated Total: ₹${totalCost}\n\nPlease verify arrival time.`;
 
     const cleanPhone = String(equipment?.phone || equipment?.contactPhone || '').replace(/[^0-9]/g, '');
     if (cleanPhone) {
@@ -1357,14 +1477,22 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                 />
               </div>
 
+              {/* ── Replaced Target Crop with Dynamic Field Condition / Land Status ── */}
               <div>
-                <label className="font-bold text-slate-500 block mb-1">{isTe ? 'పంట పేరు' : 'Target Crop'}</label>
-                <input
-                  type="text"
-                  value={targetCrop}
-                  onChange={(e) => setTargetCrop(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
-                />
+                <label className="font-bold text-slate-500 block mb-1">
+                  {isTe ? 'పొలం స్థితి / దశ' : 'Field Condition / Land Stage'}
+                </label>
+                <select
+                  value={fieldStatus}
+                  onChange={(e) => setFieldStatus(e.target.value)}
+                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
+                >
+                  {FIELD_STATUS_OPTIONS.map((opt, i) => (
+                    <option key={i} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -1445,14 +1573,33 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                 </div>
               </div>
 
+              {/* ── Dynamic Specific Operation Dropdown (Provider Machinery Attachments) ── */}
               <div>
-                <label className="font-bold text-slate-500 block mb-1">{isTe ? 'పని రకం' : 'Specific Operation'}</label>
-                <input
-                  type="text"
+                <label className="font-bold text-slate-500 block mb-1">
+                  {isTe ? 'నిర్దిష్ట పని రకం (యంత్రం పరికరాలు)' : 'Specific Operation (Equipment)'}
+                </label>
+                <select
                   value={operationType}
                   onChange={(e) => setOperationType(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
-                />
+                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
+                >
+                  {availableOperations.map((op, idx) => (
+                    <option key={idx} value={op.value}>
+                      {op.label}
+                    </option>
+                  ))}
+                </select>
+
+                {operationType === 'Other Custom Operation' && (
+                  <input
+                    type="text"
+                    required
+                    placeholder={isTe ? 'పని వివరాలు ఇక్కడ టైప్ చేయండి...' : 'Type specific operation note here...'}
+                    value={customOperationNote}
+                    onChange={(e) => setCustomOperationNote(e.target.value)}
+                    className="w-full p-2 mt-2 rounded-xl bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-600 font-bold text-slate-900 dark:text-white"
+                  />
+                )}
               </div>
             </div>
 

@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-24 (v235) - Replaced Target Crop with Dynamic Field Condition & Added Provider-Specific Agricultural Operations
+- **Summary:** Fulfilled the user requirement in the machinery booking modal for farmers:
+  1. 🌾 **Replaced Static "Target Crop" with Comprehensive Field Land Status ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Excised the old static text field (`Target Crop: Corn`) and replaced it with a rich, bilingual `<select>` dropdown (`Field Condition / Land Stage` / `పొలం స్థితి / దశ`):
+       * 🌱 Empty Field / Dry Fallow Land (Ready for Ploughing) / ఖాళీ పొలం / బీడు భూమి (దుక్కికి సిద్ధం)
+       * 🚜 Ploughed Soil / Rough Tilled (Needs Rotavator/Harrow) / దున్నిన పొలం (రోటవేటర్ / లెవలింగ్ కోసం)
+       * 🌾 Seedbed Ready / Pre-Sowing (Bed / Furrows Ready) / విత్తేందుకు సిద్ధమైన నేల (బోదెలు / బెడ్స్)
+       * 🌿 Planted Field / Young Sprouts (Weeding / Interculture) / నాటిన చిన్న పైరు / మొలకలు (కలుపు తీత)
+       * 🌽 Standing / Growing Crop Field (Spraying / Fertilizer) / ఎదుగుతున్న పంట పొలం (స్ప్రేయింగ్ / ఎరువులు)
+       * 🍅 Flowering & Fruiting Stage Field (Pest Control) / పూత & కాత దశలో ఉన్న పొలం (సస్యరక్షణ)
+       * 🌾 Mature / Ready for Harvest Field (Harvesting) / కోతకు సిద్ధమైన పంట పొలం (హార్వెస్టింగ్)
+       * 🪵 Post-Harvest Stubble Field (Mulcher / Clearing) / పంట కోసిన తర్వాత మొద్దులున్న పొలం (మల్చర్)
+       * 💧 Paddy Wetland / Muddy Puddle (Cage Wheels Puddling) / వరి దమ్ము పొలం / బురద నేల (కేజ్ వీల్స్)
+       * 🌳 Orchard / Tree Plantation (Chilli, Mango, Citrus) / తోటల భూమి (మిరప, పండ్ల తోటలు)
+  2. 🚜 **Dynamic Provider-Equipped Operations Dropdown ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Converted the static text field for `Specific Operation` into a dynamic `<select>` dropdown:
+       * **Prioritizes Provider's Own Attachments:** Highlights registered equipment attachments (e.g. `★ Rotavator (Provider Equipped Attachment)`, `★ Disc Plough`, `★ Cultivator`, `★ Laser Land Leveler`, etc.).
+       * **Provides Full Category-Specific Agricultural Work Options:** Full suite of operations for Tractors (Deep Ploughing, Harrowing, Sowing, Laser Grading, Ridger, Trolley Haulage, Cage Wheel Puddling, Mulching), Drones (Foliar, Pesticide, Fungicide, Granular, Stress Survey), Harvesters (Paddy/Corn/Pulse combine, Straw Baling), and Irrigation Pumps.
+       * **Custom Fallback:** Includes an `✏️ Other Custom Operation...` option which dynamically unlocks a text input for bespoke agricultural notes.
+  3. 📋 **Synchronized Passbook Vouchers & Provider Order Cards ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx) & [`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx)):**
+     - Displayed `Acres / Field Stage` and high-visibility operation tags (`⚙️ Rotavator / Secondary Tillage`) across both farmer vouchers and provider incoming order cards.
+  4. 🧪 **Verified Production Build:**
+     - Compiled with `npm run build` (3,168 modules transformed and built cleanly with 0 errors in 36.53s).
+
 ## 2026-09-24 (v234) - Fixed ReferenceError: useCallback is not defined in EquipmentBookingPage
 - **Summary:** Resolved the runtime rendering crash on the farmer profile "Farm Machinery, Drone and Pump Rental" tab:
   1. 🛠️ **Fixed Missing `useCallback` Hook Import ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**

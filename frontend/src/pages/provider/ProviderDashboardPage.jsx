@@ -897,8 +897,19 @@ export default function ProviderDashboardPage() {
                         <p className="text-xs text-slate-600 dark:text-slate-300 font-medium flex flex-wrap items-center gap-2">
                           <span>{isTe ? 'రైతు:' : 'Farmer:'} <strong className="text-slate-900 dark:text-white">{farmerName}</strong></span>
                           <span>&bull;</span>
-                          <span>{isTe ? 'పొలం:' : 'Field:'} {acres} Acres ({crop})</span>
+                          <span>{isTe ? 'విస్తీర్ణం:' : 'Area:'} {acres} Acres</span>
+                          <span>&bull;</span>
+                          <span>{isTe ? 'పొలం స్థితి:' : 'Field Stage:'} <strong className="text-emerald-700 dark:text-emerald-300">{booking.fieldStatus || crop}</strong></span>
                         </p>
+
+                        {booking.operation && (
+                          <div className="flex items-center gap-1.5 pt-0.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isTe ? 'పని రకం:' : 'Operation:'}</span>
+                            <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-black text-[11px]">
+                              ⚙️ {booking.operation}
+                            </span>
+                          </div>
+                        )}
 
                         <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5" />
