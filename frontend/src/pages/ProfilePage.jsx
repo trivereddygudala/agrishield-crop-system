@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Mail, Calendar, MapPin, Save, AlertCircle, Check, Palette, Sparkles } from 'lucide-react';
+import { User, Mail, Calendar, MapPin, Save, AlertCircle, Check, Palette, Sparkles, Truck, Phone, Clock, Users, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Input, Select, Badge } from '../components/ui/index';
@@ -192,6 +192,46 @@ const ProfilePage = () => {
   const [preferredLanguage, setPreferredLanguage] = useState('en');
   const [farmingPractices, setFarmingPractices] = useState('Conventional');
 
+  const isEquipmentProvider = userRole === 'equipment_provider';
+
+  // Provider Hub Profile Attributes
+  const [hubName, setHubName] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.hub_name || saved.hubName || user?.provider_profile?.hub_name || user?.name || '';
+    } catch { return ''; }
+  });
+  const [dispatchPhone, setDispatchPhone] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.dispatch_phone || saved.dispatchPhone || user?.provider_profile?.dispatch_phone || user?.phone || '';
+    } catch { return ''; }
+  });
+  const [serviceRadiusKm, setServiceRadiusKm] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return String(saved.service_radius_km || saved.serviceRadiusKm || user?.provider_profile?.service_radius_km || '25');
+    } catch { return '25'; }
+  });
+  const [operatorCount, setOperatorCount] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return String(saved.operator_count || saved.operatorCount || user?.provider_profile?.operator_count || '2');
+    } catch { return '2'; }
+  });
+  const [payoutUpiId, setPayoutUpiId] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.payout_upi_id || saved.payoutUpiId || user?.provider_profile?.payout_upi_id || '';
+    } catch { return ''; }
+  });
+  const [operatingTimings, setOperatingTimings] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_provider_hub_profile') || '{}');
+      return saved.operating_timings || saved.operatingTimings || user?.provider_profile?.operating_timings || '06:00 AM - 07:00 PM';
+    } catch { return '06:00 AM - 07:00 PM'; }
+  });
+
   const availableDistricts = getDistricts(state);
   const availableMandals = getMandals(state, district);
   const availableVillages = getVillages(state, district, mandal);
@@ -208,6 +248,15 @@ const ProfilePage = () => {
       setPreferredLanguage(user.preferred_language || 'en');
       setFarmingPractices(user.farming_practices || 'Conventional');
       
+      if (user.provider_profile) {
+        if (user.provider_profile.hub_name) setHubName(user.provider_profile.hub_name);
+        if (user.provider_profile.dispatch_phone) setDispatchPhone(user.provider_profile.dispatch_phone);
+        if (user.provider_profile.service_radius_km) setServiceRadiusKm(String(user.provider_profile.service_radius_km));
+        if (user.provider_profile.operator_count) setOperatorCount(String(user.provider_profile.operator_count));
+        if (user.provider_profile.payout_upi_id) setPayoutUpiId(user.provider_profile.payout_upi_id);
+        if (user.provider_profile.operating_timings) setOperatingTimings(user.provider_profile.operating_timings);
+      }
+
       if (user.farm_location && user.farm_location.includes(',')) {
         const parts = user.farm_location.split(',').map(s => s.trim());
         if (parts.length >= 4) {
@@ -255,6 +304,21 @@ const ProfilePage = () => {
         if (adminPassword) {
           updatePayload.password = adminPassword;
         }
+      } else if (isEquipmentProvider) {
+        const fullLocationString = [village, mandal, district, state].filter(Boolean).join(', ') || farmLocation.trim();
+        updatePayload.farm_location = fullLocationString;
+        const providerData = {
+          hub_name: hubName.trim(),
+          dispatch_phone: dispatchPhone.trim(),
+          service_radius_km: serviceRadiusKm,
+          operator_count: operatorCount,
+          payout_upi_id: payoutUpiId.trim(),
+          operating_timings: operatingTimings.trim(),
+          base_location: fullLocationString,
+          updated_at: new Date().toISOString()
+        };
+        localStorage.setItem('agrishield_provider_hub_profile', JSON.stringify(providerData));
+        updatePayload.provider_profile = providerData;
       } else {
         const fullLocationString = [village, mandal, district, state].filter(Boolean).join(', ') || farmLocation.trim();
         updatePayload.farm_location = fullLocationString;
@@ -300,12 +364,20 @@ const ProfilePage = () => {
     >
       <div className="flex flex-col gap-1 pb-4 border-b border-slate-200/80 dark:border-white/10">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-          {userRole === 'admin' ? 'Administrator Profile & Security' : userRole === 'tester' ? 'QA Tester Profile' : 'Farmer Profile & Identity'}
+          {userRole === 'admin' 
+            ? 'Administrator Profile & Security' 
+            : isEquipmentProvider 
+              ? (isTe ? 'మెషినరీ ప్రొవైడర్ హబ్ ప్రొఫైల్' : 'Equipment Provider Hub Profile')
+              : userRole === 'tester' 
+                ? 'QA Tester Profile' 
+                : t('profile_page.farmer_title', 'Farmer Profile & Identity')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
           {userRole === 'admin' 
             ? 'Manage administrative credentials, security credentials, and interface themes.'
-            : 'Review your credentials and update your personal profile attributes.'}
+            : isEquipmentProvider
+              ? (isTe ? 'మీ యంత్రాల హబ్ వివరాలు, సర్వీస్ పరిధి, ఆపరేటర్లు మరియు చెల్లింపు వివరాలు నిర్వహించండి.' : 'Manage your machinery hub profile, dispatch radius, operator count, and payout UPI details.')
+              : 'Review your credentials and update your personal profile attributes.'}
         </p>
       </div>
 
@@ -371,7 +443,11 @@ const ProfilePage = () => {
               <Card glass className="p-6 md:col-span-2 border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md">
                 <form onSubmit={handleUpdateSubmit} className="space-y-5">
                   <h3 className="font-black text-slate-900 dark:text-white text-base border-b border-slate-100 dark:border-white/5 pb-3">
-                    {userRole === 'admin' ? 'Admin Identity & Credentials' : t('profile_page.form.heading', 'Agronomic Profile Settings')}
+                    {userRole === 'admin' 
+                      ? 'Admin Identity & Credentials' 
+                      : isEquipmentProvider 
+                        ? (isTe ? 'మెషినరీ హబ్ & ప్రొవైడర్ సెట్టింగ్‌లు' : 'Machinery Hub & Provider Settings') 
+                        : t('profile_page.form.heading', 'Agronomic Profile Settings')}
                   </h3>
 
                   {errorMsg && (
@@ -390,7 +466,7 @@ const ProfilePage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
-                      label={t('profile_page.form.full_name', 'Full Name')}
+                      label={isEquipmentProvider ? (isTe ? 'ప్రొవైడర్ / యజమాని పేరు' : 'Provider / Owner Name') : t('profile_page.form.full_name', 'Full Name')}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       leftIcon={<User className="w-4 h-4 text-slate-400" />}
@@ -411,7 +487,9 @@ const ProfilePage = () => {
                       <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.03] p-4 space-y-4">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">{t('profile_page.location_title', 'Farmer Native Location (India)')}</span>
+                          <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
+                            {isEquipmentProvider ? (isTe ? 'హబ్ బేస్ డిస్పాచ్ ప్రదేశం (భారతదేశం)' : 'Equipment Hub Base Dispatch Location (India)') : t('profile_page.location_title', 'Farmer Native Location (India)')}
+                          </span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -482,20 +560,96 @@ const ProfilePage = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Select
-                          label={t('profile_page.form.farming_practice', 'Primary Farming Practice')}
-                          value={farmingPractices}
-                          onChange={(e) => setFarmingPractices(e.target.value)}
-                          options={[
-                            { value: 'Conventional', label: t('profile_page.form.conventional', 'Conventional Farming') },
-                            { value: 'Organic', label: t('profile_page.form.organic', 'Organic Farming') },
-                            { value: 'Hydroponic', label: t('profile_page.form.hydroponic', 'Hydroponic / Protected') },
-                            { value: 'Regenerative', label: t('profile_page.form.regenerative', 'Regenerative Agro-forestry') }
-                          ]}
-                          className="text-xs font-bold text-slate-800 dark:text-white"
-                        />
-                      </div>
+                      {isEquipmentProvider ? (
+                        <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-white/5">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-amber-500" />
+                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                              {isTe ? 'మెషినరీ హబ్ వ్యాపార సమాచారం & చెల్లింపులు' : 'Machinery Hub Operations & Payout Settings'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                              label={isTe ? 'వ్యాపార / హబ్ పేరు' : 'Machinery Hub / Agency Name'}
+                              value={hubName}
+                              onChange={(e) => setHubName(e.target.value)}
+                              placeholder="e.g. Balaji Agro Custom Hiring Center"
+                              leftIcon={<Truck className="w-4 h-4 text-slate-400" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
+
+                            <Input
+                              label={isTe ? 'డిస్పాచ్ మొబైల్ / వాట్సాప్' : 'Dispatch Contact Phone / WhatsApp'}
+                              value={dispatchPhone}
+                              onChange={(e) => setDispatchPhone(e.target.value)}
+                              placeholder="e.g. 9876543210"
+                              leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
+
+                            <Select
+                              label={isTe ? 'సేవా పరిధి (కి.మీ)' : 'Service Coverage Radius'}
+                              value={serviceRadiusKm}
+                              onChange={(e) => setServiceRadiusKm(e.target.value)}
+                              options={[
+                                { value: '10', label: '10 km (Local Village Radius)' },
+                                { value: '25', label: '25 km (Mandal / Taluka Range)' },
+                                { value: '50', label: '50 km (District Level)' },
+                                { value: '100', label: '100 km (Regional Fleet Dispatch)' }
+                              ]}
+                              className="text-xs font-bold text-slate-800 dark:text-white"
+                            />
+
+                            <Select
+                              label={isTe ? 'శిక్షణ పొందిన ఆపరేటర్ల సంఖ్య' : 'Trained Operators & Drivers'}
+                              value={operatorCount}
+                              onChange={(e) => setOperatorCount(e.target.value)}
+                              options={[
+                                { value: '1', label: '1 Dedicated Driver' },
+                                { value: '2', label: '2 Trained Operators' },
+                                { value: '3', label: '3 Trained Operators' },
+                                { value: '5', label: '4 - 5 Operators' },
+                                { value: '10', label: '6+ Fleet Team' }
+                              ]}
+                              className="text-xs font-bold text-slate-800 dark:text-white"
+                            />
+
+                            <Input
+                              label={isTe ? 'చెల్లింపుల యూపీఐ ఐడీ (UPI ID)' : 'Payout UPI ID (Direct Bank Settlement)'}
+                              value={payoutUpiId}
+                              onChange={(e) => setPayoutUpiId(e.target.value)}
+                              placeholder="e.g. balajihub@oksbi"
+                              leftIcon={<DollarSign className="w-4 h-4 text-emerald-500" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
+
+                            <Input
+                              label={isTe ? 'రోజువారీ పని వేళలు' : 'Operating Dispatch Hours'}
+                              value={operatingTimings}
+                              onChange={(e) => setOperatingTimings(e.target.value)}
+                              placeholder="e.g. 06:00 AM - 07:00 PM"
+                              leftIcon={<Clock className="w-4 h-4 text-slate-400" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Select
+                            label={t('profile_page.form.farming_practice', 'Primary Farming Practice')}
+                            value={farmingPractices}
+                            onChange={(e) => setFarmingPractices(e.target.value)}
+                            options={[
+                              { value: 'Conventional', label: t('profile_page.form.conventional', 'Conventional Farming') },
+                              { value: 'Organic', label: t('profile_page.form.organic', 'Organic Farming') },
+                              { value: 'Hydroponic', label: t('profile_page.form.hydroponic', 'Hydroponic / Protected') },
+                              { value: 'Regenerative', label: t('profile_page.form.regenerative', 'Regenerative Agro-forestry') }
+                            ]}
+                            className="text-xs font-bold text-slate-800 dark:text-white"
+                          />
+                        </div>
+                      )}
                     </>
                   )}
 

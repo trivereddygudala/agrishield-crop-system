@@ -432,26 +432,19 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     } catch { /* ignore */ }
   };
 
-  const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
-
-  const handleLogout = () => {
-    setShowLogoutOverlay(true);
-  };
-
-  const handleLogoutDone = () => {
-    setShowLogoutOverlay(false);
-    logout();
-    window.location.href = '/';
+  const handleLogout = async () => {
+    setUserMenuOpen(false);
+    try {
+      await logout();
+    } catch (e) {
+      console.warn("Logout error:", e);
+    } finally {
+      navigate('/login', { replace: true });
+    }
   };
 
   return (
     <>
-      {showLogoutOverlay && (
-        <LogoutOverlay
-          userName={user?.name || 'Farmer'}
-          onDone={handleLogoutDone}
-        />
-      )}
       <header className="fixed top-0 left-0 right-0 z-50 w-full h-16 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-[#050911]/95 backdrop-blur-xl transition-colors">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 w-full gap-4">
         
@@ -843,10 +836,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
                       <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{user?.role?.toLowerCase() === 'admin' ? t('nav.admin_profile', 'Admin Profile & Security') : t('nav.profile', 'User Profile')}</span>
+                      <span>{user?.role?.toLowerCase() === 'admin' ? t('nav.admin_profile', 'Admin Profile & Security') : user?.role?.toLowerCase() === 'equipment_provider' ? t('nav.provider_profile', 'My Profile') : t('nav.profile', 'User Profile')}</span>
                     </Link>
 
-                    {user?.role?.toLowerCase() !== 'admin' && (
+                    {user?.role?.toLowerCase() !== 'admin' && user?.role?.toLowerCase() !== 'equipment_provider' && (
                       <Link
                         to="/farm"
                         onClick={() => setUserMenuOpen(false)}
@@ -857,23 +850,27 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       </Link>
                     )}
 
-                    <Link
-                      to="/notifications"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <Bell className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t('nav.notification_inbox', 'Notification Inbox')}</span>
-                    </Link>
+                    {user?.role?.toLowerCase() !== 'equipment_provider' && (
+                      <Link
+                        to="/notifications"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <Bell className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{t('nav.notification_inbox', 'Notification Inbox')}</span>
+                      </Link>
+                    )}
 
-                    <Link
-                      to="/settings"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t('nav.settings', 'Settings')}</span>
-                    </Link>
+                    {user?.role?.toLowerCase() !== 'equipment_provider' && (
+                      <Link
+                        to="/settings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{t('nav.settings', 'Settings')}</span>
+                      </Link>
+                    )}
 
                     {(user?.role?.toLowerCase() === 'admin') && (
                       <Link
@@ -1258,7 +1255,7 @@ export const BottomNav = () => {
 
   const isEquipmentProvider = user?.role?.toLowerCase() === 'equipment_provider';
 
-  // Equipment Provider tabs (Machinery Fleet Hub, Orders, Earnings, Profile - no farmer mixing)
+  // Equipment Provider tabs (Fleet Hub, Orders, Notifications Inbox, More)
   const providerTabs = [
     {
       key: 'hub',
@@ -1270,23 +1267,24 @@ export const BottomNav = () => {
     {
       key: 'orders',
       label: t('nav.provider_orders', 'Orders'),
-      path: '/provider/dashboard',
+      path: '/provider/dashboard?tab=orders',
       Icon: Calendar,
-      matchPaths: ['/provider/dashboard'],
+      matchPaths: ['/provider/dashboard?tab=orders'],
     },
     {
-      key: 'earnings',
-      label: t('nav.provider_earnings', 'Earnings'),
-      path: '/provider/dashboard',
-      Icon: TrendingUp,
-      matchPaths: ['/provider/dashboard'],
+      key: 'notifications',
+      label: t('nav.notifications', 'Inbox'),
+      path: '/notifications',
+      Icon: Bell,
+      matchPaths: ['/notifications'],
+      badge: unreadCount > 0 ? unreadCount : null,
     },
     {
-      key: 'profile',
-      label: t('nav.profile', 'Profile'),
-      path: '/profile',
-      Icon: User,
-      matchPaths: ['/profile', '/settings'],
+      key: 'more',
+      label: t('nav.more_short', 'More'),
+      path: '/more',
+      Icon: SettingsIcon,
+      matchPaths: ['/more', '/settings', '/profile', '/support', '/languages'],
     },
   ];
 

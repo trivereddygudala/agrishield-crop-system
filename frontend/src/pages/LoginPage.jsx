@@ -99,11 +99,9 @@ const LoginPage = () => {
     return () => intervals.forEach(clearTimeout);
   }, [loading]);
 
-  // Navigate after success overlay finishes
-  const handleSuccessDone = useCallback(() => {
-    setShowSuccess(false);
-    isLoggingInRef.current = false;
-    const userRole = successUser?.role || (successUser?.user?.role) || user?.role || role;
+  // Immediate destination navigation helper
+  const navigateToDestination = useCallback((targetUser) => {
+    const userRole = targetUser?.role || (targetUser?.user?.role) || role;
     if (userRole === 'equipment_provider') {
       navigate('/provider/dashboard', { replace: true });
     } else if (userRole === 'admin') {
@@ -111,11 +109,18 @@ const LoginPage = () => {
     } else {
       navigate(from || '/dashboard', { replace: true });
     }
-  }, [successUser, user, navigate, from, role]);
+  }, [navigate, from, role]);
+
+  // Navigate after success overlay finishes
+  const handleSuccessDone = useCallback(() => {
+    setShowSuccess(false);
+    isLoggingInRef.current = false;
+    navigateToDestination(successUser || user);
+  }, [successUser, user, navigateToDestination]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (loading || showSuccess) return;
+    if (loading) return;
 
     if (!email || !password) {
       setErrorMsg(t('auth.login.validation_required', 'Please fill in all credentials.'));
@@ -125,18 +130,19 @@ const LoginPage = () => {
 
     setLoading(true);
     setErrorMsg('');
-    setScanProgress(15);
+    setScanProgress(25);
     isLoggingInRef.current = true;
 
     try {
       const loggedUser = await login(email, password, rememberMe, botTrap);
       setScanProgress(100);
       setSuccessUser(loggedUser);
-      setShowSuccess(true);
       toast.success(
         t('auth.login.welcome_back_toast', 'Welcome Back!'),
         t('auth.login.login_success', 'Authentication successful.')
       );
+      // Immediately navigate without hanging
+      navigateToDestination(loggedUser);
     } catch (err) {
       isLoggingInRef.current = false;
       console.error(err);
@@ -246,11 +252,11 @@ const LoginPage = () => {
       isLoggingInRef.current = true;
       const loggedUser = await biometricLogin(accountToUse, result.credential_id);
       setSuccessUser(loggedUser);
-      setShowSuccess(true);
       toast.success(
         t('auth.login.welcome_back_toast', 'Welcome Back!'),
         t('auth.login.login_success', 'Biometric identity verified successfully.')
       );
+      navigateToDestination(loggedUser);
     } catch (err) {
       isLoggingInRef.current = false;
       console.error('Biometric authentication failed:', err);

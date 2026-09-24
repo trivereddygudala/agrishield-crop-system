@@ -26,7 +26,8 @@ import {
   Globe,
   Ruler,
   Headphones,
-  Truck
+  Truck,
+  Calendar
 } from 'lucide-react';
 import LanguageSelectModal from '../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../data/languages';
@@ -196,6 +197,109 @@ const MorePage = () => {
     },
   ];
 
+  const isEquipmentProvider = user?.role === 'equipment_provider';
+
+  const PROVIDER_HUB_TOOLS = [
+    {
+      icon: Truck,
+      label: isTe ? 'మెషినరీ ఫ్లీట్ & రిజిస్ట్రేషన్' : 'Machinery Fleet Hub',
+      description: isTe ? 'ట్రాక్టర్లు, డ్రోన్లు, హార్వెస్టర్ల లభ్యత & ధరలను నిర్వహించండి' : 'Manage your listed tractors, spray drones & attachments',
+      path: '/provider/dashboard?tab=fleet',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',
+      accent: 'border-l-amber-500',
+      badge: isTe ? 'లైవ్ ఫ్లీట్' : 'Active Fleet'
+    },
+    {
+      icon: Calendar,
+      label: isTe ? 'రైతు బుకింగ్‌లు & ఆర్డర్లు' : 'Farmer Booking Orders',
+      description: isTe ? 'వచ్చిన కొత్త బుకింగ్ అభ్యర్థనలు ఆమోదించండి & డిస్పాచ్ చేయండి' : 'Accept, schedule, and complete incoming farm service requests',
+      path: '/provider/dashboard?tab=orders',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
+      accent: 'border-l-indigo-500',
+      badge: isTe ? 'ఆర్డర్లు' : 'Orders'
+    },
+    {
+      icon: TrendingUp,
+      label: isTe ? 'సంపాదన & లెడ్జర్ లెక్కలు' : 'Earnings & Payout Ledger',
+      description: isTe ? 'రోజువారీ & ఎకరాల వారీ అద్దె ఆదాయం, పెండింగ్ బకాయిల లెక్కలు' : 'Daily & acreage rental revenue, completed job earnings, UPI payouts',
+      path: '/provider/dashboard?tab=earnings',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
+      accent: 'border-l-emerald-500'
+    },
+    {
+      icon: Sprout,
+      label: isTe ? 'నా పొలం & వ్యవసాయ కార్యకలాపాలు' : 'My Farm & Operations',
+      description: isTe ? 'వ్యవసాయ కార్యకలాపాలు, క్షేత్ర విత్తనాలు మరియు పొలం వివరాలు' : 'Farm management, personal crop logs, and agronomy records',
+      path: '/farm',
+      iconColor: 'text-teal-600 dark:text-teal-400',
+      iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
+      accent: 'border-l-teal-500'
+    },
+    {
+      icon: Ruler,
+      label: isTe ? 'పొలం విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator',
+      description: isTe ? 'జీపీఎస్ వాక్ మోడ్ ద్వారా ఎకరాలు, గుంటలు లెక్కించండి' : 'Measure farmer fields accurately with GPS for exact acre billing',
+      path: '/field-calculator',
+      iconColor: 'text-cyan-600 dark:text-cyan-400',
+      iconBg: 'bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300 dark:border-cyan-800',
+      accent: 'border-l-cyan-500'
+    },
+  ];
+
+  const PROVIDER_ACCOUNT_TOOLS = [
+    {
+      icon: Bell,
+      label: isTe ? 'బుకింగ్ నోటిఫికేషన్ల ఇన్‌బాక్స్' : 'Booking Notifications Inbox',
+      description: isTe ? 'రైతుల నుండి వచ్చిన కొత్త బుకింగ్ అలర్ట్‌లు మరియు డిస్పాచ్ సందేశాలు' : 'Real-time alerts for new tractor/drone bookings and farmer requests',
+      path: '/notifications',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',
+      accent: 'border-l-amber-500'
+    },
+    {
+      icon: User,
+      label: isTe ? 'మెషినరీ ప్రొవైడర్ ప్రొఫైల్' : 'Equipment Provider Profile',
+      description: isTe ? 'హబ్ పేరు, సర్వీస్ పరిధి (కి.మీ), ఆపరేటర్ల సంఖ్య & యూపీఐ ఐడీ' : 'Hub name, dispatch radius, operator count & payment UPI ID',
+      path: '/profile',
+      iconColor: 'text-rose-600 dark:text-rose-400',
+      iconBg: 'bg-rose-100 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-800',
+      accent: 'border-l-rose-500'
+    },
+    {
+      icon: Settings,
+      label: isTe ? 'సిస్టమ్ & డిస్‌ప్లే సెట్టింగ్‌లు' : 'System & Display Settings',
+      description: isTe ? 'థీమ్, ఫీల్డ్ మోడ్, వేలిముద్ర లాగిన్ సెట్టింగ్‌లు' : 'Theme, Field High-Contrast mode, biometrics & accessibility',
+      path: '/settings',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
+      accent: 'border-l-emerald-500'
+    },
+    {
+      icon: Headphones,
+      label: isTe ? 'ప్రొవైడర్ మద్దతు & హెల్ప్‌డెస్క్' : 'Provider Support & Helpdesk',
+      description: isTe ? '24x7 టెక్నికల్ డెస్క్, డిస్పాచ్ సహాయం & కాల్‌బ్యాక్' : '24x7 WhatsApp support, machinery dispatch assist & phone callback',
+      path: '/support',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
+      accent: 'border-l-indigo-500',
+      badge: '24x7'
+    },
+    {
+      icon: Globe,
+      label: t('more.tools.languages.label', 'Languages'),
+      description: t('more.tools.languages.desc', 'Change app language directly with 1-tap instant switch'),
+      path: '/languages',
+      onClick: () => setLanguageModalOpen(true),
+      iconColor: 'text-teal-600 dark:text-teal-400',
+      iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
+      accent: 'border-l-teal-500',
+      badge: currentLang.nativeName
+    },
+  ];
+
   const handleLogout = () => {
     // Show beautiful goodbye animation, then actually logout
     setShowLogoutOverlay(true);
@@ -311,13 +415,18 @@ const MorePage = () => {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {isAdmin ? 'Settings & System Hub' : (isTe ? 'మరిన్ని సాధనాలు & సెట్టింగ్‌లు' : 'More Tools & Settings')}
+              {isAdmin ? 'Settings & System Hub' : isEquipmentProvider ? (isTe ? 'ప్రొవైడర్ హబ్ & సెట్టింగ్‌లు' : 'Equipment Provider Hub & More') : (isTe ? 'మరిన్ని సాధనాలు & సెట్టింగ్‌లు' : 'More Tools & Settings')}
             </h1>
+            {isEquipmentProvider && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                {isTe ? 'మీ యంత్రాల సేవలు, ఆర్డర్లు & హబ్ సెట్టింగ్‌లు' : 'Machinery rental fleet, bookings & hub settings'}
+              </p>
+            )}
           </div>
         </div>
 
         {/* ─── VISUAL SOFTWARE VS HARDWARE MODE SELECTOR ─── */}
-        {!isAdmin && (
+        {!isAdmin && !isEquipmentProvider && (
           <div className="space-y-2 mb-6">
             <div className="flex items-center justify-between px-1">
               <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -403,6 +512,18 @@ const MorePage = () => {
             <SectionHeader title="⚙️ System & Preferences" />
             <div className="flex flex-col gap-2.5">
               {ADMIN_SYSTEM_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={item.onClick || navigate} />)}
+            </div>
+          </>
+        ) : isEquipmentProvider ? (
+          <>
+            <SectionHeader title={isTe ? "🚜 మెషినరీ ఫ్లీట్ & బుకింగ్‌లు" : "🚜 Machinery Fleet & Bookings"} first />
+            <div className="flex flex-col gap-2.5">
+              {PROVIDER_HUB_TOOLS.map((item) => <MenuCard key={item.path + item.label} {...item} onClick={item.onClick || navigate} />)}
+            </div>
+
+            <SectionHeader title={isTe ? "👤 ప్రొవైడర్ ప్రొఫైల్ & సెట్టింగ్‌లు" : "👤 Provider Profile & Hub Settings"} />
+            <div className="flex flex-col gap-2.5">
+              {PROVIDER_ACCOUNT_TOOLS.map((item) => <MenuCard key={item.path + item.label} {...item} onClick={item.onClick || navigate} />)}
             </div>
           </>
         ) : (

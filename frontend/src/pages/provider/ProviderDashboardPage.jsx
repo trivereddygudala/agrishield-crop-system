@@ -30,8 +30,13 @@ import {
   Check,
   FileText,
   TrendingUp,
-  Settings
+  Settings,
+  Bot,
+  Send,
+  RefreshCw
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/index';
@@ -42,8 +47,113 @@ export default function ProviderDashboardPage() {
   const { user } = useAuth();
   const toast = useToast();
 
-  // Active Provider View Tab
-  const [activeTab, setActiveTab] = useState('fleet'); // 'fleet' | 'orders' | 'earnings' | 'settings'
+  // Active Provider View Tab & URL synchronization
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(requestedTab || 'fleet'); // 'fleet' | 'orders' | 'earnings' | 'copilot'
+
+  useEffect(() => {
+    if (requestedTab && ['fleet', 'orders', 'earnings', 'copilot'].includes(requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [requestedTab]);
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // ── Dedicated Equipment Provider AI Copilot State ──
+  const [copilotMessages, setCopilotMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('agrishield_provider_ai_chat');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [
+      {
+        id: 1,
+        role: 'assistant',
+        content: isTe 
+          ? "నమస్కారం! నేను మీ అగ్రిషీల్డ్ మెషినరీ & ఫ్లీట్ AI కోపైలట్ ని. ట్రాక్టర్ ఇంజిన్ నిర్వహణ, డ్రోన్ లిపో బ్యాటరీలు, ఎకరాల వారీ డీజిల్ వినియోగం, న్యాయమైన అద్దె ధరలు మరియు ప్రభుత్వ SMAM సబ్సిడీల గురించి నన్ను అడగండి."
+          : "Hello! I am your AgriShield Machinery & Fleet AI Copilot. Ask me about tractor maintenance schedules, spray drone battery cycles, per-acre diesel consumption formulas, fair rental pricing, and government machinery subsidies."
+      }
+    ];
+  });
+
+  const [copilotInput, setCopilotInput] = useState('');
+  const [copilotLoading, setCopilotLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('agrishield_provider_ai_chat', JSON.stringify(copilotMessages));
+  }, [copilotMessages]);
+
+  const COPILOT_PRESETS = [
+    { label: isTe ? "⛽ 45HP ట్రాక్టర్ ఎకరాకి డీజిల్ లెక్క" : "⛽ 45HP Tractor diesel/acre", query: "What is the typical diesel consumption per acre for a 45HP tractor with Rotavator vs Cultivator?" },
+    { label: isTe ? "🔋 డ్రోన్ లిపో బ్యాటరీ భద్రత" : "🔋 Drone LiPo battery care", query: "What are the safe charging, discharging, and storage voltages for 16L agricultural spray drone LiPo batteries?" },
+    { label: isTe ? "💰 ఎకరా అద్దె ధరల ఫార్ములా" : "💰 Fair acre rental pricing", query: "How should I calculate my per-acre rental rate considering current diesel prices, operator daily wage, and implement wear-and-tear?" },
+    { label: isTe ? "⚙️ ట్రాక్టర్ ఇంజిన్ ఆయిల్ సర్వీస్" : "⚙️ Tractor service intervals", query: "When should I change engine oil, fuel filters, and hydraulic oil in a commercial farm tractor?" },
+    { label: isTe ? "🏛️ SMAM మెషినరీ సబ్సిడీ" : "🏛️ SMAM machinery subsidy", query: "What are the eligibility rules and documents required for Sub-Mission on Agricultural Mechanization (SMAM) Custom Hiring Center 40% subsidy?" }
+  ];
+
+  const handleSendCopilot = async (overrideText) => {
+    const text = (overrideText || copilotInput).trim();
+    if (!text || copilotLoading) return;
+
+    const userMsg = { id: Date.now(), role: 'user', content: text };
+    const updatedHistory = [...copilotMessages, userMsg];
+    setCopilotMessages(updatedHistory);
+    setCopilotInput('');
+    setCopilotLoading(true);
+
+    try {
+      const historyPayload = updatedHistory
+        .slice(-10)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const res = await API.post('/api/ai/chat', {
+        message: text,
+        history: historyPayload,
+        user_id: user?.id || 'provider_user',
+        role: 'equipment_provider',
+        language: i18n.language || 'en',
+        context: {
+          user_role: 'equipment_provider',
+          provider_fleet_count: fleetList?.length || 1,
+          language: i18n.language || 'en'
+        }
+      });
+
+      const replyContent = res.data?.reply || res.data?.response || res.data?.answer || "I have analyzed your machinery query.";
+      const assistantMsg = { id: Date.now() + 1, role: 'assistant', content: replyContent };
+      setCopilotMessages(prev => [...prev, assistantMsg]);
+    } catch (err) {
+      console.error("Copilot error:", err);
+      const errMsg = isTe 
+        ? "AI సర్వర్ నుండి సమాధానం పొందడంలో సమస్య ఏర్పడింది. దయచేసి మళ్ళీ ప్రయత్నించండి."
+        : "Could not connect to Machinery AI service. Please check connection and try again.";
+      setCopilotMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: errMsg }]);
+    } finally {
+      setCopilotLoading(false);
+    }
+  };
+
+  const handleClearCopilotChat = () => {
+    const defaultMsg = [
+      {
+        id: Date.now(),
+        role: 'assistant',
+        content: isTe 
+          ? "చాట్ క్లియర్ చేయబడింది. మీ యంత్రాలు, డీజిల్ లెక్కలు లేదా ఫ్లీట్ షెడ్యూలింగ్ గురించి ఏదైనా అడగండి."
+          : "Chat history cleared. Ask me any question about your fleet machinery, fuel consumption, or maintenance."
+      }
+    ];
+    setCopilotMessages(defaultMsg);
+    localStorage.setItem('agrishield_provider_ai_chat', JSON.stringify(defaultMsg));
+    toast.success('Chat Cleared', 'Copilot conversation reset successfully.');
+  };
 
   // Availability Status
   const [isOnline, setIsOnline] = useState(() => {
@@ -320,7 +430,7 @@ export default function ProviderDashboardPage() {
       <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 overflow-x-auto">
         <button
           type="button"
-          onClick={() => setActiveTab('fleet')}
+          onClick={() => switchTab('fleet')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'fleet'
               ? 'bg-indigo-600 text-white shadow-sm'
@@ -333,7 +443,7 @@ export default function ProviderDashboardPage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('orders')}
+          onClick={() => switchTab('orders')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'orders'
               ? 'bg-indigo-600 text-white shadow-sm'
@@ -351,7 +461,7 @@ export default function ProviderDashboardPage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('earnings')}
+          onClick={() => switchTab('earnings')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === 'earnings'
               ? 'bg-indigo-600 text-white shadow-sm'
@@ -364,15 +474,19 @@ export default function ProviderDashboardPage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('settings')}
+          onClick={() => switchTab('copilot')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-            activeTab === 'settings'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            activeTab === 'copilot'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm ring-2 ring-indigo-500/30'
+              : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
           }`}
         >
-          <Sliders className="w-4 h-4" />
-          <span>{isTe ? 'సేవా పరిధి & సెట్టింగ్స్' : 'Hub Coverage Settings'}</span>
+          <Bot className="w-4 h-4" />
+          <span>{isTe ? 'మెషినరీ AI కోపైలట్' : 'AI Machinery Copilot'}</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300 font-extrabold flex items-center gap-0.5">
+            <Sparkles className="w-2.5 h-2.5" />
+            AI
+          </span>
         </button>
       </div>
 
@@ -606,40 +720,130 @@ export default function ProviderDashboardPage() {
         </div>
       )}
 
-      {/* ── TAB 4: HUB COVERAGE SETTINGS ── */}
-      {activeTab === 'settings' && (
-        <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-6 space-y-5">
-          <h2 className="text-base font-black text-slate-900 dark:text-white">
-            {isTe ? 'బేస్ హబ్ & సేవా పరిధి కాన్ఫిగరేషన్' : 'Hub Location & Operating Coverage'}
-          </h2>
+      {/* ── TAB 4: DEDICATED EQUIPMENT PROVIDER AI COPILOT ── */}
+      {activeTab === 'copilot' && (
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-4 sm:p-6 shadow-sm">
+            {/* Header info */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-black text-slate-900 dark:text-white">
+                      {isTe ? 'అగ్రిషీల్డ్ మెషినరీ AI కోపైలట్' : 'AgriShield Machinery & Fleet Copilot'}
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Strict Machinery Domain
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isTe 
+                      ? 'ట్రాక్టర్, డ్రోన్, పరికరాల నిర్వహణ, డీజిల్ వినియోగం & అద్దె రేట్ల నిపుణుడు' 
+                      : 'Specialized expert for tractors, spray drones, diesel/acre formulas & rental economics'}
+                  </p>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">Base Station Village</label>
-              <input
-                type="text"
-                disabled
-                value={user?.farm_location?.village || 'Pasupugallu'}
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-xs font-bold"
-              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleClearCopilotChat}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Clear conversation history"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{isTe ? 'చాట్ క్లియర్' : 'Clear Chat'}</span>
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase">District & State</label>
+            {/* Quick Prompt Presets */}
+            <div className="py-3 border-b border-slate-100 dark:border-slate-800">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                {isTe ? 'త్వరిత ప్రశ్నలు (Quick Questions)' : 'Quick Machinery Inquiries'}
+              </p>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                {COPILOT_PRESETS.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSendCopilot(p.query)}
+                    className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Messages Chat Stream */}
+            <div className="min-h-[280px] max-h-[460px] overflow-y-auto py-4 space-y-3.5 pr-1">
+              {copilotMessages.map((m) => {
+                const isUser = m.role === 'user';
+                return (
+                  <div
+                    key={m.id}
+                    className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black shadow-xs ${
+                      isUser
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white'
+                    }`}>
+                      {isUser ? (user?.name ? user.name[0].toUpperCase() : 'U') : <Bot className="w-4 h-4" />}
+                    </div>
+
+                    <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+                      isUser
+                        ? 'bg-indigo-600 text-white rounded-tr-none font-medium'
+                        : 'bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none font-normal'
+                    }`}>
+                      <p className="whitespace-pre-wrap">{m.content}</p>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {copilotLoading && (
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 animate-spin" />
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-500 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+                    <span>{isTe ? 'మెషినరీ నిపుణుడు సమాధానం సిద్ధం చేస్తున్నారు...' : 'Consulting machinery telemetry & calculating...'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Bar */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendCopilot();
+              }}
+              className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2"
+            >
               <input
                 type="text"
-                disabled
-                value={`${user?.farm_location?.district || 'Prakasam'}, Andhra Pradesh`}
-                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-xs font-bold"
+                value={copilotInput}
+                onChange={(e) => setCopilotInput(e.target.value)}
+                placeholder={isTe ? "ట్రాక్టర్ నిర్వహణ, డ్రోన్ బ్యాటరీ లేదా డీజిల్ వినియోగం గురించి అడగండి..." : "Ask about tractor maintenance, drone battery care, diesel formulas, or rental rates..."}
+                className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800">
-            <h3 className="text-xs font-black text-indigo-950 dark:text-indigo-200">CHC Govt Subsidy Schemes Integration</h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-              Your registered machinery is eligible for SMAM (Sub-Mission on Agricultural Mechanization) custom hiring subsidies. Farmers booking through AgriShield receive direct DBT billing slips.
-            </p>
+              <button
+                type="submit"
+                disabled={!copilotInput.trim() || copilotLoading}
+                className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer shrink-0"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{isTe ? 'పంపండి' : 'Ask Copilot'}</span>
+              </button>
+            </form>
           </div>
         </div>
       )}

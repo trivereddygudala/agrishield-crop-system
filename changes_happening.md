@@ -2,7 +2,37 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
-## 2026-09-24 (v230) - Fixed Equipment Rental 'replace' TypeError, Added Rent per Acre, Available Operating Hours & Multi-Select Implements
+## 2026-09-24 (v231) - Implemented Dedicated Equipment Provider Profile & Hub Settings, Navbar Avatar Menu Simplification, Instant Login Navigation & Specialized AI Copilot
+- **Summary:** Fulfilled all user requirements for Equipment Provider profiles, login responsiveness, and dedicated machinery AI capabilities:
+  1. 👤 **Top Navbar Profile Avatar Menu Simplification ([`AppLayout.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/AppLayout.jsx)):**
+     - For Equipment Providers, tapping the top-right profile icon now displays strictly:
+       * User Name & Email Header (with Equipment Provider badge)
+       * **My Profile** link (`/profile`)
+       * **Log Out** button (invoking `handleLogout` directly with clean session clearing)
+     - Completely removed "My Farm & Operations", "Notification Inbox", and "Settings" from the provider dropdown, exactly as requested.
+     - For Farmers and Admins, standard links remain intact.
+  2. 📱 **Provider Mobile Bottom Dock & More Tab Navigation ([`AppLayout.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/AppLayout.jsx) & [`MorePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/MorePage.jsx)):**
+     - Configured Provider Bottom Dock tabs to: `[Fleet Hub, Orders, Inbox, More]` with dynamic unread booking notifications badge.
+     - In [`MorePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/MorePage.jsx), tailored tool groups for Equipment Providers:
+       * **Machinery Fleet & Bookings:** Fleet Hub, Booking Orders, Earnings & Payout Ledger, My Farm & Operations (moved here cleanly), and Field Area Calculator.
+       * **Provider Profile & Settings:** Equipment Provider Profile, System & Display Settings, Booking Notifications Inbox, 24x7 Provider Helpdesk, and Instant Language Switcher.
+       * Hid the irrelevant ESP32 IoT hardware operating mode selector for equipment providers.
+  3. ⚡ **Fixed Login Page Refresh / Stuck Issue ([`LoginPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/LoginPage.jsx)):**
+     - Replaced the fragile 2.5-second blocking overlay timer with immediate destination navigation (`navigateToDestination`) upon successful password or biometric authentication.
+     - Automatically routes to `/provider/dashboard` for providers, `/admin` for administrators, or `/dashboard` for farmers without freezing or reload loops.
+     - In [`AuthWorkstationIllustration.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/auth/AuthWorkstationIllustration.jsx), updated illustration sizing to `max-h-[440px] object-cover` ensuring complete visibility of project infographic cards.
+  4. 🚜 **Specialized Equipment Provider Hub Settings ([`ProfilePage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/ProfilePage.jsx)):**
+     - For Equipment Providers, replaced "Farmer Profile & Identity" and "Agronomic Profile Settings" with:
+       * Header: "Equipment Provider Hub Profile"
+       * Location: "Equipment Hub Base Dispatch Location (India)"
+       * Replaced farming practice dropdown with 6 provider-specific fields: Agency / Machinery Hub Name, Dispatch Phone / WhatsApp, Service Coverage Radius (10km to 100km), Trained Operators & Drivers count, Payout UPI ID, and Operating Dispatch Hours.
+  5. 🤖 **Dedicated Equipment Provider AI Copilot ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx) & [`nvidia_service.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/services/nvidia_service.py)):**
+     - Replaced redundant coverage settings tab with **AI Machinery Copilot** (`activeTab === 'copilot'`).
+     - Added interactive chat interface with quick machinery inquiries (45HP diesel consumption/acre, drone LiPo battery care, fair acre pricing formulas, engine oil service intervals, SMAM subsidies).
+     - Enforced strict backend AI system prompt guardrails in `nvidia_service.py`: strictly bounds answers to machinery maintenance, implements, drone flight SOPs, diesel formulas, and rental economics, while strictly refusing unrelated out-of-scope topics.
+  6. 🧪 **Production Bundle Verification:**
+     - Executed `npm run build` with 3,168 modules transformed and 0 compile errors.
+
 - **Summary:** Resolved the runtime exception in Farm Machinery, Drone & Pump Rental page and completed requested provider rental features:
   1. 🛠️ **Fixed `TypeError: Cannot read properties of undefined (reading 'replace')` in [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx):**
      - Safely normalized all phone number evaluations with fallback chains (`(item.phone || item.contactPhone) ? String(...).replace(/[^0-9]/g, '') : ''`) for browse cards, WhatsApp vouchers, booking history, and modal triggers.

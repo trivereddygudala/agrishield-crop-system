@@ -50,7 +50,7 @@ export default function AuthWorkstationIllustration({ role = 'farmer', isTe = fa
           <img
             src={authIllustrationImg}
             alt="AgriShield Smart Agriculture AI Workstation"
-            className="w-full h-auto max-h-[360px] lg:max-h-[400px] object-cover object-center group-hover:scale-[1.02] transition-transform duration-700 ease-out"
+            className="w-full h-auto max-h-[380px] lg:max-h-[440px] object-cover sm:object-cover object-center group-hover:scale-[1.01] transition-transform duration-700 ease-out"
             loading="eager"
           />
 
