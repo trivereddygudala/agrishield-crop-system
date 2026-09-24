@@ -99,3 +99,6 @@ benchmarks/**/*.jpg
 benchmarks/**/*.jpeg
 benchmarks/**/*.png
 
+# Antigravity Brain Vault (Local Privacy & Recovery)
+brain_vault/
+

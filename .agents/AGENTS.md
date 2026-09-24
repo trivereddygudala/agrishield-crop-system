@@ -11,3 +11,8 @@
   2. **After Executing the Process:** Immediately update the log entry with the full system response, machine solutions, technical actions taken, and files modified.
   3. **Preserve Complete Dialogues:** Both the user-given question/instruction AND the system-given answer/solution MUST be preserved verbatim in `chat by user.md` and `chats_by_user.md`.
   4. **Local Storage Only:** Ensure `chat by user.md` and `chats_by_user.md` remain in `.gitignore` so they are stored locally on the user's PC and never pushed to remote Git repositories.
+
+## Antigravity Brain Vault & Crash Recovery
+- **Continuous Checkpointing:** When running long-duration batch jobs or multi-hour sessions, maintain active SQLite database flushing and keep `brain_vault/` synced.
+- **Power-Cut Context Resumption:** If the user opens a new session mentioning a power cut, lost chat, or resuming previous work, immediately consult `brain_vault/RESUME_CONVERSATIONS.md` or `brain_vault/vault_index.json` to load the exact state of the prior session and continue without restarting from scratch.
+

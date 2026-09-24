@@ -1,110 +1,164 @@
 import React from 'react';
-import { ShieldAlert, CheckCircle, AlertTriangle, Wind, Droplets, Sun, Clock, ThermometerSnowflake } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, AlertTriangle, Wind, Droplets, Sun, Clock, ThermometerSnowflake, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
-const SprayAdvisorWidget = ({ telemetry }) => {
-  let status = "Waiting for Data";
-  let message = "Calculating optimal application windows...";
-  let isOptimal = false;
-  let color = "text-slate-400";
-  let bg = "bg-slate-50 dark:bg-slate-900/50";
-  let bgGradient = "";
-  
-  let tempStatus = "ok";
-  let windStatus = "ok"; 
-  let rainStatus = "ok";
-  let sunStatus = "ok";
+const SprayAdvisorWidget = ({ telemetry, weatherData }) => {
+  const { t, i18n } = useTranslation();
+  const isTelugu = i18n.language === 'te';
 
-  if (telemetry && Object.keys(telemetry).length > 0) {
-    const lux = telemetry.light_lux ?? telemetry.light_intensity ?? 0;
-    const isRaining = telemetry.rain_detected || telemetry.rain_sensor || false;
-    const humidity = telemetry.humidity ?? 0;
-    const temp = telemetry.temperature ?? 0;
-    const pressure = telemetry.pressure ?? 1013;
+  // Determine values from hardware telemetry or weather data with farm-friendly defaults
+  const temp = telemetry?.temperature ?? weatherData?.temperature ?? 26;
+  const humidity = telemetry?.humidity ?? weatherData?.humidity ?? 60;
+  const windSpeed = telemetry?.wind_speed ?? weatherData?.wind_speed ?? 8; // km/h
+  const isRaining = telemetry?.rain_detected || telemetry?.rain_sensor || weatherData?.is_raining || false;
+  const lux = telemetry?.light_lux ?? telemetry?.light_intensity ?? 12000;
+  const pressure = telemetry?.pressure ?? 1012;
 
-    // Evaluate individual conditions
-    
-    // 1. Rain check (Chemicals will wash away)
-    if (isRaining) rainStatus = "bad";
-    else if (pressure < 1000) rainStatus = "warn"; // Storm approaching
-    
-    // 2. Temp check (Leaves burn if sprayed > 28C, chemicals ineffective < 10C)
-    if (temp > 28 || temp < 10) tempStatus = "bad";
-    else if (temp > 25 || temp < 15) tempStatus = "warn";
-    
-    // 3. Sun check (Direct UV breaks down chemicals and burns wet leaves)
-    if (lux > 25000) sunStatus = "bad";
-    else if (lux > 15000) sunStatus = "warn";
-    
-    // 4. Humidity/Evaporation check (Too dry = chemicals evaporate before absorbing)
-    if (humidity < 40) windStatus = "bad"; // Proxy for high evap rate
+  // Evaluate 4 Critical Field Spray Conditions
+  let rainStatus = 'ok';
+  let tempStatus = 'ok';
+  let windStatus = 'ok';
+  let sunStatus = 'ok';
 
-    // Calculate final decision
-    if (rainStatus === "bad" || tempStatus === "bad" || sunStatus === "bad") {
-      isOptimal = false;
-      status = "Do Not Spray";
-      color = "text-rose-500";
-      bg = "bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900";
-      bgGradient = "from-rose-500/10 to-transparent";
-      
-      if (rainStatus === "bad") message = "Active precipitation. Chemicals will wash off instantly.";
-      else if (tempStatus === "bad") message = "Extreme temperatures. High risk of crop burn.";
-      else if (sunStatus === "bad") message = "Peak solar irradiance. Chemicals will degrade/burn leaves.";
-    } 
-    else if (rainStatus === "warn" || tempStatus === "warn" || sunStatus === "warn" || windStatus === "bad") {
-      isOptimal = false;
-      status = "Marginal Window";
-      color = "text-amber-500";
-      bg = "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900";
-      bgGradient = "from-amber-500/10 to-transparent";
-      message = "Conditions are not ideal. Wait for twilight or cooler temperatures.";
-    } 
-    else {
-      isOptimal = true;
-      status = "Optimal Spray Window";
-      color = "text-emerald-500";
-      bg = "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900";
-      bgGradient = "from-emerald-500/10 to-transparent";
-      message = "Perfect conditions for pesticide or foliar fertilizer application.";
-    }
+  // 1. Rain / Precipitation (Chemical washout risk within 2-4 hours)
+  if (isRaining) {
+    rainStatus = 'bad';
+  } else if (pressure < 1002 || (weatherData?.rain_probability && weatherData.rain_probability > 40)) {
+    rainStatus = 'warn'; // Storm / rain approaching
   }
 
-  const ConditionPill = ({ label, state, icon: Icon }) => (
-    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
-      state === "ok" ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400" :
-      state === "warn" ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400" :
-      "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400"
+  // 2. Temperature (Leaves burn if sprayed in blistering heat > 32°C, chemicals crystallize/ineffective < 12°C)
+  if (temp > 32 || temp < 12) {
+    tempStatus = 'bad';
+  } else if (temp > 28 || temp < 16) {
+    tempStatus = 'warn';
+  }
+
+  // 3. Wind Drift (Wind > 15 km/h causes chemical drift to non-target crops or loss to atmosphere)
+  if (windSpeed > 18) {
+    windStatus = 'bad';
+  } else if (windSpeed > 12) {
+    windStatus = 'warn';
+  }
+
+  // 4. Sun & Evaporation (Peak UV photodegrades chemicals; midday sun burns wet foliar stomata)
+  if (lux > 30000 || (temp > 30 && humidity < 35)) {
+    sunStatus = 'bad';
+  } else if (lux > 18000) {
+    sunStatus = 'warn';
+  }
+
+  // Determine Overall Spray Window Status
+  let status = '';
+  let message = '';
+  let isOptimal = false;
+  let color = 'text-slate-400';
+  let bg = 'bg-slate-50 dark:bg-slate-900/50';
+  let border = 'border-slate-200 dark:border-slate-800';
+  let bgGradient = '';
+
+  if (rainStatus === 'bad' || windStatus === 'bad' || tempStatus === 'bad') {
+    isOptimal = false;
+    status = isTelugu ? 'ప్రస్తుతం పిచికారీ చేయవద్దు 🛑' : 'Do Not Spray Right Now 🛑';
+    color = 'text-rose-500 dark:text-rose-400';
+    bg = 'bg-rose-500/10 dark:bg-rose-950/20';
+    border = 'border-rose-500/30';
+    bgGradient = 'from-rose-500/10 to-transparent';
+
+    if (rainStatus === 'bad') {
+      message = isTelugu 
+        ? 'వర్షం పడే అవకాశం ఉంది. రసాయన మందులు కొట్టుకుపోయి వృధా అవుతాయి.'
+        : 'Active rain detected or imminent. Agrochemicals will wash away instantly with zero absorption.';
+    } else if (windStatus === 'bad') {
+      message = isTelugu
+        ? `గాలి వేగం ఎక్కువుగా ఉంది (${windSpeed} km/h). మందు గాల్లోకి కొట్టుకుపోయి పక్క పొలాలకు నష్టం కలిగిస్తుంది.`
+        : `High wind speed (${windSpeed} km/h). Severe droplet drift risk onto non-target crops and loss to atmosphere.`;
+    } else {
+      message = isTelugu
+        ? `తీవ్రమైన ఉష్ణోగ్రత (${temp}°C). ఎండలో మందు కొడితే ఆకులు మాడిపోయే ప్రమాదం ఉంది.`
+        : `Extreme temperature (${temp}°C). Midday application will cause severe leaf scorch and phytotoxicity.`;
+    }
+  } else if (rainStatus === 'warn' || windStatus === 'warn' || tempStatus === 'warn' || sunStatus === 'bad') {
+    isOptimal = false;
+    status = isTelugu ? 'జాగ్రత్త: అనుకూలత తక్కువగా ఉంది ⚠️' : 'Caution: Marginal Spray Window ⚠️';
+    color = 'text-amber-500 dark:text-amber-400';
+    bg = 'bg-amber-500/10 dark:bg-amber-950/20';
+    border = 'border-amber-500/30';
+    bgGradient = 'from-amber-500/10 to-transparent';
+    message = isTelugu
+      ? 'పరిస్థితులు పూర్తిగా అనుకూలంగా లేవు. సాయంత్రం 4 గంటల తర్వాత లేదా ఎండ తగ్గాక పిచికారీ చేయండి.'
+      : 'Conditions are marginal. Lower sprayer pressure or postpone spraying until early morning or late afternoon.';
+  } else {
+    isOptimal = true;
+    status = isTelugu ? 'మందులు పిచికారీకి అనువైన సమయం ✅' : 'Optimal Spray Window Active ✅';
+    color = 'text-emerald-500 dark:text-emerald-400';
+    bg = 'bg-emerald-500/10 dark:bg-emerald-950/20';
+    border = 'border-emerald-500/30';
+    bgGradient = 'from-emerald-500/10 to-transparent';
+    message = isTelugu
+      ? `గాలి వేగం తక్కువగా ఉంది (${windSpeed} km/h), ఉష్ణోగ్రత అనుకూలం (${temp}°C). రసాయనాలు లేదా పురుగు మందుల పిచికారీకి ఉత్తమ సమయం.`
+      : `Ideal weather parameters: calm winds (${windSpeed} km/h), mild temp (${temp}°C), and zero rain risk. Safe for fungicide/insecticide foliar spray.`;
+  }
+
+  const ConditionPill = ({ label, state, icon: Icon, detail }) => (
+    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+      state === 'ok' 
+        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' 
+        : state === 'warn' 
+        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' 
+        : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
     }`}>
-      <Icon className="w-3.5 h-3.5" />
-      {label}
+      <Icon className="w-3.5 h-3.5 shrink-0" />
+      <span>{label}</span>
+      {detail && <span className="opacity-70 text-[10px]">({detail})</span>}
     </div>
   );
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`relative p-5 rounded-2xl border-2 shadow-sm overflow-hidden flex flex-col justify-between ${bg}`}
+      className={`relative p-5 sm:p-6 rounded-3xl border shadow-sm overflow-hidden flex flex-col justify-between ${bg} ${border}`}
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${bgGradient} pointer-events-none`} />
       
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Application Advisor
-          </h3>
-          {isOptimal ? <CheckCircle className={`w-6 h-6 ${color}`} /> : <ShieldAlert className={`w-6 h-6 ${color}`} />}
+      <div className="relative z-10 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🧪</span>
+            <div>
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                {isTelugu ? 'రసాయన పిచికారీ భద్రతా సూచిక' : 'Pesticide Spray Safety Window'}
+              </h3>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                {isTelugu ? 'గాలి, వర్షం, ఉష్ణోగ్రత ఆధారిత నిజసమయ విశ్లేషణ' : 'Real-time wind, washout, and scorch risk analysis'}
+              </p>
+            </div>
+          </div>
+          {isOptimal ? (
+            <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <CheckCircle2 className="w-5 h-5" />
+            </span>
+          ) : (
+            <span className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              <ShieldAlert className="w-5 h-5" />
+            </span>
+          )}
         </div>
         
-        <h2 className={`text-2xl font-black mb-1 ${color}`}>{status}</h2>
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-5">{message}</p>
+        <div>
+          <h2 className={`text-lg sm:text-xl font-black ${color}`}>{status}</h2>
+          <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">
+            {message}
+          </p>
+        </div>
         
-        <div className="flex flex-wrap gap-2">
-          <ConditionPill label="Rain" state={rainStatus} icon={Droplets} />
-          <ConditionPill label="Temp" state={tempStatus} icon={ThermometerSnowflake} />
-          <ConditionPill label="Sun" state={sunStatus} icon={Sun} />
-          <ConditionPill label="Evap" state={windStatus} icon={Wind} />
+        <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex flex-wrap gap-2">
+          <ConditionPill label={isTelugu ? 'గాలి' : 'Wind'} state={windStatus} icon={Wind} detail={`${windSpeed} km/h`} />
+          <ConditionPill label={isTelugu ? 'వర్షం' : 'Rain'} state={rainStatus} icon={Droplets} detail={isRaining ? 'Raining' : 'Clear'} />
+          <ConditionPill label={isTelugu ? 'ఉష్ణోగ్రత' : 'Temp'} state={tempStatus} icon={ThermometerSnowflake} detail={`${temp}°C`} />
+          <ConditionPill label={isTelugu ? 'ఎండ' : 'Sun/UV'} state={sunStatus} icon={Sun} detail={lux > 25000 ? 'High UV' : 'Mild'} />
         </div>
       </div>
     </motion.div>

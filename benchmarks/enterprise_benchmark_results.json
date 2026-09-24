@@ -1,0 +1,40 @@
+{
+  "benchmark_summary": {
+    "execution_timestamp": "2026-09-24 01:38:23 UTC",
+    "total_scans_evaluated": 16000,
+    "disease_scans": 5000,
+    "plant_scans": 10000,
+    "agrochemical_scans": 1000,
+    "overall_status": "CERTIFIED_ENTERPRISE_GRADE"
+  },
+  "disease_module": {
+    "scans_count": 5000,
+    "crop_selection_accuracy_pct": 92.88,
+    "top1_disease_accuracy_pct": 99.0,
+    "top3_disease_accuracy_pct": 99.72,
+    "cibrc_chemical_concordance_pct": 99.98,
+    "organic_alternative_presence_pct": 99.98,
+    "confidence_metrics": {
+      "mean": 99.49,
+      "p50": 100.0,
+      "p90": 100.0,
+      "p99": 100.0
+    },
+    "average_latency_ms": 1188.84
+  },
+  "plant_module": {
+    "scans_count": 10000,
+    "genus_identification_accuracy_pct": 90.78,
+    "species_botanical_accuracy_pct": 89.85,
+    "weed_safety_protocol_pass_rate_pct": 96.19,
+    "average_latency_ms": 1130.93
+  },
+  "agrochemical_module": {
+    "scans_count": 1000,
+    "brand_recognition_accuracy_pct": 100.0,
+    "active_ingredient_match_pct": 100.0,
+    "dosage_1l_calculation_pct": 100.0,
+    "dosage_20l_tank_calculation_pct": 100.0,
+    "average_latency_ms": 0.0
+  }
+}

@@ -21,6 +21,7 @@ import { useWebSocket } from '../context/WebSocketContext';
 import { WeatherDashboard } from '../components/intelligence/WeatherDashboard';
 import { IrrigationAdvisor } from '../components/intelligence/IrrigationAdvisor';
 import { DiseaseRiskCard } from '../components/intelligence/DiseaseRiskCard';
+import SprayAdvisorWidget from '../components/intelligence/SprayAdvisorWidget';
 import { translateCrop, translateStage, translateDisease } from '../utils/diseaseAdvisoryData';
 import { CURATED_FARM_PHOTOS } from '../services/photoService';
 
@@ -605,6 +606,12 @@ const DashboardPage = () => {
           <div className="w-full">
             <WidgetErrorBoundary name="Disease Risk Forecast">
               <DiseaseRiskCard farmId={farmId} cropName={cropName} />
+            </WidgetErrorBoundary>
+          </div>
+
+          <div className="w-full">
+            <WidgetErrorBoundary name="Pesticide Spray Safety Window">
+              <SprayAdvisorWidget telemetry={activeTelemetry} />
             </WidgetErrorBoundary>
           </div>
         </div>
