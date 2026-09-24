@@ -33,7 +33,9 @@ import {
   Settings,
   Bot,
   Send,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft,
+  RotateCcw
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import API from '../../services/api';
@@ -201,6 +203,10 @@ export default function ProviderDashboardPage() {
 
   useEffect(() => {
     localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(fleetList));
+    try {
+      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(fleetList));
+      window.dispatchEvent(new Event('agrishield_equipment_updated'));
+    } catch (e) {}
   }, [fleetList]);
 
   // ── Incoming Farmer Bookings State ──
@@ -321,7 +327,13 @@ export default function ProviderDashboardPage() {
 
   const handleDeleteMachine = (id) => {
     if (window.confirm('Are you sure you want to remove this equipment from your fleet?')) {
-      setFleetList(prev => prev.filter(m => m.id !== id));
+      const updated = fleetList.filter(m => m.id !== id);
+      setFleetList(updated);
+      try {
+        localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
+        localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
+        window.dispatchEvent(new Event('agrishield_equipment_updated'));
+      } catch (e) {}
       toast.success('Removed', 'Machinery listing was deleted.');
     }
   };
@@ -339,6 +351,141 @@ export default function ProviderDashboardPage() {
   const totalEarnings = bookingsList
     .filter(b => b.status === 'completed')
     .reduce((sum, b) => sum + (Number(b.totalCost) || 2500), 0);
+
+  // ── DEDICATED STANDALONE AI COPILOT VIEW (When bottom AI Copilot tab is tapped) ──
+  if (activeTab === 'copilot') {
+    return (
+      <div className="max-w-4xl mx-auto space-y-4 pb-24 select-none">
+        {/* Dedicated Copilot Top Header */}
+        <div className="flex items-center justify-between p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => switchTab('fleet')}
+              className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{isTe ? 'ఫ్లీట్ హబ్‌కు తిరిగి' : 'Back to Fleet Hub'}</span>
+            </button>
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-600/20 shrink-0">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                  {isTe ? 'అగ్రిషీల్డ్ మెషినరీ AI కోపైలట్' : 'AgriShield Machinery & Fleet Copilot'}
+                </h1>
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  {isTe ? 'నిపుణుడు' : 'Strict Machinery Domain'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isTe ? 'ట్రాక్టర్, స్ప్రే డ్రోన్, డీజిల్ & అద్దె లెక్కల ప్రత్యేక AI సహాయకుడు' : 'Specialized expert for tractors, spray drones, diesel/acre formulas & rental economics'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClearCopilotChat}
+            className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Clear Chat History"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isTe ? 'చాట్ క్లియర్ చేయండి' : 'Clear Chat'}</span>
+          </button>
+        </div>
+
+        {/* The Chat Container */}
+        <div className="p-4 sm:p-6 rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+          {/* Quick Prompt Presets */}
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+              {isTe ? 'త్వరిత ప్రశ్నలు (Quick Questions)' : 'Quick Machinery Inquiries'}
+            </p>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+              {COPILOT_PRESETS.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSendCopilot(p.query)}
+                  className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Messages Chat Stream */}
+          <div className="min-h-[350px] max-h-[550px] overflow-y-auto py-4 space-y-3.5 pr-1">
+            {copilotMessages.map((m) => {
+              const isUser = m.role === 'user';
+              return (
+                <div
+                  key={m.id}
+                  className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+                >
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black shadow-xs ${
+                    isUser
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white'
+                  }`}>
+                    {isUser ? (user?.name ? user.name[0].toUpperCase() : 'U') : <Bot className="w-4 h-4" />}
+                  </div>
+
+                  <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+                    isUser
+                      ? 'bg-indigo-600 text-white rounded-tr-none font-medium'
+                      : 'bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none font-normal'
+                  }`}>
+                    <p className="whitespace-pre-wrap">{m.content}</p>
+                  </div>
+                </div>
+              );
+            })}
+
+            {copilotLoading && (
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 animate-spin" />
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-500 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+                  <span>{isTe ? 'మెషినరీ నిపుణుడు సమాధానం సిద్ధం చేస్తున్నారు...' : 'Consulting machinery telemetry & calculating...'}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendCopilot();
+            }}
+            className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2"
+          >
+            <input
+              type="text"
+              value={copilotInput}
+              onChange={(e) => setCopilotInput(e.target.value)}
+              placeholder={isTe ? "ట్రాక్టర్ నిర్వహణ, డ్రోన్ బ్యాటరీ లేదా డీజిల్ వినియోగం గురించి అడగండి..." : "Ask about tractor maintenance, drone battery care, diesel formulas, or rental rates..."}
+              className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              type="submit"
+              disabled={!copilotInput.trim() || copilotLoading}
+              className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer shrink-0"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{isTe ? 'పంపండి' : 'Ask Copilot'}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 select-none">
@@ -437,39 +584,10 @@ export default function ProviderDashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* ── AI ADVISORY QUICK BANNER (Prominent AI Chat Entry Point) ── */}
-        <div 
-          onClick={() => switchTab('copilot')} 
-          className="mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-transparent border border-purple-200/80 dark:border-purple-900/50 flex items-center justify-between gap-3 cursor-pointer hover:border-purple-400 dark:hover:border-purple-700 transition-all group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-purple-500/30 group-hover:scale-105 transition-transform">
-              <Bot className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-black text-slate-900 dark:text-white">
-                  {isTe ? 'అగ్రిషీల్డ్ మెషినరీ AI కోపైలట్ (AI చాట్ బాట్)' : 'AgriShield Machinery & Fleet AI Copilot'}
-                </p>
-                <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-extrabold flex items-center gap-0.5">
-                  <Sparkles className="w-2.5 h-2.5" />
-                  AI ASSISTANT
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
-                {isTe ? 'ట్రాక్టర్ ఇంజిన్ నిర్వహణ, డ్రోన్ లిపో బ్యాటరీలు, డీజిల్ లెక్కలు & అద్దె ధరల కోసం నొక్కండి.' : 'Ask about tractor maintenance, drone LiPo battery care, per-acre diesel formulas & rental rates.'}
-              </p>
-            </div>
-          </div>
-          <span className="text-xs font-bold text-purple-600 dark:text-purple-400 shrink-0 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-            {isTe ? 'చాట్ చేయండి' : 'Open Copilot'} <ArrowRight className="w-3.5 h-3.5" />
-          </span>
-        </div>
       </div>
 
-      {/* ── CLEAN TAB BAR NAVIGATION (Responsive 2x2 Grid On Mobile, 4 Cols On Desktop) ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800">
+      {/* ── CLEAN 3-TAB FLEET HUB NAVIGATION (Machinery Fleet, Booking Orders, Earnings & Ledger) ── */}
+      <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800">
         <button
           type="button"
           onClick={() => switchTab('fleet')}
@@ -519,23 +637,6 @@ export default function ProviderDashboardPage() {
         >
           <DollarSign className="w-4 h-4 shrink-0" />
           <span className="truncate">{isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => switchTab('copilot')}
-          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-            activeTab === 'copilot'
-              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md ring-2 ring-purple-500/40'
-              : 'bg-purple-50/70 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/60 hover:bg-purple-100 dark:hover:bg-purple-900/40'
-          }`}
-        >
-          <Bot className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-300" />
-          <span className="truncate">{isTe ? 'AI కోపైలట్' : 'AI Copilot'}</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-purple-600 text-white font-extrabold flex items-center gap-0.5 shadow-xs">
-            <Sparkles className="w-2.5 h-2.5" />
-            AI
-          </span>
         </button>
       </div>
 
@@ -808,133 +909,7 @@ export default function ProviderDashboardPage() {
         </div>
       )}
 
-      {/* ── TAB 4: DEDICATED EQUIPMENT PROVIDER AI COPILOT ── */}
-      {activeTab === 'copilot' && (
-        <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-4 sm:p-6 shadow-sm">
-            {/* Header info */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-black text-slate-900 dark:text-white">
-                      {isTe ? 'అగ్రిషీల్డ్ మెషినరీ AI కోపైలట్' : 'AgriShield Machinery & Fleet Copilot'}
-                    </h2>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      Strict Machinery Domain
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isTe 
-                      ? 'ట్రాక్టర్, డ్రోన్, పరికరాల నిర్వహణ, డీజిల్ వినియోగం & అద్దె రేట్ల నిపుణుడు' 
-                      : 'Specialized expert for tractors, spray drones, diesel/acre formulas & rental economics'}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleClearCopilotChat}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Clear conversation history"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>{isTe ? 'చాట్ క్లియర్' : 'Clear Chat'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Prompt Presets */}
-            <div className="py-3 border-b border-slate-100 dark:border-slate-800">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-                {isTe ? 'త్వరిత ప్రశ్నలు (Quick Questions)' : 'Quick Machinery Inquiries'}
-              </p>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
-                {COPILOT_PRESETS.map((p, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSendCopilot(p.query)}
-                    className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 dark:bg-slate-900 dark:hover:bg-indigo-950/40 border border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Messages Chat Stream */}
-            <div className="min-h-[280px] max-h-[460px] overflow-y-auto py-4 space-y-3.5 pr-1">
-              {copilotMessages.map((m) => {
-                const isUser = m.role === 'user';
-                return (
-                  <div
-                    key={m.id}
-                    className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black shadow-xs ${
-                      isUser
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white'
-                    }`}>
-                      {isUser ? (user?.name ? user.name[0].toUpperCase() : 'U') : <Bot className="w-4 h-4" />}
-                    </div>
-
-                    <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3.5 text-xs leading-relaxed ${
-                      isUser
-                        ? 'bg-indigo-600 text-white rounded-tr-none font-medium'
-                        : 'bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none font-normal'
-                    }`}>
-                      <p className="whitespace-pre-wrap">{m.content}</p>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {copilotLoading && (
-                <div className="flex items-start gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 animate-spin" />
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-500 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
-                    <span>{isTe ? 'మెషినరీ నిపుణుడు సమాధానం సిద్ధం చేస్తున్నారు...' : 'Consulting machinery telemetry & calculating...'}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Input Bar */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendCopilot();
-              }}
-              className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={copilotInput}
-                onChange={(e) => setCopilotInput(e.target.value)}
-                placeholder={isTe ? "ట్రాక్టర్ నిర్వహణ, డ్రోన్ బ్యాటరీ లేదా డీజిల్ వినియోగం గురించి అడగండి..." : "Ask about tractor maintenance, drone battery care, diesel formulas, or rental rates..."}
-                className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="submit"
-                disabled={!copilotInput.trim() || copilotLoading}
-                className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer shrink-0"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>{isTe ? 'పంపండి' : 'Ask Copilot'}</span>
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ── ADD EQUIPMENT MODAL ── */}
       {isAddModalOpen && (
@@ -1146,25 +1121,6 @@ export default function ProviderDashboardPage() {
             </form>
           </div>
         </div>
-      )}
-
-      {/* ── FLOATING AI COPILOT LAUNCHER (Always Visible On Mobile & Desktop) ── */}
-      {activeTab !== 'copilot' && (
-        <button
-          type="button"
-          onClick={() => {
-            switchTab('copilot');
-            window.scrollTo({ top: 320, behavior: 'smooth' });
-          }}
-          aria-label="Open Machinery AI Copilot"
-          className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-3 rounded-2xl shadow-xl shadow-purple-600/35 border border-purple-400/40 flex items-center gap-2.5 text-xs font-black transition-all hover:scale-105 active:scale-95 cursor-pointer"
-        >
-          <div className="relative">
-            <Bot className="w-5 h-5 text-white" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-purple-600 animate-pulse" />
-          </div>
-          <span className="tracking-wide">{isTe ? '🚜 AI కోపైలట్ చాట్' : '🚜 AI Copilot'}</span>
-        </button>
       )}
     </div>
   );

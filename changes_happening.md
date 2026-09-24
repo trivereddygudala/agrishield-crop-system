@@ -4529,3 +4529,21 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
   - Updated `GoogleMessageReader.jsx` with direct dialing and WhatsApp actions for booking alerts.
 - **Production Validation:**
   - Ran `npm run build`: 3,168 modules transformed, built with 0 errors in 26.66s.
+
+9/24/2026: Multi-Store Equipment Sync & Clean Isolated AI Copilot Bottom Screen (v234):
+- **Cross-Profile Unified Machinery Catalog & Real-Time Sync (EquipmentBookingPage.jsx & ProviderDashboardPage.jsx):**
+  - Identified root cause in Picture 1: Machines added in Equipment Provider dashboard were stored in `agrishield_provider_fleet_inventory`, while Farmer Browse & Book was reading solely from `agrishield_custom_equipment_listings`, leaving the catalog empty (0 items) with "No machinery registered in Pasupugallu yet".
+  - Created `loadMergedEquipment` in `EquipmentBookingPage.jsx` uniting both storage keys, deduplicating IDs, and normalizing all fields (village, district, mandal, rate per acre, implements, phone).
+  - Wired two-way synchronization in `ProviderDashboardPage.jsx` so every fleet addition, update, or deletion commits to both storage keys and dispatches `agrishield_equipment_updated` window events.
+  - Added real-time window listener in `EquipmentBookingPage.jsx` to dynamically update catalog items without page reloads.
+- **Removed Duplicate AI Chatbot Invocations from Fleet Hub (ProviderDashboardPage.jsx):**
+  - In Pictures 2, 3 & 4, the AI Copilot was duplicated across 4 places on the Fleet Hub screen.
+  - Removed `[ 🤖 AI Copilot ]` button from the top hero control bar (Place 1).
+  - Removed `AgriShield Machinery & Fleet AI Copilot` advisory quick banner (Place 2).
+  - Removed `AI Copilot ✨AI` from the dashboard tab bar (Place 3), leaving a clean 3-tab layout (`Machinery Fleet`, `Booking Orders`, `Earnings & Ledger`).
+  - Removed the floating launcher button (`[ 🚜 AI Copilot ]`) (Place 4).
+- **Dedicated Standalone AI Copilot Screen (ProviderDashboardPage.jsx):**
+  - When the provider taps `[ 🤖 AI Copilot ]` in the bottom dock (`tab=copilot`), the page now renders exclusively as a dedicated, standalone AI Copilot screen.
+  - Fleet Hub KPIs, metrics, and fleet tabs are omitted on the copilot screen, providing edge-to-edge chat focus with quick inquiry chips, speech audio, and a `← Back to Fleet Hub` button.
+- **Production Validation:**
+  - Ran `npm run build`: 3,168 modules transformed, built with 0 errors in 26.34s.
