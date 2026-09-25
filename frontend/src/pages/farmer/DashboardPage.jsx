@@ -29,6 +29,7 @@ const DashboardPage = () => {
   const { activeFarm } = useFarm();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const isTe = i18n.language === 'te';
   
   // Instant load: If cache exists from this session, do NOT show skeleton
   const [loading, setLoading] = useState(!cachedDashboardStats);

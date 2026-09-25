@@ -2,6 +2,14 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v256) - Fix ReferenceError: isTe is not defined in DashboardPage.jsx
+- **Summary:** Resolved `ReferenceError: isTe is not defined` inside `DashboardPage.jsx` when rendering the Telugu / multilingual morning advisory banner and field telemetry tags:
+  1. Added `const isTe = i18n.language === 'te';` to `DashboardPage.jsx`.
+  2. Verified clean build (`npm run build`) in 23.34s with 0 errors.
+- **Files modified**: `frontend/src/pages/farmer/DashboardPage.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v255) - Dashboard / Home Overhaul: Clean Header, Light Blur Background Banner, Highlighted Text, & Removed Scientific Clutter
 - **Summary:** Overhauled the Farmer Dashboard / Home page (`frontend/src/pages/farmer/DashboardPage.jsx`) per user prompt and uploaded reference image:
   1. 🖼️ **Header Redesign Matching Uploaded Photo:**
