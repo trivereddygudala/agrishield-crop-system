@@ -293,20 +293,24 @@ export default function ProviderDashboardPage() {
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           const remote = res.data.bookings;
           const mergedMap = new Map();
-          remote.forEach(b => { if (b && b.id) mergedMap.set(b.id, b); });
+          // 1. Put local items in map first
           local.forEach(b => {
-            if (b && b.id) {
-              if (!mergedMap.has(b.id)) {
-                mergedMap.set(b.id, b);
-              } else {
-                const existing = mergedMap.get(b.id);
-                mergedMap.set(b.id, { ...existing, ...b });
-              }
+            const key = b && (b.id || b.bookingId);
+            if (key) mergedMap.set(key, b);
+          });
+          // 2. Overlay remote items on top (remote is authoritative for status and server updates)
+          remote.forEach(b => {
+            const key = b && (b.id || b.bookingId);
+            if (key) {
+              const localMatch = mergedMap.get(key);
+              mergedMap.set(key, { ...localMatch, ...b });
             }
           });
           const merged = Array.from(mergedMap.values());
           setBookingsList(merged);
-          localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
+          try {
+            localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
+          } catch (e) {}
           return;
         }
       } catch (err) {}
@@ -477,8 +481,9 @@ export default function ProviderDashboardPage() {
   const handleUpdateBookingStatus = (bookingId, nextStatus) => {
     let targetBooking = null;
     const updated = bookingsList.map(b => {
-      if (b.id === bookingId) {
-        targetBooking = { ...b, status: nextStatus };
+      const bKey = b && (b.id || b.bookingId);
+      if (bKey === bookingId) {
+        targetBooking = { ...b, status: nextStatus, updatedAt: new Date().toISOString() };
         return targetBooking;
       }
       return b;
@@ -489,22 +494,30 @@ export default function ProviderDashboardPage() {
       window.dispatchEvent(new Event('agrishield_bookings_updated'));
     } catch (e) {}
 
+    toast.info(
+      isTe ? 'బుకింగ్ స్థితి నవీకరించబడింది' : 'Status Updated',
+      nextStatus === 'rejected'
+        ? (isTe ? 'ఆర్డర్ తిరస్కరించబడింది. రైతు స్క్రీన్‌లో ఇది వెంటనే కనిపిస్తుంది.' : 'Order declined. Farmer will immediately see this status on their screen.')
+        : (isTe ? 'ఆర్డర్ ఆమోదించబడింది.' : 'Order confirmed.')
+    );
+
     // Dispatch status update to backend API for multi-device cross-browser persistence
     const patchStatusToServer = async () => {
+      const payload = { status: nextStatus, updatedAt: new Date().toISOString() };
       try {
-        const r = await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus });
+        const r = await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, payload);
         if (r.data && typeof r.data === 'object') return;
       } catch (_) {}
       try {
-        const r = await API.patch(`/api/equipment/bookings/${bookingId}/status`, { status: nextStatus });
+        const r = await API.patch(`/api/equipment/bookings/${bookingId}/status`, payload);
         if (r.data && typeof r.data === 'object') return;
       } catch (_) {}
       try {
-        await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
+        await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, payload, { timeout: 15000 });
         return;
       } catch (_) {}
       try {
-        await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, { status: nextStatus }, { timeout: 15000 });
+        await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, payload, { timeout: 15000 });
       } catch (err) {
         console.warn('Backend status patch notice:', err);
       }
@@ -1136,7 +1149,7 @@ export default function ProviderDashboardPage() {
                             <>
                               <button
                                 type="button"
-                                onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
+                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
                                 className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
                                 title={isTe ? 'బుకింగ్‌ను ఆమోదించండి' : 'Accept Farmer Booking'}
                               >
@@ -1146,7 +1159,7 @@ export default function ProviderDashboardPage() {
 
                               <button
                                 type="button"
-                                onClick={() => handleUpdateBookingStatus(booking.id, 'rejected')}
+                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'rejected')}
                                 className="px-3 py-1.5 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
                                 title={isTe ? 'బుకింగ్‌ను తిరస్కరించండి' : 'Decline Booking'}
                               >
@@ -1159,7 +1172,7 @@ export default function ProviderDashboardPage() {
                           {booking.status === 'confirmed' && (
                             <button
                               type="button"
-                              onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
+                              onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'completed')}
                               className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
                               title={isTe ? 'పని పూర్తయినట్లు నమోదు చేయండి' : 'Mark Service as Completed'}
                             >
@@ -1175,7 +1188,7 @@ export default function ProviderDashboardPage() {
                             </span>
                           )}
 
-                          {booking.status === 'rejected' && (
+                          {(booking.status === 'rejected' || booking.status === 'declined') && (
                             <div className="flex items-center gap-2">
                               <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-black flex items-center gap-1">
                                 <X className="w-3.5 h-3.5 text-rose-500" />
@@ -1183,7 +1196,7 @@ export default function ProviderDashboardPage() {
                               </span>
                               <button
                                 type="button"
-                                onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
+                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
                                 className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                               >
                                 {isTe ? 'మళ్లీ ఆమోదించండి' : 'Re-open & Accept'}

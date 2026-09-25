@@ -161,6 +161,56 @@ export default function NotificationsPage() {
         } catch (e) {}
       }
 
+      // If farmer, synthesize notifications for booking status decisions from providers
+      if (!isEquipmentProvider) {
+        try {
+          let bRes = await API.get('/api/v1/equipment/bookings');
+          if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
+            try { bRes = await API.get('/api/equipment/bookings'); } catch (_) {}
+          }
+          if (bRes.data?.bookings && Array.isArray(bRes.data.bookings)) {
+            bRes.data.bookings.forEach((b) => {
+              if (b && (b.status === 'rejected' || b.status === 'declined' || b.status === 'confirmed')) {
+                const bId = b.id || b.bookingId;
+                const notifKey = `farmer-notif-${bId}-${b.status}`;
+                const alreadyExists = localNotifs.some(n => n.id === notifKey || n.notification_id === notifKey);
+                if (!alreadyExists) {
+                  const isRejected = b.status === 'rejected' || b.status === 'declined';
+                  localNotifs.unshift({
+                    notification_id: notifKey,
+                    id: notifKey,
+                    type: 'booking',
+                    category: 'booking',
+                    priority: isRejected ? 'High' : 'Normal',
+                    title: isRejected
+                      ? (isTe ? `❌ యంత్రం బుకింగ్ తిరస్కరించబడింది (#${bId})` : `❌ Machinery Booking Declined (#${bId})`)
+                      : (isTe ? `✅ యంత్రం బుకింగ్ ఆమోదించబడింది (#${bId})` : `✅ Machinery Booking Confirmed (#${bId})`),
+                    title_te: isRejected
+                      ? `❌ యంత్రం బుకింగ్ తిరస్కరించబడింది (#${bId})`
+                      : `✅ యంత్రం బుకింగ్ ఆమోదించబడింది (#${bId})`,
+                    message: isRejected
+                      ? (isTe
+                        ? `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను తిరస్కరించారు (${b.date || b.bookingDate || 'Today'}). దయచేసి వేరే యంత్రాన్ని ఎంచుకోండి.`
+                        : `Provider ${b.providerName || 'Provider'} declined your booking for ${b.equipmentTitle || b.title || 'Machinery'} (${b.date || b.bookingDate || 'Today'}). Please choose an alternative machinery slot.`)
+                      : (isTe
+                        ? `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను ఆమోదించారు!`
+                        : `Provider ${b.providerName || 'Provider'} confirmed your booking for ${b.equipmentTitle || b.title || 'Machinery'}!`),
+                    message_te: isRejected
+                      ? `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను తిరస్కరించారు.`
+                      : `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను ఆమోదించారు!`,
+                    booking_id: bId,
+                    created_at: b.updatedAt || b.createdAt || new Date().toISOString(),
+                    timestamp: b.updatedAt || b.createdAt || new Date().toISOString(),
+                    read: false,
+                    action_url: '/equipment-booking'
+                  });
+                }
+              }
+            });
+          }
+        } catch (e) {}
+      }
+
       // Merge local and server without duplicates
       const merged = [...localNotifs];
       serverNotifs.forEach((sn) => {

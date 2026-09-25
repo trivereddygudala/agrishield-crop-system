@@ -304,34 +304,52 @@ async def update_booking_status(
     Automatically dispatches status notifications to the farmer.
     """
     global _in_memory_bookings
-    new_status = status_update.get("status")
-    if not new_status:
+    raw_status = status_update.get("status")
+    if not raw_status:
         raise HTTPException(status_code=400, detail="New status is required")
+
+    new_status = str(raw_status).lower()
+    if new_status in ["declined", "reject"]:
+        new_status = "rejected"
+    elif new_status in ["confirm", "accepted", "accept"]:
+        new_status = "confirmed"
+    elif new_status in ["complete", "done"]:
+        new_status = "completed"
 
     _load_disk_bookings()
     found = False
     updated_booking = None
 
     for b in _in_memory_bookings:
-        if b.get("id") == booking_id:
+        if b.get("id") == booking_id or b.get("bookingId") == booking_id:
             b["status"] = new_status
             b["updatedAt"] = datetime.now().isoformat()
             updated_booking = b
             found = True
             break
 
-    if updated_booking:
-        _save_disk_bookings()
-
-    # Update in Mongo
+    # Update in Mongo with authoritative return
     if db_instance.db is not None:
         try:
-            await db_instance.db["equipment_bookings"].update_one(
-                {"id": booking_id},
-                {"$set": {"status": new_status, "updatedAt": datetime.now().isoformat()}}
+            mongo_doc = await db_instance.db["equipment_bookings"].find_one_and_update(
+                {"$or": [{"id": booking_id}, {"bookingId": booking_id}]},
+                {"$set": {"status": new_status, "updatedAt": datetime.now().isoformat()}},
+                return_document=True
             )
+            if mongo_doc:
+                mongo_doc.pop("_id", None)
+                if not updated_booking:
+                    updated_booking = mongo_doc
+                    found = True
+                else:
+                    updated_booking.update(mongo_doc)
         except Exception as e:
             print(f"⚠️ [EquipmentBookings] Mongo status update notice: {e}")
+
+    if updated_booking:
+        _in_memory_bookings = [b for b in _in_memory_bookings if b.get("id") != booking_id and b.get("bookingId") != booking_id]
+        _in_memory_bookings.insert(0, updated_booking)
+        _save_disk_bookings()
 
     # Automated notification dispatch to Farmer
     if db_instance.db is not None and updated_booking:

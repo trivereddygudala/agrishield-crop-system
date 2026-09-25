@@ -254,8 +254,9 @@ export default function EquipmentBookingPage() {
     } catch (e) {}
   }, [myBookings]);
 
-  // Fetch remote bookings from backend for multi-device sync
+  // Fetch remote bookings from backend for multi-device real-time sync
   useEffect(() => {
+    let isMounted = true;
     const fetchRemoteBookings = async () => {
       try {
         let res = await API.get('/api/v1/equipment/bookings?limit=2500');
@@ -268,23 +269,69 @@ export default function EquipmentBookingPage() {
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
           try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
         }
-        if (res.data?.bookings && Array.isArray(res.data.bookings)) {
+        if (isMounted && res.data?.bookings && Array.isArray(res.data.bookings)) {
+          const remoteBookings = res.data.bookings;
+          const remoteMap = new Map();
+          remoteBookings.forEach(b => {
+            const key = b && (b.id || b.bookingId);
+            if (key) remoteMap.set(key, b);
+          });
+
           setMyBookings(prev => {
-            const existingIds = new Set(prev.map(b => b.id));
-            const newItems = res.data.bookings.filter(b => b && b.id && !existingIds.has(b.id));
-            if (newItems.length > 0) {
-              const merged = [...newItems, ...prev];
+            let hasChanged = false;
+            // 1. Update existing local bookings with latest remote status (authoritative decisions: rejected/confirmed/completed)
+            const updatedExisting = prev.map(localB => {
+              const key = localB && (localB.id || localB.bookingId);
+              if (remoteMap.has(key)) {
+                const remoteB = remoteMap.get(key);
+                if (localB.status !== remoteB.status || localB.updatedAt !== remoteB.updatedAt) {
+                  hasChanged = true;
+                }
+                return {
+                  ...localB,
+                  ...remoteB,
+                  status: remoteB.status || localB.status
+                };
+              }
+              return localB;
+            });
+
+            // 2. Append new remote bookings not present in local list
+            const existingKeys = new Set(updatedExisting.map(b => b && (b.id || b.bookingId)));
+            const brandNew = [];
+            remoteBookings.forEach(rb => {
+              const key = rb && (rb.id || rb.bookingId);
+              if (key && !existingKeys.has(key)) {
+                brandNew.push(rb);
+                existingKeys.add(key);
+                hasChanged = true;
+              }
+            });
+
+            const finalMerged = [...brandNew, ...updatedExisting];
+            if (hasChanged || prev.length === 0) {
               try {
-                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
+                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(finalMerged));
               } catch (e) {}
-              return merged;
+              return finalMerged;
             }
             return prev;
           });
         }
       } catch (err) {}
     };
+
     fetchRemoteBookings();
+    // Fast 5-second polling interval so provider actions on laptop appear on farmer mobile immediately
+    const pollInterval = setInterval(fetchRemoteBookings, 5000);
+    window.addEventListener('agrishield_bookings_updated', fetchRemoteBookings);
+    window.addEventListener('storage', fetchRemoteBookings);
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+      window.removeEventListener('agrishield_bookings_updated', fetchRemoteBookings);
+      window.removeEventListener('storage', fetchRemoteBookings);
+    };
   }, []);
 
   // Fetch remote fleet availability from backend for multi-device cross-browser sync
@@ -949,23 +996,26 @@ export default function EquipmentBookingPage() {
               </div>
             ) : (
               myBookings.map((b) => {
+              const rawStatus = String(b.status || 'pending').toLowerCase();
+              const isDeclined = rawStatus === 'rejected' || rawStatus === 'declined';
               const statusBadge = {
                 pending: { label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Provider Approval', color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300' },
                 confirmed: { label: isTe ? 'ధృవీకరించబడింది & షెడ్యూల్' : 'Confirmed & Scheduled', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' },
                 rejected: { label: isTe ? 'ఆర్డర్ తిరస్కరించబడింది' : 'Declined / Unavailable', color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300' },
+                declined: { label: isTe ? 'ఆర్డర్ తిరస్కరించబడింది' : 'Declined / Unavailable', color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300' },
                 'in-progress': { label: isTe ? 'పని జరుగుతోంది' : 'Work In Progress', color: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300' },
                 completed: { label: isTe ? 'పూర్తయింది' : 'Completed', color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300' }
-              }[b.status] || { label: b.status, color: 'bg-slate-100 text-slate-700' };
+              }[rawStatus] || { label: b.status, color: 'bg-slate-100 text-slate-700' };
 
               return (
                 <div
-                  key={b.id}
-                  className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4"
+                  key={b.id || b.bookingId}
+                  className={`bg-white dark:bg-slate-900 rounded-3xl p-5 border ${isDeclined ? 'border-rose-300 dark:border-rose-900/60 shadow-rose-500/5' : 'border-slate-200/80 dark:border-slate-800'} shadow-sm space-y-4`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-slate-400">#{b.id}</span>
+                        <span className="text-xs font-mono font-bold text-slate-400">#{b.id || b.bookingId}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${statusBadge.color}`}>
                           {statusBadge.label}
                         </span>
@@ -974,7 +1024,7 @@ export default function EquipmentBookingPage() {
                         {isTe && b.teluguTitle ? b.teluguTitle : b.title}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {b.providerName} • {b.phone}
+                        {b.providerName} • {b.phone || b.providerPhone || b.contactPhone}
                       </p>
                     </div>
 
@@ -985,6 +1035,23 @@ export default function EquipmentBookingPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Declined Notice Banner */}
+                  {isDeclined && (
+                    <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 flex items-start gap-2.5 text-xs">
+                      <span className="text-base leading-none">⚠️</span>
+                      <div className="space-y-0.5">
+                        <p className="font-bold">
+                          {isTe ? 'ఈ బుకింగ్ ప్రొవైడర్ చేత తిరస్కరించబడింది.' : 'This booking was declined by the equipment provider.'}
+                        </p>
+                        <p className="text-[11px] text-rose-700/80 dark:text-rose-300/80 font-medium">
+                          {isTe
+                            ? 'యంత్రం ప్రస్తుతం అందుబాటులో లేదు లేదా వేరే పనిలో ఉంది. దయచేసి వేరే యంత్రాన్ని లేదా వేరే సమయాన్ని ఎంచుకోండి.'
+                            : 'The machine is currently unavailable or undergoing maintenance. Please select another provider or a different time slot.'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Booking Metadata Bar */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl text-xs">

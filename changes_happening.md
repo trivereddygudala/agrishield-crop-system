@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v249) - Resolved Cross-Device Equipment Booking Status Sync Bug (Laptop Provider Decline to Mobile Farmer View)
+- **Summary:** Diagnosed and resolved the synchronization failure where an equipment provider declining/rejecting an order on laptop did not reflect on the farmer's mobile screen:
+  1. 🐛 **Root Cause Diagnosis:**
+     - In [`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx), remote bookings were filtered using `!existingIds.has(b.id)`. When a farmer created a booking, it was stored in mobile `localStorage` with `status: 'pending'`. When the server returned the booking with `status: 'rejected'`, `existingIds.has(b.id)` was true, causing the server's updated status to be silently discarded.
+     - `EquipmentBookingPage.jsx` lacked an interval polling timer (`useEffect(..., [])`), meaning the mobile page never re-checked the server for status updates while open.
+     - In [`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx), the local storage merge used `{ ...existing, ...b }`, causing stale local cache to overwrite authoritative server status.
+  2. ⚡ **Authoritative Two-Way Status Sync ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Replaced the additive-only merge with an authoritative map-based update that maps over existing local bookings and updates them with the server's latest status (`rejected`, `confirmed`, `completed`).
+     - Added a fast 5-second polling interval (`setInterval(fetchRemoteBookings, 5000)`) with event listeners (`agrishield_bookings_updated` and `storage`) so status changes from laptop appear on mobile within seconds without requiring manual page reload.
+     - Added a dedicated declined alert banner on the booking card informing the farmer that the provider declined the request and providing actionable guidance to pick an alternative machine.
+  3. 🛠️ **Authoritative Precedence & Fallbacks in Provider Dashboard ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx)):**
+     - Corrected merge logic so remote server properties take precedence over stale local cache (`{ ...localMatch, ...b }`).
+     - Standardized booking identifier matching across `id` and `bookingId` (`b.id || b.bookingId`).
+     - Added real-time bilingual toast notifications on status changes.
+  4. 🔔 **Farmer In-App Notification Synthesis ([`NotificationsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/NotificationsPage.jsx)):**
+     - Synthesized high-priority in-app notifications for farmers whenever a provider declines or confirms their machinery booking, including action link to `/equipment-booking`.
+  5. 🌐 **Backend Mongo Status Normalization ([`backend/app/routers/equipment.py`](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/equipment.py)):**
+     - Upgraded `PATCH /api/v1/equipment/bookings/{booking_id}/status` to use `find_one_and_update` with `{"$or": [{"id": booking_id}, {"bookingId": booking_id}]}` and `return_document=True`, ensuring accurate return values and automated farmer notification dispatch even if the document was not in server memory.
+     - Normalized status inputs (`declined`, `reject` -> `rejected`).
+  6. 🏗️ **Verification:**
+     - Compiled production build (`npm run build`) in 24.53s with 0 errors.
+     - Verified live database: declined bookings return `status: 'rejected'` across all endpoints.
+- **Files modified**: `backend/app/routers/equipment.py`, `frontend/src/pages/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/NotificationsPage.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v248) - 1,000-Bookings Large-Scale Sync Architecture & Provider Verification
 - **Summary:** Engineered, benchmarked, and verified the end-to-end 1,000 machinery bookings pipeline between Farmer (`Farmer1` / `Farmer1@1234`) and Equipment Provider (`Ramesh` / `Ramesh@1234`) across the live Vercel frontend and primary cloud worker:
   1. 🔑 **Authentication & Profile Verification:**
