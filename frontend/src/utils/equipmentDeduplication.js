@@ -207,11 +207,86 @@ export const normalizeEquipmentTitle = (title) => {
 };
 
 /**
+ * Helper to fetch persistent set of user-deleted equipment IDs & titles
+ */
+export const getDeletedEquipmentIds = () => {
+  try {
+    const raw = localStorage.getItem('agrishield_deleted_equipment_ids');
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    return new Set();
+  }
+};
+
+/**
+ * Save deleted equipment ID & normalized title so it NEVER resurrects from remote catalogs
+ */
+export const saveDeletedEquipmentId = (equipmentId, title = '') => {
+  try {
+    const raw = localStorage.getItem('agrishield_deleted_equipment_ids');
+    const list = raw ? JSON.parse(raw) : [];
+    const idStr = String(equipmentId || '').trim();
+    if (idStr && !list.includes(idStr)) {
+      list.push(idStr);
+    }
+    const cleanNum = idStr.replace(/^[A-Za-z]+-/, '').trim();
+    if (cleanNum && !list.includes(cleanNum)) {
+      list.push(cleanNum);
+    }
+    if (title) {
+      const normTitle = normalizeEquipmentTitle(title);
+      if (normTitle && !list.includes(`title_${normTitle}`)) {
+        list.push(`title_${normTitle}`);
+      }
+    }
+    localStorage.setItem('agrishield_deleted_equipment_ids', JSON.stringify(list));
+  } catch (e) {}
+};
+
+/**
+ * Helper to fetch persistent set of user-deleted notification IDs
+ */
+export const getDeletedNotificationIds = () => {
+  try {
+    const raw = localStorage.getItem('agrishield_deleted_notification_ids');
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    return new Set();
+  }
+};
+
+/**
+ * Save deleted notification ID so it never resurrects from booking synthesizers or server polling
+ */
+export const saveDeletedNotificationId = (notificationId) => {
+  try {
+    const raw = localStorage.getItem('agrishield_deleted_notification_ids');
+    const list = raw ? JSON.parse(raw) : [];
+    const notifStr = String(notificationId || '').trim();
+    if (notifStr && !list.includes(notifStr)) {
+      list.push(notifStr);
+    }
+    // Also save variants if it has booking key
+    const cleanId = notifStr.replace(/^notif-/, '').replace(/^farmer-notif-/, '').replace(/-[a-z]+$/, '');
+    if (cleanId && cleanId !== notifStr) {
+      if (!list.includes(`notif-${cleanId}`)) list.push(`notif-${cleanId}`);
+      if (!list.includes(`farmer-notif-${cleanId}-confirmed`)) list.push(`farmer-notif-${cleanId}-confirmed`);
+      if (!list.includes(`farmer-notif-${cleanId}-rejected`)) list.push(`farmer-notif-${cleanId}-rejected`);
+      if (!list.includes(`farmer-notif-${cleanId}-declined`)) list.push(`farmer-notif-${cleanId}-declined`);
+      if (!list.includes(`farmer-notif-${cleanId}-cancelled`)) list.push(`farmer-notif-${cleanId}-cancelled`);
+    }
+    localStorage.setItem('agrishield_deleted_notification_ids', JSON.stringify(list));
+  } catch (e) {}
+};
+
+/**
  * Strict de-duplication of equipment items across local state, provider fleet, and remote catalog.
  * Guarantees zero duplicate machinery cards by comparing both normalized ID and normalized title.
+ * Enforces strict exclusion of any equipment ID or title present in deletedEquipmentIds blacklist.
  */
-export const deduplicateEquipment = (items = []) => {
+export const deduplicateEquipment = (items = [], customDeletedIds = null) => {
   if (!Array.isArray(items)) return [];
+  const delSet = customDeletedIds instanceof Set ? customDeletedIds : getDeletedEquipmentIds();
   const seenIds = new Set();
   const seenTitles = new Set();
   const result = [];
@@ -226,6 +301,12 @@ export const deduplicateEquipment = (items = []) => {
 
     const titleNorm = normalizeEquipmentTitle(item.title);
     const idKey = rawId || `eq-${titleNorm}`;
+
+    // Blacklist check: if ID, clean number, or title was deleted by user, purge permanently
+    const cleanNum = rawId.replace(/^[A-Za-z]+-/, '').trim();
+    if (delSet.has(rawId) || (cleanNum && delSet.has(cleanNum)) || (titleNorm && delSet.has(`title_${titleNorm}`))) {
+      continue;
+    }
 
     const idMatch = rawId && seenIds.has(rawId);
     const titleMatch = titleNorm && seenTitles.has(titleNorm);
@@ -374,3 +455,42 @@ export const deduplicateBookings = (bookings = [], deletedIds = new Set()) => {
 
   return result;
 };
+
+/**
+ * Helper to fetch persistent set of user-deleted booking IDs
+ */
+export const getDeletedBookingIds = () => {
+  try {
+    const raw = localStorage.getItem('agrishield_deleted_booking_ids');
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    return new Set();
+  }
+};
+
+/**
+ * Save deleted booking ID in all normalized formats and cascade to notification blacklist
+ */
+export const saveDeletedBookingId = (bookingId) => {
+  try {
+    const raw = localStorage.getItem('agrishield_deleted_booking_ids');
+    const list = raw ? JSON.parse(raw) : [];
+    const bStr = String(bookingId || '').trim();
+    if (!bStr) return;
+
+    if (!list.includes(bStr)) list.push(bStr);
+    const cleanNum = bStr.replace(/^BK-/, '').trim();
+    if (cleanNum) {
+      if (!list.includes(`BK-${cleanNum}`)) list.push(`BK-${cleanNum}`);
+      if (!list.includes(cleanNum)) list.push(cleanNum);
+      // Cascade to notification blacklist so booking alerts vanish simultaneously
+      saveDeletedNotificationId(`notif-${cleanNum}`);
+      saveDeletedNotificationId(`farmer-notif-${cleanNum}-confirmed`);
+      saveDeletedNotificationId(`farmer-notif-${cleanNum}-rejected`);
+      saveDeletedNotificationId(`farmer-notif-${cleanNum}-declined`);
+      saveDeletedNotificationId(`farmer-notif-${cleanNum}-cancelled`);
+    }
+    localStorage.setItem('agrishield_deleted_booking_ids', JSON.stringify(list));
+  } catch (e) {}
+};
+

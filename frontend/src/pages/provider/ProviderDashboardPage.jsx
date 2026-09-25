@@ -45,11 +45,14 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/index';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
-import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 import {
   CANONICAL_STARTER_FLEET,
   deduplicateEquipment,
-  deduplicateBookings
+  deduplicateBookings,
+  getDeletedEquipmentIds,
+  saveDeletedEquipmentId,
+  getDeletedBookingIds,
+  saveDeletedBookingId
 } from '../../utils/equipmentDeduplication';
 
 // Concept 2 Clean Studio Machinery Image Resolver
@@ -212,22 +215,22 @@ export default function ProviderDashboardPage() {
     );
   };
 
-  // ── Fleet Inventory State (Saved to localStorage with Zero Duplicates) ──
+  // ── Fleet Inventory State (Saved to localStorage with Zero Duplicates & Blacklist Protection) ──
   const [fleetList, setFleetList] = useState(() => {
     try {
       const saved = localStorage.getItem('agrishield_provider_fleet_inventory');
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return deduplicateEquipment(parsed);
+        if (Array.isArray(parsed)) {
+          return deduplicateEquipment(parsed, getDeletedEquipmentIds());
         }
       }
     } catch (e) {}
-    return CANONICAL_STARTER_FLEET;
+    return deduplicateEquipment(CANONICAL_STARTER_FLEET, getDeletedEquipmentIds());
   });
 
   useEffect(() => {
-    const cleanFleet = deduplicateEquipment(fleetList);
+    const cleanFleet = deduplicateEquipment(fleetList, getDeletedEquipmentIds());
     localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanFleet));
     try {
       localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanFleet));
@@ -235,7 +238,7 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
   }, [fleetList]);
 
-  // Sync remote fleet catalog items from backend for cross-device support (With Zero Duplicates)
+  // Sync remote fleet catalog items from backend for cross-device support (With Zero Duplicates & Blacklist Exclusion)
   useEffect(() => {
     const fetchRemoteFleet = async () => {
       try {
@@ -257,7 +260,8 @@ export default function ProviderDashboardPage() {
         }
         const catalogItems = res?.data?.catalog || res?.data?.equipment;
         if (catalogItems && Array.isArray(catalogItems) && catalogItems.length > 0) {
-          setFleetList(prev => deduplicateEquipment([...prev, ...catalogItems]));
+          const deletedEquipIds = getDeletedEquipmentIds();
+          setFleetList(prev => deduplicateEquipment([...prev, ...catalogItems], deletedEquipIds));
         }
       } catch (_) {}
     };
@@ -606,18 +610,70 @@ export default function ProviderDashboardPage() {
     );
   };
 
-  const handleDeleteMachine = (id) => {
-    if (window.confirm('Are you sure you want to remove this equipment from your fleet?')) {
-      const updated = fleetList.filter(m => m.id !== id);
-      setFleetList(updated);
+  // Delete Machinery Confirmation State
+  const [deleteModalMachine, setDeleteModalMachine] = useState(null);
+  const [isDeletingMachine, setIsDeletingMachine] = useState(false);
+
+  const confirmDeleteMachine = async () => {
+    if (!deleteModalMachine) return;
+    const targetId = deleteModalMachine.id;
+    const targetTitle = deleteModalMachine.title || 'Farm Machinery';
+    if (!targetId) return;
+
+    setIsDeletingMachine(true);
+
+    // 1. Permanently blacklist machinery ID & title in localStorage
+    saveDeletedEquipmentId(targetId, targetTitle);
+
+    // 2. Remove immediately from local state and localStorage
+    const updated = fleetList.filter(m => m.id !== targetId);
+    setFleetList(updated);
+    try {
+      localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
+      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
+      window.dispatchEvent(new Event('agrishield_equipment_updated'));
+    } catch (e) {}
+
+    // 3. Dispatch DELETE to backend API & Render workers
+    try {
+      let remoteDeleted = false;
       try {
-        localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
-        localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
-        window.dispatchEvent(new Event('agrishield_equipment_updated'));
-      } catch (e) {}
-      // Sync delete with backend
-      API.delete(`/api/v1/equipment/catalog/${id}`).catch(() => {});
-      toast.success('Removed', 'Machinery listing was deleted.');
+        await API.delete(`/api/v1/equipment/catalog/${targetId}`);
+        remoteDeleted = true;
+      } catch (_) {}
+
+      if (!remoteDeleted) {
+        try {
+          await axios.delete(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog/${targetId}`, { timeout: 10000 });
+          remoteDeleted = true;
+        } catch (_) {}
+      }
+
+      if (!remoteDeleted) {
+        try {
+          await axios.delete(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog/${targetId}`, { timeout: 10000 });
+        } catch (_) {}
+      }
+    } catch (err) {
+      console.warn('Backend DELETE machinery warning:', err);
+    } finally {
+      setIsDeletingMachine(false);
+      setDeleteModalMachine(null);
+      toast.success(
+        isTe ? 'యంత్రం తొలగించబడింది' : 'Machinery Removed',
+        isTe
+          ? `${targetTitle} మీ కేటలాగ్ నుండి శాశ్వతంగా తొలగించబడింది.`
+          : `${targetTitle} was permanently deleted from your fleet.`
+      );
+    }
+  };
+
+  const handleDeleteMachine = (machineOrId) => {
+    if (typeof machineOrId === 'object' && machineOrId !== null) {
+      setDeleteModalMachine(machineOrId);
+    } else {
+      const found = fleetList.find(m => m.id === machineOrId);
+      if (found) setDeleteModalMachine(found);
     }
   };
 
@@ -1306,7 +1362,7 @@ export default function ProviderDashboardPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteMachine(machine.id)}
+                      onClick={() => setDeleteModalMachine(machine)}
                       className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
                       title={isTe ? 'యంత్రాన్ని తొలగించండి' : 'Delete Machinery Listing'}
                     >
@@ -2008,6 +2064,92 @@ export default function ProviderDashboardPage() {
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-rose-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {isDeletingBooking ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>{isTe ? 'తొలగిస్తోంది...' : 'Deleting...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{isTe ? 'శాశ్వతంగా తొలగించండి' : 'Delete Permanently'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE MACHINERY CONFIRMATION MODAL ── */}
+      {deleteModalMachine && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0b131f] border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {isTe ? 'యంత్రాన్ని తొలగించాలా?' : 'Delete Machinery Listing?'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    ID: {deleteModalMachine.id}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteModalMachine(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs space-y-1.5">
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'పేరు:' : 'Equipment:'}</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {deleteModalMachine.title}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'విభాగం:' : 'Category:'}</span>
+                <span className="font-bold capitalize text-slate-900 dark:text-white">
+                  {deleteModalMachine.category || 'Tractor'}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'ధర:' : 'Rental Rate:'}</span>
+                <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                  ₹{deleteModalMachine.ratePerAcre || deleteModalMachine.hourlyRate || 800} / {deleteModalMachine.ratePerAcre ? (isTe ? 'ఎకరాకు' : 'Acre') : 'hr'}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              {isTe
+                ? 'ఈ యంత్రం మీ ఫ్లీట్ మరియు మార్కెట్‌ప్లేస్ నుండి శాశ్వతంగా తొలగించబడుతుంది. రైతులు దీనిని ఇకపై బుక్ చేయలేరు.'
+                : 'This machinery will be permanently removed from your fleet and marketplace catalog. Farmers will no longer see or book this machine.'}
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalMachine(null)}
+                disabled={isDeletingMachine}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                {isTe ? 'రద్దు చేయండి' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteMachine}
+                disabled={isDeletingMachine}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-rose-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeletingMachine ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>{isTe ? 'తొలగిస్తోంది...' : 'Deleting...'}</span>

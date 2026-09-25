@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v294) - Permanent Machinery, Notification, and Voucher Deletion Architecture Across Farmer & Provider Portals
+- **Summary:**
+  1. 🛡️ **Persistent Deletion Blacklist Utilities (`equipmentDeduplication.js`):**
+     - Introduced persistent deletion blacklist functions (`getDeletedEquipmentIds()`, `saveDeletedEquipmentId()`, `getDeletedNotificationIds()`, `saveDeletedNotificationId()`, `getDeletedBookingIds()`, and `saveDeletedBookingId()`).
+     - Blacklisting saves both full IDs and clean numeric IDs (`BK-XXXXX` and `XXXXX`) as well as normalized title tags (`title_${normalized}`).
+     - Updated `deduplicateEquipment()` to automatically filter out any equipment matching the deleted equipment blacklist.
+     - Linked `saveDeletedBookingId()` so that deleting any booking order immediately cascades and purges corresponding notifications (`notif-${id}`, `farmer-notif-${id}-*`).
+  2. 🚜 **Provider Machinery Deletion Confirmation & Remote Sync (`ProviderDashboardPage.jsx`):**
+     - Upgraded machinery deletion from `window.confirm` to a modern confirmation modal (`deleteModalMachine`) displaying machine name, category, and rental rate.
+     - Executed 3-stage permanent deletion: (a) immediate blacklist in `agrishield_deleted_equipment_ids`, (b) instant removal from `fleetList` and `localStorage`, and (c) remote `DELETE` to `/api/v1/equipment/catalog/${id}` and Render workers.
+     - Updated `fleetList` initial state and `fetchRemoteFleet()` to filter incoming server catalog items against the deleted equipment blacklist so deleted machinery never resurrects.
+  3. 🔔 **Permanent Notification & Inbox Clearing System (`NotificationsPage.jsx`):**
+     - Integrated `getDeletedNotificationIds()` and `saveDeletedNotificationId()` into both individual deletion (`handleDelete`) and bulk clearing (`handleClear`).
+     - Guarded `fetchNotifications()` across server notifications, local notifications, provider booking synthesizers, and farmer decision synthesizers with the deleted notifications blacklist.
+     - Deleting a notification or clearing the inbox permanently prevents recurring background tasks and synthesizers from repopulating the item.
+  4. 📋 **Universal Booking Voucher Deletion (`EquipmentBookingPage.jsx`):**
+     - Provided a direct Trash2 delete button across all booking statuses (including pending and confirmed bookings), enabling farmers to permanently purge vouchers from any tab.
+     - Standardized `EquipmentBookingPage.jsx` on canonical `getDeletedBookingIds` and `saveDeletedBookingId` from `equipmentDeduplication.js`.
+- **Files modified:** `frontend/src/utils/equipmentDeduplication.js`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `changes_happening.md`.
+
 ## 2026-09-26 (v293) - Real Two-Way Machinery Messenger Architecture & Cross-Profile Booking Notification Stream
 - **Summary:**
   1. 🧹 **Purged Automatic Mock Messages & Voice Notes (`GoogleMessageReader.jsx`):**

@@ -17,6 +17,7 @@ import { timeAgo, formatDateTime, parseServerDate } from '../../utils/dateUtils'
 import { useTranslation } from 'react-i18next';
 import { translateNotification } from '../../utils/notificationTranslator';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
+import { getDeletedNotificationIds, saveDeletedNotificationId } from '../../utils/equipmentDeduplication';
 
 // ── Dynamic Crop Extraction & Localization Helper ──
 function extractCropInfo(item, isTe = false) {
@@ -252,14 +253,20 @@ export default function NotificationsPage() {
       if (priority !== 'All') params.set('priority', priority);
 
       const readIds = getReadIds();
+      const deletedNotifIds = getDeletedNotificationIds();
 
       let serverNotifs = [];
       try {
         const res = await API.get(`/api/v1/notifications?${params}`);
-        serverNotifs = (res.data.notifications || []).map(sn => {
-          const sId = sn.notification_id || sn.id || sn._id;
-          return (readIds.has(sId) || readIds.has(String(sId))) ? { ...sn, read: true } : sn;
-        });
+        serverNotifs = (res.data.notifications || [])
+          .filter(sn => {
+            const sId = sn.notification_id || sn.id || sn._id;
+            return !deletedNotifIds.has(sId) && !deletedNotifIds.has(String(sId));
+          })
+          .map(sn => {
+            const sId = sn.notification_id || sn.id || sn._id;
+            return (readIds.has(sId) || readIds.has(String(sId))) ? { ...sn, read: true } : sn;
+          });
       } catch (err) {
         console.warn("Could not fetch remote notifications, falling back to local:", err);
       }
@@ -292,6 +299,15 @@ export default function NotificationsPage() {
             });
           }
 
+          // Purge any notification that was deleted by the user
+          localNotifs = localNotifs.filter(n => {
+            const nId = n.notification_id || n.id;
+            const bId = n.booking_id;
+            if (deletedNotifIds.has(nId) || deletedNotifIds.has(String(nId))) return false;
+            if (bId && (deletedNotifIds.has(`notif-${bId}`) || deletedNotifIds.has(bId) || deletedNotifIds.has(`farmer-notif-${bId}-confirmed`))) return false;
+            return true;
+          });
+
           localNotifs = localNotifs.map(ln => {
             const lId = ln.notification_id || ln.id || ln.booking_id;
             const isRead = readIds.has(lId) || (ln.booking_id && (readIds.has(`booking-${ln.booking_id}`) || readIds.has(ln.booking_id)));
@@ -300,7 +316,7 @@ export default function NotificationsPage() {
         }
       } catch (e) {}
 
-      // If equipment provider, synthesize notifications from recorded machinery bookings
+      // If equipment provider, synthesize notifications from recorded machinery bookings (With Blacklist Protection)
       if (isEquipmentProvider) {
         try {
           let bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]')
@@ -326,6 +342,11 @@ export default function NotificationsPage() {
           if (Array.isArray(bookings)) {
             bookings.forEach((b) => {
               const bId = b.id || `BK-${Math.floor(10000 + Math.random() * 90000)}`;
+              const notifKey = `notif-${bId}`;
+              // Permanent Blacklist check: never resurrect if deleted by provider
+              if (deletedNotifIds.has(notifKey) || deletedNotifIds.has(bId) || deletedNotifIds.has(`BK-${bId}`)) {
+                return;
+              }
               const alreadyExists = localNotifs.some(n => n.booking_id === bId || n.id === `notif-${bId}` || n.notification_id === `notif-${bId}`);
               const isAlreadyRead = readIds.has(`notif-${bId}`) || readIds.has(bId) || readIds.has(`booking-${bId}`) || b.status === 'completed';
               if (!alreadyExists) {
@@ -357,7 +378,7 @@ export default function NotificationsPage() {
         } catch (e) {}
       }
 
-      // If farmer, synthesize notifications ONLY for provider Accept or Decline status decisions
+      // If farmer, synthesize notifications ONLY for provider Accept or Decline status decisions (With Blacklist Protection)
       if (!isEquipmentProvider) {
         try {
           let bRes = await API.get('/api/v1/equipment/bookings');
@@ -369,6 +390,10 @@ export default function NotificationsPage() {
               if (b && (b.status === 'rejected' || b.status === 'declined' || b.status === 'confirmed')) {
                 const bId = b.id || b.bookingId;
                 const notifKey = `farmer-notif-${bId}-${b.status}`;
+                // Permanent Blacklist check: never resurrect if deleted by farmer
+                if (deletedNotifIds.has(notifKey) || deletedNotifIds.has(`farmer-notif-${bId}`) || deletedNotifIds.has(bId) || deletedNotifIds.has(`BK-${bId}`)) {
+                  return;
+                }
                 const alreadyExists = localNotifs.some(n => n.id === notifKey || n.notification_id === notifKey);
                 const isAlreadyRead = readIds.has(notifKey) ||
                                      readIds.has(bId) ||
@@ -526,15 +551,18 @@ export default function NotificationsPage() {
   const handleDelete = async (id, e) => {
     if (e) e.stopPropagation();
     try {
+      // 1. Permanently blacklist this notification ID so background fetch & synthesis never resurrect it
+      saveDeletedNotificationId(id);
+
       await API.delete(`/api/v1/notifications/${id}`).catch(() => {});
-      setNotifications(prev => prev.filter(n => n.notification_id !== id && n.id !== id));
+      setNotifications(prev => prev.filter(n => n.notification_id !== id && n.id !== id && n.booking_id !== id));
       setTotal(t => Math.max(0, t - 1));
       try {
         const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.filter(n => n.notification_id !== id && n.id !== id)));
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.filter(n => n.notification_id !== id && n.id !== id && n.booking_id !== id)));
       } catch (e) {}
       if (selectedMessage?.notification_id === id || selectedMessage?.id === id) setSelectedMessage(null);
-      setToastMsg(t('notifications_page.toast.deleted', 'Notification deleted.'));
+      setToastMsg(isTe ? 'సందేశం తొలగించబడింది.' : t('notifications_page.toast.deleted', 'Notification deleted.'));
     } catch {
       setToastMsg(t('notifications_page.toast.delete_failed', 'Failed to delete notification.'));
     }
@@ -595,13 +623,23 @@ export default function NotificationsPage() {
   };
 
   const handleClear = async () => {
-    if (!window.confirm(t('notifications_page.confirm_clear', 'Clear all messages and notifications?'))) return;
+    if (!window.confirm(isTe ? 'అన్ని సందేశాలు మరియు నోటిఫికేషన్‌లను ఖాళీ చేయాలా?' : t('notifications_page.confirm_clear', 'Clear all messages and notifications?'))) return;
     try {
-      await API.delete('/api/v1/notifications/clear');
+      // 1. Permanently blacklist all current notification IDs so background synthesis never resurrects them
+      notifications.forEach(n => {
+        const nId = n.notification_id || n.id || n.booking_id;
+        if (nId) saveDeletedNotificationId(nId);
+      });
+
+      await API.delete('/api/v1/notifications/clear').catch(() => {});
+      await API.delete('/api/notifications/clear').catch(() => {});
       setNotifications([]);
       setTotal(0);
       setSelectedMessage(null);
-      setToastMsg(t('notifications_page.toast.inbox_cleared', 'Inbox cleared.'));
+      try {
+        localStorage.removeItem('agrishield_user_notifications');
+      } catch (e) {}
+      setToastMsg(isTe ? 'ఇన్‌బాక్స్ క్లియర్ చేయబడింది.' : t('notifications_page.toast.inbox_cleared', 'Inbox cleared.'));
     } catch {
       setToastMsg(t('notifications_page.toast.clear_failed', 'Failed to clear notifications.'));
     }

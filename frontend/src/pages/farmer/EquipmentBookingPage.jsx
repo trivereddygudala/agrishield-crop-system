@@ -56,7 +56,9 @@ import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 import {
   CANONICAL_STARTER_FLEET,
   deduplicateEquipment,
-  deduplicateBookings
+  deduplicateBookings,
+  getDeletedBookingIds,
+  saveDeletedBookingId
 } from '../../utils/equipmentDeduplication';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -177,26 +179,7 @@ export default function EquipmentBookingPage() {
     };
   }, [loadMergedEquipment]);
 
-  // Persistent Blacklist for Deleted Vouchers (guarantees deleted bookings are never resurrected by background polling)
-  const getDeletedBookingIds = useCallback(() => {
-    try {
-      const raw = localStorage.getItem('agrishield_deleted_booking_ids');
-      return new Set(raw ? JSON.parse(raw) : []);
-    } catch (e) {
-      return new Set();
-    }
-  }, []);
-
-  const saveDeletedBookingId = useCallback((bookingId) => {
-    try {
-      const raw = localStorage.getItem('agrishield_deleted_booking_ids');
-      const list = raw ? JSON.parse(raw) : [];
-      if (!list.includes(String(bookingId))) {
-        list.push(String(bookingId));
-        localStorage.setItem('agrishield_deleted_booking_ids', JSON.stringify(list));
-      }
-    } catch (e) {}
-  }, []);
+  // Canonical Blacklist for Deleted Vouchers (guarantees deleted bookings are never resurrected by background polling)
 
   // 100% Real User Bookings with LocalStorage sync (Zero Duplicates & Zero Mock Data)
   const [myBookings, setMyBookings] = useState(() => {
@@ -1532,18 +1515,28 @@ export default function EquipmentBookingPage() {
                         {/* Secondary Context Actions: Cancel, Re-Book, Delete, Farm Khata */}
                         <div className="flex items-center justify-between gap-1.5 pt-1">
                           {(isPending || isConfirmed) && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCancelModalBooking(b);
-                                setCancelReasonKey('weather');
-                                setCustomCancelReason('');
-                              }}
-                              className="w-full flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs font-bold transition-all cursor-pointer"
-                            >
-                              <Ban className="w-3 h-3 text-rose-600" />
-                              <span>{isTe ? 'బుకింగ్ రద్దు చేయండి' : 'Cancel Booking'}</span>
-                            </button>
+                            <div className="flex items-center gap-1.5 w-full">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCancelModalBooking(b);
+                                  setCancelReasonKey('weather');
+                                  setCustomCancelReason('');
+                                }}
+                                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs font-bold transition-all cursor-pointer"
+                              >
+                                <Ban className="w-3 h-3 text-rose-600" />
+                                <span>{isTe ? 'బుకింగ్ రద్దు చేయండి' : 'Cancel Booking'}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteModalBooking(b)}
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/50 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all cursor-pointer"
+                                title={isTe ? 'రసీదు తొలగించండి' : 'Delete Voucher'}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           )}
 
                           {(isCompleted || isCancelled || isDeclined) && (
