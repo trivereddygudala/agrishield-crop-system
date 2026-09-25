@@ -5446,4 +5446,23 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
 - **Production Validation:**
   - Ran `npm run build`: 3,169 modules transformed, built with 0 errors in 40.85s.
 
+9/25/2026: Complete Removal of "+ More" Button & Harmonious Color Overhaul for Scan Language Buttons (v278):
+- **Complete Elimination of "+ More" Button (`ScanLanguageBar.jsx`):**
+  - Removed the `+ More (11)` dropdown expander, the 350-line popover search dropdown, and all extraneous modal code entirely.
+  - Reduced `ScanLanguageBar.js` chunk size from 8.53 kB to 2.49 kB (70% smaller and faster).
+  - The bar now strictly and cleanly displays ONLY the 1, 2, or 3 preferred language buttons chosen by the user in their Profile.
+- **Removed Duplicate Ghost Language Badge (`ScanLanguageBar.jsx`):**
+  - Eliminated the redundant left active language badge (`🌐 : [ 🌾 తెలుగు ]`) that appeared beside the active language button and created the appearance of a duplicate pale button.
+- **Harmonious Adaptive Colors (`ScanLanguageBar.jsx`):**
+  - Replaced jarring dark charcoal backgrounds (`bg-slate-800/80` on white cards) with adaptive, theme-consistent styles:
+    - **Active Button:** Vibrant emerald-500 with high-contrast text (`bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black border border-emerald-400 shadow-xs`).
+    - **Inactive Buttons:** Clean soft light slate in light mode (`bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-250`) and slate-800 in dark mode (`dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700`).
+- **Standardized Across All 3 Modules:**
+  - **Disease Detection Results (`DiseaseDiagnosisResults.jsx`):** Renders clean, matching 1-3 pills beside the Share button with zero duplicate badges and zero "+ More" button.
+  - **Plant & Weed Identification (`PlantIdResults.jsx`):** Wrapped in an adaptive responsive card matching the botanical profile aesthetic.
+  - **Agrochemical Scanner Results (`AgrochemicalResults.jsx`):** Implemented `renderLanguageSwitcher` card seamlessly integrated into the product analysis flow.
+- **Production Build Validation:**
+  - Built with `npm run build`: 3,169 modules transformed, 0 errors in 25.86s.
+
+
 

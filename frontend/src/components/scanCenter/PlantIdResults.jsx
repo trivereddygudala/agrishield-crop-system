@@ -1030,13 +1030,15 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
 
   // ==================== CARD 2: QUICK LANGUAGE SWITCHER BAR ====================
   const renderLanguageSwitcher = () => (
-    <ScanLanguageBar
-      activeLang={activeLang}
-      onLanguageSelect={handleLanguageSelect}
-      isTranslating={isTranslating}
-      label={locUI.switchLanguage || 'Identification Language'}
-      className="bg-slate-900/95 border-emerald-500/30"
-    />
+    <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between gap-3 flex-wrap">
+      <ScanLanguageBar
+        activeLang={activeLang}
+        onLanguageSelect={handleLanguageSelect}
+        isTranslating={isTranslating}
+        label={locUI.switchLanguage || 'Identification Language'}
+        className="w-full justify-between sm:justify-start"
+      />
+    </div>
   );
 
   // ==================== CARD 3: SECTION 1 (PLANT CLASSIFICATION) ====================

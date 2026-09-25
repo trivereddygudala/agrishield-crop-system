@@ -292,13 +292,15 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     : `${productDetails.brand_name}, Category: ${categoryMeta.type}, by ${productDetails.company}. Active ingredient: ${productDetails.active_ingredient}. Recommended dilution: ${userInstructions.dilution_rate_per_litre}.`;
 
   const renderLanguageSwitcher = () => (
-    <ScanLanguageBar
-      activeLang={activeLang}
-      onLanguageSelect={handleLanguageSelect}
-      isTranslating={isTranslating}
-      label="Advisory Language"
-      className="bg-slate-900/95 border-indigo-500/30"
-    />
+    <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between gap-3 flex-wrap">
+      <ScanLanguageBar
+        activeLang={activeLang}
+        onLanguageSelect={handleLanguageSelect}
+        isTranslating={isTranslating}
+        label={activeLang === 'te' ? 'భాషను మార్చండి' : activeLang === 'hi' ? 'भाषा बदलें' : 'Advisory Language'}
+        className="w-full justify-between sm:justify-start"
+      />
+    </div>
   );
 
   const renderAgroHero = () => (
