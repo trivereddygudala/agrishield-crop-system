@@ -83,6 +83,22 @@ export default function LanguagesPage() {
             </p>
           </div>
         </div>
+
+        {/* Quick Setup Callout */}
+        <div className="mt-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+            <p className="text-xs text-slate-700 dark:text-emerald-200">
+              Want 1-tap quick buttons in your top header and scan results? Choose your top 1 to 3 preferred languages in your Profile.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/profile?tab=languages')}
+            className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
+          >
+            Configure 1-3 Languages →
+          </button>
+        </div>
       </div>
 
       {/* Active Language Status Card */}

@@ -65,6 +65,7 @@ import { useHardwareMode } from '../hooks/useHardwareMode';
 import API from '../services/api';
 import Breadcrumbs from './Breadcrumbs';
 import LogoutOverlay from './animations/LogoutOverlay';
+import { SUPPORTED_LANGUAGES } from '../data/languages';
 
 // Import primitive UI helpers for backwards compatibility
 import { 
@@ -229,6 +230,43 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     const activeLang = i18n.language ? i18n.language.split('-')[0] : 'en';
     document.documentElement.lang = activeLang;
   }, [i18n.language]);
+
+  // Strict 1-to-3 Preferred Languages for the whole website
+  const [preferredLanguages, setPreferredLanguages] = useState(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
+      if (Array.isArray(cached) && cached.length > 0) return cached.slice(0, 3);
+    } catch (_) {}
+    if (user?.preferred_languages && Array.isArray(user.preferred_languages) && user.preferred_languages.length > 0) {
+      return user.preferred_languages.slice(0, 3);
+    }
+    return ['te', 'en'];
+  });
+
+  useEffect(() => {
+    const handlePrefChange = (e) => {
+      if (e?.detail?.languages && Array.isArray(e.detail.languages) && e.detail.languages.length > 0) {
+        setPreferredLanguages(e.detail.languages.slice(0, 3));
+      } else {
+        try {
+          const cached = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
+          if (Array.isArray(cached) && cached.length > 0) setPreferredLanguages(cached.slice(0, 3));
+        } catch (_) {}
+      }
+    };
+    window.addEventListener('agrishield-preferred-languages-updated', handlePrefChange);
+    return () => window.removeEventListener('agrishield-preferred-languages-updated', handlePrefChange);
+  }, []);
+
+  const handleSiteLanguageChange = (langCode) => {
+    const clean = (langCode || 'en').split('-')[0].toLowerCase();
+    i18n.changeLanguage(clean);
+    localStorage.setItem('i18nextLng', clean);
+    if (user && updateProfile) {
+      updateProfile({ preferred_language: clean }).catch(() => {});
+    }
+    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: clean } }));
+  };
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
@@ -684,37 +722,45 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 <span className="tabular-nums tracking-wide">{currentTime || '--:--:--'}</span>
               </div>
 
-              {/* Global Language Selector - Hidden on smaller screens */}
-              <div className="hidden xl:flex items-center gap-1 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
-                <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <select
-                  value={i18n.language ? i18n.language.split('-')[0] : 'en'}
-                  onChange={(e) => {
-                    const lang = e.target.value;
-                    i18n.changeLanguage(lang);
-                    localStorage.setItem('i18nextLng', lang);
-                    if (user && updateProfile) {
-                      updateProfile({ preferred_language: lang }).catch(() => {});
-                    }
-                    window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: lang } }));
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer max-w-[70px] sm:max-w-none"
-                  aria-label="Select Application Language"
+              {/* Strict 1-to-3 Preferred Languages Site-Wide Quick Switcher Bar */}
+              <div className="flex items-center gap-1 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 shadow-xs">
+                {preferredLanguages.map((code) => {
+                  const langObj = SUPPORTED_LANGUAGES.find(l => l.code.toLowerCase() === code.toLowerCase()) || {
+                    code,
+                    name: code,
+                    nativeName: code.toUpperCase(),
+                    flag: '🌾'
+                  };
+                  const currentActive = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
+                  const isSelected = currentActive === code.toLowerCase();
+
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => handleSiteLanguageChange(code)}
+                      title={`Switch entire website to ${langObj.name} (${langObj.nativeName})`}
+                      className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-xs border border-emerald-400 scale-[1.02]'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                      }`}
+                    >
+                      <span>{langObj.flag}</span>
+                      <span className="hidden sm:inline font-extrabold">{langObj.nativeName}</span>
+                      <span className="sm:hidden font-black uppercase text-[10px]">{code}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Direct shortcut to configure 1-3 languages in Profile */}
+                <Link
+                  to="/profile?tab=languages"
+                  title="Configure Preferred Languages (1-3) in Profile"
+                  className="p-1 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors ml-0.5"
                 >
-                  <option value="en" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">EN</option>
-                  <option value="hi" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">हिन्दी</option>
-                  <option value="te" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">తెలుగు</option>
-                  <option value="ta" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">தமிழ்</option>
-                  <option value="kn" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ಕನ್ನಡ</option>
-                  <option value="ml" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">മലയാളം</option>
-                  <option value="bn" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">বাংলা</option>
-                  <option value="mr" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">मराठी</option>
-                  <option value="gu" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ગુજરાતી</option>
-                  <option value="pa" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ਪੰਜਾਬੀ</option>
-                  <option value="ur" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">اردو</option>
-                  <option value="or" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ଓଡ଼ିଆ</option>
-                  <option value="as" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">অসমীয়া</option>
-                </select>
+                  <SettingsIcon className="w-3.5 h-3.5" />
+                </Link>
               </div>
 
 

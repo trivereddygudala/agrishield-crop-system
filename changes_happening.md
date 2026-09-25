@@ -5434,3 +5434,16 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
 - **Production Build Validation:**
   - Ran `npm run build`: 3,169 modules transformed, built with 0 errors in 36.04s.
 
+9/25/2026: Site-Wide Strict 1-to-3 Preferred Languages Quick-Switch in Top Navbar (v277):
+- **Site-Wide Top Navbar Quick Switcher (`AppLayout.jsx`):**
+  - Replaced the clunky, desktop-only 13-language dropdown with a dynamic 1-tap pill switcher containing STRICTLY the 1, 2, or 3 languages configured in the user's Profile (`preferredLanguages`).
+  - Added live cross-tab listener for `agrishield-preferred-languages-updated` so changes made in the Profile Languages tab instantly update the top Navbar in real-time.
+  - Implemented 1-tap `handleSiteLanguageChange` triggering `i18n.changeLanguage()`, `localStorage`, backend profile sync, and `agrishield-language-changed` event.
+  - Displayed regional language flags and native names on desktop (`🌾 తెలుగు`, `🌐 English`, `🇮🇳 हिंदी`) with responsive short tags (`TE`, `EN`, `HI`) on mobile/tablet.
+  - Added direct `⚙️` shortcut linking straight to `/profile?tab=languages` so farmers can modify their 1–3 preferred languages at any time.
+- **Languages Hub Callout Integration (`LanguagesPage.jsx`):**
+  - Added prominent callout banner in `/languages` with direct navigation button to `/profile?tab=languages` to guide farmers to their 1-to-3 quick button setup.
+- **Production Validation:**
+  - Ran `npm run build`: 3,169 modules transformed, built with 0 errors in 40.85s.
+
+
