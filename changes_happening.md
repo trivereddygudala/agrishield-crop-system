@@ -2,6 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v254) - Field Tab Complete Overhaul: Removed Unneeded Academic Modules, Picture 2 Cleaned, & Picture 1 Grid Redesign
+- **Summary:** Overhauled the Farmer Portal Field Tab (`FarmPage.jsx`) per ground-truth farmer feedback and user request:
+  1. 🗑️ **Completely Removed Picture 2 (Redundant Header Block):**
+     - Removed the entire duplicate header block with redundant field title, dashed `+ Add New Field` button, giant `Save All Changes` button, and lengthy instructional subtext. Adding new fields is managed cleanly in "My Fields & Sectors".
+  2. 📐 **Perfect Alignment of Picture 3 (Hero Banner & 3 Metric Cards):**
+     - Eliminated `-mt-3` and card clipping inside `overflow-hidden`.
+     - Standardized the 3 white metric boxes (`CROP`, `STAGE`, `LAND`) with equal height, flex layout, uppercase labels, primary values, and dedicated bottom status pills.
+     - Enhanced Quick Action buttons (`Crop Details`, `AI Scan`, `History`) with clean spacing.
+  3. ❌ **Removed 4 Theoretical / Impractical Features:**
+     - Removed **Satellite NDVI Biomass Heatmap** (`satellite-ndvi`).
+     - Removed **Nearby Fields Spore Radar Animation** (`nearby-radar`, `radar-studio`).
+     - Removed **ET₀ Scientific Water Deficit Evapotranspiration Scheduler** (`smart-irrigation`).
+     - Removed **Micro-GPS Boundary Polygon Drawer** (`boundary-studio`, `FieldBoundaryMap`).
+  4. 📦 **Redesigned Remaining 8 Modules into 2-Column Boxes (Picture 1 Style):**
+     - Designed responsive 2-column grid (`grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4`).
+     - Each card box features a rounded 3xl container, custom icon thumbnail with tinted background, chevron indicator in a pill, bold title, and clean 2-line description:
+       - 🌾 **My Fields & Sectors** (`my-fields`)
+       - ⚙️ **Field Setup & Crops** (`field-setup`)
+       - 💰 **Digital Farm Khata** (`farm-khata`)
+       - 💊 **Fertilizer & NPK Calculator** (`soil-npk`)
+       - 🌱 **Crop Timeline & Tasks** (`crop-lifecycle`)
+       - 🌦️ **Rain & Spray Advisor** (`farm-intelligence`)
+       - 🏛️ **Govt Schemes & Subsidies** (`government-schemes`)
+       - 📱 **WhatsApp Crop Doctor** (`whatsapp-diagnosis`)
+  5. ⚡ **Performance:** Reduced `FarmPage` bundle size from 174 kB to 119 kB (-31.5%). Verified with 0 errors on production build.
+- **Files modified**: `frontend/src/pages/farmer/FarmPage.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v253) - Comprehensive Farmer Profile Upgrades & Farmer Portal Error Resolution
 - **Summary:** Upgraded the Farmer Profile with full agronomic, land tenure, soil, irrigation, and Kisan identification attributes; fixed provider role bleeding in DashboardPage; and enabled backend persistence in schemas and auth routes:
   1. 🌾 **Farmer Profile Upgrades (`frontend/src/pages/common/ProfilePage.jsx`):**

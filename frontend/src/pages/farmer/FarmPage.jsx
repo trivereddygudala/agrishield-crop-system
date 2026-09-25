@@ -15,15 +15,11 @@ import { INDIA_STATES, getDistricts, getMandals, getVillages, getCoordinatesForL
 import { getSoilOptions, getLocalizedSoilName, SOIL_TYPES_DATABASE } from '../../data/indiaSoilTypes';
 import { useTranslation } from 'react-i18next';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
-import NearbyFieldsRadar from '../../components/intelligence/NearbyFieldsRadar';
-import FieldBoundaryMap from '../../components/farm/FieldBoundaryMap';
 import FarmRoutineWidget from '../../components/intelligence/FarmRoutineWidget';
 import LiveWeatherWidget from '../../components/intelligence/LiveWeatherWidget';
 import SprayAdvisorWidget from '../../components/intelligence/SprayAdvisorWidget';
 import SoilNPKCalculatorModal from '../../components/farm/SoilNPKCalculatorModal';
-import SatelliteNDVIViewer from '../../components/farm/SatelliteNDVIViewer';
 import DigitalFarmKhata from '../../components/farm/DigitalFarmKhata';
-import SmartIrrigationScheduler from '../../components/farm/SmartIrrigationScheduler';
 import GovernmentSchemeNavigator from '../../components/farm/GovernmentSchemeNavigator';
 import WhatsAppDiagnosisHub from '../../components/farm/WhatsAppDiagnosisHub';
 import CropGrowthTimeline from '../../components/farm/CropGrowthTimeline';
@@ -254,71 +250,61 @@ const FarmPage = () => {
   const FIELD_MODULES = [
     { 
       id: 'my-fields', 
-      title: isTe ? 'నా రిజిస్టర్డ్ పొలాలు' : 'My Fields & Sectors', 
+      title: isTe ? 'నా పొలాలు & రంగాలు' : 'My Fields & Sectors', 
       subtitle: isTe 
-        ? `${farms.length} రిజిస్టర్డ్ పొలాల జాబితా, క్రియాశీల మార్పిడి & నిర్వహణ` 
-        : `Switch between & manage all ${farms.length} registered field sectors`,
-      action: 'inline'
+        ? `${farms.length} రిజిస్టర్డ్ పొలాల జాబితా, క్రియాశీల మార్పిడి & కొత్త పొలం జోడించండి` 
+        : `Switch between & manage all ${farms.length} registered field sectors or add a new field`,
+      icon: '🌾',
+      bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     },
     { 
       id: 'field-setup', 
-      title: isTe ? 'పొలం సెటప్ & లొకేషన్' : 'Field Setup & Location', 
-      subtitle: isTe ? 'ఎకరాలు, సరిహద్దు పిన్స్, నేల రకం, GPS' : 'Acreage, boundary pins, soil type, GPS',
-      action: 'inline'
+      title: isTe ? 'పొలం సెటప్ & సమాచారం' : 'Field Setup & Crops', 
+      subtitle: isTe ? 'పంట పేరు, రకం, నాట్లు తేదీ, ఎకరాలు, నేల రకం & నీటి వనరు' : 'Crop variety, planting date, acreage, soil classification & irrigation source',
+      icon: '⚙️',
+      bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
     },
     { 
       id: 'farm-khata', 
-      title: isTe ? 'డిజిటల్ పొలం ఖాతా & పాస్‌బుక్' : 'Digital Farm Khata & Passbook', 
-      subtitle: isTe ? 'ఖర్చులు, దిగుబడి అమ్మకాలు, ఎకరాకు నికర లాభం & వాట్సాప్ లెడ్జర్' : 'Cultivation expenses, harvest sales, net profit/acre & WhatsApp report',
-      action: 'inline'
-    },
-    { 
-      id: 'crop-lifecycle', 
-      title: isTe ? 'పంట దశల టైమ్‌లైన్ & పనుల క్యాలెండర్' : 'Crop Growth Timeline & Tasks', 
-      subtitle: isTe ? 'విత్తిన తర్వాత రోజులు (DAS), దశల ప్రగతి & వారపు పనుల చెక్‌లిస్ట్' : 'Days after sowing (DAS), stage milestones & weekly actionable tasks',
-      action: 'inline'
-    },
-    { 
-      id: 'smart-irrigation', 
-      title: isTe ? 'స్మార్ట్ నీటి పారుదల & ET₀ మోటార్ షెడ్యూలర్' : 'Smart Irrigation & ET₀ Scheduler', 
-      subtitle: isTe ? 'ఉపగ్రహ బాష్పోత్సేకం, నేల తేమ లోటు & డ్రిప్ మోటార్ రన్-టైమ్' : 'Live satellite evapotranspiration, soil deficit & drip pump run-time',
-      action: 'inline'
-    },
-    { 
-      id: 'government-schemes', 
-      title: isTe ? 'ప్రభుత్వ పథకాలు & రాయితీల నావిగేటర్' : 'Govt Schemes & Subsidy Navigator', 
-      subtitle: isTe ? 'పీఎం కిసాన్, రైతు భరోసా, 90% డ్రిప్ సబ్సిడీ & పంట బీమా' : 'PM-Kisan, Rythu Bharosa, 90% Drip subsidy & crop insurance claims',
-      action: 'inline'
-    },
-    { 
-      id: 'whatsapp-diagnosis', 
-      title: isTe ? 'వాట్సాప్ ఫోటో వ్యాధి నిర్ధారణ బాట్' : 'WhatsApp Bot Photo Diagnosis', 
-      subtitle: isTe ? 'ఫోన్ నంబర్‌కు ఆకు ఫోటో పంపి తక్షణమే తెలుగు వాయిస్ సలహా పొందండి' : 'Send leaf photo on WhatsApp for instant AI diagnosis & voice note',
-      action: 'inline'
-    },
-    { 
-      id: 'satellite-ndvi', 
-      title: isTe ? 'ఉపగ్రహ NDVI పంట ఆరోగ్యం & బయోమాస్' : 'Satellite NDVI & Biomass Heatmap', 
-      subtitle: isTe ? 'Sentinel-2 ప్రత్యక్ష ఉపగ్రహ విశ్లేషణ, క్లోరోఫిల్ & జిల్లా హీట్‌మ్యాప్' : 'Sentinel-2 multispectral pass, chlorophyll & district heatmap',
-      action: 'inline'
+      title: isTe ? 'డిజిటల్ పొలం ఖాతా & పాస్‌బుక్' : 'Digital Farm Khata', 
+      subtitle: isTe ? 'సాగు ఖర్చులు, దిగుబడి అమ్మకాలు, ఎకరాకు నికర లాభం & వాట్సాప్ లెడ్జర్' : 'Track cultivation expenses, harvest sales & net profit per acre with WhatsApp ledger',
+      icon: '💰',
+      bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
     },
     { 
       id: 'soil-npk', 
-      title: isTe ? 'నేల ఆరోగ్యం & NPK ఎరువుల కాలిక్యులేటర్' : 'Soil Health & NPK Calculator', 
-      subtitle: isTe ? 'ICAR నేల రకాలు, యూరియా/DAP/MOP బస్తాలు & స్ప్రేయర్ మోతాదు' : 'ICAR soil types, Urea/DAP/MOP bag math & foliar spray',
-      action: 'inline'
+      title: isTe ? 'NPK ఎరువుల కాలిక్యులేటర్' : 'Fertilizer & NPK Calculator', 
+      subtitle: isTe ? 'యూరియా, DAP, పొటాష్ బస్తాల ఖచ్చితమైన లెక్క & స్ప్రే మోతాదు' : 'Exact Urea, DAP & Potash bag recommendations tailored for your acres',
+      icon: '💊',
+      bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
     },
     { 
-      id: 'nearby-radar', 
-      title: isTe ? 'సమీప పొలాలు & వ్యాధి నిఘా రాడార్' : 'Nearby Fields & Disease Radar', 
-      subtitle: isTe ? 'సమీప రైతులు, పంటలు, దూరం & క్రియాశీల వ్యాధి హెచ్చరికలు' : 'Nearby farmers, crops, distance & active disease alerts',
-      action: 'inline'
+      id: 'crop-lifecycle', 
+      title: isTe ? 'పంట దశలు & పనుల క్యాలెండర్' : 'Crop Timeline & Tasks', 
+      subtitle: isTe ? 'విత్తిన తర్వాత రోజులు (DAS), దశల ప్రగతి & వారపు పనుల చెక్‌లిస్ట్' : 'Days after sowing (DAS), stage milestones & weekly actionable tasks',
+      icon: '🌱',
+      bg: 'bg-lime-500/10 text-lime-600 dark:text-lime-400'
     },
     { 
       id: 'farm-intelligence', 
-      title: isTe ? 'వ్యవసాయ ఇంటెలిజెన్స్ & షెడ్యూల్' : 'Farm Intelligence & Routine', 
-      subtitle: isTe ? 'స్వయంప్రతిపత్తి షెడ్యూల్, లైవ్ వాతావరణం & స్ప్రే సలహాదారు' : 'Autonomous routine, live weather & spray advisor',
-      action: 'inline'
+      title: isTe ? 'స్ప్రే సలహాదారు & వాతావరణం' : 'Rain & Spray Advisor', 
+      subtitle: isTe ? 'మందులు పిచికారీ చేయడానికి ముందు లైవ్ వర్షం హెచ్చరిక & సురక్షిత విండో' : 'Live weather forecasts, rain risk window & safe chemical spraying advisor',
+      icon: '🌦️',
+      bg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
+    },
+    { 
+      id: 'government-schemes', 
+      title: isTe ? 'ప్రభుత్వ పథకాలు & సబ్సిడీలు' : 'Govt Schemes & Subsidies', 
+      subtitle: isTe ? 'పీఎం కిసాన్, రైతు భరోసా, 90% డ్రిప్ సబ్సిడీ & పంట బీమా' : 'Direct links, PM-Kisan status, 90% drip subsidy eligibility & crop insurance',
+      icon: '🏛️',
+      bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+    },
+    { 
+      id: 'whatsapp-diagnosis', 
+      title: isTe ? 'వాట్సాప్ పంట డాక్టర్ బాట్' : 'WhatsApp Crop Doctor', 
+      subtitle: isTe ? 'వాట్సాప్‌లో ఆకు ఫోటో పంపి తక్షణమే తెలుగు వాయిస్ సలహా పొందండి' : 'Send crop leaf photo on WhatsApp for instant AI diagnosis and voice note',
+      icon: '📱',
+      bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
     }
   ];
 
@@ -333,125 +319,8 @@ const FarmPage = () => {
     );
   }
 
-  // ═══════ FULL-SCREEN GOOGLE MAPS STUDIO: FIELD BOUNDARY ═══════
-  if (activeTab === 'boundary-studio') {
-    return (
-      <FieldBoundaryMap
-        centerLat={effectiveLat}
-        centerLng={effectiveLng}
-        farmName={farmName || 'My Farm'}
-        cropName={cropName || 'Tomato'}
-        boundaryCoordinates={boundaryCoordinates}
-        onBoundaryChange={(newPins, formattedArea) => {
-          setBoundaryCoordinates(newPins);
-          if (formattedArea && formattedArea.rawAcres > 0) {
-            setFarmSize(formattedArea.acres);
-            if (activeFarm?.id) {
-              saveFarmEdit(activeFarm.id, {
-                farm_size: parseFloat(formattedArea.acres),
-                boundary_coordinates: newPins
-              }).catch(err => console.error('Failed to sync boundary:', err));
-            }
-          }
-        }}
-        isTelugu={isTe}
-        interactive={true}
-        showRadarRings={false}
-        isDedicated={true}
-        onBack={() => setActiveTab('field-setup')}
-        backLabel={isTe ? '← వెనుకకు' : '← Back'}
-      />
-    );
-  }
-
-  // ═══════ FULL-SCREEN GOOGLE MAPS STUDIO: DISEASE RADAR ═══════
-  if (activeTab === 'radar-studio') {
-    return (
-      <FieldBoundaryMap
-        centerLat={effectiveLat}
-        centerLng={effectiveLng}
-        farmName={farmName || 'My Farm'}
-        cropName={cropName || 'Tomato'}
-        boundaryCoordinates={boundaryCoordinates}
-        onBoundaryChange={(newPins, formattedArea) => {
-          setBoundaryCoordinates(newPins);
-          if (formattedArea && formattedArea.rawAcres > 0) {
-            setFarmSize(formattedArea.acres);
-            if (activeFarm?.id) {
-              saveFarmEdit(activeFarm.id, {
-                farm_size: parseFloat(formattedArea.acres),
-                boundary_coordinates: newPins
-              }).catch(err => console.error('Failed to sync boundary:', err));
-            }
-          }
-        }}
-        showRadarRings={true}
-        radarRadius={5}
-        isTelugu={isTe}
-        interactive={true}
-        isDedicated={true}
-        onBack={() => setActiveTab('nearby-radar')}
-        backLabel={isTe ? '← వెనుకకు' : '← Back'}
-      />
-    );
-  }
-
   return (
-    <div className="space-y-6 max-w-5xl mx-auto w-full pb-16">
-      {/* Top Page Header — Rendered on Main Modules Overview */}
-      {activeTab === 'modules' && (
-        <div className="flex flex-col gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <Sprout className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  {activeFarm?.farm_name || t('farm_page.title', 'My Farm')}
-                  {activeFarm?.is_archived && (
-                    <Badge variant="warning">{t('farm_page.archived_badge', 'Archived')}</Badge>
-                  )}
-                </h1>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {farms.length} {farms.length === 1 ? t('farm_page.single_field', 'registered field sector') : t('farm_page.multi_field', 'registered field sectors')}
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-700">•</span>
-                  <Badge variant="outline" className="text-[10px]">
-                    {activeFarm?.crop_name ? `${translateCrop(activeFarm.crop_name, i18n.language)} (${activeFarm.growth_stage || 'Active'})` : t('farm_page.no_crop', 'No Crop Set')}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-              <Button 
-                type="button"
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    await createFarm({ 
-                      farm_name: `${t('farm_page.new_farm_prefix', 'New Farm Sector')} ${farms.length + 1}`,
-                      soil_type: 'red_loamy'
-                    });
-                  } catch (e) { console.error(e); }
-                }} 
-                isLoading={loading} 
-                className="w-full sm:w-auto border-dashed border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
-              >
-                {t('farm_page.add_field', '+ Add New Field')}
-              </Button>
-              <Button onClick={handleSaveFarm} isLoading={loading} leftIcon={<Save className="w-4 h-4" />} className="w-full sm:w-auto">
-                {t('farm_page.save_changes', 'Save All Changes')}
-              </Button>
-            </div>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            {t('farm_page.subtitle', 'Configure your farm sector coordinates, crop growth stages, and operational notification rules.')}
-          </p>
-        </div>
-      )}
+    <div className="space-y-5 max-w-5xl mx-auto w-full pb-16">
 
       {/* Dedicated Fresh Page Header for Sub-Tabs */}
       {activeTab !== 'modules' && (
@@ -491,8 +360,8 @@ const FarmPage = () => {
         </div>
       )}
 
-      {/* ═══════ QUICK FIELD SECTOR SWITCHER (If multiple fields registered) ═══════ */}
-      {activeTab === 'modules' && farms.length > 1 && (
+      {/* ═══════ QUICK FIELD SECTOR SWITCHER ═══════ */}
+      {activeTab === 'modules' && farms.length > 0 && (
         <div className="flex items-center justify-between gap-2 p-2.5 px-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
@@ -511,7 +380,7 @@ const FarmPage = () => {
                       setTimeout(() => setToastMsg(''), 3000);
                     }
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     isSelected
                       ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                       : 'bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400'
@@ -526,9 +395,10 @@ const FarmPage = () => {
           <button
             type="button"
             onClick={() => setActiveTab('my-fields')}
-            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 ml-2 cursor-pointer"
+            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 ml-2 cursor-pointer flex items-center gap-1"
           >
-            {isTe ? 'అన్నీ చూడండి →' : 'View All →'}
+            <span>{isTe ? 'అన్నీ చూడండి' : 'View All'}</span>
+            <span>→</span>
           </button>
         </div>
       )}
@@ -549,10 +419,10 @@ const FarmPage = () => {
 
         return (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="rounded-3xl overflow-hidden mb-2"
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
           >
             {/* Gradient Hero Card */}
             <div className="relative bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 dark:from-emerald-900 dark:via-teal-900 dark:to-emerald-950 p-5 pb-4">
@@ -611,96 +481,147 @@ const FarmPage = () => {
               </div>
             </div>
 
-            {/* 3 Glass Metric Cards */}
-            <div className="grid grid-cols-3 gap-2 px-3 -mt-3 relative z-20">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-lg shadow-black/5 dark:shadow-black/20 border border-slate-100 dark:border-slate-800">
+            {/* 3 Balanced White Metric Cards */}
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-900/40 rounded-b-3xl">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-full">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                     <Leaf className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{isTe ? 'పంట' : 'Crop'}</span>
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {isTe ? 'పంట' : 'CROP'}
+                  </span>
                 </div>
-                <p className="text-xs font-black text-slate-900 dark:text-slate-100 leading-tight">{translateCrop(activeFarm.crop_name || 'Tomato', i18n.language)}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">{activeFarm.crop_variety || 'Standard'}</p>
+                <div>
+                  <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-snug truncate">
+                    {translateCrop(activeFarm.crop_name || 'Tomato', i18n.language)}
+                  </p>
+                  <div className="mt-1 flex items-center min-h-[20px]">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                      {activeFarm.crop_variety || 'Standard'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-lg shadow-black/5 dark:shadow-black/20 border border-slate-100 dark:border-slate-800">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-full">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center shrink-0">
                     <TrendingUp className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                   </div>
-                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{isTe ? 'దశ' : 'Stage'}</span>
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {isTe ? 'దశ' : 'STAGE'}
+                  </span>
                 </div>
-                <p className="text-xs font-black text-slate-900 dark:text-slate-100 leading-tight">{activeFarm.growth_stage || 'Vegetative'}</p>
-                <span className="inline-flex items-center gap-0.5 mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                  <Check className="w-2.5 h-2.5" />{isTe ? 'ఆరోగ్యం' : 'Healthy'}
-                </span>
+                <div>
+                  <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-snug truncate">
+                    {activeFarm.growth_stage || 'Vegetative'}
+                  </p>
+                  <div className="mt-1 flex items-center min-h-[20px]">
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
+                      <Check className="w-2.5 h-2.5" />{isTe ? 'ఆరోగ్యం' : 'Healthy'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-lg shadow-black/5 dark:shadow-black/20 border border-slate-100 dark:border-slate-800">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-3.5 shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-full">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                     <MapPin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{isTe ? 'భూమి' : 'Land'}</span>
+                  <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {isTe ? 'భూమి' : 'LAND'}
+                  </span>
                 </div>
-                <p className="text-xs font-black text-slate-900 dark:text-slate-100 leading-tight">{activeFarm.farm_size || '1'} {activeFarm.farm_unit || 'Acres'}</p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">{soilLabel}</p>
+                <div>
+                  <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-snug truncate">
+                    {activeFarm.farm_size || '1'} {activeFarm.farm_unit || 'Acres'}
+                  </p>
+                  <div className="mt-1 flex items-center min-h-[20px]">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                      {soilLabel}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Quick Action Row */}
-            <div className="flex gap-2 px-3 pt-3 pb-1">
-              <button type="button" onClick={() => setActiveTab('crop-lifecycle')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all active:scale-[0.97]">
-                <Leaf className="w-3.5 h-3.5" />{isTe ? 'పంట వివరాలు' : 'Crop Details'}
+            <div className="flex gap-2.5 p-3.5 pt-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('crop-lifecycle')}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <Leaf className="w-3.5 h-3.5" />
+                <span>{isTe ? 'పంట వివరాలు' : 'Crop Details'}</span>
               </button>
-              <button type="button" onClick={() => navigate('/upload')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 text-sky-700 dark:text-sky-300 text-[11px] font-bold hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-all active:scale-[0.97]">
-                <ScanLine className="w-3.5 h-3.5" />{isTe ? 'AI స్కాన్' : 'AI Scan'}
+              <button
+                type="button"
+                onClick={() => navigate('/upload')}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 text-sky-700 dark:text-sky-300 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <ScanLine className="w-3.5 h-3.5" />
+                <span>{isTe ? 'AI స్కాన్' : 'AI Scan'}</span>
               </button>
-              <button type="button" onClick={() => navigate('/history')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200/60 dark:border-violet-800/40 text-violet-700 dark:text-violet-300 text-[11px] font-bold hover:bg-violet-100 dark:hover:bg-violet-900/60 transition-all active:scale-[0.97]">
-                <Clock className="w-3.5 h-3.5" />{isTe ? 'చరిత్ర' : 'History'}
+              <button
+                type="button"
+                onClick={() => navigate('/history')}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200/60 dark:border-violet-800/40 text-violet-700 dark:text-violet-300 text-xs font-bold hover:bg-violet-100 dark:hover:bg-violet-900/60 transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>{isTe ? 'చరిత్ర' : 'History'}</span>
               </button>
             </div>
           </motion.div>
         );
       })()}
 
-      {/* ═══════ FIELD MODULES — Clean Vertical Cards ═══════ */}
+      {/* ═══════ FIELD MODULES — Clean 2-Column Boxes (Picture 1 Style) ═══════ */}
       {activeTab === 'modules' && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 px-1 pt-1">
-            {isTe ? 'ఫీల్డ్ మాడ్యూల్స్' : 'Field Modules'}
-          </h3>
-          {FIELD_MODULES.map((mod, idx) => (
-            <motion.button
-              key={mod.id}
-              type="button"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: idx * 0.07 }}
-              onClick={() => {
-                if (mod.action === 'navigate') {
-                  navigate(mod.route);
-                } else {
-                  setActiveTab(mod.id);
-                }
-              }}
-              className="w-full flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-700 hover:shadow-md hover:shadow-emerald-500/5 transition-all active:scale-[0.98] text-left group cursor-pointer"
-            >
-              <div className="min-w-0">
-                <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
-                  {mod.title}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {mod.subtitle}
-                </p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 shrink-0 ml-3 transition-colors" />
-            </motion.button>
-          ))}
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100">
+              {isTe ? 'వ్యవసాయ సాధనాలు & ఫీల్డ్ మాడ్యూల్స్' : 'Field Tools & Agronomic Modules'}
+            </h3>
+            <span className="text-[11px] font-bold text-slate-400">
+              {FIELD_MODULES.length} {isTe ? 'సాధనాలు' : 'Modules'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+            {FIELD_MODULES.map((mod, idx) => (
+              <motion.button
+                key={mod.id}
+                type="button"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: idx * 0.05 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveTab(mod.id)}
+                className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-600 transition-all text-left flex flex-col justify-between group cursor-pointer min-h-[140px]"
+              >
+                <div className="flex items-center justify-between w-full mb-3">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${mod.bg}`}>
+                    {mod.icon}
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950 transition-colors">
+                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+                    {mod.title}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed font-medium">
+                    {mod.subtitle}
+                  </p>
+                </div>
+              </motion.button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1085,56 +1006,6 @@ const FarmPage = () => {
                   <Input label={t('farm_page.info.latitude', 'Latitude (°N)')} placeholder="e.g. 16.5062" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
                   <Input label={t('farm_page.info.longitude', 'Longitude (°E)')} placeholder="e.g. 80.6480" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
                 </div>
-
-                {/* Boundary Pins & Satellite Map */}
-                <div className="pt-2 space-y-2 w-full max-w-full min-w-0 overflow-hidden">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 w-full max-w-full min-w-0">
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 min-w-0">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="truncate">{isTe ? 'పొలం సరిహద్దులు, బహుళ మళ్ళు & వాక్ మోడ్' : 'Field Boundaries, Multi-Plot & Walk Mode'}</span>
-                    </p>
-                    <span className="text-[10px] text-slate-400 font-semibold truncate">
-                      {isTe ? 'మలుపుల వద్ద (+) నొక్కండి, లేదా వాక్ మోడ్‌తో కొలవండి' : 'Click (+) on edges to bend, or use Walk Mode'}
-                    </span>
-                  </div>
-
-                  {/* Dedicated Full-Screen Map Banner */}
-                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/20">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Maximize2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <p className="text-xs font-black text-emerald-950 dark:text-emerald-200 truncate">
-                        {isTe ? 'పూర్తి స్క్రీన్ మ్యాప్' : 'Full-Screen Map'}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('boundary-studio')}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center gap-1 shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all"
-                    >
-                      <Maximize2 className="w-3 h-3" />
-                      <span>{isTe ? 'మ్యాప్ తెరవండి' : 'Open Map'}</span>
-                    </button>
-                  </div>
-
-                  <FieldBoundaryMap
-                    centerLat={effectiveLat}
-                    centerLng={effectiveLng}
-                    farmName={farmName || 'My Farm'}
-                    cropName={cropName || 'Tomato'}
-                    boundaryCoordinates={boundaryCoordinates}
-                    onBoundaryChange={(newPins, formattedArea) => {
-                      setBoundaryCoordinates(newPins);
-                      if (formattedArea && formattedArea.rawAcres > 0) {
-                        setFarmSize(formattedArea.acres);
-                      }
-                    }}
-                    onExpand={() => setActiveTab('boundary-studio')}
-                    isTelugu={isTe}
-                    interactive={true}
-                    showRadarRings={false}
-                    height="380px"
-                  />
-                </div>
               </div>
 
               {/* Regional Soil Selection */}
@@ -1216,36 +1087,6 @@ const FarmPage = () => {
         </motion.div>
       )}
 
-      {/* ═══════ DRILL: Nearby Fields & Disease Radar ═══════ */}
-      {activeTab === 'nearby-radar' && (
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <NearbyFieldsRadar
-            farmId={activeFarm?.id || 'current'}
-            farmName={activeFarm?.farm_name || farmName || 'My Farm'}
-            cropName={activeFarm?.crop_name || cropName || 'Tomato'}
-            centerLat={effectiveLat}
-            centerLng={effectiveLng}
-            boundaryCoordinates={boundaryCoordinates}
-            onExpandStudio={() => setActiveTab('radar-studio')}
-            onBoundaryUpdate={async (newPins, formattedArea) => {
-              setBoundaryCoordinates(newPins);
-              if (formattedArea && formattedArea.rawAcres > 0) {
-                setFarmSize(formattedArea.acres);
-                if (activeFarm?.id) {
-                  try {
-                    await saveFarmEdit(activeFarm.id, {
-                      farm_size: parseFloat(formattedArea.acres),
-                      boundary_coordinates: newPins
-                    });
-                  } catch (err) {
-                    console.error('Failed to sync boundary coordinates:', err);
-                  }
-                }
-              }
-            }}
-          />
-        </motion.div>
-      )}
 
       {/* ═══════ DRILL: Farm Intelligence & Routine ═══════ */}
       {activeTab === 'farm-intelligence' && (
@@ -1353,24 +1194,6 @@ const FarmPage = () => {
         </motion.div>
       )}
 
-      {/* ═══════ DRILL: Smart Irrigation & ET₀ Scheduler ═══════ */}
-      {activeTab === 'smart-irrigation' && (
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <SmartIrrigationScheduler
-            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
-            acreage={parseFloat(farmSize) || 2.0}
-            cropName={cropName || 'Tomato'}
-            growthStage={growthStage || 'Vegetative'}
-            latitude={effectiveLat}
-            longitude={effectiveLng}
-            district={district || activeFarm?.district || 'Prakasam'}
-            mandal={mandal || activeFarm?.mandal || 'Mundlamuru'}
-            village={village || activeFarm?.village || 'Pasupugallu'}
-            onClose={() => setActiveTab('modules')}
-          />
-        </motion.div>
-      )}
-
       {/* ═══════ DRILL: Government Scheme & Subsidy Navigator ═══════ */}
       {activeTab === 'government-schemes' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
@@ -1405,24 +1228,6 @@ const FarmPage = () => {
             onClose={() => setActiveTab('modules')}
             initialCrop={cropName || 'Tomato'}
             initialAcres={parseFloat(farmSize) || 2.0}
-          />
-        </motion.div>
-      )}
-
-      {/* ═══════ DRILL: Satellite NDVI Crop Health & Biomass ═══════ */}
-      {activeTab === 'satellite-ndvi' && (
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <SatelliteNDVIViewer
-            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
-            acreage={parseFloat(farmSize) || 2.0}
-            cropName={cropName || 'Tomato'}
-            latitude={effectiveLat}
-            longitude={effectiveLng}
-            boundaryCoordinates={boundaryCoordinates}
-            district={district || activeFarm?.district || 'Prakasam'}
-            mandal={mandal || activeFarm?.mandal || 'Mundlamuru'}
-            village={village || activeFarm?.village || 'Pasupugallu'}
-            state={state || activeFarm?.state || 'Andhra Pradesh'}
           />
         </motion.div>
       )}
