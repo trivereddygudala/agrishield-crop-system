@@ -1,40 +1,95 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell, Search, Trash2, CheckCheck, Filter, RefreshCw,
   AlertTriangle, CloudRain, Droplets, BatteryWarning,
   WifiOff, Activity, ChevronDown, ChevronLeft, ChevronRight, X, BellOff, Download, Clock, Check,
-  Settings, Volume2, VolumeX, ShieldAlert, Sparkles, SlidersHorizontal, MessageSquare, Truck, Phone
+  Settings, Volume2, VolumeX, ShieldAlert, Sparkles, SlidersHorizontal, MessageSquare, Truck, Phone,
+  CheckCircle2, Sprout, ArrowRight, User, Plus, Send, ExternalLink, Headphones, Wrench
 } from 'lucide-react';
 import { Card, Button, Input, Select, Badge, Dialog, EmptyState, Skeleton, Switch } from '../../components/ui/index';
 import API from '../../services/api';
 import axios from 'axios';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useAuth } from '../../context/AuthContext';
-import { timeAgo, formatDateTime } from '../../utils/dateUtils';
+import { timeAgo, formatDateTime, parseServerDate } from '../../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
 import { translateNotification } from '../../utils/notificationTranslator';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 
-
-const PRIORITY_CONFIG = {
-  Critical: { bg: 'bg-rose-100 dark:bg-rose-950/70', border: 'border-rose-300 dark:border-rose-800', dot: 'bg-rose-500', badge: 'diseased', text: 'text-rose-700 dark:text-rose-300', label: 'Critical' },
-  High:     { bg: 'bg-amber-100 dark:bg-amber-950/70', border: 'border-amber-300 dark:border-amber-800', dot: 'bg-amber-500', badge: 'warning', text: 'text-amber-700 dark:text-amber-300', label: 'High' },
-  Medium:   { bg: 'bg-sky-100 dark:bg-sky-950/70', border: 'border-sky-300 dark:border-sky-800', dot: 'bg-sky-500', badge: 'agrochemical', text: 'text-sky-700 dark:text-sky-300', label: 'Medium' },
-  Low:      { bg: 'bg-emerald-100 dark:bg-emerald-950/70', border: 'border-emerald-300 dark:border-emerald-800', dot: 'bg-emerald-500', badge: 'healthy', text: 'text-emerald-700 dark:text-emerald-300', label: 'Low' },
+// ── Google Messages High-Contrast Color Coding ──
+// Emerald for Provider, Amber for Crop Alert, Blue for Weather, Orange for Support
+const THREAD_THEMES = {
+  provider: {
+    avatarBg: 'bg-emerald-500 text-white ring-2 ring-emerald-200 dark:ring-emerald-900 shadow-sm',
+    badgeBg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    dotBg: 'bg-emerald-500',
+    Icon: Truck,
+    defaultSender: 'Ramesh Farm Machinery Service',
+    defaultSenderTe: 'రమేష్ ఫార్మ్ సర్వీసెస్'
+  },
+  disease: {
+    avatarBg: 'bg-amber-500 text-white ring-2 ring-amber-200 dark:ring-amber-900 shadow-sm',
+    badgeBg: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    dotBg: 'bg-amber-500',
+    Icon: AlertTriangle,
+    defaultSender: 'AgriShield Crop Advisory',
+    defaultSenderTe: 'అగ్రిషీల్డ్ పంట రక్షణ'
+  },
+  weather: {
+    avatarBg: 'bg-blue-600 text-white ring-2 ring-blue-200 dark:ring-blue-900 shadow-sm',
+    badgeBg: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    dotBg: 'bg-blue-600',
+    Icon: CloudRain,
+    defaultSender: 'AgriShield Weather Station',
+    defaultSenderTe: 'అగ్రిషీల్డ్ వాతావరణం'
+  },
+  support: {
+    avatarBg: 'bg-orange-500 text-white ring-2 ring-orange-200 dark:ring-orange-900 shadow-sm',
+    badgeBg: 'bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+    dotBg: 'bg-orange-500',
+    Icon: ShieldAlert,
+    defaultSender: 'AgriShield Kisan Helpdesk',
+    defaultSenderTe: 'అగ్రిషీల్డ్ కిసాన్ హెల్ప్‌డెస్క్'
+  }
 };
 
-const CATEGORY_ICONS = {
-  disease:        { Icon: AlertTriangle, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-950/60', label: 'Disease' },
-  weather:        { Icon: CloudRain,     color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-100 dark:bg-sky-950/60', label: 'Weather' },
-  soil:           { Icon: Droplets,      color: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-100 dark:bg-teal-950/60', label: 'Irrigation' },
-  battery:        { Icon: BatteryWarning,color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-950/60', label: 'Battery' },
-  device:         { Icon: WifiOff,       color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', label: 'Node Offline' },
-  recommendation: { Icon: Activity,      color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-950/60', label: 'Advisory' },
-  system:         { Icon: Activity,      color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-950/60', label: 'System' },
-  booking:        { Icon: Truck,         color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-950/60', label: 'Machinery Booking' },
+const PRIORITY_BADGES = {
+  Critical: { bg: 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800', dot: 'bg-rose-500' },
+  High:     { bg: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800', dot: 'bg-amber-500' },
+  Medium:   { bg: 'bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800', dot: 'bg-sky-500' },
+  Low:      { bg: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700', dot: 'bg-slate-400' },
 };
+
+/**
+ * Format timestamp in Google Messages native style:
+ * "Just now", "10 min", "15 min", "1 hr", "Yesterday", "Oct 12"
+ */
+function formatGoogleMessagesTime(dateInput) {
+  if (!dateInput) return '';
+  const d = parseServerDate(dateInput) || new Date(dateInput);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffSec = Math.max(0, Math.floor(diffMs / 1000));
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin} min`;
+  if (diffHours < 24 && d.getDate() === now.getDate()) {
+    return `${diffHours} hr`;
+  }
+  if (diffDays === 1 || (diffHours < 48 && d.getDate() === now.getDate() - 1)) {
+    return 'Yesterday';
+  }
+  if (diffDays < 7) {
+    return d.toLocaleDateString('en-IN', { weekday: 'short' });
+  }
+  return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+}
 
 export default function NotificationsPage() {
   const { t, i18n } = useTranslation();
@@ -43,21 +98,22 @@ export default function NotificationsPage() {
   const currentLang = i18n.language || user?.preferred_language || localStorage.getItem('i18nextLng') || 'te';
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const isEquipmentProvider = user?.role?.toLowerCase() === 'equipment_provider';
-  const isTe = i18n?.language === 'te';
+  const isTe = i18n?.language === 'te' || currentLang.startsWith('te');
+
   const [notifications, setNotifications] = useState([]);
-  const [total, setTotal]     = useState(0);
-  const [page, setPage]       = useState(1);
-  const [pages, setPages]     = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch]   = useState('');
+  const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [priority, setPriority] = useState('All');
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const [limit, setLimit]           = useState(25);
   const [toastMsg, setToastMsg] = useState('');
 
-  // Selected Notification Dialog (Message view)
+  // Selected Notification Dialog (Google Message Reader / 2-way View)
   const [selectedMessage, setSelectedMessage] = useState(null);
+
+  // FAB "Start Chat" Modal State
+  const [startChatOpen, setStartChatOpen] = useState(false);
 
   // Settings Modal State
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -97,12 +153,13 @@ export default function NotificationsPage() {
     } catch (_) {}
   }, []);
 
-  const fetchNotifications = useCallback(async (p = 1) => {
+  // Fetch and hydrate notifications with role-based isolation
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: p, limit: limit });
+      const params = new URLSearchParams({ limit: 50 });
       if (priority !== 'All') params.set('priority', priority);
-      
+
       const readIds = getReadIds();
 
       let serverNotifs = [];
@@ -128,14 +185,13 @@ export default function NotificationsPage() {
             localNotifs = savedUserNotifs.filter(n => {
               const title = (n.title || '').toLowerCase();
               const msg = (n.message || '').toLowerCase();
-              const isIncomingOrder = title.includes('కొత్త యంత్ర బుకింగ్') || 
+              const isIncomingOrder = title.includes('కొత్త యంత్ర బుకింగ్') ||
                                      title.includes('new machinery booking') ||
                                      title.includes('booking request') ||
                                      msg.includes('booked your') ||
                                      msg.includes('బుక్ చేసుకున్నారు');
               return !isIncomingOrder;
             });
-            // Auto-clean storage on farmer device
             if (localNotifs.length !== savedUserNotifs.length) {
               try { localStorage.setItem('agrishield_user_notifications', JSON.stringify(localNotifs)); } catch (_) {}
             }
@@ -143,7 +199,6 @@ export default function NotificationsPage() {
             localNotifs = [...savedUserNotifs];
           }
 
-          // Hydrate read state from persistent readIds registry
           localNotifs = localNotifs.map(ln => {
             const lId = ln.notification_id || ln.id || ln.booking_id;
             const isRead = readIds.has(lId) || (ln.booking_id && (readIds.has(`booking-${ln.booking_id}`) || readIds.has(ln.booking_id)));
@@ -164,9 +219,6 @@ export default function NotificationsPage() {
             }
             if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
               try { bRes = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
-            }
-            if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
-              try { bRes = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings', { timeout: 15000 }); } catch (_) {}
             }
             if (bRes.data?.bookings && Array.isArray(bRes.data.bookings)) {
               const bMap = new Map();
@@ -225,11 +277,11 @@ export default function NotificationsPage() {
                 const bId = b.id || b.bookingId;
                 const notifKey = `farmer-notif-${bId}-${b.status}`;
                 const alreadyExists = localNotifs.some(n => n.id === notifKey || n.notification_id === notifKey);
-                const isAlreadyRead = readIds.has(notifKey) || 
-                                     readIds.has(bId) || 
-                                     readIds.has(`booking-${bId}`) || 
-                                     readIds.has(`farmer-notif-${bId}-confirmed`) || 
-                                     readIds.has(`farmer-notif-${bId}-rejected`) || 
+                const isAlreadyRead = readIds.has(notifKey) ||
+                                     readIds.has(bId) ||
+                                     readIds.has(`booking-${bId}`) ||
+                                     readIds.has(`farmer-notif-${bId}-confirmed`) ||
+                                     readIds.has(`farmer-notif-${bId}-rejected`) ||
                                      readIds.has(`farmer-notif-${bId}-declined`);
                 if (!alreadyExists) {
                   const isRejected = b.status === 'rejected' || b.status === 'declined';
@@ -276,7 +328,7 @@ export default function NotificationsPage() {
         } catch (e) {}
       }
 
-      // Persist local notifications with updated read states back to disk
+      // Persist local notifications with updated read states
       try {
         localStorage.setItem('agrishield_user_notifications', JSON.stringify(localNotifs));
       } catch (_) {}
@@ -294,16 +346,16 @@ export default function NotificationsPage() {
 
       setNotifications(merged);
       setTotal(merged.length);
-      setPages(Math.max(1, Math.ceil(merged.length / limit)));
-      setPage(p);
     } catch {
       setToastMsg(t('notifications_page.toast.load_failed', 'Failed to load notifications.'));
     } finally {
       setLoading(false);
     }
-  }, [limit, t, isEquipmentProvider, isTe, getReadIds, priority]);
+  }, [t, isEquipmentProvider, isTe, getReadIds, priority]);
 
-  useEffect(() => { fetchNotifications(1); }, [fetchNotifications]);
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   useEffect(() => {
     const handleNewNotif = (e) => {
@@ -374,7 +426,9 @@ export default function NotificationsPage() {
       } catch (e) {}
       if (selectedMessage?.notification_id === id || selectedMessage?.id === id) setSelectedMessage(null);
       setToastMsg(t('notifications_page.toast.deleted', 'Notification deleted.'));
-    } catch { setToastMsg(t('notifications_page.toast.delete_failed', 'Failed to delete notification.')); }
+    } catch {
+      setToastMsg(t('notifications_page.toast.delete_failed', 'Failed to delete notification.'));
+    }
   };
 
   const handleReadAll = async () => {
@@ -382,7 +436,6 @@ export default function NotificationsPage() {
       await API.post('/api/v1/notifications/read-all').catch(() => {});
       await API.post('/api/notifications/read-all').catch(() => {});
 
-      // Add all notification IDs and booking IDs to persistent read set
       const readIds = getReadIds();
       notifications.forEach(n => {
         if (n.id) readIds.add(n.id);
@@ -398,10 +451,8 @@ export default function NotificationsPage() {
       });
       saveReadIds(readIds);
 
-      // Instantly update state
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
-      // Save to localStorage
       try {
         const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
         const updated = stored.map(n => ({ ...n, read: true }));
@@ -409,7 +460,7 @@ export default function NotificationsPage() {
       } catch (e) {}
 
       window.dispatchEvent(new CustomEvent('agrishield_notifications_all_read'));
-      setToastMsg(isTe ? 'అన్ని నోటిఫికేషన్‌లు చదివినట్లు గుర్తించబడ్డాయి.' : t('notifications_page.toast.all_read', 'All notifications marked as read.'));
+      setToastMsg(isTe ? 'అన్ని సందేశాలు చదివినట్లు గుర్తించబడ్డాయి.' : t('notifications_page.toast.all_read', 'All messages marked as read.'));
     } catch {
       setToastMsg(isTe ? 'విఫలమైంది.' : t('notifications_page.toast.all_read_failed', 'Failed to mark all as read.'));
     }
@@ -439,7 +490,9 @@ export default function NotificationsPage() {
     const simulated = {
       notification_id: 'SIM-' + Date.now(),
       title: '🚨 High Disease Vulnerability Alert',
+      title_te: '🚨 తీవ్రమైన పంట తెగులు హెచ్చరిక',
       message: 'Persistent canopy humidity (>88%) detected. High risk of Tomato Early Blight outbreak. Preventative copper or neem foliar spray strongly advised.',
+      message_te: 'పొలంలో తేమ శాతం (>88%) పెరిగింది. టమాటా ఎర్లీ బ్లైట్ తెగులు వ్యాపించే ప్రమాదం ఉంది. వెంటనే వేప నూనె లేదా కాపర్ స్ప్రే పిచికారీ చేయండి.',
       category: 'disease',
       priority: 'High',
       created_at: new Date().toISOString(),
@@ -451,78 +504,150 @@ export default function NotificationsPage() {
   };
 
   const handleClear = async () => {
-    if (!window.confirm(t('notifications_page.confirm_clear', 'Clear all notifications?'))) return;
+    if (!window.confirm(t('notifications_page.confirm_clear', 'Clear all messages and notifications?'))) return;
     try {
       await API.delete('/api/v1/notifications/clear');
       setNotifications([]);
       setTotal(0);
       setSelectedMessage(null);
       setToastMsg(t('notifications_page.toast.inbox_cleared', 'Inbox cleared.'));
-    } catch { setToastMsg(t('notifications_page.toast.clear_failed', 'Failed to clear notifications.')); }
+    } catch {
+      setToastMsg(t('notifications_page.toast.clear_failed', 'Failed to clear notifications.'));
+    }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
-  const filteredNotifications = notifications.filter(n => {
-    // 1. Search Query
-    if (search) {
-      const q = search.toLowerCase();
-      const { title: dt, message: dm } = translateNotification(n.title, n.message, currentLang);
-      const matchesSearch = (n.title || '').toLowerCase().includes(q) ||
-        (n.message || '').toLowerCase().includes(q) ||
-        (dt || '').toLowerCase().includes(q) ||
-        (dm || '').toLowerCase().includes(q);
-      if (!matchesSearch) return false;
-    }
+  // Dynamic filter for category & search
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(n => {
+      // 1. Search Query
+      if (search) {
+        const q = search.toLowerCase();
+        const { title: dt, message: dm } = translateNotification(n.title, n.message, currentLang);
+        const matchesSearch = (n.title || '').toLowerCase().includes(q) ||
+          (n.message || '').toLowerCase().includes(q) ||
+          (n.title_te || '').toLowerCase().includes(q) ||
+          (n.message_te || '').toLowerCase().includes(q) ||
+          (n.farmerName || '').toLowerCase().includes(q) ||
+          (n.providerName || '').toLowerCase().includes(q) ||
+          (dt || '').toLowerCase().includes(q) ||
+          (dm || '').toLowerCase().includes(q);
+        if (!matchesSearch) return false;
+      }
 
-    // 2. Unread filter
-    if (unreadOnly && n.read) return false;
+      // 2. Unread filter
+      if (unreadOnly && n.read) return false;
 
-    // 3. Category grouping
-    if (category === 'All') return true;
+      // 3. Category grouping
+      if (category === 'All') return true;
 
-    if (category === 'crop_alerts') {
       const cat = (n.category || '').toLowerCase();
       const isBooking = n.type === 'booking' || cat === 'booking' || n.isFarmerDecision === true || (n.id || '').startsWith('farmer-notif-') || (n.id || '').startsWith('notif-BK-');
-      return !isBooking;
+
+      if (category === 'provider') return isBooking;
+      if (category === 'crop_alerts') return cat === 'disease' || (!isBooking && cat !== 'weather');
+      if (category === 'weather') return cat === 'weather';
+      if (category === 'support') return cat === 'system' || cat === 'battery' || cat === 'device' || cat === 'recommendation';
+
+      return cat === category.toLowerCase();
+    });
+  }, [notifications, search, unreadOnly, category, currentLang]);
+
+  // Google Messages Category Filter Chips
+  const FILTER_PILLS = useMemo(() => [
+    { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
+    { id: 'unread', label: isTe ? `చదవనివి (${unreadCount})` : `Unread (${unreadCount})`, isUnreadPill: true },
+    { id: 'provider', label: isTe ? '🚜 యంత్రాలు & ప్రొవైడర్లు' : '🚜 Providers & Orders' },
+    { id: 'crop_alerts', label: isTe ? '🌿 పంట హెచ్చరికలు' : '🌿 Crop Alerts' },
+    { id: 'weather', label: isTe ? '🌦️ వాతావరణం' : '🌦️ Weather' },
+    { id: 'support', label: isTe ? '🛡️ సహాయం & సిస్టమ్' : '🛡️ Support' }
+  ], [isTe, unreadCount]);
+
+  // Helper to determine sender metadata and high-contrast color avatar
+  const getThreadMeta = useCallback((item) => {
+    const isBooking = item.type === 'booking' || item.category === 'booking' || item.isFarmerDecision === true || (item.id || '').startsWith('farmer-notif-') || (item.id || '').startsWith('notif-BK-') || Boolean(item.booking_id);
+    const isDisease = item.category === 'disease';
+    const isWeather = item.category === 'weather';
+
+    if (isBooking) {
+      const pName = item.providerName || (isEquipmentProvider ? (item.farmerName || 'Farmer') : (isTe ? 'రమేష్ ఫార్మ్ సర్వీసెస్ (పసుపుగల్లు)' : 'Ramesh Farm Services (Pasupugallu)'));
+      return {
+        type: 'provider',
+        senderTitle: pName,
+        verified: true,
+        avatarBg: THREAD_THEMES.provider.avatarBg,
+        badgeBg: THREAD_THEMES.provider.badgeBg,
+        Icon: THREAD_THEMES.provider.Icon,
+        categoryLabel: isTe ? 'యంత్ర ప్రొవైడర్' : 'Machinery Provider'
+      };
     }
-
-    if (category === 'machinery_services') {
-      const cat = (n.category || '').toLowerCase();
-      const isBooking = cat === 'booking' || n.type === 'booking' || n.isFarmerDecision === true || (n.id || '').startsWith('farmer-notif-') || (n.id || '').startsWith('notif-BK-');
-      return isBooking;
+    if (isDisease) {
+      return {
+        type: 'disease',
+        senderTitle: isTe ? 'అగ్రిషీల్డ్ క్రాప్ అడ్వైజరీ' : 'AgriShield Crop Advisory',
+        verified: true,
+        avatarBg: THREAD_THEMES.disease.avatarBg,
+        badgeBg: THREAD_THEMES.disease.badgeBg,
+        Icon: THREAD_THEMES.disease.Icon,
+        categoryLabel: isTe ? 'పంట హెచ్చరిక' : 'Crop Disease Alert'
+      };
     }
+    if (isWeather) {
+      return {
+        type: 'weather',
+        senderTitle: isTe ? 'అగ్రిషీల్డ్ వాతావరణ నెట్‌వర్క్' : 'AgriShield Weather Station',
+        verified: true,
+        avatarBg: THREAD_THEMES.weather.avatarBg,
+        badgeBg: THREAD_THEMES.weather.badgeBg,
+        Icon: THREAD_THEMES.weather.Icon,
+        categoryLabel: isTe ? 'వాతావరణం' : 'Weather Advisory'
+      };
+    }
+    return {
+      type: 'support',
+      senderTitle: isTe ? 'అగ్రిషీల్డ్ కిసాన్ హెల్ప్‌డెస్క్' : 'AgriShield Kisan Helpdesk',
+      verified: true,
+      avatarBg: THREAD_THEMES.support.avatarBg,
+      badgeBg: THREAD_THEMES.support.badgeBg,
+      Icon: THREAD_THEMES.support.Icon,
+      categoryLabel: isTe ? 'సహాయ విభాగం' : 'Support & System'
+    };
+  }, [isEquipmentProvider, isTe]);
 
-    return (n.category || '').toLowerCase() === category.toLowerCase();
-  });
+  // User Profile Initial
+  const userInitial = useMemo(() => {
+    if (user?.name) return user.name.charAt(0).toUpperCase();
+    if (user?.email) return user.email.charAt(0).toUpperCase();
+    return '🌱';
+  }, [user]);
 
-  const FILTER_PILLS = isEquipmentProvider ? [
-    { id: 'All', label: isTe ? '🔔 అన్ని సందేశాలు' : '🔔 All Messages', icon: MessageSquare },
-    { id: 'unread', label: isTe ? `📬 చదవనివి (${unreadCount})` : `📬 Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
-    { id: 'machinery_services', label: isTe ? '🚜 యంత్రాల బుకింగ్ ఆర్డర్‌లు' : '🚜 Machinery Rental Orders', icon: Truck },
-    { id: 'crop_alerts', label: isTe ? '🛡️ హబ్ & సిస్టమ్ అలర్ట్‌లు' : '🛡️ Hub & System Alerts', icon: Activity },
-  ] : [
-    { id: 'All', label: isTe ? '🔔 అన్ని నోటిఫికేషన్‌లు' : '🔔 All Notifications', icon: MessageSquare },
-    { id: 'unread', label: isTe ? `📬 చదవనివి (${unreadCount})` : `📬 Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
-    { id: 'crop_alerts', label: isTe ? '🌿 పంట ఆరోగ్యం & పొలం హెచ్చరికలు' : '🌿 Crop Health & Field Alerts', icon: AlertTriangle },
-    { id: 'machinery_services', label: isTe ? '🚜 యంత్రాలు & సేవా ఆర్డర్‌లు' : '🚜 Machinery & Service Orders', icon: Truck },
-  ];
-
+  // Loading skeleton
   if (loading) {
     return (
-      <div className="space-y-4 max-w-3xl mx-auto w-full p-4">
-        <Skeleton className="h-10 w-48 rounded-xl" />
-        <Skeleton className="h-12 w-full rounded-2xl" />
-        <div className="space-y-2">
+      <div className="min-h-screen bg-[#f1f3f9] dark:bg-[#111318] p-4 sm:p-6 max-w-3xl mx-auto space-y-4">
+        <Skeleton className="h-14 w-full rounded-full bg-slate-200/80 dark:bg-slate-800" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-20 rounded-full bg-slate-200/80 dark:bg-slate-800" />
+          <Skeleton className="h-9 w-28 rounded-full bg-slate-200/80 dark:bg-slate-800" />
+          <Skeleton className="h-9 w-32 rounded-full bg-slate-200/80 dark:bg-slate-800" />
+        </div>
+        <div className="bg-white dark:bg-[#1a1f26] rounded-3xl p-2 space-y-3 border border-slate-200/80 dark:border-slate-800">
           {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
+            <div key={i} className="flex items-center gap-3 p-3">
+              <Skeleton className="w-12 h-12 rounded-full shrink-0 bg-slate-200/80 dark:bg-slate-800" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/3 bg-slate-200/80 dark:bg-slate-800" />
+                <Skeleton className="h-3 w-4/5 bg-slate-200/80 dark:bg-slate-800" />
+              </div>
+            </div>
           ))}
         </div>
       </div>
     );
   }
 
-  // ─── OPTION B FULL SCREEN REAL MESSENGER VIEW ───
+  // ─── FULL SCREEN GOOGLE MESSAGE 2-WAY READER VIEW ───
   if (selectedMessage) {
     const { title: transTitle, message: transBody } = translateNotification(
       selectedMessage.title,
@@ -530,7 +655,7 @@ export default function NotificationsPage() {
       currentLang
     );
     return (
-      <div className="fixed inset-0 z-50 bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
+      <div className="fixed inset-0 z-50 bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
         <GoogleMessageReader
           message={selectedMessage}
           translatedTitle={transTitle}
@@ -544,73 +669,67 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto w-full pb-24 px-2 sm:px-4 space-y-4 animate-fade-in">
+    <div className="min-h-screen bg-[#f1f3f9] dark:bg-[#111318] text-slate-900 dark:text-slate-100 transition-colors duration-200 pb-32 pt-2 px-3 sm:px-6 max-w-3xl mx-auto space-y-3.5 animate-fade-in relative">
 
       {/* Toast Feedback */}
       {toastMsg && (
-        <div className="fixed top-18 right-4 z-50 px-4 py-2.5 rounded-2xl bg-slate-900/90 text-white text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-2 border border-white/10">
+        <div className="fixed top-18 right-4 z-50 px-4 py-2.5 rounded-2xl bg-slate-900 text-white text-xs font-bold shadow-xl backdrop-blur-md flex items-center gap-2 border border-white/10 animate-slide-up">
           <Check className="w-4 h-4 text-emerald-400" />
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* ─── APP BAR HEADER (WhatsApp / Messages Style) ─── */}
-      <div className="flex items-center justify-between gap-3 pt-1 pb-2 border-b border-slate-200/80 dark:border-slate-800">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {t('notifications_page.title', 'Messages & Alerts')}
-            </h1>
-            {unreadCount > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-white shadow-xs">
-                {unreadCount} new
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            {isEquipmentProvider 
-              ? (isTe ? `${total} మెషినరీ బుకింగ్ అభ్యర్థనలు & అలర్ట్‌లు` : `${total} machinery booking requests & dispatch alerts`)
-              : `${total} farm updates & disease warnings`}
-          </p>
+      {/* ─── 1. TOP APP BAR / UTILITY CONTROLS ─── */}
+      <div className="flex items-center justify-between px-1 pt-1">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {isTe ? 'సందేశాలు & హెచ్చరికలు' : 'Messages'}
+          </h1>
+          {unreadCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-blue-600 text-white shadow-xs">
+              {unreadCount}
+            </span>
+          )}
         </div>
 
+        {/* Header Action Icons */}
         <div className="flex items-center gap-1.5">
-          {/* Test/Simulate Disease Alert Button */}
+          {/* Simulate Alert Button */}
           <button
             onClick={handleSimulateAlert}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 transition-all shadow-xs"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-500/20 transition-all shadow-xs cursor-pointer"
             title="Simulate Real-Time Crop Warning"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Simulate Alert</span>
-          </button>
-
-          {/* Notification Settings Button */}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all shadow-xs"
-            title="Notification Settings"
-          >
-            <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+            <span className="hidden sm:inline">Simulate</span>
           </button>
 
           {/* Mark All Read */}
           {unreadCount > 0 && (
             <button
               onClick={handleReadAll}
-              className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-xs"
+              className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all shadow-xs cursor-pointer"
               title="Mark All Read"
             >
               <CheckCheck className="w-4 h-4" />
             </button>
           )}
 
+          {/* Notification Settings */}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
+            title="Alert Channel Settings"
+          >
+            <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+          </button>
+
           {/* Clear Inbox */}
           {notifications.length > 0 && (
             <button
               onClick={handleClear}
-              className="p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 transition-all shadow-xs"
-              title="Clear Inbox"
+              className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 transition-all shadow-xs cursor-pointer"
+              title="Clear All Messages"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -618,25 +737,47 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ─── SEARCH BAR (Instant filter) ─── */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 dark:text-slate-500" />
+      {/* ─── 2. GOOGLE MESSAGES ROUNDED PILL SEARCH BAR WITH LEAF EMBLEM & AVATAR ─── */}
+      <div className="relative w-full rounded-full bg-white dark:bg-[#1a1f26] border border-slate-200/90 dark:border-slate-800 shadow-sm px-3.5 py-2.5 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/60">
+        {/* Leaf Emblem */}
+        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300/60 dark:border-emerald-700/60 flex items-center justify-center shrink-0 shadow-xs">
+          <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        </div>
+
+        {/* Search Input */}
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search alerts, crops, disease names, weather..."
-          className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+          placeholder={isTe ? "సందేశాలు & పంట హెచ్చరికలు శోధించండి..." : "Search messages & alerts..."}
+          className="flex-1 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
         />
+
+        {/* Clear Search Input */}
         {search && (
-          <button onClick={() => setSearch('')} className="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+          <button
+            onClick={() => setSearch('')}
+            className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+          >
             <X className="w-4 h-4" />
           </button>
         )}
+
+        {/* Profile Avatar Pill */}
+        <div
+          onClick={() => setSettingsOpen(true)}
+          className="relative shrink-0 cursor-pointer group"
+          title={user?.name || "User Profile"}
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-xs ring-2 ring-emerald-400/30 group-hover:scale-105 transition-transform">
+            {userInitial}
+          </div>
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1a1f26]" />
+        </div>
       </div>
 
-      {/* ─── FILTER CHIPS CAROUSEL (WhatsApp Style) ─── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+      {/* ─── 3. MATERIAL YOU HORIZONTAL CATEGORY FILTER CHIPS ─── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 hide-scrollbar">
         {FILTER_PILLS.map((pill) => {
           const isActive = pill.isUnreadPill ? unreadOnly : (!unreadOnly && category === pill.id);
           return (
@@ -650,10 +791,10 @@ export default function NotificationsPage() {
                   setCategory(pill.id);
                 }
               }}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-xs ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border ${
                 isActive
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/20'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-sm scale-102'
+                  : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 dark:bg-[#1a1f26] dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800'
               }`}
             >
               <span>{pill.label}</span>
@@ -662,28 +803,29 @@ export default function NotificationsPage() {
         })}
       </div>
 
-      {/* ─── NOTIFICATIONS CHAT LIST (WhatsApp / iMessage Style) ─── */}
+      {/* ─── 4. THREAD ROWS (NATIVE GOOGLE MESSAGES LIGHT-MEDIUM STYLE) ─── */}
       {filteredNotifications.length === 0 ? (
         <EmptyState
           icon={BellOff}
           title={isEquipmentProvider ? (isTe ? 'బుకింగ్ సందేశాలు లేవు' : 'No Booking Messages') : t('notifications_page.empty_title', 'No Messages')}
-          description={isEquipmentProvider 
+          description={isEquipmentProvider
             ? (isTe ? 'మీ ఇన్‌బాక్స్ స్పష్టంగా ఉంది! రైతులు మీ ట్రాక్టర్లు లేదా డ్రోన్లు బుక్ చేసుకున్నప్పుడు తక్షణ అలర్ట్‌లు ఇక్కడ కనిపిస్తాయి.' : 'Your inbox is clear. Whenever farmers book your tractors or spray drones, instant alerts and booking details will stream here.')
-            : "Your inbox is completely clear! All field disease warnings and environmental updates will stream here."}
+            : (isTe ? 'మీ ఇన్‌బాక్స్ స్పష్టంగా ఉంది! అన్ని పొలం తెగులు హెచ్చరికలు మరియు సమాచారం ఇక్కడ స్ట్రీమ్ అవుతాయి.' : "Your inbox is completely clear! All field disease warnings and machinery updates will stream here.")}
         />
       ) : (
-        <div className="bg-white dark:bg-slate-900/80 rounded-3xl border border-slate-200/80 dark:border-slate-800/90 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+        <div className="bg-white dark:bg-[#1a1f26] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
           <AnimatePresence>
             {filteredNotifications.map((item) => {
-              const pc = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG.Low;
-              const catObj = CATEGORY_ICONS[item.category] || CATEGORY_ICONS.system;
-              const CatIcon = catObj.Icon;
+              const meta = getThreadMeta(item);
+              const AvatarIcon = meta.Icon;
               const isUnread = !item.read;
               const { title: displayTitle, message: displayMessage } = translateNotification(
                 item.title,
                 item.message,
                 currentLang
               );
+              const timeString = formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp);
+              const priorityInfo = PRIORITY_BADGES[item.priority] || PRIORITY_BADGES.Low;
 
               return (
                 <motion.div
@@ -693,58 +835,76 @@ export default function NotificationsPage() {
                   exit={{ opacity: 0, x: -15 }}
                   onClick={() => {
                     setSelectedMessage(item);
-                    if (isUnread) handleMarkRead(item.notification_id);
+                    if (isUnread) handleMarkRead(item.notification_id || item.id);
                   }}
-                  className={`flex items-start gap-3.5 p-3.5 sm:p-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors relative group ${
-                    isUnread ? 'bg-emerald-50/40 dark:bg-emerald-950/15' : ''
+                  className={`flex items-start gap-3.5 p-3.5 sm:p-4 cursor-pointer transition-colors relative group select-none ${
+                    isUnread
+                      ? 'bg-[#eef4ff] dark:bg-blue-950/25 hover:bg-[#e6f0ff] dark:hover:bg-blue-950/40'
+                      : 'hover:bg-slate-50/90 dark:hover:bg-white/[0.02]'
                   }`}
                 >
-                  {/* Left Avatar Icon */}
+                  {/* Left Circular Avatar with High-Contrast Color Coding */}
                   <div className="relative shrink-0 mt-0.5">
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border shadow-xs ${catObj.bg} ${pc.border}`}>
-                      <CatIcon className={`w-5 h-5 ${catObj.color}`} />
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${meta.avatarBg}`}>
+                      <AvatarIcon className="w-6 h-6 text-white drop-shadow-xs" />
                     </div>
+                    {/* Pulsing Dot on unread avatar */}
                     {isUnread && (
-                      <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#1a1f26] animate-pulse" />
                     )}
                   </div>
 
-                  {/* Message Content */}
-                  <div className="flex-1 min-w-0 space-y-0.5">
+                  {/* Message Content / Snippet */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    {/* Top Row: Sender Title + Verified Badge + Timestamp */}
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className={`text-xs sm:text-sm truncate font-black ${
-                        isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'
+                      <div className="flex items-center min-w-0">
+                        <h3 className={`text-sm sm:text-base font-bold truncate tracking-tight ${
+                          isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'
+                        }`}>
+                          {meta.senderTitle}
+                        </h3>
+                        {/* Verified Green Checkmark (✓) */}
+                        <span className="inline-flex items-center ml-1 text-emerald-600 dark:text-emerald-400 shrink-0" title="Verified AgriShield Entity">
+                          <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white dark:text-slate-900" />
+                        </span>
+                      </div>
+
+                      {/* Relative Timestamp */}
+                      <span className={`text-xs font-semibold shrink-0 ${
+                        isUnread ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-500 dark:text-slate-400'
                       }`}>
-                        {displayTitle}
-                      </h3>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold shrink-0">
-                        {timeAgo(item.lifecycle?.created_at || item.created_at)}
+                        {timeString}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
-                      {displayMessage}
+                    {/* Truncated Message Preview Snippet */}
+                    <p className={`text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 leading-relaxed ${
+                      isUnread
+                        ? 'text-slate-900 dark:text-slate-100 font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 font-normal'
+                    }`}>
+                      {displayMessage || displayTitle}
                     </p>
 
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${pc.bg} ${pc.text}`}>
-                        {item.priority}
+                    {/* Category & Status Chips */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${priorityInfo.bg}`}>
+                        {item.priority || 'Normal'}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                        {catObj.label}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${meta.badgeBg}`}>
+                        {meta.categoryLabel}
                       </span>
                     </div>
 
-                    {/* Quick Call & Action Buttons for Booking Alerts (Strictly Role Isolated) */}
+                    {/* Quick Call & WhatsApp Action Buttons for Machinery Orders */}
                     {(item.category === 'booking' || item.type === 'booking') && (
-                      <div className="flex flex-wrap items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-wrap items-center gap-2 pt-1.5" onClick={(e) => e.stopPropagation()}>
                         {isEquipmentProvider ? (
-                          // Equipment Provider View: Actions to reach the farmer and view provider orders
                           <>
                             <a
                               href={`tel:${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}`}
-                              className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                              className="px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
                             >
                               <Phone className="w-3 h-3" />
                               <span>{isTe ? 'రైతుకు కాల్' : 'Call Farmer'}</span>
@@ -753,24 +913,23 @@ export default function NotificationsPage() {
                               href={`https://wa.me/${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.farmerName || 'Farmer'}, regarding your machinery booking on AgriShield...`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                              className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
                             >
                               <MessageSquare className="w-3 h-3" />
                               <span>WhatsApp</span>
                             </a>
                             <Link
                               to="/provider/dashboard?tab=orders"
-                              className="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold"
+                              className="px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition-colors"
                             >
                               {isTe ? 'ఆర్డర్లలో చూడండి' : 'View Orders'}
                             </Link>
                           </>
                         ) : (
-                          // Farmer View: Actions to contact the provider and check their booking voucher (NEVER links to provider dashboard)
                           <>
                             <a
                               href={`tel:${String(item.providerPhone || '9876543210').replace(/[^0-9]/g, '')}`}
-                              className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                              className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
                             >
                               <Phone className="w-3 h-3" />
                               <span>{isTe ? 'ప్రొవైడర్‌కు కాల్' : 'Call Provider'}</span>
@@ -779,16 +938,16 @@ export default function NotificationsPage() {
                               href={`https://wa.me/${String(item.providerPhone || '9876543210').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.providerName || 'Provider'}, regarding my equipment booking #${item.booking_id || ''}...`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-3 py-1 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                              className="px-3 py-1 rounded-full bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
                             >
                               <MessageSquare className="w-3 h-3" />
                               <span>WhatsApp</span>
                             </a>
                             <Link
                               to="/equipment-booking"
-                              className="px-3 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold"
+                              className="px-3 py-1 rounded-full bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold transition-colors"
                             >
-                              {isTe ? 'బుకింగ్ చూడండి' : 'View Booking Voucher'}
+                              {isTe ? 'బుకింగ్ చూడండి' : 'View Voucher'}
                             </Link>
                           </>
                         )}
@@ -796,24 +955,34 @@ export default function NotificationsPage() {
                     )}
                   </div>
 
-                  {/* Right Quick Actions */}
-                  <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                  {/* Right Column: Unread Pill Badge & Actions */}
+                  <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
+                    {/* Google Messages Signature Blue Unread Pill Badge */}
                     {isUnread && (
-                      <button
-                        onClick={(e) => handleMarkRead(item.notification_id, e)}
-                        className="p-1.5 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-950 text-emerald-600"
-                        title="Mark Read"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-black shadow-xs min-w-[20px] text-center">
+                        1
+                      </span>
                     )}
-                    <button
-                      onClick={(e) => handleDelete(item.notification_id, e)}
-                      className="p-1.5 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-500 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+
+                    {/* Quick Row Actions on hover */}
+                    <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                      {isUnread && (
+                        <button
+                          onClick={(e) => handleMarkRead(item.notification_id || item.id, e)}
+                          className="p-1.5 rounded-full hover:bg-blue-100 dark:hover:bg-blue-950 text-blue-600 transition-colors"
+                          title="Mark Read"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => handleDelete(item.notification_id || item.id, e)}
+                        className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-500 transition-colors"
+                        title="Delete Message"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -822,80 +991,168 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* ─── MESSAGE DETAILS POPUP MODAL ─── */}
-      <Dialog
-        isOpen={Boolean(selectedMessage)}
-        onClose={() => setSelectedMessage(null)}
-        title={selectedMessage?.title || "Alert Details"}
+      {/* ─── 5. FAB: FLOATING ✨ START CHAT PILL BUTTON AT BOTTOM RIGHT ─── */}
+      <button
+        onClick={() => setStartChatOpen(true)}
+        className="fixed right-4 sm:right-8 bottom-20 sm:bottom-24 z-30 px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition-all border border-blue-400/30 ring-4 ring-blue-500/10 cursor-pointer"
+        title="Start New Chat"
       >
-        {selectedMessage && (() => {
-          const pc = PRIORITY_CONFIG[selectedMessage.priority] || PRIORITY_CONFIG.Low;
-          const catObj = CATEGORY_ICONS[selectedMessage.category] || CATEGORY_ICONS.system;
-          const CatIcon = catObj.Icon;
+        <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+        <span>{isTe ? '✨ చాట్ ప్రారంభించండి' : '✨ Start Chat'}</span>
+      </button>
 
-          return (
-            <div className="space-y-4 pt-1">
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${catObj.bg}`}>
-                  <CatIcon className={`w-5 h-5 ${catObj.color}`} />
+      {/* ─── 6. START NEW CHAT MODAL ─── */}
+      <Dialog
+        isOpen={startChatOpen}
+        onClose={() => setStartChatOpen(false)}
+        title={isTe ? "✨ కొత్త సంభాషణను ప్రారంభించండి" : "✨ Start a New Conversation"}
+      >
+        <div className="space-y-4 pt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+            {isTe
+              ? "మీకు నచ్చిన ప్రొవైడర్‌తో నేరుగా మాట్లాడండి లేదా వ్యవసాయ AI నిపుణుడిని సంప్రదించండి:"
+              : "Connect directly with local machinery fleet providers or consult the AI Crop Doctor:"}
+          </p>
+
+          <div className="space-y-2.5">
+            {/* Option A: Ramesh Farm Services */}
+            <div
+              onClick={() => {
+                setStartChatOpen(false);
+                setSelectedMessage({
+                  id: 'chat-ramesh-' + Date.now(),
+                  category: 'booking',
+                  type: 'booking',
+                  providerName: 'Ramesh Farm Services (Pasupugallu)',
+                  providerPhone: '9848012345',
+                  equipmentTitle: 'Mahindra 575 DI 45HP Tractor',
+                  title: isTe ? 'రమేష్ ఫార్మ్ సర్వీసెస్' : 'Ramesh Farm Services',
+                  message: isTe ? 'ట్రాక్టర్ & రోటవేటర్ సేవల కోసం సంభాషణ' : 'Direct communication with Ramesh Farm Hub',
+                  created_at: new Date().toISOString(),
+                  read: true
+                });
+              }}
+              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all cursor-pointer flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">{catObj.label} Alert</span>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={pc.badge}>{selectedMessage.priority} Priority</Badge>
-                    <span className="text-xs text-slate-500 font-bold">
-                      {formatDateTime(selectedMessage.lifecycle?.created_at || selectedMessage.created_at)}
-                    </span>
-                  </div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                    Ramesh Farm Services (Pasupugallu)
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    {isTe ? '🚜 మహీంద్రా 575 DI ట్రాక్టర్ • అందుబాటులో ఉంది' : '🚜 Mahindra 575 DI Tractor • Available Today'}
+                  </p>
                 </div>
               </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <h4 className="text-sm font-black text-slate-900 dark:text-white">{selectedMessage.title}</h4>
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                  {selectedMessage.message}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                <Button variant="outline" size="sm" onClick={() => setSelectedMessage(null)}>
-                  Close
-                </Button>
-                {selectedMessage.category === 'disease' && (
-                  <Button variant="primary" size="sm" onClick={() => { setSelectedMessage(null); navigate('/upload'); }}>
-                    🌿 Scan Crop Leaf
-                  </Button>
-                )}
-                {selectedMessage.category === 'weather' && (
-                  <Button variant="primary" size="sm" onClick={() => { setSelectedMessage(null); navigate('/crop-advisory'); }}>
-                    🌦️ View Weather Advisory
-                  </Button>
-                )}
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(selectedMessage.notification_id)} className="text-rose-500 hover:bg-rose-50">
-                  Delete
-                </Button>
-              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
             </div>
-          );
-        })()}
+
+            {/* Option B: Lakshmi Agro Fleet */}
+            <div
+              onClick={() => {
+                setStartChatOpen(false);
+                setSelectedMessage({
+                  id: 'chat-lakshmi-' + Date.now(),
+                  category: 'booking',
+                  type: 'booking',
+                  providerName: 'Lakshmi Agro Fleet (Guntur)',
+                  providerPhone: '9440182736',
+                  equipmentTitle: 'Kubota Combine Harvester DC68G',
+                  title: isTe ? 'లక్ష్మి ఆగ్రో ఫ్లీట్' : 'Lakshmi Agro Fleet',
+                  message: isTe ? 'వరి కోత యంత్రం సేవల కోసం సంభాషణ' : 'Paddy Combine Harvesting dispatch line',
+                  created_at: new Date().toISOString(),
+                  read: true
+                });
+              }}
+              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all cursor-pointer flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                    Lakshmi Agro Fleet (Guntur)
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    {isTe ? '🌾 కుబోటా కోత యంత్రం • బుకింగ్స్ తెరవబడ్డాయి' : '🌾 Kubota Harvester • Ready for Dispatch'}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+            </div>
+
+            {/* Option C: Ask AgriShield AI Crop Doctor */}
+            <div
+              onClick={() => {
+                setStartChatOpen(false);
+                navigate('/assistant');
+              }}
+              className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 hover:border-blue-500 transition-all cursor-pointer flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                    {isTe ? 'అగ్రిషీల్డ్ AI పంట నిపుణుడు' : 'Ask AgriShield AI Crop Doctor'}
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    {isTe ? 'తక్షణ తెగులు విశ్లేషణ మరియు మందుల మోతాదు సలహా' : 'Instant disease diagnosis, dosage & weather advice'}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-blue-500 group-hover:translate-x-1 transition-all" />
+            </div>
+
+            {/* Option D: Kisan Helpline */}
+            <a
+              href="tel:18001801551"
+              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-orange-500/50 transition-all cursor-pointer flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Headphones className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                    {isTe ? 'జాతీయ కిసాన్ కాల్ సెంటర్ (టోల్-ఫ్రీ)' : 'National Kisan Call Center (Toll-Free)'}
+                  </h4>
+                  <p className="text-[11px] text-slate-500">1800-180-1551 • 6:00 AM - 10:00 PM</p>
+                </div>
+              </div>
+              <Phone className="w-4 h-4 text-orange-500" />
+            </a>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setStartChatOpen(false)}>
+              {isTe ? 'రద్దు చేయండి' : 'Close'}
+            </Button>
+          </div>
+        </div>
       </Dialog>
 
-      {/* ─── NOTIFICATION SETTINGS MODAL ─── */}
+      {/* ─── 7. NOTIFICATION SETTINGS MODAL ─── */}
       <Dialog
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        title="🔔 Notification Settings & Alert Channels"
+        title={isTe ? "🔔 నోటిఫికేషన్ ఛానెల్‌ల అమరికలు" : "🔔 Notification Settings & Channels"}
       >
         <div className="space-y-4 pt-1">
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Customize which field alerts and push warnings you receive on this device.
+            {isTe ? "ఈ పరికరంలో మీరు స్వీకరించే హెచ్చరికలను అనుకూలీకరించండి:" : "Customize alerts and push warnings received on this device."}
           </p>
 
           <div className="space-y-3 divide-y divide-slate-100 dark:divide-slate-800">
             <div className="flex items-center justify-between pt-2">
               <div className="pr-4">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🚨 Disease & Pest Outbreak Alerts</p>
-                <p className="text-[11px] text-slate-500">Immediate warnings when neighboring farms detect fungal or pest infections.</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🚨 {isTe ? 'తెగులు & పురుగుల హెచ్చరికలు' : 'Disease & Pest Outbreak Alerts'}</p>
+                <p className="text-[11px] text-slate-500">{isTe ? 'పొలంలో తెగుళ్లు వ్యాపించినప్పుడు తక్షణ హెచ్చరిక.' : 'Warnings when neighboring farms detect fungal infections.'}</p>
               </div>
               <Switch
                 checked={alertSettings.disease}
@@ -905,8 +1162,8 @@ export default function NotificationsPage() {
 
             <div className="flex items-center justify-between pt-3">
               <div className="pr-4">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🌧️ Severe Rain & Spray Windows</p>
-                <p className="text-[11px] text-slate-500">Advisories before high wind or rainfall to prevent pesticide chemical wastage.</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🌧️ {isTe ? 'వర్షం & స్ప్రే సూచనలు' : 'Severe Rain & Spray Windows'}</p>
+                <p className="text-[11px] text-slate-500">{isTe ? 'వర్షానికి ముందు మందుల పిచికారీ నివారణ సూచన.' : 'Advisories before high wind or rainfall to avoid chemical wastage.'}</p>
               </div>
               <Switch
                 checked={alertSettings.weather}
@@ -916,8 +1173,8 @@ export default function NotificationsPage() {
 
             <div className="flex items-center justify-between pt-3">
               <div className="pr-4">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">💧 Soil Moisture & Irrigation Prompts</p>
-                <p className="text-[11px] text-slate-500">Alerts when soil water percentage drops below optimal crop thresholds.</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">💧 {isTe ? 'నేల తేమ & నీటి పారుదల' : 'Soil Moisture & Irrigation Prompts'}</p>
+                <p className="text-[11px] text-slate-500">{isTe ? 'నీటి శాతం తగ్గినప్పుడు అలర్ట్.' : 'Alerts when soil water percentage drops below threshold.'}</p>
               </div>
               <Switch
                 checked={alertSettings.irrigation}
@@ -927,8 +1184,8 @@ export default function NotificationsPage() {
 
             <div className="flex items-center justify-between pt-3">
               <div className="pr-4">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🔋 Hardware Battery & Node Offline</p>
-                <p className="text-[11px] text-slate-500">Alerts when ESP32 battery drops under 20% or Wi-Fi loses connection.</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🔋 {isTe ? 'పరికరాల బ్యాటరీ హెచ్చరిక' : 'Hardware Battery & Node Offline'}</p>
+                <p className="text-[11px] text-slate-500">{isTe ? 'బ్యాటరీ 20% కన్నా తక్కువ ఉన్నప్పుడు అలర్ట్.' : 'Alerts when ESP32 battery drops under 20%.'}</p>
               </div>
               <Switch
                 checked={alertSettings.battery}
@@ -938,8 +1195,8 @@ export default function NotificationsPage() {
 
             <div className="flex items-center justify-between pt-3">
               <div className="pr-4">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🔊 Alert Sound Chime</p>
-                <p className="text-[11px] text-slate-500">Play an audible chime whenever a critical emergency warning arrives.</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">🔊 {isTe ? 'నోటిఫికేషన్ సౌండ్' : 'Alert Sound Chime'}</p>
+                <p className="text-[11px] text-slate-500">{isTe ? 'అత్యవసర సందేశం వచ్చినప్పుడు శబ్దం వినిపించును.' : 'Play an audible chime on critical warnings.'}</p>
               </div>
               <Switch
                 checked={alertSettings.sound}
@@ -950,11 +1207,12 @@ export default function NotificationsPage() {
 
           <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
             <Button variant="primary" size="sm" onClick={() => setSettingsOpen(false)}>
-              Done
+              {isTe ? 'పూర్తయింది' : 'Done'}
             </Button>
           </div>
         </div>
       </Dialog>
+
     </div>
   );
 }
