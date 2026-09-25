@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v259) - Professional Golden Dawn Harvest Login & Register Redesign (Concept 1)
+- **Summary:** Redesigned both the `LoginPage.jsx` and `RegisterPage.jsx` screens based on User-Approved Concept 1:
+  1. 🌅 **Golden Dawn Farm Backdrop:**
+     - Created and integrated high-resolution scenic agricultural sunrise over terraced green rice paddy fields (`/images/farmer_auth_bg.jpg`) with an outdoor-contrast darkening scrim (`bg-gradient-to-t from-slate-950/85 via-slate-950/50 to-slate-950/70`).
+  2. 🛡️ **Subtle Transparent Logo Watermark (`AgriShieldWatermark.jsx`):**
+     - Embedded a beautiful, translucent vector watermark of the AgriShield dual-leaf shield emblem at 8-11% opacity behind the form card inputs.
+  3. 🌾 **Farmer-Friendly Simplicity & Ergonomics:**
+     - Centered floating frosted-glass card (`backdrop-blur-2xl border-2 border-white/50 shadow-2xl rounded-3xl`).
+     - Large finger-friendly mobile inputs with clean user, lock, and phone icons.
+     - Role-switcher pill between `🌾 Farmer` and `🚜 Equipment Provider`.
+     - 1-tap biometric sign-in button for fast access.
+     - Smooth multi-step registration (Step 1: Credentials & Village/District, Step 2: Crop selection for farmers or Machinery fleet setup for providers).
+  4. 📦 **Production Verification:** Built cleanly with 0 errors in 24.31s.
+- **Files modified**: `frontend/src/pages/common/LoginPage.jsx`, `frontend/src/pages/common/RegisterPage.jsx`, `frontend/src/components/auth/AgriShieldWatermark.jsx`, `frontend/public/images/farmer_auth_bg.jpg`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v258) - Professional Top Header Boundaries & Separated Weather/Spray Boxes
 - **Summary:** Applied user-requested design refinements across the Farmer Dashboard:
   1. 🏷️ **Picture 1 - Bounded Professional Top Header (`DashboardPage.jsx`):**
