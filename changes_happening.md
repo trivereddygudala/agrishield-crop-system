@@ -5479,6 +5479,13 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
 - **Production Build Validation:**
   - Ran `npm run build`: 3,169 modules transformed, built with 0 errors in 32.89s.
 
+9/25/2026: Comprehensive Crop and Disease Detection Audit (v280):
+- **Structured Crop & Disease Coverage Audit File (`CROPS_DISEASE_DETECTION_COVERAGE.md`):**
+  - Generated a comprehensive 29-crop audit report covering all requested crops: Rice (Paddy), Maize, Groundnut, Tomato, Cotton, Red Gram (Tur), Sugarcane, Chillies, Turmeric, Brinjal (Eggplant), Okra (Lady's Finger), Bitter Gourd, Bottle Gourd, Ridge Gourd, Cluster Beans (Guar), Black Gram, Green Gram, Bengal Gram (Chickpea), Sunflower, Sesame, Tobacco, Onion, Cabbage, Cauliflower, Carrot, Radish, Coriander, Spinach (Palak), and Fenugreek (Methi).
+  - Documented dual-engine architecture: Tier 1 (Local PyTorch Deep Learning Model, 1,252 classes for offline 0–50ms inference) + Tier 2 (Gemini 2.0 / 1.5 Multimodal Agricultural Vision fallback) + Tier 3 (13-language advisory database).
+  - Categorized common ICAR/TNAU diseases for each crop, specific diseases detectable by AgriShield, and physical image-level limitations (e.g., subterranean root-knot nematodes, internal stalk tunneling).
+
+
 
 
 
