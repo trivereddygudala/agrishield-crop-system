@@ -1419,7 +1419,7 @@ export default function EquipmentBookingPage() {
           </div>
 
           {/* Bookings List / Empty States */}
-          <div className="space-y-4 pt-1">
+          <div>
             {filteredBookings.length === 0 ? (
               <div className="text-center py-14 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-2xl">
@@ -1459,293 +1459,252 @@ export default function EquipmentBookingPage() {
                 </div>
               </div>
             ) : (
-              filteredBookings.map((b) => {
-                const bKey = b.id || b.bookingId;
-                const rawStatus = String(b.status || 'pending').toLowerCase();
-                const isCancelled = rawStatus === 'cancelled' || rawStatus === 'canceled';
-                const isDeclined = rawStatus === 'rejected' || rawStatus === 'declined';
-                const isCompleted = rawStatus === 'completed';
-                const isPending = rawStatus === 'pending';
-                const isInProgress = rawStatus === 'in-progress';
-                const isConfirmed = rawStatus === 'confirmed' || rawStatus === 'scheduled' || isInProgress;
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredBookings.map((b) => {
+                  const bKey = b.id || b.bookingId;
+                  const rawStatus = String(b.status || 'pending').toLowerCase();
+                  const isCancelled = rawStatus === 'cancelled' || rawStatus === 'canceled';
+                  const isDeclined = rawStatus === 'rejected' || rawStatus === 'declined';
+                  const isCompleted = rawStatus === 'completed';
+                  const isPending = rawStatus === 'pending';
+                  const isInProgress = rawStatus === 'in-progress';
+                  const isConfirmed = rawStatus === 'confirmed' || rawStatus === 'scheduled' || isInProgress;
 
-                // Status Theme
-                const statusMeta = isCancelled
-                  ? {
-                      label: isTe ? 'రద్దు చేయబడింది' : 'Cancelled by Farmer',
-                      color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300 dark:border-rose-900',
-                      stripe: 'from-rose-500 to-red-500',
-                      badgeIcon: <Ban className="w-3 h-3 text-rose-500" />
-                    }
-                  : isDeclined
-                  ? {
-                      label: isTe ? 'ఆర్డర్ తిరస్కరించబడింది' : 'Declined / Unavailable',
-                      color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300 dark:border-rose-900',
-                      stripe: 'from-rose-500 to-amber-500',
-                      badgeIcon: <AlertTriangle className="w-3 h-3 text-rose-500" />
-                    }
-                  : isCompleted
-                  ? {
-                      label: isTe ? 'సేవ పూర్తయింది' : 'Service Completed',
-                      color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-300 dark:border-purple-900',
-                      stripe: 'from-purple-500 to-indigo-500',
-                      badgeIcon: <CheckCircle2 className="w-3 h-3 text-purple-500" />
-                    }
-                  : isInProgress
-                  ? {
-                      label: isTe ? 'పని జరుగుతోంది' : 'Work In Progress',
-                      color: 'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-300 dark:border-sky-900',
-                      stripe: 'from-sky-500 to-blue-500',
-                      badgeIcon: <Truck className="w-3 h-3 text-sky-500 animate-pulse" />
-                    }
-                  : isConfirmed
-                  ? {
-                      label: isTe ? 'ధృవీకరించబడింది & షెడ్యూల్' : 'Confirmed & Scheduled',
-                      color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-900',
-                      stripe: 'from-emerald-500 to-teal-500',
-                      badgeIcon: <Check className="w-3 h-3 text-emerald-500" />
-                    }
-                  : {
-                      label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Provider Approval',
-                      color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-900',
-                      stripe: 'from-amber-400 to-orange-500',
-                      badgeIcon: <Clock className="w-3 h-3 text-amber-500 animate-spin" />
-                    };
+                  // Status Theme
+                  const statusMeta = isCancelled
+                    ? {
+                        label: isTe ? 'రద్దు చేయబడింది' : 'Cancelled',
+                        color: 'bg-rose-500/90 text-white border-rose-600',
+                        badgeIcon: <Ban className="w-3 h-3 text-white" />
+                      }
+                    : isDeclined
+                    ? {
+                        label: isTe ? 'తిరస్కరించబడింది' : 'Declined',
+                        color: 'bg-rose-500/90 text-white border-rose-600',
+                        badgeIcon: <AlertTriangle className="w-3 h-3 text-white" />
+                      }
+                    : isCompleted
+                    ? {
+                        label: isTe ? 'పూర్తయింది' : 'Completed',
+                        color: 'bg-purple-600/90 text-white border-purple-700',
+                        badgeIcon: <CheckCircle2 className="w-3 h-3 text-white" />
+                      }
+                    : isInProgress
+                    ? {
+                        label: isTe ? 'పనిలో ఉంది' : 'In Progress',
+                        color: 'bg-sky-600/90 text-white border-sky-700',
+                        badgeIcon: <Truck className="w-3 h-3 text-white animate-pulse" />
+                      }
+                    : isConfirmed
+                    ? {
+                        label: isTe ? 'షెడ్యూల్ అయింది' : 'Confirmed',
+                        color: 'bg-emerald-600/90 text-white border-emerald-700',
+                        badgeIcon: <Check className="w-3 h-3 text-white" />
+                      }
+                    : {
+                        label: isTe ? 'వేచి ఉంది' : 'Pending',
+                        color: 'bg-amber-500/90 text-white border-amber-600',
+                        badgeIcon: <Clock className="w-3 h-3 text-white animate-spin" />
+                      };
 
-                // Stepper Active Step Calculation (1 to 4)
-                // 1: Requested | 2: Approved | 3: En Route / In Progress | 4: Completed
-                const currentStepNumber = isCompleted ? 4 : isInProgress ? 3 : isConfirmed ? 2 : 1;
+                  // Stepper Active Step (1 to 4)
+                  const currentStepNumber = isCompleted ? 4 : isInProgress ? 3 : isConfirmed ? 2 : 1;
 
-                return (
-                  <div
-                    key={bKey}
-                    className={`relative bg-white dark:bg-slate-900 rounded-3xl border ${
-                      isDeclined || isCancelled
-                        ? 'border-rose-200 dark:border-rose-900/50 shadow-rose-500/5'
-                        : isCompleted
-                        ? 'border-purple-200 dark:border-purple-900/50'
-                        : isConfirmed
-                        ? 'border-emerald-200 dark:border-emerald-900/50'
-                        : 'border-slate-200/90 dark:border-slate-800'
-                    } shadow-md overflow-hidden transition-all hover:shadow-lg`}
-                  >
-                    {/* Top colored status accent bar */}
-                    <div className={`h-1.5 w-full bg-gradient-to-r ${statusMeta.stripe}`} />
+                  return (
+                    <motion.div
+                      key={bKey}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border shadow-sm transition-all duration-300 flex flex-col justify-between group ${
+                        isDeclined || isCancelled
+                          ? 'border-rose-200/90 dark:border-rose-900/50 bg-rose-500/[0.02]'
+                          : isCompleted
+                          ? 'border-purple-200/90 dark:border-purple-900/50 hover:shadow-xl'
+                          : isConfirmed
+                          ? 'border-emerald-200/90 dark:border-emerald-900/50 hover:shadow-xl'
+                          : 'border-slate-200/90 dark:border-slate-800 hover:shadow-xl'
+                      }`}
+                    >
+                      <div>
+                        {/* High-res Studio Cutout Machinery Image Container */}
+                        <div className="relative h-44 sm:h-48 w-full overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800/50 mb-3.5 flex items-center justify-center p-2">
+                          <img
+                            src={b.imageUrl || getEquipmentFallbackImage(b.category, b.title)}
+                            alt={b.title}
+                            className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = getEquipmentFallbackImage(b.category, b.title);
+                            }}
+                          />
 
-                    {/* Perforation punch-out holes (Visual Ticket Styling) */}
-                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 z-10 pointer-events-none hidden sm:block" />
-                    <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 z-10 pointer-events-none hidden sm:block" />
-
-                    <div className="p-4 sm:p-5 space-y-4">
-                      {/* Voucher Top Row: ID, Status Badge, Pricing */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                              #{bKey}
-                            </span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border ${statusMeta.color}`}>
+                          {/* Top Left Badge: Status */}
+                          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black backdrop-blur-md shadow-sm border flex items-center gap-1 ${statusMeta.color}`}>
                               {statusMeta.badgeIcon}
                               <span>{statusMeta.label}</span>
                             </span>
                           </div>
 
-                          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 mt-1">
-                            {isTe && b.teluguTitle ? b.teluguTitle : b.title}
-                          </h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">
-                              👤 {b.providerName || 'Local Provider'}
+                          {/* Top Right Badge: Voucher ID */}
+                          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-black bg-slate-900/80 text-white backdrop-blur-md shadow-sm">
+                              #{bKey}
                             </span>
-                            <span>•</span>
-                            <span>📞 {b.phone || b.providerPhone || b.contactPhone || 'Available on request'}</span>
-                            {(b.village || b.locationVillage) && (
-                              <>
-                                <span>•</span>
-                                <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                                  <MapPin className="w-3 h-3" />
-                                  {b.village || b.locationVillage}, {b.mandal || b.locationMandal || ''}
-                                </span>
-                              </>
-                            )}
-                          </p>
+                          </div>
                         </div>
 
-                        <div className="sm:text-right shrink-0 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                            {isTe ? 'మొత్తం అంచనా అద్దె' : 'Estimated Total'}
+                        {/* Machine Title */}
+                        <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
+                          {isTe && b.teluguTitle ? b.teluguTitle : b.title}
+                        </h3>
+
+                        {/* Provider & Location line */}
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-slate-700 dark:text-slate-300 font-bold">{b.providerName || 'Local Provider'}</span>
+                          <span>•</span>
+                          <span>{b.village || b.locationVillage || locationVillage}</span>
+                        </p>
+
+                        {/* Slot & Operation pill line */}
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-emerald-600" />
+                            <span>{b.bookingDate}</span>
                           </span>
-                          <span className={`text-xl font-black ${isCancelled ? 'line-through text-slate-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                            ₹{b.totalCost}
+                          <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-500" />
+                            <span>{b.timeSlot}</span>
                           </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
-                            {b.paymentMode || 'Cash on Field'}
+                          <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                            {b.acres} {isTe ? 'ఎకరాలు' : 'Acres'}
                           </span>
                         </div>
-                      </div>
 
-                      {/* 4-Stage Visual Status Stepper (Active for ongoing/completed bookings) */}
-                      {!isCancelled && !isDeclined && (
-                        <div className="bg-slate-50/90 dark:bg-slate-800/40 p-3 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <div className="grid grid-cols-4 relative">
-                            {/* Horizontal Progress Bar Track */}
-                            <div className="absolute top-3.5 left-[12.5%] right-[12.5%] h-1 bg-slate-200 dark:bg-slate-700 -z-0" />
-                            <div
-                              className="absolute top-3.5 left-[12.5%] h-1 bg-emerald-500 transition-all duration-500 -z-0"
-                              style={{
-                                width: currentStepNumber === 1 ? '0%' : currentStepNumber === 2 ? '33%' : currentStepNumber === 3 ? '66%' : '75%'
-                              }}
-                            />
+                        {/* Cancellation / Decline Alert if applicable */}
+                        {isCancelled && (
+                          <div className="mt-2.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-[11px] flex items-start gap-1.5">
+                            <Ban className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                            <span className="line-clamp-2">
+                              <strong>{isTe ? 'రద్దు కారణం: ' : 'Cancelled: '}</strong>
+                              {b.cancelReason || (isTe ? 'రైతు అభ్యర్థన మేరకు' : 'Farmer request')}
+                            </span>
+                          </div>
+                        )}
 
-                            {[
-                              { step: 1, labelEn: 'Requested', labelTe: 'అభ్యర్థన' },
-                              { step: 2, labelEn: 'Approved', labelTe: 'ధృవీకరణ' },
-                              { step: 3, labelEn: 'En Route', labelTe: 'మార్గంలో' },
-                              { step: 4, labelEn: 'Completed', labelTe: 'పూర్తయింది' }
-                            ].map((st) => {
-                              const isStepDone = currentStepNumber > st.step;
-                              const isStepCurrent = currentStepNumber === st.step;
+                        {isDeclined && (
+                          <div className="mt-2.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-[11px] flex items-start gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                            <span>{isTe ? 'ప్రొవైడర్ తిరస్కరించారు (స్లాట్ బిజీ)' : 'Declined by provider (Slot unavailable)'}</span>
+                          </div>
+                        )}
 
-                              return (
-                                <div key={st.step} className="flex flex-col items-center text-center relative z-10">
-                                  <div
-                                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
-                                      isStepDone
-                                        ? 'bg-emerald-600 text-white shadow-xs'
-                                        : isStepCurrent
-                                        ? isCompleted
-                                          ? 'bg-purple-600 text-white ring-4 ring-purple-100 dark:ring-purple-950/70'
-                                          : isInProgress
-                                          ? 'bg-sky-600 text-white ring-4 ring-sky-100 dark:ring-sky-950/70'
-                                          : isConfirmed
-                                          ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 dark:ring-emerald-950/70'
-                                          : 'bg-amber-500 text-white ring-4 ring-amber-100 dark:ring-amber-950/70 animate-pulse'
-                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                                    }`}
-                                  >
-                                    {isStepDone ? <Check className="w-3.5 h-3.5" /> : st.step}
+                        {/* 4-Stage Visual Status Stepper (Compact & Elegant for active/completed bookings) */}
+                        {!isCancelled && !isDeclined && (
+                          <div className="mt-3 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800/70">
+                            <div className="grid grid-cols-4 relative">
+                              <div className="absolute top-2.5 left-[12.5%] right-[12.5%] h-0.5 bg-slate-200 dark:bg-slate-700 -z-0" />
+                              <div
+                                className="absolute top-2.5 left-[12.5%] h-0.5 bg-emerald-500 transition-all duration-500 -z-0"
+                                style={{
+                                  width: currentStepNumber === 1 ? '0%' : currentStepNumber === 2 ? '33%' : currentStepNumber === 3 ? '66%' : '75%'
+                                }}
+                              />
+
+                              {[
+                                { step: 1, labelEn: 'Requested', labelTe: 'అభ్యర్థన' },
+                                { step: 2, labelEn: 'Approved', labelTe: 'ధృవీకరణ' },
+                                { step: 3, labelEn: 'En Route', labelTe: 'మార్గంలో' },
+                                { step: 4, labelEn: 'Completed', labelTe: 'పూర్తయింది' }
+                              ].map((st) => {
+                                const isStepDone = currentStepNumber > st.step;
+                                const isStepCurrent = currentStepNumber === st.step;
+                                return (
+                                  <div key={st.step} className="flex flex-col items-center text-center relative z-10">
+                                    <div
+                                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black transition-all ${
+                                        isStepDone
+                                          ? 'bg-emerald-600 text-white'
+                                          : isStepCurrent
+                                          ? isCompleted
+                                            ? 'bg-purple-600 text-white ring-2 ring-purple-200 dark:ring-purple-900'
+                                            : isInProgress
+                                            ? 'bg-sky-600 text-white ring-2 ring-sky-200 dark:ring-sky-900'
+                                            : isConfirmed
+                                            ? 'bg-emerald-600 text-white ring-2 ring-emerald-200 dark:ring-emerald-900'
+                                            : 'bg-amber-500 text-white ring-2 ring-amber-200 dark:ring-amber-900 animate-pulse'
+                                          : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                                      }`}
+                                    >
+                                      {isStepDone ? <Check className="w-3 h-3" /> : st.step}
+                                    </div>
+                                    <span className={`text-[9px] font-bold mt-1 leading-none ${
+                                      isStepCurrent
+                                        ? 'text-slate-900 dark:text-slate-100 font-black'
+                                        : isStepDone
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-slate-400 dark:text-slate-500'
+                                    }`}>
+                                      {isTe ? st.labelTe : st.labelEn}
+                                    </span>
                                   </div>
-                                  <span className={`text-[10px] sm:text-[11px] font-bold mt-1.5 leading-tight ${
-                                    isStepCurrent
-                                      ? 'text-slate-900 dark:text-slate-100 font-black'
-                                      : isStepDone
-                                      ? 'text-emerald-700 dark:text-emerald-400'
-                                      : 'text-slate-400 dark:text-slate-500'
-                                  }`}>
-                                    {isTe ? st.labelTe : st.labelEn}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Cancelled Banner */}
-                      {isCancelled && (
-                        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 flex items-start gap-3 text-xs">
-                          <Ban className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                          <div className="space-y-0.5">
-                            <p className="font-black text-rose-900 dark:text-rose-100">
-                              {isTe ? 'ఈ బుకింగ్ రైతు ద్వారా రద్దు చేయబడింది' : 'This booking was cancelled by you (Farmer).'}
-                            </p>
-                            <p className="text-[11px] text-rose-700 dark:text-rose-300 font-medium">
-                              <strong>{isTe ? 'రద్దు కారణం: ' : 'Reason: '}</strong>
-                              {b.cancelReason || (isTe ? 'రైతు అభ్యర్థన మేరకు రద్దు చేయబడింది' : 'Requested by farmer')}
-                            </p>
-                            {b.cancelledAt && (
-                              <p className="text-[10px] text-rose-600/80 dark:text-rose-400/80">
-                                {isTe ? 'రద్దు చేసిన సమయం: ' : 'Cancelled on: '}
-                                {new Date(b.cancelledAt).toLocaleString()}
-                              </p>
-                            )}
+                        {/* Pricing Total */}
+                        <div className="flex items-baseline justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                              {isTe ? 'మొత్తం అద్దె' : 'Estimated Rent'}
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                              <span className={`text-xl font-black ${isCancelled ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>
+                                ₹{b.totalCost}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                ({b.paymentMode || 'Cash on Field'})
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
 
-                      {/* Declined Notice Banner */}
-                      {isDeclined && (
-                        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 flex items-start gap-3 text-xs">
-                          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                          <div className="space-y-0.5">
-                            <p className="font-black text-rose-900 dark:text-rose-100">
-                              {isTe ? 'ఈ బుకింగ్ ప్రొవైడర్ చేత తిరస్కరించబడింది.' : 'This booking was declined by the equipment provider.'}
-                            </p>
-                            <p className="text-[11px] text-rose-700/80 dark:text-rose-300/80 font-medium">
-                              {isTe
-                                ? 'యంత్రం ప్రస్తుతం అందుబాటులో లేదు లేదా వేరే పనిలో ఉంది. దయచేసి వేరే యంత్రాన్ని లేదా వేరే సమయాన్ని ఎంచుకోండి.'
-                                : 'The machine is currently unavailable or undergoing maintenance. Please select another provider or re-book for a different time slot.'}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Perforation Dashed Line */}
-                      <div className="border-b-2 border-dashed border-slate-200 dark:border-slate-800 my-2" />
-
-                      {/* Booking Metadata Bar */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl text-xs">
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'తేదీ' : 'Date'}</span>
-                          <span className="font-extrabold text-slate-800 dark:text-slate-200">{b.bookingDate}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</span>
-                          <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">{b.timeSlot}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'విస్తీర్ణం / పొలం స్థితి' : 'Acres / Field Stage'}</span>
-                          <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">
-                            {b.acres} Acres ({b.fieldStatus || b.targetCrop || 'Field'})
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'డ్రైవర్ & డీజిల్' : 'Inclusions'}</span>
-                          <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">
-                            {b.operatorIncluded !== false ? '👨‍🌾 Operator' : 'Self-Drive'} • {b.fuelIncluded !== false ? '⛽ Fuel Inc.' : 'Fuel Extra'}
-                          </span>
+                          {b.operatorIncluded !== false && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                              👨‍🌾 Driver Inc.
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      {b.operation && (
-                        <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
-                          <span className="flex items-center gap-1.5">
-                            <span>⚙️ {isTe ? 'పని రకం:' : 'Operation:'}</span>
-                            <strong className="text-indigo-900 dark:text-indigo-200">{b.operation}</strong>
-                          </span>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                            🌱 {b.fieldStatus || b.targetCrop || 'Field Stage'}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Action Buttons Row: Call, WhatsApp, Cancel, Delete, Re-Book, Farm Khata */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        {/* Contact group */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <a
-                            href={`tel:${b.phone || b.farmerPhone || b.contactPhone || ''}`}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold transition-colors"
-                          >
-                            <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{isTe ? 'కాల్ చేయండి' : 'Call Provider'}</span>
-                          </a>
+                      {/* Actions Bar matching Concept 2 Dual-Action / Action Grid */}
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <a
                             href={`https://wa.me/${String(b.phone || b.farmerPhone || b.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
                               `Booking ID #${bKey}: Hello, inquiring about ${b.title || 'Equipment'} booking for ${b.bookingDate || ''} (${b.timeSlot || ''}) for ${b.acres || 0} Acres.`
                             )}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 text-xs font-bold transition-colors"
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                           >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            <span>WhatsApp Voucher</span>
+                            <MessageSquare className="w-3.5 h-3.5 fill-white" />
+                            <span>{isTe ? 'వాట్సాప్' : 'WhatsApp'}</span>
+                          </a>
+
+                          <a
+                            href={`tel:${b.phone || b.farmerPhone || b.contactPhone || ''}`}
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{isTe ? 'కాల్' : 'Call'}</span>
                           </a>
                         </div>
 
-                        {/* Management action buttons */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Cancel Booking (Available if pending or confirmed) */}
+                        {/* Secondary Context Actions: Cancel, Re-Book, Delete, Farm Khata */}
+                        <div className="flex items-center justify-between gap-1.5 pt-1">
                           {(isPending || isConfirmed) && (
                             <button
                               type="button"
@@ -1754,62 +1713,57 @@ export default function EquipmentBookingPage() {
                                 setCancelReasonKey('weather');
                                 setCustomCancelReason('');
                               }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold transition-colors cursor-pointer"
+                              className="w-full flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs font-bold transition-all cursor-pointer"
                             >
-                              <Ban className="w-3.5 h-3.5 text-rose-600" />
+                              <Ban className="w-3 h-3 text-rose-600" />
                               <span>{isTe ? 'బుకింగ్ రద్దు చేయండి' : 'Cancel Booking'}</span>
                             </button>
                           )}
 
-                          {/* Re-Book / Book Again (Available if completed, cancelled, or declined) */}
                           {(isCompleted || isCancelled || isDeclined) && (
-                            <button
-                              type="button"
-                              onClick={() => handleReBook(b)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                            >
-                              <RotateCcw className="w-3.5 h-3.5" />
-                              <span>{isTe ? 'మళ్లీ బుక్ చేయండి' : 'Book Again'}</span>
-                            </button>
-                          )}
-
-                          {/* Delete Voucher (Available if completed, cancelled, or declined) */}
-                          {(isCompleted || isCancelled || isDeclined) && (
-                            <button
-                              type="button"
-                              onClick={() => setDeleteModalBooking(b)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/50 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors cursor-pointer"
-                              title={isTe ? 'రసీదు తొలగించండి' : 'Delete Voucher'}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>{isTe ? 'రసీదు తొలగించండి' : 'Delete'}</span>
-                            </button>
-                          )}
-
-                          {/* Sync to Farm Khata Ledger Button (for completed bookings) */}
-                          {isCompleted && (
-                            b.syncedToKhata ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                                <Check className="w-3.5 h-3.5" />
-                                <span>{isTe ? 'పొలం ఖాతాకు చేరింది' : 'Added to Khata'}</span>
-                              </span>
-                            ) : (
+                            <div className="flex items-center gap-1.5 w-full">
                               <button
                                 type="button"
-                                onClick={() => handleSyncToKhata(b)}
-                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs cursor-pointer transition-colors"
+                                onClick={() => handleReBook(b)}
+                                className="flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                               >
-                                <DollarSign className="w-3.5 h-3.5" />
-                                <span>{isTe ? 'పొలం ఖాతాకు జోడించండి' : 'Add to Farm Khata'}</span>
+                                <RotateCcw className="w-3 h-3" />
+                                <span>{isTe ? 'మళ్లీ బుక్' : 'Book Again'}</span>
                               </button>
-                            )
+
+                              {isCompleted && (
+                                b.syncedToKhata ? (
+                                  <span className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-0.5" title={isTe ? 'పొలం ఖాతాకు చేరింది' : 'Synced to Farm Khata'}>
+                                    <Check className="w-3.5 h-3.5" />
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSyncToKhata(b)}
+                                    className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all cursor-pointer"
+                                    title={isTe ? 'ఖాతాకు చేర్చండి' : 'Sync to Farm Khata'}
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                  </button>
+                                )
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => setDeleteModalBooking(b)}
+                                className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/50 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all cursor-pointer"
+                                title={isTe ? 'రసీదు తొలగించండి' : 'Delete Voucher'}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })
+                    </motion.div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
