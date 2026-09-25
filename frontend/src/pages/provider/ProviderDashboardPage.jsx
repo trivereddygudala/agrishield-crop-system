@@ -44,6 +44,29 @@ import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/index';
+import { CURATED_FARM_PHOTOS } from '../../services/photoService';
+
+// Concept 2 Clean Studio Machinery Image Resolver
+const getEquipmentFallbackImage = (category, title = '') => {
+  const t = String(title || '').toLowerCase();
+  const c = String(category || '').toLowerCase();
+  if (c === 'drone' || t.includes('drone') || t.includes('agras') || t.includes('spray')) {
+    return CURATED_FARM_PHOTOS.drone || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=800&q=80';
+  }
+  if (c === 'irrigation' || c === 'pump' || t.includes('pump') || t.includes('solar') || t.includes('water')) {
+    return CURATED_FARM_PHOTOS.solarPump || 'https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?auto=format&fit=crop&w=800&q=80';
+  }
+  if (c === 'harvester' || t.includes('harvester') || t.includes('cutter')) {
+    return CURATED_FARM_PHOTOS.harvester || 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80';
+  }
+  if (c === 'implement' || t.includes('rotavator') || t.includes('plough') || t.includes('tiller')) {
+    return CURATED_FARM_PHOTOS.rotavator || 'https://images.unsplash.com/photo-1589923188900-85dae523342b?auto=format&fit=crop&w=800&q=80';
+  }
+  if (t.includes('john deere')) {
+    return CURATED_FARM_PHOTOS.tractor || 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=800&q=80';
+  }
+  return CURATED_FARM_PHOTOS.tractorJohnDeere || CURATED_FARM_PHOTOS.tractorField || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80';
+};
 
 export default function ProviderDashboardPage() {
   const { t, i18n } = useTranslation();
@@ -1112,101 +1135,168 @@ export default function ProviderDashboardPage() {
         </button>
       </div>
 
-      {/* ── TAB 1: MACHINERY FLEET INVENTORY ── */}
+      {/* ── TAB 1: MACHINERY FLEET INVENTORY (Concept 2 Clean Studio) ── */}
       {activeTab === 'fleet' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-black text-slate-900 dark:text-white">
-              {isTe ? 'మీ యంత్రాల కేటలాగ్' : 'Active Machinery Inventory'}
-            </h2>
-            <span className="text-xs text-slate-400">
-              {fleetList.length} {fleetList.length === 1 ? 'machine' : 'machines'} configured
-            </span>
+            <div>
+              <h2 className="text-base font-black text-slate-900 dark:text-white">
+                {isTe ? 'మీ యంత్రాల కేటలాగ్' : 'Active Machinery Inventory'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isTe ? 'రైతులకు అందుబాటులో ఉన్న మీ ట్రాక్టర్లు, డ్రోన్లు మరియు పరికరాల నిర్వహణ' : 'Manage your listed tractors, spray drones, and harvest equipment for nearby farmers'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                {fleetList.length} {fleetList.length === 1 ? (isTe ? 'యంత్రం' : 'Machine') : (isTe ? 'యంత్రాలు' : 'Machines')}
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {fleetList.map((machine) => (
-              <div
+              <motion.div
                 key={machine.id}
-                className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-5 shadow-sm flex flex-col justify-between"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-[#070e17] rounded-3xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-300 flex flex-col justify-between group"
               >
                 <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-lg font-black">
-                        {machine.category === 'drone' ? '🛸' : machine.category === 'irrigation' ? '💧' : machine.category === 'harvester' ? '🌾' : '🚜'}
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-black text-slate-900 dark:text-white line-clamp-1">{machine.title}</h3>
-                        <p className="text-[11px] text-slate-400 font-semibold">{machine.horsepower || 'Heavy Equipment'}</p>
-                      </div>
+                  {/* High-res Studio Cutout Machinery Image Container */}
+                  <div className="relative h-44 sm:h-48 w-full overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800/50 mb-3.5 flex items-center justify-center p-2">
+                    <img
+                      src={machine.imageUrl || machine.image || getEquipmentFallbackImage(machine.category, machine.title)}
+                      alt={machine.title}
+                      className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getEquipmentFallbackImage(machine.category, machine.title);
+                      }}
+                    />
+
+                    {/* Top Left Badge: Category & Power */}
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-600/95 text-white backdrop-blur-md shadow-sm flex items-center gap-1">
+                        <span>{machine.category === 'drone' ? '🛸' : machine.category === 'irrigation' ? '💧' : machine.category === 'harvester' ? '🌾' : '🚜'}</span>
+                        <span className="capitalize">{machine.category || 'Machinery'}</span>
+                      </span>
+                      {machine.horsepower && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/80 text-white backdrop-blur-md">
+                          {machine.horsepower}
+                        </span>
+                      )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleToggleMachineAvailability(machine.id)}
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border cursor-pointer ${
-                        machine.available
-                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-400 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500'
-                      }`}
-                    >
-                      {machine.available ? 'Available' : 'Booked'}
-                    </button>
+                    {/* Top Right Badge: Interactive Quick Toggle Availability */}
+                    <div className="absolute top-2.5 right-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleMachineAvailability(machine.id)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 ${
+                          machine.available
+                            ? 'bg-emerald-500/90 text-white border-emerald-400 hover:bg-emerald-600'
+                            : 'bg-slate-900/85 text-slate-300 border-slate-700 hover:bg-slate-800'
+                        }`}
+                        title={isTe ? 'లభ్యత మార్చడానికి క్లిక్ చేయండి' : 'Click to toggle availability'}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${machine.available ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+                        <span>{machine.available ? (isTe ? 'అందుబాటులో ఉంది' : 'Available') : (isTe ? 'బుక్ చేయబడింది' : 'Booked')}</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Pricing & Timing Box */}
-                  <div className="mt-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 grid grid-cols-2 gap-2 text-center">
-                    <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">{isTe ? 'ఎకరాకు అద్దె' : 'Rent per Acre'}</p>
-                      <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">₹{machine.ratePerAcre || machine.hourlyRate || 1200} / acre</p>
-                    </div>
-                    <div className="border-l border-slate-200 dark:border-slate-800">
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">{isTe ? 'అందుబాటు సమయం' : 'Available Time'}</p>
-                      <p className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{machine.availableTime || machine.dailyAvailableTime || '6:00 AM - 6:00 PM'}</p>
-                    </div>
+                  {/* Machine Title */}
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
+                    {machine.title}
+                  </h3>
+
+                  {/* Operator Specs & Fuel Status */}
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                    <span>{machine.operatorIncluded ? (isTe ? 'ఆపరేటర్ ఉన్నారు' : 'Driver Included') : (isTe ? 'సెల్ఫ్-డ్రైవ్' : 'Self-Drive')}</span>
+                    <span>•</span>
+                    <span>{machine.fuelIncluded ? (isTe ? 'డీజిల్ చేర్చబడింది' : 'Fuel Included') : (isTe ? 'డీజిల్ అదనం' : 'Fuel Extra')}</span>
+                    {machine.dailyAvailableTime && (
+                      <>
+                        <span>•</span>
+                        <span>{machine.dailyAvailableTime}</span>
+                      </>
+                    )}
+                  </p>
+
+                  {/* Pricing Display */}
+                  <div className="flex items-baseline gap-1 mt-2.5">
+                    <span className="text-xl font-black text-slate-900 dark:text-white">
+                      ₹{machine.ratePerAcre || machine.hourlyRate || 1200}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      / {machine.ratePerAcre ? (isTe ? 'ఎకరాకు' : 'Acre') : (isTe ? 'గంటకు' : 'hr')}
+                    </span>
+                    {machine.dailyRate && (
+                      <span className="text-[11px] text-slate-400 font-medium ml-1">
+                        (or ₹{machine.dailyRate}/day)
+                      </span>
+                    )}
                   </div>
 
                   {/* Implements tag list */}
                   {machine.implementsIncluded && machine.implementsIncluded.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {machine.implementsIncluded.map((imp, i) => (
-                        <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {imp}
+                        <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          ⚙️ {imp}
                         </span>
                       ))}
                     </div>
                   )}
                 </div>
 
+                {/* Bottom Meta & Controls */}
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 text-[11px] flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-slate-400" />
-                    {machine.locationVillage}
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span className="truncate max-w-[150px]">{machine.locationVillage || machine.village || 'Hub Base'}</span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteMachine(machine.id)}
-                    className="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleMachineAvailability(machine.id)}
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                    >
+                      {machine.available ? (isTe ? 'బిజీగా గుర్తించండి' : 'Mark Busy') : (isTe ? 'ఖాళీగా గుర్తించండి' : 'Mark Free')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMachine(machine.id)}
+                      className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                      title={isTe ? 'యంత్రాన్ని తొలగించండి' : 'Delete Machinery Listing'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── TAB 2: INCOMING FARMER BOOKING ORDERS ── */}
+      {/* ── TAB 2: INCOMING FARMER BOOKING ORDERS (Concept 2 Clean Studio Provider Control) ── */}
       {activeTab === 'orders' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-black text-slate-900 dark:text-white">
-              {isTe ? 'రైతుల నుండి వచ్చిన బుకింగ్ అభ్యర్థనలు' : 'Farmer Rental Booking Orders'}
-            </h2>
-            <span className="text-xs text-slate-400">
-              {bookingsList.length} total orders recorded
+            <div>
+              <h2 className="text-base font-black text-slate-900 dark:text-white">
+                {isTe ? 'రైతుల నుండి వచ్చిన బుకింగ్ అభ్యర్థనలు' : 'Farmer Rental Booking Orders'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isTe ? 'రైతుల నుండి వచ్చే అద్దె ఆర్డర్లను ఆమోదించండి, కాల్ చేయండి లేదా పూర్తి చేయండి' : 'Accept, decline, coordinate with farmers, and mark field jobs completed'}
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+              {bookingsList.length} {bookingsList.length === 1 ? (isTe ? 'ఆర్డర్' : 'Order') : (isTe ? 'ఆర్డర్లు' : 'Orders')}
             </span>
           </div>
 
@@ -1225,7 +1315,7 @@ export default function ProviderDashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {bookingsList.map((booking) => {
                 const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '9440182736';
                 const cleanPhone = String(farmerPhone).replace(/[^0-9]/g, '');
@@ -1238,194 +1328,231 @@ export default function ProviderDashboardPage() {
                 const crop = booking.targetCrop || booking.crop || 'Field Crop';
                 const totalCost = booking.totalCost || '800';
 
+                const isPending = !booking.status || booking.status === 'pending';
+                const isConfirmed = booking.status === 'confirmed';
+                const isCompleted = booking.status === 'completed';
+                const isDeclined = booking.status === 'rejected' || booking.status === 'declined' || booking.status === 'cancelled';
+
                 return (
-                  <div
+                  <motion.div
                     key={booking.id}
-                    className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-5 shadow-sm space-y-3"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`bg-white dark:bg-[#070e17] rounded-3xl p-4 sm:p-5 border shadow-sm transition-all duration-300 flex flex-col justify-between group ${
+                      isPending
+                        ? 'border-amber-300 dark:border-amber-800/80 bg-amber-500/[0.015]'
+                        : isConfirmed
+                        ? 'border-sky-300 dark:border-sky-800/80'
+                        : isCompleted
+                        ? 'border-emerald-300 dark:border-emerald-800/80'
+                        : 'border-rose-200 dark:border-rose-900/60 bg-rose-500/[0.015]'
+                    }`}
                   >
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400">
-                            #{booking.id}
-                          </span>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                            booking.status === 'completed'
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                              : booking.status === 'rejected' || booking.status === 'cancelled'
-                              ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                              : booking.status === 'confirmed'
-                              ? 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-300 dark:border-sky-800'
-                              : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800 animate-pulse'
+                    <div>
+                      {/* High-res Studio Cutout Machinery Image Container */}
+                      <div className="relative h-40 sm:h-44 w-full overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800/50 mb-3 flex items-center justify-center p-2">
+                        <img
+                          src={booking.imageUrl || booking.image || getEquipmentFallbackImage(booking.category, equipmentTitle)}
+                          alt={equipmentTitle}
+                          className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getEquipmentFallbackImage(booking.category, equipmentTitle);
+                          }}
+                        />
+
+                        {/* Top Left Badge: Action Status */}
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase backdrop-blur-md shadow-sm border flex items-center gap-1 ${
+                            isCompleted
+                              ? 'bg-emerald-600/95 text-white border-emerald-400'
+                              : isDeclined
+                              ? 'bg-rose-600/95 text-white border-rose-400'
+                              : isConfirmed
+                              ? 'bg-sky-600/95 text-white border-sky-400'
+                              : 'bg-amber-500/95 text-white border-amber-300 animate-pulse'
                           }`}>
-                            {(!booking.status || booking.status === 'pending') 
-                              ? (isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Action')
-                              : booking.status === 'confirmed'
-                              ? (isTe ? 'షెడ్యూల్ చేయబడింది' : 'Confirmed')
-                              : booking.status}
+                            {isCompleted && <CheckCircle2 className="w-3 h-3" />}
+                            {isConfirmed && <Check className="w-3 h-3 stroke-[2.5]" />}
+                            {isDeclined && <X className="w-3 h-3" />}
+                            {isPending && <Clock className="w-3 h-3" />}
+                            <span>
+                              {isPending ? (isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Action') :
+                               isConfirmed ? (isTe ? 'ధృవీకరించబడింది' : 'Confirmed & Scheduled') :
+                               isCompleted ? (isTe ? 'పూర్తయింది' : 'Completed') :
+                               (isTe ? 'తిరస్కరించబడింది' : 'Declined')}
+                            </span>
                           </span>
                         </div>
 
-                        <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                          {equipmentTitle}
-                        </h3>
-
-                        <p className="text-xs text-slate-600 dark:text-slate-300 font-medium flex flex-wrap items-center gap-2">
-                          <span>{isTe ? 'రైతు:' : 'Farmer:'} <strong className="text-slate-900 dark:text-white">{farmerName}</strong></span>
-                          <span>&bull;</span>
-                          <span>{isTe ? 'విస్తీర్ణం:' : 'Area:'} {acres} Acres</span>
-                          <span>&bull;</span>
-                          <span>{isTe ? 'పొలం స్థితి:' : 'Field Stage:'} <strong className="text-emerald-700 dark:text-emerald-300">{booking.fieldStatus || crop}</strong></span>
-                        </p>
-
-                        {booking.operation && (
-                          <div className="flex items-center gap-1.5 pt-0.5">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isTe ? 'పని రకం:' : 'Operation:'}</span>
-                            <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-black text-[11px]">
-                              ⚙️ {booking.operation}
-                            </span>
-                          </div>
-                        )}
-
-                        <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>{date} &bull; Slot: {slot}</span>
-                          <span>&bull;</span>
-                          <MapPin className="w-3.5 h-3.5" />
-                          <span>{village}</span>
-                        </p>
+                        {/* Top Right Voucher Code */}
+                        <div className="absolute top-2.5 right-2.5">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-black bg-slate-900/85 text-white backdrop-blur-md shadow-sm">
+                            #{booking.id || booking.bookingId}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Fare & Status Actions (Accept / Reject / Complete) */}
-                      <div className="flex flex-col md:items-end justify-between gap-2.5 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 dark:border-slate-800 shrink-0">
-                        <div className="text-left md:text-right">
-                          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{isTe ? 'అద్దె మొత్తం' : 'Rental Amount'}</p>
-                          <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                      {/* Machine Rented Title */}
+                      <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                        {equipmentTitle}
+                      </h3>
+
+                      {/* Customer Dossier Card */}
+                      <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500 font-bold flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>{isTe ? 'రైతు పేరు:' : 'Farmer:'}</span>
+                          </span>
+                          <strong className="text-slate-900 dark:text-white font-black">{farmerName}</strong>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500 font-bold">{isTe ? 'విస్తీర్ణం & పని:' : 'Area & Work:'}</span>
+                          <span className="text-slate-800 dark:text-slate-200 font-bold">
+                            {acres} {isTe ? 'ఎకరాలు' : 'Acres'} {booking.operation ? `• ${booking.operation}` : ''}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500 font-bold">{isTe ? 'పంట దశ:' : 'Crop / Stage:'}</span>
+                          <span className="text-emerald-700 dark:text-emerald-300 font-bold">
+                            {booking.fieldStatus || crop}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/60 dark:border-slate-800 text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-400" />
+                            <span>{date} ({slot})</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <span className="truncate max-w-[110px]">{village}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Total Rental Amount Display */}
+                      <div className="flex items-center justify-between mt-3 px-1">
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-slate-400">{isTe ? 'అద్దె మొత్తం' : 'Total Rental Fare'}</p>
+                          <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
                             ₹{Number(totalCost).toLocaleString('en-IN')}
                           </p>
                         </div>
-
-                        {/* Interactive Action Controls */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {(!booking.status || booking.status === 'pending') && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
-                                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
-                                title={isTe ? 'బుకింగ్‌ను ఆమోదించండి' : 'Accept Farmer Booking'}
-                              >
-                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                                <span>{isTe ? 'ఆమోదించండి' : 'Accept Booking'}</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'rejected')}
-                                className="px-3 py-1.5 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                                title={isTe ? 'బుకింగ్‌ను తిరస్కరించండి' : 'Decline Booking'}
-                              >
-                                <X className="w-3.5 h-3.5" />
-                                <span>{isTe ? 'తిరస్కరించండి' : 'Decline'}</span>
-                              </button>
-                            </>
-                          )}
-
-                          {booking.status === 'confirmed' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'completed')}
-                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
-                              title={isTe ? 'పని పూర్తయినట్లు నమోదు చేయండి' : 'Mark Service as Completed'}
-                            >
-                              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                              <span>{isTe ? 'పూర్తయినట్లు గుర్తించండి' : 'Mark Completed'}</span>
-                            </button>
-                          )}
-
-                          {booking.status === 'completed' && (
-                            <div className="flex items-center gap-2">
-                              <span className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                <span>{isTe ? 'పూర్తయింది & సెటిల్ అయింది' : 'Completed & Settled'}</span>
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteModalBooking(booking)}
-                                className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                                title={isTe ? 'పూర్తయిన ఆర్డర్‌ను తొలగించండి' : 'Delete Completed Order'}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>{isTe ? 'తొలగించండి' : 'Delete'}</span>
-                              </button>
-                            </div>
-                          )}
-
-                          {(booking.status === 'rejected' || booking.status === 'declined' || booking.status === 'cancelled') && (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-black flex items-center gap-1">
-                                <X className="w-3.5 h-3.5 text-rose-500" />
-                                <span>{booking.status === 'cancelled' ? (isTe ? 'రద్దు చేయబడింది' : 'Cancelled') : (isTe ? 'తిరస్కరించబడింది' : 'Declined')}</span>
-                              </span>
-                              {booking.status !== 'cancelled' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
-                                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                                >
-                                  {isTe ? 'మళ్లీ ఆమోదించండి' : 'Re-open & Accept'}
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setDeleteModalBooking(booking)}
-                                className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
-                                title={isTe ? 'ఆర్డర్‌ను తొలగించండి' : 'Delete Order'}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>{isTe ? 'తొలగించండి' : 'Delete'}</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          {isTe ? 'డైరెక్ట్ చెల్లింపు (0% ఫీజు)' : 'Direct Pay (0% Fee)'}
+                        </span>
                       </div>
                     </div>
 
-                    {/* ── Direct Farmer Contact & WhatsApp Bar ── */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 -mx-5 -mb-5 p-4 rounded-b-3xl">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                          <Phone className="w-4 h-4" />
+                    {/* Provider Action Buttons (Clean & High Contrast) */}
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                      {isPending && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
+                            className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <Check className="w-4 h-4 stroke-[2.5]" />
+                            <span>{isTe ? 'ఆర్డర్ ఆమోదించండి' : 'Accept Booking'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'rejected')}
+                            className="w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>{isTe ? 'తిరస్కరించండి' : 'Decline'}</span>
+                          </button>
                         </div>
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-slate-400">{isTe ? 'రైతు ఫోన్ నంబర్' : 'Farmer Contact Number'}</p>
-                          <p className="text-xs sm:text-sm font-black text-slate-900 dark:text-white select-all">
-                            +{cleanPhone.startsWith('91') ? cleanPhone : `91 ${cleanPhone}`}
-                          </p>
-                        </div>
-                      </div>
+                      )}
 
-                      <div className="flex items-center gap-2">
+                      {isConfirmed && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'completed')}
+                          className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{isTe ? 'పని పూర్తయింది & సెటిల్ చేయండి' : 'Mark Completed & Settle'}</span>
+                        </button>
+                      )}
+
+                      {isCompleted && (
+                        <div className="flex items-center justify-between">
+                          <span className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            <span>{isTe ? 'పూర్తయింది & రికార్డ్ చేయబడింది' : 'Settled & Logged'}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteModalBooking(booking)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title={isTe ? 'ఆర్డర్‌ను తొలగించండి' : 'Delete Order'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      {isDeclined && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-bold">
+                              {booking.status === 'cancelled' ? (isTe ? 'రద్దు చేయబడింది' : 'Cancelled') : (isTe ? 'తిరస్కరించబడింది' : 'Declined')}
+                            </span>
+                            {booking.status !== 'cancelled' && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
+                                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                              >
+                                {isTe ? 'మళ్లీ ఆమోదించండి' : 'Re-open'}
+                              </button>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteModalBooking(booking)}
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title={isTe ? 'ఆర్డర్‌ను తొలగించండి' : 'Delete Order'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Direct Communication Bar */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                         <a
                           href={`tel:${cleanPhone}`}
-                          className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-indigo-600/25 transition-all"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors"
                         >
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>{isTe ? 'కాల్ చేయండి' : 'Call Farmer'}</span>
+                          <Phone className="w-3.5 h-3.5 text-indigo-500" />
+                          <span>{isTe ? 'రైతుకు కాల్' : 'Call Farmer'}</span>
                         </a>
 
                         <a
-                          href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hello ${farmerName}, this is regarding your machinery booking #${booking.id} for ${equipmentTitle} on AgriShield.`)}`}
+                          href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                            isTe
+                              ? `నమస్తే ${farmerName}! మీ ${equipmentTitle} బుకింగ్ #${booking.id} గురించి అగ్రిషీల్డ్ ప్రొవైడర్ నుండి మాట్లాడుతున్నాను.`
+                              : `Hello ${farmerName}! Contacting you regarding your machinery booking #${booking.id} for ${equipmentTitle} on AgriShield.`
+                          )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-emerald-600/25 transition-all"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-colors"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
+                          <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
                           <span>WhatsApp</span>
                         </a>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1433,40 +1560,117 @@ export default function ProviderDashboardPage() {
         </div>
       )}
 
-      {/* ── TAB 3: EARNINGS & PAYMENT LEDGER ── */}
+      {/* ── TAB 3: EARNINGS & PAYMENT LEDGER (Concept 2 Clean Studio) ── */}
       {activeTab === 'earnings' && (
-        <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-6">
-            <h2 className="text-base font-black text-slate-900 dark:text-white mb-4">
-              {isTe ? 'ఆదాయం వివరాలు & చెల్లింపు రసీదులు' : 'Direct Payout Ledger'}
-            </h2>
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-black text-slate-900 dark:text-white">
+                  {isTe ? 'ఆదాయం వివరాలు & చెల్లింపు రసీదులు' : 'Direct Payout & Settled Ledger'}
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {isTe ? 'రైతుల నుండి సేకరించిన ప్రత్యక్ష చెల్లింపులు (0% ప్లాట్‌ఫారమ్ కమీషన్)' : 'Direct payments received from farmers for completed machinery rentals'}
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>0% Commission</span>
+              </span>
+            </div>
 
+            {/* 3 Studio Metric Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
-                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase">Settled Earnings</p>
+              <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">{isTe ? 'సేకరించిన ఆదాయం' : 'Settled Earnings'}</p>
+                  <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
                 <p className="text-2xl font-black text-emerald-800 dark:text-emerald-200 mt-1">₹{totalEarnings.toLocaleString('en-IN')}</p>
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">Paid directly by farmers</p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">{isTe ? 'రైతుల నుండి నేరుగా చేరింది' : '100% retained by provider'}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-bold text-slate-500 uppercase">Platform Fee</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{isTe ? 'ప్లాట్‌ఫారమ్ ఫీజు' : 'Platform Fee'}</p>
+                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                </div>
                 <p className="text-2xl font-black text-slate-800 dark:text-slate-200 mt-1">₹0</p>
-                <p className="text-[10px] text-emerald-600 font-bold mt-1">100% Free / Zero Commission</p>
+                <p className="text-[10px] text-emerald-600 font-bold mt-1">{isTe ? 'పూర్తిగా ఉచితం / జీరో కమీషన్' : '100% Free / Zero Commission'}</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800">
-                <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase">Jobs Logged</p>
+              <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">{isTe ? 'పూర్తయిన పనులు' : 'Completed Jobs'}</p>
+                  <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
                 <p className="text-2xl font-black text-indigo-800 dark:text-indigo-200 mt-1">{completedOrdersCount}</p>
-                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1">Field operations served</p>
+                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 font-semibold">{isTe ? 'పొలం ఆపరేషన్లు పూర్తి చేయబడ్డాయి' : 'Field operations completed'}</p>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 flex items-center gap-3">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
               <span>
-                All equipment rental payments occur directly between you and the farmer (Cash on Field, PhonePe, or Google Pay). AgriShield AI takes 0% commission.
+                {isTe
+                  ? 'అన్ని వ్యవసాయ యంత్రాల అద్దె చెల్లింపులు రైతు మరియు మీ మధ్య నేరుగా (పొలంలో నగదు, ఫోన్‌పే లేదా గూగుల్ పే) జరుగుతాయి. అగ్రిషీల్డ్ ఎటువంటి కమీషన్ వసూలు చేయదు.'
+                  : 'All equipment rental payments occur directly between you and the farmer (Cash on Field, PhonePe, or Google Pay). AgriShield AI takes 0% commission.'}
               </span>
             </div>
+          </div>
+
+          {/* Completed Jobs Feed / History */}
+          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-6 shadow-sm space-y-4">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="w-4 h-4 text-indigo-500" />
+              <span>{isTe ? 'ఇటీవల పూర్తయిన ఆర్డర్ల రికార్డు' : 'Completed Operations Ledger'}</span>
+            </h3>
+
+            {bookingsList.filter(b => b.status === 'completed').length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 text-xs text-slate-400">
+                {isTe
+                  ? 'ఇంకా పూర్తయిన ఆర్డర్లు లేవు. రైతుల నుండి వచ్చే ఆర్డర్లను పూర్తి చేసినప్పుడు అవి ఇక్కడ రికార్డ్ చేయబడతాయి.'
+                  : 'No completed orders in the ledger yet. When incoming rental jobs are marked completed, their settled earnings will appear here.'}
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {bookingsList
+                  .filter(b => b.status === 'completed')
+                  .map((b) => (
+                    <div
+                      key={b.id || b.bookingId}
+                      className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
+                          <img
+                            src={b.imageUrl || getEquipmentFallbackImage(b.category, b.equipmentTitle || b.title)}
+                            alt={b.equipmentTitle || b.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-slate-900 dark:text-white">
+                            {b.equipmentTitle || b.title || 'Machinery'}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            Farmer: <strong>{b.farmerName || 'Farmer'}</strong> • {b.acres || 2} Acres • {b.bookingDate || 'Recent'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200 dark:border-slate-800">
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          Settled Direct
+                        </span>
+                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                          ₹{Number(b.totalCost || 800).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       )}
