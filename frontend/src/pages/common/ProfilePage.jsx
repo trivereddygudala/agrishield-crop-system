@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Mail, Calendar, MapPin, Save, AlertCircle, Check, Palette, Sparkles, Truck, Phone, Clock, Users, DollarSign, ShieldCheck, Sprout, ArrowRight } from 'lucide-react';
+import { User, Mail, Calendar, MapPin, Save, AlertCircle, Check, Palette, Sparkles, Truck, Phone, Clock, Users, DollarSign, ShieldCheck, Sprout, ArrowRight, Globe, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Input, Select, Badge } from '../../components/ui/index';
 import { INDIA_STATES, getDistricts, getMandals, getVillages } from '../../data/indiaLocations';
+import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import { useWebSocket } from '../../context/WebSocketContext';
 import LiveWeatherWidget from '../../components/intelligence/LiveWeatherWidget';
 import SprayAdvisorWidget from '../../components/intelligence/SprayAdvisorWidget';
@@ -193,6 +194,66 @@ const ProfilePage = () => {
   const [village, setVillage] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState('en');
   const [farmingPractices, setFarmingPractices] = useState('Conventional');
+
+  // Multi-Language Quick-Switch Preferences (Strict 1, 2, or 3 selection)
+  const [preferredLanguages, setPreferredLanguages] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
+      if (Array.isArray(saved) && saved.length > 0) return saved.slice(0, 3);
+    } catch (_) {}
+    if (user?.preferred_languages && Array.isArray(user.preferred_languages) && user.preferred_languages.length > 0) {
+      return user.preferred_languages.slice(0, 3);
+    }
+    return ['te', 'en'];
+  });
+  const [languagesToast, setLanguagesToast] = useState('');
+  const [languagesError, setLanguagesError] = useState('');
+  const [savingLanguages, setSavingLanguages] = useState(false);
+
+  const handleTogglePreferredLanguage = (langCode) => {
+    setLanguagesError('');
+    setLanguagesToast('');
+    if (preferredLanguages.includes(langCode)) {
+      if (preferredLanguages.length <= 1) {
+        setLanguagesError(isTe ? 'కనీసం 1 భాషను ఎంచుకోవాలి.' : 'At least 1 language must remain selected.');
+        return;
+      }
+      setPreferredLanguages(preferredLanguages.filter(c => c !== langCode));
+    } else {
+      if (preferredLanguages.length >= 3) {
+        setLanguagesError(isTe ? 'గరిష్టంగా 3 భాషలను మాత్రమే ఎంచుకోవచ్చు. మరొకటి జోడించడానికి ఒకదాన్ని తీసివేయండి.' : 'You can select up to 3 quick-switch languages. Deselect one to add another.');
+        return;
+      }
+      setPreferredLanguages([...preferredLanguages, langCode]);
+    }
+  };
+
+  const handleSavePreferredLanguages = async () => {
+    if (preferredLanguages.length === 0) {
+      setLanguagesError(isTe ? 'దయచేసి కనీసం 1 భాషను ఎంచుకోండి.' : 'Please select at least 1 language.');
+      return;
+    }
+    setSavingLanguages(true);
+    setLanguagesError('');
+    setLanguagesToast('');
+    try {
+      localStorage.setItem('agrishield_preferred_languages', JSON.stringify(preferredLanguages));
+      if (user && updateProfile) {
+        await updateProfile({ preferred_languages: preferredLanguages });
+      }
+      window.dispatchEvent(new CustomEvent('agrishield-preferred-languages-updated', {
+        detail: { languages: preferredLanguages }
+      }));
+      setLanguagesToast(isTe ? `భాషల ప్రాధాన్యతలు సేవ్ చేయబడ్డాయి! స్కాన్ ఫలితాల్లో ఈ ${preferredLanguages.length} భాషలు మాత్రమే కనిపిస్తాయి.` : `Language preferences saved! Scan results will strictly show only these ${preferredLanguages.length} language(s).`);
+      setTimeout(() => setLanguagesToast(''), 5000);
+    } catch (err) {
+      console.error("Language save error:", err);
+      setLanguagesToast(isTe ? 'భాషలు లోకల్‌గా సేవ్ చేయబడ్డాయి!' : 'Language preferences saved locally!');
+      setTimeout(() => setLanguagesToast(''), 5000);
+    } finally {
+      setSavingLanguages(false);
+    }
+  };
 
   const isEquipmentProvider = userRole === 'equipment_provider';
 
@@ -446,10 +507,12 @@ const ProfilePage = () => {
 
   const profileTabs = userRole === 'admin' ? [
     { id: 'profile', label: 'Admin Profile & Security' },
+    { id: 'languages', label: '🌐 Languages (1-3)' },
     { id: 'visuals', label: 'Visual Customization', hideOnMobile: true },
     { id: 'themes', label: 'Website Themes', hideOnMobile: true },
   ] : [
     { id: 'profile', label: t('profile_page.tabs.profile', 'Profile Settings') },
+    { id: 'languages', label: isTe ? '🌐 భాషల ఎంపిక (1-3)' : '🌐 Languages (1-3)' },
     { id: 'visuals', label: t('profile_page.tabs.visuals', 'Visual Customization'), hideOnMobile: true },
     { id: 'themes', label: t('profile_page.tabs.themes', 'Website Themes'), hideOnMobile: true },
     ...(userRole === 'tester' ? [{ id: 'tester', label: t('profile_page.tabs.tester', 'Tester Operations Panel') }] : [])
@@ -1058,6 +1121,201 @@ const ProfilePage = () => {
                   </div>
                 </form>
               </Card>
+            </div>
+          )}
+
+          {activeTab === 'languages' && (
+            <div className="space-y-6">
+              {/* Header Information Card */}
+              <Card glass className="p-5 sm:p-6 border border-emerald-500/30 bg-emerald-500/[0.03] backdrop-blur-md rounded-3xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 flex items-center justify-center font-black text-2xl shadow-inner shrink-0">
+                      <Globe className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                        {isTe ? 'స్కాన్ ఫలితాల భాషల ప్రాధాన్యత (1 నుండి 3 భాషలు)' : 'Diagnostic Results Preferred Languages (1 to 3)'}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-0.5">
+                        {isTe 
+                          ? 'మీరు ఇక్కడ ఎంచుకున్న 1, 2 లేదా 3 భాషలు మాత్రమే వ్యాధి నిర్ధారణ, మొక్కల గుర్తింపు మరియు పురుగుమందుల స్కానర్ ఫలితాల్లో క్విక్ బటన్లుగా కనిపిస్తాయి.' 
+                          : 'Scan results across Disease Diagnosis, Plant Identification, and Agrochemical Verification will strictly display ONLY the 1, 2, or 3 languages you choose and save here.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-center">
+                    <span className={`px-3.5 py-1.5 rounded-full text-xs font-black border flex items-center gap-1.5 shrink-0 ${
+                      preferredLanguages.length === 3
+                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                    }`}>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{preferredLanguages.length} / 3 {isTe ? 'ఎంచుకున్నారు' : 'Selected'}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Notifications & Error Banners */}
+                {languagesError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs font-bold flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{languagesError}</span>
+                  </motion.div>
+                )}
+
+                {languagesToast && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                    <span>{languagesToast}</span>
+                  </motion.div>
+                )}
+
+                {/* Currently Chosen Languages Sequence Pill Bar */}
+                <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-white/40">
+                      {isTe ? 'ప్రస్తుత ఎంపిక క్రమం:' : 'Active Quick-Switch Order:'}
+                    </span>
+                    {preferredLanguages.map((code, idx) => {
+                      const langObj = SUPPORTED_LANGUAGES.find(l => l.code === code);
+                      return (
+                        <span 
+                          key={code} 
+                          className="px-3 py-1 rounded-xl text-xs font-extrabold bg-slate-900 text-white dark:bg-white/10 border border-slate-700/80 flex items-center gap-1.5 shadow-xs"
+                        >
+                          <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-500 text-slate-950 font-black">
+                            {idx === 0 ? '1st' : idx === 1 ? '2nd' : '3rd'}
+                          </span>
+                          <span>{langObj?.flag || '🌾'}</span>
+                          <span>{langObj?.nativeName || code}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleSavePreferredLanguages}
+                    isLoading={savingLanguages}
+                    leftIcon={<Save className="w-4 h-4" />}
+                    className="shadow-md shadow-emerald-500/20 font-black text-xs"
+                  >
+                    {isTe ? 'భాషల ప్రాధాన్యతలను సేవ్ చేయండి' : 'Save Language Preferences'}
+                  </Button>
+                </div>
+              </Card>
+
+              {/* 12 Regional Language Cards Selection Grid */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-white/40">
+                    {isTe ? 'అందుబాటులో ఉన్న భారతీయ భాషలు (కనీసం 1, గరిష్టంగా 3 ఎంచుకోండి)' : 'Select 1, 2, or 3 Languages for Instant Scan Switching'}
+                  </h3>
+                  <span className="text-xs text-slate-500 dark:text-white/40 font-semibold">
+                    {preferredLanguages.length}/3 {isTe ? 'ఎంపిక పూర్తయింది' : 'Max Limit'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {SUPPORTED_LANGUAGES.map((lang) => {
+                    const isSelected = preferredLanguages.includes(lang.code);
+                    const selectedIdx = preferredLanguages.indexOf(lang.code);
+
+                    return (
+                      <motion.div
+                        key={lang.code}
+                        whileHover={{ scale: 1.015 }}
+                        whileTap={{ scale: 0.985 }}
+                        onClick={() => handleTogglePreferredLanguage(lang.code)}
+                        className={`p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 relative select-none ${
+                          isSelected
+                            ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500 dark:border-emerald-400 shadow-md shadow-emerald-500/10 ring-2 ring-emerald-500/25'
+                            : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/[0.03]'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 border ${
+                              isSelected 
+                                ? 'bg-emerald-500 text-white border-emerald-400 shadow-xs' 
+                                : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10'
+                            }`}>
+                              {lang.flag}
+                            </div>
+                            <div>
+                              <h4 className={`text-base font-black tracking-tight ${
+                                isSelected ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-900 dark:text-white'
+                              }`}>
+                                {lang.nativeName}
+                              </h4>
+                              <p className="text-xs text-slate-500 dark:text-white/45 font-semibold">
+                                {lang.name}
+                              </p>
+                            </div>
+                          </div>
+
+                          {isSelected ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] tracking-wider uppercase shadow-xs">
+                                {selectedIdx === 0 ? '1st (Primary)' : selectedIdx === 1 ? '2nd' : '3rd'}
+                              </span>
+                              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="w-6 h-6 rounded-full border border-slate-300 dark:border-white/20 shrink-0" />
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] pt-2 border-t border-slate-100 dark:border-white/5">
+                          <span className="text-slate-500 dark:text-white/40 truncate max-w-[150px]">
+                            {lang.region}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 font-bold text-[10px]">
+                            {lang.greeting}
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom Sticky Action Card */}
+              <div className="p-4 rounded-2xl bg-slate-900/90 text-white border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <p className="text-xs text-slate-300">
+                    {isTe 
+                      ? 'సేవ్ చేసిన తర్వాత, మీరు స్కాన్ చేసే ప్రతిసారీ ఫలితాల పైన కేవలం ఈ భాషలే 1-ట్యాప్ బటన్లుగా కనిపిస్తాయి.' 
+                      : 'Once saved, every time you scan, strictly only these selected languages will appear as 1-tap quick buttons on the diagnosis screen.'}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  onClick={handleSavePreferredLanguages}
+                  isLoading={savingLanguages}
+                  leftIcon={<Save className="w-4 h-4" />}
+                  className="shadow-lg shadow-emerald-500/25 shrink-0 w-full sm:w-auto font-black"
+                >
+                  {isTe ? 'భాషల ప్రాధాన్యతలను సేవ్ చేయండి' : 'Save Language Preferences'}
+                </Button>
+              </div>
             </div>
           )}
 

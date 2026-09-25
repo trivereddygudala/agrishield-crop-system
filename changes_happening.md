@@ -5415,3 +5415,22 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
 - **Production Validation:**
   - Verified local PyTorch inference correctly predicts Chilli Leaf Curl / Thrips on test chilli specimen.
   - Compiled production bundle with `npm run build` — 0 errors in 25.56s.
+
+9/25/2026: Multi-Language Quick-Switch Preference Engine (Strict 1, 2, or 3 Languages Across All Scan Tabs) (v276):
+- **Profile Languages Tab & Preference Selector (`ProfilePage.jsx`):**
+  - Added dedicated `🌐 Languages (1-3)` / `🌐 భాషల ఎంపిక (1-3)` tab in `ProfilePage` for farmers and administrators.
+  - Implemented 12-language card grid with interactive selection toggles, strict 3-language max limit enforcement, and minimum 1 selection safeguard.
+  - Added visual priority ranks (`🥇 1st (Primary)`, `🥈 2nd`, `🥉 3rd`) and live badge counter (`Selected: X of 3 languages allowed`).
+  - Added "Save Language Preferences" button that persists `agrishield_preferred_languages` to `localStorage`, synchronizes with user profile backend, and emits `agrishield-preferred-languages-updated` cross-tab event.
+- **Strict Quick-Switch Language Bar (`ScanLanguageBar.jsx`):**
+  - Updated `ScanLanguageBar` to strictly read the farmer's 1, 2, or 3 saved languages and render ONLY those pills (zero unselected languages injected).
+  - Added real-time event listener for `agrishield-preferred-languages-updated` so profile updates immediately reflect on open scan screens.
+  - Added `1st` badge indicator for the primary default language and preserved the `+ More` expander for optional emergency lookups.
+- **Universal Multi-Module Scan Result Synchronization:**
+  - **Disease Diagnosis Results (`DiseaseDiagnosisResults.jsx`):** Bound `activeLang` initialization and update listener to the farmer's primary preferred language. 1-tap switching updates disease title, category, 4-bullet symptoms, Plantix narrative, and 0.8x speech audio.
+  - **Plant & Weed Identification Results (`PlantIdResults.jsx`):** Bound `activeLang` initialization and update listener. 1-tap switching updates Plant Classification, Description & Key Details, and Environmental Conditions.
+  - **Agrochemical Scanner Results (`AgrochemicalResults.jsx`):** Bound `activeLang` initialization and update listener. 1-tap switching updates Product Identity, Usage, Active Chemical Composition, and Pricing Financials.
+  - **Prediction Result Page (`PredictionResultPage.jsx`):** Bound `activeLang` to preferred languages sequence and update listener.
+- **Production Build Validation:**
+  - Ran `npm run build`: 3,169 modules transformed, built with 0 errors in 36.04s.
+

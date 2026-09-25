@@ -88,37 +88,56 @@ export default function ScanLanguageBar({
   // Detect local language based on farmer location
   const localLangCode = useMemo(() => detectLocalLanguage(user), [user]);
 
-  // Determine the 3 quick-access pill languages:
-  // 1. English (always present)
-  // 2. Local State Language (e.g. Telugu / Tamil / Marathi)
-  // 3. Active Language (if different from English & Local) OR Hindi as default national option
-  const quickLanguages = useMemo(() => {
-    const list = [];
-
-    // Always include English
-    const enLang = SUPPORTED_LANGUAGES.find(l => l.code === 'en') || { code: 'en', nativeName: 'English (US)', flag: '🌐' };
-    list.push(enLang);
-
-    // Include Local Language
-    const localLang = SUPPORTED_LANGUAGES.find(l => l.code === localLangCode) || SUPPORTED_LANGUAGES.find(l => l.code === 'te');
-    if (localLang && localLang.code !== 'en') {
-      list.push(localLang);
-    }
-
-    // If current active language is neither English nor Local, display it as the 3rd pill
-    if (activeLang !== 'en' && activeLang !== localLang?.code) {
-      const activeObj = SUPPORTED_LANGUAGES.find(l => l.code === activeLang);
-      if (activeObj) list.push(activeObj);
-    } else {
-      // Otherwise provide Hindi as national fallback
-      const hiLang = SUPPORTED_LANGUAGES.find(l => l.code === 'hi');
-      if (hiLang && !list.some(l => l.code === 'hi')) {
-        list.push(hiLang);
+  // Strict farmer-configured preferred languages (1, 2, or 3 languages)
+  const [preferredCodes, setPreferredCodes] = useState(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
+      if (Array.isArray(cached) && cached.length > 0) {
+        return cached.slice(0, 3);
       }
+    } catch (_) {}
+    if (user?.preferred_languages && Array.isArray(user.preferred_languages) && user.preferred_languages.length > 0) {
+      return user.preferred_languages.slice(0, 3);
     }
+    return ['te', 'en'];
+  });
 
-    return list;
-  }, [activeLang, localLangCode]);
+  // Listen for real-time changes saved in Profile -> Languages tab
+  useEffect(() => {
+    const handleUpdate = (e) => {
+      if (e?.detail?.languages && Array.isArray(e.detail.languages) && e.detail.languages.length > 0) {
+        setPreferredCodes(e.detail.languages.slice(0, 3));
+      } else {
+        try {
+          const cached = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
+          if (Array.isArray(cached) && cached.length > 0) {
+            setPreferredCodes(cached.slice(0, 3));
+          }
+        } catch (_) {}
+      }
+    };
+
+    window.addEventListener('agrishield-preferred-languages-updated', handleUpdate);
+    return () => window.removeEventListener('agrishield-preferred-languages-updated', handleUpdate);
+  }, []);
+
+  // Determine the 1, 2, or 3 quick-access pill languages strictly following user selection
+  const quickLanguages = useMemo(() => {
+    let codes = preferredCodes;
+    if (!Array.isArray(codes) || codes.length === 0) {
+      codes = ['te', 'en'];
+    }
+    // Strictly map to SUPPORTED_LANGUAGES in the exact order selected by the user
+    const mapped = codes
+      .map(c => SUPPORTED_LANGUAGES.find(l => l.code.toLowerCase() === (c || '').toLowerCase()))
+      .filter(Boolean);
+
+    if (mapped.length === 0) {
+      const fallback = SUPPORTED_LANGUAGES.find(l => l.code === 'te') || SUPPORTED_LANGUAGES[0];
+      return [fallback];
+    }
+    return mapped;
+  }, [preferredCodes]);
 
   // Filter languages for the popup dropdown
   const filteredLanguages = useMemo(() => {
@@ -178,7 +197,7 @@ export default function ScanLanguageBar({
         {/* Quick Access Pills (English, Local, Active/Hindi) */}
         {quickLanguages.map((lang) => {
           const isSelected = activeLang === lang.code;
-          const isLocal = lang.code === localLangCode;
+          const isPrimary = quickLanguages[0]?.code === lang.code && quickLanguages.length > 1;
 
           return (
             <button
@@ -186,7 +205,7 @@ export default function ScanLanguageBar({
               type="button"
               onClick={() => handleSelect(lang.code)}
               disabled={isTranslating}
-              title={isLocal ? `Local Language (${lang.region || 'Your Region'})` : lang.name}
+              title={isPrimary ? `Primary Language (${lang.name})` : lang.name}
               className={`px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 isSelected
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/25 scale-105 border border-emerald-400'
@@ -195,9 +214,9 @@ export default function ScanLanguageBar({
             >
               <span>{lang.flag || '🌾'}</span>
               <span>{lang.nativeName || lang.name}</span>
-              {isLocal && (
-                <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-400/20 text-emerald-300 font-normal hidden xs:inline">
-                  Local
+              {isPrimary && (
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-400/20 text-emerald-300 font-extrabold hidden xs:inline">
+                  1st
                 </span>
               )}
             </button>

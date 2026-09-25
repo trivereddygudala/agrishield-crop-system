@@ -28,8 +28,31 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
 
   // Tab-isolated language state: persists within this tab without mutating global website
   const [activeLang, setActiveLang] = useState(() => {
+    try {
+      const preferred = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
+      if (Array.isArray(preferred) && preferred.length > 0) {
+        const cached = sessionStorage.getItem('agrishield_tab_lang_agro');
+        if (cached && preferred.includes(cached)) return cached;
+        return preferred[0];
+      }
+    } catch (_) {}
     return sessionStorage.getItem('agrishield_tab_lang_agro') || currentLang || 'en';
   });
+
+  // Listen for changes saved in Profile -> Languages tab
+  useEffect(() => {
+    const handleUpdate = (e) => {
+      const langs = e?.detail?.languages;
+      if (Array.isArray(langs) && langs.length > 0) {
+        if (!langs.includes(activeLang)) {
+          setActiveLang(langs[0]);
+          sessionStorage.setItem('agrishield_tab_lang_agro', langs[0]);
+        }
+      }
+    };
+    window.addEventListener('agrishield-preferred-languages-updated', handleUpdate);
+    return () => window.removeEventListener('agrishield-preferred-languages-updated', handleUpdate);
+  }, [activeLang]);
   const [translatedCache, setTranslatedCache] = useState(() => data?.translations || {});
   const [isTranslating, setIsTranslating] = useState(false);
 
