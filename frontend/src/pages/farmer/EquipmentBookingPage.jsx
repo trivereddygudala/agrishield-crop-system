@@ -209,15 +209,43 @@ export default function EquipmentBookingPage() {
     };
   }, [loadMergedEquipment]);
 
+  // Persistent Blacklist for Deleted Vouchers (guarantees deleted bookings are never resurrected by background polling)
+  const getDeletedBookingIds = useCallback(() => {
+    try {
+      const raw = localStorage.getItem('agrishield_deleted_booking_ids');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch (e) {
+      return new Set();
+    }
+  }, []);
+
+  const saveDeletedBookingId = useCallback((bookingId) => {
+    try {
+      const raw = localStorage.getItem('agrishield_deleted_booking_ids');
+      const list = raw ? JSON.parse(raw) : [];
+      if (!list.includes(String(bookingId))) {
+        list.push(String(bookingId));
+        localStorage.setItem('agrishield_deleted_booking_ids', JSON.stringify(list));
+      }
+    } catch (e) {}
+  }, []);
+
   // 100% Real User Bookings with LocalStorage sync (Zero mock bookings)
   const [myBookings, setMyBookings] = useState(() => {
     try {
+      const deletedIds = getDeletedBookingIds();
       const saved = localStorage.getItem('agrishield_equipment_bookings');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           const filtered = parsed
-            .filter(b => b && b.id !== 'BK-78210' && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'))
+            .filter(b => {
+              if (!b) return false;
+              const key = String(b.id || b.bookingId || '');
+              if (deletedIds.has(key)) return false;
+              if (key === 'BK-78210' || key.startsWith('BK-TEST-')) return false;
+              return true;
+            })
             .map(b => ({
               ...b,
               phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
@@ -236,12 +264,19 @@ export default function EquipmentBookingPage() {
   useEffect(() => {
     const handleBookingsSync = () => {
       try {
+        const deletedIds = getDeletedBookingIds();
         const saved = localStorage.getItem('agrishield_equipment_bookings');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             setMyBookings(parsed
-              .filter(b => b && b.id !== 'BK-78210' && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'))
+              .filter(b => {
+                if (!b) return false;
+                const key = String(b.id || b.bookingId || '');
+                if (deletedIds.has(key)) return false;
+                if (key === 'BK-78210' || key.startsWith('BK-TEST-')) return false;
+                return true;
+              })
               .map(b => ({
                 ...b,
                 phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
@@ -256,7 +291,7 @@ export default function EquipmentBookingPage() {
       window.removeEventListener('agrishield_bookings_updated', handleBookingsSync);
       window.removeEventListener('storage', handleBookingsSync);
     };
-  }, []);
+  }, [getDeletedBookingIds]);
 
   // Save bookings to localStorage
   useEffect(() => {
@@ -281,7 +316,14 @@ export default function EquipmentBookingPage() {
           try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
         }
         if (isMounted && res.data?.bookings && Array.isArray(res.data.bookings)) {
-          const remoteBookings = res.data.bookings.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
+          const deletedIds = getDeletedBookingIds();
+          const remoteBookings = res.data.bookings.filter(b => {
+            if (!b) return false;
+            const key = String(b.id || b.bookingId || '');
+            if (deletedIds.has(key)) return false;
+            if (key === 'BK-78210' || key.startsWith('BK-TEST-')) return false;
+            return true;
+          });
           const remoteMap = new Map();
           remoteBookings.forEach(b => {
             const key = b && (b.id || b.bookingId);
@@ -295,24 +337,31 @@ export default function EquipmentBookingPage() {
               const key = localB && (localB.id || localB.bookingId);
               if (remoteMap.has(key)) {
                 const remoteB = remoteMap.get(key);
-                if (localB.status !== remoteB.status || localB.updatedAt !== remoteB.updatedAt) {
+                // Strict rule: If farmer cancelled locally, DO NOT let a stale remote 'pending' overwrite it!
+                const isLocallyCancelled = String(localB.status).toLowerCase() === 'cancelled';
+                const isRemotePending = String(remoteB.status).toLowerCase() === 'pending';
+                const effectiveStatus = (isLocallyCancelled && isRemotePending) ? 'cancelled' : (remoteB.status || localB.status);
+
+                if (localB.status !== effectiveStatus || localB.updatedAt !== remoteB.updatedAt) {
                   hasChanged = true;
                 }
                 return {
                   ...localB,
                   ...remoteB,
-                  status: remoteB.status || localB.status
+                  status: effectiveStatus,
+                  cancelReason: localB.cancelReason || remoteB.cancelReason,
+                  cancelledAt: localB.cancelledAt || remoteB.cancelledAt
                 };
               }
               return localB;
             });
 
-            // 2. Append new remote bookings not present in local list
+            // 2. Append new remote bookings not present in local list (excluding blacklisted deleted items)
             const existingKeys = new Set(updatedExisting.map(b => b && (b.id || b.bookingId)));
             const brandNew = [];
             remoteBookings.forEach(rb => {
               const key = rb && (rb.id || rb.bookingId);
-              if (key && !existingKeys.has(key)) {
+              if (key && !existingKeys.has(key) && !deletedIds.has(String(key))) {
                 brandNew.push(rb);
                 existingKeys.add(key);
                 hasChanged = true;
@@ -343,7 +392,7 @@ export default function EquipmentBookingPage() {
       window.removeEventListener('agrishield_bookings_updated', fetchRemoteBookings);
       window.removeEventListener('storage', fetchRemoteBookings);
     };
-  }, []);
+  }, [getDeletedBookingIds]);
 
   // Fetch remote fleet availability from backend for multi-device cross-browser sync
   useEffect(() => {
@@ -587,7 +636,8 @@ export default function EquipmentBookingPage() {
 
     setIsProcessingAction(true);
 
-    // 1. Optimistic Local State Update
+    // 1. Optimistic Local State Update with authoritative cancellation timestamp
+    const cancelTime = new Date().toISOString();
     setMyBookings((prev) => {
       const updated = prev.map((b) => {
         const bKey = b.id || b.bookingId;
@@ -596,7 +646,8 @@ export default function EquipmentBookingPage() {
             ...b,
             status: 'cancelled',
             cancelReason: finalReason,
-            cancelledAt: new Date().toISOString()
+            cancelledAt: cancelTime,
+            updatedAt: cancelTime
           };
         }
         return b;
@@ -607,10 +658,7 @@ export default function EquipmentBookingPage() {
       return updated;
     });
 
-    // 2. Dispatch cross-tab sync event
-    window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
-
-    // 3. Send remote PATCH to backend cluster
+    // 2. Send remote PATCH to backend cluster (await network completion before emitting cross-tab sync)
     try {
       let patched = false;
       try {
@@ -645,6 +693,7 @@ export default function EquipmentBookingPage() {
       setIsProcessingAction(false);
       setCancelModalBooking(null);
       setCustomCancelReason('');
+      window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
       showToast(isTe ? 'బుకింగ్ విజయవంతంగా రద్దు చేయబడింది' : 'Booking cancelled successfully', 'info');
     }
   };
@@ -657,7 +706,10 @@ export default function EquipmentBookingPage() {
 
     setIsProcessingAction(true);
 
-    // 1. Optimistic Local State Removal
+    // 1. Immediately blacklist booking ID in localStorage so background polling NEVER resurrects it
+    saveDeletedBookingId(bookingId);
+
+    // 2. Optimistic Local State Removal
     setMyBookings((prev) => {
       const updated = prev.filter((b) => (b.id !== bookingId && b.bookingId !== bookingId));
       try {
@@ -665,9 +717,6 @@ export default function EquipmentBookingPage() {
       } catch (e) {}
       return updated;
     });
-
-    // 2. Dispatch cross-tab sync event
-    window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
 
     // 3. Send remote DELETE to backend cluster
     try {
@@ -694,6 +743,7 @@ export default function EquipmentBookingPage() {
     } finally {
       setIsProcessingAction(false);
       setDeleteModalBooking(null);
+      window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
       showToast(isTe ? 'రసీదు విజయవంతంగా తొలగించబడింది' : 'Voucher deleted permanently', 'success');
     }
   };
@@ -2035,7 +2085,7 @@ export default function EquipmentBookingPage() {
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          FLOATING TOAST NOTIFICATION
+          FLOATING TOAST NOTIFICATION (Positioned cleanly above mobile bottom nav)
       ═══════════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {bookingToast && (
@@ -2043,14 +2093,15 @@ export default function EquipmentBookingPage() {
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xl border border-slate-700 dark:border-emerald-500 font-bold text-xs max-w-sm"
+            className="fixed bottom-24 sm:bottom-8 right-4 sm:right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 dark:bg-emerald-600/95 text-white shadow-2xl border border-slate-700 dark:border-emerald-500 font-bold text-xs max-w-sm backdrop-blur-md"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-white shrink-0" />
             <span className="leading-snug">{bookingToast.message}</span>
             <button
               type="button"
               onClick={() => setBookingToast(null)}
-              className="ml-auto text-slate-400 hover:text-white dark:text-emerald-100 dark:hover:text-white p-0.5 cursor-pointer"
+              className="ml-auto text-slate-400 hover:text-white dark:text-emerald-100 dark:hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Close"
             >
               <X className="w-3.5 h-3.5" />
             </button>

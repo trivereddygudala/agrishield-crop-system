@@ -2,7 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
-## 2026-09-25 (v275) - 100% Crop Disease Coverage, Multi-Part Plant Scanner & 3-Question Diagnostic Wizard
+## 2026-09-25 (v284) - Resolved Booking Cancellation Reversion, Permanent Voucher Deletion Blacklist Engine & Fixed Mobile Bottom Black Toast Box
+- **Summary:**
+  1. 🛠️ **Resolved Booking Cancellation Reversion Race Condition (`EquipmentBookingPage.jsx`):**
+     - Diagnosed and fixed the race condition where `window.dispatchEvent('agrishield_bookings_updated')` ran synchronously before the remote `PATCH /api/v1/equipment/bookings/{id}/status` completed, allowing `fetchRemoteBookings()` to overwrite the optimistic local cancellation with stale remote `"pending"` status.
+     - Implemented authoritative cancellation precedence: when merging remote bookings with local state, if a booking was cancelled locally (`isLocallyCancelled`), stale remote `"pending"` status is strictly rejected, preserving the farmer's cancellation permanently.
+     - Synchronized backend `PATCH` execution, awaiting network response before triggering cross-tab sync.
+  2. 🗑️ **Permanent Voucher Deletion Blacklist Engine (`EquipmentBookingPage.jsx`):**
+     - Diagnosed root cause of deleted voucher resurrection: `fetchRemoteBookings()` treated deleted vouchers absent from local state as "new bookings from another device" and re-inserted them into `myBookings` every 5 seconds.
+     - Engineered persistent `agrishield_deleted_booking_ids` blacklist stored in `localStorage`.
+     - Filtered all booking initialization, storage event listeners, and remote background polling through the blacklist so deleted vouchers can **never** be resurrected.
+     - Synchronized backend `DELETE /api/v1/equipment/bookings/{id}` with fallback clusters.
+  3. 📱 **Fixed Mysterious Mobile Bottom "Black Colour Box" Artifact (`EquipmentBookingPage.jsx`):**
+     - Identified that the dark rounded box at the bottom was the action confirmation toast notification (`bookingToast`) with `bg-slate-900` positioned at `bottom-6` (24px from bottom), getting half-submerged under the 64px tall mobile navigation bar (`lg:hidden fixed bottom-0 left-0 right-0 z-50`).
+     - Repositioned the toast to `fixed bottom-24 sm:bottom-8 right-4 sm:right-6 z-[60]` with backdrop blur, full text visibility, and an accessible close button, floating cleanly above the mobile bottom navigation bar.
+  4. 📦 **Production Build Validation:** Executed `npm run build` in `frontend/` — passed with 0 errors in 38.91s across 3,161 modules.
+- **Files modified:** `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
+## 2026-09-25 (v283) - Top Navbar Quick Language Switcher Removal & Picture 4 Language Workstation Standard
 - **Summary:**
   1. 🔬 **Multi-Part Plant Scanner & Diagnostic Questionnaire UI (`ScanImageUploader.jsx` & `UploadImagePage.jsx`):**
      - Added collapsible *"🔬 Advanced Multi-Part Diagnosis: Add Root / Cut Stem & Field Survey (Optional)"* workstation directly above the primary scan button in `ScanImageUploader.jsx`.
