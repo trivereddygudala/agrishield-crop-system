@@ -2,6 +2,17 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v289) - Removed List Equipment Tab & Registration Flow from Farmer Rental Workstation
+- **Summary:**
+  1. 🚜 **Streamlined Farmer Equipment Booking Navigation (`EquipmentBookingPage.jsx`):**
+     - Completely removed the "List Equipment" (`activeTab === 'register'`) tab button and registration form from the farmer workstation view per user request.
+     - Updated header subtitle to focus purely on booking verified tractors, spraying drones, and irrigation pumps per acre or hour in local mandals.
+     - Farmer navigation now features a focused 3-tab layout:
+       - `[ 🚜 Browse Fleet ]` · `[ 📋 My Bookings ]` · `[ 🏛️ Govt CHC Schemes ]`
+     - Removed unused sub-component `RegisterEquipmentForm`, decreasing bundle weight from 91.35 kB to 83.30 kB.
+  2. 📦 **Production Build Validation:** Executed `npm run build` in `frontend/` — passed cleanly with 0 errors in 30.20s across 3,161 modules.
+- **Files modified:** `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-25 (v288) - Applied Concept 2 Clean Studio Card Architecture to My Bookings Tab
 - **Summary:**
   1. 📋 **Transformed My Bookings into Concept 2 Clean Studio Responsive Grid (`EquipmentBookingPage.jsx`):**

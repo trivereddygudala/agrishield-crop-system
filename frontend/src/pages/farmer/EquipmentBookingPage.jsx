@@ -89,7 +89,7 @@ export default function EquipmentBookingPage() {
   const { user } = useAuth();
 
   // Active top-level mode / tab
-  const [activeTab, setActiveTab] = useState('browse'); // 'browse' | 'register' | 'bookings' | 'chc-info'
+  const [activeTab, setActiveTab] = useState('browse'); // 'browse' | 'bookings' | 'chc-info'
   const [categoryFilter, setCategoryFilter] = useState('all'); // 'all' | 'tractor' | 'drone' | 'irrigation' | 'harvester'
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('nearest'); // 'nearest' | 'price-low' | 'rating'
@@ -980,8 +980,8 @@ export default function EquipmentBookingPage() {
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
               {isTe
-                ? 'మీ గ్రామం & మండలంలో సమీప ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు, నీటిపారుదల పంపుల బుకింగ్ లేదా మీ యంత్రాల రిజిస్ట్రేషన్'
-                : 'Book nearby verified tractors, spraying drones & irrigation pumps per acre/hour, or list your equipment for rent.'}
+                ? 'మీ గ్రామం & మండలంలో సమీప ధృవీకరించబడిన ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు మరియు నీటిపారుదల పంపుల బుకింగ్'
+                : 'Book nearby verified tractors, spraying drones & irrigation pumps per acre or hour.'}
             </p>
           </div>
 
@@ -1069,19 +1069,6 @@ export default function EquipmentBookingPage() {
               {myBookings.length}
             </span>
           )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('register')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all shrink-0 cursor-pointer ${
-            activeTab === 'register'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-              : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Plus className="w-4 h-4" />
-          <span>{isTe ? 'మీ పరికరాన్ని చేర్చండి' : 'List Equipment'}</span>
         </button>
 
         <button
@@ -1336,30 +1323,7 @@ export default function EquipmentBookingPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          TAB 2: REGISTER MY EQUIPMENT (OWNER / PROVIDER MODE)
-      ═══════════════════════════════════════════════════════════════════ */}
-      {activeTab === 'register' && (
-        <RegisterEquipmentForm
-          locationState={locationState}
-          locationDistrict={locationDistrict}
-          locationMandal={locationMandal}
-          locationVillage={locationVillage}
-          isTe={isTe}
-          onSuccess={(newListing) => {
-            setEquipmentList((prev) => [newListing, ...prev]);
-            try {
-              const saved = JSON.parse(localStorage.getItem('agrishield_custom_equipment_listings') || '[]');
-              saved.unshift(newListing);
-              localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(saved));
-            } catch (e) {}
-            setActiveTab('browse');
-            alert(isTe ? 'మీ పరికరం విజయవంతంగా రిజిస్టర్ చేయబడింది! ఇది ఇప్పుడు ఇతర రైతులకు కనిపిస్తుంది.' : 'Your machine has been registered successfully and is now visible to nearby farmers!');
-          }}
-        />
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          TAB 3: MY BOOKINGS & PASSBOOK STATUS (Perforated Passbook Cards)
+          TAB 2: MY BOOKINGS & PASSBOOK STATUS (Concept 2 Clean Studio Cards)
       ═══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'bookings' && (
         <div className="space-y-4">
@@ -2738,215 +2702,3 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SUB-COMPONENT: REGISTER EQUIPMENT FORM (PROVIDER LISTING MODE)
-// ═══════════════════════════════════════════════════════════════════
-function RegisterEquipmentForm({ locationState, locationDistrict, locationMandal, locationVillage, isTe, onSuccess }) {
-  const [ownerName, setOwnerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [category, setCategory] = useState('tractor');
-  const [title, setTitle] = useState('');
-  const [brand, setBrand] = useState('Mahindra');
-  const [model, setModel] = useState('');
-  const [hp, setHp] = useState('45 HP');
-  const [ratePerAcre, setRatePerAcre] = useState('1400');
-  const [ratePerHour, setRatePerHour] = useState('1100');
-  const [operatorIncluded, setOperatorIncluded] = useState(true);
-  const [fuelIncluded, setFuelIncluded] = useState(true);
-  const [specs, setSpecs] = useState('');
-
-  const handleRegister = (e) => {
-    e.preventDefault();
-    if (!title.trim() || !phone.trim()) {
-      alert('Please fill all required fields');
-      return;
-    }
-
-    const newListing = {
-      id: `eq-custom-${Date.now()}`,
-      category,
-      title: title.trim(),
-      teluguTitle: title.trim(),
-      brand,
-      model: model || brand,
-      hp: hp || 'Standard',
-      implements: ['Standard Attachments'],
-      providerName: ownerName || 'Local Machinery Provider',
-      providerType: 'Private Farmer Listing',
-      verified: true,
-      rating: 5.0,
-      bookingsCount: 0,
-      phone: phone.trim(),
-      state: locationState,
-      district: locationDistrict,
-      mandal: locationMandal,
-      village: locationVillage,
-      distanceKm: 1.0,
-      ratePerHour: parseInt(ratePerHour) || 1000,
-      ratePerAcre: parseInt(ratePerAcre) || 1400,
-      operatorIncluded,
-      fuelIncluded,
-      availableToday: true,
-      minAdvance: 150,
-      specs: specs.trim() || 'Available for rent in nearby fields and mandals.'
-    };
-
-    onSuccess(newListing);
-  };
-
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm max-w-3xl mx-auto space-y-5">
-      <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
-        <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <span>{isTe ? 'మీ వ్యవసాయ యంత్రం లేదా డ్రోన్‌ను అద్దెకు నమోదు చేయండి' : 'List Your Equipment, Tractor or Drone for Rent'}</span>
-        </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          {isTe
-            ? 'మీ ఖాళీ సమయాల్లో మీ ట్రాక్టర్ లేదా డ్రోన్‌ను సమీప రైతులకు అద్దెకు ఇచ్చి అదనపు ఆదాయం పొందండి.'
-            : 'Earn rental income by making your tractor, spray drone or irrigation equipment available to nearby farmers.'}
-        </p>
-      </div>
-
-      <form onSubmit={handleRegister} className="space-y-4 text-xs">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'యజమాని పేరు' : 'Owner / Hub Name'}</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Ramesh Reddy"
-              value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'ఫోన్ / వాట్సాప్ నంబర్' : 'Phone / WhatsApp Number'}</label>
-            <input
-              type="tel"
-              required
-              placeholder="10-digit mobile number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'పరికరం వర్గం' : 'Equipment Category'}</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-            >
-              <option value="tractor">🚜 Tractor & Implements</option>
-              <option value="drone">🚁 Agricultural Spraying Drone</option>
-              <option value="irrigation">💧 Irrigation Pump / Rain-gun</option>
-              <option value="harvester">🌾 Combine Harvester</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'పరికరం పూర్తి పేరు' : 'Equipment Title / Model'}</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Mahindra 575 DI (45 HP) + Rotavator"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'గుర్రపు సామర్థ్యం (HP) / కెపాసిటీ' : 'Horsepower (HP) / Tank Capacity'}</label>
-            <input
-              type="text"
-              placeholder="e.g. 50 HP or 16 Litres"
-              value={hp}
-              onChange={(e) => setHp(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'ఎకరాకు అద్దె ధర (₹)' : 'Rental Rate per Acre (₹)'}</label>
-            <input
-              type="number"
-              placeholder="1400"
-              value={ratePerAcre}
-              onChange={(e) => setRatePerAcre(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'గంటకు అద్దె ధర (₹)' : 'Rental Rate per Hour (₹)'}</label>
-            <input
-              type="number"
-              placeholder="1100"
-              value={ratePerHour}
-              onChange={(e) => setRatePerHour(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-slate-500 block mb-1">{isTe ? 'లొకేషన్ బేస్' : 'Base Hub Location'}</label>
-            <input
-              type="text"
-              disabled
-              value={`${locationVillage}, ${locationMandal}, ${locationDistrict}`}
-              className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="font-bold text-slate-500 block mb-1">{isTe ? 'ప్రత్యేకతలు & వివరణ' : 'Description / Features'}</label>
-          <textarea
-            rows="2"
-            placeholder={isTe ? 'పరికరం పరిస్థితి, ఇంప్లిమెంట్లు, పని వేగం గురించి రాయండి...' : 'Condition of machine, available implements, operating speed...'}
-            value={specs}
-            onChange={(e) => setSpecs(e.target.value)}
-            className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 pt-1">
-          <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={operatorIncluded}
-              onChange={(e) => setOperatorIncluded(e.target.checked)}
-              className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
-            />
-            <span>{isTe ? 'ఆపరేటర్/డ్రైవర్‌ను నేను అందిస్తాను' : 'Driver / Operator Provided'}</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={fuelIncluded}
-              onChange={(e) => setFuelIncluded(e.target.checked)}
-              className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
-            />
-            <span>{isTe ? 'డీజిల్ రేటులోనే కలిసి ఉంది' : 'Fuel / Diesel Included in Rate'}</span>
-          </label>
-        </div>
-
-        <div className="flex justify-end pt-3">
-          <button
-            type="submit"
-            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 cursor-pointer"
-          >
-            <Check className="w-4 h-4" />
-            <span>{isTe ? 'పరికరాన్ని లైవ్‌లో ఉంచండి' : 'Publish Machinery Listing to Nearby Farmers'}</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
