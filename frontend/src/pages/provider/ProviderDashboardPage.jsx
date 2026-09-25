@@ -44,6 +44,7 @@ import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/index';
+import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
 // Concept 2 Clean Studio Machinery Image Resolver
@@ -386,6 +387,47 @@ export default function ProviderDashboardPage() {
           : `Booking order #${targetId} permanently removed from your dashboard.`
       );
     }
+  };
+
+  // In-App Direct Chat Active Conversation for Provider
+  const [activeChatBooking, setActiveChatBooking] = useState(null);
+
+  const openChatForProviderBooking = (booking) => {
+    const bKey = booking.id || booking.bookingId || 'BK-1';
+    const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '9440182736';
+    const farmerName = booking.farmerName || 'Trivendra reddy';
+    const equipmentTitle = booking.equipmentTitle || booking.title || 'Farm Machinery Rental';
+    const village = booking.village || booking.location?.village || booking.location?.mandal || 'Field Location';
+    const totalCost = booking.totalCost || '800';
+
+    const chatMessageObj = {
+      id: bKey,
+      notification_id: bKey,
+      category: 'booking',
+      type: 'booking',
+      bookingId: bKey,
+      booking_id: bKey,
+      equipmentTitle: equipmentTitle,
+      title: equipmentTitle,
+      providerName: user?.name || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
+      providerPhone: user?.phone || '9848012345',
+      provider_phone: user?.phone || '9848012345',
+      farmerName: farmerName,
+      farmerPhone: farmerPhone,
+      phone: farmerPhone,
+      village: village,
+      acres: booking.acres || booking.acreage || '2',
+      totalCost: totalCost,
+      status: booking.status || 'pending',
+      bookingDate: booking.bookingDate || booking.date || 'Today',
+      timeSlot: booking.timeSlot || booking.slot || 'Full Day',
+      operation: booking.operation,
+      fieldStatus: booking.fieldStatus || booking.crop,
+      message: isTe
+        ? `బుకింగ్ #${bKey} కోసం రైతుతో ప్రత్యక్ష సందేశం.`
+        : `Direct in-app messaging for booking #${bKey}.`
+    };
+    setActiveChatBooking(chatMessageObj);
   };
 
   const fetchProviderBookings = useCallback(async () => {
@@ -1527,15 +1569,17 @@ export default function ProviderDashboardPage() {
                         </div>
                       )}
 
-                      {/* Direct Communication Bar */}
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <a
-                          href={`tel:${cleanPhone}`}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors"
+                      {/* Direct Communication Bar: 3 Options (In-App Message, WhatsApp, Call) */}
+                      <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => openChatForProviderBooking(booking)}
+                          className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                          title={isTe ? 'రైతుతో యాప్‌లోనే చాట్ చేయండి' : 'In-App Direct Chat with Farmer'}
                         >
-                          <Phone className="w-3.5 h-3.5 text-indigo-500" />
-                          <span>{isTe ? 'రైతుకు కాల్' : 'Call Farmer'}</span>
-                        </a>
+                          <MessageSquare className="w-3.5 h-3.5 fill-white shrink-0" />
+                          <span className="truncate">{isTe ? 'సందేశం' : 'Message'}</span>
+                        </button>
 
                         <a
                           href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
@@ -1545,10 +1589,20 @@ export default function ProviderDashboardPage() {
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-colors"
+                          className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                          title="WhatsApp"
                         >
-                          <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>WhatsApp</span>
+                          <span className="text-[12px] leading-none shrink-0">🟢</span>
+                          <span className="truncate">WhatsApp</span>
+                        </a>
+
+                        <a
+                          href={`tel:${cleanPhone}`}
+                          className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors"
+                          title={isTe ? 'రైతుకు కాల్' : 'Call Farmer'}
+                        >
+                          <Phone className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="truncate">{isTe ? 'కాల్' : 'Call'}</span>
                         </a>
                       </div>
                     </div>
@@ -1972,6 +2026,20 @@ export default function ProviderDashboardPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          IN-APP DIRECT MESSAGING & 2-WAY VOICE CHAT MODAL FOR PROVIDER
+      ═══════════════════════════════════════════════════════════════════ */}
+      {activeChatBooking && (
+        <div className="fixed inset-0 z-[70] bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
+          <GoogleMessageReader
+            message={activeChatBooking}
+            lang={isTe ? 'te' : 'en'}
+            onBack={() => setActiveChatBooking(null)}
+            onDelete={() => setActiveChatBooking(null)}
+          />
         </div>
       )}
     </div>

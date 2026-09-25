@@ -2,6 +2,31 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v291) - AgriShield In-App Direct Messaging & 2-Way Voice Notes Integration Across Equipment Booking & Provider Portal
+- **Summary:**
+  1. 💬 **In-App Messaging System Integration Across Equipment Booking Cards (`EquipmentBookingPage.jsx`):**
+     - As requested by the user, integrated AgriShield's built-in direct messaging and 2-way voice notes system (`GoogleMessageReader.jsx`) while retaining WhatsApp as a secondary communication channel.
+     - **Browse Fleet Catalog Cards (Picture 2 Parity):** Added a primary `[ 🚚 Book Rental ]` button and a 3-button communication grid:
+       - 💬 **`Message` (`[ 💬 సందేశం ]`):** Launches AgriShield's built-in In-App Chat Modal with the equipment provider.
+       - 🟢 **`WhatsApp`:** Launches external WhatsApp chat with pre-filled machinery inquiry.
+       - 📞 **`Call` (`[ 📞 కాల్ ]`):** Direct phone dialer.
+     - **My Bookings Voucher Cards (Picture 1 Parity):** Upgraded communication bar from 2 buttons to a 3-button grid:
+       - 💬 **`Message` (`[ 💬 సందేశం ]`):** Launches the dedicated In-App Booking Chat thread with the provider.
+       - 🟢 **`WhatsApp`:** Pre-filled booking coordination inquiry.
+       - 📞 **`Call` (`[ 📞 కాల్ ]`):** Direct phone dialer.
+  2. 🚜 **Provider Order Management In-App Messaging (`ProviderDashboardPage.jsx`):**
+     - Upgraded the communication bar on the provider's incoming orders to the symmetrical 3-button grid (`[ 💬 Message ]`, `[ 🟢 WhatsApp ]`, `[ 📞 Call ]`).
+     - Tapping `Message` opens the shared booking thread (`agrishield_chat_thread_${bKey}`), allowing the provider to message the farmer in real time.
+  3. 🎙️ **Full Multimodal Communication Capabilities:**
+     - 2-Way real-time text chat between Farmer and Provider.
+     - 🎙️ Microphone audio recording & voice notes via HTML5 `MediaRecorder` API with waveform scrubber.
+     - 📍 Live field GPS location sharing.
+     - 📋 Booking summary voucher preview directly in chat stream.
+     - 🌐 Multilingual support across 7 regional Indian languages (Telugu, English, Hindi, Tamil, Kannada, Malayalam, Odia).
+  4. 📦 **Production Build Validation:**
+     - Compiled with Vite (`npm run build`) with **0 errors** in 46.27s across 3,161 modules.
+- **Files modified:** `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-25 (v290) - Upgraded Provider Portal Across 3 Tabs with Concept 2 Clean Studio Architecture & Actionable Booking Controls
 - **Summary:**
   1. 🚜 **Tab 1: Machinery Fleet Inventory (`ProviderDashboardPage.jsx`):**

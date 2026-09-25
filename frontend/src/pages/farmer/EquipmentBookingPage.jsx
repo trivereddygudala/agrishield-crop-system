@@ -40,6 +40,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Dialog, Button } from '../../components/ui/index';
+import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 import axios from 'axios';
 import { useFarm } from '../../context/FarmContext';
 import { useAuth } from '../../context/AuthContext';
@@ -685,6 +686,74 @@ export default function EquipmentBookingPage() {
       });
   }, [equipmentList, categoryFilter, searchQuery, sortBy]);
 
+  // In-App Direct Chat Active Conversation
+  const [activeChatBooking, setActiveChatBooking] = useState(null);
+
+  // In-App Direct Chat with Provider for any Fleet Machine
+  const openChatForMachine = (item) => {
+    const chatMessageObj = {
+      id: `fleet_${item.id}`,
+      notification_id: `fleet_${item.id}`,
+      category: 'booking',
+      type: 'booking',
+      bookingId: `INQ-${item.id}`,
+      booking_id: `INQ-${item.id}`,
+      equipmentTitle: item.title,
+      title: item.title,
+      providerName: item.providerName || item.ownerName || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
+      providerPhone: item.phone || item.contactPhone || '9848012345',
+      provider_phone: item.phone || item.contactPhone || '9848012345',
+      farmerName: user?.name || 'Trivendra reddy',
+      farmerPhone: user?.phone || '9440182736',
+      phone: user?.phone || '9440182736',
+      village: locationVillage || item.village || item.locationVillage || 'Pasupugallu',
+      mandal: locationMandal || item.mandal || 'Mundlamuru',
+      district: locationDistrict || item.district || 'Prakasam',
+      acres: '2',
+      totalCost: item.ratePerAcre || item.hourlyRate || '800',
+      status: item.available ? 'confirmed' : 'pending',
+      message: isTe
+        ? `నమస్తే! నేను మీ ${item.title} యంత్రం అద్దెకు తీసుకోవడం గురించి సంప్రదిస్తున్నాను.`
+        : `Hello! Inquiring to rent your ${item.title} via AgriShield AI.`
+    };
+    setActiveChatBooking(chatMessageObj);
+  };
+
+  // In-App Direct Chat with Provider for an active Booking Voucher
+  const openChatForBooking = (b) => {
+    const bKey = b.id || b.bookingId || 'BK-1';
+    const chatMessageObj = {
+      id: bKey,
+      notification_id: bKey,
+      category: 'booking',
+      type: 'booking',
+      bookingId: bKey,
+      booking_id: bKey,
+      equipmentTitle: b.equipmentTitle || b.title || 'Farm Machinery',
+      title: b.title || b.equipmentTitle || 'Farm Machinery',
+      providerName: b.providerName || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
+      providerPhone: b.providerPhone || b.phone || b.contactPhone || '9848012345',
+      provider_phone: b.providerPhone || b.phone || b.contactPhone || '9848012345',
+      farmerName: b.farmerName || user?.name || 'Trivendra reddy',
+      farmerPhone: b.farmerPhone || user?.phone || '9440182736',
+      phone: b.farmerPhone || user?.phone || '9440182736',
+      village: b.village || locationVillage || 'Pasupugallu',
+      mandal: b.mandal || locationMandal || 'Mundlamuru',
+      district: b.district || locationDistrict || 'Prakasam',
+      acres: b.acres || '1.5',
+      totalCost: b.totalCost || '800',
+      status: b.status || 'pending',
+      bookingDate: b.bookingDate,
+      timeSlot: b.timeSlot,
+      operation: b.operation,
+      fieldStatus: b.fieldStatus,
+      message: isTe
+        ? `బుకింగ్ #${bKey} కోసం ప్రొవైడర్‌తో సంభాషణ.`
+        : `Booking #${bKey} coordination thread.`
+    };
+    setActiveChatBooking(chatMessageObj);
+  };
+
   // Booking Modal Open Handler
   const handleOpenBooking = (equipment) => {
     setSelectedEquipment(equipment);
@@ -1245,41 +1314,64 @@ export default function EquipmentBookingPage() {
                     </div>
                   </div>
 
-                  {/* Dual Action Buttons (Concept 2 Picture layout: WhatsApp + Book Rental) */}
-                  <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <a
-                      href={`https://wa.me/${String(item.phone || item.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                        isTe
-                          ? `నమస్తే! నేను అగ్రిషీల్డ్ యాప్ ద్వారా మీ ${item.teluguTitle || item.title || 'యంత్రం'} బుకింగ్ కోసం సంప్రదిస్తున్నాను. లొకేషన్: ${locationVillage || ''}, ${locationMandal || ''}. వివరాలు తెలపగలరు.`
-                          : `Hello! Inquiring to book your ${item.title || 'machinery'} via AgriShield AI for my farm in ${locationVillage || ''}, ${locationMandal || ''}. Please share availability.`
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                    >
-                      <MessageSquare className="w-4 h-4 fill-white" />
-                      <span>{isTe ? 'వాట్సాప్' : 'WhatsApp'}</span>
-                    </a>
-
+                  {/* Action Buttons: Book Rental + 3 Communication Options (In-App Message, WhatsApp, Call) */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
                     {isMachineBooked ? (
                       <button
                         type="button"
                         disabled
-                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed select-none"
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed select-none"
                       >
                         <Lock className="w-4 h-4" />
-                        <span>{isTe ? 'బుక్ చేయబడింది' : 'Booked'}</span>
+                        <span>{isTe ? 'ప్రస్తుతం బుక్ చేయబడింది' : 'Currently Booked'}</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleOpenBooking(item)}
-                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                       >
                         <Truck className="w-4 h-4" />
-                        <span>{isTe ? 'బుక్ చేయండి' : 'Book Rental'}</span>
+                        <span>{isTe ? 'అద్దెకు తీసుకోండి' : 'Book Rental'}</span>
                       </button>
                     )}
+
+                    {/* 3 Secondary Communication Options */}
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openChatForMachine(item)}
+                        className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                        title={isTe ? 'యాప్‌లోనే ప్రొవైడర్‌తో చాట్ చేయండి' : 'In-App Direct Chat with Provider'}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 fill-white shrink-0" />
+                        <span className="truncate">{isTe ? 'సందేశం' : 'Message'}</span>
+                      </button>
+
+                      <a
+                        href={`https://wa.me/${String(item.phone || item.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                          isTe
+                            ? `నమస్తే! నేను అగ్రిషీల్డ్ యాప్ ద్వారా మీ ${item.teluguTitle || item.title || 'యంత్రం'} బుకింగ్ కోసం సంప్రదిస్తున్నాను. లొకేషన్: ${locationVillage || ''}, ${locationMandal || ''}. వివరాలు తెలపగలరు.`
+                            : `Hello! Inquiring to book your ${item.title || 'machinery'} via AgriShield AI for my farm in ${locationVillage || ''}, ${locationMandal || ''}. Please share availability.`
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                        title="WhatsApp"
+                      >
+                        <span className="text-[12px] leading-none shrink-0">🟢</span>
+                        <span className="truncate">WhatsApp</span>
+                      </a>
+
+                      <a
+                        href={`tel:${item.phone || item.contactPhone || ''}`}
+                        className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
+                        title={isTe ? 'కాల్ చేయండి' : 'Call Provider'}
+                      >
+                        <Phone className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                        <span className="truncate">{isTe ? 'కాల్' : 'Call'}</span>
+                      </a>
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -1643,27 +1735,39 @@ export default function EquipmentBookingPage() {
                         </div>
                       </div>
 
-                      {/* Actions Bar matching Concept 2 Dual-Action / Action Grid */}
+                      {/* Actions Bar matching Concept 2: 3 Communication Options (In-App Message, WhatsApp, Call) */}
                       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openChatForBooking(b)}
+                            className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                            title={isTe ? 'ఆర్డర్ చాట్ & వాయిస్ నోట్స్' : 'In-App Order Chat & Voice Notes'}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 fill-white shrink-0" />
+                            <span className="truncate">{isTe ? 'సందేశం' : 'Message'}</span>
+                          </button>
+
                           <a
                             href={`https://wa.me/${String(b.phone || b.farmerPhone || b.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
                               `Booking ID #${bKey}: Hello, inquiring about ${b.title || 'Equipment'} booking for ${b.bookingDate || ''} (${b.timeSlot || ''}) for ${b.acres || 0} Acres.`
                             )}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                            className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                            title="WhatsApp"
                           >
-                            <MessageSquare className="w-3.5 h-3.5 fill-white" />
-                            <span>{isTe ? 'వాట్సాప్' : 'WhatsApp'}</span>
+                            <span className="text-[12px] leading-none shrink-0">🟢</span>
+                            <span className="truncate">WhatsApp</span>
                           </a>
 
                           <a
                             href={`tel:${b.phone || b.farmerPhone || b.contactPhone || ''}`}
-                            className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
+                            className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
+                            title={isTe ? 'కాల్ చేయండి' : 'Call'}
                           >
-                            <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{isTe ? 'కాల్' : 'Call'}</span>
+                            <Phone className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                            <span className="truncate">{isTe ? 'కాల్' : 'Call'}</span>
                           </a>
                         </div>
 
@@ -2143,6 +2247,20 @@ export default function EquipmentBookingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          IN-APP DIRECT MESSAGING & 2-WAY VOICE CHAT MODAL
+      ═══════════════════════════════════════════════════════════════════ */}
+      {activeChatBooking && (
+        <div className="fixed inset-0 z-[70] bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
+          <GoogleMessageReader
+            message={activeChatBooking}
+            lang={i18n.language}
+            onBack={() => setActiveChatBooking(null)}
+            onDelete={() => setActiveChatBooking(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }
