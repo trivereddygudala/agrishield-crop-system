@@ -83,8 +83,11 @@ ArduinoTests/**/build/
 # Backend Uploads & Runtime Logs
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/app/uploads/*
+!backend/app/uploads/.gitkeep
 backend/logs/*
 !backend/logs/.gitkeep
+plantix_extracted/
 
 # Scratch Scripts & Timestamps
 scratch/

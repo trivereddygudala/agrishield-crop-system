@@ -2,6 +2,116 @@
 
 export const COMMERCIAL_PRODUCTS = [
   {
+    productId: 'exponus-basf',
+    brandName: 'Exponus',
+    company: 'BASF India',
+    category: 'pesticide',
+    activeIngredients: 'Broflanilide 300 G/L SC',
+    formulation: 'Suspension Concentrate (SC)',
+    targetDiseases: [
+      'Thrips', 'Chilli Thrips', 'Caterpillar', 'Spodoptera', 'Helicoverpa', 'Fruit Borer', 'Leaf Curl'
+    ],
+    targetCrops: ['Chilli', 'Capsicum', 'Tomato', 'Brinjal', 'Cotton', 'Soybean'],
+    dosagePer15L: '5 - 6 ml',
+    dosagePer20L: '7 - 8 ml',
+    farmerMeasureTip: '~1/3 small measuring syringe or calibrated cap',
+    dosagePerAcre: '34 ml in 200L water',
+    approxPrice: '₹1,150 - ₹1,250 (34ml pack)',
+    action: 'GABA-Gated Chloride Channel Modulator (Class 30)',
+    imageUrl: '/products/exponus_basf.jpg',
+    badge: 'Premium Thrips Specialist',
+    upvotes: 2164,
+    phiDays: 3
+  },
+  {
+    productId: 'solomon-bayer',
+    brandName: 'Solomon',
+    company: 'Bayer CropScience',
+    category: 'pesticide',
+    activeIngredients: 'Betacyfluthrin 9% + Imidacloprid 21% w/w SC',
+    formulation: 'Suspension Concentrate (SC)',
+    targetDiseases: [
+      'Thrips', 'Chilli Thrips', 'Aphids', 'Jassids', 'Whitefly', 'Sucking Pests', 'Leaf Curl'
+    ],
+    targetCrops: ['Chilli', 'Capsicum', 'Cotton', 'Tomato', 'Brinjal', 'Soybean'],
+    dosagePer15L: '15 - 18 ml',
+    dosagePer20L: '20 ml',
+    farmerMeasureTip: '~1 standard measuring cap (20 ml)',
+    dosagePerAcre: '150 - 200 ml in 200L water',
+    approxPrice: '₹480 - ₹540 (100ml bottle)',
+    action: 'Dual Systemic & Knockdown Contact Shield',
+    imageUrl: '/products/solomon_bayer.jpg',
+    badge: 'Farmer Choice #1',
+    upvotes: 3106,
+    phiDays: 7
+  },
+  {
+    productId: 'jump-bayer',
+    brandName: 'JUMP',
+    company: 'Bayer CropScience',
+    category: 'pesticide',
+    activeIngredients: 'Fipronil 80% WG',
+    formulation: 'Water Dispersible Granules (WG)',
+    targetDiseases: [
+      'Thrips', 'Chilli Thrips', 'Stem Borer', 'Leaf Folder', 'Gall Midge', 'Root Grubs'
+    ],
+    targetCrops: ['Chilli', 'Capsicum', 'Paddy', 'Rice', 'Sugarcane', 'Cotton'],
+    dosagePer15L: '3 g',
+    dosagePer20L: '4 g',
+    farmerMeasureTip: '~1 small measuring spoon (2g) or 2 small sachets',
+    dosagePerAcre: '30 - 40 g in 200L water',
+    approxPrice: '₹220 - ₹260 (40g pouch)',
+    action: 'Broad Spectrum Long-Residual Ingestion Poison',
+    imageUrl: '/products/jump_bayer.jpg',
+    badge: 'High Potency WG',
+    upvotes: 1154,
+    phiDays: 7
+  },
+  {
+    productId: 'benevia-fmc',
+    brandName: 'Benevia',
+    company: 'FMC India',
+    category: 'pesticide',
+    activeIngredients: 'Cyantraniliprole 10.26% OD',
+    formulation: 'Oil Dispersion (OD)',
+    targetDiseases: [
+      'Thrips', 'Whitefly', 'Aphids', 'Fruit Borer', 'Caterpillar', 'Leafminer', 'Chilli Thrips'
+    ],
+    targetCrops: ['Chilli', 'Capsicum', 'Tomato', 'Gherkin', 'Cotton'],
+    dosagePer15L: '25 ml',
+    dosagePer20L: '30 ml',
+    farmerMeasureTip: '~1.5 measuring caps (~30 ml)',
+    dosagePerAcre: '240 - 360 ml in 200L water',
+    approxPrice: '₹1,650 - ₹1,850 (240ml bottle)',
+    action: 'Cross-Spectrum Ovi-larvicidal & Sucking Pest Barrier',
+    imageUrl: '/products/benevia_fmc.jpg',
+    badge: 'Cross-Spectrum Elite',
+    upvotes: 8626,
+    phiDays: 5
+  },
+  {
+    productId: 'karate-syngenta',
+    brandName: 'Karate',
+    company: 'Syngenta India',
+    category: 'pesticide',
+    activeIngredients: 'Lambda-cyhalothrin 5% EC',
+    formulation: 'Emulsifiable Concentrate (EC)',
+    targetDiseases: [
+      'Thrips', 'Bollworm', 'Stem Borer', 'Leaf Folder', 'Aphids', 'Jassids', 'Pod Borer'
+    ],
+    targetCrops: ['Chilli', 'Cotton', 'Paddy', 'Pigeon Pea', 'Tomato', 'Mango'],
+    dosagePer15L: '15 ml',
+    dosagePer20L: '20 ml',
+    farmerMeasureTip: '~1 measuring cap (20 ml)',
+    dosagePerAcre: '200 ml in 200L water',
+    approxPrice: '₹290 - ₹340 (250ml bottle)',
+    action: 'Rapid Contact Knockdown & Pyrethroid Repellent',
+    imageUrl: '/products/karate_syngenta.jpg',
+    badge: 'Rapid Knockdown',
+    upvotes: 1054,
+    phiDays: 7
+  },
+  {
     productId: 'saaf-upl-fungicide',
     brandName: 'Saaf',
     company: 'UPL Limited',
@@ -13,13 +123,16 @@ export const COMMERCIAL_PRODUCTS = [
       'Rust', 'Tikka Disease', 'Collar Rot', 'Powdery Mildew', 'Cercospora Leaf Spot'
     ],
     targetCrops: ['Tomato', 'Potato', 'Chilli', 'Groundnut', 'Rice', 'Grape', 'Cotton'],
+    dosagePer15L: '30 g',
     dosagePer20L: '40 g',
     farmerMeasureTip: '~2.5 tablespoons or 2 matchboxes',
     dosagePerAcre: '400 - 500 g in 200L water',
     approxPrice: '₹190 - ₹230 (100g pack)',
     action: 'Dual Contact & Systemic Protectant',
     imageUrl: '/products/saaf_upl.jpg',
-    badge: 'Field Standard'
+    badge: 'Field Standard',
+    upvotes: 4280,
+    phiDays: 7
   },
   {
     productId: 'amistar-top-syngenta',
@@ -695,40 +808,59 @@ export const COMMERCIAL_PRODUCTS = [
 /**
  * Returns matching commercial products for a given disease name and optional crop.
  */
-export const getMatchingProducts = (diseaseName = '', cropName = '', limit = 2) => {
+export const getMatchingProducts = (diseaseName = '', cropName = '', limit = 6) => {
   if (!diseaseName) return COMMERCIAL_PRODUCTS.slice(0, limit);
   const dLow = diseaseName.toLowerCase();
   const cLow = cropName.toLowerCase();
 
   // 1. Direct disease match
-  const matches = COMMERCIAL_PRODUCTS.filter(p => 
+  let matches = COMMERCIAL_PRODUCTS.filter(p => 
     p.targetDiseases.some(td => dLow.includes(td.toLowerCase()) || td.toLowerCase().includes(dLow))
   );
 
   if (matches.length > 0) {
-    // Sort crop prioritized
-    if (cLow) {
-      matches.sort((a, b) => {
-        const aHasCrop = a.targetCrops.some(tc => cLow.includes(tc.toLowerCase()) || tc.toLowerCase().includes(cLow));
-        const bHasCrop = b.targetCrops.some(tc => cLow.includes(tc.toLowerCase()) || tc.toLowerCase().includes(cLow));
-        return (bHasCrop ? 1 : 0) - (aHasCrop ? 1 : 0);
-      });
-    }
+    // Sort by crop relevance first, then by upvotes descending
+    matches.sort((a, b) => {
+      const aHasCrop = cLow && a.targetCrops.some(tc => cLow.includes(tc.toLowerCase()) || tc.toLowerCase().includes(cLow));
+      const bHasCrop = cLow && b.targetCrops.some(tc => cLow.includes(tc.toLowerCase()) || tc.toLowerCase().includes(cLow));
+      if (aHasCrop && !bHasCrop) return -1;
+      if (!aHasCrop && bHasCrop) return 1;
+      return (b.upvotes || 0) - (a.upvotes || 0);
+    });
     return matches.slice(0, limit);
   }
 
-  // Fallback defaults
-  if (dLow.includes('blight') || dLow.includes('spot') || dLow.includes('rot')) {
-    return [COMMERCIAL_PRODUCTS[0], COMMERCIAL_PRODUCTS[1]]; // Saaf & Amistar Top
+  // 2. Intelligent Category Fallbacks
+  if (dLow.includes('thrip') || dLow.includes('curl') || dLow.includes('mite') || dLow.includes('sucking')) {
+    return [
+      COMMERCIAL_PRODUCTS[1], // Solomon (Bayer) - 3106 votes
+      COMMERCIAL_PRODUCTS[0], // Exponus (BASF) - 2164 votes
+      COMMERCIAL_PRODUCTS[2], // JUMP (Bayer) - 1154 votes
+      COMMERCIAL_PRODUCTS[3], // Benevia (FMC) - 8626 votes
+      COMMERCIAL_PRODUCTS[4]  // Karate (Syngenta) - 1054 votes
+    ].slice(0, limit);
+  }
+  if (dLow.includes('caterpillar') || dLow.includes('spodoptera') || dLow.includes('borer') || dLow.includes('larva')) {
+    return [
+      COMMERCIAL_PRODUCTS[3], // Benevia (FMC)
+      COMMERCIAL_PRODUCTS[0], // Exponus (BASF)
+      COMMERCIAL_PRODUCTS[4]  // Karate (Syngenta)
+    ].slice(0, limit);
+  }
+  if (dLow.includes('blight') || dLow.includes('spot') || dLow.includes('rot') || dLow.includes('anthracnose')) {
+    return [
+      COMMERCIAL_PRODUCTS.find(p => p.brandName === 'Saaf') || COMMERCIAL_PRODUCTS[5],
+      COMMERCIAL_PRODUCTS.find(p => p.brandName === 'Amistar Top'),
+      COMMERCIAL_PRODUCTS.find(p => p.brandName === 'Nativo') || COMMERCIAL_PRODUCTS[7],
+      COMMERCIAL_PRODUCTS.find(p => p.brandName === 'Kavach')
+    ].filter(Boolean).slice(0, limit);
   }
   if (dLow.includes('bacterial') || dLow.includes('canker')) {
-    return [COMMERCIAL_PRODUCTS[5], COMMERCIAL_PRODUCTS[0]]; // Blitox & Saaf
+    return [
+      COMMERCIAL_PRODUCTS.find(p => p.brandName === 'Blitox 50'),
+      COMMERCIAL_PRODUCTS.find(p => p.brandName === 'Saaf')
+    ].filter(Boolean).slice(0, limit);
   }
-  if (dLow.includes('pest') || dLow.includes('borer') || dLow.includes('aphid') || dLow.includes('hopper') || dLow.includes('thrip')) {
-    return [COMMERCIAL_PRODUCTS[10], COMMERCIAL_PRODUCTS[11]]; // Coragen & Confidor
-  }
-  if (dLow.includes('yellow') || dLow.includes('deficiency') || dLow.includes('chlorosis')) {
-    return [COMMERCIAL_PRODUCTS[21], COMMERCIAL_PRODUCTS[17]]; // Chelamin Zinc & Nano Urea
-  }
-  return [COMMERCIAL_PRODUCTS[0], COMMERCIAL_PRODUCTS[2]]; // Saaf & Kavach
+  
+  return COMMERCIAL_PRODUCTS.slice(0, limit);
 };
