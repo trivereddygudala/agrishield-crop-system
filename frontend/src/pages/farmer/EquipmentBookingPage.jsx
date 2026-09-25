@@ -2004,7 +2004,7 @@ export default function EquipmentBookingPage() {
           IN-APP DIRECT MESSAGING & 2-WAY VOICE CHAT MODAL
       ═══════════════════════════════════════════════════════════════════ */}
       {activeChatBooking && (
-        <div className="fixed inset-0 z-[70] bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
+        <div className="fixed inset-0 z-[9999] bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
           <GoogleMessageReader
             message={activeChatBooking}
             lang={i18n.language}

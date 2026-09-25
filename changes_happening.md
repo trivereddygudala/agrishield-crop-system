@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v295) - Clean Two-Way Messenger Experience & Header Icon Clutter Elimination Across Farmer & Provider Portals
+- **Summary:**
+  1. 🧹 **Header Icon Clutter Removal (`GoogleMessageReader.jsx`):**
+     - Excised direct phone call button and WhatsApp message icon button from the reader's top navigation bar, eliminating redundant icon clutter and establishing a clean, focused, professional header.
+     - Preserved the multilingual reader toggle (`Globe`), verified identity badges, and delete action in a clean header layout.
+  2. 💬 **Streamlined Chat Composer & Clutter-Free Messenger Footer (`GoogleMessageReader.jsx`):**
+     - Completely removed the bulky quick action chips bar (which previously held duplicate `Call Provider` and `WhatsApp` chips and a visible horizontal scrollbar).
+     - Upgraded the chat composer to a modern, spacious, WhatsApp/iMessage-standard interface:
+       - Integrated a clean `[ 📎 ]` attachment/action menu containing: `📍 Share Field Location`, `📜 View Booking Voucher`, and `⏱️ Quick Dispatch Update`.
+       - Designed a prominent, responsive text input field (`Type message to Provider...` / `Type message to Farmer...`).
+       - Styled an elevated emerald Send button with active state elevation and smooth tap animation.
+       - Added `pb-[max(0.6rem,env(safe-area-inset-bottom))]` for gesture-bar protection on modern mobile devices.
+  3. 📱 **Elevated Modal Overlay Z-Index (`NotificationsPage.jsx`, `EquipmentBookingPage.jsx`, `ProviderDashboardPage.jsx`):**
+     - Increased the modal container z-index to `z-[9999]` across all three pages mounting `GoogleMessageReader`.
+     - Resolved the critical mobile layout bug where `AppLayout`'s `<nav className="... z-50">` bottom bar was rendering directly on top of the chat input form.
+     - The chat reader now presents a true full-screen, distraction-free conversational workstation with 100% visible input controls.
+  4. 🧪 **Validation:**
+     - Verified frontend compilation with `npm run build`: 3,162 modules transformed and built in 30.19s with **0 errors**.
+- **Files modified:** `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v294) - Permanent Machinery, Notification, and Voucher Deletion Architecture Across Farmer & Provider Portals
 - **Summary:**
   1. 🛡️ **Persistent Deletion Blacklist Utilities (`equipmentDeduplication.js`):**

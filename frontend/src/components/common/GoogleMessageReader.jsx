@@ -724,31 +724,7 @@ export default function GoogleMessageReader({
             </button>
           )}
 
-          {/* Direct Phone Call Button (Booking only) */}
-          {isBooking && (isProviderViewer ? cleanFarmerPhone : cleanProviderPhone) && (
-            <a
-              href={`tel:${isProviderViewer ? cleanFarmerPhone : cleanProviderPhone}`}
-              className="p-2 rounded-full bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
-              title={isTelugu ? (isProviderViewer ? "రైతుకు కాల్ చేయండి" : "ప్రొవైడర్‌కు కాల్ చేయండి") : (isProviderViewer ? "Call Farmer" : "Call Provider")}
-            >
-              <Phone className="w-4 h-4" />
-            </a>
-          )}
-
-          {/* WhatsApp Direct Chat Button (Booking only) */}
-          {isBooking && (isProviderViewer ? cleanFarmerPhone : cleanProviderPhone) && (
-            <a
-              href={`https://wa.me/${isProviderViewer ? cleanFarmerPhone : cleanProviderPhone}?text=${encodeURIComponent(`Hello, regarding machinery booking #${canonicalBookingId} on AgriShield...`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs"
-              title="WhatsApp"
-            >
-              <MessageSquare className="w-4 h-4" />
-            </a>
-          )}
-
-          {/* Share WhatsApp Button */}
+          {/* Share Button */}
           <button
             type="button"
             onClick={handleShareWhatsApp}
@@ -1234,68 +1210,45 @@ export default function GoogleMessageReader({
       {/* ─── 3. BOTTOM FOOTER / INPUT CONTROLS ─── */}
       {isBooking ? (
         /* Real Two-Way Interactive Messenger Bar */
-        <div className="bg-white dark:bg-[#161b22] border-t border-slate-200/90 dark:border-slate-800 shrink-0">
-          {/* Quick Action Chips */}
-          <div className="px-3 sm:px-4 py-2 border-b border-slate-100 dark:border-slate-800/80">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-              {(isProviderViewer ? cleanFarmerPhone : cleanProviderPhone) && (
-                <a
-                  href={`tel:${isProviderViewer ? cleanFarmerPhone : cleanProviderPhone}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/80 dark:hover:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 text-xs font-bold shrink-0 transition-colors cursor-pointer active:scale-95 shadow-xs"
-                >
-                  <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>
-                    {isTelugu
-                      ? (isProviderViewer ? `📞 రైతుకు కాల్ చేయండి (${cleanFarmerPhone})` : `📞 ప్రొవైడర్‌కు కాల్ చేయండి (${cleanProviderPhone})`)
-                      : (isProviderViewer ? `📞 Call Farmer (${cleanFarmerPhone})` : `📞 Call Provider (${cleanProviderPhone})`)}
-                  </span>
-                </a>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setShowFullReview(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold shrink-0 transition-colors cursor-pointer active:scale-95 shadow-xs"
-              >
-                <FileText className="w-3.5 h-3.5 text-amber-500" />
-                <span>{isTelugu ? '📜 రసీదు చూడండి' : '📜 View Voucher'}</span>
-              </button>
-
-              {(isProviderViewer ? cleanFarmerPhone : cleanProviderPhone) && (
-                <a
-                  href={`https://wa.me/${isProviderViewer ? cleanFarmerPhone : cleanProviderPhone}?text=${encodeURIComponent(`Hello, regarding booking #${canonicalBookingId}...`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-600/20 dark:hover:bg-emerald-600/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 text-xs font-bold shrink-0 transition-colors cursor-pointer shadow-xs"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>WhatsApp</span>
-                </a>
-              )}
-            </div>
-          </div>
-
+        <div className="bg-white dark:bg-[#161b22] border-t border-slate-200/90 dark:border-slate-800 shrink-0 pb-[max(0.6rem,env(safe-area-inset-bottom))] shadow-lg">
           {/* Active Reply Composer Form */}
-          <footer className="p-2.5 sm:p-3 relative">
+          <footer className="p-2 sm:p-3 relative">
             <AnimatePresence>
               {showAttachMenu && (
                 <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute bottom-16 left-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-3 shadow-2xl space-y-2 z-30 text-xs w-64"
+                  className="absolute bottom-16 left-3 sm:left-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-3 shadow-2xl space-y-1.5 z-30 text-xs w-68 sm:w-72"
                 >
                   <button
                     type="button"
                     onClick={handleSendLiveLocation}
                     className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
                       <MapPin className="w-4 h-4" />
                     </div>
                     <div>
                       <span className="font-bold block text-slate-900 dark:text-white">{isTelugu ? 'పొలం లొకేషన్ పంపండి' : 'Share Field Location'}</span>
                       <span className="text-[10px] text-slate-500 dark:text-slate-400">{bookingVillage}</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAttachMenu(false);
+                      setShowFullReview(true);
+                    }}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold block text-slate-900 dark:text-white">{isTelugu ? 'బుకింగ్ వోచర్ చూడండి' : 'View Booking Voucher'}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">{isTelugu ? 'ధర & బుకింగ్ రసీదు' : 'Rates, dates & machine info'}</span>
                     </div>
                   </button>
 
@@ -1311,7 +1264,7 @@ export default function GoogleMessageReader({
                     }}
                     className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                       <Clock className="w-4 h-4" />
                     </div>
                     <div>
@@ -1341,8 +1294,12 @@ export default function GoogleMessageReader({
               <button
                 type="button"
                 onClick={() => setShowAttachMenu(!showAttachMenu)}
-                className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer shrink-0"
-                title={isTelugu ? "జోడించండి" : "Attach"}
+                className={`p-2.5 rounded-full transition-colors cursor-pointer shrink-0 ${
+                  showAttachMenu
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
+                }`}
+                title={isTelugu ? "జోడించండి" : "Attach / Options"}
               >
                 <Paperclip className="w-5 h-5" />
               </button>
@@ -1357,7 +1314,7 @@ export default function GoogleMessageReader({
                       ? (isTelugu ? 'రైతుకు సందేశం టైప్ చేయండి...' : 'Type message to Farmer...')
                       : (isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...')
                   }
-                  className="w-full py-2.5 px-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full py-2.5 px-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 />
               </div>
 
@@ -1366,7 +1323,7 @@ export default function GoogleMessageReader({
                 disabled={!inputText.trim()}
                 className={`p-3 rounded-full transition-transform active:scale-95 cursor-pointer shrink-0 ${
                   inputText.trim()
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30'
                     : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                 }`}
                 title={isTelugu ? "పంపండి" : "Send"}

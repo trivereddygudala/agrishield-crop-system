@@ -786,7 +786,7 @@ export default function NotificationsPage() {
       currentLang
     );
     return (
-      <div className="fixed inset-0 z-50 bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
+      <div className="fixed inset-0 z-[9999] bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
         <GoogleMessageReader
           message={selectedMessage}
           translatedTitle={transTitle}
