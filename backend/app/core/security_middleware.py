@@ -81,6 +81,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
+        # ── Cross-Device Real-Time Freshness (Prevent Mobile Browsers from Caching Dynamic API Data) ──
+        if request.url.path.startswith("/api"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+
         if "Server" in response.headers:
             del response.headers["Server"]
         if "x-powered-by" in response.headers:

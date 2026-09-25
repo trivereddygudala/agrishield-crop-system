@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { translateNotification } from '../../utils/notificationTranslator';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 import { getDeletedNotificationIds, saveDeletedNotificationId } from '../../utils/equipmentDeduplication';
+import { recordCrossDeviceDeletion } from '../../services/crossDeviceSync';
 
 // ── Dynamic Crop Extraction & Localization Helper ──
 function extractCropInfo(item, isTe = false) {
@@ -489,6 +490,20 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications();
+    const handleRevalidateNotifs = () => {
+      if (document.visibilityState === 'visible') fetchNotifications();
+    };
+    window.addEventListener('agrishield_notifications_updated', fetchNotifications);
+    window.addEventListener('storage', fetchNotifications);
+    window.addEventListener('focus', fetchNotifications);
+    document.addEventListener('visibilitychange', handleRevalidateNotifs);
+
+    return () => {
+      window.removeEventListener('agrishield_notifications_updated', fetchNotifications);
+      window.removeEventListener('storage', fetchNotifications);
+      window.removeEventListener('focus', fetchNotifications);
+      document.removeEventListener('visibilitychange', handleRevalidateNotifs);
+    };
   }, [fetchNotifications]);
 
   useEffect(() => {
@@ -553,6 +568,7 @@ export default function NotificationsPage() {
     try {
       // 1. Permanently blacklist this notification ID so background fetch & synthesis never resurrect it
       saveDeletedNotificationId(id);
+      recordCrossDeviceDeletion('notification', id, 'User deleted notification');
 
       await API.delete(`/api/v1/notifications/${id}`).catch(() => {});
       setNotifications(prev => prev.filter(n => n.notification_id !== id && n.id !== id && n.booking_id !== id));

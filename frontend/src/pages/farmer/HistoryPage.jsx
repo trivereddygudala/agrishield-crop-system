@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useFarm } from '../../context/FarmContext';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useHardwareMode } from '../../hooks/useHardwareMode';
+import { recordCrossDeviceDeletion } from '../../services/crossDeviceSync';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../../utils/diseaseAdvisoryData';
 import { getSpeechLocale } from '../../utils/regionalLocale';
 import { shareDiagnosticToWhatsApp, printPrescriptionSlip } from '../../utils/prescriptionShare';
@@ -232,14 +233,26 @@ const HistoryPage = () => {
     if (isOnline && hardwareMode) {
       interval = setInterval(() => fetchData(), 60000);
     }
+    const handleRevalidate = () => {
+      if (document.visibilityState === 'visible') {
+        window._cachedPredictionHistory = null;
+        fetchData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleRevalidate);
+    window.addEventListener('focus', handleRevalidate);
+
     return () => {
       if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleRevalidate);
+      window.removeEventListener('focus', handleRevalidate);
     };
   }, [isOnline, fetchData, hardwareMode]);
 
   // Auto-refresh logs when offline field scans are synchronized
   useEffect(() => {
     const handleSyncFinished = () => {
+      window._cachedPredictionHistory = null;
       fetchData(true);
     };
     window.addEventListener('agrishield-sync-completed', handleSyncFinished);
@@ -378,6 +391,8 @@ const HistoryPage = () => {
   const handleDeleteRecord = async (id) => {
     if (!window.confirm("Are you sure you want to delete this scan record?")) return;
     try {
+      recordCrossDeviceDeletion('prediction', id, 'Farmer deleted diagnosis scan');
+      window._cachedPredictionHistory = null;
       await API.delete(`/api/history/${id}`);
       setPredictionData(prev => prev.filter(item => item.id !== id));
       setToastMsg('Record deleted successfully.');

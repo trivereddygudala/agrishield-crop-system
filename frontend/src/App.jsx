@@ -121,11 +121,16 @@ const DashboardLayout = () => {
   );
 };
 
+import { initCrossDeviceAutoSync } from './services/crossDeviceSync';
+
 function ThemeInitializer({ children }) {
   useColorTheme(); // Initialize site-wide theme on html tag inside AuthProvider context
 
   React.useEffect(() => {
-    // Proactively pre-warm cluster nodes and backend services on initial page load & keep them hot
+    // 1. Initialize permanent multi-device sync engine across all mobile and desktop clients
+    const stopSync = initCrossDeviceAutoSync();
+
+    // 2. Proactively pre-warm cluster nodes and backend services on initial page load & keep them hot
     const warmUp = () => {
       try {
         const baseUrl = getApiBaseUrl();
@@ -144,7 +149,10 @@ function ThemeInitializer({ children }) {
     warmUp();
     // Keep alive pulse every 4 minutes while farmer tab is open
     const interval = setInterval(warmUp, 240000);
-    return () => clearInterval(interval);
+    return () => {
+      stopSync();
+      clearInterval(interval);
+    };
   }, []);
 
   return <>{children}</>;

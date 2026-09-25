@@ -2574,9 +2574,13 @@ async def get_history(
 
         sanitized_records.append(clean_rec)
 
+    # Strictly filter out any deleted prediction tombstones across devices
+    from backend.app.services.sync_service import SyncService
+    final_predictions = SyncService.filter_out_deleted("prediction", sanitized_records, ["_id", "id"])
+
     return {
-        "predictions": sanitized_records,
-        "total": total,
+        "predictions": final_predictions,
+        "total": len(final_predictions),
         "page": page,
         "pages": pages
     }
@@ -2610,6 +2614,10 @@ async def delete_history_record(
 
     # Delete prediction from database
     await db.predictions.delete_one({"_id": ObjectId(id)})
+
+    # Record permanent cross-device tombstone
+    from backend.app.services.sync_service import SyncService
+    await SyncService.record_deletion("prediction", id, deleted_by=str(current_user["id"]))
 
     # Remove file from local system if it exists
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

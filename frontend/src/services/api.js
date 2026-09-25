@@ -35,6 +35,20 @@ API.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Anti-cache protection for multi-device real-time consistency (prevent stale mobile browser caches)
+    if (config.method === 'get') {
+      config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      config.headers['Pragma'] = 'no-cache';
+      config.headers['Expires'] = '0';
+      if (!config.params) {
+        config.params = {};
+      }
+      // Only append _t if not already present
+      if (!config.params._t) {
+        config.params._t = Date.now();
+      }
+    }
     return config;
   },
   (error) => {

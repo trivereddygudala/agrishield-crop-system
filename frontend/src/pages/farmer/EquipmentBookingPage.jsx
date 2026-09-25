@@ -58,8 +58,10 @@ import {
   deduplicateEquipment,
   deduplicateBookings,
   getDeletedBookingIds,
-  saveDeletedBookingId
+  saveDeletedBookingId,
+  getDeletedEquipmentIds
 } from '../../utils/equipmentDeduplication';
+import { recordCrossDeviceDeletion } from '../../services/crossDeviceSync';
 
 // ═══════════════════════════════════════════════════════════════════
 // CONCEPT 2 STUDIO IMAGE RESOLVER & HIGH-RES FALLBACKS
@@ -263,39 +265,22 @@ export default function EquipmentBookingPage() {
           });
 
           setMyBookings(prev => {
-            let hasChanged = false;
-            // 1. Update existing local bookings with latest remote status
-            const updatedExisting = prev.map(localB => {
+            const nowMs = Date.now();
+            // Preserve only freshly submitted local bookings created in the last 45s that haven't hit the server yet
+            const inFlightRecent = prev.filter(localB => {
               const key = localB && (localB.id || localB.bookingId);
-              if (remoteMap.has(key)) {
-                const remoteB = remoteMap.get(key);
-                const isLocallyCancelled = String(localB.status).toLowerCase() === 'cancelled';
-                const isRemotePending = String(remoteB.status).toLowerCase() === 'pending';
-                const effectiveStatus = (isLocallyCancelled && isRemotePending) ? 'cancelled' : (remoteB.status || localB.status);
-
-                if (localB.status !== effectiveStatus || localB.updatedAt !== remoteB.updatedAt) {
-                  hasChanged = true;
-                }
-                return {
-                  ...localB,
-                  ...remoteB,
-                  status: effectiveStatus,
-                  cancelReason: localB.cancelReason || remoteB.cancelReason,
-                  cancelledAt: localB.cancelledAt || remoteB.cancelledAt
-                };
-              }
-              return localB;
+              if (remoteMap.has(key) || deletedIds.has(key)) return false;
+              const createdMs = localB?.createdAt ? new Date(localB.createdAt).getTime() : 0;
+              return (nowMs - createdMs < 45000);
             });
 
-            // 2. Combine and deduplicate strictly
-            const finalMerged = deduplicateBookings([...remoteBookings, ...updatedExisting], deletedIds);
-            if (hasChanged || prev.length !== finalMerged.length) {
-              try {
-                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(finalMerged));
-              } catch (e) {}
-              return finalMerged;
-            }
-            return prev;
+            // The remote server is authoritative for all historical bookings across all mobile phones.
+            // Any booking deleted on another device disappears permanently here.
+            const finalMerged = deduplicateBookings([...inFlightRecent, ...remoteBookings], deletedIds);
+            try {
+              localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(finalMerged));
+            } catch (e) {}
+            return finalMerged;
           });
         }
       } catch (err) {}
@@ -304,15 +289,76 @@ export default function EquipmentBookingPage() {
     fetchRemoteBookings();
     // Fast 5-second polling interval so provider actions on laptop appear on farmer mobile immediately
     const pollInterval = setInterval(fetchRemoteBookings, 5000);
+    const handleRevalidate = () => {
+      if (document.visibilityState === 'visible') {
+        fetchRemoteBookings();
+      }
+    };
+
     window.addEventListener('agrishield_bookings_updated', fetchRemoteBookings);
     window.addEventListener('storage', fetchRemoteBookings);
+    window.addEventListener('focus', fetchRemoteBookings);
+    document.addEventListener('visibilitychange', handleRevalidate);
+
     return () => {
       isMounted = false;
       clearInterval(pollInterval);
       window.removeEventListener('agrishield_bookings_updated', fetchRemoteBookings);
       window.removeEventListener('storage', fetchRemoteBookings);
+      window.removeEventListener('focus', fetchRemoteBookings);
+      document.removeEventListener('visibilitychange', handleRevalidate);
     };
   }, [getDeletedBookingIds]);
+
+  // Fetch remote equipment catalog to sync machinery additions & deletions across devices
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRemoteCatalog = async () => {
+      try {
+        let res;
+        try {
+          res = await API.get('/api/v1/equipment/catalog');
+        } catch (_) {}
+        if (!res?.data?.equipment && !res?.data?.catalog) {
+          try {
+            res = await API.get('/api/equipment/catalog');
+          } catch (_) {}
+        }
+        if (!res?.data?.equipment && !res?.data?.catalog) {
+          try {
+            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
+          } catch (_) {}
+        }
+        const serverItems = res?.data?.equipment || res?.data?.catalog;
+        if (isMounted && Array.isArray(serverItems) && serverItems.length > 0) {
+          const deletedEquipIds = getDeletedEquipmentIds();
+          const cleanCatalog = deduplicateEquipment(serverItems, deletedEquipIds);
+          setEquipmentList(cleanCatalog);
+          try {
+            localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanCatalog));
+            localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCatalog));
+          } catch (_) {}
+        }
+      } catch (_) {}
+    };
+
+    fetchRemoteCatalog();
+    const catInterval = setInterval(fetchRemoteCatalog, 15000);
+    const handleVisibilityCat = () => {
+      if (document.visibilityState === 'visible') fetchRemoteCatalog();
+    };
+    window.addEventListener('agrishield_equipment_updated', fetchRemoteCatalog);
+    window.addEventListener('focus', fetchRemoteCatalog);
+    document.addEventListener('visibilitychange', handleVisibilityCat);
+
+    return () => {
+      isMounted = false;
+      clearInterval(catInterval);
+      window.removeEventListener('agrishield_equipment_updated', fetchRemoteCatalog);
+      window.removeEventListener('focus', fetchRemoteCatalog);
+      document.removeEventListener('visibilitychange', handleVisibilityCat);
+    };
+  }, [getDeletedEquipmentIds]);
 
   // Fetch remote fleet availability from backend for multi-device cross-browser sync
   useEffect(() => {
@@ -694,8 +740,9 @@ export default function EquipmentBookingPage() {
 
     setIsProcessingAction(true);
 
-    // 1. Immediately blacklist booking ID in localStorage so background polling NEVER resurrects it
+    // 1. Immediately blacklist booking ID in localStorage and server tombstones so other phones receive it
     saveDeletedBookingId(bookingId);
+    recordCrossDeviceDeletion('booking', bookingId, 'Farmer deleted booking');
 
     // 2. Optimistic Local State Removal
     setMyBookings((prev) => {

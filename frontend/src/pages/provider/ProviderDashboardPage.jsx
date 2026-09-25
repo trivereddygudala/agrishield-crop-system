@@ -55,6 +55,7 @@ import {
   getDeletedBookingIds,
   saveDeletedBookingId
 } from '../../utils/equipmentDeduplication';
+import { recordCrossDeviceDeletion } from '../../services/crossDeviceSync';
 
 // Concept 2 Clean Studio Machinery Image Resolver
 const getEquipmentFallbackImage = (category, title = '') => {
@@ -262,11 +263,30 @@ export default function ProviderDashboardPage() {
         const catalogItems = res?.data?.catalog || res?.data?.equipment;
         if (catalogItems && Array.isArray(catalogItems) && catalogItems.length > 0) {
           const deletedEquipIds = getDeletedEquipmentIds();
-          setFleetList(prev => deduplicateEquipment([...prev, ...catalogItems], deletedEquipIds));
+          const cleanCatalog = deduplicateEquipment(catalogItems, deletedEquipIds);
+          setFleetList(cleanCatalog);
+          try {
+            localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanCatalog));
+            localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCatalog));
+          } catch (_) {}
         }
       } catch (_) {}
     };
     fetchRemoteFleet();
+    const fleetInterval = setInterval(fetchRemoteFleet, 12000);
+    const handleFleetVisibility = () => {
+      if (document.visibilityState === 'visible') fetchRemoteFleet();
+    };
+    window.addEventListener('agrishield_equipment_updated', fetchRemoteFleet);
+    window.addEventListener('focus', fetchRemoteFleet);
+    document.addEventListener('visibilitychange', handleFleetVisibility);
+
+    return () => {
+      clearInterval(fleetInterval);
+      window.removeEventListener('agrishield_equipment_updated', fetchRemoteFleet);
+      window.removeEventListener('focus', fetchRemoteFleet);
+      document.removeEventListener('visibilitychange', handleFleetVisibility);
+    };
   }, [user?.phone]);
 
   // Persistent blacklist for deleted booking vouchers so they never resurrect across devices
@@ -320,8 +340,9 @@ export default function ProviderDashboardPage() {
 
     setIsDeletingBooking(true);
 
-    // 1. Immediately blacklist the booking so background polling never resurrects it
+    // 1. Immediately blacklist the booking and sync tombstone so other mobile devices receive it
     saveDeletedBookingId(targetId);
+    recordCrossDeviceDeletion('booking', targetId, 'Provider deleted booking');
 
     // 2. Remove immediately from local state and localStorage
     setBookingsList(prev => {
@@ -453,7 +474,18 @@ export default function ProviderDashboardPage() {
             const key = String(b.id || b.bookingId || '');
             return !key.startsWith('BK-TEST-') && !deletedIds.has(key);
           });
-          const merged = deduplicateBookings([...remote, ...local], deletedIds);
+
+          // The remote server is authoritative for historical bookings across all mobile devices
+          // Preserve only recent in-flight bookings created locally in the last 45 seconds
+          const nowMs = Date.now();
+          const inFlight = local.filter(l => {
+            const key = String(l?.id || l?.bookingId || '');
+            if (deletedIds.has(key)) return false;
+            const createdMs = l?.createdAt ? new Date(l.createdAt).getTime() : 0;
+            return (nowMs - createdMs < 45000);
+          });
+
+          const merged = deduplicateBookings([...inFlight, ...remote], deletedIds);
           setBookingsList(merged);
           try {
             localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
@@ -469,16 +501,24 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
   }, [getDeletedBookingIds]);
 
-  // Poll backend & listen to window/storage updates
+  // Poll backend & listen to window/storage/visibility updates
   useEffect(() => {
     fetchProviderBookings();
     const interval = setInterval(fetchProviderBookings, 6000); // 6s fast multi-device sync
+    const handleRevalidateBookings = () => {
+      if (document.visibilityState === 'visible') fetchProviderBookings();
+    };
     window.addEventListener('agrishield_bookings_updated', fetchProviderBookings);
     window.addEventListener('storage', fetchProviderBookings);
+    window.addEventListener('focus', fetchProviderBookings);
+    document.addEventListener('visibilitychange', handleRevalidateBookings);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('agrishield_bookings_updated', fetchProviderBookings);
       window.removeEventListener('storage', fetchProviderBookings);
+      window.removeEventListener('focus', fetchProviderBookings);
+      document.removeEventListener('visibilitychange', handleRevalidateBookings);
     };
   }, [fetchProviderBookings]);
 
@@ -623,8 +663,9 @@ export default function ProviderDashboardPage() {
 
     setIsDeletingMachine(true);
 
-    // 1. Permanently blacklist machinery ID & title in localStorage
+    // 1. Permanently blacklist machinery ID & title in localStorage and backend tombstones
     saveDeletedEquipmentId(targetId, targetTitle);
+    recordCrossDeviceDeletion('equipment', targetId, 'Provider deleted machinery');
 
     // 2. Remove immediately from local state and localStorage
     const updated = fleetList.filter(m => m.id !== targetId);

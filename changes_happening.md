@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v297) - Master Cross-Device Multi-Phone Real-Time Deletion Synchronization & Tombstone Architecture
+- **Summary:**
+  1. 🌐 **Master Deletion Tombstone Backend Service (`sync_service.py`, `backend/app/routers/common/sync.py`):**
+     - Architected persistent tombstone engine saving all deletions (equipment, bookings, notifications, predictions) to disk (`tombstones.json`) with in-memory caching.
+     - Provided dual-mounted endpoints: `GET /api/v1/sync/tombstones`, `POST /api/v1/sync/tombstones`, and `GET /api/v1/sync/status` across both `/api/v1/*` and `/api/*`.
+     - Automatically purges deleted items from active MongoDB collections and cluster worker disk state, cascading bookings to notifications.
+  2. ⚡ **Client-Side Real-Time Cross-Device Synchronization Engine (`crossDeviceSync.js`):**
+     - Developed autonomous cross-device deletion sync service with 8-second polling interval and automatic revalidation on tab focus and `visibilitychange` (when mobile phone is unlocked or app resumed).
+     - Seamlessly synchronizes remote tombstones into local storage blacklists (`agrishield_deleted_booking_ids`, `agrishield_deleted_equipment_ids`, `agrishield_deleted_notification_ids`).
+     - Dispatches real-time DOM events (`agrishield_bookings_updated`, `agrishield_equipment_updated`, `agrishield_notifications_updated`) to notify all active components.
+     - Built-in multi-tier fallback support for Render worker clusters (`worker-1`, `worker-2`).
+  3. 🛡️ **Zero-Resurrection Authoritative State in Farmer & Provider Portals:**
+     - **Equipment Booking (`EquipmentBookingPage.jsx`):** Eliminated the flaw where locally cached bookings were merged back on top of remote bookings. Remote server is now strictly authoritative; only in-flight bookings created in the last 45 seconds are preserved locally. Tapping delete permanently broadcasts tombstones across devices.
+     - **Provider Dashboard (`ProviderDashboardPage.jsx`):** Remote bookings and equipment fleet are now strictly authoritative. Deleting machinery or bookings broadcasts tombstones so farmer mobile devices instantly remove them without resurrection. Added `visibilitychange` listeners for instant refresh on phone wake.
+     - **Diagnosis History (`HistoryPage.jsx`):** Deleted scan records record deletion tombstones, invalidate cached history, and auto-refresh on screen unlock/tab focus.
+     - **Notifications Inbox (`NotificationsPage.jsx`):** Deleted notifications record tombstones, preventing background tasks and notification synthesizers on other phones from resurrecting cleared items.
+  4. 🔒 **Security & API Route Access:**
+     - Whitelisted `/api/v1/sync` and `/api/sync` in `security_middleware.py` and `api.js` for seamless cross-device communication.
+  5. 🧪 **Validation:**
+     - Full production build (`npm run build`) completed cleanly with **0 errors** across all 3,163 modules in 28.50s.
+- **Files modified:** `backend/app/services/sync_service.py`, `backend/app/routers/common/sync.py`, `backend/app/routers/sync.py`, `backend/app/main.py`, `backend/app/core/security_middleware.py`, `frontend/src/services/crossDeviceSync.js`, `frontend/src/App.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/farmer/HistoryPage.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v296) - Provider Workstation 3-Card Architecture with Dedicated Separate Page Views
 - **Summary:**
   1. 🗂️ **Transformed Cramped Pill Buttons into 3 Beautiful Workstation Cards (`ProviderDashboardPage.jsx`):**

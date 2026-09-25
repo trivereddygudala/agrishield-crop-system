@@ -117,7 +117,7 @@ app.add_middleware(
 # Serve uploads folder statically
 app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
-from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment, plant_id, agrochemical
+from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment, plant_id, agrochemical, sync
 
 # 1. Include core and AI routers
 app.include_router(auth.router)
@@ -136,6 +136,10 @@ app.include_router(firmware.router)
 app.include_router(support.router)
 
 # 3. Dual-Mount Dedicated Domain Routers (/api/v1/* AND /api/*) for Zero-Error Compatibility
+# Master Cross-Device Data Sync & Deletions Router
+app.include_router(sync.router, prefix="/api/v1/sync")
+app.include_router(sync.router, prefix="/api/sync")
+
 # Equipment Rental & Booking Router
 app.include_router(equipment.router, prefix="/api/v1/equipment")
 app.include_router(equipment.router, prefix="/api/equipment")

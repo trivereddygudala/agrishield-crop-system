@@ -11,6 +11,7 @@ import json
 import os
 import asyncio
 from backend.app.db.mongodb import db_instance
+from backend.app.services.sync_service import SyncService
 
 router = APIRouter(tags=["Equipment & Farm Machinery Bookings"])
 
@@ -28,7 +29,7 @@ def _load_disk_bookings() -> List[Dict[str, Any]]:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
-                    _in_memory_bookings = data
+                    _in_memory_bookings = SyncService.filter_out_deleted("booking", data, ["id", "bookingId"])
                     return _in_memory_bookings
         except Exception as e:
             print(f"⚠️ [EquipmentBookings] Failed loading from disk: {e}")
@@ -50,7 +51,7 @@ def _load_disk_catalog() -> List[Dict[str, Any]]:
             with open(CATALOG_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
-                    _in_memory_catalog = data
+                    _in_memory_catalog = SyncService.filter_out_deleted("equipment", data, ["id", "equipment_id"])
                     return _in_memory_catalog
         except Exception as e:
             print(f"⚠️ [EquipmentCatalog] Failed loading from disk: {e}")
@@ -80,6 +81,7 @@ async def get_all_bookings(
     """
     Fetch all machinery bookings across devices with optional phone/status filters.
     Supports up to 2500+ records for large-scale farm fleet management and stress-testing.
+    Strictly filters out any deleted tombstones to guarantee zero resurrection across mobile devices.
     """
     bookings = []
     fetch_limit = limit or 2500
@@ -98,19 +100,17 @@ async def get_all_bookings(
         except Exception as e:
             print(f"⚠️ [EquipmentBookings] Mongo fetch notice: {e}")
 
-    # 2. If Mongo has items, update memory cache
+    # 2. If Mongo has items, update memory cache (WITHOUT resurrecting deleted items)
     if bookings:
         global _in_memory_bookings
-        # Merge unique IDs
-        existing_ids = {b.get("id") for b in bookings if b.get("id")}
-        for local_b in _in_memory_bookings:
-            if local_b.get("id") and local_b.get("id") not in existing_ids:
-                bookings.append(local_b)
         _in_memory_bookings = bookings[:fetch_limit]
         _save_disk_bookings()
     else:
         # Fallback to in-memory / disk cache
         bookings = _load_disk_bookings()
+
+    # 3. Strictly filter out any deleted tombstones across the entire cluster
+    bookings = SyncService.filter_out_deleted("booking", bookings, ["id", "bookingId"])
 
     # Apply in-memory filters if needed
     result = bookings
@@ -409,13 +409,23 @@ async def update_booking_status(
 @router.delete("/bookings/{booking_id}")
 async def delete_booking(booking_id: str):
     """
-    Remove a booking.
+    Remove a booking permanently with cross-device tombstone registration.
     """
     global _in_memory_bookings
+
+    # 1. Register permanent tombstone so no worker/device ever resurrects this booking
+    await SyncService.record_deletion(
+        entity_type="booking",
+        entity_id=booking_id,
+        reason="API delete_booking"
+    )
+
+    # 2. Update memory & disk cache
     _load_disk_bookings()
     _in_memory_bookings = [b for b in _in_memory_bookings if b.get("id") != booking_id and b.get("bookingId") != booking_id]
     _save_disk_bookings()
 
+    # 3. Remove from MongoDB
     if db_instance.db is not None:
         try:
             await db_instance.db["equipment_bookings"].delete_many({
@@ -424,7 +434,7 @@ async def delete_booking(booking_id: str):
         except Exception:
             pass
 
-    return {"success": True, "message": f"Booking {booking_id} deleted"}
+    return {"success": True, "message": f"Booking {booking_id} permanently deleted across all devices"}
 
 
 # In-memory fleet availability map
@@ -502,16 +512,13 @@ async def get_equipment_catalog(
 
     if catalog:
         global _in_memory_catalog
-        existing_ids = {c.get("id") for c in catalog if c.get("id")}
-        for local_c in _in_memory_catalog:
-            if local_c.get("id") and local_c.get("id") not in existing_ids:
-                catalog.append(local_c)
         _in_memory_catalog = catalog
         _save_disk_catalog()
     else:
         catalog = _load_disk_catalog()
 
-    result = catalog
+    # Strictly filter out any deleted machinery tombstones across the system
+    result = SyncService.filter_out_deleted("equipment", catalog, ["id", "equipment_id"])
     if category and category.lower() != "all":
         result = [c for c in result if str(c.get("category", "")).lower() == category.lower()]
     if village:
@@ -577,17 +584,27 @@ async def register_equipment_item(equipment_data: Dict[str, Any] = Body(...)):
 @router.delete("/catalog/{equipment_id}")
 async def delete_equipment_item(equipment_id: str):
     """
-    Remove equipment listing from active catalog.
+    Remove equipment listing from active catalog permanently with cross-device tombstone registration.
     """
     global _in_memory_catalog
+
+    # 1. Register permanent tombstone so no worker/device ever resurrects this equipment
+    await SyncService.record_deletion(
+        entity_type="equipment",
+        entity_id=equipment_id,
+        reason="API delete_equipment_item"
+    )
+
+    # 2. Update memory & disk cache
     _load_disk_catalog()
     _in_memory_catalog = [c for c in _in_memory_catalog if c.get("id") != equipment_id]
     _save_disk_catalog()
 
+    # 3. Remove from MongoDB
     if db_instance.db is not None:
         try:
             await db_instance.db["equipment_catalog"].delete_one({"id": equipment_id})
         except Exception:
             pass
 
-    return {"success": True, "message": f"Equipment listing {equipment_id} removed"}
+    return {"success": True, "message": f"Equipment listing {equipment_id} permanently removed across all devices"}

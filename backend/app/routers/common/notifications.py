@@ -200,14 +200,17 @@ async def acknowledge_alert(
         raise HTTPException(status_code=404, detail="Notification not found or access denied")
     return {"status": "success", "message": "Notification acknowledged successfully"}
 
+from backend.app.services.sync_service import SyncService
+
 @router.delete("/api/notifications/clear")
 @router.delete("/api/v1/notifications/clear")
 async def clear_notifications(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Delete all notification records of current user."""
+    """Delete all notification records of current user with cross-device tombstone sync."""
     deleted = await NotificationService.clear_all_notifications(db, user_id=str(current_user["id"]))
+    await SyncService.record_deletion("notification", f"all_user_{current_user['id']}")
     return {"status": "success", "deleted_count": deleted}
 
 @router.delete("/api/notifications/{notification_id}")
@@ -217,7 +220,8 @@ async def delete_notification(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Delete an individual notification record."""
+    """Delete an individual notification record with cross-device tombstone sync."""
+    await SyncService.record_deletion("notification", notification_id)
     success = await NotificationService.delete_notification(
         db, 
         notification_id=notification_id, 
