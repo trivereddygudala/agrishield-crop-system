@@ -13,9 +13,7 @@ import WidgetErrorBoundary from '../../components/WidgetErrorBoundary';
 import { useWebSocket } from '../../context/WebSocketContext';
 
 // Intelligence System Widgets
-import { WeatherDashboard } from '../../components/intelligence/WeatherDashboard';
-import { DiseaseRiskCard } from '../../components/intelligence/DiseaseRiskCard';
-import SprayAdvisorWidget from '../../components/intelligence/SprayAdvisorWidget';
+import FieldIntelligenceWidget from '../../components/intelligence/FieldIntelligenceWidget';
 import { translateCrop, translateStage, translateDisease } from '../../utils/diseaseAdvisoryData';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
@@ -302,51 +300,51 @@ const DashboardPage = () => {
       {/* ─── Daily Farm Status Banner (Professional, Boundaries, Light Blur, Highlighted Words) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
         <div className="w-full">
-          <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-md">
-            {/* Real Unsplash / Pexels farm photography background with light blur */}
+          <div className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/40 dark:border-emerald-500/30 shadow-xl bg-slate-900">
+            {/* Real agricultural landscape photography with gentle blur */}
             <img 
-              src={CURATED_FARM_PHOTOS.farmField} 
+              src={CURATED_FARM_PHOTOS.farmHero} 
               alt="Authentic Agricultural Farm Field" 
-              className="absolute inset-0 w-full h-full object-cover object-center scale-105 filter blur-[2px]"
-              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover object-center scale-105 filter blur-[1.5px]"
+              loading="eager"
             />
-            {/* Deep protective dark scrim ensuring WCAG AAA text visibility over photography */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-950/75" />
-            <div className="absolute inset-0 backdrop-blur-[1px]" />
+            {/* Balanced translucent gradient scrim allowing vibrant green fields & sunlight to show through clearly */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-slate-950/20" />
+            <div className="absolute inset-0 bg-emerald-950/20 mix-blend-multiply" />
             
-            <div className="relative z-10 p-5 sm:p-6 lg:p-7 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              {/* High-contrast frosted text container with highlighted keywords */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-xl space-y-2.5 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black shadow-xs">
+            <div className="relative z-10 p-5 sm:p-6 lg:p-8 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              {/* High-contrast frosted glass container with highlighted keywords */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/55 backdrop-blur-md border border-white/20 shadow-2xl space-y-3 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/30 border border-emerald-400/60 text-emerald-300 text-xs font-black shadow-md">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>🌾 {isTe ? 'పొలం ప్రత్యక్ష స్థితి' : 'Authentic Field Telemetry'}</span>
+                  <span>🌾 {isTe ? 'పొలం ప్రత్యక్ష సమాచారం' : 'Authentic Field Telemetry'}</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
+                <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
                 </h2>
-                <p className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                  {isTe ? 'ఈరోజు ' : 'Today is '}
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 font-extrabold border border-amber-400/40">
-                    {isTe ? '34°C & ఎండగా ఉంది' : '34°C & Sunny'}
+                <div className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span>{isTe ? 'ఈరోజు ' : 'Today is '}</span>
+                  <span className="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-black shadow-md border border-amber-300 text-xs sm:text-sm">
+                    ☀️ {isTe ? '34°C & ఎండగా ఉంది' : '34°C & Sunny'}
                   </span>
-                  {isTe ? ' — పొలం పనులకు అనుకూలం. సురక్షిత స్ప్రే విండో: ' : ' — Ideal conditions for field work. Safe spray window: '}
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/25 text-emerald-300 font-extrabold border border-emerald-400/40">
-                    {isTe ? 'ఉదయం 8 AM – 11 AM' : '8 AM – 11 AM'}
+                  <span>{isTe ? ' — సురక్షిత స్ప్రే సమయం: ' : ' — Safe spray window: '}</span>
+                  <span className="px-2.5 py-0.5 rounded-lg bg-emerald-400 text-slate-950 font-black shadow-md border border-emerald-300 text-xs sm:text-sm">
+                    ⏱️ {isTe ? 'ఉదయం 8 AM – 11 AM' : '8 AM – 11 AM'}
                   </span>
-                </p>
+                </div>
               </div>
 
               {/* 3 High-Contrast Status Badges with glowing dots & highlighted text */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-lg">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>{isTe ? 'పంట: ఆరోగ్యకరం' : 'Crops: Healthy'}</span>
                 </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-sky-500/60 text-sky-300 text-xs sm:text-sm font-black shadow-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-sky-400/60 text-sky-300 text-xs sm:text-sm font-black shadow-lg">
                   <span>💧</span>
                   <span>{isTe ? `నేల: ${activeTelemetry?.soil_moisture ?? 45}% (తగినంత)` : `Soil: ${activeTelemetry?.soil_moisture ?? 45}% (Optimal)`}</span>
                 </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/50 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-lg">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>{isTe ? 'తెగుళ్ల ముప్పు: తక్కువ' : 'Disease Risk: Low'}</span>
                 </div>
@@ -570,31 +568,11 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Hero Intelligence Blocks (Weather, Spray Window, Disease Risk) ─── */}
-      <motion.div variants={itemVariants} className="grid lg:grid-cols-12 gap-6 w-full max-w-full min-w-0">
-        <div className="lg:col-span-7 space-y-6 flex flex-col w-full max-w-full min-w-0 overflow-hidden">
-          <div className="w-full">
-            <WidgetErrorBoundary name="Weather Intelligence">
-              <div className="flex-1 w-full max-w-full min-w-0">
-                <WeatherDashboard farmId={farmId} lat={coordinates.lat} lon={coordinates.lon} />
-              </div>
-            </WidgetErrorBoundary>
-          </div>
-        </div>
-
-        <div className="lg:col-span-5 space-y-6 flex flex-col w-full max-w-full min-w-0">
-          <div className="w-full">
-            <WidgetErrorBoundary name="Pesticide Spray Safety Window">
-              <SprayAdvisorWidget telemetry={activeTelemetry} />
-            </WidgetErrorBoundary>
-          </div>
-          
-          <div className="w-full">
-            <WidgetErrorBoundary name="Disease Risk Forecast">
-              <DiseaseRiskCard farmId={farmId} cropName={cropName} />
-            </WidgetErrorBoundary>
-          </div>
-        </div>
+      {/* ─── Unified Field Intelligence (Weather, Safe Spray Window, Foliar Safety) ─── */}
+      <motion.div variants={itemVariants} className="w-full max-w-full min-w-0">
+        <WidgetErrorBoundary name="Field Intelligence">
+          <FieldIntelligenceWidget farmId={farmId} lat={coordinates.lat} lon={coordinates.lon} />
+        </WidgetErrorBoundary>
       </motion.div>
 
       {/* ─── Recent Crop Diagnoses History (Fills mobile layout with immediate value) ─── */}

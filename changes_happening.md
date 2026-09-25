@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v257) - Farmer Home Transformation: Vibrant Light-Blurred Hero Banner & Unified Field Intelligence
+- **Summary:** Completely transformed the Farmer Dashboard / Home screen (`DashboardPage.jsx`):
+  1. 🖼️ **Vibrant Light-Blurred Hero Banner with Neat Boundaries & Highlighting:**
+     - Replaced pitch-black heavy scrim with translucent green-tinged scrim (`bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-slate-950/20`), making the lush emerald agricultural landscape and morning sunlight vividly visible behind a gentle blur (`filter blur-[1.5px]`).
+     - Added crisp glowing boundaries (`border-2 border-emerald-500/40 shadow-xl rounded-3xl`).
+     - Highlighted keywords with radiant contrasting badges: `☀️ 34°C & Sunny` (Amber pill) and `⏱️ 8 AM – 11 AM` (Emerald pill).
+     - Upgraded the 3 status pills (`🟢 Crops: Healthy`, `💧 Soil: 45% (Optimal)`, `🛡️ Disease Risk: Low`) with glowing borders and translucent frosted glass.
+  2. ⚡ **Eliminated 3-Page Endless Scroll Clutter:**
+     - Replaced the heavy stack of 5 large widgets (`WeatherDashboard` + 7-Day strip + Agronomic advisories + `SprayAdvisorWidget` + `DiseaseRiskCard` 80% critical risk gauge) with a single, high-performance, compact [`FieldIntelligenceWidget.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/intelligence/FieldIntelligenceWidget.jsx).
+     - Farmer now sees **Today's Weather**, **3-day mini forecast**, and **Safe Spray Window (8-11 AM)** in one cohesive card without scrolling through 4 screens.
+  3. 📦 **Production Verification:** Built cleanly in 23.01s with 0 errors; `DashboardPage` bundle size reduced to 34.56 kB (-35.7% total reduction).
+- **Files modified**: `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/components/intelligence/FieldIntelligenceWidget.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v256) - Fix ReferenceError: isTe is not defined in DashboardPage.jsx
 - **Summary:** Resolved `ReferenceError: isTe is not defined` inside `DashboardPage.jsx` when rendering the Telugu / multilingual morning advisory banner and field telemetry tags:
   1. Added `const isTe = i18n.language === 'te';` to `DashboardPage.jsx`.
