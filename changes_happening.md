@@ -5517,13 +5517,18 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
   - Evaluated detection mechanisms for remaining 66 conditions (subterranean root rots, nematodes, stem borers, and internal fruit rot).
   - Formulated the Multi-Part Scanning Pipeline (Root collar photography, Cut fruit/split cane cross-section imaging) + 3-Question Diagnostic Wizard (midday wilting, soil drainage, crop age).
   - Proved that with multi-part imaging and smart questionnaire integration, achieving 100% disease detection coverage is fully feasible.
-- **Free-Tier API Key Impact Analysis:**
-  - Confirmed that upgrading the system will NOT exhaust or break Free Tier API keys.
-  - Documented Gemini 2.0 Flash quota (1,500 RPD / 45,000 requests/month), multimodal image batching (multiple images bundled in 1 API request), Tier-1 local model offloading, and free-tier key rotation strategies.
-
-
-
-
+9/25/2026: Navbar Language Switcher Removal & Picture 4 Language Workstation Standard (v283):
+- **Removal of Top Navbar Quick Language Switcher Bar (Picture 1 & Picture 3 Parity):**
+  - Removed the `[ 🌾 TE | 🌐 EN ]` / `[ 🌾 తెలుగు | 🌐 English (US) ]` quick language pill switcher bar from the top navigation header in `frontend/src/components/AppLayout.jsx`.
+  - Preserved brand logos, title badges, notification bell, user profile triggers, and responsive layout spacing without visual crowding.
+- **Direct Navigation to Rich Languages Page from More Tab (Picture 4 Parity):**
+  - Updated `frontend/src/pages/common/MorePage.jsx`: removed the modal trigger intercept on the "Languages" card across all user roles (`ACCOUNT_TOOLS`, `PROVIDER_ACCOUNT_TOOLS`, `ADMIN_SYSTEM_TOOLS`).
+  - Tapping "Languages" in More tab now navigates directly to the dedicated `/languages` route (`LanguagesPage.jsx`), displaying the full 2-column visual card workstation with regional accents, state descriptions, and native greetings shown in Picture 4.
+- **Language Selection Modal Visual Overhaul (`LanguageSelectModal.jsx`):**
+  - Completely redesigned `LanguageSelectModal.jsx` using Picture 4 design standards: 2-column responsive grid, rounded-2xl glassmorphism cards, regional territory subtitles (e.g. *Andhra Pradesh & Telangana*, *Tamil Nadu*, *Karnataka*), native script greetings badges (`నమస్కారం`, `Welcome`, `नमस्ते`), priority chips (`🥇 1st (Primary)`, `🥈 2nd`, `🥉 3rd`), and 1-tap activation buttons.
+- **Production Build Validation:**
+  - Ran `npm run build` in `frontend/`: 3,161 modules transformed, built with 0 errors in 45.07s.
+- **Files Modified:** `frontend/src/components/AppLayout.jsx`, `frontend/src/pages/common/MorePage.jsx`, `frontend/src/components/common/LanguageSelectModal.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
 
 
 

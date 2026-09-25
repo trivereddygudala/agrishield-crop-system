@@ -722,37 +722,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 <span className="tabular-nums tracking-wide">{currentTime || '--:--:--'}</span>
               </div>
 
-              {/* Strict 1-to-3 Preferred Languages Site-Wide Quick Switcher Bar */}
-              <div className="flex items-center gap-1 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 shadow-xs">
-                {preferredLanguages.map((code) => {
-                  const langObj = SUPPORTED_LANGUAGES.find(l => l.code.toLowerCase() === code.toLowerCase()) || {
-                    code,
-                    name: code,
-                    nativeName: code.toUpperCase(),
-                    flag: '🌾'
-                  };
-                  const currentActive = (i18n.language ? i18n.language.split('-')[0] : 'en').toLowerCase();
-                  const isSelected = currentActive === code.toLowerCase();
 
-                  return (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => handleSiteLanguageChange(code)}
-                      title={`Switch entire website to ${langObj.name} (${langObj.nativeName})`}
-                      className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                        isSelected
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black shadow-xs border border-emerald-400 scale-[1.02]'
-                          : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
-                      }`}
-                    >
-                      <span>{langObj.flag}</span>
-                      <span className="hidden sm:inline font-extrabold">{langObj.nativeName}</span>
-                      <span className="sm:hidden font-black uppercase text-[10px]">{code}</span>
-                    </button>
-                  );
-                })}
-              </div>
 
 
               {/* Visual Scene Canvas Toggle — Hidden on mobile layout */}
