@@ -23,6 +23,7 @@ import {
   Sliders,
   Compass,
   ArrowRight,
+  ChevronRight,
   Info,
   X,
   Activity,
@@ -1138,112 +1139,212 @@ export default function ProviderDashboardPage() {
           </div>
         </div>
 
-        {/* ── KEY METRIC OVERVIEW CARDS (Structured Boxes) ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{isTe ? 'మొత్తం యంత్రాలు' : 'Fleet Assets'}</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{totalFleetCount}</span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{availableFleetCount} Available</span>
-            </div>
+      </div>
+
+      {/* ── 3 BEAUTIFUL WORKSTATION CARDS (Boxes with Dedicated Page Switching) ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* CARD 1: Machinery Fleet Box */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => switchTab('fleet')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && switchTab('fleet')}
+          className={`relative p-5 sm:p-6 rounded-3xl transition-all duration-300 cursor-pointer text-left group overflow-hidden ${
+            activeTab === 'fleet'
+              ? 'bg-gradient-to-br from-indigo-500/10 via-white to-indigo-500/5 dark:from-indigo-950/40 dark:via-[#0c1626] dark:to-[#070e17] border-2 border-indigo-600 dark:border-indigo-400 shadow-xl shadow-indigo-600/10 ring-4 ring-indigo-500/10'
+              : 'bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-lg'
+          }`}
+        >
+          {/* Subtle Ambient Background Watermark */}
+          <div className="absolute -right-3 -bottom-3 opacity-[0.04] dark:opacity-[0.06] pointer-events-none group-hover:scale-110 transition-transform duration-500">
+            <Truck className="w-28 h-28 text-indigo-600 dark:text-indigo-400" />
           </div>
 
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{isTe ? 'రైతు ఆర్డర్లు' : 'Incoming Bookings'}</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{pendingOrdersCount}</span>
-              <span className="text-[10px] text-slate-400 font-bold">Active</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center shadow-lg shadow-indigo-600/25 group-hover:scale-105 transition-transform">
+              <Truck className="w-6 h-6" />
             </div>
+            {activeTab === 'fleet' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-indigo-600 text-white shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{isTe ? 'ప్రస్తుత పేజీ' : 'Active Page'}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <span>{isTe ? 'పేజీ తెరవండి' : 'Open Page'}</span>
+                <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+              </span>
+            )}
           </div>
 
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{isTe ? 'పూర్తయిన పనులు' : 'Completed Jobs'}</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-slate-900 dark:text-white">{completedOrdersCount}</span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">100% Rate</span>
-            </div>
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1 tracking-tight">
+            {isTe ? 'యంత్రాల కేటలాగ్' : 'Machinery Fleet'}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
+            {isTe
+              ? 'ట్రాక్టర్లు, స్ప్రే డ్రోన్లు, హార్వెస్టర్లు & పరికరాల ప్రత్యక్ష లభ్యత'
+              : 'List and manage tractors, spray drones, harvesters & live equipment availability'}
+          </p>
+
+          <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+            <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60">
+              {cleanFleetList.length} {cleanFleetList.length === 1 ? (isTe ? 'యంత్రం' : 'Machine') : (isTe ? 'యంత్రాలు' : 'Machines')}
+            </span>
+            <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
+              {availableFleetCount} {isTe ? 'లభ్యం' : 'Ready for Hire'}
+            </span>
+          </div>
+        </div>
+
+        {/* CARD 2: Booking Orders Box */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => switchTab('orders')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && switchTab('orders')}
+          className={`relative p-5 sm:p-6 rounded-3xl transition-all duration-300 cursor-pointer text-left group overflow-hidden ${
+            activeTab === 'orders'
+              ? 'bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 dark:from-amber-950/40 dark:via-[#191508] dark:to-[#070e17] border-2 border-amber-500 dark:border-amber-400 shadow-xl shadow-amber-500/10 ring-4 ring-amber-500/10'
+              : 'bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-lg'
+          }`}
+        >
+          {/* Subtle Ambient Background Watermark */}
+          <div className="absolute -right-3 -bottom-3 opacity-[0.04] dark:opacity-[0.06] pointer-events-none group-hover:scale-110 transition-transform duration-500">
+            <Calendar className="w-28 h-28 text-amber-500 dark:text-amber-400" />
           </div>
 
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{isTe ? 'మొత్తం ఆదాయం' : 'Total Revenue'}</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{totalEarnings.toLocaleString('en-IN')}</span>
-              <span className="text-[10px] text-slate-400 font-bold">Direct Ledger</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-500/25 group-hover:scale-105 transition-transform">
+              <Calendar className="w-6 h-6" />
             </div>
+            {activeTab === 'orders' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-amber-500 text-white shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span>{isTe ? 'ప్రస్తుత పేజీ' : 'Active Page'}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                <span>{isTe ? 'పేజీ తెరవండి' : 'Open Page'}</span>
+                <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+              </span>
+            )}
+          </div>
+
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1 tracking-tight">
+            {isTe ? 'బుకింగ్ ఆర్డర్లు' : 'Booking Orders'}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
+            {isTe
+              ? 'రైతుల నుండి అద్దె బుకింగ్‌లు, సమయాలు, నిర్ధారణ మరియు ఫీల్డ్ పనులు'
+              : 'Direct farmer hire requests, field schedules, dispatching & customer coordination'}
+          </p>
+
+          <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+            {pendingOrdersCount > 0 ? (
+              <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-400 text-amber-950 border border-amber-300 animate-pulse">
+                ⚡ {pendingOrdersCount} {isTe ? 'కొత్త ఆర్డర్లు' : 'Action Required'}
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                0 {isTe ? 'పెండింగ్' : 'Pending'}
+              </span>
+            )}
+            <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              {completedOrdersCount} {isTe ? 'పూర్తయినవి' : 'Completed'}
+            </span>
+          </div>
+        </div>
+
+        {/* CARD 3: Earnings & Ledger Box */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => switchTab('earnings')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && switchTab('earnings')}
+          className={`relative p-5 sm:p-6 rounded-3xl transition-all duration-300 cursor-pointer text-left group overflow-hidden ${
+            activeTab === 'earnings'
+              ? 'bg-gradient-to-br from-emerald-500/10 via-white to-emerald-500/5 dark:from-emerald-950/40 dark:via-[#091a13] dark:to-[#070e17] border-2 border-emerald-500 dark:border-emerald-400 shadow-xl shadow-emerald-500/10 ring-4 ring-emerald-500/10'
+              : 'bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg'
+          }`}
+        >
+          {/* Subtle Ambient Background Watermark */}
+          <div className="absolute -right-3 -bottom-3 opacity-[0.04] dark:opacity-[0.06] pointer-events-none group-hover:scale-110 transition-transform duration-500">
+            <DollarSign className="w-28 h-28 text-emerald-500 dark:text-emerald-400" />
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            {activeTab === 'earnings' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-600 text-white shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span>{isTe ? 'ప్రస్తుత పేజీ' : 'Active Page'}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                <span>{isTe ? 'పేజీ తెరవండి' : 'Open Page'}</span>
+                <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+              </span>
+            )}
+          </div>
+
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1 tracking-tight">
+            {isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
+            {isTe
+              ? 'రైతుల నుండి సేకరించిన ప్రత్యక్ష అద్దె ఆదాయం, రసీదులు & బ్యాంక్ లెడ్జర్'
+              : 'Direct farmer rental collections, zero-commission payout records & statements'}
+          </p>
+
+          <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+            <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
+              ₹{totalEarnings.toLocaleString('en-IN')} {isTe ? 'ఆదాయం' : 'Revenue'}
+            </span>
+            <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/60">
+              0% Fee
+            </span>
           </div>
         </div>
       </div>
 
-      {/* ── CLEAN 3-TAB FLEET HUB NAVIGATION (Machinery Fleet, Booking Orders, Earnings & Ledger) ── */}
-      <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800">
-        <button
-          type="button"
-          onClick={() => switchTab('fleet')}
-          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-            activeTab === 'fleet'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
-        >
-          <Truck className="w-4 h-4 shrink-0" />
-          <span className="truncate">{isTe ? 'యంత్రాలు' : 'Machinery Fleet'}</span>
-          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'fleet' ? 'bg-white/20 text-white' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'}`}>
-            {cleanFleetList.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => switchTab('orders')}
-          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-            activeTab === 'orders'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
-        >
-          <Calendar className="w-4 h-4 shrink-0" />
-          <span className="truncate">{isTe ? 'బుకింగ్ ఆర్డర్లు' : 'Booking Orders'}</span>
-          {pendingOrdersCount > 0 ? (
-            <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-400 text-amber-950 font-black">
-              {pendingOrdersCount}
-            </span>
-          ) : (
-            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
-              0
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => switchTab('earnings')}
-          className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-            activeTab === 'earnings'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-          }`}
-        >
-          <DollarSign className="w-4 h-4 shrink-0" />
-          <span className="truncate">{isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}</span>
-        </button>
-      </div>
-
-      {/* ── TAB 1: MACHINERY FLEET INVENTORY (Concept 2 Clean Studio) ── */}
+      {/* ── DEDICATED PAGE 1: MACHINERY FLEET INVENTORY ── */}
       {activeTab === 'fleet' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <motion.div
+          key="fleet-page"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="space-y-4"
+        >
+          {/* Dedicated Page Header Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 shadow-sm">
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-white">
-                {isTe ? 'మీ యంత్రాల కేటలాగ్' : 'Active Machinery Inventory'}
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                <span>{isTe ? 'ప్రొవైడర్ హబ్' : 'Provider Hub'}</span>
+                <span>/</span>
+                <span>{isTe ? 'యంత్రాల కేటలాగ్' : 'Machinery Fleet'}</span>
+              </div>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🚜</span>
+                <span>{isTe ? 'మీ యంత్రాల కేటలాగ్' : 'Active Machinery Inventory'}</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {isTe ? 'రైతులకు అందుబాటులో ఉన్న మీ ట్రాక్టర్లు, డ్రోన్లు మరియు పరికరాల నిర్వహణ' : 'Manage your listed tractors, spray drones, and harvest equipment for nearby farmers'}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+            <div className="flex items-center gap-2.5">
+              <span className="px-3 py-1.5 rounded-2xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                 {cleanFleetList.length} {cleanFleetList.length === 1 ? (isTe ? 'యంత్రం' : 'Machine') : (isTe ? 'యంత్రాలు' : 'Machines')}
               </span>
+              <Button
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl px-3.5 py-1.5 font-bold text-xs flex items-center gap-1.5 shadow-sm"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{isTe ? 'కొత్త యంత్రం' : 'Add Machine'}</span>
+              </Button>
             </div>
           </div>
 
@@ -1373,24 +1474,44 @@ export default function ProviderDashboardPage() {
               </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* ── TAB 2: INCOMING FARMER BOOKING ORDERS (Concept 2 Clean Studio Provider Control) ── */}
+      {/* ── DEDICATED PAGE 2: INCOMING FARMER BOOKING ORDERS ── */}
       {activeTab === 'orders' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <motion.div
+          key="orders-page"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="space-y-4"
+        >
+          {/* Dedicated Page Header Banner */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 shadow-sm">
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-white">
-                {isTe ? 'రైతుల నుండి వచ్చిన బుకింగ్ అభ్యర్థనలు' : 'Farmer Rental Booking Orders'}
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">
+                <span>{isTe ? 'ప్రొవైడర్ హబ్' : 'Provider Hub'}</span>
+                <span>/</span>
+                <span>{isTe ? 'బుకింగ్ ఆర్డర్లు' : 'Booking Orders'}</span>
+              </div>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>📅</span>
+                <span>{isTe ? 'రైతుల నుండి వచ్చిన బుకింగ్ అభ్యర్థనలు' : 'Farmer Rental Booking Orders'}</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {isTe ? 'రైతుల నుండి వచ్చే అద్దె ఆర్డర్లను ఆమోదించండి, కాల్ చేయండి లేదా పూర్తి చేయండి' : 'Accept, decline, coordinate with farmers, and mark field jobs completed'}
               </p>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-              {cleanBookingsList.length} {cleanBookingsList.length === 1 ? (isTe ? 'ఆర్డర్' : 'Order') : (isTe ? 'ఆర్డర్లు' : 'Orders')}
-            </span>
+            <div className="flex items-center gap-2">
+              {pendingOrdersCount > 0 && (
+                <span className="px-3 py-1.5 rounded-2xl text-xs font-black bg-amber-400 text-amber-950 border border-amber-300 animate-pulse">
+                  ⚡ {pendingOrdersCount} {isTe ? 'కొత్త అభ్యర్థనలు' : 'Action Required'}
+                </span>
+              )}
+              <span className="px-3 py-1.5 rounded-2xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                {cleanBookingsList.length} {cleanBookingsList.length === 1 ? (isTe ? 'ఆర్డర్' : 'Order') : (isTe ? 'ఆర్డర్లు' : 'Orders')}
+              </span>
+            </div>
           </div>
 
           {cleanBookingsList.length === 0 ? (
@@ -1662,25 +1783,37 @@ export default function ProviderDashboardPage() {
               })}
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
-      {/* ── TAB 3: EARNINGS & PAYMENT LEDGER (Concept 2 Clean Studio) ── */}
+      {/* ── DEDICATED PAGE 3: EARNINGS & PAYMENT LEDGER ── */}
       {activeTab === 'earnings' && (
-        <div className="space-y-6">
+        <motion.div
+          key="earnings-page"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="space-y-6"
+        >
           <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-base font-black text-slate-900 dark:text-white">
-                  {isTe ? 'ఆదాయం వివరాలు & చెల్లింపు రసీదులు' : 'Direct Payout & Settled Ledger'}
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                  <span>{isTe ? 'ప్రొవైడర్ హబ్' : 'Provider Hub'}</span>
+                  <span>/</span>
+                  <span>{isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}</span>
+                </div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>💰</span>
+                  <span>{isTe ? 'ఆదాయం వివరాలు & చెల్లింపు రసీదులు' : 'Direct Payout & Settled Ledger'}</span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {isTe ? 'రైతుల నుండి సేకరించిన ప్రత్యక్ష చెల్లింపులు (0% ప్లాట్‌ఫారమ్ కమీషన్)' : 'Direct payments received from farmers for completed machinery rentals'}
                 </p>
               </div>
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+              <span className="px-3.5 py-1.5 rounded-2xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 self-start sm:self-auto">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>0% Commission</span>
+                <span>0% Commission (Direct)</span>
               </span>
             </div>
 
@@ -1777,7 +1910,7 @@ export default function ProviderDashboardPage() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
 

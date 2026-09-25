@@ -175,6 +175,9 @@ function App() {
                           <Route path="/field-calculator" element={<FieldAreaCalculatorPage />} />
                           <Route path="/equipment-booking" element={<EquipmentBookingPage />} />
                           <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
+                          <Route path="/provider/fleet" element={<Navigate to="/provider/dashboard?tab=fleet" replace />} />
+                          <Route path="/provider/orders" element={<Navigate to="/provider/dashboard?tab=orders" replace />} />
+                          <Route path="/provider/earnings" element={<Navigate to="/provider/dashboard?tab=earnings" replace />} />
                           <Route path="/provider" element={<Navigate to="/provider/dashboard" replace />} />
                           <Route path="/tractor-booking" element={<Navigate to="/equipment-booking" replace />} />
                           <Route path="/drone-booking" element={<Navigate to="/equipment-booking" replace />} />
