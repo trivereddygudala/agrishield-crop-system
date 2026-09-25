@@ -315,6 +315,10 @@ async def update_booking_status(
         new_status = "confirmed"
     elif new_status in ["complete", "done"]:
         new_status = "completed"
+    elif new_status in ["cancel", "cancelled", "canceled"]:
+        new_status = "cancelled"
+
+    cancel_reason = status_update.get("reason") or status_update.get("cancelReason")
 
     _load_disk_bookings()
     found = False
@@ -324,6 +328,8 @@ async def update_booking_status(
         if b.get("id") == booking_id or b.get("bookingId") == booking_id:
             b["status"] = new_status
             b["updatedAt"] = datetime.now().isoformat()
+            if cancel_reason:
+                b["cancelReason"] = cancel_reason
             updated_booking = b
             found = True
             break
@@ -331,9 +337,13 @@ async def update_booking_status(
     # Update in Mongo with authoritative return
     if db_instance.db is not None:
         try:
+            update_fields = {"status": new_status, "updatedAt": datetime.now().isoformat()}
+            if cancel_reason:
+                update_fields["cancelReason"] = cancel_reason
+
             mongo_doc = await db_instance.db["equipment_bookings"].find_one_and_update(
                 {"$or": [{"id": booking_id}, {"bookingId": booking_id}]},
-                {"$set": {"status": new_status, "updatedAt": datetime.now().isoformat()}},
+                {"$set": update_fields},
                 return_document=True
             )
             if mongo_doc:
@@ -351,7 +361,7 @@ async def update_booking_status(
         _in_memory_bookings.insert(0, updated_booking)
         _save_disk_bookings()
 
-    # Automated notification dispatch to Farmer
+    # Automated notification dispatch to Farmer / Provider
     if db_instance.db is not None and updated_booking:
         try:
             from backend.app.services.notification_service import NotificationService
@@ -364,21 +374,21 @@ async def update_booking_status(
                     "$or": [{"phone": clean_f}, {"mobile": clean_f}, {"phone": {"$regex": clean_f[-10:]}}]
                 })
             target_uid = str(farmer_user["_id"]) if farmer_user else (updated_booking.get("userId") or "farmer_user")
-            status_emoji = "✅" if new_status == "confirmed" else ("❌" if new_status == "rejected" else "🚜")
-            status_label = "Confirmed" if new_status == "confirmed" else ("Declined" if new_status == "rejected" else new_status.title())
+            status_emoji = "✅" if new_status == "confirmed" else ("❌" if new_status in ["rejected", "cancelled"] else "🚜")
+            status_label = "Confirmed" if new_status == "confirmed" else ("Cancelled" if new_status == "cancelled" else ("Declined" if new_status == "rejected" else new_status.title()))
             await NotificationService.create_notification(
                 db_instance.db,
                 NotificationCreate(
                     user_id=target_uid,
                     title=f"{status_emoji} Machinery Booking #{booking_id} {status_label}",
-                    message=f"Provider {updated_booking.get('providerName', 'Provider')} has {new_status} your reservation for {updated_booking.get('equipmentName', 'Machinery')}.",
+                    message=f"Reservation for {updated_booking.get('equipmentName', updated_booking.get('title', 'Machinery'))} is now {status_label.lower()}.",
                     category="equipment_booking",
                     priority="High",
                     action_url="/equipment-booking"
                 )
             )
         except Exception as n_err:
-            print(f"⚠️ [EquipmentBookings] Farmer notification dispatch notice: {n_err}")
+            print(f"⚠️ [EquipmentBookings] Notification dispatch notice: {n_err}")
 
     if not found and db_instance.db is None:
         # If not found in memory, still return acknowledgment
@@ -403,12 +413,14 @@ async def delete_booking(booking_id: str):
     """
     global _in_memory_bookings
     _load_disk_bookings()
-    _in_memory_bookings = [b for b in _in_memory_bookings if b.get("id") != booking_id]
+    _in_memory_bookings = [b for b in _in_memory_bookings if b.get("id") != booking_id and b.get("bookingId") != booking_id]
     _save_disk_bookings()
 
     if db_instance.db is not None:
         try:
-            await db_instance.db["equipment_bookings"].delete_one({"id": booking_id})
+            await db_instance.db["equipment_bookings"].delete_many({
+                "$or": [{"id": booking_id}, {"bookingId": booking_id}]
+            })
         except Exception:
             pass
 

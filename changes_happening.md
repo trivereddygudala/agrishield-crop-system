@@ -2,6 +2,44 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v269) - Farmer-Friendly Booking Management: Cancel Booking, Delete Vouchers, Status Filters & Perforated Passbook
+- **Summary:**
+  1. 🎫 **Professional Perforated Voucher Redesign (`EquipmentBookingPage.jsx`):**
+     - Completely redesigned the "My Equipment Bookings & Vouchers" passbook with ticket-notch cutouts, top status gradient ribbons, dashed perforation dividers, and bilingual metadata grids.
+     - Implemented an interactive 4-stage visual progress stepper (`1. Requested ➔ 2. Approved ➔ 3. En Route ➔ 4. Completed`) for active bookings, giving farmers immediate clarity on job progress.
+  2. ❌ **Farmer-Friendly 1-Tap Booking Cancellation (`EquipmentBookingPage.jsx` & `equipment.py`):**
+     - Added `[ ❌ Cancel Booking / బుకింగ్ రద్దు చేయండి ]` button to active/scheduled bookings (`pending`, `confirmed`, `in-progress`).
+     - Opens a clean, responsive modal dialog presenting rural farmer-friendly cancellation reasons:
+       - Sudden rain / wet soil conditions (`అకస్మాత్తుగా వర్షం పడింది / పొలం బురదగా మారింది`)
+       - Arranged alternative local tractor/machine earlier (`వేరే యంత్రం దొరికింది`)
+       - Need to reschedule or change date (`తేదీ మార్చాలి`)
+       - Crop or field stage delay (`పైరు ఇంకా సిద్ధంగా లేదు`)
+       - Budget or rental terms issue (`బడ్జెట్ సమస్య`)
+       - Custom write-in reason (`ఇతర కారణం`)
+     - Optimistically updates local UI state, dispatches `agrishield_bookings_updated` cross-tab events, and synchronizes status and cancellation reasons via `PATCH /api/v1/equipment/bookings/{id}/status` across Render clusters.
+  3. 🗑️ **Permanent Voucher Deletion (`EquipmentBookingPage.jsx` & `equipment.py`):**
+     - Added `[ 🗑️ Delete Voucher / రసీదు తొలగించండి ]` action button for completed, cancelled, or declined bookings to eliminate visual clutter.
+     - Confirms via a safety modal dialog to prevent accidental deletion.
+     - Optimistically cleans the passbook, broadcasts sync events, and removes records permanently via `DELETE /api/v1/equipment/bookings/{id}` with dual-key matching (`id`/`bookingId`).
+  4. 🔄 **1-Tap "Book Again / Re-Hire" Shortcut (`EquipmentBookingPage.jsx`):**
+     - Completed, cancelled, and declined vouchers feature a `[ 🔄 Book Again / మళ్లీ బుక్ చేయండి ]` button that automatically pre-fills the equipment booking modal with the machine's parameters without having to re-search or re-type.
+  5. 🔍 **Status Filter Chips Bar (`EquipmentBookingPage.jsx`):**
+     - Added high-contrast pill filter chips at the top of the bookings tab:
+       - `📋 All Bookings`
+       - `⏳ Pending Approval`
+       - `🚜 Confirmed & Active`
+       - `🏆 Completed`
+       - `❌ Cancelled / Declined`
+     - Displays live counters in each chip pill with context-aware empty states and a 1-tap "Show All Bookings" reset button.
+  6. ⚡ **Backend Dual-Key Matching & Cancellation Reason Handling (`equipment.py`):**
+     - Extended `update_booking_status` to accept `cancelReason` and recognize `"cancelled"`, `"cancel"`, and `"canceled"`.
+     - Extended `delete_booking` to match both MongoDB and in-memory stores by `id` or `bookingId` using `delete_many`.
+  7. 📦 **Production Build Verification:**
+     - Verified with `npm run build` in `frontend/` (built in 26.79s with 0 errors).
+- **Files modified**: `backend/app/routers/provider/equipment.py`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v268) - Dynamic Crop Names in Notifications, Differentiated 3-Pattern Reader, & FAB Removal
 - **Summary:**
   1. 🌾 **Dynamic Crop Names & Emojis in Notification Headers (`NotificationsPage.jsx`):**

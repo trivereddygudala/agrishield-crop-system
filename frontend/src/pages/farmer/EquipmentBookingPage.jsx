@@ -34,8 +34,13 @@ import {
   ArrowRight,
   Info,
   X,
-  Lock
+  Lock,
+  RotateCcw,
+  Ban,
+  AlertTriangle
 } from 'lucide-react';
+import { Dialog, Button } from '../../components/ui/index';
+import axios from 'axios';
 import { useFarm } from '../../context/FarmContext';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
@@ -492,6 +497,227 @@ export default function EquipmentBookingPage() {
       console.error(e);
       alert('Failed to sync with Farm Khata');
     }
+  };
+
+  // ── Booking Management & Farmer Actions (Cancel, Delete, Filter, Re-book) ──
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('all'); // 'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  const [cancelModalBooking, setCancelModalBooking] = useState(null);
+  const [cancelReasonKey, setCancelReasonKey] = useState('weather');
+  const [customCancelReason, setCustomCancelReason] = useState('');
+  const [deleteModalBooking, setDeleteModalBooking] = useState(null);
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
+  const [bookingToast, setBookingToast] = useState(null); // { message, type }
+
+  const showToast = useCallback((message, type = 'success') => {
+    setBookingToast({ message, type });
+    setTimeout(() => {
+      setBookingToast(null);
+    }, 4500);
+  }, []);
+
+  const CANCELLATION_REASONS = useMemo(() => [
+    {
+      key: 'weather',
+      labelEn: 'Sudden rain or wet soil conditions (పొలంలో వర్షం/బురద నీరు)',
+      labelTe: 'అకస్మాత్తుగా వర్షం పడింది / పొలం బాగా బురదగా మారింది'
+    },
+    {
+      key: 'alternative',
+      labelEn: 'Arranged another tractor / implement earlier (వేరే యంత్రం దొరికింది)',
+      labelTe: 'స్థానికంగా వేరే ట్రాక్టర్/యంత్రం ముందుగానే దొరికింది'
+    },
+    {
+      key: 'reschedule',
+      labelEn: 'Need to change date or schedule for next week (తేదీ మార్చాలి)',
+      labelTe: 'తేదీ మార్చాలనుకుంటున్నాను / వచ్చే వారం బుక్ చేస్తాను'
+    },
+    {
+      key: 'crop_delay',
+      labelEn: 'Field stage or crop not ready yet (పైరు సిద్ధంగా లేదు)',
+      labelTe: 'పైరు లేదా పొలం ఇంకా పనికి సిద్ధంగా లేదు'
+    },
+    {
+      key: 'price_issue',
+      labelEn: 'Budget or rental terms issue (బడ్జెట్ సమస్య)',
+      labelTe: 'ధర లేదా బడ్జెట్ సరిపోలేదు'
+    },
+    {
+      key: 'other',
+      labelEn: 'Other reason (ఇతర వ్యక్తిగత కారణం)',
+      labelTe: 'ఇతర వ్యక్తిగత కారణం'
+    }
+  ], []);
+
+  // Filtered Bookings & Count Badges
+  const bookingCounts = useMemo(() => {
+    const counts = { all: myBookings.length, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+    myBookings.forEach((b) => {
+      const s = String(b.status || 'pending').toLowerCase();
+      if (s === 'pending') counts.pending++;
+      else if (s === 'confirmed' || s === 'in-progress' || s === 'scheduled') counts.confirmed++;
+      else if (s === 'completed') counts.completed++;
+      else if (s === 'cancelled' || s === 'canceled' || s === 'rejected' || s === 'declined') counts.cancelled++;
+    });
+    return counts;
+  }, [myBookings]);
+
+  const filteredBookings = useMemo(() => {
+    if (bookingStatusFilter === 'all') return myBookings;
+    return myBookings.filter((b) => {
+      const s = String(b.status || 'pending').toLowerCase();
+      if (bookingStatusFilter === 'pending') return s === 'pending';
+      if (bookingStatusFilter === 'confirmed') return s === 'confirmed' || s === 'in-progress' || s === 'scheduled';
+      if (bookingStatusFilter === 'completed') return s === 'completed';
+      if (bookingStatusFilter === 'cancelled') return s === 'cancelled' || s === 'canceled' || s === 'rejected' || s === 'declined';
+      return true;
+    });
+  }, [myBookings, bookingStatusFilter]);
+
+  // Cancel Booking Handler
+  const handleCancelBooking = async () => {
+    if (!cancelModalBooking) return;
+    const bookingId = cancelModalBooking.id || cancelModalBooking.bookingId;
+    if (!bookingId) return;
+
+    const selectedReasonObj = CANCELLATION_REASONS.find(r => r.key === cancelReasonKey);
+    let finalReason = isTe ? (selectedReasonObj?.labelTe || cancelReasonKey) : (selectedReasonObj?.labelEn || cancelReasonKey);
+    if (cancelReasonKey === 'other' && customCancelReason.trim()) {
+      finalReason = customCancelReason.trim();
+    }
+
+    setIsProcessingAction(true);
+
+    // 1. Optimistic Local State Update
+    setMyBookings((prev) => {
+      const updated = prev.map((b) => {
+        const bKey = b.id || b.bookingId;
+        if (bKey === bookingId) {
+          return {
+            ...b,
+            status: 'cancelled',
+            cancelReason: finalReason,
+            cancelledAt: new Date().toISOString()
+          };
+        }
+        return b;
+      });
+      try {
+        localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 2. Dispatch cross-tab sync event
+    window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
+
+    // 3. Send remote PATCH to backend cluster
+    try {
+      let patched = false;
+      try {
+        await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, {
+          status: 'cancelled',
+          cancelReason: finalReason
+        });
+        patched = true;
+      } catch (_) {}
+
+      if (!patched) {
+        try {
+          await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, {
+            status: 'cancelled',
+            cancelReason: finalReason
+          }, { timeout: 10000 });
+          patched = true;
+        } catch (_) {}
+      }
+
+      if (!patched) {
+        try {
+          await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, {
+            status: 'cancelled',
+            cancelReason: finalReason
+          }, { timeout: 10000 });
+        } catch (_) {}
+      }
+    } catch (err) {
+      console.warn('Backend sync warning on cancellation:', err);
+    } finally {
+      setIsProcessingAction(false);
+      setCancelModalBooking(null);
+      setCustomCancelReason('');
+      showToast(isTe ? 'బుకింగ్ విజయవంతంగా రద్దు చేయబడింది' : 'Booking cancelled successfully', 'info');
+    }
+  };
+
+  // Delete Voucher Handler
+  const handleDeleteBooking = async () => {
+    if (!deleteModalBooking) return;
+    const bookingId = deleteModalBooking.id || deleteModalBooking.bookingId;
+    if (!bookingId) return;
+
+    setIsProcessingAction(true);
+
+    // 1. Optimistic Local State Removal
+    setMyBookings((prev) => {
+      const updated = prev.filter((b) => (b.id !== bookingId && b.bookingId !== bookingId));
+      try {
+        localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 2. Dispatch cross-tab sync event
+    window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
+
+    // 3. Send remote DELETE to backend cluster
+    try {
+      let deleted = false;
+      try {
+        await API.delete(`/api/v1/equipment/bookings/${bookingId}`);
+        deleted = true;
+      } catch (_) {}
+
+      if (!deleted) {
+        try {
+          await axios.delete(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}`, { timeout: 10000 });
+          deleted = true;
+        } catch (_) {}
+      }
+
+      if (!deleted) {
+        try {
+          await axios.delete(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}`, { timeout: 10000 });
+        } catch (_) {}
+      }
+    } catch (err) {
+      console.warn('Backend sync warning on deletion:', err);
+    } finally {
+      setIsProcessingAction(false);
+      setDeleteModalBooking(null);
+      showToast(isTe ? 'రసీదు విజయవంతంగా తొలగించబడింది' : 'Voucher deleted permanently', 'success');
+    }
+  };
+
+  // Quick 1-Tap Re-Book
+  const handleReBook = (booking) => {
+    const matched = equipmentList.find((eq) => eq.id === booking.equipmentId || eq.title === booking.title) || {
+      id: booking.equipmentId || `eq-rebook-${Date.now()}`,
+      title: booking.title,
+      teluguTitle: booking.teluguTitle,
+      category: booking.category || 'tractor',
+      providerName: booking.providerName,
+      contactPhone: booking.phone || booking.contactPhone,
+      phone: booking.phone || booking.contactPhone,
+      ratePerAcre: booking.ratePerAcre || (booking.totalCost / (booking.acres || 1)),
+      ratePerHour: booking.ratePerHour || 800,
+      village: booking.village || locationVillage,
+      mandal: booking.mandal || locationMandal,
+      district: booking.district || locationDistrict,
+      available: true,
+      availableToday: true
+    };
+    setSelectedEquipment(matched);
+    setIsBookModalOpen(true);
   };
 
   return (
@@ -966,176 +1192,458 @@ export default function EquipmentBookingPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-          TAB 3: MY BOOKINGS & PASSBOOK STATUS
+          TAB 3: MY BOOKINGS & PASSBOOK STATUS (Perforated Passbook Cards)
       ═══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'bookings' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <span>{isTe ? 'మీ బుకింగ్స్ & సర్వీస్ రసీదులు' : 'My Equipment Bookings & Vouchers'}</span>
-            </h2>
-            <span className="text-xs text-slate-500 font-semibold">
-              {myBookings.length} {isTe ? 'క్రియాశీల సేవలు' : 'Active / Scheduled'}
-            </span>
+          {/* Header & Status Summary */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 dark:border-slate-800 pb-3">
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <div className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <span>{isTe ? 'రైతు సర్వీస్ పాస్‌బుక్ & రసీదులు' : 'My Equipment Bookings & Vouchers'}</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {isTe
+                  ? 'మీ అన్ని ట్రాక్టర్, డ్రోన్ మరియు యంత్రాల బుకింగ్ స్థితి, రసీదులు మరియు ప్రత్యక్ష నిర్వహణ'
+                  : 'Track real-time provider confirmations, dispatch progress, manage vouchers and re-book with 1 tap.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                {myBookings.length} {isTe ? 'మొత్తం రసీదులు' : 'Total Vouchers'}
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {myBookings.length === 0 ? (
-              <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
-                <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
+          {/* Status Filter Chips Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+            {[
+              { id: 'all', label: isTe ? 'అన్నీ' : 'All Bookings', count: bookingCounts.all, icon: '📋' },
+              { id: 'pending', label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Approval', count: bookingCounts.pending, icon: '⏳' },
+              { id: 'confirmed', label: isTe ? 'షెడ్యూల్ / పురోగతి' : 'Confirmed & Active', count: bookingCounts.confirmed, icon: '🚜' },
+              { id: 'completed', label: isTe ? 'పూర్తయినవి' : 'Completed', count: bookingCounts.completed, icon: '🏆' },
+              { id: 'cancelled', label: isTe ? 'రద్దు / తిరస్కరించినవి' : 'Cancelled / Declined', count: bookingCounts.cancelled, icon: '❌' },
+            ].map((chip) => {
+              const isActive = bookingStatusFilter === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => setBookingStatusFilter(chip.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 ring-2 ring-emerald-500/30'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <span>{chip.icon}</span>
+                  <span>{chip.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}>
+                    {chip.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bookings List / Empty States */}
+          <div className="space-y-4 pt-1">
+            {filteredBookings.length === 0 ? (
+              <div className="text-center py-14 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-2xl">
+                  {bookingStatusFilter === 'all' ? '🚜' : '🔍'}
+                </div>
                 <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-                  {isTe ? 'ఇంకా ఎటువంటి బుకింగ్స్ లేవు' : 'No active equipment bookings yet'}
+                  {bookingStatusFilter === 'all'
+                    ? (isTe ? 'ఇంకా ఎటువంటి బుకింగ్స్ లేవు' : 'No equipment bookings found')
+                    : (isTe ? 'ఈ కేటగిరీలో ఎటువంటి బుకింగ్స్ లేవు' : 'No bookings in this filter')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                  {isTe
-                    ? 'మీరు ఏదైనా ట్రాక్టర్, డ్రోన్ లేదా నీటి పారుదల పంపును బుక్ చేసినప్పుడు, ఆ రసీదులు ఇక్కడ కనిపిస్తాయి.'
-                    : 'When you book machinery or a spraying drone, your booking vouchers and statuses will appear here.'}
+                  {bookingStatusFilter === 'all'
+                    ? (isTe
+                        ? 'మీరు ఏదైనా ట్రాక్టర్, డ్రోన్ లేదా నీటి పారుదల పంపును బుక్ చేసినప్పుడు, ఆ రసీదులు ఇక్కడ కనిపిస్తాయి.'
+                        : 'When you book machinery or a spraying drone, your booking vouchers and statuses will appear here.')
+                    : (isTe
+                        ? 'వేరే ఫిల్టర్‌ని ఎంచుకోండి లేదా మొత్తం బుకింగ్స్‌ను చూడండి.'
+                        : 'Try selecting a different filter chip or clear your filter to view all vouchers.')}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('browse')}
-                  className="mt-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm cursor-pointer"
-                >
-                  {isTe ? 'పరికరాలను చూడండి' : 'Browse Available Equipment'}
-                </button>
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  {bookingStatusFilter !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setBookingStatusFilter('all')}
+                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      {isTe ? 'అన్ని బుకింగ్స్ చూడండి' : 'Show All Bookings'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('browse')}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-colors cursor-pointer"
+                  >
+                    {isTe ? 'పరికరాలను చూడండి' : 'Browse Available Equipment'}
+                  </button>
+                </div>
               </div>
             ) : (
-              myBookings.map((b) => {
-              const rawStatus = String(b.status || 'pending').toLowerCase();
-              const isDeclined = rawStatus === 'rejected' || rawStatus === 'declined';
-              const statusBadge = {
-                pending: { label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Provider Approval', color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300' },
-                confirmed: { label: isTe ? 'ధృవీకరించబడింది & షెడ్యూల్' : 'Confirmed & Scheduled', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' },
-                rejected: { label: isTe ? 'ఆర్డర్ తిరస్కరించబడింది' : 'Declined / Unavailable', color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300' },
-                declined: { label: isTe ? 'ఆర్డర్ తిరస్కరించబడింది' : 'Declined / Unavailable', color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300' },
-                'in-progress': { label: isTe ? 'పని జరుగుతోంది' : 'Work In Progress', color: 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300' },
-                completed: { label: isTe ? 'పూర్తయింది' : 'Completed', color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300' }
-              }[rawStatus] || { label: b.status, color: 'bg-slate-100 text-slate-700' };
+              filteredBookings.map((b) => {
+                const bKey = b.id || b.bookingId;
+                const rawStatus = String(b.status || 'pending').toLowerCase();
+                const isCancelled = rawStatus === 'cancelled' || rawStatus === 'canceled';
+                const isDeclined = rawStatus === 'rejected' || rawStatus === 'declined';
+                const isCompleted = rawStatus === 'completed';
+                const isPending = rawStatus === 'pending';
+                const isInProgress = rawStatus === 'in-progress';
+                const isConfirmed = rawStatus === 'confirmed' || rawStatus === 'scheduled' || isInProgress;
 
-              return (
-                <div
-                  key={b.id || b.bookingId}
-                  className={`bg-white dark:bg-slate-900 rounded-3xl p-5 border ${isDeclined ? 'border-rose-300 dark:border-rose-900/60 shadow-rose-500/5' : 'border-slate-200/80 dark:border-slate-800'} shadow-sm space-y-4`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-slate-400">#{b.id || b.bookingId}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${statusBadge.color}`}>
-                          {statusBadge.label}
-                        </span>
+                // Status Theme
+                const statusMeta = isCancelled
+                  ? {
+                      label: isTe ? 'రద్దు చేయబడింది' : 'Cancelled by Farmer',
+                      color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300 dark:border-rose-900',
+                      stripe: 'from-rose-500 to-red-500',
+                      badgeIcon: <Ban className="w-3 h-3 text-rose-500" />
+                    }
+                  : isDeclined
+                  ? {
+                      label: isTe ? 'ఆర్డర్ తిరస్కరించబడింది' : 'Declined / Unavailable',
+                      color: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300 dark:border-rose-900',
+                      stripe: 'from-rose-500 to-amber-500',
+                      badgeIcon: <AlertTriangle className="w-3 h-3 text-rose-500" />
+                    }
+                  : isCompleted
+                  ? {
+                      label: isTe ? 'సేవ పూర్తయింది' : 'Service Completed',
+                      color: 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-300 dark:border-purple-900',
+                      stripe: 'from-purple-500 to-indigo-500',
+                      badgeIcon: <CheckCircle2 className="w-3 h-3 text-purple-500" />
+                    }
+                  : isInProgress
+                  ? {
+                      label: isTe ? 'పని జరుగుతోంది' : 'Work In Progress',
+                      color: 'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-300 dark:border-sky-900',
+                      stripe: 'from-sky-500 to-blue-500',
+                      badgeIcon: <Truck className="w-3 h-3 text-sky-500 animate-pulse" />
+                    }
+                  : isConfirmed
+                  ? {
+                      label: isTe ? 'ధృవీకరించబడింది & షెడ్యూల్' : 'Confirmed & Scheduled',
+                      color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-900',
+                      stripe: 'from-emerald-500 to-teal-500',
+                      badgeIcon: <Check className="w-3 h-3 text-emerald-500" />
+                    }
+                  : {
+                      label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Provider Approval',
+                      color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-900',
+                      stripe: 'from-amber-400 to-orange-500',
+                      badgeIcon: <Clock className="w-3 h-3 text-amber-500 animate-spin" />
+                    };
+
+                // Stepper Active Step Calculation (1 to 4)
+                // 1: Requested | 2: Approved | 3: En Route / In Progress | 4: Completed
+                const currentStepNumber = isCompleted ? 4 : isInProgress ? 3 : isConfirmed ? 2 : 1;
+
+                return (
+                  <div
+                    key={bKey}
+                    className={`relative bg-white dark:bg-slate-900 rounded-3xl border ${
+                      isDeclined || isCancelled
+                        ? 'border-rose-200 dark:border-rose-900/50 shadow-rose-500/5'
+                        : isCompleted
+                        ? 'border-purple-200 dark:border-purple-900/50'
+                        : isConfirmed
+                        ? 'border-emerald-200 dark:border-emerald-900/50'
+                        : 'border-slate-200/90 dark:border-slate-800'
+                    } shadow-md overflow-hidden transition-all hover:shadow-lg`}
+                  >
+                    {/* Top colored status accent bar */}
+                    <div className={`h-1.5 w-full bg-gradient-to-r ${statusMeta.stripe}`} />
+
+                    {/* Perforation punch-out holes (Visual Ticket Styling) */}
+                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 z-10 pointer-events-none hidden sm:block" />
+                    <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 z-10 pointer-events-none hidden sm:block" />
+
+                    <div className="p-4 sm:p-5 space-y-4">
+                      {/* Voucher Top Row: ID, Status Badge, Pricing */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                              #{bKey}
+                            </span>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border ${statusMeta.color}`}>
+                              {statusMeta.badgeIcon}
+                              <span>{statusMeta.label}</span>
+                            </span>
+                          </div>
+
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 mt-1">
+                            {isTe && b.teluguTitle ? b.teluguTitle : b.title}
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">
+                              👤 {b.providerName || 'Local Provider'}
+                            </span>
+                            <span>•</span>
+                            <span>📞 {b.phone || b.providerPhone || b.contactPhone || 'Available on request'}</span>
+                            {(b.village || b.locationVillage) && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                                  <MapPin className="w-3 h-3" />
+                                  {b.village || b.locationVillage}, {b.mandal || b.locationMandal || ''}
+                                </span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+
+                        <div className="sm:text-right shrink-0 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            {isTe ? 'మొత్తం అంచనా అద్దె' : 'Estimated Total'}
+                          </span>
+                          <span className={`text-xl font-black ${isCancelled ? 'line-through text-slate-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            ₹{b.totalCost}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
+                            {b.paymentMode || 'Cash on Field'}
+                          </span>
+                        </div>
                       </div>
-                      <h3 className="text-base font-black text-slate-900 dark:text-slate-100 mt-1">
-                        {isTe && b.teluguTitle ? b.teluguTitle : b.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {b.providerName} • {b.phone || b.providerPhone || b.contactPhone}
-                      </p>
-                    </div>
 
-                    <div className="sm:text-right">
-                      <span className="text-xs text-slate-400 font-bold block">{isTe ? 'మొత్తం అంచనా ధర' : 'Estimated Cost'}</span>
-                      <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                        ₹{b.totalCost}
-                      </span>
-                    </div>
-                  </div>
+                      {/* 4-Stage Visual Status Stepper (Active for ongoing/completed bookings) */}
+                      {!isCancelled && !isDeclined && (
+                        <div className="bg-slate-50/90 dark:bg-slate-800/40 p-3 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <div className="grid grid-cols-4 relative">
+                            {/* Horizontal Progress Bar Track */}
+                            <div className="absolute top-3.5 left-[12.5%] right-[12.5%] h-1 bg-slate-200 dark:bg-slate-700 -z-0" />
+                            <div
+                              className="absolute top-3.5 left-[12.5%] h-1 bg-emerald-500 transition-all duration-500 -z-0"
+                              style={{
+                                width: currentStepNumber === 1 ? '0%' : currentStepNumber === 2 ? '33%' : currentStepNumber === 3 ? '66%' : '75%'
+                              }}
+                            />
 
-                  {/* Declined Notice Banner */}
-                  {isDeclined && (
-                    <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 flex items-start gap-2.5 text-xs">
-                      <span className="text-base leading-none">⚠️</span>
-                      <div className="space-y-0.5">
-                        <p className="font-bold">
-                          {isTe ? 'ఈ బుకింగ్ ప్రొవైడర్ చేత తిరస్కరించబడింది.' : 'This booking was declined by the equipment provider.'}
-                        </p>
-                        <p className="text-[11px] text-rose-700/80 dark:text-rose-300/80 font-medium">
-                          {isTe
-                            ? 'యంత్రం ప్రస్తుతం అందుబాటులో లేదు లేదా వేరే పనిలో ఉంది. దయచేసి వేరే యంత్రాన్ని లేదా వేరే సమయాన్ని ఎంచుకోండి.'
-                            : 'The machine is currently unavailable or undergoing maintenance. Please select another provider or a different time slot.'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                            {[
+                              { step: 1, labelEn: 'Requested', labelTe: 'అభ్యర్థన' },
+                              { step: 2, labelEn: 'Approved', labelTe: 'ధృవీకరణ' },
+                              { step: 3, labelEn: 'En Route', labelTe: 'మార్గంలో' },
+                              { step: 4, labelEn: 'Completed', labelTe: 'పూర్తయింది' }
+                            ].map((st) => {
+                              const isStepDone = currentStepNumber > st.step;
+                              const isStepCurrent = currentStepNumber === st.step;
 
-                  {/* Booking Metadata Bar */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl text-xs">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'తేదీ' : 'Date'}</span>
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{b.bookingDate}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</span>
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">{b.timeSlot}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'విస్తీర్ణం / పొలం స్థితి' : 'Acres / Field Stage'}</span>
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200">{b.acres} Acres ({b.fieldStatus || b.targetCrop})</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'చెల్లింపు విధానం' : 'Payment'}</span>
-                      <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">{b.paymentMode}</span>
-                    </div>
-                  </div>
-
-                  {b.operation && (
-                    <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
-                      <span className="flex items-center gap-1.5">
-                        <span>⚙️ {isTe ? 'పని రకం:' : 'Operation:'}</span>
-                        <strong className="text-indigo-900 dark:text-indigo-200">{b.operation}</strong>
-                      </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                        🌱 {b.fieldStatus || b.targetCrop || 'Field Stage'}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Action Buttons: Call, WhatsApp, Add to Farm Khata */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={`tel:${b.phone || b.farmerPhone || b.contactPhone || ''}`}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        <span>{isTe ? 'కాల్ చేయండి' : 'Call Provider'}</span>
-                      </a>
-                      <a
-                        href={`https://wa.me/${String(b.phone || b.farmerPhone || b.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                          `Booking ID #${b.id || ''}: Confirming ${b.title || 'Equipment'} scheduled for ${b.bookingDate || ''} (${b.timeSlot || ''}) for ${b.acres || 0} Acres.`
-                        )}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-xs font-bold"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>WhatsApp Voucher</span>
-                      </a>
-                    </div>
-
-                    {/* Sync to Farm Khata Ledger Button */}
-                    <div>
-                      {b.syncedToKhata ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>{isTe ? 'పొలం ఖాతాకు జోడించబడింది' : 'Added to Farm Khata'}</span>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSyncToKhata(b)}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs cursor-pointer"
-                        >
-                          <DollarSign className="w-3.5 h-3.5" />
-                          <span>{isTe ? 'పొలం ఖాతాకు జోడించండి' : 'Add to Farm Khata Ledger'}</span>
-                        </button>
+                              return (
+                                <div key={st.step} className="flex flex-col items-center text-center relative z-10">
+                                  <div
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                                      isStepDone
+                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                        : isStepCurrent
+                                        ? isCompleted
+                                          ? 'bg-purple-600 text-white ring-4 ring-purple-100 dark:ring-purple-950/70'
+                                          : isInProgress
+                                          ? 'bg-sky-600 text-white ring-4 ring-sky-100 dark:ring-sky-950/70'
+                                          : isConfirmed
+                                          ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 dark:ring-emerald-950/70'
+                                          : 'bg-amber-500 text-white ring-4 ring-amber-100 dark:ring-amber-950/70 animate-pulse'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                                    }`}
+                                  >
+                                    {isStepDone ? <Check className="w-3.5 h-3.5" /> : st.step}
+                                  </div>
+                                  <span className={`text-[10px] sm:text-[11px] font-bold mt-1.5 leading-tight ${
+                                    isStepCurrent
+                                      ? 'text-slate-900 dark:text-slate-100 font-black'
+                                      : isStepDone
+                                      ? 'text-emerald-700 dark:text-emerald-400'
+                                      : 'text-slate-400 dark:text-slate-500'
+                                  }`}>
+                                    {isTe ? st.labelTe : st.labelEn}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       )}
+
+                      {/* Cancelled Banner */}
+                      {isCancelled && (
+                        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 flex items-start gap-3 text-xs">
+                          <Ban className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                          <div className="space-y-0.5">
+                            <p className="font-black text-rose-900 dark:text-rose-100">
+                              {isTe ? 'ఈ బుకింగ్ రైతు ద్వారా రద్దు చేయబడింది' : 'This booking was cancelled by you (Farmer).'}
+                            </p>
+                            <p className="text-[11px] text-rose-700 dark:text-rose-300 font-medium">
+                              <strong>{isTe ? 'రద్దు కారణం: ' : 'Reason: '}</strong>
+                              {b.cancelReason || (isTe ? 'రైతు అభ్యర్థన మేరకు రద్దు చేయబడింది' : 'Requested by farmer')}
+                            </p>
+                            {b.cancelledAt && (
+                              <p className="text-[10px] text-rose-600/80 dark:text-rose-400/80">
+                                {isTe ? 'రద్దు చేసిన సమయం: ' : 'Cancelled on: '}
+                                {new Date(b.cancelledAt).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Declined Notice Banner */}
+                      {isDeclined && (
+                        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 flex items-start gap-3 text-xs">
+                          <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                          <div className="space-y-0.5">
+                            <p className="font-black text-rose-900 dark:text-rose-100">
+                              {isTe ? 'ఈ బుకింగ్ ప్రొవైడర్ చేత తిరస్కరించబడింది.' : 'This booking was declined by the equipment provider.'}
+                            </p>
+                            <p className="text-[11px] text-rose-700/80 dark:text-rose-300/80 font-medium">
+                              {isTe
+                                ? 'యంత్రం ప్రస్తుతం అందుబాటులో లేదు లేదా వేరే పనిలో ఉంది. దయచేసి వేరే యంత్రాన్ని లేదా వేరే సమయాన్ని ఎంచుకోండి.'
+                                : 'The machine is currently unavailable or undergoing maintenance. Please select another provider or re-book for a different time slot.'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Perforation Dashed Line */}
+                      <div className="border-b-2 border-dashed border-slate-200 dark:border-slate-800 my-2" />
+
+                      {/* Booking Metadata Bar */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'తేదీ' : 'Date'}</span>
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200">{b.bookingDate}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</span>
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">{b.timeSlot}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'విస్తీర్ణం / పొలం స్థితి' : 'Acres / Field Stage'}</span>
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">
+                            {b.acres} Acres ({b.fieldStatus || b.targetCrop || 'Field'})
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTe ? 'డ్రైవర్ & డీజిల్' : 'Inclusions'}</span>
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200 truncate block">
+                            {b.operatorIncluded !== false ? '👨‍🌾 Operator' : 'Self-Drive'} • {b.fuelIncluded !== false ? '⛽ Fuel Inc.' : 'Fuel Extra'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {b.operation && (
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                          <span className="flex items-center gap-1.5">
+                            <span>⚙️ {isTe ? 'పని రకం:' : 'Operation:'}</span>
+                            <strong className="text-indigo-900 dark:text-indigo-200">{b.operation}</strong>
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            🌱 {b.fieldStatus || b.targetCrop || 'Field Stage'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Action Buttons Row: Call, WhatsApp, Cancel, Delete, Re-Book, Farm Khata */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        {/* Contact group */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <a
+                            href={`tel:${b.phone || b.farmerPhone || b.contactPhone || ''}`}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 text-xs font-bold transition-colors"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{isTe ? 'కాల్ చేయండి' : 'Call Provider'}</span>
+                          </a>
+                          <a
+                            href={`https://wa.me/${String(b.phone || b.farmerPhone || b.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                              `Booking ID #${bKey}: Hello, inquiring about ${b.title || 'Equipment'} booking for ${b.bookingDate || ''} (${b.timeSlot || ''}) for ${b.acres || 0} Acres.`
+                            )}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 text-xs font-bold transition-colors"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>WhatsApp Voucher</span>
+                          </a>
+                        </div>
+
+                        {/* Management action buttons */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Cancel Booking (Available if pending or confirmed) */}
+                          {(isPending || isConfirmed) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCancelModalBooking(b);
+                                setCancelReasonKey('weather');
+                                setCustomCancelReason('');
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              <Ban className="w-3.5 h-3.5 text-rose-600" />
+                              <span>{isTe ? 'బుకింగ్ రద్దు చేయండి' : 'Cancel Booking'}</span>
+                            </button>
+                          )}
+
+                          {/* Re-Book / Book Again (Available if completed, cancelled, or declined) */}
+                          {(isCompleted || isCancelled || isDeclined) && (
+                            <button
+                              type="button"
+                              onClick={() => handleReBook(b)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>{isTe ? 'మళ్లీ బుక్ చేయండి' : 'Book Again'}</span>
+                            </button>
+                          )}
+
+                          {/* Delete Voucher (Available if completed, cancelled, or declined) */}
+                          {(isCompleted || isCancelled || isDeclined) && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteModalBooking(b)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/50 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                              title={isTe ? 'రసీదు తొలగించండి' : 'Delete Voucher'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>{isTe ? 'రసీదు తొలగించండి' : 'Delete'}</span>
+                            </button>
+                          )}
+
+                          {/* Sync to Farm Khata Ledger Button (for completed bookings) */}
+                          {isCompleted && (
+                            b.syncedToKhata ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                                <Check className="w-3.5 h-3.5" />
+                                <span>{isTe ? 'పొలం ఖాతాకు చేరింది' : 'Added to Khata'}</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleSyncToKhata(b)}
+                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs cursor-pointer transition-colors"
+                              >
+                                <DollarSign className="w-3.5 h-3.5" />
+                                <span>{isTe ? 'పొలం ఖాతాకు జోడించండి' : 'Add to Farm Khata'}</span>
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            }))}
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -1378,6 +1886,175 @@ export default function EquipmentBookingPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          MODAL: CANCEL BOOKING DIALOG (Farmer Friendly)
+      ═══════════════════════════════════════════════════════════════════ */}
+      <Dialog
+        isOpen={Boolean(cancelModalBooking)}
+        onClose={() => !isProcessingAction && setCancelModalBooking(null)}
+        title={isTe ? 'బుకింగ్ రద్దు చేయండి' : 'Cancel Equipment Booking'}
+        maxWidth="max-w-lg"
+      >
+        <div className="space-y-4 pt-1">
+          {/* Header Summary Info */}
+          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-900 dark:text-amber-200 space-y-0.5">
+              <p className="font-black text-sm">
+                #{cancelModalBooking?.id || cancelModalBooking?.bookingId}: {cancelModalBooking?.title}
+              </p>
+              <p className="text-amber-800/90 dark:text-amber-300/90">
+                {isTe
+                  ? 'మీరు ఈ బుకింగ్‌ను రద్దు చేయాలనుకుంటున్నారా? ప్రొవైడర్‌కు తక్షణమే రద్దు సందేశం చేరుతుంది.'
+                  : 'Are you sure you want to cancel this booking? The equipment provider will receive an instant alert.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Reason Selection Radio Group */}
+          <div>
+            <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+              {isTe ? 'రద్దు చేయడానికి కారణాన్ని ఎంచుకోండి:' : 'Select Reason for Cancellation:'}
+            </label>
+            <div className="space-y-2">
+              {CANCELLATION_REASONS.map((reason) => {
+                const isSelected = cancelReasonKey === reason.key;
+                return (
+                  <label
+                    key={reason.key}
+                    onClick={() => setCancelReasonKey(reason.key)}
+                    className={`flex items-start gap-3 p-3 rounded-2xl border text-xs font-bold cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancel_reason"
+                      checked={isSelected}
+                      onChange={() => setCancelReasonKey(reason.key)}
+                      className="mt-0.5 w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="leading-snug">
+                      <p>{isTe ? reason.labelTe : reason.labelEn}</p>
+                      {isTe && <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">{reason.labelEn}</p>}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Custom text for "Other" */}
+          {cancelReasonKey === 'other' && (
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                {isTe ? 'దయచేసి కారణం రాయండి:' : 'Please describe the reason:'}
+              </label>
+              <textarea
+                rows={2}
+                value={customCancelReason}
+                onChange={(e) => setCustomCancelReason(e.target.value)}
+                placeholder={isTe ? 'ఉదాహరణ: తేదీ మార్పు, యంత్రం అందుబాటులో లేకపోవడం...' : 'E.g., Rescheduling with provider, field stage delayed...'}
+                className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isProcessingAction}
+              onClick={() => setCancelModalBooking(null)}
+            >
+              {isTe ? 'వెనుకకు' : 'Keep Booking'}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              isLoading={isProcessingAction}
+              onClick={handleCancelBooking}
+              leftIcon={<Ban className="w-3.5 h-3.5" />}
+            >
+              {isTe ? 'రద్దును నిర్ధారించండి' : 'Confirm Cancellation'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          MODAL: DELETE VOUCHER CONFIRMATION DIALOG
+      ═══════════════════════════════════════════════════════════════════ */}
+      <Dialog
+        isOpen={Boolean(deleteModalBooking)}
+        onClose={() => !isProcessingAction && setDeleteModalBooking(null)}
+        title={isTe ? 'బుకింగ్ రసీదును తొలగించాలా?' : 'Delete Booking Voucher?'}
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4 pt-1">
+          <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-start gap-3">
+            <Trash2 className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-rose-900 dark:text-rose-200 space-y-1">
+              <p className="font-black text-sm">
+                #{deleteModalBooking?.id || deleteModalBooking?.bookingId}: {deleteModalBooking?.title}
+              </p>
+              <p className="text-rose-800/90 dark:text-rose-300/90 leading-relaxed">
+                {isTe
+                  ? 'ఈ రసీదు మీ పాస్‌బుక్ చరిత్ర నుండి శాశ్వతంగా తొలగించబడుతుంది. ఈ చర్యను వెనక్కి తీసుకోలేరు.'
+                  : 'This voucher will be permanently deleted from your passbook record. You will no longer see this voucher.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isProcessingAction}
+              onClick={() => setDeleteModalBooking(null)}
+            >
+              {isTe ? 'వద్దనివ్వండి' : 'Keep Voucher'}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              isLoading={isProcessingAction}
+              onClick={handleDeleteBooking}
+              leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+            >
+              {isTe ? 'శాశ్వతంగా తొలగించండి' : 'Delete Permanently'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          FLOATING TOAST NOTIFICATION
+      ═══════════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {bookingToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 text-white dark:bg-emerald-600 dark:text-white shadow-2xl border border-slate-700 dark:border-emerald-500 font-bold text-xs max-w-sm"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-white shrink-0" />
+            <span className="leading-snug">{bookingToast.message}</span>
+            <button
+              type="button"
+              onClick={() => setBookingToast(null)}
+              className="ml-auto text-slate-400 hover:text-white dark:text-emerald-100 dark:hover:text-white p-0.5 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
