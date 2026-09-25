@@ -779,6 +779,59 @@ export default function ProviderDashboardPage() {
     );
   }
 
+  // ── ROLE GUARD: If a user is logged in as a Farmer, do not show Provider Portal with orders ──
+  if (user && user?.role?.toLowerCase() === 'farmer') {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-8 rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 shadow-xl text-center space-y-6"
+        >
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <Truck className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+              {isTe ? 'రైతు ఖాతా గుర్తించబడింది' : 'Farmer Account Detected'}
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              {isTe ? 'ఇది మెషినరీ ప్రొవైడర్ల కోసం మాత్రమే' : 'Machinery Provider Hub'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
+              {isTe
+                ? `మీరు ప్రస్తుతం రైతు (${user?.name || user?.username || 'Farmer'}) ఖాతాతో లాగిన్ అయి ఉన్నారు. ఈ ప్రొవైడర్ డ్యాష్‌బోర్డ్ కేవలం రిజిస్టర్ అయిన యంత్రాల సరఫరాదారుల కోసం మాత్రమే. మీ పొలానికి ట్రాక్టర్లు, డ్రోన్లు, హార్వెస్టర్లను బుక్ చేసుకోవడానికి లేదా బుకింగ్ స్థితిని చూడటానికి వ్యవసాయ యంత్రాల అద్దె విభాగానికి వెళ్ళండి.`
+                : `You are currently logged in as a Farmer (${user?.name || user?.username || 'Farmer'}). The Provider Dashboard is reserved exclusively for registered Machinery & Drone Providers. To book tractors, harvesters, spray drones or track your booking status, please visit Farm Machinery Rentals.`}
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/equipment-booking')}
+              className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Truck className="w-4 h-4" />
+              <span>{isTe ? 'వ్యవసాయ యంత్రాల అద్దెకు వెళ్ళండి →' : 'Go to Farm Machinery Rentals →'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/more')}
+              className="w-full sm:w-auto px-6 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
+            >
+              <span>{isTe ? 'వెనుకకు వెళ్లండి' : 'Back to Tools'}</span>
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const providerDisplayName = user?.provider_profile?.hub_name || user?.provider_profile?.business_name || user?.name || user?.username || 'Agri Machinery Provider';
+  const hubVillage = user?.provider_profile?.hub_name || user?.farm_location?.village || 'Ramesh Farm Services';
+  const hubDistrict = user?.farm_location?.district || 'Prakasam';
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 select-none">
       {/* ── TOP HERO BANNER & CONTROL BAR (Clean Borders & Structured Boxes) ── */}
@@ -791,7 +844,7 @@ export default function ProviderDashboardPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {user?.name || user?.username || 'Agri Machinery Provider'}
+                  {providerDisplayName}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
                   {isTe ? 'ధృవీకరించబడిన ప్రదాత' : 'Verified Provider'}
@@ -799,7 +852,7 @@ export default function ProviderDashboardPage() {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span>Base Hub: <strong>{user?.farm_location?.village || 'Pasupugallu'}</strong>, {user?.farm_location?.district || 'Prakasam'} (AP)</span>
+                <span>Base Hub: <strong>{hubVillage}</strong>, {hubDistrict} (AP)</span>
               </p>
             </div>
           </div>

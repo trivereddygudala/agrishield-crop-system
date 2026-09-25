@@ -1603,15 +1603,29 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       read: false
     };
 
-    try {
-      const existing = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-      localStorage.setItem('agrishield_user_notifications', JSON.stringify([bookingNotif, ...existing.filter(n => n.id !== bookingNotif.id)]));
-    } catch (e) {}
+    // Incoming booking notification is STRICTLY for Equipment Providers, NOT the farmer.
+    // The farmer only receives Accept or Decline decision notifications from the provider.
+    if (user?.role?.toLowerCase() === 'equipment_provider') {
+      try {
+        const existing = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify([bookingNotif, ...existing.filter(n => n.id !== bookingNotif.id)]));
+      } catch (e) {}
+    } else {
+      // Clean out any legacy provider booking notifications from farmer's local notifications cache
+      try {
+        const existing = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        if (Array.isArray(existing)) {
+          const cleaned = existing.filter(n => {
+            const title = (n.title || '').toLowerCase();
+            return !title.includes('కొత్త యంత్ర బుకింగ్') && !title.includes('new machinery booking');
+          });
+          localStorage.setItem('agrishield_user_notifications', JSON.stringify(cleaned));
+        }
+      } catch (e) {}
+    }
 
-    window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: bookingNotif }));
-    window.dispatchEvent(new CustomEvent('newBookingNotification', { detail: bookingNotif }));
-
-    // Notification dispatched and synced to provider dashboard
+    // Dispatch global event for multi-tab provider sync if listening
+    window.dispatchEvent(new CustomEvent('agrishield_provider_booking_received', { detail: bookingNotif }));
   };
 
   return (

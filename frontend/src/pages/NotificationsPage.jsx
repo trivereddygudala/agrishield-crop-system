@@ -98,11 +98,33 @@ export default function NotificationsPage() {
         console.warn("Could not fetch remote notifications, falling back to local:", err);
       }
 
-      // Load local notifications
+      // Load local notifications with strict role-based isolation:
+      // Farmers must NEVER receive "New Machinery Booking Received" or incoming requests.
+      // Farmers ONLY receive Accept or Decline decision notifications from providers.
       let localNotifs = [];
       try {
         const savedUserNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-        if (Array.isArray(savedUserNotifs)) localNotifs = [...savedUserNotifs];
+        if (Array.isArray(savedUserNotifs)) {
+          if (!isEquipmentProvider) {
+            // Strictly exclude incoming machinery requests and "booked your" notifications for farmers
+            localNotifs = savedUserNotifs.filter(n => {
+              const title = (n.title || '').toLowerCase();
+              const msg = (n.message || '').toLowerCase();
+              const isIncomingOrder = title.includes('కొత్త యంత్ర బుకింగ్') || 
+                                     title.includes('new machinery booking') ||
+                                     title.includes('booking request') ||
+                                     msg.includes('booked your') ||
+                                     msg.includes('బుక్ చేసుకున్నారు');
+              return !isIncomingOrder;
+            });
+            // Auto-clean storage on farmer device
+            if (localNotifs.length !== savedUserNotifs.length) {
+              try { localStorage.setItem('agrishield_user_notifications', JSON.stringify(localNotifs)); } catch (_) {}
+            }
+          } else {
+            localNotifs = [...savedUserNotifs];
+          }
+        }
       } catch (e) {}
 
       // If equipment provider, synthesize notifications from recorded machinery bookings
@@ -161,7 +183,7 @@ export default function NotificationsPage() {
         } catch (e) {}
       }
 
-      // If farmer, synthesize notifications for booking status decisions from providers
+      // If farmer, synthesize notifications ONLY for provider Accept or Decline status decisions
       if (!isEquipmentProvider) {
         try {
           let bRes = await API.get('/api/v1/equipment/bookings');
@@ -176,12 +198,20 @@ export default function NotificationsPage() {
                 const alreadyExists = localNotifs.some(n => n.id === notifKey || n.notification_id === notifKey);
                 if (!alreadyExists) {
                   const isRejected = b.status === 'rejected' || b.status === 'declined';
+                  const providerPhoneNum = b.providerPhone || b.provider_phone || '9876543210';
+                  const providerDisplayName = b.providerName || b.provider_name || 'Ramesh Farm Services';
                   localNotifs.unshift({
                     notification_id: notifKey,
                     id: notifKey,
                     type: 'booking',
                     category: 'booking',
                     priority: isRejected ? 'High' : 'Normal',
+                    isFarmerDecision: true,
+                    providerPhone: providerPhoneNum,
+                    providerName: providerDisplayName,
+                    farmerPhone: b.farmerPhone || b.phone,
+                    farmerName: b.farmerName,
+                    equipmentTitle: b.equipmentTitle || b.title || 'Machinery',
                     title: isRejected
                       ? (isTe ? `❌ యంత్రం బుకింగ్ తిరస్కరించబడింది (#${bId})` : `❌ Machinery Booking Declined (#${bId})`)
                       : (isTe ? `✅ యంత్రం బుకింగ్ ఆమోదించబడింది (#${bId})` : `✅ Machinery Booking Confirmed (#${bId})`),
@@ -190,14 +220,14 @@ export default function NotificationsPage() {
                       : `✅ యంత్రం బుకింగ్ ఆమోదించబడింది (#${bId})`,
                     message: isRejected
                       ? (isTe
-                        ? `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను తిరస్కరించారు (${b.date || b.bookingDate || 'Today'}). దయచేసి వేరే యంత్రాన్ని ఎంచుకోండి.`
-                        : `Provider ${b.providerName || 'Provider'} declined your booking for ${b.equipmentTitle || b.title || 'Machinery'} (${b.date || b.bookingDate || 'Today'}). Please choose an alternative machinery slot.`)
+                        ? `ప్రొవైడర్ ${providerDisplayName} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను తిరస్కరించారు (${b.date || b.bookingDate || 'Today'}). దయచేసి వేరే యంత్రాన్ని ఎంచుకోండి.`
+                        : `Provider ${providerDisplayName} declined your booking for ${b.equipmentTitle || b.title || 'Machinery'} (${b.date || b.bookingDate || 'Today'}). Please choose an alternative machinery slot.`)
                       : (isTe
-                        ? `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను ఆమోదించారు!`
-                        : `Provider ${b.providerName || 'Provider'} confirmed your booking for ${b.equipmentTitle || b.title || 'Machinery'}!`),
+                        ? `ప్రొవైడర్ ${providerDisplayName} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను ఆమోదించారు! పని సమయం: ${b.slot || 'Early Morning'}.`
+                        : `Provider ${providerDisplayName} confirmed your booking for ${b.equipmentTitle || b.title || 'Machinery'}! Service slot: ${b.slot || 'Early Morning'}.`),
                     message_te: isRejected
-                      ? `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను తిరస్కరించారు.`
-                      : `ప్రొవైడర్ ${b.providerName || 'Ramesh'} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను ఆమోదించారు!`,
+                      ? `ప్రొవైడర్ ${providerDisplayName} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను తిరస్కరించారు.`
+                      : `ప్రొవైడర్ ${providerDisplayName} మీ ${b.equipmentTitle || b.title || 'యంత్రం'} బుకింగ్‌ను ఆమోదించారు!`,
                     booking_id: bId,
                     created_at: b.updatedAt || b.createdAt || new Date().toISOString(),
                     timestamp: b.updatedAt || b.createdAt || new Date().toISOString(),
@@ -614,31 +644,62 @@ export default function NotificationsPage() {
                       </span>
                     </div>
 
-                    {/* Quick Call & WhatsApp for Booking Alerts */}
+                    {/* Quick Call & Action Buttons for Booking Alerts (Strictly Role Isolated) */}
                     {(item.category === 'booking' || item.type === 'booking') && (
                       <div className="flex flex-wrap items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                        <a
-                          href={`tel:${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}`}
-                          className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
-                        >
-                          <Phone className="w-3 h-3" />
-                          <span>{isTe ? 'రైతుకు కాల్' : 'Call Farmer'}</span>
-                        </a>
-                        <a
-                          href={`https://wa.me/${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.farmerName || 'Farmer'}, regarding your machinery booking on AgriShield...`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                          <span>WhatsApp</span>
-                        </a>
-                        <Link
-                          to="/provider/dashboard"
-                          className="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold"
-                        >
-                          {isTe ? 'ఆర్డర్లలో చూడండి' : 'View Orders'}
-                        </Link>
+                        {isEquipmentProvider ? (
+                          // Equipment Provider View: Actions to reach the farmer and view provider orders
+                          <>
+                            <a
+                              href={`tel:${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}`}
+                              className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                            >
+                              <Phone className="w-3 h-3" />
+                              <span>{isTe ? 'రైతుకు కాల్' : 'Call Farmer'}</span>
+                            </a>
+                            <a
+                              href={`https://wa.me/${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.farmerName || 'Farmer'}, regarding your machinery booking on AgriShield...`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              <span>WhatsApp</span>
+                            </a>
+                            <Link
+                              to="/provider/dashboard?tab=orders"
+                              className="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold"
+                            >
+                              {isTe ? 'ఆర్డర్లలో చూడండి' : 'View Orders'}
+                            </Link>
+                          </>
+                        ) : (
+                          // Farmer View: Actions to contact the provider and check their booking voucher (NEVER links to provider dashboard)
+                          <>
+                            <a
+                              href={`tel:${String(item.providerPhone || '9876543210').replace(/[^0-9]/g, '')}`}
+                              className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                            >
+                              <Phone className="w-3 h-3" />
+                              <span>{isTe ? 'ప్రొవైడర్‌కు కాల్' : 'Call Provider'}</span>
+                            </a>
+                            <a
+                              href={`https://wa.me/${String(item.providerPhone || '9876543210').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.providerName || 'Provider'}, regarding my equipment booking #${item.booking_id || ''}...`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              <span>WhatsApp</span>
+                            </a>
+                            <Link
+                              to="/equipment-booking"
+                              className="px-3 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold"
+                            >
+                              {isTe ? 'బుకింగ్ చూడండి' : 'View Booking Voucher'}
+                            </Link>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

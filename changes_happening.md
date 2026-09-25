@@ -2,6 +2,37 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v250) - Fixed Role & Notification Mix-Up: Farmer Receives ONLY Accept/Decline Notifications & Strict Role Guarding
+- **Summary:** Conducted a comprehensive audit and resolution of the cross-role notification and dashboard mix-up where farmer accounts were receiving incoming provider booking requests, viewing provider action buttons ("Call Farmer" / "View Orders"), and accessing the provider portal as "farmer1 VERIFIED PROVIDER":
+  1. 🔍 **Root Cause Identification Across All 5 Screenshots:**
+     - **Picture 1 (`MorePage.jsx`):** Farmer account (`farmer1`) accessing standard farming tools and navigating to Notifications Center.
+     - **Picture 2 (`NotificationsPage.jsx`):** The farmer received `🚜 New Machinery Booking Received` (an incoming provider request meant strictly for equipment providers) alongside declined notifications that displayed **"Call Farmer"** and **"View Orders"** buttons linking to `/provider/dashboard`.
+     - **Picture 3, 4, 5 (`ProviderDashboardPage.jsx`):** Clicking "View Orders" from notifications loaded `/provider/dashboard` where `farmer1` was displayed as a **"VERIFIED PROVIDER"** with 1,001 incoming active bookings to accept or decline.
+  2. 🚫 **Eliminated Provider Incoming Order Storage for Farmers ([`EquipmentBookingPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/EquipmentBookingPage.jsx)):**
+     - Prevented `EquipmentBookingPage.jsx` from writing `bookingNotif` into `localStorage('agrishield_user_notifications')` when the user is a farmer.
+     - Added automated cleanup that purges any legacy incoming provider order notifications (`కొత్త యంత్ర బుకింగ్`, `new machinery booking`, `booked your`) from the farmer's browser storage.
+  3. 🔔 **Strict Farmer Notification Isolation ([`NotificationsPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/NotificationsPage.jsx)):**
+     - Filtered notification feed so farmers **ONLY** receive **Accept** (`✅ Machinery Booking Confirmed`) or **Decline** (`❌ Machinery Booking Declined`) status decision notifications from equipment providers.
+     - Completely separated notification card action buttons:
+       * **Farmer View:** Displays **"Call Provider"** / **"ప్రొవైడర్‌కు కాల్"** (calling provider phone: `item.providerPhone || '9876543210'`), **"WhatsApp Provider"**, and **"View Booking Voucher"** (linking to `/equipment-booking`, NEVER `/provider/dashboard`).
+       * **Equipment Provider View:** Displays **"Call Farmer"**, **"WhatsApp Farmer"**, and **"View Orders"** (`/provider/dashboard?tab=orders`).
+  4. 🛡️ **Strict Provider Dashboard Role Guard ([`ProviderDashboardPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/provider/ProviderDashboardPage.jsx)):**
+     - Added an early role check blocking any user with `role === 'farmer'` from accessing the Provider Portal or seeing incoming bookings.
+     - Renders a clean notice informing the farmer that the Provider Hub is exclusively for registered Equipment Providers, with a 1-tap navigation button directing them to Farm Machinery Rentals (`/equipment-booking`).
+     - Correctly binds `user.provider_profile.hub_name` (`Ramesh Farm Services`) and business details for authentic equipment providers (`ramesh`).
+  5. 👥 **User Profile Audit in Database:**
+     - Verified all accounts in MongoDB Atlas:
+       * `farmer1@agrishield.com`: Strictly `role: 'farmer'`, `provider_profile: None`.
+       * `ramesh@agrishield.com`: Strictly `role: 'equipment_provider'`, `provider_profile: {'hub_name': 'Ramesh Farm Services', 'phone': '+91 98765 43210'}`.
+       * `admin@agrishield.ai`: `role: 'admin'`.
+       * `ramaya@agrishield.com`: `role: 'farmer'`.
+       * `tester1@agrishield.com`: `role: 'tester'`.
+  6. 🏗️ **Verification:**
+     - `npm run build` compiled 3,168 modules cleanly in 22.26s with 0 errors.
+- **Files modified**: `frontend/src/pages/EquipmentBookingPage.jsx`, `frontend/src/pages/NotificationsPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `backend/scripts/check_users_and_notifs.py`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v249) - Resolved Cross-Device Equipment Booking Status Sync Bug (Laptop Provider Decline to Mobile Farmer View)
 - **Summary:** Diagnosed and resolved the synchronization failure where an equipment provider declining/rejecting an order on laptop did not reflect on the farmer's mobile screen:
   1. 🐛 **Root Cause Diagnosis:**
