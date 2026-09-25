@@ -2,24 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  UploadCloud, Thermometer, Droplets, Sprout, Sun, CloudRain, Battery, HardDrive, Wifi,
-  Clock, AlertTriangle, CheckCircle2, ShieldAlert, ArrowRight, Activity, Zap, RefreshCw, Gauge, Wind,
-  Settings, Eye, ChevronRight, TrendingUp, Cpu, Layers, Camera, ShieldCheck, MapPin
+  Droplets, Sprout, Clock, RefreshCw, ChevronRight, TrendingUp, Camera, ShieldCheck, MapPin
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useFarm } from '../../context/FarmContext';
 import { useTranslation } from 'react-i18next';
 import API from '../../services/api';
 import { Button, Card, Skeleton, Badge } from '../../components/ui/index';
-import { useToast } from '../../components/ui/toast';
-import { useHardwareMode } from '../../hooks/useHardwareMode';
-import SensorCard from '../../components/dashboard/SensorCard';
 import WidgetErrorBoundary from '../../components/WidgetErrorBoundary';
 import { useWebSocket } from '../../context/WebSocketContext';
 
 // Intelligence System Widgets
 import { WeatherDashboard } from '../../components/intelligence/WeatherDashboard';
-import { IrrigationAdvisor } from '../../components/intelligence/IrrigationAdvisor';
 import { DiseaseRiskCard } from '../../components/intelligence/DiseaseRiskCard';
 import SprayAdvisorWidget from '../../components/intelligence/SprayAdvisorWidget';
 import { translateCrop, translateStage, translateDisease } from '../../utils/diseaseAdvisoryData';
@@ -34,31 +28,12 @@ const DashboardPage = () => {
   const { user } = useAuth();
   const { activeFarm } = useFarm();
   const { t, i18n } = useTranslation();
-  const { hardwareMode } = useHardwareMode();
   const navigate = useNavigate();
-  const toast = useToast();
   
   // Instant load: If cache exists from this session, do NOT show skeleton
   const [loading, setLoading] = useState(!cachedDashboardStats);
 
-  useEffect(() => {
-    const userRole = user?.role?.toLowerCase() || 'farmer';
-    const isOutbreakSimEnabled = localStorage.getItem('sim_outbreak_active') !== 'false';
 
-    if (userRole !== 'tester' || !isOutbreakSimEnabled) {
-      return;
-    }
-
-    // Simulate district outbreak alerts for crop disease warnings
-    const timer = setTimeout(() => {
-      toast.warning(
-        "🚨 District Outbreak Alert",
-        "A neighboring farm (0.8km away) detected Tomato Late Blight. Review spray treatment schedules immediately.",
-        { duration: 12000 }
-      );
-    }, 8000);
-    return () => clearTimeout(timer);
-  }, [toast, user]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState(() => cachedDashboardStats || {
     total: 0,
@@ -280,91 +255,99 @@ const DashboardPage = () => {
       animate="show"
       className="space-y-6 w-full pb-6 max-w-[1600px] mx-auto"
     >
-      {/* ─── Header Section: Farmer Friendly ─── */}
-      <motion.div variants={itemVariants} className="flex flex-col gap-4 pb-4 border-b border-slate-200/80 dark:border-white/10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="text-3xl sm:text-4xl" role="img" aria-label="crop">🌾</span>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                {activeFarm?.farm_name ? `${activeFarm.farm_name} ${t('dashboard.overview', 'Overview')}` : t('dashboard.my_farm_overview', 'My Farm Overview')}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-semibold">
-              <span className="flex items-center gap-1 text-rose-500 font-bold">
-                <MapPin className="w-3.5 h-3.5" />
-                {farmLocationDisplay}
-              </span>
-              <span>•</span>
-              <span className="text-slate-700 dark:text-slate-300 font-bold">{currentDateFormatted}</span>
-            </div>
+      {/* ─── Header Section: Farmer Friendly (Matching Picture) ─── */}
+      <motion.div variants={itemVariants} className="flex flex-col gap-3 pb-2 border-b border-slate-200/80 dark:border-white/10">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl sm:text-3xl" role="img" aria-label="crop">🌾</span>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+              {activeFarm?.farm_name ? `${activeFarm.farm_name} ${t('dashboard.overview', 'Overview')}` : t('dashboard.my_farm_overview', 'My Farm Overview')}
+            </h1>
           </div>
-          
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <button 
-              onClick={handleManualRefresh}
-              className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] text-slate-600 dark:text-white/60 hover:bg-slate-50 dark:hover:bg-white/5 transition-all shadow-xs"
-              title={t('dashboard.refresh_btn', 'Refresh Dashboard Data')}
-              disabled={isRefreshing}
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-semibold">
+            <span className="flex items-center gap-1 text-rose-500 font-bold">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              {farmLocationDisplay}
+            </span>
+            <span>•</span>
+            <span className="text-slate-700 dark:text-slate-300 font-bold">{currentDateFormatted}</span>
+          </div>
+        </div>
+
+        {/* Action Row: Refresh + Wide Pill Scan Crop Leaf Button */}
+        <div className="flex items-center gap-2.5 sm:gap-3 w-full pt-1">
+          <button 
+            type="button"
+            onClick={handleManualRefresh}
+            className="p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-600 dark:text-white/70 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
+            title={t('dashboard.refresh_btn', 'Refresh Dashboard Data')}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
+          </button>
+          <Link to="/upload" className="flex-1">
+            <Button 
+              variant="primary" 
+              size="lg" 
+              leftIcon={<Camera className="w-5 h-5" />} 
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-600/25 py-3 sm:py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all active:scale-[0.98] cursor-pointer"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
-            </button>
-            <Link to="/upload" className="flex-1 sm:flex-initial">
-              <Button 
-                variant="primary" 
-                size="lg" 
-                leftIcon={<Camera className="w-5 h-5" />} 
-                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-600/30 px-5 py-3 rounded-2xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all active:scale-[0.98]"
-              >
-                {t('dashboard.scan_crop_leaf', 'Scan Crop Leaf')}
-              </Button>
-            </Link>
-          </div>
+              {t('dashboard.scan_crop_leaf', 'Scan Crop Leaf')}
+            </Button>
+          </Link>
         </div>
       </motion.div>
 
-      {/* ─── Daily Farm Status Banner (Friendly & Actionable) ─── */}
+      {/* ─── Daily Farm Status Banner (Professional, Boundaries, Light Blur, Highlighted Words) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
         <div className="w-full">
-          <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md">
-            {/* Real Unsplash / Pexels farm photography background */}
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-md">
+            {/* Real Unsplash / Pexels farm photography background with light blur */}
             <img 
               src={CURATED_FARM_PHOTOS.farmField} 
               alt="Authentic Agricultural Farm Field" 
-              className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+              className="absolute inset-0 w-full h-full object-cover object-center scale-105 filter blur-[2px]"
               loading="lazy"
             />
             {/* Deep protective dark scrim ensuring WCAG AAA text visibility over photography */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/98 via-slate-950/90 to-slate-950/80" />
-            <div className="absolute inset-0 backdrop-blur-[2px]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-950/75" />
+            <div className="absolute inset-0 backdrop-blur-[1px]" />
             
             <div className="relative z-10 p-5 sm:p-6 lg:p-7 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              {/* High-contrast frosted text container */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-xl space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 text-xs font-black mb-0.5 shadow-sm">
-                  <span>🌾 Authentic Field Telemetry</span>
+              {/* High-contrast frosted text container with highlighted keywords */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-xl space-y-2.5 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-black shadow-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>🌾 {isTe ? 'పొలం ప్రత్యక్ష స్థితి' : 'Authentic Field Telemetry'}</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
                 </h2>
-                <p className="text-xs sm:text-sm font-bold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                  {t('dashboard.daily_actionable_summary', 'Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying')}
+                <p className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                  {isTe ? 'ఈరోజు ' : 'Today is '}
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-300 font-extrabold border border-amber-400/40">
+                    {isTe ? '34°C & ఎండగా ఉంది' : '34°C & Sunny'}
+                  </span>
+                  {isTe ? ' — పొలం పనులకు అనుకూలం. సురక్షిత స్ప్రే విండో: ' : ' — Ideal conditions for field work. Safe spray window: '}
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/25 text-emerald-300 font-extrabold border border-emerald-400/40">
+                    {isTe ? 'ఉదయం 8 AM – 11 AM' : '8 AM – 11 AM'}
+                  </span>
                 </p>
               </div>
 
-              {/* 3 High-Contrast Status Badges (Green / Sky / Protected) */}
+              {/* 3 High-Contrast Status Badges with glowing dots & highlighted text */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/50 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {t('dashboard.crops_healthy', 'Crops: Healthy')}
+                  <span>{isTe ? 'పంట: ఆరోగ్యకరం' : 'Crops: Healthy'}</span>
                 </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-sky-500/50 text-sky-300 text-xs sm:text-sm font-black shadow-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-sky-500/60 text-sky-300 text-xs sm:text-sm font-black shadow-md">
                   <span>💧</span>
-                  {t('dashboard.soil_optimal', 'Soil: {{pct}}% (Optimal)', { pct: activeTelemetry?.soil_moisture ?? 45 })}
+                  <span>{isTe ? `నేల: ${activeTelemetry?.soil_moisture ?? 45}% (తగినంత)` : `Soil: ${activeTelemetry?.soil_moisture ?? 45}% (Optimal)`}</span>
                 </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/50 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  {t('dashboard.disease_risk_low', 'Disease Risk: Low')}
+                  <span>{isTe ? 'తెగుళ్ల ముప్పు: తక్కువ' : 'Disease Risk: Low'}</span>
                 </div>
               </div>
             </div>
@@ -586,7 +569,7 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Hero Intelligence Blocks (Weather, Irrigation, Risks) ─── */}
+      {/* ─── Hero Intelligence Blocks (Weather, Spray Window, Disease Risk) ─── */}
       <motion.div variants={itemVariants} className="grid lg:grid-cols-12 gap-6 w-full max-w-full min-w-0">
         <div className="lg:col-span-7 space-y-6 flex flex-col w-full max-w-full min-w-0 overflow-hidden">
           <div className="w-full">
@@ -600,20 +583,14 @@ const DashboardPage = () => {
 
         <div className="lg:col-span-5 space-y-6 flex flex-col w-full max-w-full min-w-0">
           <div className="w-full">
-            <WidgetErrorBoundary name="Smart Irrigation Advisor">
-              <IrrigationAdvisor farmId={farmId} cropName={cropName} growthStage={growthStage} farmSize={farmSize} />
+            <WidgetErrorBoundary name="Pesticide Spray Safety Window">
+              <SprayAdvisorWidget telemetry={activeTelemetry} />
             </WidgetErrorBoundary>
           </div>
           
           <div className="w-full">
             <WidgetErrorBoundary name="Disease Risk Forecast">
               <DiseaseRiskCard farmId={farmId} cropName={cropName} />
-            </WidgetErrorBoundary>
-          </div>
-
-          <div className="w-full">
-            <WidgetErrorBoundary name="Pesticide Spray Safety Window">
-              <SprayAdvisorWidget telemetry={activeTelemetry} />
             </WidgetErrorBoundary>
           </div>
         </div>
@@ -667,100 +644,6 @@ const DashboardPage = () => {
                 </Card>
               );
             })}
-          </div>
-        </motion.div>
-      )}
-
-      {/* ─── Live Telemetry Streams (Hardware Mode Only) ─── */}
-      {hardwareMode && (
-        <motion.div variants={itemVariants} className="space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2 px-1">
-            <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-emerald-500" />
-              <h3 className="text-sm font-black text-slate-800 dark:text-white/80 uppercase tracking-wider">
-                {t('dashboard.telemetry_stream', 'Live Field Micro-Telemetry Streams')}
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              {activeDevice?.status === 'online' ? (
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {t('dashboard.streaming_live', 'STREAMING LIVE')}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500 dark:text-white/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  {t('dashboard.node_offline_msg', 'NODE OFFLINE — SHOWING ESTIMATED DATA')}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-            <SensorCard 
-              title={t('metrics.temperature', 'Temperature')} 
-              value={activeTelemetry?.temperature != null ? activeTelemetry.temperature : '--'} 
-              unit={activeTelemetry?.temperature != null ? '°C' : ''} 
-              icon={Thermometer} 
-              color="#f97316" 
-              delay={0.05} 
-            />
-            <SensorCard 
-              title={t('metrics.humidity', 'Humidity')} 
-              value={activeTelemetry?.humidity != null ? activeTelemetry.humidity : '--'} 
-              unit={activeTelemetry?.humidity != null ? '%' : ''} 
-              icon={Droplets} 
-              color="#0ea5e9" 
-              delay={0.1} 
-            />
-            <SensorCard 
-              title={t('metrics.soil_moisture', 'Soil Moisture')} 
-              value={(activeTelemetry?.soil_moisture != null || activeTelemetry?.soil_percentage != null) ? (activeTelemetry.soil_moisture ?? activeTelemetry.soil_percentage) : '--'} 
-              unit={(activeTelemetry?.soil_moisture != null || activeTelemetry?.soil_percentage != null) ? '%' : ''} 
-              icon={Sprout} 
-              color="#10b981" 
-              delay={0.15} 
-            />
-            <SensorCard 
-              title={t('metrics.light', 'Light Level')} 
-              value={(activeTelemetry?.light_intensity != null || activeTelemetry?.light_lux != null) ? (activeTelemetry.light_intensity ?? activeTelemetry.light_lux) : '--'} 
-              unit={(activeTelemetry?.light_intensity != null || activeTelemetry?.light_lux != null) ? 'lx' : ''} 
-              icon={Sun} 
-              color="#eab308" 
-              delay={0.2} 
-            />
-            <SensorCard 
-              title={t('metrics.rain', 'Rain Status')} 
-              value={activeTelemetry?.rain_intensity != null ? activeTelemetry.rain_intensity : (activeTelemetry?.rain_detected != null ? (activeTelemetry.rain_detected ? 'Raining' : 'Clear') : (activeTelemetry?.rain_sensor != null ? ((activeTelemetry.rain_sensor && (activeTelemetry.rain_analog === undefined || activeTelemetry.rain_analog > 100)) ? 'Raining' : 'Clear') : '--'))} 
-              unit="" 
-              icon={CloudRain} 
-              color="#3b82f6" 
-              delay={0.25} 
-            />
-            <SensorCard 
-              title={t('metrics.pressure', 'Pressure')} 
-              value={activeTelemetry?.pressure != null ? activeTelemetry.pressure : '--'} 
-              unit={activeTelemetry?.pressure != null ? 'hPa' : ''} 
-              icon={Gauge} 
-              color="#8b5cf6" 
-              delay={0.3} 
-            />
-            <SensorCard 
-              title={t('metrics.vpd', 'VPD Deficit')} 
-              value={activeTelemetry?.vpd != null ? activeTelemetry.vpd : '--'} 
-              unit={activeTelemetry?.vpd != null ? 'kPa' : ''} 
-              icon={Wind} 
-              color="#14b8a6" 
-              delay={0.35} 
-            />
-            <SensorCard 
-              title={t('metrics.battery', 'Battery')} 
-              value={activeTelemetry?.battery_percentage != null ? activeTelemetry.battery_percentage : (activeTelemetry?.battery != null ? activeTelemetry.battery : '--')} 
-              unit={activeTelemetry?.battery_percentage != null || activeTelemetry?.battery != null ? '%' : ''} 
-              icon={Battery} 
-              color="#22c55e" 
-              delay={0.4} 
-            />
           </div>
         </motion.div>
       )}

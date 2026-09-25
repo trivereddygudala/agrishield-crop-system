@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v255) - Dashboard / Home Overhaul: Clean Header, Light Blur Background Banner, Highlighted Text, & Removed Scientific Clutter
+- **Summary:** Overhauled the Farmer Dashboard / Home page (`frontend/src/pages/farmer/DashboardPage.jsx`) per user prompt and uploaded reference image:
+  1. 🖼️ **Header Redesign Matching Uploaded Photo:**
+     - Positioned `🌾 field1 Overview` and `📍 Location • Date` neatly on top.
+     - Positioned the `[ 🔄 ]` refresh button and wide green pill `[ 📷 Scan Crop Leaf ]` button on a full-width action row directly below the header.
+  2. ✨ **Professional Farm Banner with Light Blur & Highlighted Words:**
+     - Implemented authentic field photography with light blur (`filter blur-[2px]`) and a deep protective dark gradient scrim (`from-slate-950/95 via-slate-950/85 to-slate-950/75`).
+     - Framed with neat boundaries (`rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-md`).
+     - Highlighted keywords: glowing `🌾 Authentic Field Telemetry` badge, amber highlighted temperature (`34°C & Sunny`), and emerald highlighted spray window (`8 AM – 11 AM`).
+     - Added 3 high-contrast status pills: `🟢 Crops: Healthy`, `💧 Soil: 45% (Optimal)`, `🛡️ Disease Risk: Low`.
+  3. 🧹 **Removed Unneeded Scientific Clutter:**
+     - Removed the fake outbreak simulator toast alert that caused unnecessary panic.
+     - Removed the theoretical `IrrigationAdvisor` Penman-Monteith millimeter formulas.
+     - Removed the 8 raw IoT electronic sensor gauges (`VPD in kPa`, `hPa barometric pressure`, `lux light meters`, `hardware battery`) from the default farmer home screen.
+  4. ⚡ **Performance & Build Verification:**
+     - Verified with `npm run build`: 0 errors.
+     - Bundle size reduced from 53.75 kB down to 41.28 kB (-23.2%).
+- **Files modified**: `frontend/src/pages/farmer/DashboardPage.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v254) - Field Tab Complete Overhaul: Removed Unneeded Academic Modules, Picture 2 Cleaned, & Picture 1 Grid Redesign
 - **Summary:** Overhauled the Farmer Portal Field Tab (`FarmPage.jsx`) per ground-truth farmer feedback and user request:
   1. 🗑️ **Completely Removed Picture 2 (Redundant Header Block):**
