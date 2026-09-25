@@ -5485,6 +5485,13 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
   - Documented dual-engine architecture: Tier 1 (Local PyTorch Deep Learning Model, 1,252 classes for offline 0–50ms inference) + Tier 2 (Gemini 2.0 / 1.5 Multimodal Agricultural Vision fallback) + Tier 3 (13-language advisory database).
   - Categorized common ICAR/TNAU diseases for each crop, specific diseases detectable by AgriShield, and physical image-level limitations (e.g., subterranean root-knot nematodes, internal stalk tunneling).
 
+9/25/2026: Exhaustive Disease Inventory & Exact Numerical Detection Counts (v281):
+- **Exhaustive Breakdown & Master Comparison Matrix (`CROPS_DISEASE_DETECTION_COVERAGE.md`):**
+  - Upgraded `CROPS_DISEASE_DETECTION_COVERAGE.md` to version 2.0 with exhaustive itemized lists of all 218 known diseases across all 29 crops.
+  - Included exact numerical counts for each crop: Total Known Diseases, Specific Diseases Detected by Website, Specific Diseases Not Detected, and Detection Rate percentage.
+  - Verified overall metrics: 152 out of 218 total major diseases detected (69.7% overall diagnostic coverage of all foliar, fruit, shoot, and visible viral/bacterial/pest conditions; remaining 30.3% are underground root nematodes or internal stem borers).
+
+
 
 
 
