@@ -19,7 +19,7 @@ import { translateNotification } from '../../utils/notificationTranslator';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 
 // ── Dynamic Crop Extraction & Localization Helper ──
-export function extractCropInfo(item, isTe = false) {
+function extractCropInfo(item, isTe = false) {
   if (!item) {
     return {
       cropKey: 'crop',
