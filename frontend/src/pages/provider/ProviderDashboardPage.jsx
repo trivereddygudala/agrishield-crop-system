@@ -255,14 +255,41 @@ export default function ProviderDashboardPage() {
     fetchRemoteFleet();
   }, [user?.phone]);
 
+  // Persistent blacklist for deleted booking vouchers so they never resurrect across devices
+  const getDeletedBookingIds = useCallback(() => {
+    try {
+      const raw = localStorage.getItem('agrishield_deleted_booking_ids');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch (e) {
+      return new Set();
+    }
+  }, []);
+
+  const saveDeletedBookingId = useCallback((bookingId) => {
+    try {
+      const raw = localStorage.getItem('agrishield_deleted_booking_ids');
+      const list = raw ? JSON.parse(raw) : [];
+      if (!list.includes(String(bookingId))) {
+        list.push(String(bookingId));
+        localStorage.setItem('agrishield_deleted_booking_ids', JSON.stringify(list));
+      }
+    } catch (e) {}
+  }, []);
+
   // ── Incoming Farmer Bookings State (Multi-Device & Cross-Browser Real-Time Sync) ──
   const [bookingsList, setBookingsList] = useState(() => {
     try {
+      const deletedIds = getDeletedBookingIds();
       const saved = localStorage.getItem('agrishield_equipment_bookings');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const filtered = parsed.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
+          const filtered = parsed.filter(b => {
+            if (!b) return false;
+            const key = String(b.id || b.bookingId || '');
+            if (key.startsWith('BK-TEST-') || deletedIds.has(key)) return false;
+            return true;
+          });
           if (filtered.length !== parsed.length) {
             localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(filtered));
           }
@@ -273,15 +300,85 @@ export default function ProviderDashboardPage() {
     return [];
   });
 
+  // Delete Booking Confirmation State
+  const [deleteModalBooking, setDeleteModalBooking] = useState(null);
+  const [isDeletingBooking, setIsDeletingBooking] = useState(false);
+
+  const confirmDeleteBooking = async () => {
+    if (!deleteModalBooking) return;
+    const targetId = deleteModalBooking.id || deleteModalBooking.bookingId;
+    if (!targetId) return;
+
+    setIsDeletingBooking(true);
+
+    // 1. Immediately blacklist the booking so background polling never resurrects it
+    saveDeletedBookingId(targetId);
+
+    // 2. Remove immediately from local state and localStorage
+    setBookingsList(prev => {
+      const updated = prev.filter(b => b && b.id !== targetId && b.bookingId !== targetId);
+      try {
+        localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 3. Dispatch DELETE to backend API & Render workers
+    try {
+      let remoteDeleted = false;
+      try {
+        await API.delete(`/api/v1/equipment/bookings/${targetId}`);
+        remoteDeleted = true;
+      } catch (_) {}
+
+      if (!remoteDeleted) {
+        try {
+          await API.delete(`/api/equipment/bookings/${targetId}`);
+          remoteDeleted = true;
+        } catch (_) {}
+      }
+
+      if (!remoteDeleted) {
+        try {
+          await axios.delete(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${targetId}`, { timeout: 10000 });
+          remoteDeleted = true;
+        } catch (_) {}
+      }
+
+      if (!remoteDeleted) {
+        try {
+          await axios.delete(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${targetId}`, { timeout: 10000 });
+        } catch (_) {}
+      }
+    } catch (err) {
+      console.warn('Backend DELETE booking warning:', err);
+    } finally {
+      setIsDeletingBooking(false);
+      setDeleteModalBooking(null);
+      window.dispatchEvent(new Event('agrishield_bookings_updated'));
+      toast.success(
+        isTe ? 'ఆర్డర్ తొలగించబడింది' : 'Order Deleted',
+        isTe
+          ? `బుకింగ్ #${targetId} రికార్డుల నుండి శాశ్వతంగా తొలగించబడింది.`
+          : `Booking order #${targetId} permanently removed from your dashboard.`
+      );
+    }
+  };
+
   const fetchProviderBookings = useCallback(async () => {
     try {
+      const deletedIds = getDeletedBookingIds();
       let local = [];
       try {
         const saved = localStorage.getItem('agrishield_equipment_bookings');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            local = parsed.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
+            local = parsed.filter(b => {
+              if (!b) return false;
+              const key = String(b.id || b.bookingId || '');
+              return !key.startsWith('BK-TEST-') && !deletedIds.has(key);
+            });
           }
         }
       } catch (e) {}
@@ -299,7 +396,11 @@ export default function ProviderDashboardPage() {
           try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
         }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
-          const remote = res.data.bookings.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
+          const remote = res.data.bookings.filter(b => {
+            if (!b) return false;
+            const key = String(b.id || b.bookingId || '');
+            return !key.startsWith('BK-TEST-') && !deletedIds.has(key);
+          });
           const mergedMap = new Map();
           // 1. Put local items in map first
           local.forEach(b => {
@@ -309,7 +410,7 @@ export default function ProviderDashboardPage() {
           // 2. Overlay remote items on top (remote is authoritative for status and server updates)
           remote.forEach(b => {
             const key = b && (b.id || b.bookingId);
-            if (key) {
+            if (key && !deletedIds.has(String(key))) {
               const localMatch = mergedMap.get(key);
               mergedMap.set(key, { ...localMatch, ...b });
             }
@@ -327,7 +428,7 @@ export default function ProviderDashboardPage() {
         setBookingsList(local);
       }
     } catch (e) {}
-  }, []);
+  }, [getDeletedBookingIds]);
 
   // Poll backend & listen to window/storage updates
   useEffect(() => {
@@ -1243,24 +1344,46 @@ export default function ProviderDashboardPage() {
                           )}
 
                           {booking.status === 'completed' && (
-                            <span className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                              <span>{isTe ? 'పూర్తయింది & సెటిల్ అయింది' : 'Completed & Settled'}</span>
-                            </span>
-                          )}
-
-                          {(booking.status === 'rejected' || booking.status === 'declined') && (
                             <div className="flex items-center gap-2">
-                              <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-black flex items-center gap-1">
-                                <X className="w-3.5 h-3.5 text-rose-500" />
-                                <span>{isTe ? 'తిరస్కరించబడింది' : 'Declined'}</span>
+                              <span className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>{isTe ? 'పూర్తయింది & సెటిల్ అయింది' : 'Completed & Settled'}</span>
                               </span>
                               <button
                                 type="button"
-                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
-                                className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                                onClick={() => setDeleteModalBooking(booking)}
+                                className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                                title={isTe ? 'పూర్తయిన ఆర్డర్‌ను తొలగించండి' : 'Delete Completed Order'}
                               >
-                                {isTe ? 'మళ్లీ ఆమోదించండి' : 'Re-open & Accept'}
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>{isTe ? 'తొలగించండి' : 'Delete'}</span>
+                              </button>
+                            </div>
+                          )}
+
+                          {(booking.status === 'rejected' || booking.status === 'declined' || booking.status === 'cancelled') && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-black flex items-center gap-1">
+                                <X className="w-3.5 h-3.5 text-rose-500" />
+                                <span>{booking.status === 'cancelled' ? (isTe ? 'రద్దు చేయబడింది' : 'Cancelled') : (isTe ? 'తిరస్కరించబడింది' : 'Declined')}</span>
+                              </span>
+                              {booking.status !== 'cancelled' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
+                                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                                >
+                                  {isTe ? 'మళ్లీ ఆమోదించండి' : 'Re-open & Accept'}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setDeleteModalBooking(booking)}
+                                className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                                title={isTe ? 'ఆర్డర్‌ను తొలగించండి' : 'Delete Order'}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>{isTe ? 'తొలగించండి' : 'Delete'}</span>
                               </button>
                             </div>
                           )}
@@ -1558,6 +1681,92 @@ export default function ProviderDashboardPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE BOOKING CONFIRMATION MODAL ── */}
+      {deleteModalBooking && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0b131f] border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {isTe ? 'ఆర్డర్‌ను తొలగించాలా?' : 'Delete Booking Order?'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    #{deleteModalBooking.id || deleteModalBooking.bookingId}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteModalBooking(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs space-y-1.5">
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'యంత్రం:' : 'Equipment:'}</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {deleteModalBooking.equipmentTitle || deleteModalBooking.title || 'Machinery'}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'రైతు:' : 'Farmer:'}</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {deleteModalBooking.farmerName || 'Farmer'}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'స్థితి:' : 'Status:'}</span>
+                <span className="font-bold uppercase text-rose-500">
+                  {deleteModalBooking.status}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              {isTe
+                ? 'ఈ ఆర్డర్ మీ ప్రొవైడర్ డ్యాష్‌బోర్డ్ నుండి శాశ్వతంగా తొలగించబడుతుంది. ఇది తిరిగి పొందలేరు.'
+                : 'This order record will be permanently removed from your provider dashboard. This action cannot be undone.'}
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteModalBooking(null)}
+                disabled={isDeletingBooking}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                {isTe ? 'రద్దు చేయండి' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteBooking}
+                disabled={isDeletingBooking}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-rose-600/30 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {isDeletingBooking ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>{isTe ? 'తొలగిస్తోంది...' : 'Deleting...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{isTe ? 'శాశ్వతంగా తొలగించండి' : 'Delete Permanently'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

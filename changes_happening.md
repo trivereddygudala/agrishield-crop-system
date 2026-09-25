@@ -2,6 +2,22 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v285) - Added Equipment Provider Booking Deletion Engine, Blacklist Synchronization & Confirmation Dialog
+- **Summary:**
+  1. 🗑️ **Added Order Deletion Engine for Equipment Providers (`ProviderDashboardPage.jsx`):**
+     - Diagnosed why providers could not remove completed or rejected orders: the provider dashboard lacked delete buttons, deletion handlers, and connection to the deletion blacklist.
+     - Implemented `[ 🗑️ Delete / తొలగించండి ]` buttons on both **Completed** (`status === 'completed'`) and **Declined / Cancelled** (`status === 'rejected' || status === 'declined' || status === 'cancelled'`) order cards in the "Farmer Rental Booking Orders" tab (`/provider/dashboard?tab=orders`).
+  2. 🛡️ **Cross-Device Persistent Blacklist Integration (`ProviderDashboardPage.jsx`):**
+     - Integrated `getDeletedBookingIds()` and `saveDeletedBookingId()` with `agrishield_deleted_booking_ids` in `localStorage`, sharing the exact same blacklist with `EquipmentBookingPage.jsx`.
+     - Filtered `bookingsList` initial state and background 6-second polling (`fetchProviderBookings`) through the blacklist so deleted orders never resurrect on the provider screen.
+  3. ⚡ **Cluster-Resilient Backend DELETE API Execution:**
+     - Created `confirmDeleteBooking()` handler that blacklists the booking ID, optimistically purges it from local state and `localStorage`, and triggers `DELETE /api/v1/equipment/bookings/{id}` with automated cluster fallback to `worker-1` and `worker-2` on Render.
+     - Emits `window.dispatchEvent(new Event('agrishield_bookings_updated'))` so farmer and provider dashboards synchronize in real-time.
+  4. ⚠️ **Delete Booking Confirmation Dialog Modal (`ProviderDashboardPage.jsx`):**
+     - Implemented a sleek glassmorphic confirmation modal dialog (`deleteModalBooking`) to prevent accidental deletions, displaying booking ID, machinery name, farmer contact, and irreversible warning with bilingual support (Telugu & English).
+  5. 📦 **Production Build Validation:** Executed `npm run build` in `frontend/` — 3,161 modules transformed cleanly with 0 errors in 34.04s.
+- **Files modified:** `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-25 (v284) - Resolved Booking Cancellation Reversion, Permanent Voucher Deletion Blacklist Engine & Fixed Mobile Bottom Black Toast Box
 - **Summary:**
   1. 🛠️ **Resolved Booking Cancellation Reversion Race Condition (`EquipmentBookingPage.jsx`):**
