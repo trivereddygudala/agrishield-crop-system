@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v264) - Complete Purge of 1,000 Test Bookings & Cache Sanitization
+- **Summary:**
+  1. 🗑️ **MongoDB Database Purge:**
+     - Completely deleted all 1,000 synthetic test bookings (`id: {'$regex': '^BK-TEST-'}`) from the `equipment_bookings` collection.
+     - Deleted 74 linked test notifications (`BK-TEST`) from the `notifications` collection in MongoDB Atlas.
+     - Verified remaining test bookings count: **0** across primary cloud worker (`agrishield-ai-worker-1`) and cloud database.
+  2. 🧹 **Frontend Local Storage & State Sanitization:**
+     - Updated `EquipmentBookingPage.jsx`: Filtered out any legacy `BK-TEST-` bookings from `myBookings` initial state, `handleBookingsSync`, and remote booking fetching. Auto-purges old cache in `localStorage.setItem('agrishield_equipment_bookings')`.
+     - Updated `ProviderDashboardPage.jsx`: Filtered out `BK-TEST-` bookings from `bookingsList` initial state, local parsing, and remote API fetching.
+     - Updated `NotificationsPage.jsx`: Filtered out `BK-TEST-` bookings when synthesizing notifications for equipment providers.
+  3. 📦 **Production Build:** Verified with `npm run build` — 0 errors in 29.29s.
+- **Files modified**: `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v263) - Full-Screen Real Messenger Experience (Option B) for Notifications & 2-Way Chat
 - **Summary:**
   1. 📱 **Full-Screen Immersive Messenger Container (`NotificationsPage.jsx`):**

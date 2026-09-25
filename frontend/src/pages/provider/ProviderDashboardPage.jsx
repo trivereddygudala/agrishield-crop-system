@@ -261,7 +261,13 @@ export default function ProviderDashboardPage() {
       const saved = localStorage.getItem('agrishield_equipment_bookings');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(filtered));
+          }
+          return filtered;
+        }
       }
     } catch (e) {}
     return [];
@@ -274,7 +280,9 @@ export default function ProviderDashboardPage() {
         const saved = localStorage.getItem('agrishield_equipment_bookings');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) local = parsed;
+          if (Array.isArray(parsed)) {
+            local = parsed.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
+          }
         }
       } catch (e) {}
 
@@ -291,7 +299,7 @@ export default function ProviderDashboardPage() {
           try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
         }
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
-          const remote = res.data.bookings;
+          const remote = res.data.bookings.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
           const mergedMap = new Map();
           // 1. Put local items in map first
           local.forEach(b => {

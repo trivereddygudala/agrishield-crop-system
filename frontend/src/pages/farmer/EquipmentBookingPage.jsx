@@ -211,12 +211,16 @@ export default function EquipmentBookingPage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed
-            .filter(b => b && b.id !== 'BK-78210')
+          const filtered = parsed
+            .filter(b => b && b.id !== 'BK-78210' && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'))
             .map(b => ({
               ...b,
               phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
             }));
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(filtered));
+          }
+          return filtered;
         }
       }
     } catch (e) {}
@@ -231,10 +235,12 @@ export default function EquipmentBookingPage() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            setMyBookings(parsed.filter(b => b && b.id !== 'BK-78210').map(b => ({
-              ...b,
-              phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
-            })));
+            setMyBookings(parsed
+              .filter(b => b && b.id !== 'BK-78210' && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'))
+              .map(b => ({
+                ...b,
+                phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
+              })));
           }
         }
       } catch (e) {}
@@ -270,7 +276,7 @@ export default function EquipmentBookingPage() {
           try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
         }
         if (isMounted && res.data?.bookings && Array.isArray(res.data.bookings)) {
-          const remoteBookings = res.data.bookings;
+          const remoteBookings = res.data.bookings.filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
           const remoteMap = new Map();
           remoteBookings.forEach(b => {
             const key = b && (b.id || b.bookingId);

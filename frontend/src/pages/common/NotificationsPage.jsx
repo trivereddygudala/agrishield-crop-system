@@ -155,7 +155,8 @@ export default function NotificationsPage() {
       // If equipment provider, synthesize notifications from recorded machinery bookings
       if (isEquipmentProvider) {
         try {
-          let bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
+          let bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]')
+            .filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
           try {
             let bRes = await API.get('/api/v1/equipment/bookings');
             if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
@@ -169,7 +170,9 @@ export default function NotificationsPage() {
             }
             if (bRes.data?.bookings && Array.isArray(bRes.data.bookings)) {
               const bMap = new Map();
-              bRes.data.bookings.forEach(b => { if (b && b.id) bMap.set(b.id, b); });
+              bRes.data.bookings
+                .filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'))
+                .forEach(b => { if (b && b.id) bMap.set(b.id, b); });
               bookings.forEach(b => { if (b && b.id && !bMap.has(b.id)) bMap.set(b.id, b); });
               bookings = Array.from(bMap.values());
             }
