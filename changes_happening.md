@@ -2,6 +2,19 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v261) - 1-Tap Live Mobile GPS Toggle for Farm Weather & Rain Forecast
+- **Summary:** Added 1-tap Live Mobile GPS toggle on the Farm Weather & Rain Forecast card in `FieldIntelligenceWidget.jsx`:
+  1. 📍 **Seamless Dual-Location Switching:**
+     - Added an interactive **"ఫోన్ GPS / Live GPS"** button directly on the weather card header beside the refresh control.
+     - **Farm Field Mode (Default):** Displays hyperlocal weather for the farmer's registered farm plot (e.g. *Pasupugallu, Prakasam*), ensuring that crop spraying safety windows always reflect the actual crop field rather than wherever the farmer is currently traveling.
+     - **Live Mobile GPS Mode (Active):** Reads real-time satellite coordinates from `navigator.geolocation.getCurrentPosition()`, illuminates a glowing emerald badge (`Phone GPS • Live Sync`), and displays weather for the farmer's immediate live phone location.
+  2. 🔄 **Dynamic Geolocation Feedback:**
+     - Displays live lat/lon coordinates in the sub-header with bouncing green map pin animation and automatic error-handling fallback.
+  3. 📦 **Production Build:** Verified with `npm run build` — 0 errors in 28.23s.
+- **Files modified**: `frontend/src/components/intelligence/FieldIntelligenceWidget.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v260) - High-Visibility Contrast, Glowing Role Buttons & Clean Footers
 - **Summary:** Refined `LoginPage.jsx` and `RegisterPage.jsx` following user mobile and desktop screenshot reviews:
   1. 🌟 **Crystal-Clear Color Visibility:**

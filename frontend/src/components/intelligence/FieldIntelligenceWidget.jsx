@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Sun, Cloud, CloudRain, Wind, Droplets, RefreshCw, CheckCircle2, ShieldCheck, MapPin, Sparkles, AlertCircle } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Wind, Droplets, RefreshCw, CheckCircle2, ShieldCheck, MapPin, Sparkles, AlertCircle, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, Badge, Skeleton } from '../ui/index';
 import API from '../../services/api';
@@ -17,17 +17,28 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
   const [loading, setLoading] = useState(!_cachedWeather);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchWeather = useCallback(async (bypassCache = false) => {
+  // 1-Tap Live Mobile GPS States
+  const [useLiveGps, setUseLiveGps] = useState(false);
+  const [liveGpsCoords, setLiveGpsCoords] = useState(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const fetchWeather = useCallback(async (bypassCache = false, customCoords = null) => {
     if (bypassCache) setRefreshing(true);
     try {
-      const targetId = farmId || activeFarm?.id || 'default';
+      const activeCoords = customCoords || (useLiveGps ? liveGpsCoords : null);
+      const queryLat = activeCoords ? activeCoords.lat : lat;
+      const queryLon = activeCoords ? activeCoords.lon : lon;
+
+      const targetId = activeCoords ? 'live_device_gps' : (farmId || activeFarm?.id || 'default');
       let query = `farm_id=${targetId}`;
-      if (lat && lon) query += `&lat=${lat}&lon=${lon}`;
-      if (bypassCache) query += `&bypass_cache=true`;
+      if (queryLat && queryLon) query += `&lat=${queryLat}&lon=${queryLon}`;
+      if (bypassCache || activeCoords) query += `&bypass_cache=true`;
 
       const res = await API.get(`/api/intelligence/weather?${query}`);
       if (res.data) {
-        _cachedWeather = res.data;
+        if (!activeCoords) {
+          _cachedWeather = res.data;
+        }
         setData(res.data);
       }
     } catch (err) {
@@ -36,11 +47,43 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [farmId, activeFarm, lat, lon]);
+  }, [farmId, activeFarm, lat, lon, useLiveGps, liveGpsCoords]);
 
   useEffect(() => {
     fetchWeather(false);
   }, [fetchWeather]);
+
+  const handleToggleGps = () => {
+    if (useLiveGps) {
+      setUseLiveGps(false);
+      setLiveGpsCoords(null);
+      fetchWeather(false, null);
+    } else {
+      if (!navigator.geolocation) {
+        alert(isTe ? "ఈ పరికరంలో GPS సదుపాయం అందుబాటులో లేదు." : "GPS Geolocation is not supported by your browser.");
+        return;
+      }
+      setGpsLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = {
+            lat: Number(pos.coords.latitude.toFixed(4)),
+            lon: Number(pos.coords.longitude.toFixed(4))
+          };
+          setLiveGpsCoords(coords);
+          setUseLiveGps(true);
+          setGpsLoading(false);
+          fetchWeather(true, coords);
+        },
+        (err) => {
+          console.warn("GPS location permission/error:", err);
+          setGpsLoading(false);
+          alert(isTe ? "GPS లొకేషన్ పొందలేకపోయాము. దయచేసి బ్రౌజర్ లొకేషన్ అనుమతి ఆన్ చేయండి." : "Could not retrieve live GPS location. Please check browser location permissions.");
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+      );
+    }
+  };
 
   if (loading && !data) {
     return (
@@ -91,23 +134,50 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
                 <span>{isTe ? '⛅ పొలం వాతావరణం & వర్ష సూచన' : '⛅ Farm Weather & Rain Forecast'}</span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3 h-3 text-sky-500 shrink-0" />
-                <span>{locationDisplay}</span>
+                <MapPin className={`w-3.5 h-3.5 shrink-0 ${useLiveGps ? 'text-emerald-500 animate-bounce' : 'text-sky-500'}`} />
+                <span className={useLiveGps ? 'text-emerald-700 dark:text-emerald-300 font-black' : ''}>
+                  {useLiveGps 
+                    ? `${data?.location || (isTe ? 'మొబైల్ లైవ్ లొకేషన్' : 'Current Mobile Location')} (${liveGpsCoords?.lat}°, ${liveGpsCoords?.lon}°)` 
+                    : locationDisplay}
+                </span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant="info" size="sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse mr-1" />
-              {isTe ? 'లైవ్ అప్డేట్' : 'Live Sync'}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* 1-Tap Live GPS vs Farm Location Switcher */}
+            <button
+              type="button"
+              onClick={handleToggleGps}
+              disabled={gpsLoading || refreshing}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-black transition-all cursor-pointer select-none active:scale-95 ${
+                useLiveGps
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400 shadow-md shadow-emerald-500/30'
+                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/40'
+              }`}
+              title={useLiveGps ? (isTe ? 'రిజిస్టర్డ్ పొలం లొకేషన్‌కి మారండి' : 'Switch back to Registered Farm Location') : (isTe ? 'ఫోన్ లైవ్ GPS ఉపయోగించండి' : 'Switch to Live Mobile GPS')}
+            >
+              <Navigation className={`w-3.5 h-3.5 ${useLiveGps ? 'fill-current animate-pulse' : ''} ${gpsLoading ? 'animate-spin' : ''}`} />
+              <span>
+                {gpsLoading
+                  ? (isTe ? 'లొకేషన్...' : 'Locating...')
+                  : (useLiveGps ? (isTe ? 'లైవ్ GPS' : 'Live GPS') : (isTe ? 'ఫోన్ GPS' : 'Phone GPS'))}
+              </span>
+            </button>
+
+            {/* Status Badge */}
+            <Badge variant={useLiveGps ? "healthy" : "info"} size="sm">
+              <span className={`w-1.5 h-1.5 rounded-full mr-1 ${useLiveGps ? 'bg-emerald-500 animate-ping' : 'bg-sky-500 animate-pulse'}`} />
+              {useLiveGps ? (isTe ? 'లైవ్ ఫోన్ GPS' : 'Phone GPS') : (isTe ? 'పొలం లొకేషన్' : 'Farm Field')}
             </Badge>
+
+            {/* Refresh Button */}
             <button 
               type="button" 
               onClick={() => fetchWeather(true)} 
-              disabled={refreshing}
-              className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-sky-500 transition-colors"
-              title="Refresh Weather"
+              disabled={refreshing || gpsLoading}
+              className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-sky-500 transition-colors cursor-pointer"
+              title={isTe ? 'వాతావరణం రిఫ్రెష్ చేయండి' : 'Refresh Weather'}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
