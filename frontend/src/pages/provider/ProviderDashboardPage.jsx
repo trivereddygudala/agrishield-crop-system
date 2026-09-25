@@ -373,7 +373,9 @@ export default function ProviderDashboardPage() {
   const [activeChatBooking, setActiveChatBooking] = useState(null);
 
   const openChatForProviderBooking = (booking) => {
-    const bKey = booking.id || booking.bookingId || 'BK-1';
+    const rawKey = String(booking.id || booking.bookingId || 'BK-1').trim();
+    const cleanId = rawKey.replace(/^notif-(?:stat-)?/, '').replace(/^notif-order-/, '').replace(/^BK-/, '');
+    const bKey = `BK-${cleanId}`;
     const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '9440182736';
     const farmerName = booking.farmerName || 'Trivendra reddy';
     const equipmentTitle = booking.equipmentTitle || booking.title || 'Farm Machinery Rental';
@@ -737,6 +739,8 @@ export default function ProviderDashboardPage() {
           type: 'booking_status',
           category: 'booking',
           priority: 'HIGH',
+          role: 'farmer',
+          target_role: 'farmer',
           title: notifTitle,
           title_te: notifTitle,
           message: notifMsg,
@@ -752,6 +756,26 @@ export default function ProviderDashboardPage() {
           const userNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
           localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...userNotifs.filter(n => n.id !== notifObj.id)]));
         } catch (e) {}
+
+        // Write system confirmation milestone notice into the canonical shared booking thread
+        const cleanBId = String(bookingId).replace(/^notif-(?:stat-)?/, '').replace(/^BK-/, '');
+        const canonicalKey = `agrishield_chat_thread_BK-${cleanBId}`;
+        try {
+          const thread = JSON.parse(localStorage.getItem(canonicalKey) || '[]');
+          const noticeMsg = {
+            id: `msg_sys_${Date.now()}`,
+            sender: 'system',
+            type: 'system_notice',
+            text: isTe
+              ? `✅ పరికర ప్రొవైడర్ మీ బుకింగ్‌ను ఆమోదించారు (${bookingDate} కోసం షెడ్యూల్ చేయబడింది)`
+              : `✅ Booking Accepted by Provider (Scheduled for ${bookingDate})`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+          localStorage.setItem(canonicalKey, JSON.stringify([...thread, noticeMsg]));
+          window.dispatchEvent(new CustomEvent('agrishield_chat_message_sent', {
+            detail: { storageKey: canonicalKey, message: noticeMsg }
+          }));
+        } catch (_) {}
 
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
       }

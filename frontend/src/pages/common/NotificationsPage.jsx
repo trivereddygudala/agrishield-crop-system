@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Bell, Search, Trash2, CheckCheck, Filter, RefreshCw,
   AlertTriangle, CloudRain, Droplets, BatteryWarning,
@@ -189,6 +189,22 @@ export default function NotificationsPage() {
 
   // Selected Notification Dialog (Google Message Reader / 2-way View)
   const [selectedMessage, setSelectedMessage] = useState(null);
+  const [searchParams] = useSearchParams();
+
+  // Auto-open requested notification or booking chat from URL query parameter
+  useEffect(() => {
+    const targetBookingId = searchParams.get('bookingId') || searchParams.get('booking_id');
+    const targetNotifId = searchParams.get('id') || searchParams.get('notification_id');
+    if ((targetBookingId || targetNotifId) && notifications.length > 0) {
+      const match = notifications.find(n =>
+        (targetBookingId && (n.booking_id === targetBookingId || n.bookingId === targetBookingId || n.id === targetBookingId || `BK-${n.id}` === targetBookingId)) ||
+        (targetNotifId && (n.notification_id === targetNotifId || n.id === targetNotifId))
+      );
+      if (match) {
+        setSelectedMessage(match);
+      }
+    }
+  }, [searchParams, notifications]);
 
   // Settings Modal State
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -256,8 +272,9 @@ export default function NotificationsPage() {
         const savedUserNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
         if (Array.isArray(savedUserNotifs)) {
           if (!isEquipmentProvider) {
-            // Strictly exclude incoming machinery requests and "booked your" notifications for farmers
+            // Display only farmer-directed notifications without wiping out provider notifications in shared storage
             localNotifs = savedUserNotifs.filter(n => {
+              if (n.target_role === 'equipment_provider' || n.role === 'equipment_provider') return false;
               const title = (n.title || '').toLowerCase();
               const msg = (n.message || '').toLowerCase();
               const isIncomingOrder = title.includes('కొత్త యంత్ర బుకింగ్') ||
@@ -267,11 +284,12 @@ export default function NotificationsPage() {
                                      msg.includes('బుక్ చేసుకున్నారు');
               return !isIncomingOrder;
             });
-            if (localNotifs.length !== savedUserNotifs.length) {
-              try { localStorage.setItem('agrishield_user_notifications', JSON.stringify(localNotifs)); } catch (_) {}
-            }
           } else {
-            localNotifs = [...savedUserNotifs];
+            // Display notifications intended for equipment providers
+            localNotifs = savedUserNotifs.filter(n => {
+              if (n.target_role === 'farmer' && (n.type === 'booking_status' || n.category === 'booking_status')) return false;
+              return true;
+            });
           }
 
           localNotifs = localNotifs.map(ln => {
@@ -403,9 +421,25 @@ export default function NotificationsPage() {
         } catch (e) {}
       }
 
-      // Persist local notifications with updated read states
+      // Persist read states back to storage without purging the other role's notifications
       try {
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify(localNotifs));
+        const rawExisting = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        if (Array.isArray(rawExisting)) {
+          const updatedRaw = rawExisting.map(n => {
+            const nId = n.notification_id || n.id || n.booking_id;
+            if (readIds.has(nId) || (n.booking_id && (readIds.has(`booking-${n.booking_id}`) || readIds.has(n.booking_id)))) {
+              return { ...n, read: true };
+            }
+            return n;
+          });
+          localNotifs.forEach(ln => {
+            const lnId = ln.notification_id || ln.id || ln.booking_id;
+            if (!updatedRaw.some(n => (n.notification_id || n.id || n.booking_id) === lnId)) {
+              updatedRaw.push(ln);
+            }
+          });
+          localStorage.setItem('agrishield_user_notifications', JSON.stringify(updatedRaw));
+        }
       } catch (_) {}
 
       // Merge local and server without duplicates

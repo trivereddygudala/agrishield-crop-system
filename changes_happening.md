@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v293) - Real Two-Way Machinery Messenger Architecture & Cross-Profile Booking Notification Stream
+- **Summary:**
+  1. 🧹 **Purged Automatic Mock Messages & Voice Notes (`GoogleMessageReader.jsx`):**
+     - Completely removed the hardcoded mock messages (`msg_f1` fake farm coordinates and `msg_p1` mock voice reply audio).
+     - Standardized initial chat stream to an empty array (`defaultMessages = []`) with runtime filters purging any legacy `msg_f1`, `msg_p1`, and voice note records from `localStorage`.
+     - Removed automatic GPS trigger chips from bottom bar to prevent accidental mock location spam; intentional location sharing remains accessible via Paperclip attachment menu.
+     - Removed microphone recording UI, mock voice audio player, scrubbing waveforms, and mock provider auto-responder bots.
+  2. 💬 **Role-Aware Real Two-Way Messenger (`GoogleMessageReader.jsx`):**
+     - Implemented dynamic role recognition (`isProviderViewer = user?.role === 'equipment_provider'`).
+     - Message alignment is strictly role-aware: outgoing messages align to the right in blue bubbles with checkmarks; counterparty messages align to the left in slate bubbles with sender identity badges.
+     - Header title and quick communication buttons adapt symmetrically: Farmer sees the Provider's business name and phone/WhatsApp; Provider sees the Farmer's name and contact number.
+     - Supports centered milestone badges for system status updates (`msg.type === 'system_notice'`).
+     - Added live cross-tab and cross-window real-time event synchronization (`agrishield_chat_message_sent`).
+  3. 🔔 **Fixed Provider Notification Dispatch & Role Isolation (`EquipmentBookingPage.jsx` & `NotificationsPage.jsx`):**
+     - In `EquipmentBookingPage.jsx`, new farmer bookings are tagged with `target_role: 'equipment_provider'` and preserved in `agrishield_user_notifications`.
+     - In `NotificationsPage.jsx`, resolved role filtering bug where viewing notifications as a farmer inadvertently wiped out provider order notifications from shared browser storage.
+     - Added `useSearchParams` deep linking (`?bookingId=...` / `?id=...`) to immediately open relevant booking threads.
+  4. 🤝 **Provider Acceptance Milestone Notice (`ProviderDashboardPage.jsx`):**
+     - When the provider clicks `[ Accept Booking ]`, booking moves to `confirmed`, dispatches an acceptance notification to the Farmer (`target_role: 'farmer'`), and writes a system milestone notice (`msg.type === 'system_notice'`) into the canonical shared booking chat thread.
+- **Files modified:** `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-26 (v292) - Complete Zero-Duplicate Data Architecture Across Farmer & Provider Portals
 - **Summary:**
   1. 🛡️ **Master Deduplication Engine (`equipmentDeduplication.js`):**
