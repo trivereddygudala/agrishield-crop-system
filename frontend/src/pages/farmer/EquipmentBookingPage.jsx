@@ -53,6 +53,11 @@ import {
   getCoordinatesForLocation
 } from '../../data/indiaLocations';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
+import {
+  CANONICAL_STARTER_FLEET,
+  deduplicateEquipment,
+  deduplicateBookings
+} from '../../utils/equipmentDeduplication';
 
 // ═══════════════════════════════════════════════════════════════════
 // CONCEPT 2 STUDIO IMAGE RESOLVER & HIGH-RES FALLBACKS
@@ -106,7 +111,7 @@ export default function EquipmentBookingPage() {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
 
-  // 100% Real User Equipment Database with Multi-Store & Fleet LocalStorage sync
+  // 100% Real User Equipment Database with Multi-Store & Fleet LocalStorage sync (Zero Duplicates)
   const loadMergedEquipment = useCallback(() => {
     try {
       const providerSaved = JSON.parse(localStorage.getItem('agrishield_provider_fleet_inventory') || '[]');
@@ -115,238 +120,22 @@ export default function EquipmentBookingPage() {
       // providerSaved takes priority as it represents the provider's latest active status and toggles
       const allItems = [
         ...(Array.isArray(providerSaved) ? providerSaved : []),
-        ...(Array.isArray(customSaved) ? customSaved : [])
+        ...(Array.isArray(customSaved) ? customSaved : []),
+        ...CANONICAL_STARTER_FLEET
       ];
 
-      const validItems = allItems.filter(item => item && !item.id?.startsWith('eq-tr-') && !item.id?.startsWith('eq-dr-') && !item.id?.startsWith('eq-ir-') && !item.id?.startsWith('eq-hv-'));
+      const cleanItems = deduplicateEquipment(allItems);
 
-      const starter = [
-        {
-          id: 'FL-001',
-          title: 'John Deere 5050D Tractor',
-          teluguTitle: 'జాన్ డీర్ 5050D 4WD ట్రాక్టర్',
-          category: 'tractor',
-          modelYear: '2023',
-          horsepower: '50 HP',
-          ratePerAcre: 900,
-          hourlyRate: 900,
-          ratePerHour: 900,
-          dailyRate: 3600,
-          available: true,
-          availableToday: true,
-          availableTime: '6:00 AM - 6:00 PM',
-          implements: ['Rotavator', 'MB Plough', 'Cultivator'],
-          implementsIncluded: ['Rotavator', 'MB Plough'],
-          village: 'Pasupugallu',
-          locationVillage: 'Pasupugallu',
-          district: 'Prakasam',
-          locationDistrict: 'Prakasam',
-          mandal: 'Mundlamuru',
-          state: 'Andhra Pradesh',
-          phone: '9440182736',
-          contactPhone: '9440182736',
-          providerName: 'Agro Fleet Service (Pasupugallu)',
-          ownerName: 'Agro Fleet Service (Pasupugallu)',
-          operatorIncluded: true,
-          fuelIncluded: true,
-          rating: 4.9,
-          bookingsCount: 42,
-          distanceKm: 2.1,
-          imageUrl: CURATED_FARM_PHOTOS.tractor || 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=800&q=80',
-          specs: '50 HP · 4WD · Power Steering · With Driver & Fuel Included'
-        },
-        {
-          id: 'FL-002',
-          title: 'DJI Agras T40 Agriculture Drone',
-          teluguTitle: 'DJI ఆగ్రాస్ T40 వ్యవసాయ స్ప్రేయింగ్ డ్రోన్',
-          category: 'drone',
-          modelYear: '2024',
-          horsepower: 'Dual Atomized Mist',
-          ratePerAcre: 450,
-          hourlyRate: 1800,
-          ratePerHour: 1800,
-          dailyRate: 7200,
-          available: true,
-          availableToday: true,
-          availableTime: '5:30 AM - 6:30 PM',
-          implements: ['Centrifugal Nozzles', 'Obstacle Radar'],
-          implementsIncluded: ['40L Tank', 'Certified Pilot'],
-          village: 'Mundlamuru',
-          locationVillage: 'Mundlamuru',
-          district: 'Prakasam',
-          locationDistrict: 'Prakasam',
-          mandal: 'Mundlamuru',
-          state: 'Andhra Pradesh',
-          phone: '9848012345',
-          contactPhone: '9848012345',
-          providerName: 'Kisan Drone Kendra',
-          ownerName: 'Kisan Drone Kendra',
-          operatorIncluded: true,
-          fuelIncluded: true,
-          rating: 4.8,
-          bookingsCount: 89,
-          distanceKm: 3.4,
-          imageUrl: CURATED_FARM_PHOTOS.drone || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=800&q=80',
-          specs: '40L Tank · DGCA Certified Pilot Included · 5 Acres/hr Spraying'
-        },
-        {
-          id: 'FL-003',
-          title: 'Kirloskar 5HP Solar Water Pump',
-          teluguTitle: 'కిర్లోస్కర్ 5HP సోలార్ వాటర్ పంప్',
-          category: 'irrigation',
-          modelYear: '2023',
-          horsepower: '5 HP Solar DC',
-          ratePerAcre: 350,
-          hourlyRate: 350,
-          ratePerHour: 350,
-          dailyRate: 1800,
-          available: true,
-          availableToday: true,
-          availableTime: '7:00 AM - 5:00 PM',
-          implements: ['Solar Panels Trolley', 'High-Pressure Pipes'],
-          implementsIncluded: ['Solar Panels Trolley', 'Delivery Pipe 200m'],
-          village: 'Pasupugallu',
-          locationVillage: 'Pasupugallu',
-          district: 'Prakasam',
-          locationDistrict: 'Prakasam',
-          mandal: 'Mundlamuru',
-          state: 'Andhra Pradesh',
-          phone: '9440182736',
-          contactPhone: '9440182736',
-          providerName: 'Solar Agri Tech Hub',
-          ownerName: 'Solar Agri Tech Hub',
-          operatorIncluded: true,
-          fuelIncluded: true,
-          rating: 4.9,
-          bookingsCount: 31,
-          distanceKm: 1.5,
-          imageUrl: CURATED_FARM_PHOTOS.solarPump || 'https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?auto=format&fit=crop&w=800&q=80',
-          specs: '5 HP · Solar Powered (Zero Fuel Cost) · 50,000 L/hr Discharge'
-        },
-        {
-          id: 'FL-004',
-          title: 'Mahindra 575 DI 45HP Tractor',
-          teluguTitle: 'మహీంద్రా 575 DI 45HP ట్రాక్టర్',
-          category: 'tractor',
-          modelYear: '2023',
-          horsepower: '45 HP',
-          ratePerAcre: 800,
-          hourlyRate: 800,
-          ratePerHour: 800,
-          dailyRate: 3200,
-          available: true,
-          availableToday: true,
-          availableTime: '6:00 AM - 6:00 PM',
-          implements: ['Rotavator', 'Plough', 'Cultivator'],
-          implementsIncluded: ['Rotavator', 'Plough'],
-          village: 'Pasupugallu',
-          locationVillage: 'Pasupugallu',
-          district: 'Prakasam',
-          locationDistrict: 'Prakasam',
-          mandal: 'Mundlamuru',
-          state: 'Andhra Pradesh',
-          phone: '9440182736',
-          contactPhone: '9440182736',
-          providerName: 'Agro Fleet Service (Pasupugallu)',
-          ownerName: 'Agro Fleet Service (Pasupugallu)',
-          operatorIncluded: true,
-          fuelIncluded: true,
-          rating: 5.0,
-          bookingsCount: 64,
-          distanceKm: 2.5,
-          imageUrl: CURATED_FARM_PHOTOS.tractorJohnDeere || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80',
-          specs: '45 HP · Heavy Rotavator & MB Plough Included · Black Soil Ready'
-        },
-        {
-          id: 'FL-005',
-          title: 'Preet 987 Combined Harvester',
-          teluguTitle: 'ప్రీత్ 987 కంబైన్డ్ హార్వెస్టర్',
-          category: 'harvester',
-          modelYear: '2023',
-          horsepower: '101 HP',
-          ratePerAcre: 2200,
-          hourlyRate: 1800,
-          ratePerHour: 1800,
-          dailyRate: 9500,
-          available: true,
-          availableToday: false,
-          availableTime: '7:00 AM - 6:00 PM',
-          implements: ['Paddy Cutter Bar', 'Straw Reaper'],
-          implementsIncluded: ['14-foot Cutter Bar'],
-          village: 'Mundlamuru',
-          locationVillage: 'Mundlamuru',
-          district: 'Prakasam',
-          locationDistrict: 'Prakasam',
-          mandal: 'Mundlamuru',
-          state: 'Andhra Pradesh',
-          phone: '9848012345',
-          contactPhone: '9848012345',
-          providerName: 'Kisan Harvester Union',
-          ownerName: 'Kisan Harvester Union',
-          operatorIncluded: true,
-          fuelIncluded: true,
-          rating: 4.7,
-          bookingsCount: 28,
-          distanceKm: 4.8,
-          imageUrl: CURATED_FARM_PHOTOS.harvester || 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80',
-          specs: '101 HP · Multi-Crop Paddy & Maize Harvester · Minimal Grain Loss'
-        }
-      ];
+      // Clean corrupted localStorage entries immediately so duplicates never persist across reloads
+      try {
+        localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanItems));
+        localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanItems));
+      } catch (e) {}
 
-      if (validItems.length === 0) {
-        try {
-          localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(starter));
-          localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(starter));
-        } catch (e) {}
-        return starter;
-      }
-
-      const seen = new Set();
-      const result = [];
-      for (const item of validItems) {
-        const id = item.id || `eq-${item.title}`;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        const isItemAvailable = item.available !== false;
-        result.push({
-          ...item,
-          id,
-          title: item.title || 'Farm Machinery',
-          category: item.category || 'tractor',
-          phone: item.phone || item.contactPhone || '9440182736',
-          contactPhone: item.contactPhone || item.phone || '9440182736',
-          providerName: item.providerName || item.ownerName || 'Local Machinery Provider',
-          village: item.village || item.locationVillage || 'Pasupugallu',
-          mandal: item.mandal || 'Mundlamuru',
-          district: item.district || item.locationDistrict || 'Prakasam',
-          ratePerAcre: Number(item.ratePerAcre) || Number(item.hourlyRate) || 800,
-          ratePerHour: Number(item.hourlyRate) || Number(item.ratePerHour) || 800,
-          implements: Array.isArray(item.implements) ? item.implements : Array.isArray(item.implementsIncluded) ? item.implementsIncluded : ['Rotavator', 'Plough'],
-          implementsIncluded: Array.isArray(item.implementsIncluded) ? item.implementsIncluded : Array.isArray(item.implements) ? item.implements : ['Rotavator', 'Plough'],
-          available: isItemAvailable,
-          availableToday: isItemAvailable && item.availableToday !== false,
-          operatorIncluded: item.operatorIncluded !== false,
-          rating: item.rating || 4.9,
-          bookingsCount: item.bookingsCount || 35,
-          distanceKm: item.distanceKm || (item.category === 'tractor' ? 2.1 : item.category === 'drone' ? 3.4 : item.category === 'irrigation' ? 1.5 : 4.2),
-          imageUrl: item.imageUrl || item.image || getEquipmentFallbackImage(item.category, item.title),
-          specs: item.specs || `${item.horsepower || ''} available for immediate field hire in ${item.village || item.locationVillage || 'Pasupugallu'}.`
-        });
-      }
-
-      // If user had single old item, complement with starter fleet so full catalog displays
-      if (result.length < 3) {
-        for (const s of starter) {
-          if (!result.some(r => r.id === s.id || r.title === s.title)) {
-            result.push(s);
-          }
-        }
-      }
-
-      return result;
+      return cleanItems;
     } catch (e) {
       console.warn('Failed to parse equipment:', e);
-      return [];
+      return CANONICAL_STARTER_FLEET;
     }
   }, []);
 
@@ -409,7 +198,7 @@ export default function EquipmentBookingPage() {
     } catch (e) {}
   }, []);
 
-  // 100% Real User Bookings with LocalStorage sync (Zero mock bookings)
+  // 100% Real User Bookings with LocalStorage sync (Zero Duplicates & Zero Mock Data)
   const [myBookings, setMyBookings] = useState(() => {
     try {
       const deletedIds = getDeletedBookingIds();
@@ -417,22 +206,11 @@ export default function EquipmentBookingPage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const filtered = parsed
-            .filter(b => {
-              if (!b) return false;
-              const key = String(b.id || b.bookingId || '');
-              if (deletedIds.has(key)) return false;
-              if (key === 'BK-78210' || key.startsWith('BK-TEST-')) return false;
-              return true;
-            })
-            .map(b => ({
-              ...b,
-              phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
-            }));
-          if (filtered.length !== parsed.length) {
-            localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(filtered));
+          const clean = deduplicateBookings(parsed, deletedIds);
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(clean));
           }
-          return filtered;
+          return clean;
         }
       }
     } catch (e) {}
@@ -448,18 +226,8 @@ export default function EquipmentBookingPage() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            setMyBookings(parsed
-              .filter(b => {
-                if (!b) return false;
-                const key = String(b.id || b.bookingId || '');
-                if (deletedIds.has(key)) return false;
-                if (key === 'BK-78210' || key.startsWith('BK-TEST-')) return false;
-                return true;
-              })
-              .map(b => ({
-                ...b,
-                phone: b.phone || b.farmerPhone || b.contactPhone || '9876543210'
-              })));
+            const clean = deduplicateBookings(parsed, deletedIds);
+            setMyBookings(clean);
           }
         }
       } catch (e) {}
@@ -472,14 +240,16 @@ export default function EquipmentBookingPage() {
     };
   }, [getDeletedBookingIds]);
 
-  // Save bookings to localStorage
+  // Save bookings to localStorage with deduplication check
   useEffect(() => {
     try {
-      localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(myBookings));
+      const deletedIds = getDeletedBookingIds();
+      const clean = deduplicateBookings(myBookings, deletedIds);
+      localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(clean));
     } catch (e) {}
-  }, [myBookings]);
+  }, [myBookings, getDeletedBookingIds]);
 
-  // Fetch remote bookings from backend for multi-device real-time sync
+  // Fetch remote bookings from backend for multi-device real-time sync (With Zero Duplicates)
   useEffect(() => {
     let isMounted = true;
     const fetchRemoteBookings = async () => {
@@ -511,12 +281,11 @@ export default function EquipmentBookingPage() {
 
           setMyBookings(prev => {
             let hasChanged = false;
-            // 1. Update existing local bookings with latest remote status (authoritative decisions: rejected/confirmed/completed)
+            // 1. Update existing local bookings with latest remote status
             const updatedExisting = prev.map(localB => {
               const key = localB && (localB.id || localB.bookingId);
               if (remoteMap.has(key)) {
                 const remoteB = remoteMap.get(key);
-                // Strict rule: If farmer cancelled locally, DO NOT let a stale remote 'pending' overwrite it!
                 const isLocallyCancelled = String(localB.status).toLowerCase() === 'cancelled';
                 const isRemotePending = String(remoteB.status).toLowerCase() === 'pending';
                 const effectiveStatus = (isLocallyCancelled && isRemotePending) ? 'cancelled' : (remoteB.status || localB.status);
@@ -535,20 +304,9 @@ export default function EquipmentBookingPage() {
               return localB;
             });
 
-            // 2. Append new remote bookings not present in local list (excluding blacklisted deleted items)
-            const existingKeys = new Set(updatedExisting.map(b => b && (b.id || b.bookingId)));
-            const brandNew = [];
-            remoteBookings.forEach(rb => {
-              const key = rb && (rb.id || rb.bookingId);
-              if (key && !existingKeys.has(key) && !deletedIds.has(String(key))) {
-                brandNew.push(rb);
-                existingKeys.add(key);
-                hasChanged = true;
-              }
-            });
-
-            const finalMerged = [...brandNew, ...updatedExisting];
-            if (hasChanged || prev.length === 0) {
+            // 2. Combine and deduplicate strictly
+            const finalMerged = deduplicateBookings([...remoteBookings, ...updatedExisting], deletedIds);
+            if (hasChanged || prev.length !== finalMerged.length) {
               try {
                 localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(finalMerged));
               } catch (e) {}
@@ -634,16 +392,11 @@ export default function EquipmentBookingPage() {
         const catalogItems = res?.data?.catalog || res?.data?.equipment;
         if (catalogItems && Array.isArray(catalogItems) && catalogItems.length > 0) {
           setEquipmentList(prev => {
-            const seen = new Set(prev.map(item => item.id));
-            const freshItems = catalogItems.filter(item => !seen.has(item.id));
-            if (freshItems.length > 0) {
-              const merged = [...prev, ...freshItems];
-              try {
-                localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(merged));
-              } catch (_) {}
-              return merged;
-            }
-            return prev;
+            const merged = deduplicateEquipment([...prev, ...catalogItems]);
+            try {
+              localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(merged));
+            } catch (_) {}
+            return merged;
           });
         }
       } catch (_) {}
@@ -655,9 +408,10 @@ export default function EquipmentBookingPage() {
   const availableMandals = useMemo(() => getMandals(locationState, locationDistrict), [locationState, locationDistrict]);
   const availableVillages = useMemo(() => getVillages(locationState, locationDistrict, locationMandal), [locationState, locationDistrict, locationMandal]);
 
-  // Filtered and Sorted Equipment Catalog
+  // Filtered and Sorted Equipment Catalog (Strict Zero-Duplicate Rendering)
   const displayedEquipment = useMemo(() => {
-    return equipmentList
+    const cleanList = deduplicateEquipment(equipmentList);
+    return cleanList
       .filter((item) => {
         // Category filter
         if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
@@ -844,10 +598,14 @@ export default function EquipmentBookingPage() {
     }
   ], []);
 
-  // Filtered Bookings & Count Badges
+  // Filtered Bookings & Count Badges (Strict Zero-Duplicate Guarantees)
+  const cleanMyBookings = useMemo(() => {
+    return deduplicateBookings(myBookings, getDeletedBookingIds());
+  }, [myBookings, getDeletedBookingIds]);
+
   const bookingCounts = useMemo(() => {
-    const counts = { all: myBookings.length, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
-    myBookings.forEach((b) => {
+    const counts = { all: cleanMyBookings.length, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+    cleanMyBookings.forEach((b) => {
       const s = String(b.status || 'pending').toLowerCase();
       if (s === 'pending') counts.pending++;
       else if (s === 'confirmed' || s === 'in-progress' || s === 'scheduled') counts.confirmed++;
@@ -855,11 +613,11 @@ export default function EquipmentBookingPage() {
       else if (s === 'cancelled' || s === 'canceled' || s === 'rejected' || s === 'declined') counts.cancelled++;
     });
     return counts;
-  }, [myBookings]);
+  }, [cleanMyBookings]);
 
   const filteredBookings = useMemo(() => {
-    if (bookingStatusFilter === 'all') return myBookings;
-    return myBookings.filter((b) => {
+    if (bookingStatusFilter === 'all') return cleanMyBookings;
+    return cleanMyBookings.filter((b) => {
       const s = String(b.status || 'pending').toLowerCase();
       if (bookingStatusFilter === 'pending') return s === 'pending';
       if (bookingStatusFilter === 'confirmed') return s === 'confirmed' || s === 'in-progress' || s === 'scheduled';
@@ -867,7 +625,7 @@ export default function EquipmentBookingPage() {
       if (bookingStatusFilter === 'cancelled') return s === 'cancelled' || s === 'canceled' || s === 'rejected' || s === 'declined';
       return true;
     });
-  }, [myBookings, bookingStatusFilter]);
+  }, [cleanMyBookings, bookingStatusFilter]);
 
   // Cancel Booking Handler
   const handleCancelBooking = async () => {
@@ -1923,10 +1681,11 @@ export default function EquipmentBookingPage() {
             isTe={isTe}
             onClose={() => setIsBookModalOpen(false)}
             onConfirm={(newBooking) => {
-              setMyBookings((prev) => [newBooking, ...prev]);
+              setMyBookings((prev) => deduplicateBookings([newBooking, ...prev]));
               try {
                 const existing = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
-                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify([newBooking, ...existing.filter(b => b.id !== newBooking.id)]));
+                const clean = deduplicateBookings([newBooking, ...existing]);
+                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(clean));
                 window.dispatchEvent(new Event('agrishield_bookings_updated'));
               } catch (e) {}
               // Dispatch to backend API for multi-device cross-browser persistence (with dual-endpoint & direct fallback)

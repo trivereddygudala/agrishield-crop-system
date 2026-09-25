@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v292) - Complete Zero-Duplicate Data Architecture Across Farmer & Provider Portals
+- **Summary:**
+  1. 🛡️ **Master Deduplication Engine (`equipmentDeduplication.js`):**
+     - Created unified utility `frontend/src/utils/equipmentDeduplication.js` containing the standardized canonical starter fleet (`CANONICAL_STARTER_FLEET`), `deduplicateEquipment`, `deduplicateBookings`, and `getEquipmentFallbackImage`.
+     - Standardized the 5-item core machinery catalog (`FL-001` John Deere 5050D Tractor, `FL-002` DJI Agras T40 Drone, `FL-003` Kirloskar Solar Pump, `FL-004` Mahindra 575 DI Tractor, `FL-005` Preet 987 Harvester) with identical IDs, specs, and regional titles.
+  2. 🚜 **Farmer Equipment Booking Portal Deduplication (`EquipmentBookingPage.jsx`):**
+     - Completely eliminated duplicated machinery listings by combining `providerSaved`, `customSaved`, and remote catalog items through `deduplicateEquipment()` which checks both unique ID and normalized machine titles.
+     - Implemented multi-layer booking deduplication (`deduplicateBookings()`) checking exact ID, numeric ID (`BK-XXXXX` vs `XXXXX`), and semantic submission fingerprints (`title_date_slot_phone_acres`).
+     - Applied deduplication across `myBookings` initial state, `handleBookingsSync`, `fetchRemoteBookings`, `cleanMyBookings`, `bookingCounts`, and `filteredBookings` memoized pipelines.
+     - Automatically cleans corrupted duplicates from `localStorage` (`agrishield_equipment_bookings`, `agrishield_provider_fleet_inventory`, `agrishield_custom_equipment_listings`) upon load.
+  3. 📋 **Equipment Provider Portal Deduplication (`ProviderDashboardPage.jsx`):**
+     - Aligned default starter fleet with `CANONICAL_STARTER_FLEET` to permanently eradicate ID collision (where `FL-001` was conflicting between Mahindra and John Deere).
+     - Applied `deduplicateEquipment()` across `fleetList` initial state, remote fleet sync, and `handleAddEquipment()`.
+     - Applied `deduplicateBookings()` across `bookingsList` initial state, `fetchProviderBookings()`, `cleanBookingsList`, metric counters (`totalFleetCount`, `pendingOrdersCount`, `completedOrdersCount`, `totalEarnings`), and JSX rendering for both order cards and completed operations ledger.
+  4. 📦 **Production Build Validation:**
+     - Compiled with Vite (`npm run build`) with **0 errors** in 29.05s across 3,163 modules.
+- **Files modified:** `frontend/src/utils/equipmentDeduplication.js`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-25 (v291) - AgriShield In-App Direct Messaging & 2-Way Voice Notes Integration Across Equipment Booking & Provider Portal
 - **Summary:**
   1. 💬 **In-App Messaging System Integration Across Equipment Booking Cards (`EquipmentBookingPage.jsx`):**

@@ -46,6 +46,11 @@ import { useToast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/index';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
+import {
+  CANONICAL_STARTER_FLEET,
+  deduplicateEquipment,
+  deduplicateBookings
+} from '../../utils/equipmentDeduplication';
 
 // Concept 2 Clean Studio Machinery Image Resolver
 const getEquipmentFallbackImage = (category, title = '') => {
@@ -207,43 +212,30 @@ export default function ProviderDashboardPage() {
     );
   };
 
-  // ── Fleet Inventory State (Saved to localStorage) ──
+  // ── Fleet Inventory State (Saved to localStorage with Zero Duplicates) ──
   const [fleetList, setFleetList] = useState(() => {
     try {
       const saved = localStorage.getItem('agrishield_provider_fleet_inventory');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return deduplicateEquipment(parsed);
+        }
       }
     } catch (e) {}
-    // Default starting machinery for provider if brand new
-    return [
-      {
-        id: 'FL-001',
-        title: 'Mahindra 575 DI 45HP Tractor',
-        category: 'tractor',
-        modelYear: '2023',
-        horsepower: '45 HP',
-        hourlyRate: 850,
-        dailyRate: 6500,
-        available: true,
-        implementsIncluded: ['Rotavator', 'Cultivator', 'Disc Plough'],
-        locationVillage: user?.farm_location?.village || 'Pasupugallu',
-        locationDistrict: user?.farm_location?.district || 'Prakasam',
-        contactPhone: user?.phone || '9876543210'
-      }
-    ];
+    return CANONICAL_STARTER_FLEET;
   });
 
   useEffect(() => {
-    localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(fleetList));
+    const cleanFleet = deduplicateEquipment(fleetList);
+    localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanFleet));
     try {
-      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(fleetList));
+      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanFleet));
       window.dispatchEvent(new Event('agrishield_equipment_updated'));
     } catch (e) {}
   }, [fleetList]);
 
-  // Sync remote fleet catalog items from backend for cross-device support
+  // Sync remote fleet catalog items from backend for cross-device support (With Zero Duplicates)
   useEffect(() => {
     const fetchRemoteFleet = async () => {
       try {
@@ -265,14 +257,7 @@ export default function ProviderDashboardPage() {
         }
         const catalogItems = res?.data?.catalog || res?.data?.equipment;
         if (catalogItems && Array.isArray(catalogItems) && catalogItems.length > 0) {
-          setFleetList(prev => {
-            const map = new Map();
-            prev.forEach(item => map.set(item.id, item));
-            catalogItems.forEach(item => {
-              if (!map.has(item.id)) map.set(item.id, item);
-            });
-            return Array.from(map.values());
-          });
+          setFleetList(prev => deduplicateEquipment([...prev, ...catalogItems]));
         }
       } catch (_) {}
     };
@@ -300,7 +285,7 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
   }, []);
 
-  // ── Incoming Farmer Bookings State (Multi-Device & Cross-Browser Real-Time Sync) ──
+  // ── Incoming Farmer Bookings State (Multi-Device Sync with Strict Zero Duplicates) ──
   const [bookingsList, setBookingsList] = useState(() => {
     try {
       const deletedIds = getDeletedBookingIds();
@@ -308,16 +293,11 @@ export default function ProviderDashboardPage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const filtered = parsed.filter(b => {
-            if (!b) return false;
-            const key = String(b.id || b.bookingId || '');
-            if (key.startsWith('BK-TEST-') || deletedIds.has(key)) return false;
-            return true;
-          });
-          if (filtered.length !== parsed.length) {
-            localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(filtered));
+          const clean = deduplicateBookings(parsed, deletedIds);
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(clean));
           }
-          return filtered;
+          return clean;
         }
       }
     } catch (e) {}
@@ -466,21 +446,7 @@ export default function ProviderDashboardPage() {
             const key = String(b.id || b.bookingId || '');
             return !key.startsWith('BK-TEST-') && !deletedIds.has(key);
           });
-          const mergedMap = new Map();
-          // 1. Put local items in map first
-          local.forEach(b => {
-            const key = b && (b.id || b.bookingId);
-            if (key) mergedMap.set(key, b);
-          });
-          // 2. Overlay remote items on top (remote is authoritative for status and server updates)
-          remote.forEach(b => {
-            const key = b && (b.id || b.bookingId);
-            if (key && !deletedIds.has(String(key))) {
-              const localMatch = mergedMap.get(key);
-              mergedMap.set(key, { ...localMatch, ...b });
-            }
-          });
-          const merged = Array.from(mergedMap.values());
+          const merged = deduplicateBookings([...remote, ...local], deletedIds);
           setBookingsList(merged);
           try {
             localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
@@ -490,7 +456,8 @@ export default function ProviderDashboardPage() {
       } catch (err) {}
 
       if (local.length > 0) {
-        setBookingsList(local);
+        const clean = deduplicateBookings(local, deletedIds);
+        setBookingsList(clean);
       }
     } catch (e) {}
   }, [getDeletedBookingIds]);
@@ -589,13 +556,13 @@ export default function ProviderDashboardPage() {
       createdAt: new Date().toISOString()
     };
 
-    setFleetList([newMachine, ...fleetList]);
+    setFleetList(prev => deduplicateEquipment([newMachine, ...prev]));
 
     // Also mirror to global equipment listings so farmers can discover it immediately
     try {
       const globalCustom = JSON.parse(localStorage.getItem('agrishield_custom_equipment_listings') || '[]');
-      globalCustom.unshift(newMachine);
-      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(globalCustom));
+      const cleanCustom = deduplicateEquipment([newMachine, ...globalCustom]);
+      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCustom));
     } catch (e) {}
 
     // Multi-device backend sync so machinery appears on all devices
@@ -808,13 +775,17 @@ export default function ProviderDashboardPage() {
     }
   };
 
-  // Metrics
-  const totalFleetCount = fleetList.length;
-  const availableFleetCount = fleetList.filter(f => f.available).length;
-  const pendingOrdersCount = bookingsList.filter(b => b.status === 'confirmed' || b.status === 'pending' || !b.status).length;
-  const actionablePendingCount = bookingsList.filter(b => b.status === 'pending' || !b.status).length;
-  const completedOrdersCount = bookingsList.filter(b => b.status === 'completed').length;
-  const totalEarnings = bookingsList
+  // Deduplicated Clean Lists for strict zero-duplicate render guarantees
+  const cleanFleetList = useMemo(() => deduplicateEquipment(fleetList), [fleetList]);
+  const cleanBookingsList = useMemo(() => deduplicateBookings(bookingsList, getDeletedBookingIds()), [bookingsList, getDeletedBookingIds]);
+
+  // Metrics (Accurate, zero-inflated)
+  const totalFleetCount = cleanFleetList.length;
+  const availableFleetCount = cleanFleetList.filter(f => f.available).length;
+  const pendingOrdersCount = cleanBookingsList.filter(b => b.status === 'confirmed' || b.status === 'pending' || !b.status).length;
+  const actionablePendingCount = cleanBookingsList.filter(b => b.status === 'pending' || !b.status).length;
+  const completedOrdersCount = cleanBookingsList.filter(b => b.status === 'completed').length;
+  const totalEarnings = cleanBookingsList
     .filter(b => b.status === 'completed')
     .reduce((sum, b) => sum + (Number(b.totalCost) || 2500), 0);
 
@@ -1137,7 +1108,7 @@ export default function ProviderDashboardPage() {
           <Truck className="w-4 h-4 shrink-0" />
           <span className="truncate">{isTe ? 'యంత్రాలు' : 'Machinery Fleet'}</span>
           <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'fleet' ? 'bg-white/20 text-white' : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'}`}>
-            {fleetList.length}
+            {cleanFleetList.length}
           </span>
         </button>
 
@@ -1191,13 +1162,13 @@ export default function ProviderDashboardPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                {fleetList.length} {fleetList.length === 1 ? (isTe ? 'యంత్రం' : 'Machine') : (isTe ? 'యంత్రాలు' : 'Machines')}
+                {cleanFleetList.length} {cleanFleetList.length === 1 ? (isTe ? 'యంత్రం' : 'Machine') : (isTe ? 'యంత్రాలు' : 'Machines')}
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {fleetList.map((machine) => (
+            {cleanFleetList.map((machine) => (
               <motion.div
                 key={machine.id}
                 initial={{ opacity: 0, y: 12 }}
@@ -1338,11 +1309,11 @@ export default function ProviderDashboardPage() {
               </p>
             </div>
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-              {bookingsList.length} {bookingsList.length === 1 ? (isTe ? 'ఆర్డర్' : 'Order') : (isTe ? 'ఆర్డర్లు' : 'Orders')}
+              {cleanBookingsList.length} {cleanBookingsList.length === 1 ? (isTe ? 'ఆర్డర్' : 'Order') : (isTe ? 'ఆర్డర్లు' : 'Orders')}
             </span>
           </div>
 
-          {bookingsList.length === 0 ? (
+          {cleanBookingsList.length === 0 ? (
             <div className="p-12 text-center rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17]">
               <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto text-indigo-600 dark:text-indigo-400 mb-3">
                 <Calendar className="w-8 h-8" />
@@ -1358,7 +1329,7 @@ export default function ProviderDashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {bookingsList.map((booking) => {
+              {cleanBookingsList.map((booking) => {
                 const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '9440182736';
                 const cleanPhone = String(farmerPhone).replace(/[^0-9]/g, '');
                 const farmerName = booking.farmerName || 'Trivendra reddy';
@@ -1680,7 +1651,7 @@ export default function ProviderDashboardPage() {
               <span>{isTe ? 'ఇటీవల పూర్తయిన ఆర్డర్ల రికార్డు' : 'Completed Operations Ledger'}</span>
             </h3>
 
-            {bookingsList.filter(b => b.status === 'completed').length === 0 ? (
+            {cleanBookingsList.filter(b => b.status === 'completed').length === 0 ? (
               <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 text-xs text-slate-400">
                 {isTe
                   ? 'ఇంకా పూర్తయిన ఆర్డర్లు లేవు. రైతుల నుండి వచ్చే ఆర్డర్లను పూర్తి చేసినప్పుడు అవి ఇక్కడ రికార్డ్ చేయబడతాయి.'
@@ -1688,7 +1659,7 @@ export default function ProviderDashboardPage() {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {bookingsList
+                {cleanBookingsList
                   .filter(b => b.status === 'completed')
                   .map((b) => (
                     <div
