@@ -289,3 +289,59 @@ export const FIELD_SEVERITY_OPTIONS = [
     }
   }
 ];
+
+/**
+ * Returns deep agronomic pathology narrative matching Plantix Picture 1
+ */
+export const getPlantixAgronomicNarrative = (cropName = '', diseaseName = '', lang = 'te') => {
+  const dLow = (diseaseName || '').toLowerCase();
+  const cLow = (cropName || '').toLowerCase();
+  const isHealthy = dLow.includes('healthy') || dLow.includes('ఆరోగ్య');
+
+  if (isHealthy) {
+    if (lang === 'te') {
+      return 'మొక్క యొక్క ఆకులు, కొమ్మలు మరియు పూత సహజమైన పచ్చదనం మరియు పుష్టితో కనిపిస్తున్నాయి. ఎటువంటి కీటకాల రసం పీల్చే గాయాలు లేదా శిలీంధ్రపు మచ్చలు కనిపించడం లేదు. సరైన సమయానికి సమతుల్య నీటి పారుదల మరియు సేంద్రీయ పోషకాలు అందించడం ద్వారా మొక్క రోగనిరోధక శక్తిని నిలబెట్టుకోవచ్చు.';
+    }
+    if (lang === 'hi') {
+      return 'पौधे की पत्तियां, शाखाएं और फूल प्राकृतिक हरेपन और मजबूती के साथ दिख रहे हैं। किसी भी कीट के रस चूसने के घाव या फंगल धब्बे नहीं हैं। समय पर संतुलित सिंचाई और जैविक पोषण देकर पौधे की रोग प्रतिरोधक क्षमता बनाए रखें।';
+    }
+    return 'The foliage, vegetative nodes, and emerging buds exhibit robust chlorophyll synthesis and structural integrity. No pest feeding puncture marks or fungal necrotic lesions are present. Continue disciplined drip irrigation and balanced micronutrient nutrition.';
+  }
+
+  // Chilli Thrips / Leaf Curl (Matches Plantix Picture 1 verbatim!)
+  if (dLow.includes('thrip') || (cLow.includes('chilli') && (dLow.includes('curl') || dLow.includes('virus')))) {
+    if (lang === 'te') {
+      return 'చిన్న పురుగులు ఇంకా పెద్ద పురుగులు మొక్కల క్రిందిభాగాలపై ఉపరితలాన్ని గీకి అక్కడనుండి బైటికి వచ్చే కణ ద్రవ్యాన్ని పీల్చుతాయి. తెగులు బారిన పడిన ఆకులు గోధుమ రంగు నుండి నలుపుగా మారతాయి. కొన్ని తీవ్రమైన సందర్భాల్లో ఆకులు మొత్తం వైకల్యం చెంది తర్వాత ఆకులు మొత్తం ముందుగానే రాలిపోతాయి. పువ్వులను తినడం వలన పూరేకులపై చారలు ఏర్పడి రాలిపోవడం మరియు చనిపోవడానికి దారితీస్తుంది. పండ్లపై పొక్కులు, మచ్చలు మరియు పండ్ల రూపం మారడం వలన వాటి మార్కెట్ విలువ తగ్గుతుంది. ఈ తెగులు సంవత్సరమంతా సంక్రమించే అవకాశం ఉన్నప్పటికీ పొడిగా వుండే వాతావరణంలో మరియు మట్టిలో నత్రజని అధికంగా వున్నప్పుడు ఈ తెగులు తీవ్రత అధికంగా ఉంటుంది.';
+    }
+    if (lang === 'hi') {
+      return 'छोटे और वयस्क कीट पत्तियों की निचली सतह को खुरचकर निकलने वाले रस को चूसते हैं। प्रभावित पत्तियां भूरे से काले रंग में बदलने लगती हैं। गंभीर स्थिति में पत्तियां पूरी तरह विकृत होकर नाव के आकार में ऊपर मुड़ जाती हैं और समय से पहले झड़ जाती हैं। फूलों पर आक्रमण से पंखुड़ियों पर धारियां बन जाती हैं और फूल गिर जाते हैं। फलों पर धब्बे और खुरदुरापन आने से बाजार मूल्य घट जाता है। शुष्क मौसम और मिट्टी में अधिक नाइट्रोजन होने पर इसका प्रकोप बहुत तीव्र होता है।';
+    }
+    return 'Both nymphs and adult insects scrape the lower leaf surface and voraciously suck the exuded cellular sap. Damaged foliage transitions from chlorotic bronze to dark brownish-black. In severe infestations, leaves become heavily distorted, curl upwards into characteristic boat shapes, and shed prematurely. Blossom feeding causes petal streaking and bud drop, arresting fruit set. Scabbing and deformities on fruit pods lower market value. While present year-round, dry weather and excessive soil nitrogen accelerate pest severity.';
+  }
+
+  // Leaf Spot / Cercospora (Picture 2)
+  if (dLow.includes('spot') || dLow.includes('cercospora') || dLow.includes('blight')) {
+    if (lang === 'te') {
+      return 'శిలీంధ్ర బీజాంశాలు గాలి మరియు నీటి తుంపర్ల ద్వారా వ్యాపించి ఆకుల కణజాలంపై దాడి చేస్తాయి. మొదట చిన్న వలయాకారపు గోధుమ మచ్చలుగా ప్రారంభమై, చుట్టూ పసుపు రంగు వలయంతో పెద్ద మచ్చలుగా విస్తరిస్తాయి. మచ్చల మధ్యభాగం ఎండిపోయి రాలిపోవడం వల్ల ఆకులకు రంధ్రాలు ఏర్పడతాయి. తీవ్రత పెరిగితే ఆకులు పసుపుపచ్చగా మారి కిరణజన్య సంయోగ క్రియ తగ్గి దిగుబడి భారీగా పడిపోతుంది. అధిక తేమ మరియు రాత్రి వేళల్లో మంచు ఎక్కువగా ఉన్నప్పుడు ఈ వ్యాధి వేగంగా వ్యాపిస్తుంది.';
+    }
+    if (lang === 'hi') {
+      return 'फंगल बीजाणु हवा और बारिश की बूंदों से फैलकर पत्तियों के ऊतकों पर हमला करते हैं। शुरुआत में छोटे गोलाकार भूरे धब्बे बनते हैं, जिनके चारों ओर पीला घेरा होता है। धब्बों का केंद्र सूखकर गिर जाता है जिससे पत्तियों में छेद हो जाते हैं। अधिक संक्रमण में पत्तियां पीली पड़कर गिर जाती हैं जिससे प्रकाश संश्लेषण कम होकर पैदावार घट जाती है। उच्च आर्द्रता और ओस में यह तेजी से फैलता है।';
+    }
+    return 'Fungal spores spread via wind and rain splashes, invading leaf parenchymal cells. Symptoms initiate as small circular necrotic spots with defined dark margins and chlorotic haloes. Central necrotic tissue dries and drops out, creating a shot-hole appearance. Severe defoliation inhibits photosynthesis and stunts crop yield. High relative humidity (>85%) and nocturnal dew accelerate spore germination.';
+  }
+
+  // Caterpillar / Spodoptera
+  if (dLow.includes('spodoptera') || dLow.includes('caterpillar') || dLow.includes('cutworm')) {
+    if (lang === 'te') {
+      return 'ఈ లద్దెపురుగులు రాత్రి వేళల్లో చురుకుగా ఉండి ఆకులను విపరీతంగా కొరికి తింటాయి. లేత దశలో ఉన్న పురుగులు గుంపులుగా ఆకు అడుగుభాగాన్ని గీకి తిని పత్రహరితాన్ని నాశనం చేస్తాయి. పెద్ద పురుగులు ఆకులను పూర్తిగా కొరికి తిని కేవలం ఈనెలను మాత్రమే మిగులుస్తాయి. లేత మొగ్గలు మరియు కాయలను రంధ్రాలు చేసి తీవ్ర నష్టాన్ని కలిగిస్తాయి. పగటి వేళల్లో ఇవి నేలలోని పగుళ్లలో లేదా ఆకుల కింద దాక్కుంటాయి.';
+    }
+    return 'Caterpillars are nocturnal feeders that voraciously chew foliar blades. Gregarious young instars scrape green chlorophyll from leaf undersides, while mature larvae consume entire leaf lamina leaving only skeletonized veins. Developing flower buds and fruit pods are bored and destroyed. During the day, larvae conceal themselves in soil crevices or leaf litter.';
+  }
+
+  // Default
+  if (lang === 'te') {
+    return 'ఈ తెగులు మొక్క యొక్క పోషక రవాణా వ్యవస్థను మరియు పత్రహరితాన్ని దెబ్బతీస్తుంది. సకాలంలో సరైన నివారణ మందులు వాడకపోతే వ్యాధి పొలమంతా విస్తరించి పంట దిగుబడిపై తీవ్ర ప్రభావం చూపుతుంది.';
+  }
+  return 'This pathological condition compromises cellular translocation and chlorophyll integrity. Without targeted management, infection expands across neighboring rows, substantially diminishing market yield.';
+};
+

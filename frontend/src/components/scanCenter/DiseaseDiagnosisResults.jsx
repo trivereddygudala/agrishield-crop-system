@@ -6,7 +6,7 @@ import {
   AlertTriangle, ShieldCheck, Share2, TrendingUp, Landmark, Phone, FileText, Sparkles,
   Layers, FlaskConical, Info, Eye, Image as ImageIcon, ZoomIn, X, CheckCircle2,
   UserCheck, SlidersHorizontal, Settings2, PenSquare, Award, ArrowLeft, ArrowRight,
-  ChevronRight, ThumbsUp, Calculator, HelpCircle, MessageSquare
+  ChevronRight, ThumbsUp, Calculator, HelpCircle, MessageSquare, BookOpen
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress } from '../ui/index';
@@ -18,6 +18,7 @@ import {
   getDiseaseCategory, 
   getScientificName, 
   getPlantixSymptomList, 
+  getPlantixAgronomicNarrative,
   FIELD_SEVERITY_OPTIONS 
 } from '../../utils/plantixDiagnosisHelper';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
@@ -75,6 +76,17 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const categoryInfo = getDiseaseCategory(rawCropName, rawDiseaseName, activeLang);
   const scientificName = getScientificName(rawCropName, rawDiseaseName);
   const plantixSymptoms = getPlantixSymptomList(rawCropName, rawDiseaseName, activeLang, liveResult?.observed_symptoms || liveResult?.symptoms);
+  const plantixNarrative = getPlantixAgronomicNarrative(rawCropName, rawDiseaseName, activeLang);
+
+  const handlePlaySymptomsAudio = () => {
+    if (speakingId === 'plantix_symptoms_audio') {
+      stopSpeech();
+      return;
+    }
+    const symptomsSpeech = plantixSymptoms.join('. ');
+    const fullAudioText = `${localizedDisease}. ${categoryInfo.label}. ${plantixSymptoms.length > 0 ? (activeLang === 'te' ? 'లక్షణాలు: ' : activeLang === 'hi' ? 'लक्षण: ' : 'Symptoms: ') + symptomsSpeech : ''}. ${plantixNarrative}`;
+    speak(fullAudioText, 'plantix_symptoms_audio', getSpeechLocale(activeLang), 0.8);
+  };
 
   // Load matching authentic pathology comparison photos from dataset catalog
   useEffect(() => {
@@ -215,12 +227,6 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
 
   const calculatedDose = calculateSprayerDose(activeProduct, selectedTankSize);
 
-  // Audio Playback Handler for Symptoms
-  const handlePlaySymptomsAudio = () => {
-    const textToSpeak = `${localizedCrop}. ${localizedDisease}. ${categoryInfo.label}. ${plantixSymptoms.join('. ')}`;
-    speak(textToSpeak, 'plantix_symptoms_audio', activeLang);
-  };
-
   return (
     <div className="space-y-4 max-w-4xl mx-auto pb-12">
       {/* ========================================================
@@ -338,28 +344,35 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                 </div>
 
                 {/* Reference Photos from Authentic Catalog */}
-                {referenceImages.map((refImg, idx) => (
-                  <div 
-                    key={idx}
-                    onClick={() => setZoomImageModal({ 
-                      src: refImg.url, 
-                      title: `${refImg.disease || localizedDisease} (${activeLang === 'te' ? 'క్షేత్ర నమూనా' : 'Field Reference'})` 
-                    })}
-                    className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-center cursor-pointer group"
-                  >
-                    <img 
-                      src={refImg.url} 
-                      alt={refImg.disease || 'Field reference'} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-semibold backdrop-blur-xs">
-                      {activeLang === 'te' ? `నమూనా ${idx + 1}` : `Sample ${idx + 1}`}
+                {referenceImages.map((refImg, idx) => {
+                  const resolvedImgUrl = refImg.image_url || refImg.url || '/samples/chilli_leaf_spot.jpg';
+                  return (
+                    <div 
+                      key={idx}
+                      onClick={() => setZoomImageModal({ 
+                        src: resolvedImgUrl, 
+                        title: `${refImg.disease || localizedDisease} (${activeLang === 'te' ? 'క్షేత్ర నమూనా' : 'Field Reference'})` 
+                      })}
+                      className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-center cursor-pointer group"
+                    >
+                      <img 
+                        src={resolvedImgUrl} 
+                        alt={refImg.disease || 'Field reference'} 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/samples/chilli_leaf_spot.jpg';
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-semibold backdrop-blur-xs">
+                        {activeLang === 'te' ? `నమూనా ${idx + 1}` : `Sample ${idx + 1}`}
+                      </div>
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <ZoomIn className="w-5 h-5 text-white" />
+                      </div>
                     </div>
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <ZoomIn className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -379,22 +392,58 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </button>
             </div>
 
-            {/* Concise 4-Bullet Symptoms Checklist (Plantix 🌿 లక్షణాలు) */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            {/* Symptoms Checklist & Plantix Agronomic Narrative (🌿 లక్షణాలు) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3.5">
               <div className="flex items-center gap-2">
-                <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm uppercase tracking-wide">
-                  🌿 {activeLang === 'te' ? 'లక్షణాలు' : activeLang === 'hi' ? 'लक्षण' : 'Symptoms Checklist'}
+                <span className="text-emerald-700 dark:text-emerald-400 font-extrabold text-sm sm:text-base flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>{activeLang === 'te' ? 'లక్షణాలు' : activeLang === 'hi' ? 'लक्षण' : 'Symptoms Checklist'}</span>
                 </span>
               </div>
 
-              <ul className="space-y-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
+              {/* 4 Bullet Points */}
+              <ul className="space-y-2 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
                 {plantixSymptoms.map((symptom, sIdx) => (
                   <li key={sIdx} className="flex items-start gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0 shadow-xs" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-700 dark:bg-slate-300 mt-2 shrink-0" />
                     <span className="leading-relaxed">{symptom}</span>
                   </li>
                 ))}
               </ul>
+
+              {/* Deep Agronomic Pathology Narrative Paragraph (Matching Plantix Picture 1) */}
+              {plantixNarrative && (
+                <div className="pt-2">
+                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal text-justify">
+                    {plantixNarrative}
+                  </p>
+                </div>
+              )}
+
+              {/* Subtle Dashed Divider */}
+              <div className="border-t border-dashed border-slate-200 dark:border-slate-700/80 my-3" />
+
+              {/* More Information Section (📖 మరింత సమాచారం - Matching Plantix Picture 1) */}
+              <div className="space-y-1.5 pt-0.5">
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <BookOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                  <span>{activeLang === 'te' ? 'మరింత సమాచారం' : activeLang === 'hi' ? 'अधिक जानकारी' : 'More Information'}</span>
+                </div>
+                <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1 pl-1">
+                  <p>
+                    <span className="font-semibold text-slate-900 dark:text-slate-200">
+                      • {activeLang === 'te' ? 'శాస్త్రీయ నామం: ' : activeLang === 'hi' ? 'वैज्ञानिक नाम: ' : 'Scientific Name: '}
+                    </span>
+                    <span className="italic font-serif">{scientificName}</span>
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-900 dark:text-slate-200">
+                      • {activeLang === 'te' ? 'వర్గం: ' : activeLang === 'hi' ? 'श्रेणी: ' : 'Category: '}
+                    </span>
+                    <span>{categoryInfo.icon} {categoryInfo.label}</span>
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Primary Action Button: Confirm & View Treatment */}

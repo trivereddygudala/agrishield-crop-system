@@ -174,8 +174,25 @@ def generate_fallback_extension_officer_report(crop: str, disease: str, confiden
     c_low = c_title.lower()
     d_low = d_title.lower()
 
-    # Category 1: Chewing Insects / Caterpillars / Cutworms / Spodoptera
-    if any(k in d_low for k in ["caterpillar", "spodoptera", "cutworm", "armyworm", "chew", "worm", "borer", "larva", "pest"]):
+    # Category 1: Sucking Pests & Vectors (Thrips, Whiteflies, Aphids, Jassids, Leaf Curl Virus)
+    if any(k in d_low for k in ["thrip", "whitefly", "aphid", "jassid", "hopper", "sucking", "curl", "therioaphis", "maculata"]):
+        if "chilli" in c_low or "capsicum" in c_low or "pepper" in c_low:
+            d_title = "Chilli Thrips (Scirtothrips dorsalis) / Leaf Curl Complex"
+        cand1_trait = f"Upward curling, silvery foliar scarring, or honeydew secretions on {c_title}."
+        cand2_name = "Yellow Mite / Red Spider Mite Infestation"
+        cand2_trait = "Downward leaf curling and bronzing on ventral leaf lamina."
+        cand3_name = "Chilli Leaf Curl Begomovirus (ChiLCV)"
+        cand3_trait = "Puckered upward cupping with stunted terminal internodes transmitted by vector."
+        obs_symptoms = "Upward curling and brittle foliar leaf margins with boat-shaped puckering and shiny silvery streaks caused by active nymph and adult sap sucking."
+        field_cleanup = "Install yellow and blue sticky traps (15–20 per acre) at canopy height to capture active flying vectors."
+        water_mgmt = "Avoid excessive nitrogen fertilizer application which triggers succulent tender foliage favorable to pest swarms."
+        organic_spray = "Spray cold-pressed Neem Oil (10,000 ppm) @ 5 ml/L or Beauveria bassiana / Verticillium lecanii entomopathogenic bio-spray @ 5 g/L."
+        target_chem = "Spray Solomon (Bayer) @ 1.0 ml/L or Exponus (BASF) @ 0.5 ml/L or JUMP (Bayer) @ 0.3 g/L (6g/20L tank) for systemic thrips knockdown."
+        alt_chem = "Rotate with Benevia (FMC - Cyantraniliprole 10.26 OD) @ 1.7 ml/L or Karate (Syngenta) @ 1.0 ml/L to eliminate cross-resistance."
+        prev_chem = "Spray barrier border crops (maize/sorghum) along field edges to intercept migrating vector populations."
+
+    # Category 2: Chewing Insects / Caterpillars / Cutworms / Spodoptera
+    elif any(k in d_low for k in ["caterpillar", "spodoptera", "cutworm", "armyworm", "chewing", "bollworm", "fruit borer"]):
         d_title = "Spodoptera litura (Tobacco Caterpillar) / Cutworm Infestation"
         cand1_trait = "Large irregular holes chewed straight through foliar blade with ragged margins."
         cand2_name = "Flea Beetle / Weevil Leaf Feeding"
@@ -193,21 +210,6 @@ def generate_fallback_extension_officer_report(crop: str, disease: str, confiden
         target_chem = "Spray Emamectin Benzoate 5% SG (Proclaim / Missile) @ 0.5 g/L (10g/20L tank) or Chlorantraniliprole 18.5% SC (Coragen) @ 0.3 ml/L (6ml/20L tank) for rapid stomach and contact caterpillar paralysis."
         alt_chem = "Rotate with Flubendiamide 39.35% SC (Fame) @ 0.2 ml/L (4ml/20L tank) or Spinosad 45% SC (Tracer) @ 0.3 ml/L or Novaluron 10% EC (Rimon) @ 1.5 ml/L for resistance management."
         prev_chem = "Spray neighboring healthy border plants within 48 hours to create a protective barrier against migrating larval instars."
-
-    # Category 2: Sucking Pests (Thrips, Whiteflies, Aphids, Jassids)
-    elif any(k in d_low for k in ["thrips", "whitefly", "aphid", "jassid", "hopper", "sucking"]):
-        cand1_trait = f"Upward curling, silvery foliar scarring, or honeydew secretions on {c_title}."
-        cand2_name = "Yellow Mite / Red Spider Mite Infestation"
-        cand2_trait = "Downward leaf curling and bronzing on ventral leaf lamina."
-        cand3_name = "Chilli Leaf Curl Geminivirus"
-        cand3_trait = "Puckered upward cupping with stunted terminal internodes transmitted by vector."
-        obs_symptoms = "Upward curling and brittle foliar leaf margins with boat-shaped puckering and shiny silvery streaks caused by active nymph and adult sap sucking."
-        field_cleanup = "Install yellow and blue sticky traps (15–20 per acre) at canopy height to capture active flying vectors."
-        water_mgmt = "Avoid excessive nitrogen fertilizer application which triggers succulent tender foliage favorable to pest swarms."
-        organic_spray = "Spray cold-pressed Neem Oil (10,000 ppm) @ 5 ml/L or Beauveria bassiana / Verticillium lecanii entomopathogenic bio-spray @ 5 g/L."
-        target_chem = "Spray Imidacloprid 17.8% SL @ 0.5 ml/L (10ml/20L tank) or Thiamethoxam 25% WG @ 0.3 g/L for systemic sap-sucker knockdown."
-        alt_chem = "Rotate with Diafenthiuron 50% WP (Pegasus) @ 1.2 g/L or Acetamiprid 20% SP @ 0.2 g/L to eliminate cross-resistance."
-        prev_chem = "Spray barrier border crops (maize/sorghum) along field edges to intercept migrating vector populations."
 
     # Category 3: Mites
     elif any(k in d_low for k in ["mite", "tetranychus", "polyphagotarsonemus"]):
@@ -381,11 +383,10 @@ async def cross_verify_disease_with_vision(
 
         # Updated modern Google Gemini model identifiers with resilient timeout
         models_to_try = [
-            "gemini-3.6-flash",
-            "gemini-3.7-flash",
-            "gemini-3.8-flash",
-            "gemini-3.5-flash",
-            "gemini-flash-latest"
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-pro"
         ]
         fast_timeout = httpx.Timeout(connect=3.5, read=18.0, write=5.0, pool=3.5)
         async with httpx.AsyncClient(timeout=fast_timeout) as client:

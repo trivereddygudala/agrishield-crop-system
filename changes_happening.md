@@ -5398,3 +5398,20 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
   - Fleet Hub KPIs, metrics, and fleet tabs are omitted on the copilot screen, providing edge-to-edge chat focus with quick inquiry chips, speech audio, and a `← Back to Fleet Hub` button.
 - **Production Validation:**
   - Ran `npm run build`: 3,168 modules transformed, built with 0 errors in 26.34s.
+
+9/25/2026: Plantix Picture 1/2/3 Parity — Rich Pathology Narrative, Fixed Broken Reference Photos, and Eliminated False Spodoptera Overrides (v275):
+- **Rich Agronomic Narrative & Scientific Taxonomy (Picture 1 Parity - DiseaseDiagnosisResults.jsx & plantixDiagnosisHelper.js):**
+  - Rendered authentic, deep multi-sentence pathology narrative paragraph directly beneath the 4-bullet symptoms checklist in Telugu, Hindi, and English (sap-sucking nymph/adult habits, leaf discoloration, blossom shed, fruit scarring, and environmental humidity/nitrogen triggers).
+  - Added dashed divider line and `📖 మరింత సమాచారం` (More Information) block showing Latin Scientific Taxonomy (`Scirtothrips dorsalis`) and Category (`🐛 కీటకం`).
+  - Integrated speech readout (`🔊 వినండి`) to vocalize disease name, category, symptoms, and the agronomic narrative at 0.8x speech rate.
+- **Fixed Reference Photo Loading & Broken Boxes (Picture 2 Parity - DiseaseDiagnosisResults.jsx):**
+  - Resolved `undefined` `refImg.url` bug by switching to `refImg.image_url || refImg.url` matching `dataset_catalog.json`.
+  - Added robust `onError` image fallback so reference specimen comparison photos (`నమూనా 1`, `నమూనా 2`) load authentic high-resolution field photos without showing blank white boxes or broken image borders.
+- **Eliminated False Spodoptera litura Override on Curled Chilli Leaves (Picture 3 Parity - predict.py & gemini_vision.py & diseaseAdvisoryData.js):**
+  - Removed aggressive `Spodoptera litura` override in `predict.py` where inter-leaf soil gaps were falsely flagged as chewing holes on curled chilli leaves.
+  - Normalized non-crop insect genus labels (e.g., `Therioaphis_Maculata`) to correctly map to `Chilli Thrips (Scirtothrips dorsalis) / Leaf Curl` on solanaceous crops.
+  - Updated `gemini_vision.py` to prioritize sucking pests/vectors (thrips, aphids, whiteflies, leaf curl) ahead of caterpillars, removed generic `"pest"` from chewing caterpillar list, and updated `models_to_try` to valid Gemini models (`gemini-2.0-flash`, `gemini-1.5-flash`).
+  - Added `chilli_thrips` and `leaf_curl` to `COMMON_DISEASES` and `normalizeDiseaseKey` across all 7 regional languages, guaranteeing exact translation (`మిరపలో తామర పురుగులు`).
+- **Production Validation:**
+  - Verified local PyTorch inference correctly predicts Chilli Leaf Curl / Thrips on test chilli specimen.
+  - Compiled production bundle with `npm run build` — 0 errors in 25.56s.

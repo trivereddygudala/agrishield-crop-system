@@ -1556,6 +1556,36 @@ export const CROPS_MAP = {
 
 // Authentic Plantix-Grade Vernacular Crop Diseases Localization
 export const COMMON_DISEASES = {
+  "chilli_thrips": {
+    "te": "మిరపలో తామర పురుగులు",
+    "hi": "मिर्च में थ्रिप्स (कीट)",
+    "ta": "மிளகாய் இலைப்பேன்",
+    "kn": "ಮೆಣಸಿನಕಾಯಿ ಥ್ರಿಪ್ಸ್ ಕೀಟ",
+    "ml": "മുളകിലെ ഇലപ്പേൻ",
+    "mr": "मिरचीवरील फुलकिडे (थ्रिप्स)",
+    "gu": "મરચીમાં થ્રિપ્સ",
+    "pa": "ਮਿਰਚ ਦੇ ਥ੍ਰਿਪਸ",
+    "bn": "লঙ্কার থ্রিপস পোকা",
+    "or": "ଲଙ୍କା ଫିମ୍ପି ପୋକ (ଥ୍ରିପ୍ସ)",
+    "as": "জলকীয়াৰ থ্ৰিপ্স পোক",
+    "ur": "مرچ کے تھرپس",
+    "en": "Chilli Thrips (Scirtothrips dorsalis)"
+  },
+  "leaf_curl": {
+    "te": "మిరపలో ఆకు ముడత తెగులు / తామర పురుగులు",
+    "hi": "मिर्च में पत्ती मरोड़ रोग (लीफ कर्ल)",
+    "ta": "மிளகாய் இலை சுருட்டல் நோய்",
+    "kn": "ಮೆಣಸಿನಕಾಯಿ ಎಲೆ ಮುರುಟು ರೋಗ",
+    "ml": "മുളകിലെ ഇലച്ചുരുൾ രോഗം",
+    "mr": "मिरचीवरील चुरडा-मुरडा (लीफ कर्ल)",
+    "gu": "મરચીમાં પાનનો કોકડવો",
+    "pa": "ਮਿਰਚ ਦਾ ਪੱਤਾ ਮਰੋੜ ਰੋਗ",
+    "bn": "লঙ্কার পাতা কোঁকড়ানো রোগ",
+    "or": "ଲଙ୍କା ପତ୍ର ମୋଡ଼ା ରୋଗ",
+    "as": "জলকীয়াৰ পাত কোঁচোৱা ৰୋଗ",
+    "ur": "مرچ کا پتا مروڑ روگ",
+    "en": "Chilli Leaf Curl (ChiLCV / Thrips)"
+  },
   "northern_leaf_blight": {
     "te": "మొక్కజొన్న ఆకు మాడు తెగులు (నార్తర్న్ లీఫ్ బ్లైట్)",
     "hi": "मक्का पत्ती झुलसा रोग (नार्दर्न लीफ ब्लाइट)",
@@ -2269,6 +2299,15 @@ export function normalizeDiseaseKey(rawName = '', statusHint = '') {
   // Fast reverse dictionary check across all 13 languages
   const revMap = getReverseDiseasesMap();
   if (revMap[str]) return revMap[str];
+
+  // Chilli Thrips / Sucking Vectors / Leaf Curl
+  if (str.includes('thrip') || str.includes('scirtothrips') || str.includes('తామర') || str.includes('थ्रिप्स') || str.includes('இலைப்பேன்') || str.includes('ಥ್ರಿಪ್ಸ್') || str.includes('therioaphis') || str.includes('maculata')) {
+    return 'chilli_thrips';
+  }
+
+  if (str.includes('chilli') && (str.includes('curl') || str.includes('ముడత') || str.includes('मरोड़') || str.includes('சுருட்டு'))) {
+    return 'chilli_thrips';
+  }
 
   // Chewing Caterpillar / Spodoptera litura / Cutworm
   if (str.includes('spodoptera') || str.includes('caterpillar') || str.includes('cutworm') || str.includes('లద్దెపురుగు') || str.includes('लद्दी') || str.includes('इल्ली') || str.includes('வெட்டுப்புழு') || str.includes('కట్ వార్మ్') || str.includes('armyworm') || str.includes('chewing')) {
