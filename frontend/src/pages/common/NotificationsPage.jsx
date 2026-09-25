@@ -18,6 +18,84 @@ import { useTranslation } from 'react-i18next';
 import { translateNotification } from '../../utils/notificationTranslator';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 
+// ── Dynamic Crop Extraction & Localization Helper ──
+export function extractCropInfo(item, isTe = false) {
+  if (!item) {
+    return {
+      cropKey: 'crop',
+      cropName: isTe ? 'పంట' : 'Crop',
+      cropEmoji: '🌿',
+      diseaseName: null,
+      threadTitle: isTe ? '🌿 పంట రక్షణ సలహా' : '🌿 Crop Health Advisory',
+      categoryLabel: isTe ? 'పంట సలహా' : 'Crop Advisory'
+    };
+  }
+
+  const rawText = `${item.crop_name || ''} ${item.crop || ''} ${item.crop_type || ''} ${item.title || ''} ${item.title_te || ''} ${item.message || ''} ${item.message_te || ''}`.toLowerCase();
+
+  const CROPS = [
+    { key: 'chilli', en: 'Chilli', te: 'మిరప', emoji: '🌶️', regex: /(chilli|chili|pepper|మిరప|mirapa)/i },
+    { key: 'maize', en: 'Maize', te: 'మొక్కజొన్న', emoji: '🌽', regex: /(maize|corn|మొక్కజొన్న|mokkajonna)/i },
+    { key: 'tomato', en: 'Tomato', te: 'టమాటా', emoji: '🍅', regex: /(tomato|టమాటా|టమాట|tamata)/i },
+    { key: 'paddy', en: 'Paddy', te: 'వరి', emoji: '🌾', regex: /(paddy|rice|వరి|vari)/i },
+    { key: 'cotton', en: 'Cotton', te: 'పత్తి', emoji: '🧶', regex: /(cotton|పత్తి|patti)/i },
+    { key: 'groundnut', en: 'Groundnut', te: 'వేరుశనగ', emoji: '🥜', regex: /(groundnut|peanut|వేరుశనగ|verusanaga)/i },
+    { key: 'sugarcane', en: 'Sugarcane', te: 'చెరకు', emoji: '🎋', regex: /(sugarcane|చెరకు|cheraku)/i },
+    { key: 'banana', en: 'Banana', te: 'అరటి', emoji: '🍌', regex: /(banana|అరటి|arati)/i },
+    { key: 'mango', en: 'Mango', te: 'మామిడి', emoji: '🥭', regex: /(mango|మామిడి|mamidi)/i },
+    { key: 'onion', en: 'Onion', te: 'ఉల్లి', emoji: '🧅', regex: /(onion|ఉల్లి|ulli)/i },
+    { key: 'potato', en: 'Potato', te: 'బంగాళాదుంప', emoji: '🥔', regex: /(potato|బంగాళాదుంప|bangaladumpa)/i },
+    { key: 'soybean', en: 'Soybean', te: 'సోయాబీన్', emoji: '🫘', regex: /(soybean|soya|సోయా)/i },
+    { key: 'wheat', en: 'Wheat', te: 'గోధుమ', emoji: '🌾', regex: /(wheat|గోధుమ|godhuma)/i },
+    { key: 'grape', en: 'Grape', te: 'ద్రాక్ష', emoji: '🍇', regex: /(grape|ద్రాక్ష|draksha)/i },
+    { key: 'citrus', en: 'Citrus', te: 'నిమ్మ', emoji: '🍋', regex: /(citrus|lemon|lime|నిమ్మ|nimma)/i },
+  ];
+
+  const matchedCrop = CROPS.find(c => c.regex.test(rawText));
+
+  const DISEASES = [
+    { key: 'early_blight', en: 'Early Blight', te: 'ఎర్లీ బ్లైట్', regex: /(early blight|ఎర్లీ బ్లైట్)/i },
+    { key: 'late_blight', en: 'Late Blight', te: 'లేట్ బ్లైట్', regex: /(late blight|లేట్ బ్లైట్)/i },
+    { key: 'leaf_spot', en: 'Leaf Spot', te: 'ఆకు మచ్చతెగులు', regex: /(leaf spot|cercospora|ఆకు మచ్చ|మచ్చతెగులు)/i },
+    { key: 'powdery_mildew', en: 'Powdery Mildew', te: 'బూడిద తెగులు', regex: /(powdery mildew|బూడిద తెగులు)/i },
+    { key: 'rust', en: 'Rust', te: 'తుప్పు తెగులు', regex: /(rust|తుప్పు)/i },
+    { key: 'wilt', en: 'Wilt', te: 'ఎండు తెగులు', regex: /(wilt|fusarium|ఎండు తెగులు)/i },
+    { key: 'bacterial_blight', en: 'Bacterial Blight', te: 'బాక్టీరియల్ బ్లైట్', regex: /(bacterial blight|బాక్టీరియల్ బ్లైట్)/i },
+    { key: 'blast', en: 'Blast', te: 'అగ్గి తెగులు', regex: /(blast|magnaporthe|అగ్గి తెగులు)/i },
+    { key: 'spodoptera', en: 'Caterpillar', te: 'లద్దెపురుగు', regex: /(spodoptera|caterpillar|cutworm|లద్దెపురుగు)/i }
+  ];
+
+  const matchedDisease = DISEASES.find(d => d.regex.test(rawText));
+
+  if (matchedCrop) {
+    const cropName = isTe ? matchedCrop.te : matchedCrop.en;
+    let title = '';
+    if (matchedDisease) {
+      const diseaseName = isTe ? matchedDisease.te : matchedDisease.en;
+      title = `${matchedCrop.emoji} ${cropName} • ${diseaseName}`;
+    } else {
+      title = isTe ? `${matchedCrop.emoji} ${cropName} పంట సలహా` : `${matchedCrop.emoji} ${cropName} Crop Advisory`;
+    }
+    return {
+      cropKey: matchedCrop.key,
+      cropName,
+      cropEmoji: matchedCrop.emoji,
+      diseaseName: matchedDisease ? (isTe ? matchedDisease.te : matchedDisease.en) : null,
+      threadTitle: title,
+      categoryLabel: isTe ? `${cropName} సలహా` : `${cropName} Alert`
+    };
+  }
+
+  return {
+    cropKey: 'crop',
+    cropName: isTe ? 'పంట' : 'Crop',
+    cropEmoji: '🌿',
+    diseaseName: matchedDisease ? (isTe ? matchedDisease.te : matchedDisease.en) : null,
+    threadTitle: isTe ? '🌿 పంట రక్షణ సలహా' : '🌿 Crop Health Advisory',
+    categoryLabel: isTe ? 'పంట సలహా' : 'Crop Advisory'
+  };
+}
+
 // ── Google Messages High-Contrast Color Coding ──
 // Emerald for Provider, Amber for Crop Alert, Blue for Weather, Orange for Support
 const THREAD_THEMES = {
@@ -34,8 +112,8 @@ const THREAD_THEMES = {
     badgeBg: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800',
     dotBg: 'bg-amber-500',
     Icon: AlertTriangle,
-    defaultSender: 'AgriShield Crop Advisory',
-    defaultSenderTe: 'అగ్రిషీల్డ్ పంట రక్షణ'
+    defaultSender: 'Crop Health Advisory',
+    defaultSenderTe: 'పంట రక్షణ సలహా'
   },
   weather: {
     avatarBg: 'bg-blue-600 text-white ring-2 ring-blue-200 dark:ring-blue-900 shadow-sm',
@@ -111,9 +189,6 @@ export default function NotificationsPage() {
 
   // Selected Notification Dialog (Google Message Reader / 2-way View)
   const [selectedMessage, setSelectedMessage] = useState(null);
-
-  // FAB "Start Chat" Modal State
-  const [startChatOpen, setStartChatOpen] = useState(false);
 
   // Settings Modal State
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -583,14 +658,16 @@ export default function NotificationsPage() {
       };
     }
     if (isDisease) {
+      const cropInfo = extractCropInfo(item, isTe);
       return {
         type: 'disease',
-        senderTitle: isTe ? 'అగ్రిషీల్డ్ క్రాప్ అడ్వైజరీ' : 'AgriShield Crop Advisory',
+        senderTitle: cropInfo.threadTitle,
         verified: true,
         avatarBg: THREAD_THEMES.disease.avatarBg,
         badgeBg: THREAD_THEMES.disease.badgeBg,
         Icon: THREAD_THEMES.disease.Icon,
-        categoryLabel: isTe ? 'పంట హెచ్చరిక' : 'Crop Disease Alert'
+        categoryLabel: cropInfo.categoryLabel,
+        cropInfo
       };
     }
     if (isWeather) {
@@ -991,151 +1068,7 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* ─── 5. FAB: FLOATING ✨ START CHAT PILL BUTTON AT BOTTOM RIGHT ─── */}
-      <button
-        onClick={() => setStartChatOpen(true)}
-        className="fixed right-4 sm:right-8 bottom-20 sm:bottom-24 z-30 px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-xl flex items-center gap-2 transition-all border border-blue-400/30 ring-4 ring-blue-500/10 cursor-pointer"
-        title="Start New Chat"
-      >
-        <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-        <span>{isTe ? '✨ చాట్ ప్రారంభించండి' : '✨ Start Chat'}</span>
-      </button>
 
-      {/* ─── 6. START NEW CHAT MODAL ─── */}
-      <Dialog
-        isOpen={startChatOpen}
-        onClose={() => setStartChatOpen(false)}
-        title={isTe ? "✨ కొత్త సంభాషణను ప్రారంభించండి" : "✨ Start a New Conversation"}
-      >
-        <div className="space-y-4 pt-1">
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-            {isTe
-              ? "మీకు నచ్చిన ప్రొవైడర్‌తో నేరుగా మాట్లాడండి లేదా వ్యవసాయ AI నిపుణుడిని సంప్రదించండి:"
-              : "Connect directly with local machinery fleet providers or consult the AI Crop Doctor:"}
-          </p>
-
-          <div className="space-y-2.5">
-            {/* Option A: Ramesh Farm Services */}
-            <div
-              onClick={() => {
-                setStartChatOpen(false);
-                setSelectedMessage({
-                  id: 'chat-ramesh-' + Date.now(),
-                  category: 'booking',
-                  type: 'booking',
-                  providerName: 'Ramesh Farm Services (Pasupugallu)',
-                  providerPhone: '9848012345',
-                  equipmentTitle: 'Mahindra 575 DI 45HP Tractor',
-                  title: isTe ? 'రమేష్ ఫార్మ్ సర్వీసెస్' : 'Ramesh Farm Services',
-                  message: isTe ? 'ట్రాక్టర్ & రోటవేటర్ సేవల కోసం సంభాషణ' : 'Direct communication with Ramesh Farm Hub',
-                  created_at: new Date().toISOString(),
-                  read: true
-                });
-              }}
-              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all cursor-pointer flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                    Ramesh Farm Services (Pasupugallu)
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    {isTe ? '🚜 మహీంద్రా 575 DI ట్రాక్టర్ • అందుబాటులో ఉంది' : '🚜 Mahindra 575 DI Tractor • Available Today'}
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-            </div>
-
-            {/* Option B: Lakshmi Agro Fleet */}
-            <div
-              onClick={() => {
-                setStartChatOpen(false);
-                setSelectedMessage({
-                  id: 'chat-lakshmi-' + Date.now(),
-                  category: 'booking',
-                  type: 'booking',
-                  providerName: 'Lakshmi Agro Fleet (Guntur)',
-                  providerPhone: '9440182736',
-                  equipmentTitle: 'Kubota Combine Harvester DC68G',
-                  title: isTe ? 'లక్ష్మి ఆగ్రో ఫ్లీట్' : 'Lakshmi Agro Fleet',
-                  message: isTe ? 'వరి కోత యంత్రం సేవల కోసం సంభాషణ' : 'Paddy Combine Harvesting dispatch line',
-                  created_at: new Date().toISOString(),
-                  read: true
-                });
-              }}
-              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all cursor-pointer flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                    Lakshmi Agro Fleet (Guntur)
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    {isTe ? '🌾 కుబోటా కోత యంత్రం • బుకింగ్స్ తెరవబడ్డాయి' : '🌾 Kubota Harvester • Ready for Dispatch'}
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-            </div>
-
-            {/* Option C: Ask AgriShield AI Crop Doctor */}
-            <div
-              onClick={() => {
-                setStartChatOpen(false);
-                navigate('/assistant');
-              }}
-              className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 hover:border-blue-500 transition-all cursor-pointer flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
-                    {isTe ? 'అగ్రిషీల్డ్ AI పంట నిపుణుడు' : 'Ask AgriShield AI Crop Doctor'}
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    {isTe ? 'తక్షణ తెగులు విశ్లేషణ మరియు మందుల మోతాదు సలహా' : 'Instant disease diagnosis, dosage & weather advice'}
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-blue-500 group-hover:translate-x-1 transition-all" />
-            </div>
-
-            {/* Option D: Kisan Helpline */}
-            <a
-              href="tel:18001801551"
-              className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-orange-500/50 transition-all cursor-pointer flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Headphones className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                    {isTe ? 'జాతీయ కిసాన్ కాల్ సెంటర్ (టోల్-ఫ్రీ)' : 'National Kisan Call Center (Toll-Free)'}
-                  </h4>
-                  <p className="text-[11px] text-slate-500">1800-180-1551 • 6:00 AM - 10:00 PM</p>
-                </div>
-              </div>
-              <Phone className="w-4 h-4 text-orange-500" />
-            </a>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" size="sm" onClick={() => setStartChatOpen(false)}>
-              {isTe ? 'రద్దు చేయండి' : 'Close'}
-            </Button>
-          </div>
-        </div>
-      </Dialog>
 
       {/* ─── 7. NOTIFICATION SETTINGS MODAL ─── */}
       <Dialog

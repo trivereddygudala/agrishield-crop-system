@@ -2,6 +2,42 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v268) - Dynamic Crop Names in Notifications, Differentiated 3-Pattern Reader, & FAB Removal
+- **Summary:**
+  1. 🌾 **Dynamic Crop Names & Emojis in Notification Headers (`NotificationsPage.jsx`):**
+     - Developed `extractCropInfo(item, isTe)` to analyze `crop_name`, `crop`, `crop_type`, title, and message text across Telugu, English, and Romanized forms.
+     - Automatically replaces static repeating `"AgriShield Crop Advisory"` / `"అగ్రిషీల్డ్ క్రాప్ అడ్వైజరీ"` headers with specific crop titles:
+       - `🌶️ Chilli Crop Advisory` / `🌶️ మిరప • ఆకు మచ్చతెగులు`
+       - `🌽 Maize Crop Advisory` / `🌽 మొక్కజొన్న పంట సలహా`
+       - `🍅 Tomato Crop Advisory` / `🍅 టమాటా • ఎర్లీ బ్లైట్`
+       - `🌾 Paddy Crop Advisory` / `🌾 వరి పంట సలహా`
+       - `🧶 Cotton Crop Advisory` / `🧶 పత్తి పంట సలహా`
+       - `🥜 Groundnut Crop Advisory` / `🥜 వేరుశనగ పంట సలహా`
+     - Ensures farmers immediately recognize which crop each advisory pertains to at a glance.
+  2. 🗂️ **Differentiated 3-Pattern Notification Reader (`GoogleMessageReader.jsx`):**
+     - **Pattern A (Disease Detection Alerts):**
+       - Displays brief pathology summary, affected crop badge, and AI confidence score (`94.8% AI Diagnostic Accuracy`).
+       - Features embedded Google TTS audio narration waveform player to listen to voice recommendations in Telugu/English.
+       - Delivers actionable chemical spray dosages (e.g., Mancozeb 75% WP @ 2.5 g/L, Chlorantraniliprole 18.5% SC @ 0.3 ml/L) and organic remedies (Neem Oil 10,000 ppm @ 5 ml/L, Trichoderma viride).
+       - Action buttons: `[🌿 Scan Leaf / పంట స్కాన్ చేయండి]` (navigates to `/disease-detection`) and `[📢 Share Advisory / వాట్సాప్‌లో షేర్]`.
+       - **Strictly Read-Only:** Locked footer banner indicates *"Automated diagnostic advisory. Replies are disabled."* (No reply composer, no driver buttons, no GPS send).
+     - **Pattern B (ESP32 IoT & System Admin Alerts):**
+       - Clean alert card displaying sensor telemetry readings (Node ID, battery percentage, humidity thresholds) or administrative announcements.
+       - Single primary action: `[📢 Share Alert on WhatsApp / వాట్సాప్‌లో షేర్ చేయండి]`.
+       - **Strictly Read-Only:** Locked footer banner indicates *"System notice broadcast. Replies are disabled."* (No reply composer, no driver buttons).
+     - **Pattern C (Equipment Provider Bookings):**
+       - Full 2-way interactive conversation retained exclusively for machinery bookings.
+       - Perforated ticket voucher with **correct village details** (`village`, `mandal`, `district`, `acres`, `operation`, `date`, `slot`, and `fare`).
+       - Quick action chips: `[📍 Send Field GPS]`, `[📞 Call Driver]`, `[📜 View Receipt]`, `[WhatsApp]`.
+       - Active bottom reply composer with paperclip attachment menu and simulated provider responses.
+  3. 🚫 **Removed Floating Start Chat Button (`NotificationsPage.jsx`):**
+     - Removed the floating `✨ Start Chat` FAB pill button and its modal to deliver an uncluttered, clean inbox view.
+  4. 📦 **Production Build Validation:**
+     - Executed `npm run build` with **0 errors** (built cleanly in 55.43s).
+- **Files modified**: `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v267) - Git Push to GitHub & Triggered Render / Cloud Deployment
 - **Summary:**
   1. 🚀 **GitHub Remote Synchronization:** Staged, committed (`bb896fc`), and pushed the latest Notification Center Option 1 Light-Medium overhaul directly to `origin/main` (`https://github.com/trivereddygudala/agrishield-crop-system.git`).
