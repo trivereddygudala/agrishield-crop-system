@@ -474,7 +474,7 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Quick Touch-Friendly Farming Tools (4 Balanced Cards) ─── */}
+      {/* ─── Quick Touch-Friendly Farming Tools (6 Balanced Cards) ─── */}
       <motion.div variants={itemVariants} className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
@@ -485,7 +485,7 @@ const DashboardPage = () => {
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
           <div className="h-full">
             <Link to="/upload" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
@@ -564,6 +564,50 @@ const DashboardPage = () => {
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
                     {t('dashboard.quick_tools.my_farm_desc', 'View field GPS boundaries & crop setup.')}
+                  </p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+
+          {/* 🚜 Farm Machinery, Drone & Pump Rental */}
+          <div className="h-full">
+            <Link to="/equipment-booking" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-amber-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.tractorField} alt="Farm Machinery, Drone & Pump Rental" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {t('dashboard.quick_tools.machinery', isTe ? 'వ్యవసాయ యంత్రాలు & డ్రోన్లు' : 'Farm Machinery, Drone & Pump Rental')}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {t('dashboard.quick_tools.machinery_desc', isTe ? 'ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు & పంపుల అద్దె.' : 'Book nearby tractors, spraying drones & pumps.')}
+                  </p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+
+          {/* 🎧 Help & Support Team */}
+          <div className="h-full">
+            <Link to="/support" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-indigo-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.supportTeam} alt="Help & Support Team" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {t('dashboard.quick_tools.support', isTe ? 'రైతు సహాయం & మద్దతు' : 'Help & Support Team')}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {t('dashboard.quick_tools.support_desc', isTe ? '24×7 వాట్సాప్ సహాయం & కాల్‌బ్యాక్ సేవ.' : '24×7 WhatsApp desk & 15-min phone callback.')}
                   </p>
                 </div>
               </Card>

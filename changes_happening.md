@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v286) - Added Farm Machinery Rental & Help Support Cards to Home Quick Farming Tools (6 Balanced Cards)
+- **Summary:**
+  1. 🚜 **Integrated "Farm Machinery, Drone & Pump Rental" into Home Dashboard (`DashboardPage.jsx`):**
+     - Placed right after the "My Farm" tab as requested by the user.
+     - Direct navigation to `/equipment-booking`, amber hover glow (`hover:border-amber-500/50`), and authentic tractor field thumbnail from `CURATED_FARM_PHOTOS.tractorField`.
+     - Complete bilingual copy (Telugu & English) with instant responsive touch feedback.
+  2. 🎧 **Integrated "Help & Support Team" into Home Dashboard (`DashboardPage.jsx`):**
+     - Placed right after the Farm Machinery tab.
+     - Direct navigation to `/support`, indigo hover glow (`hover:border-indigo-500/50`), and curated customer support desk thumbnail from `CURATED_FARM_PHOTOS.supportTeam`.
+     - Bilingual copy: *"24×7 WhatsApp desk & 15-min phone callback"* / *"24×7 వాట్సాప్ సహాయం & కాల్‌బ్యాక్ సేవ"*.
+  3. 📐 **Symmetrical Responsive Grid Balancing (`DashboardPage.jsx`):**
+     - Upgraded grid from `grid-cols-2 lg:grid-cols-4` to `grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4`.
+     - Ensures 3 clean rows of 2 on mobile (<768px), 2 clean rows of 3 on tablets/laptops, and 1 clean row of 6 on wide screens, leaving 0 orphaned cards.
+  4. 📸 **Curated Support Photo Added (`photoService.js`):**
+     - Added high-res authentic helpline photo (`supportTeam`) to `CURATED_FARM_PHOTOS`.
+  5. 📦 **Production Build Validation:** Executed `npm run build` in `frontend/` — passed cleanly with 0 errors in 51.35s across 3,161 modules.
+- **Files modified:** `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/services/photoService.js`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-25 (v285) - Added Equipment Provider Booking Deletion Engine, Blacklist Synchronization & Confirmation Dialog
 - **Summary:**
   1. 🗑️ **Added Order Deletion Engine for Equipment Providers (`ProviderDashboardPage.jsx`):**
