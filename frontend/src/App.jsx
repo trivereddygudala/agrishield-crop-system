@@ -15,37 +15,37 @@ import { getApiBaseUrl } from './services/api';
 
 
 // Critical-path authentication pages — loaded eagerly for instant first-paint
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import NotFoundPage from './pages/NotFoundPage';
-import ServerErrorPage from './pages/ServerErrorPage';
+import LandingPage from './pages/common/LandingPage';
+import LoginPage from './pages/common/LoginPage';
+import RegisterPage from './pages/common/RegisterPage';
+import NotFoundPage from './pages/common/NotFoundPage';
+import ServerErrorPage from './pages/common/ServerErrorPage';
 import FarmerWelcomeModal from './components/onboarding/FarmerWelcomeModal';
 
 // Lazily loaded pages (with auto-recovery on new deployment chunk hash mismatch)
-const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
-const UploadImagePage = lazyWithRetry(() => import('./pages/UploadImagePage'));
-const PredictionResultPage = lazyWithRetry(() => import('./pages/PredictionResultPage'));
-const HistoryPage = lazyWithRetry(() => import('./pages/HistoryPage'));
-const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'));
-const AIAssistantPage = lazyWithRetry(() => import('./pages/AIAssistantPage'));
-const AnalyticsPage = lazyWithRetry(() => import('./pages/AnalyticsPage'));
-const FarmPage = lazyWithRetry(() => import('./pages/FarmPage'));
-const ProfilePage = lazyWithRetry(() => import('./pages/ProfilePage'));
-const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'));
-const DevicesPage = lazyWithRetry(() => import('./pages/DevicesPage'));
-const SDCardPage = lazyWithRetry(() => import('./pages/SDCardPage'));
-const NotificationsPage = lazyWithRetry(() => import('./pages/NotificationsPage'));
-const ReportsPage = lazyWithRetry(() => import('./pages/ReportsPage'));
-const FarmAnalyticsPage = lazyWithRetry(() => import('./pages/FarmAnalyticsPage'));
-const CropAdvisoryPage = lazyWithRetry(() => import('./pages/CropAdvisoryPage'));
-const MarketPricesPage = lazyWithRetry(() => import('./pages/MarketPricesPage'));
-const NodeControlPage = lazyWithRetry(() => import('./pages/NodeControlPage'));
-const MorePage = lazyWithRetry(() => import('./pages/MorePage'));
-const LanguagesPage = lazyWithRetry(() => import('./pages/LanguagesPage'));
-const FieldAreaCalculatorPage = lazyWithRetry(() => import('./pages/FieldAreaCalculatorPage'));
-const HelpSupportPage = lazyWithRetry(() => import('./pages/HelpSupportPage'));
-const EquipmentBookingPage = lazyWithRetry(() => import('./pages/EquipmentBookingPage'));
+const DashboardPage = lazyWithRetry(() => import('./pages/farmer/DashboardPage'));
+const UploadImagePage = lazyWithRetry(() => import('./pages/farmer/UploadImagePage'));
+const PredictionResultPage = lazyWithRetry(() => import('./pages/farmer/PredictionResultPage'));
+const HistoryPage = lazyWithRetry(() => import('./pages/farmer/HistoryPage'));
+const AdminPage = lazyWithRetry(() => import('./pages/admin/AdminPage'));
+const AIAssistantPage = lazyWithRetry(() => import('./pages/common/AIAssistantPage'));
+const AnalyticsPage = lazyWithRetry(() => import('./pages/common/AnalyticsPage'));
+const FarmPage = lazyWithRetry(() => import('./pages/farmer/FarmPage'));
+const ProfilePage = lazyWithRetry(() => import('./pages/common/ProfilePage'));
+const SettingsPage = lazyWithRetry(() => import('./pages/common/SettingsPage'));
+const DevicesPage = lazyWithRetry(() => import('./pages/common/DevicesPage'));
+const SDCardPage = lazyWithRetry(() => import('./pages/common/SDCardPage'));
+const NotificationsPage = lazyWithRetry(() => import('./pages/common/NotificationsPage'));
+const ReportsPage = lazyWithRetry(() => import('./pages/farmer/ReportsPage'));
+const FarmAnalyticsPage = lazyWithRetry(() => import('./pages/farmer/FarmAnalyticsPage'));
+const CropAdvisoryPage = lazyWithRetry(() => import('./pages/farmer/CropAdvisoryPage'));
+const MarketPricesPage = lazyWithRetry(() => import('./pages/farmer/MarketPricesPage'));
+const NodeControlPage = lazyWithRetry(() => import('./pages/common/NodeControlPage'));
+const MorePage = lazyWithRetry(() => import('./pages/common/MorePage'));
+const LanguagesPage = lazyWithRetry(() => import('./pages/common/LanguagesPage'));
+const FieldAreaCalculatorPage = lazyWithRetry(() => import('./pages/farmer/FieldAreaCalculatorPage'));
+const HelpSupportPage = lazyWithRetry(() => import('./pages/common/HelpSupportPage'));
+const EquipmentBookingPage = lazyWithRetry(() => import('./pages/farmer/EquipmentBookingPage'));
 const ProviderDashboardPage = lazyWithRetry(() => import('./pages/provider/ProviderDashboardPage'));
 
 // Layout wrapper for internal dashboard views

@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v251) - Completed Clean 3-Role Folder Architecture (Farmer, Equipment Provider, Admin) Across Frontend & Backend
+- **Summary:** Executed full architectural reorganization across frontend pages, backend routers, and test scripts into dedicated role-based directories (`farmer`, `provider`, `admin`, and `common/shared`) with 100% zero-regression backward compatibility:
+  1. 🌾 **Frontend Role Reorganization (`frontend/src/pages/`):**
+     - **`pages/farmer/`**: `DashboardPage.jsx`, `UploadImagePage.jsx`, `PredictionResultPage.jsx`, `HistoryPage.jsx`, `FarmPage.jsx`, `FarmAnalyticsPage.jsx`, `CropAdvisoryPage.jsx`, `FieldAreaCalculatorPage.jsx`, `MarketPricesPage.jsx`, `EquipmentBookingPage.jsx`, `ReportsPage.jsx`.
+     - **`pages/provider/`**: `ProviderDashboardPage.jsx`.
+     - **`pages/admin/`**: `AdminPage.jsx`.
+     - **`pages/common/`**: `LandingPage.jsx`, `LoginPage.jsx`, `RegisterPage.jsx`, `ProfilePage.jsx`, `NotificationsPage.jsx`, `HelpSupportPage.jsx`, `AIAssistantPage.jsx`, `SettingsPage.jsx`, `LanguagesPage.jsx`, `MorePage.jsx`, `DevicesPage.jsx`, `NodeControlPage.jsx`, `SDCardPage.jsx`, `NotFoundPage.jsx`, `ServerErrorPage.jsx`, `AnalyticsPage.jsx`.
+     - Updated all relative component, context, hook, and service imports (`../` -> `../../`).
+     - Added backward-compatible forwarding shims in `pages/*.jsx` to ensure any legacy references resolve seamlessly.
+     - Updated `App.jsx` lazy page loader imports to point to new role directories.
+  2. ⚙️ **Backend Router Role Reorganization (`backend/app/routers/`):**
+     - **`routers/farmer/`**: `predict.py`, `farm_profiles.py`, `market.py`, `agrochemical.py`, `plant_id.py`, `analytics.py`.
+     - **`routers/provider/`**: `equipment.py`.
+     - **`routers/admin/`**: `admin.py`, `firmware.py`.
+     - **`routers/common/`**: `auth.py`, `notifications.py`, `support.py`, `intelligence.py`, `devices.py`, `iot.py`, `ai.py`.
+     - Created `backend/app/routers/__init__.py` with full re-exports and module forwarding shims, maintaining complete backward compatibility.
+  3. 📜 **Scripts Reorganization (`backend/scripts/`):**
+     - **`scripts/provider/`**: `test_1000_bookings.py`, `seed_1000_bookings.py`.
+     - **`scripts/admin/`**: `setup_test_accounts.py`.
+  4. 🧪 **Full Verification:**
+     - Frontend production build (`npm run build`) compiled 3,168 modules in 24.81s with 0 errors.
+     - Backend FastAPI routes verified: all 298 endpoints across all roles registered and active.
+- **Files modified**: `frontend/src/App.jsx`, `frontend/src/pages/`, `backend/app/routers/`, `backend/scripts/`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v250) - Fixed Role & Notification Mix-Up: Farmer Receives ONLY Accept/Decline Notifications & Strict Role Guarding
 - **Summary:** Conducted a comprehensive audit and resolution of the cross-role notification and dashboard mix-up where farmer accounts were receiving incoming provider booking requests, viewing provider action buttons ("Call Farmer" / "View Orders"), and accessing the provider portal as "farmer1 VERIFIED PROVIDER":
   1. 🔍 **Root Cause Identification Across All 5 Screenshots:**

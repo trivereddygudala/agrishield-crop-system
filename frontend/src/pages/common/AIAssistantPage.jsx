@@ -1,0 +1,1833 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Send, Bot, User, Plus, MessageSquare, Trash2, Menu, Copy, Check, Sparkles, X,
+  Search, Pin, Share2, ThumbsUp, ThumbsDown, Volume2, VolumeX, Mic, MicOff,
+  ArrowUp, ChevronDown, MoreVertical, Image as ImageIcon, BookOpen, Cpu, 
+  ExternalLink, Edit3, Globe, Layers, CheckCircle2, ShieldCheck, Leaf, RefreshCw,
+  Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain, TrendingUp, Building2, Store,
+  MapPin, Compass, FileText, Bug, FlaskConical, Sun, Wind, Thermometer, Calculator, Navigation,
+  Stethoscope, Download
+} from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import API from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { useFarm } from '../../context/FarmContext';
+import { useSpeechReader } from '../../hooks/useSpeechReader';
+import { compressImageForUpload } from '../../utils/imageCompression';
+import { printPrescriptionSlip } from '../../utils/prescriptionShare';
+import { generateAndDownloadPrescriptionPDF } from '../../utils/pdfPrescriptionGenerator';
+import VoiceCropDoctorModal from '../../components/intelligence/VoiceCropDoctorModal';
+
+/* ───────────────────────────────────────
+   Inline text renderer: **bold**, `code`
+─────────────────────────────────────── */
+function InlineText({ text }) {
+  if (!text) return null;
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**'))
+          return <strong key={i} className="font-semibold text-slate-900 dark:text-slate-100">{part.slice(2, -2)}</strong>;
+        if (part.startsWith('`') && part.endsWith('`'))
+          return <code key={i} className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-[12px] font-mono text-emerald-700 dark:text-emerald-400">{part.slice(1, -1)}</code>;
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+/* ───────────────────────────────────────
+   Full Markdown → JSX renderer (ChatGPT Style)
+─────────────────────────────────────── */
+function MarkdownMessage({ text }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const nodes = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+
+    // Skip blank lines
+    if (!trimmed) { i++; continue; }
+
+    // Callout / Left accent quote block (e.g., | Highlight or > Quote)
+    if (trimmed.startsWith('| ') && !trimmed.endsWith('|')) {
+      nodes.push(
+        <div key={i} className="my-3 pl-3.5 py-1 border-l-2 border-slate-900 dark:border-slate-100 font-semibold text-slate-900 dark:text-slate-100 text-sm tracking-wide">
+          <InlineText text={trimmed.slice(2)} />
+        </div>
+      );
+      i++; continue;
+    }
+
+    // Headings
+    if (trimmed.startsWith('#### ')) {
+      nodes.push(<h4 key={i} className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-4 mb-1.5"><InlineText text={trimmed.slice(5)} /></h4>);
+      i++; continue;
+    }
+    if (trimmed.startsWith('### ')) {
+      nodes.push(<h3 key={i} className="text-base font-bold text-slate-900 dark:text-slate-100 mt-4 mb-2"><InlineText text={trimmed.slice(4)} /></h3>);
+      i++; continue;
+    }
+    if (trimmed.startsWith('## ')) {
+      nodes.push(<h2 key={i} className="text-lg font-bold text-emerald-700 dark:text-emerald-400 mt-4 mb-2"><InlineText text={trimmed.slice(3)} /></h2>);
+      i++; continue;
+    }
+    if (trimmed.startsWith('# ')) {
+      nodes.push(<h1 key={i} className="text-xl font-black text-emerald-600 dark:text-emerald-300 mt-3 mb-2"><InlineText text={trimmed.slice(2)} /></h1>);
+      i++; continue;
+    }
+
+    // Horizontal rule
+    if (/^[-=]{3,}$/.test(trimmed)) {
+      nodes.push(<hr key={i} className="my-3 border-slate-200 dark:border-slate-800" />);
+      i++; continue;
+    }
+
+    // Code block
+    if (trimmed.startsWith('```')) {
+      const lang = trimmed.slice(3);
+      const codeLines = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // consume closing ```
+      nodes.push(
+        <div key={i} className="my-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-100">
+          {lang && <div className="px-3 py-1 bg-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{lang}</div>}
+          <pre className="p-3.5 text-xs font-mono overflow-x-auto leading-relaxed text-slate-200">
+            {codeLines.join('\n')}
+          </pre>
+        </div>
+      );
+      continue;
+    }
+
+    // Markdown table
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const tableRows = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        tableRows.push(lines[i].trim());
+        i++;
+      }
+      const headerRow = tableRows[0];
+      const bodyRows = tableRows.slice(1).filter(r => !/^\|[\s|:-]+\|$/.test(r));
+      const parseCells = row => row.split('|').slice(1, -1).map(c => c.trim());
+      const headers = parseCells(headerRow);
+      nodes.push(
+        <div key={i} className="my-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-slate-100 dark:bg-slate-800/80">
+              <tr>
+                {headers.map((h, hi) => (
+                  <th key={hi} className="px-3 py-2 font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                    <InlineText text={h} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bodyRows.map((row, ri) => (
+                <tr key={ri} className={ri % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/40'}>
+                  {parseCells(row).map((cell, ci) => (
+                    <td key={ci} className="px-3 py-2 text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800">
+                      <InlineText text={cell} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+
+    // Unordered list block
+    if (/^[-*]\s/.test(trimmed)) {
+      const items = [];
+      while (i < lines.length && /^[-*]\s/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*]\s+/, ''));
+        i++;
+      }
+      nodes.push(
+        <ul key={i} className="my-2 space-y-1.5 pl-1">
+          {items.map((item, ii) => (
+            <li key={ii} className="flex items-start gap-2 text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 mt-2 shrink-0" />
+              <span><InlineText text={item} /></span>
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    // Ordered list block
+    if (/^\d+\.\s/.test(trimmed)) {
+      const items = [];
+      let num = 1;
+      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+        items.push({ num, text: lines[i].trim().replace(/^\d+\.\s+/, '') });
+        num++;
+        i++;
+      }
+      nodes.push(
+        <ol key={i} className="my-2.5 space-y-2 pl-1">
+          {items.map((item, ii) => (
+            <li key={ii} className="flex items-start gap-2 text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+              <span className="font-bold text-slate-900 dark:text-slate-100 w-5 shrink-0 text-sm">{item.num}.</span>
+              <span><InlineText text={item.text} /></span>
+            </li>
+          ))}
+        </ol>
+      );
+      continue;
+    }
+
+    // Blockquote
+    if (trimmed.startsWith('> ')) {
+      nodes.push(
+        <blockquote key={i} className="my-2 pl-3 border-l-2 border-emerald-500 text-slate-600 dark:text-slate-400 text-sm italic">
+          <InlineText text={trimmed.slice(2)} />
+        </blockquote>
+      );
+      i++; continue;
+    }
+
+    // Regular paragraph
+    nodes.push(
+      <p key={i} className="text-sm leading-relaxed text-slate-800 dark:text-slate-200 mb-2.5">
+        <InlineText text={trimmed} />
+      </p>
+    );
+    i++;
+  }
+
+  return <div className="space-y-0.5">{nodes}</div>;
+}
+
+/* ───────────────────────────────────────
+   Main AI Assistant Page
+─────────────────────────────────────── */
+const AIAssistantPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const { activeFarm } = useFarm();
+  const { t, i18n } = useTranslation();
+  const isTe = i18n?.language === 'te';
+  
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pinnedSessionIds, setPinnedSessionIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('agrishield_pinned_chats') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const userRole = user?.role?.toLowerCase() || 'farmer';
+
+  const roleConfigs = {
+    admin: {
+      title: "AgriShield System Copilot",
+      modelTag: "Admin Intelligence Copilot",
+      badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300",
+      welcomeMsg: `Hello **${user?.name || 'Administrator'}**! I am your **AgriShield System Intelligence Copilot**.\n\nI can analyze system health, MongoDB user analytics, ESP32 IoT node telemetry, security audit logs, and disease outbreak alerts across Indian states. How can I assist your administration today?`,
+      suggestionCards: [
+        { icon: ShieldCheck, title: "System Security Audit", prompt: "Summarize recent system security audit logs and failed login attempts" },
+        { icon: Cpu, title: "IoT Hardware Fleet", prompt: "Inspect active ESP32 IoT hardware node telemetry, battery status & connectivity" },
+        { icon: Layers, title: "User & Farmer Analytics", prompt: "Summarize registered user account roles, geographic distribution & farm statistics" },
+        { icon: Globe, title: "Platform Health Check", prompt: "Check backend API health, MongoDB Atlas status, and PyTorch AI engine latency" }
+      ]
+    },
+    tester: {
+      title: "AgriShield QA & Test AI",
+      modelTag: "QA Simulation Model",
+      badgeColor: "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-300",
+      welcomeMsg: `Hello **${user?.name || 'QA Tester'}**! I am your **AgriShield QA & Simulation AI Assistant**.\n\nI help you run automated test suites, simulate ESP32 sensor telemetry injection, benchmark PyTorch model confidence thresholds, and debug API endpoints!`,
+      suggestionCards: [
+        { icon: ShieldCheck, title: "Run test suite", prompt: "Run Phase 5 production polish test suite" },
+        { icon: Cpu, title: "Simulate ESP32 telemetry", prompt: "Simulate ESP32 sensor telemetry injection (Soil, Temp, Rain)" },
+        { icon: Sparkles, title: "PyTorch benchmark", prompt: "Benchmark PyTorch EfficientNetV2 confidence thresholds" },
+        { icon: Globe, title: "Check API latency", prompt: "Check API response latency & HTTP status codes" }
+      ]
+    },
+    farmer: {
+      title: isTe ? "వ్యవసాయ AI సహాయకుడు" : "AgriShield Smart Farm Assistant",
+      modelTag: isTe ? "రైతు మిత్ర AI" : "Smart Farm AI",
+      badgeColor: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300",
+      welcomeMsg: isTe 
+        ? `🌾 **నమస్కారం ${user?.name || 'రైతు సోదరులారా'}! నేను మీ అగ్రిషీల్డ్ స్మార్ట్ వ్యవసాయ AI సహాయకుడిని.**\n\nపంటల సాగు పద్ధతులు, తెగుళ్ల నివారణ & సరైన మందుల మోతాదు, నేటి వాతావరణ నివేదికలు & వర్ష సూచన, ప్రభుత్వ వ్యవసాయ పథకాలు (PM-కిసాన్, రైతు భరోసా, సబ్సిడీలు, ఈ-పంట నమోదు), మండి మార్కెట్ ధరలు లేదా ఇతర వ్యవసాయ సంబంధిత విషయాల గురించి మీకు కావలసిన సమాచారాన్ని నన్ను అడగండి!`
+        : `🌾 **Hello ${user?.name || 'Farmer'}! I am your AgriShield Smart Farm Assistant.**\n\nI can help you with crop cultivation practices, pest & disease remedies with knapsack pump dosages, live weather reports & rain spray windows, central & state government schemes (PM-Kisan, Rythu Bharosa, Subsidies, e-Crop), daily APMC Mandi market prices, and modern agricultural news. How can I help you today?`,
+      suggestionCards: isTe ? [
+        { icon: Leaf, title: "🌿 పంట సాగు & తెగుళ్ల నివారణ మందులు", prompt: "మిరప, టమోటా, వరి పంటలకు తెగుళ్ల నివారణ మరియు 16 లీటర్ల పంపుకి సరైన మందుల మోతాదు తెలపండి." },
+        { icon: CloudRain, title: "🌦️ నేటి వాతావరణం & వర్షంలో స్ప్రే చేయవచ్చా?", prompt: "నేటి వాతావరణం మరియు వర్ష సూచన ప్రకారం ఈ రోజు పంటకు మందులు పిచికారీ చేయడం సురక్షితమేనా?" },
+        { icon: Building2, title: "🏛️ ప్రభుత్వ పథకాలు (రైతు భరోసా, PM-కిసాన్, సబ్సిడీలు)", prompt: "రైతు భరోసా, పీఎం-కిసాన్, సబ్సిడీ ఎరువులు, విత్తనాలు మరియు ఈ-పంట నమోదు వివరాలు తెలపండి." },
+        { icon: Globe, title: "💰 నేటి మార్కెట్ మండి ధరలు & ట్రెండ్స్", prompt: "మా ప్రాంతంలో ప్రధాన వ్యవసాయ పంటల నేటి హోల్‌సేల్ మండి మార్కెట్ ధరలు మరియు క్వింటాల్ రేట్లు ఏమిటి?" },
+        { icon: Sparkles, title: "📰 తాజా వ్యవసాయ సమాచారం & సేంద్రీయ పద్ధతులు", prompt: "జీవామృతం, వేప కషాయం తయారీ విధానం మరియు ఆధునిక వ్యవసాయ పద్ధతులు వివరించండి." }
+      ] : [
+        { icon: Leaf, title: "🌿 Crop Cultivation & Pest Remedies", prompt: "What are the recommended treatments and exact 16L spray pump dosages for major crop diseases?" },
+        { icon: CloudRain, title: "🌦️ Today's Weather & Rain Spray Safety", prompt: "Based on today's weather and rain forecast, is it safe to spray pesticides today?" },
+        { icon: Building2, title: "🏛️ Govt Schemes, Subsidies & PM-Kisan", prompt: "What government schemes, PM-Kisan benefits, Rythu Bharosa funds, and seed/fertilizer subsidies are currently available?" },
+        { icon: Globe, title: "💰 Mandi Market Prices & Rates", prompt: "What are today's wholesale Mandi prices for major agricultural crops in my region?" },
+        { icon: Sparkles, title: "📰 Modern Farming News & Organic Methods", prompt: "How do I prepare organic bio-pesticide using Neem and Jeevamrutha, and what are the latest farming practices?" }
+      ]
+    }
+  };
+
+  const activeRoleConfig = roleConfigs[userRole] || roleConfigs.farmer;
+
+  const createNewSession = (title = "New Consultation") => ({
+    id: 'chat_' + Date.now(),
+    title,
+    createdAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+    messages: [
+      { id: Date.now(), role: 'assistant', content: activeRoleConfig.welcomeMsg }
+    ]
+  });
+
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [isSessionsLoaded, setIsSessionsLoaded] = useState(false);
+  const [inputQuery, setInputQuery] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
+  const [copiedId, setCopiedId] = useState(null);
+  const [feedbackMap, setFeedbackMap] = useState({});
+  const [isListening, setIsListening] = useState(false);
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  // Kisan Usability States: Auto-Voice Readout & In-Chat Photo Attachment
+  const [autoSpeak, setAutoSpeak] = useState(() => {
+    try {
+      return localStorage.getItem('agrishield_kisan_autospeak') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [attachedPhoto, setAttachedPhoto] = useState(null); // { file, preview, base64 }
+  const [audioSpeed, setAudioSpeed] = useState(1.0);
+  const [dosageAcreage, setDosageAcreage] = useState({});
+  const [inspectionMode, setInspectionMode] = useState('leaf'); // 'leaf' | 'pest' | 'bottle'
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [showVoiceDoctor, setShowVoiceDoctor] = useState(false);
+
+  const chatContainerRef = useRef(null);
+  const chatBottomRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  // Regional 1-Tap Kisan Question Shortcuts
+  const kisanQuickChips = [
+    {
+      icon: Leaf,
+      label: {
+        en: "🌾 My Recent Scan Treatment",
+        te: "🌾 నా ఇటీవలి పంట స్కాన్ నివారణలు",
+        hi: "🌾 मेरी हालिया फसल का इलाज",
+        ta: "🌾 எனது பயிர் சிகிச்சை",
+        kn: "🌾 ನನ್ನ ಬೆಳೆ ಚಿಕಿತ್ಸೆ"
+      },
+      query: {
+        en: "Explain the recommended treatments and exact 16L spray pump dosages for my most recent crop disease scan.",
+        te: "నా ఇటీవలి పంట స్కాన్‌లో గుర్తించిన వ్యాధికి తగిన నివారణలు మరియు 16 లీటర్ల స్ప్రే పంపుకు ఖచ్చితమైన మందుల మోతాదును వివరించండి.",
+        hi: "मेरी हाल ही में स्कैन की गई फसल की बीमारी के लिए अनुशंसित उपचार और 16 लीटर स्प्रे पंप के लिए सटीक खुराक बताएं।",
+        ta: "எனது சமீபத்திய பயிர் ஸ்கேனில் கண்டறியப்பட்ட நோய்க்கான மருந்துகள் மற்றும் 16L ஸ்ப்ரே பம்புக்கான துல்லியமான அளவை விளக்கவும்.",
+        kn: "ನನ್ನ ಇತ್ತೀಚಿನ ಬೆಳೆ ಸ್ಕ್ಯಾನ್‌ನಲ್ಲಿ ಗುರುತಿಸಲಾದ ರೋಗಕ್ಕೆ ಸೂಕ್ತ ಚಿಕಿತ್ಸೆಗಳು ಮತ್ತು 16L ಸಿಂಪಡಿಸುವ ಪಂಪ್‌ಗೆ ನಿಖರವಾದ ಔಷಧ ಪ್ರಮಾಣವನ್ನು ವಿವರಿಸಿ."
+      }
+    },
+    {
+      icon: Droplets,
+      label: {
+        en: "🧪 16L Spray Pump Dosage",
+        te: "🧪 16 లీటర్ల పంపుకి మందు మోతాదు",
+        hi: "🧪 16L पंप में दवा की खुराक",
+        ta: "🧪 16L தெளிப்பான் மருந்தளவு",
+        kn: "🧪 16L ಪಂಪ್ ಔಷಧ ಪ್ರಮಾಣ"
+      },
+      query: {
+        en: "How many grams or ml of medicine should I mix in one 16-litre knapsack sprayer pump for my crop?",
+        te: "నా పంటకు ఒక 16 లీటర్ల న్యాప్‌సాక్ స్ప్రేయర్ పంపులో ఎన్ని గ్రాములు లేదా మిల్లీలీటర్ల మందు కలపాలి?",
+        hi: "मेरी फसल के लिए 16 लीटर के नैपसैक स्प्रेयर पंप में कितने ग्राम या मिलीलीटर दवा मिलानी चाहिए?",
+        ta: "எனது பயிருக்கு ஒரு 16 லிட்டர் நேப்சாக் தெளிப்பான் பம்பில் எத்தனை கிராம் அல்லது மி.லி மருந்து கலக்க வேண்டும்?",
+        kn: "ನನ್ನ ಬೆಳೆಗೆ ಒಂದು 16 ಲೀಟರ್ ನ್ಯಾಪ್‌ಸ್ಯಾಕ್ ಸಿಂಪಡಿಸುವ ಪಂಪ್‌ನಲ್ಲಿ ಎಷ್ಟು ಗ್ರಾಂ ಅಥವಾ ಮಿಲಿ ಔಷಧ ಬೆರೆಸಬೇಕು?"
+      }
+    },
+    {
+      icon: CloudRain,
+      label: {
+        en: "🌦️ Rain & Spray Safety",
+        te: "🌦️ వర్షం పడుతుందా? మందు కొట్టవచ్చా?",
+        hi: "🌦️ बारिश होगी? क्या आज छिड़काव करें?",
+        ta: "🌦️ மழை வருமா? மருந்து அடிக்கலாமா?",
+        kn: "🌦️ ಮಳೆ ಬರುತ್ತಾ? ಔಷಧಿ ಸಿಂಪಡಿಸಬಹುದೇ?"
+      },
+      query: {
+        en: "Based on today's weather and rain forecast, is it safe to spray pesticides today?",
+        te: "నేటి వాతావరణం మరియు వర్ష సూచన ప్రకారం ఈ రోజు పంటకు పురుగు మందులు పిచికారీ చేయడం సురక్షితమేనా?",
+        hi: "आज के मौसम और बारिश के पूर्वानुमान के आधार पर, क्या आज कीटनाशक का छिड़काव करना सुरक्षित है?",
+        ta: "இன்றைய வானிலை மற்றும் மழை முன்னறிவிப்பின் அடிப்படையில், இன்று பூச்சிக்கொல்லி மருந்து தெளிப்பது பாதுகாப்பானதா?",
+        kn: "ಇಂದಿನ ಹವಾಮಾನ ಮತ್ತು ಮಳೆಯ ಮುನ್ಸೂಚನೆಯ ಆಧಾರದ ಮೇಲೆ, ಇಂದು ಕೀಟನಾಶಕ ಸಿಂಪಡಿಸುವುದು ಸುರಕ್ಷಿತವೇ?"
+      }
+    },
+    {
+      icon: Globe,
+      label: {
+        en: "💰 Mandi Market Rates",
+        te: "💰 నేటి మండి మార్కెట్ ధరలు",
+        hi: "💰 आज के मंडी भाव",
+        ta: "💰 இன்றைய மண்டி விலை",
+        kn: "💰 ಇಂದಿನ ಮಂಡಿ ಮಾರುಕಟ್ಟೆ ದರಗಳು"
+      },
+      query: {
+        en: "What are today's wholesale Mandi prices for major agricultural crops in my region?",
+        te: "మా ప్రాంతంలో ప్రధాన వ్యవసాయ పంటల నేటి హోల్‌సేల్ మండి మార్కెట్ ధరలు మరియు క్వింటాల్ రేట్లు ఏమిటి?",
+        hi: "मेरे क्षेत्र में प्रमुख कृषि फसलों के आज के थोक मंडी भाव और क्विंटल दरें क्या हैं?",
+        ta: "எனது பகுதியில் உள்ள முக்கிய விவசாயப் பயிர்களின் இன்றைய மொத்த மண்டி சந்தை விலைகள் என்ன?",
+        kn: "ನನ್ನ ಪ್ರದೇಶದಲ್ಲಿ ಪ್ರಮುಖ ಕೃಷಿ ಬೆಳೆಗಳ ಇಂದಿನ ಸಗಟು ಮಂಡಿ ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು ಮತ್ತು ಕ್ವಿಂಟಾಲ್ ದರಗಳು ಯಾವುವು?"
+      }
+    },
+    {
+      icon: Sparkles,
+      label: {
+        en: "🌿 Organic Neem / Jeevamrutha",
+        te: "🌿 జీవామృతం / వేప కషాయం తయారీ",
+        hi: "🌿 जीवामृत / नीम अर्क विधि",
+        ta: "🌿 ஜீவாமிர்தம் தயாரிப்பு",
+        kn: "🌿 ಜೀವಾಮೃತ ತಯಾರಿಕೆ"
+      },
+      query: {
+        en: "How do I prepare organic bio-pesticide using Neem leaves/oil and Jeevamrutha at home?",
+        te: "ఇంట్లోనే వేప నూనె / వేపాకు కషాయం మరియు జీవామృతం ఉపయోగించి సహజ సేంద్రీయ పురుగు మందును ఎలా తయారు చేయాలి?",
+        hi: "घर पर नीम के पत्ते/तेल और जीवामृत का उपयोग करके जैविक कीटनाशक कैसे तैयार करें?",
+        ta: "வீட்டிலேயே வேப்ப எண்ணெய் / வேப்பிலை கரைசல் மற்றும் ஜீவாமிர்தம் பயன்படுத்தி இயற்கை பூச்சிக்கொல்லி தயாரிப்பது எப்படி?",
+        kn: "ಮನೆಯಲ್ಲೇ ಬೇವಿನ ಎಣ್ಣೆ / ಎಲೆಗಳ ಕಷಾಯ ಮತ್ತು ಜೀವಾಮೃತ ಬಳಸಿ ಸಾವಯವ ಜೈವಿಕ ಕೀಟನಾಶಕವನ್ನು ಹೇಗೆ ತಯಾರಿಸುವುದು?"
+      }
+    },
+    {
+      icon: Building2,
+      label: {
+        en: "🏛️ Rythu Bharosa Kendram (RBK)",
+        te: "🏛️ రైతు భరోసా కేంద్రం (RBK సేవలు)",
+        hi: "🏛️ रायथू भरोसा केंद्र (RBK सेवा)",
+        ta: "🏛️ ரைத்து பரோசா மையம் (RBK)",
+        kn: "🏛️ ರೈತ ಭರೋಸಾ ಕೇಂದ್ರ (RBK)"
+      },
+      query: {
+        en: "What services, subsidized seeds, fertilizers, e-crop booking, and schemes are provided at village Rythu Bharosa Kendrams (RBK) in Andhra Pradesh?",
+        te: "ఆంధ్రప్రదేశ్‌లోని గ్రామ రైతు భరోసా కేంద్రాల్లో (RBK) సబ్సిడీ విత్తనాలు, ఎరువులు, ఈ-పంట నమోదు మరియు ఏయే ప్రభుత్వ పథకాలు, సేవలు లభిస్తాయి?",
+        hi: "आंध्र प्रदेश में ग्राम रायथू भरोसा केंद्रों (RBK) पर सब्सिडी वाले बीज, उर्वरक, ई-फसल बुकिंग और कौन सी सरकारी योजनाएं व सेवाएं प्रदान की जाती हैं?",
+        ta: "ஆந்திரப் பிரதேசத்தில் உள்ள கிராம ரைத்து பரோசா மையங்களில் (RBK) மானிய விதைகள், உரங்கள், இ-பயிர் பதிவு மற்றும் என்னென்ன அரசு திட்டங்கள் கிடைக்கின்றன?",
+        kn: "ಆಂಧ್ರಪ್ರದೇಶದ ಗ್ರಾಮ ರೈತ ಭರೋಸಾ ಕೇಂದ್ರಗಳಲ್ಲಿ (RBK) ಸಬ್ಸಿಡಿ ಬೀಜಗಳು, ರಸಗೊಬ್ಬರಗಳು, ಇ-ಬೆಳೆ ಬುಕಿಂಗ್ ಮತ್ತು ಯಾವ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು ಹಾಗೂ ಸೇವೆಗಳು ದೊರೆಯುತ್ತವೆ?"
+      }
+    },
+    {
+      icon: Store,
+      label: {
+        en: "🏪 Agro Stores & Govt Offices",
+        te: "🏪 ఎరువుల దుకాణాలు & వ్యవసాయ ఆఫీస్",
+        hi: "🏪 खाद दुकान और कृषि कार्यालय",
+        ta: "🏪 உரக் கடைகள் மற்றும் அலுவலகங்கள்",
+        kn: "🏪 ರಸಗೊಬ್ಬರ ಅಂಗಡಿಗಳು ಮತ್ತು ಕಚೇರಿಗಳು"
+      },
+      query: {
+        en: "How do I find authorized agro-chemical pesticide stores, PACS societies, and the Mandal Agriculture Officer (MAO) office in Andhra Pradesh?",
+        te: "ఆంధ్రప్రదేశ్‌లో అధీకృత ఎరువులు & పురుగుమందుల దుకాణాలు, పీఏసీఎస్ (PACS) సంఘాలు మరియు మండల వ్యవసాయ అధికారి (MAO) కార్యాలయాన్ని ఎలా కనుగొనాలి?",
+        hi: "आंध्र प्रदेश में अधिकृत कीटनाशक और खाद की दुकानें, पैक्स (PACS) समितियां और मंडल कृषि अधिकारी (MAO) कार्यालय कैसे खोजें?",
+        ta: "ஆந்திரப் பிரதேசத்தில் அங்கீகரிக்கப்பட்ட பூச்சிக்கொல்லி உரக் கடைகள், PACS சங்கங்கள் மற்றும் மண்டல வேளாண்மை அலுவலர் (MAO) அலுவலகத்தை எவ்வாறு கண்டறிவது?",
+        kn: "ಆಂಧ್ರಪ್ರದೇಶದಲ್ಲಿ ಅಧಿಕೃತ ರಸಗೊಬ್ಬರ ಮತ್ತು ಕೀಟನಾಶಕ ಅಂಗಡಿಗಳು, PACS ಸಹಕಾರ ಸಂಘಗಳು ಮತ್ತು ಮಂಡಲ ಕೃಷಿ ಅಧಿಕಾರಿ (MAO) ಕಚೇರಿಯನ್ನು ಕಂಡುಹಿಡಿಯುವುದು ಹೇಗೆ?"
+      }
+    }
+  ];
+
+  const handlePhotoSelected = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const comp = await compressImageForUpload(file, { maxDimension: 1280, quality: 0.82 });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedPhoto({
+          file: comp.file,
+          preview: URL.createObjectURL(comp.file),
+          base64: reader.result
+        });
+      };
+      reader.readAsDataURL(comp.file);
+    } catch (err) {
+      console.warn("Photo compression failed, using original:", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAttachedPhoto({
+          file,
+          preview: URL.createObjectURL(file),
+          base64: reader.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleWhatsAppShare = (adviceText) => {
+    const clean = adviceText.replace(/[*_#`|]/g, '').slice(0, 320);
+    const text = `🌾 *AgriShield Kisan Prescription*:\n\n${clean}...\n\n(Generated via AgriShield AI Agronomist for local agro store purchase)`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const handleDownloadPrescription = (msgId, content) => {
+    const acres = dosageAcreage[msgId] || 1;
+    const detectedCrop = /tomato|paddy|rice|cotton|chilli|groundnut|maize|wheat|potato|onion|grape|banana/i.exec(content)?.[0] || 'Field Crop';
+    const detectedDisease = /early blight|late blight|leaf spot|blast|powdery mildew|downy mildew|wilt|armyworm|stem borer|bollworm|aphid|whitefly|thrips/i.exec(content)?.[0] || 'Crop Pathology Condition';
+    
+    // Extract chemical lines or provide standard safe fallback
+    const chemicals = [];
+    const lines = (content || '').split('\n');
+    for (const line of lines) {
+      if (/option \d|spray |mancozeb|azoxystrobin|hexaconazole|chlorantraniliprole|emamectin|acetamiprid|metalaxyl/i.test(line)) {
+        const cleanL = line.replace(/[*_#`|-]/g, '').trim();
+        if (cleanL.length > 8 && cleanL.length < 90) {
+          chemicals.push(cleanL);
+        }
+      }
+    }
+    if (chemicals.length === 0) {
+      chemicals.push('Mancozeb 75% WP @ 2.5g/L (40g per 16L pump)');
+      chemicals.push('Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L (16ml per 16L pump)');
+    }
+
+    try {
+      generateAndDownloadPrescriptionPDF({
+        cropName: detectedCrop.toUpperCase(),
+        diseaseName: detectedDisease.toUpperCase(),
+        confidence: 98,
+        severity: 'Moderate',
+        chemicals: chemicals.slice(0, 3),
+        organic: [
+          'Neem Oil (10,000 PPM) @ 3ml/L (50ml per 16L pump)',
+          'Trichoderma viride bio-fungicide foliar spray'
+        ],
+        prevention: 'Maintain 4-hour rain-free window. Apply foliar sprays early morning (6-9 AM) or late evening (4:30-6:30 PM).',
+        acres: acres,
+        farmerName: user?.name || 'Farmer',
+        farmLocation: user?.district || activeFarm?.location || 'Andhra Pradesh',
+        language: (i18n.language || 'en').split('-')[0]
+      });
+    } catch (e) {
+      console.warn("Direct PDF failed, falling back to print slip:", e);
+      printPrescriptionSlip({
+        cropName: detectedCrop.toUpperCase(),
+        diseaseName: detectedDisease.toUpperCase(),
+        confidence: 98,
+        severity: 'Moderate',
+        chemicals: chemicals.slice(0, 3),
+        organic: [
+          'Neem Oil (10,000 PPM) @ 3ml/L (50ml per 16L pump)',
+          'Trichoderma viride bio-fungicide foliar spray'
+        ],
+        prevention: 'Maintain 4-hour rain-free window. Apply foliar sprays early morning (6-9 AM) or late evening (4:30-6:30 PM).',
+        acres: acres,
+        farmerName: user?.name || 'Farmer',
+        farmLocation: user?.district || activeFarm?.location || 'Andhra Pradesh',
+        language: (i18n.language || 'en').split('-')[0]
+      });
+    }
+  };
+
+  const handleOpenGpsMaps = (query = 'Rythu Bharosa Kendram near me') => {
+    if (!navigator.geolocation) {
+      window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, '_blank');
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocationLoading(false);
+        const { latitude, longitude } = pos.coords;
+        window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}/@${latitude},${longitude},14z`, '_blank');
+      },
+      (err) => {
+        setLocationLoading(false);
+        window.open(`https://www.google.com/maps/search/${encodeURIComponent(query)}`, '_blank');
+      },
+      { timeout: 7000 }
+    );
+  };
+
+  // Sync pinned sessions to localStorage
+  useEffect(() => {
+    localStorage.setItem('agrishield_pinned_chats', JSON.stringify(pinnedSessionIds));
+  }, [pinnedSessionIds]);
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchSessions = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await API.get('/api/ai/chat/sessions');
+      if (res.data && res.data.length > 0) {
+        setSessions(res.data);
+        
+        // Check if session_id is passed in query parameters
+        const queryParams = new URLSearchParams(location.search);
+        const urlSessionId = queryParams.get('session_id') || queryParams.get('id');
+        if (urlSessionId && res.data.some(s => s.id === urlSessionId)) {
+          setActiveSessionId(urlSessionId);
+        } else {
+          setActiveSessionId(res.data[0].id);
+        }
+      } else {
+        const s = createNewSession();
+        setSessions([s]);
+        setActiveSessionId(s.id);
+        await API.post('/api/ai/chat/sessions', s).catch(console.warn);
+      }
+    } catch (err) {
+      console.error("Failed to fetch chat sessions:", err);
+    } finally {
+      setIsSessionsLoaded(true);
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+  }, [userRole, location.search]);
+
+  const currentSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
+
+  // Auto scroll down on new messages
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [currentSession?.messages, isTyping]);
+
+  // Track scroll position to show scroll-to-bottom arrow
+  const handleScroll = () => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    if (scrollHeight - scrollTop - clientHeight > 180) {
+      setShowScrollBottom(true);
+    } else {
+      setShowScrollBottom(false);
+    }
+  };
+
+  const scrollToBottom = () => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSendMessage = async (queryText = inputQuery) => {
+    const rawText = (queryText || '').trim();
+    const photoToUpload = attachedPhoto;
+    if (!rawText && !photoToUpload) return;
+    if (isTyping) return;
+
+    setAttachedPhoto(null);
+    let defaultPhotoPrompt = "Please diagnose this attached crop leaf photo and advise exact remedies and 16L pump spray dosage.";
+    if (inspectionMode === 'pest') {
+      defaultPhotoPrompt = "Please identify this insect pest, its damage symptoms, biological IPM traps, and targeted treatment with exact 16L spray pump dilution.";
+    } else if (inspectionMode === 'bottle') {
+      defaultPhotoPrompt = "Please inspect this agrochemical bottle / fertilizer bag label, verify its active ingredients, CIB&RC toxicity triangle, authenticity, and standard 16L knapsack sprayer dilution.";
+    }
+    const effectiveText = rawText || (photoToUpload ? defaultPhotoPrompt : "");
+    const currentMessages = sessions.find(s => s.id === activeSessionId)?.messages || [];
+    const userMessage = { 
+      id: Date.now(), 
+      role: 'user', 
+      content: effectiveText,
+      image: photoToUpload ? photoToUpload.preview : null
+    };
+    const currentSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
+    
+    // Auto name the session after the first real user query
+    const newTitle = (currentSession.messages.length <= 1) ? effectiveText.slice(0, 30) : currentSession.title;
+    const updatedMsgsWithUser = [...currentSession.messages, userMessage];
+    
+    setSessions(prev => prev.map(s => {
+      if (s.id === activeSessionId) {
+        return { ...s, title: newTitle, messages: updatedMsgsWithUser };
+      }
+      return s;
+    }));
+    setInputQuery('');
+    setIsTyping(true);
+
+    try {
+      await API.put(`/api/ai/chat/sessions/${activeSessionId}`, { title: newTitle, messages: updatedMsgsWithUser }).catch(console.warn);
+      
+      const historyPayload = currentMessages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .slice(-20)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const res = await API.post('/api/ai/chat', {
+        message: effectiveText,
+        history: historyPayload,
+        user_id: user?.id || 'demo_user',
+        role: userRole,
+        language: i18n.language || 'en',
+        image_base64: photoToUpload ? photoToUpload.base64 : null,
+        context: {
+          language: i18n.language || 'en',
+          current_time_ampm: (() => {
+            const d = new Date();
+            let h = d.getHours();
+            const m = d.getMinutes().toString().padStart(2, '0');
+            const s = d.getSeconds().toString().padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12;
+            h = h ? h : 12;
+            return `${h}:${m}:${s} ${ampm}`;
+          })(),
+          current_date: new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' })
+        }
+      });
+
+      const replyContent = res.data.response || res.data.reply || res.data.answer || "I have processed your request.";
+      const assistantMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: replyContent
+      };
+      const finalMsgs = [...updatedMsgsWithUser, assistantMessage];
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: finalMsgs } : s));
+      
+      // Auto-Voice Readout (Kisan Audio Mode)
+      if (autoSpeak && replyContent) {
+        speak(replyContent, assistantMessage.id, i18n.language || 'en', audioSpeed);
+      }
+
+      await API.put(`/api/ai/chat/sessions/${activeSessionId}`, { messages: finalMsgs }).catch(console.warn);
+    } catch (err) {
+      console.error("AI Assistant chat error:", err);
+      const detailMsg = err?.response?.data?.detail;
+      const errorMessage = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: detailMsg 
+          ? `Connection issue (${detailMsg}). Please retry your question.`
+          : "Sorry, I encountered a temporary connection issue. Please check your network connection and try again."
+      };
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: [...s.messages, errorMessage] } : s));
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const createNewChat = async () => {
+    const s = createNewSession();
+    setSessions(prev => [s, ...prev]);
+    setActiveSessionId(s.id);
+    setSidebarOpen(false);
+    try {
+      await API.post('/api/ai/chat/sessions', s);
+    } catch (err) {
+      console.warn("Failed to save new session:", err);
+    }
+  };
+
+  const deleteSession = async (e, id) => {
+    e.stopPropagation();
+    if (sessions.length === 1) return;
+    const filtered = sessions.filter(s => s.id !== id);
+    setSessions(filtered);
+    if (activeSessionId === id) setActiveSessionId(filtered[0].id);
+    try {
+      await API.delete(`/api/ai/chat/sessions/${id}`);
+    } catch (err) {
+      console.warn("Failed to delete session:", err);
+    }
+  };
+
+  const togglePinSession = (e, id) => {
+    e.stopPropagation();
+    setPinnedSessionIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleShare = (text) => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'AgriShield AI Advice',
+        text: text,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text);
+      alert("Consultation copied to clipboard!");
+    }
+  };
+
+  // Text-to-Speech (Audio Voice playback)
+  const toggleSpeech = (text, id) => {
+    if (!('speechSynthesis' in window)) return;
+    if (speakingId === id) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+    } else {
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/[*_#`|]/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', gu: 'gu-IN', pa: 'pa-IN', ur: 'ur-IN', or: 'or-IN', as: 'as-IN', en: 'en-IN' };
+      utterance.lang = bcpMap[i18n.language] || 'en-IN';
+      utterance.rate = 1.0;
+      utterance.onend = () => setSpeakingId(null);
+      utterance.onerror = () => setSpeakingId(null);
+      window.speechSynthesis.speak(utterance);
+      setSpeakingId(id);
+    }
+  };
+
+  // Speech-to-Text (Microphone voice input with regional Indian language support)
+  const toggleSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser. Please use Google Chrome.");
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', gu: 'gu-IN', pa: 'pa-IN', ur: 'ur-IN', or: 'or-IN', as: 'as-IN', en: 'en-IN' };
+      const activeLangKey = (i18n.language || 'en').split('-')[0];
+      rec.lang = bcpMap[activeLangKey] || 'en-IN';
+      rec.onstart = () => setIsListening(true);
+      rec.onresult = (e) => {
+        const transcript = Array.from(e.results).map(res => res[0].transcript).join('');
+        if (transcript) {
+          setInputQuery(transcript);
+        }
+      };
+      rec.onerror = (err) => {
+        console.warn("Speech recognition error:", err);
+        setIsListening(false);
+      };
+      rec.onend = () => setIsListening(false);
+      recognitionRef.current = rec;
+      try {
+        rec.start();
+      } catch (err) {
+        console.warn("Speech recognition start:", err);
+      }
+    }
+  };
+
+  const filteredSessions = sessions.filter(s => 
+    s.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const pinnedSessions = filteredSessions.filter(s => pinnedSessionIds.includes(s.id));
+  const recentSessions = filteredSessions.filter(s => !pinnedSessionIds.includes(s.id));
+
+  // Determine user initials for avatar
+  const userInitials = (user?.name || 'Farmer').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  return (
+    <div className="flex h-full min-h-0 flex-1 w-full bg-white dark:bg-[#0d0d0d] text-slate-900 dark:text-slate-100 overflow-hidden relative font-sans select-text">
+
+      {/* ── MOBILE BACKDROP FOR SIDEBAR ── */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── CHATGPT STYLE SIDEBAR DRAWER (Picture 1) ── */}
+      <div className={`
+        fixed top-0 bottom-0 left-0 z-50 w-[280px] sm:w-72 flex flex-col h-full
+        bg-[#171717] text-[#ececec] border-r border-[#262626]
+        transition-all duration-300 ease-in-out
+        lg:relative lg:z-auto lg:h-full lg:shrink-0
+        ${sidebarOpen ? 'translate-x-0 shadow-2xl lg:shadow-none lg:w-72 lg:opacity-100' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:opacity-0 lg:overflow-hidden lg:border-none'}
+      `}>
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between p-4 border-b border-[#262626]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-sm font-bold text-sm">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <h1 className="text-base font-bold tracking-tight text-white">AgriShield AI</h1>
+          </div>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#262626] lg:hidden"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Search in chats */}
+        <div className="px-3 pt-3 pb-2">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <input 
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full bg-[#212121] text-xs text-white placeholder:text-slate-400 rounded-xl pl-9 pr-3 py-2 border border-[#2e2e2e] focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+        </div>
+
+        {/* Quick App Shortcut Categories */}
+        <div className="px-3 py-2 space-y-1 border-b border-[#262626]">
+          <button 
+            onClick={() => { navigate('/scan'); setSidebarOpen(false); }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-[#212121] transition-colors"
+          >
+            <ImageIcon className="w-4 h-4 text-emerald-400" />
+            <span>Disease Diagnostics</span>
+          </button>
+          <button 
+            onClick={() => { navigate('/sensors'); setSidebarOpen(false); }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-[#212121] transition-colors"
+          >
+            <Cpu className="w-4 h-4 text-blue-400" />
+            <span>IoT Sensors & Telemetry</span>
+          </button>
+          <button 
+            onClick={() => { navigate('/market'); setSidebarOpen(false); }}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-[#212121] transition-colors"
+          >
+            <Globe className="w-4 h-4 text-amber-400" />
+            <span>Mandi Market Prices</span>
+          </button>
+        </div>
+
+        {/* Conversations Scroll Area */}
+        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+          {/* Pinned Section */}
+          {pinnedSessions.length > 0 && (
+            <div>
+              <p className="px-3 text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Pinned</p>
+              <div className="space-y-0.5">
+                {pinnedSessions.map(s => (
+                  <div
+                    key={s.id}
+                    onClick={() => { setActiveSessionId(s.id); setSidebarOpen(false); }}
+                    className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-all ${
+                      s.id === activeSessionId
+                        ? 'bg-[#212121] text-white font-semibold'
+                        : 'text-slate-300 hover:bg-[#212121]/60 hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <MessageSquare className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                      <span className="truncate">{s.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={(e) => togglePinSession(e, s.id)} className="p-1 text-slate-400 hover:text-amber-400">
+                        <Pin className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      </button>
+                      <button onClick={(e) => deleteSession(e, s.id)} className="p-1 text-slate-400 hover:text-rose-400">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recents Section */}
+          <div>
+            <p className="px-3 text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Recents</p>
+            <div className="space-y-0.5">
+              {recentSessions.map(s => (
+                <div
+                  key={s.id}
+                  onClick={() => { setActiveSessionId(s.id); setSidebarOpen(false); }}
+                  className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-all ${
+                    s.id === activeSessionId
+                      ? 'bg-[#212121] text-white font-semibold'
+                      : 'text-slate-300 hover:bg-[#212121]/60 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <MessageSquare className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                    <span className="truncate">{s.title}</span>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={(e) => togglePinSession(e, s.id)} className="p-1 text-slate-400 hover:text-amber-400" title="Pin chat">
+                      <Pin className="w-3 h-3" />
+                    </button>
+                    {sessions.length > 1 && (
+                      <button onClick={(e) => deleteSession(e, s.id)} className="p-1 text-slate-400 hover:text-rose-400" title="Delete chat">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar Bottom Drawer Bar (Picture 1) */}
+        <div className="p-3 border-t border-[#262626] flex items-center justify-between bg-[#171717]">
+          <button
+            onClick={createNewChat}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-xs font-bold transition-all shadow-md active:scale-95"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Chat</span>
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-[#ec4899] text-white text-xs font-bold flex items-center justify-center shadow-sm">
+              {userInitials}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN ACTIVE CHAT VIEW (Pictures 2 & 3) ── */}
+      <div className="flex-1 flex flex-col min-w-0 h-full min-h-0 bg-white dark:bg-[#0d0d0d] relative overflow-hidden">
+
+        {/* ChatGPT Style Top Header */}
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-white/80 dark:bg-[#0d0d0d]/80 backdrop-blur-md border-b border-slate-100 dark:border-[#1e1e1e] shrink-0 z-10">
+          <div className="flex items-center gap-2 min-w-0">
+            <button 
+              onClick={() => setSidebarOpen(o => !o)} 
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors"
+              aria-label="Toggle Sidebar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            
+            {/* Title / Model Badge */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-[#1e1e1e] text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="truncate max-w-[140px] sm:max-w-xs">{activeRoleConfig.modelTag}</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* AgriShield Live Assistant Button */}
+            <button
+              onClick={() => setShowVoiceDoctor(true)}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 dark:text-emerald-300 text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+              title={isTe ? "అగ్రిషీల్డ్ లైవ్ అసిస్టెంట్ తెరవండి" : "Open AgriShield Live Assistant"}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-extrabold tracking-wide">AgriShield Live</span>
+            </button>
+
+            <button 
+              onClick={fetchSessions}
+              disabled={isSyncing}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors disabled:opacity-40"
+              title="Sync with database"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-emerald-500' : ''}`} />
+            </button>
+            <button 
+              onClick={createNewChat}
+              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e1e1e] transition-colors"
+              title="New Thread"
+            >
+              <Edit3 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Messages List Area */}
+        <div 
+          ref={chatContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3.5 sm:px-6 py-4 space-y-6 max-w-3xl w-full mx-auto"
+          style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}
+        >
+          {/* Empty Chat State with Suggestion Cards (Picture 3) */}
+          {currentSession?.messages.length <= 1 && (
+            <div className="flex flex-col justify-end min-h-[50vh] pb-4">
+              <div className="text-center mb-8">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-sm">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
+                  {isTe ? "నమస్కారం! వ్యవసాయం గురించి ఏదైనా అడగండి" : "AgriShield Smart Farm Assistant"}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto">
+                  {isTe 
+                    ? "పంటల సాగు, తెగుళ్లు, నేటి వాతావరణం, ప్రభుత్వ పథకాలు మరియు మండి ధరలు" 
+                    : "Crops, pest remedies, weather reports, government schemes & Mandi prices"}
+                </p>
+              </div>
+
+              {/* Action suggestion rows (like Picture 3) */}
+              <div className="space-y-2 max-w-md mx-auto w-full">
+                {activeRoleConfig.suggestionCards.map((item, idx) => {
+                  const IconComp = item.icon;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleSendMessage(item.prompt)}
+                      className="w-full flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-[#171717] hover:bg-slate-100 dark:hover:bg-[#212121] border border-slate-200/60 dark:border-[#262626] text-left transition-all active:scale-[0.99] group"
+                    >
+                      <div className="p-2 rounded-xl bg-white dark:bg-[#262626] text-slate-600 dark:text-slate-300 shadow-sm group-hover:text-emerald-500 transition-colors">
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200">{item.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Render Active Conversation (Picture 2) */}
+          {currentSession?.messages.map((msg, index) => {
+            const isUser = msg.role === 'user';
+            const isLastAssistant = !isUser && index === currentSession.messages.length - 1;
+
+            // Prior user message intent extraction
+            const prevUserMsg = index > 0 ? currentSession.messages[index - 1] : null;
+            const prevUserText = (prevUserMsg?.content || '').toLowerCase();
+            const isUserWeatherQuery = /weather|forecast|rain|spray today|safe to spray|వాతావరణం|వర్షం|పిచికారీ చేయడం సురక్షితమేనా|స్ప్రే చేయవచ్చా|పిచికారీ సురక్షితమేనా|సురక్షితమేనా/i.test(prevUserText);
+            const isUserMarketQuery = /mandi|price|rate|cost|bhav|ధర|ధరలు|రేటు|మార్కెట్|మండి/i.test(prevUserText);
+            const isUserTreatmentQuery = /dosage|dose|how much|treatment|medicine|cure|spray pump|వాడాలి|మోతాదు|ఎంత కలపాలి|ఏ మందు|పురుగు మందు|నివారణ|చికిత్స/i.test(prevUserText);
+
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`flex flex-col ${isUser ? 'items-end max-w-[85%] sm:max-w-[75%]' : 'items-start max-w-[100%] w-full'}`}>
+                  
+                  {/* User Attached Photo Thumbnail */}
+                  {isUser && msg.image && (
+                    <div className="mb-2 rounded-2xl overflow-hidden border-2 border-emerald-500/50 shadow-md max-w-xs">
+                      <img src={msg.image} alt="Attached crop leaf" className="w-full h-auto max-h-56 object-cover" />
+                      <div className="bg-emerald-900/80 text-white text-[10px] font-bold px-2 py-0.5 text-center">
+                        🌿 Crop Leaf Photo Sent for Diagnosis
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message Content Container */}
+                  <div className={
+                    isUser
+                      ? 'px-4 py-2.5 rounded-3xl bg-[#2f2f2f] text-white text-sm leading-relaxed shadow-sm'
+                      : 'w-full text-slate-900 dark:text-[#ececec] text-sm leading-relaxed'
+                  }>
+                    {isUser ? (
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    ) : (
+                      <>
+                        <MarkdownMessage text={msg.content} />
+
+                        {/* 1. Interactive Farmer Action Card for Treatments + Acreage Calculator + Prescription Slip */}
+                        {(() => {
+                          // STRICT INTENT CHECK: Do NOT show Knapsack Sprayer Card if user asked about Weather, Rain, or Market!
+                          if (isUserWeatherQuery || isUserMarketQuery) return null;
+                          
+                          const hasExplicitChemicalPrescription = /per 16L|16L pump|16 లీటర్ల పంపు|గ్రాములు.*16.*లీటర్ల|ml.*per.*16L|g.*per.*16L/i.test(msg.content);
+                          const isAgronomyAdvice = isUserTreatmentQuery || (hasExplicitChemicalPrescription && !isUserWeatherQuery);
+                          if (!isAgronomyAdvice) return null;
+
+                          const currentAcres = dosageAcreage[msg.id] || 1.0;
+                          const pumpsNeeded = Math.ceil(currentAcres * 3);
+                          const chemMl = pumpsNeeded * 30;
+                          const approxCost = Math.round(currentAcres * 320);
+
+                          return (
+                            <div className="mt-3.5 p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300/60 dark:border-emerald-700/50 shadow-xs w-full space-y-2.5">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                    🚜
+                                  </span>
+                                  <div>
+                                    <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wide block">
+                                      Knapsack Sprayer Calibration
+                                    </span>
+                                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                      Standard 16-Litre Field Pump Mix
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Feature 4: Acreage Tank & Cost Calculator */}
+                                <div className="flex items-center gap-1 bg-white/80 dark:bg-[#1a1a1a] p-1 rounded-xl border border-emerald-200 dark:border-emerald-800/60 text-[11px] font-bold">
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 px-1 hidden sm:inline">Acreage:</span>
+                                  {[0.5, 1.0, 2.0, 5.0].map((ac) => (
+                                    <button
+                                      key={ac}
+                                      type="button"
+                                      onClick={() => setDosageAcreage(prev => ({ ...prev, [msg.id]: ac }))}
+                                      className={`px-2 py-0.5 rounded-lg font-extrabold transition-all ${
+                                        currentAcres === ac
+                                          ? 'bg-emerald-600 text-white shadow-xs scale-105'
+                                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      {ac} Ac
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Dynamic Calculated Field Requirements */}
+                              <div className="px-2.5 py-1.5 rounded-xl bg-emerald-100/60 dark:bg-emerald-900/30 border border-emerald-300/50 dark:border-emerald-800/40 text-[11px] font-semibold text-emerald-900 dark:text-emerald-200 flex flex-wrap items-center justify-between gap-1.5">
+                                <span>🚜 Need: <strong>{pumpsNeeded} pumps (16L each)</strong></span>
+                                <span>🧪 Medicine: <strong>~{chemMl} ml / g</strong></span>
+                                <span>💰 Est. Cost: <strong>~₹{approxCost}</strong></span>
+                              </div>
+
+                              {/* Action Buttons: Download Slip, WhatsApp, Kisan Call */}
+                              <div className="flex flex-wrap items-center justify-end gap-2 pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadPrescription(msg.id, msg.content)}
+                                  className="px-3 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+                                  title="Download Doctor-Style Prescription Slip for Agro Dealer"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-teal-200" />
+                                  <span>📄 Prescription Slip</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleWhatsAppShare(msg.content)}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+                                  title="Send advice to pesticide/fertilizer shop on WhatsApp"
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                  <span>WhatsApp Dealer</span>
+                                </button>
+                                <a
+                                  href="tel:18001801551"
+                                  className="px-3 py-1.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+                                  title="Call Kisan Call Center (1800-180-1551 Free)"
+                                >
+                                  <PhoneCall className="w-3.5 h-3.5" />
+                                  <span>1800 Helpline</span>
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* 2. Feature 1: Interactive Google Maps Near-Me Hub Card (RBKs, Agro Stores, MAO) */}
+                        {(() => {
+                          const isRbkOrStore = /rbk|rythu bharosa|sachivalayam|agro store|fertilizer shop|fertilizer store|pesticide store|pesticide shop|pacs|markfed|mao|ada|jda|రైతు భరోసా|ఎరువుల దుకాణం|పురుగు మందుల దుకాణం|వ్యవసాయ అధికారి/i.test(msg.content);
+                          if (!isRbkOrStore) return null;
+                          return (
+                            <div className="mt-3.5 p-3 rounded-2xl bg-teal-50/90 dark:bg-teal-950/40 border border-teal-300/60 dark:border-teal-700/50 shadow-xs w-full space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-7 h-7 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                    📍
+                                  </span>
+                                  <div>
+                                    <span className="text-[10px] font-black uppercase text-teal-800 dark:text-teal-300 tracking-wide block">
+                                      Andhra Pradesh Agriculture Hubs
+                                    </span>
+                                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                      Find Nearest RBK, Agro Store & Govt Buildings
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenGpsMaps('Rythu Bharosa Kendram near me')}
+                                  disabled={locationLoading}
+                                  className="px-2.5 py-1 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-all active:scale-95 disabled:opacity-50"
+                                  title="Pinpoint nearest centers using your live GPS location"
+                                >
+                                  <Compass className={`w-3 h-3 ${locationLoading ? 'animate-spin' : ''}`} />
+                                  <span>{locationLoading ? 'Locating...' : '📍 Use GPS'}</span>
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                <a
+                                  href="https://www.google.com/maps/search/Rythu+Bharosa+Kendram+near+me"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-[#1a1a1a] hover:bg-teal-50 dark:hover:bg-teal-900/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200 text-xs font-bold flex items-center gap-1 shadow-2xs transition-transform active:scale-95"
+                                >
+                                  <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                                  <span>🏛️ Nearest RBK</span>
+                                </a>
+                                <a
+                                  href="https://www.google.com/maps/search/Agro+chemical+pesticide+fertilizer+store+near+me"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-[#1a1a1a] hover:bg-teal-50 dark:hover:bg-teal-900/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200 text-xs font-bold flex items-center gap-1 shadow-2xs transition-transform active:scale-95"
+                                >
+                                  <Store className="w-3.5 h-3.5 text-teal-600" />
+                                  <span>🏪 Agro Chemical Stores</span>
+                                </a>
+                                <a
+                                  href="https://www.google.com/maps/search/Mandal+Agriculture+Office+near+me"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-[#1a1a1a] hover:bg-teal-50 dark:hover:bg-teal-900/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-200 text-xs font-bold flex items-center gap-1 shadow-2xs transition-transform active:scale-95"
+                                >
+                                  <MapPin className="w-3.5 h-3.5 text-teal-600" />
+                                  <span>🏢 MAO Office (Mandal)</span>
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* 3. Feature 3: Interactive Dynamic Spraying Safety Window Card */}
+                        {(() => {
+                          const isWeatherAdvice = isUserWeatherQuery || /weather|forecast|rain|spray window|safe to spray|foliar spray weather|వాతావరణం|వర్షం|స్ప్రే సమయం|పిచికారీ చేయడం సురక్షితమేనా/i.test(msg.content);
+                          if (!isWeatherAdvice) return null;
+
+                          // Dynamic Verdict: check if AI advised against spraying
+                          const isUnsafe = /సురక్షితం కాదు|చేయకూడదు|ఆపండి|వద్దు|వాయిదా|not safe|unsafe|do not spray|avoid spraying|వర్షం పడే|వర్ష సూచన|వర్ష సెన్సార్\s*=\s*1/i.test(msg.content);
+
+                          return (
+                            <div className={`mt-3.5 p-3 rounded-2xl border shadow-xs w-full space-y-2 ${
+                              isUnsafe
+                                ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-300/60 dark:border-rose-700/50'
+                                : 'bg-sky-50/90 dark:bg-sky-950/40 border-sky-300/60 dark:border-sky-700/50'
+                            }`}>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-7 h-7 rounded-xl text-white flex items-center justify-center font-bold text-xs shadow-xs ${
+                                    isUnsafe ? 'bg-rose-600' : 'bg-sky-600'
+                                  }`}>
+                                    {isUnsafe ? '🌧️' : '🌤️'}
+                                  </span>
+                                  <div>
+                                    <span className={`text-[10px] font-black uppercase tracking-wide block ${
+                                      isUnsafe ? 'text-rose-800 dark:text-rose-300' : 'text-sky-800 dark:text-sky-300'
+                                    }`}>
+                                      {isUnsafe ? 'Spraying Safety Alert (హెచ్చరిక)' : 'Spraying Safety Window'}
+                                    </span>
+                                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                      {isUnsafe ? 'ఈ రోజు పిచికారీ చేయడం సురక్షితం కాదు' : 'పిచికారీకి అనుకూల సమయం (Safe Window)'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className={`px-2.5 py-0.5 rounded-full text-white text-[10px] font-black uppercase tracking-wide ${
+                                  isUnsafe ? 'bg-rose-600' : 'bg-emerald-600'
+                                }`}>
+                                  {isUnsafe ? '⚠️ DO NOT SPRAY' : '✓ SAFE TO SPRAY'}
+                                </span>
+                              </div>
+
+                              {isUnsafe ? (
+                                <div className="p-2 rounded-xl bg-white/80 dark:bg-[#1a1a1a] border border-rose-200 dark:border-rose-800/50 text-[11px] font-semibold text-rose-950 dark:text-rose-200">
+                                  ⚠️ <strong>వర్షం / తేమ హెచ్చరిక:</strong> వర్షం పడే అవకాశం ఉన్నప్పుడు మందు పిచికారీ చేస్తే వర్షపు నీటిలో కొట్టుకుపోయి ఖర్చు వృధా అవుతుంది. వర్షం ఆగి, ఆకులు పూర్తిగా ఆరిన తర్వాత మాత్రమే పిచికారీ చేయండి.
+                                </div>
+                              ) : (
+                                <div className="p-2 rounded-xl bg-white/80 dark:bg-[#1a1a1a] border border-sky-200 dark:border-sky-800/50 text-[11px] font-semibold text-sky-950 dark:text-sky-200">
+                                  ✓ <strong>స్ప్రే అనుకూలం:</strong> వాతావరణం పొడిగా ఉంది. ఉదయం 6:00 - 9:00 AM లేదా సాయంత్రం 4:30 - 6:30 PM మధ్య పిచికారీ చేయండి.
+                                </div>
+                              )}
+
+                              <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 pt-0.5">
+                                <Wind className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                <span><strong>4-గంటల నియమం (4-Hour Dry Rule):</strong> పిచికారీ చేసిన తర్వాత కనీసం 4 గంటలు వర్షం పడకుండా ఉండాలి. గాలి వేగం 12 km/h కంటే తక్కువ ఉండాలి.</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* 4. Feature 6: Crop Pest & Insect Alert Card */}
+                        {(() => {
+                          const isPestAdvice = /pest|caterpillar|armyworm|stem borer|bollworm|aphid|whitefly|thrips|mite|borer|పురుగు|కీటకాలు|లద్దె/i.test(msg.content) && !/fungicide|mancozeb|carbendazim|early blight|late blight|leaf spot/i.test(msg.content);
+                          if (!isPestAdvice) return null;
+                          return (
+                            <div className="mt-3.5 p-3 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/50 shadow-xs w-full space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                  🐛
+                                </span>
+                                <div>
+                                  <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 tracking-wide block">
+                                    Integrated Pest Management (IPM)
+                                  </span>
+                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                    Biological Lures, Sticky Traps & Targeted Sprays
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="p-2 rounded-xl bg-white/80 dark:bg-[#1a1a1a] border border-amber-200 dark:border-amber-800/60 text-[11px] space-y-1 text-slate-700 dark:text-slate-200 font-semibold">
+                                <div>• <strong>Pheromone Traps:</strong> Install 5 lure traps per acre for armyworm / bollworm moths.</div>
+                                <div>• <strong>Yellow / Blue Cards:</strong> 10 sticky sheets per acre at canopy level for aphids & thrips.</div>
+                                <div>• <strong>Bio-Spray:</strong> Neem Oil 10,000 PPM @ 50 ml per 16-litre spray pump (3ml/L).</div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* 5. Feature 2: Agrochemical Bottle & Fertilizer Label Card */}
+                        {(() => {
+                          const isBottleAdvice = /bottle|chemical label|pesticide label|active ingredient|cib&rc|toxicity triangle|సీసా|ప్యాకెట్|బాటిల్|లేబుల్/i.test(msg.content);
+                          if (!isBottleAdvice) return null;
+                          return (
+                            <div className="mt-3.5 p-3 rounded-2xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-300/60 dark:border-purple-700/50 shadow-xs w-full space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                  🧪
+                                </span>
+                                <div>
+                                  <span className="text-[10px] font-black uppercase text-purple-800 dark:text-purple-300 tracking-wide block">
+                                    Agrochemical Label Verification
+                                  </span>
+                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                    Active Ingredients, Toxicity Triangle & Authenticity
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="p-2 rounded-xl bg-white/80 dark:bg-[#1a1a1a] border border-purple-200 dark:border-purple-800/60 text-[11px] space-y-1 text-slate-700 dark:text-slate-200 font-semibold">
+                                <div>• <strong>CIB&RC Registration:</strong> Verify CIR number on bottle before paying.</div>
+                                <div>• <strong>Toxicity Triangle:</strong> 🟢 Green (Slight), 🔵 Blue (Moderate), 🟡 Yellow (High), 🔴 Red (Extremely toxic).</div>
+                                <div>• <strong>Standard Mix:</strong> 20–30ml liquid or 8–30g powder per 16L spray pump.</div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Interactive Farmer Action Card for APMC Mandi Market Rates */}
+                        {(() => {
+                          const isMarketAdvice = /mandi|modal price|quintal|\/qtl|ధర|ధరలు|రేటు|మార్కెట్|మండి|మండీ|భావ|apmc/i.test(msg.content);
+                          if (!isMarketAdvice) return null;
+                          return (
+                            <div className="mt-3.5 p-3 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/60 dark:border-amber-700/50 flex flex-wrap items-center justify-between gap-2.5 shadow-xs w-full">
+                              <div className="flex items-center gap-2">
+                                <span className="w-7 h-7 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                  📈
+                                </span>
+                                <div>
+                                  <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 tracking-wide block">
+                                    APMC Mandi Intelligence
+                                  </span>
+                                  <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 block">
+                                    Live APMC Market Rates & Charts
+                                  </span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => navigate('/market')}
+                                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-transform active:scale-95"
+                              >
+                                <TrendingUp className="w-3.5 h-3.5" />
+                                <span>View Market Prices (మార్కెట్ ధరలు)</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    )}
+                  </div>
+
+                  {/* ChatGPT Style Message Action Toolbar under Assistant response (Picture 2) */}
+                  {!isUser && (
+                    <div className="flex items-center gap-1 mt-2.5 text-slate-400">
+                      {/* Single Clean Voice Readout Button */}
+                      <button 
+                        onClick={() => speak(msg.content, msg.id, i18n.language || 'en', 1.0)}
+                        className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
+                          speakingId === msg.id 
+                            ? 'bg-emerald-500/20 text-emerald-400 animate-pulse' 
+                            : 'hover:bg-slate-100 dark:hover:bg-[#212121] hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                        title={speakingId === msg.id ? "Stop voice readout" : "Listen to answer"}
+                      >
+                        {speakingId === msg.id ? <VolumeX className="w-4 h-4 text-emerald-400" /> : <Volume2 className="w-4 h-4" />}
+                        <span className="text-[10px] hidden sm:inline">{speakingId === msg.id ? 'Stop' : 'Listen'}</span>
+                        {speakingId === msg.id && (
+                          <span className="flex items-center gap-0.5 ml-1 h-3">
+                            <span className="w-0.5 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0s]" />
+                            <span className="w-0.5 h-3 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                            <span className="w-0.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+                          </span>
+                        )}
+                      </button>
+
+                      <button 
+                        onClick={() => copyToClipboard(msg.content, msg.id)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#212121] hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        title="Copy to clipboard"
+                      >
+                        {copiedId === msg.id ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                      
+                      <button 
+                        onClick={() => setFeedbackMap(prev => ({ ...prev, [msg.id]: prev[msg.id] === 'up' ? null : 'up' }))}
+                        className={`p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#212121] transition-colors ${feedbackMap[msg.id] === 'up' ? 'text-emerald-500' : 'hover:text-slate-700 dark:hover:text-slate-200'}`}
+                        title="Good response"
+                      >
+                        <ThumbsUp className="w-4 h-4" />
+                      </button>
+
+                      <button 
+                        onClick={() => setFeedbackMap(prev => ({ ...prev, [msg.id]: prev[msg.id] === 'down' ? null : 'down' }))}
+                        className={`p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#212121] transition-colors ${feedbackMap[msg.id] === 'down' ? 'text-rose-500' : 'hover:text-slate-700 dark:hover:text-slate-200'}`}
+                        title="Bad response"
+                      >
+                        <ThumbsDown className="w-4 h-4" />
+                      </button>
+
+                      <button 
+                        onClick={() => handleShare(msg.content)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-[#212121] hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        title="Share advice"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+
+                      <span className="hidden sm:inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-md text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-[#1a1a1a]">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        <span>Sources & AI Validation</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+
+          {/* Typing Indicator */}
+          {isTyping && (
+            <div className="flex items-center gap-1.5 text-slate-400 pt-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.15s]" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.3s]" />
+            </div>
+          )}
+
+          <div ref={chatBottomRef} className="h-8 shrink-0" />
+        </div>
+
+        {/* Floating Scroll to Bottom Button */}
+        <AnimatePresence>
+          {showScrollBottom && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={scrollToBottom}
+              className="absolute bottom-20 right-4 sm:right-6 p-2 rounded-full bg-slate-800 text-white shadow-xl hover:bg-slate-700 z-20"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {/* ── CHATGPT STYLE PILL SEARCH BAR (Pictures 2 & 3) ── */}
+        <div className="px-3.5 sm:px-6 pt-1 pb-1 lg:pb-2.5 bg-white dark:bg-[#0d0d0d] shrink-0 z-20 max-w-3xl w-full mx-auto">
+          
+          {/* Hidden File & Camera Inputs for In-Chat Leaf Diagnosis */}
+          <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelected} className="hidden" />
+          <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handlePhotoSelected} className="hidden" />
+
+          {/* Quick Plus Attachments Modal */}
+          <AnimatePresence>
+            {quickMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute bottom-28 lg:bottom-24 left-3 sm:left-6 z-30 p-2 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#2e2e2e] shadow-2xl space-y-1 w-64"
+              >
+                <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  AI Multimodal Camera
+                </div>
+                <button
+                  onClick={() => { setInspectionMode('leaf'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 transition-colors"
+                >
+                  <Camera className="w-4 h-4 text-emerald-500" />
+                  <span>🌿 Scan Crop Leaf (Disease)</span>
+                </button>
+                <button
+                  onClick={() => { setInspectionMode('pest'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600 transition-colors"
+                >
+                  <Bug className="w-4 h-4 text-amber-500" />
+                  <span>🐛 Scan Pest / Insect / Borer</span>
+                </button>
+                <button
+                  onClick={() => { setInspectionMode('bottle'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 transition-colors"
+                >
+                  <FlaskConical className="w-4 h-4 text-purple-500" />
+                  <span>🧪 Scan Bottle / Fertilizer Bag</span>
+                </button>
+                <button
+                  onClick={() => { fileInputRef.current?.click(); setQuickMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <ImageIcon className="w-4 h-4 text-teal-500" />
+                  <span>🖼️ Choose from Gallery</span>
+                </button>
+
+                <div className="border-t border-slate-100 dark:border-slate-800 my-1 pt-1">
+                  <div className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    {isTe ? "రైతు తక్షణ చర్యలు" : "Kisan Quick Actions"}
+                  </div>
+                  <button
+                    onClick={() => { 
+                      const rbkQuery = isTe 
+                        ? "ఆంధ్రప్రదేశ్‌లోని సమీప రైతు భరోసా కేంద్రం (RBK), పీఏసీఎస్ మరియు ఎరువుల దుకాణాలు ఎక్కడ ఉన్నాయి?" 
+                        : "Where is the nearest Rythu Bharosa Kendram (RBK) and agrochemical store in Andhra Pradesh?";
+                      handleSendMessage(rbkQuery); 
+                      setQuickMenuOpen(false); 
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
+                  >
+                    <MapPin className="w-4 h-4 text-rose-500" />
+                    <span>{isTe ? "🏛️ సమీప RBK & ఎరువుల దుకాణాలు" : "🏛️ Find Nearest RBK & Stores"}</span>
+                  </button>
+                  <button
+                    onClick={() => { 
+                      const sprayQuery = isTe 
+                        ? "నేటి తోట పిచికారీ వాతావరణం మరియు 4-గంటల వర్ష భద్రతా సూచనను తనిఖీ చేయండి" 
+                        : "Check today's farm spraying weather window and 4-hour rain safety forecast";
+                      handleSendMessage(sprayQuery); 
+                      setQuickMenuOpen(false); 
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#2a2a2a] transition-colors"
+                  >
+                    <Sun className="w-4 h-4 text-sky-500" />
+                    <span>{isTe ? "🌧️ మందు కొట్టే అనుకూల వాతావరణం" : "🌧️ Spraying Weather Window"}</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+
+
+          {/* Active Voice Listening Banner */}
+          <AnimatePresence>
+            {isListening && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                className="mb-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-between shadow-lg backdrop-blur-md"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+                  </span>
+                  <div className="flex items-center gap-0.5 px-0.5">
+                    <span className="w-1 h-2.5 bg-rose-500 rounded-full animate-bounce [animation-delay:0s]" />
+                    <span className="w-1 h-4 bg-rose-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                    <span className="w-1 h-2 bg-rose-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+                    <span className="w-1 h-3.5 bg-rose-500 rounded-full animate-bounce [animation-delay:0.45s]" />
+                  </div>
+                  <span className="truncate text-[11px]">
+                    {(() => {
+                      const langKey = (i18n.language || 'en').split('-')[0];
+                      const names = { te: 'తెలుగు', hi: 'हिन्दी', ta: 'தமிழ்', kn: 'ಕನ್ನಡ', ml: 'മലയാളം', mr: 'मराठी', en: 'English' };
+                      return `Listening in ${names[langKey] || 'voice'}... Speak now`;
+                    })()}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleSpeechRecognition}
+                  className="px-2 py-0.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-black uppercase tracking-wider transition-colors shrink-0 shadow-xs"
+                >
+                  Done
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Attached Leaf Photo Preview Thumbnail */}
+          <AnimatePresence>
+            {attachedPhoto && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 6 }}
+                className="mb-2 p-2 rounded-2xl bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-[#2b2b2b] shadow-md space-y-2"
+              >
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img src={attachedPhoto.preview} alt="Attached Target" className="w-11 h-11 rounded-xl object-cover border border-emerald-500/50 shadow-2xs shrink-0" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                          {attachedPhoto.file?.name || 'Farm Photo'}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          inspectionMode === 'pest' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300' :
+                          inspectionMode === 'bottle' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-300' :
+                          'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300'
+                        }`}>
+                          {inspectionMode === 'pest' ? '🐛 Pest / Insect' : inspectionMode === 'bottle' ? '🧪 Chemical / Label' : '🌿 Crop Leaf'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold block">
+                        ⚡ Multimodal AI Vision Ready ({Math.round((attachedPhoto.file?.size || 0) / 1024)} KB)
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedPhoto(null)}
+                    className="p-1.5 rounded-full text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-[#252525] transition-colors"
+                    title="Remove photo"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Switch Scan Mode Quick Pills */}
+                <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold">
+                  <span className="text-slate-400 uppercase tracking-wider text-[9px] shrink-0">Scan Mode:</span>
+                  <button
+                    type="button"
+                    onClick={() => setInspectionMode('leaf')}
+                    className={`px-2 py-0.5 rounded-lg transition-all ${inspectionMode === 'leaf' ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 dark:bg-[#252525] text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}
+                  >
+                    🌿 Crop Leaf
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectionMode('pest')}
+                    className={`px-2 py-0.5 rounded-lg transition-all ${inspectionMode === 'pest' ? 'bg-amber-600 text-white shadow-2xs' : 'bg-slate-100 dark:bg-[#252525] text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}
+                  >
+                    🐛 Pest / Insect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectionMode('bottle')}
+                    className={`px-2 py-0.5 rounded-lg transition-all ${inspectionMode === 'bottle' ? 'bg-purple-600 text-white shadow-2xs' : 'bg-slate-100 dark:bg-[#252525] text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}
+                  >
+                    🧪 Bottle / Bag
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ChatGPT Pill Input Box - Compact & Sleek */}
+          <div className="flex items-center gap-1 p-1 rounded-full bg-slate-100 dark:bg-[#212121] border border-slate-200/80 dark:border-[#2a2a2a] shadow-inner focus-within:ring-2 focus-within:ring-emerald-500/50 transition-all min-h-[38px]">
+            
+            {/* Plus Button on Left */}
+            <button
+              type="button"
+              onClick={() => setQuickMenuOpen(o => !o)}
+              className="p-1.5 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors shrink-0"
+              title="Add attachment / Quick tools"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Direct Camera Shutter Button */}
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-[#2e2e2e] transition-colors shrink-0"
+              title="Snap photo with camera"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Input Textarea */}
+            <textarea
+              rows={1}
+              value={inputQuery}
+              onChange={e => {
+                setInputQuery(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder={attachedPhoto ? "Add message or send..." : `Ask ${activeRoleConfig.title}...`}
+              className="flex-1 resize-none bg-transparent px-1.5 py-1 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none leading-normal max-h-[80px] overflow-y-auto"
+            />
+
+            {/* Voice Mic Button */}
+            <button
+              type="button"
+              onClick={toggleSpeechRecognition}
+              className={`p-1.5 rounded-full transition-colors shrink-0 ${
+                isListening 
+                  ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30' 
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#2e2e2e]'
+              }`}
+              title="Voice input (Speak in Telugu, Hindi, English)"
+            >
+              <Mic className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Send / Waveform Button */}
+            <button
+              type="button"
+              onClick={() => handleSendMessage()}
+              disabled={(!inputQuery.trim() && !attachedPhoto) || isTyping}
+              className={`p-1.5 rounded-full transition-all shadow-sm shrink-0 ${
+                (inputQuery.trim() || attachedPhoto)
+                  ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] scale-100 shadow-md shadow-blue-500/30 active:scale-90'
+                  : 'bg-slate-300 dark:bg-[#333333] text-slate-500 dark:text-slate-400 cursor-not-allowed opacity-50'
+              }`}
+              title="Send message"
+            >
+              <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
+          </div>
+
+          <p className="text-center text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 mb-0 leading-none">
+            AgriShield AI can make mistakes. Verify advice with local experts.
+          </p>
+        </div>
+      </div>
+
+      {/* Multimodal Voice Crop Doctor Modal */}
+      <VoiceCropDoctorModal 
+        isOpen={showVoiceDoctor} 
+        onClose={() => setShowVoiceDoctor(false)} 
+        initialCrop={activeFarm?.crop_type || 'Tomato'} 
+      />
+    </div>
+  );
+};
+
+export default AIAssistantPage;
