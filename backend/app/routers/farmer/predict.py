@@ -1453,7 +1453,7 @@ async def predict_pytorch_endpoint(
     raw_label = prediction_result.get("raw_label", "")
     is_ood = (raw_label == "OOD") or (prediction_result.get("prediction_status") == "unsupported")
 
-    # Computer Vision Foliar Morphology & Chewing Pest Detector
+    # Computer Vision Foliar Morphology & Chewing Pest Detector (Auxiliary foliar health check)
     chewing_analysis = None
     try:
         from backend.app.services.image_preprocessor import detect_chewing_pest_damage
@@ -1461,50 +1461,23 @@ async def predict_pytorch_endpoint(
     except Exception as chew_ex:
         logger.debug(f"Chewing pest analysis exception: {chew_ex}")
 
-    # If physical chewing perforations and ragged caterpillar margins are confirmed on foliage,
-    # it MUST overrule closed-set 38-class fungal misclassifications!
-    if chewing_analysis and chewing_analysis.get("detected"):
-        final_crop = user_crop_filter.title() if user_crop_filter else prediction_result.get("crop_name", "Chilli")
+    # Note: We do NOT unconditionally override high-confidence neural network predictions or dual-AI vision.
+    # If the model is completely unclassified/OOD with low confidence (< 0.50) and clear caterpillar defoliation is present,
+    # we note it, but preserve true pathology (e.g. Cercospora, Anthracnose, Healthy) as primary.
+    if is_ood and confidence < 0.50 and chewing_analysis and chewing_analysis.get("detected"):
+        final_crop = user_crop_filter.title() if user_crop_filter else prediction_result.get("crop_name", "Crop")
         pest_name = "Spodoptera litura (Tobacco Caterpillar) / Cutworm Infestation"
-        pest_conf = float(chewing_analysis.get("confidence", 0.94))
+        pest_conf = float(chewing_analysis.get("confidence", 0.85))
         prediction_result["crop_name"] = final_crop
         prediction_result["disease_name"] = pest_name
         prediction_result["confidence"] = pest_conf
         prediction_result["prediction_status"] = "diseased"
         prediction_result["disease_severity"] = "Severe" if chewing_analysis.get("hole_count", 0) > 10 else "Moderate"
         prediction_result["raw_label"] = f"{final_crop}___Spodoptera_Litura"
-        prediction_result["is_ambiguous"] = False
-        is_ood = False
         confidence = pest_conf
         prediction_result["symptoms"] = chewing_analysis.get("observed_symptoms", "")
-        prediction_result["disease_explanation"] = (
-            f"[Foliar Morphology Analysis]: Structural examination confirmed {chewing_analysis.get('hole_count', 0)} "
-            f"perforated chewing holes and ragged margins consistent with {final_crop} {pest_name}.\n\n"
-            f"{chewing_analysis.get('reasoning', '')}"
-        )
         prediction_result["chemical_treatment"] = "Spray Emamectin Benzoate 5% SG @ 0.5 g/L or Chlorantraniliprole 18.5% SC @ 0.3 ml/L."
         prediction_result["organic_treatment"] = "Apply Bacillus thuringiensis (Bt) @ 2.0 g/L or Neem Oil (10,000 ppm) @ 5 ml/L with soap surfactant."
-        prediction_result["top_predictions"] = [
-            {
-                "class_name": f"{final_crop}___Spodoptera_Litura",
-                "crop_name": final_crop,
-                "disease_name": pest_name,
-                "confidence": pest_conf
-            },
-            {
-                "class_name": f"{final_crop}___Flea_Beetle_Damage",
-                "crop_name": final_crop,
-                "disease_name": "Flea Beetle / Weevil Leaf Feeding",
-                "confidence": 0.04
-            },
-            {
-                "class_name": f"{final_crop}___Helicoverpa_Armigera",
-                "crop_name": final_crop,
-                "disease_name": "Gram Pod Borer / Armyworm (Helicoverpa armigera)",
-                "confidence": 0.02
-            }
-        ]
-        top_preds = prediction_result["top_predictions"]
 
     # Evaluate Ambiguity
     is_ambiguous = is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)

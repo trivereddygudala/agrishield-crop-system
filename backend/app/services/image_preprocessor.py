@@ -24,8 +24,9 @@ def neutralize_glare_and_shadows(img_bgr: np.ndarray) -> np.ndarray:
 
 def detect_and_crop_leaf_contour(img_bgr: np.ndarray) -> Tuple[np.ndarray, bool]:
     """
-    Detects vegetation and leaf contours to crop out non-leaf background (soil, fingers, ground).
-    Only crops if a distinct leaf is found and background removal improves focus.
+    Detects vegetation and plant foliage contours to crop out non-leaf background (soil, fingers, ground).
+    Supports both single-leaf macro shots and multi-leaf whole plant canopies (5–10 leaves).
+    Preserves the entire canopy cluster rather than cropping down to a single leaf.
     """
     try:
         h, w = img_bgr.shape[:2]
@@ -39,7 +40,7 @@ def detect_and_crop_leaf_contour(img_bgr: np.ndarray) -> Tuple[np.ndarray, bool]
         mask_brown = cv2.inRange(hsv, np.array([8, 30, 20]), np.array([22, 255, 200]))
         veg_mask = cv2.bitwise_or(mask_green, mask_brown)
 
-        # Morphological closing to eliminate internal spot holes in the leaf
+        # Morphological closing to eliminate internal spot holes in the foliage
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
         veg_mask = cv2.morphologyEx(veg_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
@@ -47,19 +48,31 @@ def detect_and_crop_leaf_contour(img_bgr: np.ndarray) -> Tuple[np.ndarray, bool]
         if not contours:
             return img_bgr, False
 
-        # Find the primary largest leaf contour
-        largest_contour = max(contours, key=cv2.contourArea)
-        area = cv2.contourArea(largest_contour)
+        # Filter meaningful foliage contours (at least 1.2% of frame each)
+        foliage_contours = [c for c in contours if cv2.contourArea(c) >= 0.012 * total_area]
+        if not foliage_contours:
+            # Fallback to largest if small
+            largest = max(contours, key=cv2.contourArea)
+            if cv2.contourArea(largest) >= 0.06 * total_area:
+                foliage_contours = [largest]
+            else:
+                return img_bgr, False
 
-        # Leaf must be at least 8% of the image frame to avoid cropping noise
-        if area < 0.08 * total_area:
+        # Calculate total vegetation coverage
+        total_veg_area = sum(cv2.contourArea(c) for c in foliage_contours)
+
+        # If vegetation already covers > 38% of the frame, the plant canopy is well-centered and framed.
+        # Do not crop to avoid discarding natural branch context or peripheral leaves.
+        if total_veg_area >= 0.38 * total_area:
             return img_bgr, False
 
-        x, y, cw, ch = cv2.boundingRect(largest_contour)
-        
-        # Add 8% safety padding around the leaf boundaries
-        pad_x = int(cw * 0.08)
-        pad_y = int(ch * 0.08)
+        # Combine all foliage contours to form the bounding box of the whole plant canopy
+        all_points = np.vstack(foliage_contours)
+        x, y, cw, ch = cv2.boundingRect(all_points)
+
+        # Add 10% safety padding around the canopy boundaries
+        pad_x = int(cw * 0.10)
+        pad_y = int(ch * 0.10)
         x1 = max(0, x - pad_x)
         y1 = max(0, y - pad_y)
         x2 = min(w, x + cw + pad_x)
@@ -67,13 +80,13 @@ def detect_and_crop_leaf_contour(img_bgr: np.ndarray) -> Tuple[np.ndarray, bool]
 
         crop_area = (x2 - x1) * (y2 - y1)
 
-        # Only crop if it removes at least 8% extraneous background and leaves sufficient resolution
-        if crop_area < 0.92 * total_area and (x2 - x1) >= 120 and (y2 - y1) >= 120:
+        # Only crop if it removes extraneous background (> 12% background removed) and maintains high resolution
+        if crop_area < 0.88 * total_area and (x2 - x1) >= 200 and (y2 - y1) >= 200:
             cropped = img_bgr[y1:y2, x1:x2]
             return cropped, True
 
     except Exception as e:
-        logger.debug(f"Leaf contour auto-crop bypass: {e}")
+        logger.debug(f"Plant canopy auto-crop bypass: {e}")
 
     return img_bgr, False
 
@@ -193,14 +206,22 @@ def detect_chewing_pest_damage(image_path: str) -> dict:
             solidity = l_area / hull_area if hull_area > 0 else 1.0
             circularity = (4 * np.pi * l_area) / (perimeter ** 2) if perimeter > 0 else 1.0
 
-        ragged_margin = circularity < 0.28 or solidity < 0.90
+        ragged_margin = circularity < 0.22 or solidity < 0.75
 
-        # Chewing threshold: at least 3 true cut-through holes, or 2 holes with ragged margin
-        if real_holes >= 3 or (real_holes >= 2 and ragged_margin):
+        # Strict defoliation threshold: requires significant eaten leaf area (> 8% of leaf blade)
+        # and multiple distinct cut-through perforations, preventing inter-leaf soil gaps or fungal spots from falsely triggering
+        is_significant_chewing = (
+            l_area > 0 and 
+            (total_hole_area / l_area) >= 0.08 and 
+            real_holes >= 4 and 
+            ragged_margin
+        )
+
+        if is_significant_chewing:
             res["detected"] = True
             res["hole_count"] = real_holes
             res["ragged_margin"] = ragged_margin
-            res["confidence"] = min(0.94, max(0.86, 0.85 + (real_holes * 0.005)))
+            res["confidence"] = min(0.90, max(0.82, 0.80 + (real_holes * 0.005)))
             res["observed_symptoms"] = (
                 f"The leaf surfaces show clear structural damage with large, irregular holes ({real_holes} distinct perforations) "
                 f"chewed straight through the leaf tissue. Some leaf edges are completely hollowed out, leaving ragged margins. "

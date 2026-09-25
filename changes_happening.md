@@ -2,6 +2,29 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v272) - Chilli Diagnosis Root Cause Fix, Multi-Leaf Canopy 2560px Pipeline, 0.8x Speech Rate & Farmer-Friendly Results UX
+- **Summary:**
+  1. 🐛 **Rectified Strange Chilli Diagnosis Bias & Root Cause Override (`predict.py`, `image_preprocessor.py`):**
+     - Discovered why two different chilli scans (healthy young plant canopy and Cercospora leaf spot) both incorrectly outputted `Spodoptera litura (Tobacco Caterpillar / Cutworm Infestation)` at 87%–93% confidence.
+     - Root cause: A heuristic OpenCV function `detect_chewing_pest_damage` was executing after PyTorch neural inference. It misinterpreted inter-leaf soil gaps in multi-leaf canopies and necrotic non-green spot centers as caterpillar chew-through holes, unconditionally hijacking the diagnosis and setting `is_ambiguous = False` (which suppressed Dual-AI Gemini Flash Vision cross-verification).
+     - Rectified `predict.py` by removing the unconditional override so PyTorch's native Chilli models (`Chilli___Leaf_Spot`, `Chilli___healthy`, `Chilli___Anthracnose`, `Chilli___Leaf_Curl_Virus`) stand authoritative, with Dual-AI Gemini Vision stepping in for complex field morphology.
+     - Hardened `image_preprocessor.py` to require substantial leaf blade defoliation ($>8\%$ missing area) before caterpillar damage can be detected.
+  2. 📸 **Multi-Leaf Plant Canopy Enclosure & High-Resolution Image Pipeline (`imageCompression.js`, `UploadImagePage.jsx`, `image_preprocessor.py`):**
+     - Upgraded client-side compression parameters: `maxDimension` expanded from 1280px to **2560px**, `quality` boosted from 0.82 to **0.92**, and ceiling raised to **1800KB** (bypassing re-encoding entirely for images under 2.5MB). Eliminates pixel degradation and JPEG blur on whole-plant photos containing 5–10 leaves.
+     - Upgraded OpenCV leaf detection in `detect_and_crop_leaf_contour` to **Canopy Enclosure**: instead of cropping down to a single leaf (`max(contours)`), it bounds all significant foliage clusters ($>1.2\%$ area) with a 10% safety margin and preserves the full plant if vegetation covers $\ge 38\%$ of the frame.
+  3. 🔊 **Relaxed 0.8x Speech Readout Speed Tuning (`useSpeechReader.js`, `GoogleMessageReader.jsx`):**
+     - Updated default speech synthesis playback rate from 1.0x to **0.8x** across `useSpeechReader.js` and in-reader speech audio buttons, delivering a relaxed, natural cadence suitable for rural farmers listening in regional languages (Telugu, Hindi, Tamil, etc.).
+  4. 🌾 **Farmer-Friendly Post-Diagnosis Results Redesign (`DiseaseDiagnosisResults.jsx`):**
+     - **Streamlined Hero Card:** Replaced the confusing side-by-side rainbow thermal heatmap with a crisp, full-width field specimen view and an agronomist toggle `[ 🔬 View AI X-Ray ]`.
+     - **Jargon Elimination:** Renamed *"Neural Prediction Confidence"* to *"AI Diagnosis Accuracy"*.
+     - **Quick Prescription Highlight:** Added an immediate 1-tap action banner directly under the disease name displaying the recommended spray and 20L pump mix.
+     - **Definitive Treatment Matrix:** Replaced the anxiety-inducing 3-competing-diseases differential card with a single-diagnosis **3-Tier Treatment Protocol** (1. Primary Chemical Protectant, 2. Resistance Rotation Curative, 3. Eco-Friendly Bio-Treatment) featuring real product photos and exact **15L & 20L Knapsack Sprayer Tank Mix Guides** with practical spoon/matchbox tips.
+  5. 📦 **Production Build Validation:**
+     - Successfully compiled with `npm run build` in `frontend/` in 36.58s with 0 errors.
+- **Files modified**: `backend/app/routers/farmer/predict.py`, `backend/app/services/image_preprocessor.py`, `frontend/src/utils/imageCompression.js`, `frontend/src/pages/farmer/UploadImagePage.jsx`, `frontend/src/hooks/useSpeechReader.js`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v271) - Full System Multi-Language Translations (Hindi, Tamil, Kannada, Malayalam, Odia, Telugu, English) & Route Aliasing
 - **Summary:**
   1. 🌐 **Comprehensive 7-Language Coverage Across All 31 Modules (`translations.js`):**

@@ -457,9 +457,9 @@ const UploadImagePage = () => {
     try {
       if (selectedFile && (selectedFile.type?.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(selectedFile.name || ''))) {
         const compressionResult = await compressImageForUpload(selectedFile, {
-          maxDimension: 1280,
-          quality: 0.82,
-          maxSizeKB: 350
+          maxDimension: 2560,
+          quality: 0.92,
+          maxSizeKB: 1800
         });
         if (compressionResult?.file) {
           fileToUpload = compressionResult.file;

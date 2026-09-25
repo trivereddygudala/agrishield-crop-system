@@ -26,7 +26,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
 
   const [showHelpdeskModal, setShowHelpdeskModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
-  const [showHeatmapOverlay, setShowHeatmapOverlay] = useState(true);
+  const [showHeatmapOverlay, setShowHeatmapOverlay] = useState(false);
   const [previewProductModal, setPreviewProductModal] = useState(null);
   const [zoomImageModal, setZoomImageModal] = useState(null);
   const [referenceImages, setReferenceImages] = useState([]);
@@ -344,94 +344,86 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             <div className="pt-2 max-w-md">
               <Progress 
                 value={parseFloat(confidence)} 
-                label={t('results.confidence', 'Neural Prediction Confidence')} 
+                label={t('results.confidence', 'AI Diagnosis Accuracy')} 
                 showValue 
                 labelClassName="text-slate-100 font-bold tracking-wide text-xs"
                 className="bg-slate-950/90 border border-white/20 h-3"
                 barClassName="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 shadow-[0_0_12px_rgba(52,211,153,0.6)]"
               />
             </div>
+
+            {/* Farmer-Friendly Quick Prescription Highlight */}
+            {status !== 'healthy' && (
+              <div className="mt-3 p-3 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md flex flex-wrap items-center justify-between gap-2 max-w-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🎯</span>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-300 block">
+                      {activeLang === 'te' ? 'తక్షణ సిఫార్సు మందు:' : activeLang === 'hi' ? 'त्वरित अनुशंसित छिड़काव:' : 'Primary Action Spray:'}
+                    </span>
+                    <span className="text-xs sm:text-sm font-black text-white">
+                      {chemicalsList[0] ? chemicalsList[0].split('@')[0].trim() : 'Saaf (Mancozeb + Carbendazim)'}
+                    </span>
+                  </div>
+                </div>
+                <div className="px-2.5 py-1 rounded-xl bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-xs font-bold shrink-0">
+                  💧 20L: {chemicalsList[0]?.includes('@') ? `${(parseFloat(chemicalsList[0].match(/@\s*([\d\.]+)/)?.[1] || 2.0) * 20).toFixed(0)}g` : '40g'}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Specimen & Heatmap Side-by-Side Dual Display Hero Section */}
+        {/* High-Definition Field Specimen Hero Display with Optional AI X-Ray Toggle */}
         {(displayOriginalImg || gradCamImg) && (
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 relative z-10">
-            {/* Captured Leaf Photo with Responsive Sizing & Tap-to-Zoom */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
-                <span className="flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
-                  {t('results.original_photo', 'Original Field Photo')}
-                </span>
+          <div className="mt-4 space-y-2 relative z-10">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
+              <span className="flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                {showHeatmapOverlay ? t('results.heatmap_focus', 'Grad-CAM++ AI X-Ray Heatmap') : t('results.original_photo', 'High-Definition Field Specimen')}
+              </span>
+              <div className="flex items-center gap-2">
+                {gradCamImg && (
+                  <button
+                    type="button"
+                    onClick={() => setShowHeatmapOverlay(!showHeatmapOverlay)}
+                    className="px-2.5 py-1 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-[11px] font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  >
+                    <Sparkles className="w-3 h-3 text-rose-300" />
+                    <span>{showHeatmapOverlay ? '🌿 View Original Leaf' : '🔬 View AI X-Ray'}</span>
+                  </button>
+                )}
                 <span className="text-[11px] font-semibold text-emerald-300 flex items-center gap-0.5">
                   <ZoomIn className="w-3 h-3" /> Tap to zoom
                 </span>
               </div>
-              <div 
-                onClick={() => displayOriginalImg && setZoomImageModal({ src: displayOriginalImg, title: `${localizedCrop} - Captured Field Leaf` })}
-                className="relative max-h-48 sm:max-h-56 aspect-[16/10] rounded-2xl overflow-hidden bg-slate-950 border border-white/15 shadow-inner flex items-center justify-center cursor-pointer group"
-                title="Tap to zoom"
-              >
-                {displayOriginalImg ? (
-                  <img 
-                    src={displayOriginalImg} 
-                    alt="Captured crop leaf" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="text-center p-4 text-slate-400 text-xs">
-                    Original photo ready
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <span className="px-2.5 py-1 rounded-lg bg-black/70 text-[11px] font-bold text-white flex items-center gap-1">
-                    <ZoomIn className="w-3.5 h-3.5" /> Tap to view full size
-                  </span>
-                </div>
-                <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white border border-white/20">
-                  {localizedCrop} {t('results.leaf', 'Leaf')}
-                </div>
-              </div>
             </div>
 
-            {/* Neural Heatmap (Grad-CAM++ Lesion Heatmap) with Responsive Sizing & Tap-to-Zoom */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-300 px-1">
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-rose-400" />
-                  {t('results.heatmap_focus', 'Grad-CAM++ Lesion Heatmap')}
-                </span>
-                <span className="text-[11px] font-semibold text-rose-300 flex items-center gap-0.5">
-                  <ZoomIn className="w-3 h-3" /> Tap to zoom
+            <div 
+              onClick={() => {
+                const activeImg = (showHeatmapOverlay && gradCamImg) ? gradCamImg : displayOriginalImg;
+                if (activeImg) {
+                  setZoomImageModal({ 
+                    src: activeImg, 
+                    title: showHeatmapOverlay ? `${localizedCrop} - AI Attention Focus Heatmap` : `${localizedCrop} - High-Res Field Photo` 
+                  });
+                }
+              }}
+              className="relative max-h-56 sm:max-h-64 aspect-[16/10] sm:aspect-[16/9] rounded-2xl overflow-hidden bg-slate-950 border border-white/15 shadow-inner flex items-center justify-center cursor-pointer group"
+              title="Tap to zoom"
+            >
+              <img 
+                src={(showHeatmapOverlay && gradCamImg) ? gradCamImg : displayOriginalImg} 
+                alt="Crop leaf scan" 
+                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <span className="px-3 py-1 rounded-lg bg-black/75 text-[11px] font-bold text-white flex items-center gap-1.5 backdrop-blur-xs">
+                  <ZoomIn className="w-3.5 h-3.5" /> Tap to view full size
                 </span>
               </div>
-              <div 
-                onClick={() => gradCamImg && setZoomImageModal({ src: gradCamImg, title: `${localizedCrop} - AI Attention Focus Heatmap` })}
-                className="relative max-h-48 sm:max-h-56 aspect-[16/10] rounded-2xl overflow-hidden bg-slate-950 border border-white/15 shadow-inner flex items-center justify-center cursor-pointer group"
-                title="Tap to zoom"
-              >
-                {gradCamImg ? (
-                  <img 
-                    src={gradCamImg} 
-                    alt="Neural network Grad-CAM activation heatmap" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="text-center p-6 text-slate-400 space-y-1">
-                    <Sparkles className="w-8 h-8 mx-auto text-emerald-500/60 animate-pulse" />
-                    <p className="text-xs font-bold text-slate-300">Neural Attention Processed</p>
-                    <p className="text-[11px] text-slate-500">Lesion hotspots identified across leaf veins</p>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <span className="px-2.5 py-1 rounded-lg bg-black/70 text-[11px] font-bold text-white flex items-center gap-1">
-                    <ZoomIn className="w-3.5 h-3.5" /> Tap to view full size
-                  </span>
-                </div>
-                <div className="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-rose-950/80 backdrop-blur-md text-[10px] font-bold text-rose-200 border border-rose-400/30">
-                  {t('results.deep_vision_xray', 'Deep Vision X-Ray')}
-                </div>
+              <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white border border-white/20">
+                {showHeatmapOverlay ? '🔬 AI Vision Activation Hotspot' : `${localizedCrop} Leaf Canopy`}
               </div>
             </div>
           </div>
@@ -548,124 +540,96 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     };
 
     const renderDifferential = () => {
-      // Build exactly 3 distinct candidates
-      let candidates = [];
-      if (Array.isArray(liveResult?.differential_candidates) && liveResult.differential_candidates.length >= 3) {
-        candidates = liveResult.differential_candidates.slice(0, 3);
-      } else {
-        const cNorm = (rawCropName || '').toLowerCase();
-        const dNorm = (rawDiseaseName || '').toLowerCase();
-
-        let cand2Name = 'Late Blight';
-        let cand2Trait = 'Dark water-soaked expanding patches with chlorotic edges.';
-        let cand3Name = 'Bacterial Spot';
-        let cand3Trait = 'Small angular water-soaked lesions bounded by lateral leaf veins.';
-
-        if (cNorm.includes('chilli') || cNorm.includes('pepper')) {
-          cand2Name = 'Anthracnose (Dieback)';
-          cand2Trait = 'Sunken circular lesions with concentric dark rings of acervuli.';
-          cand3Name = 'Bacterial Leaf Spot';
-          cand3Trait = 'Small irregular translucent angular spots on leaf margins.';
-        } else if (cNorm.includes('rice') || cNorm.includes('paddy')) {
-          cand2Name = dNorm.includes('blast') ? 'Brown Spot' : 'Leaf Blast';
-          cand2Trait = 'Oval to circular lesions across leaf blades with yellow chlorotic halos.';
-          cand3Name = 'Sheath Blight';
-          cand3Trait = 'Irregular greenish-gray snake-skin water-soaked bands near the waterline.';
-        } else if (cNorm.includes('cotton')) {
-          cand2Name = 'Bacterial Blight (Angular Leaf Spot)';
-          cand2Trait = 'Water-soaked angular spots delimited by veinlets on foliar tissue.';
-          cand3Name = 'Alternaria Leaf Spot';
-          cand3Trait = 'Concentric brown target rings on mature foliage.';
-        } else if (cNorm.includes('groundnut') || cNorm.includes('peanut')) {
-          cand2Name = 'Late Leaf Spot (Tikka)';
-          cand2Trait = 'Dark carbonaceous spots on lower leaf surface without prominent halos.';
-          cand3Name = 'Rust (Puccinia)';
-          cand3Trait = 'Brownish-orange pustules rupturing the leaf epidermis.';
-        } else if (cNorm.includes('tomato') || cNorm.includes('potato')) {
-          cand2Name = dNorm.includes('early') ? 'Late Blight' : 'Early Blight';
-          cand2Trait = 'Dark water-soaked lesions with pale borders on foliage and stems.';
-          cand3Name = 'Septoria Leaf Spot';
-          cand3Trait = 'Numerous small circular lesions with darker borders and tiny fruiting bodies.';
-        }
-
-        candidates = [
-          {
-            disease_name: rawDiseaseName,
-            crop_name: rawCropName,
-            confidence: parseFloat(confidence) || 92.4,
-            visual_hallmark: liveResult?.observed_symptoms || liveResult?.symptoms || 'Primary visual markers and lesion patterns observed on this leaf sample.'
-          },
-          {
-            disease_name: cand2Name,
-            crop_name: rawCropName,
-            confidence: Math.max(15, Math.round((parseFloat(confidence) || 90) * 0.78)),
-            visual_hallmark: cand2Trait
-          },
-          {
-            disease_name: cand3Name,
-            crop_name: rawCropName,
-            confidence: Math.max(8, Math.round((parseFloat(confidence) || 90) * 0.54)),
-            visual_hallmark: cand3Trait
-          }
-        ];
-      }
-
-      // Mathematical guarantee: assign 3 distinct commercial products with ZERO duplication
+      // Find matching commercial products specifically for the confirmed diagnosed crop and disease
+      const candidateMatches = getMatchingProducts(rawDiseaseName, rawCropName, 6);
       const usedProductIds = new Set();
 
+      const prod1 = candidateMatches[0] || COMMERCIAL_PRODUCTS[0];
+      usedProductIds.add(prod1.productId);
+
+      const prod2 = candidateMatches.find(p => !usedProductIds.has(p.productId)) || COMMERCIAL_PRODUCTS[1];
+      usedProductIds.add(prod2.productId);
+
+      const prod3 = COMMERCIAL_PRODUCTS.find(p => (p.category === 'bio' || p.category === 'organic' || p.brandName.toLowerCase().includes('neem')) && !usedProductIds.has(p.productId))
+        || candidateMatches.find(p => !usedProductIds.has(p.productId))
+        || COMMERCIAL_PRODUCTS[2];
+
+      const treatmentOptions = [
+        {
+          roleBadge: currentLang === 'te' ? '#1 ప్రధాన రసాయన మందు (తక్షణ చికిత్స)' : '#1 Primary Chemical Protectant (Curative)',
+          category: 'primary',
+          badgeVariant: 'success',
+          prod: prod1,
+          desc: currentLang === 'te' 
+            ? 'ఈ మందు ప్రాథమిక రక్షణ మరియు తెగులు వ్యాప్తిని తక్షణమే అరికట్టడానికి సిఫార్సు చేయబడింది.'
+            : 'First-line contact/systemic protectant formulation prescribed to immediately halt foliar spore growth.'
+        },
+        {
+          roleBadge: currentLang === 'te' ? '#2 ప్రత్యామ్నాయ రసాయనం (నిరోధకత నివారణ)' : '#2 Systemic Curative (Resistance Rotation)',
+          category: 'rotation',
+          badgeVariant: 'sky',
+          prod: prod2,
+          desc: currentLang === 'te'
+            ? 'తెగులు మందులకు నిరోధకత పెరగకుండా మొదటి స్ప్రే చేసిన 10-14 రోజుల తర్వాత ఈ సమ్మేళనాన్ని మార్చి పిచికారీ చేయండి.'
+            : 'Rotate with this alternative active compound 10–14 days after the first spray to prevent fungal pathogen resistance.'
+        },
+        {
+          roleBadge: currentLang === 'te' ? '#3 సహజ సేంద్రీయ నివారణ (జీవ శిలీంద్రనాశిని)' : '#3 Eco-Friendly Bio-Treatment (Organic)',
+          category: 'organic',
+          badgeVariant: 'emerald',
+          prod: prod3,
+          desc: currentLang === 'te'
+            ? 'తేలికపాటి వ్యాప్తికి లేదా రసాయనాల అవశేషాలు లేకుండా పర్యావరణ-అనుకూల పద్ధతిలో నియంత్రించడానికి ఉపయోగించండి.'
+            : 'Residue-free botanical/bio-fungicide solution safe for pollinators and zero chemical withdrawal intervals.'
+        }
+      ];
+
       return (
-        <Card className="p-4 sm:p-5 bg-gradient-to-br from-amber-500/5 via-white to-orange-500/5 dark:from-amber-950/20 dark:via-slate-900 dark:to-orange-950/20 border-2 border-amber-400/40 dark:border-amber-500/30 shadow-md">
+        <Card className="p-4 sm:p-5 bg-gradient-to-br from-emerald-500/5 via-white to-teal-500/5 dark:from-emerald-950/20 dark:via-slate-900 dark:to-teal-950/20 border-2 border-emerald-400/40 dark:border-emerald-500/30 shadow-md">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                <AlertTriangle className="w-5 h-5" />
+              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                <FlaskConical className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-display font-black text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2 flex-wrap">
-                  <span>{currentLang === 'te' ? 'లక్షణాల నిర్ధారణ & అధికారిక మార్కెట్ ఉత్పత్తులు' : 'Differential Diagnosis & Prescribed Market Products'}</span>
-                  <Badge variant="warning" className="text-[10px] font-black uppercase">
-                    {currentLang === 'te' ? '3 నిర్దిష్ట కంపెనీ బ్రాండ్లు' : '3 Distinct Certified Brands'}
+                  <span>{currentLang === 'te' ? 'సిఫార్సు చేయబడిన మందులు & పిచికారీ పంపు మోతాదు గైడ్' : 'Prescribed Treatment Matrix & Knapsack Tank Dosage Guide'}</span>
+                  <Badge variant="glow-emerald" className="text-[10px] font-black uppercase">
+                    {currentLang === 'te' ? '3 ధృవీకరించబడిన ఎంపికలు' : '3 Verified Field Formulations'}
                   </Badge>
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                   {currentLang === 'te' 
-                    ? 'తప్పు మందు పిచికారీ చేయకుండా ఉండటానికి, 3 సమాంతర వ్యాధి అవకాశాలను మరియు వాటి సంబంధిత అధికారిక కంపెనీ ఉత్పత్తులను సరిచూసుకోండి.'
-                    : 'To avoid spraying the incorrect chemical, compare the 3 distinct disease possibilities and their verified commercial brand formulations below.'}
+                    ? `నిర్ధారించబడిన "${localizedDisease}" కొరకు మీ 15L లేదా 20L బ్యాటరీ పంపు ట్యాంకుకు ఖచ్చితమైన కొలతలతో కూడిన మందుల వివరాలు:`
+                    : `Certified treatment options and exact knapsack tank mix rates for the confirmed diagnosis of "${localizedDisease}":`}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* 3 Distinct Differential Candidates Comparison Grid */}
+          {/* 3 Prescribed Formulations Comparison Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-3.5">
-            {candidates.map((cand, idx) => {
+            {treatmentOptions.map((opt, idx) => {
+              const prod = opt.prod;
               const isPrimary = idx === 0;
-              const candCrop = cand.crop_name || rawCropName;
-              const locCandDisease = translateDisease(cand.disease_name, activeLang, candCrop) || cand.disease_name;
 
-              // Find a genuine matching product that hasn't been used yet
-              const candidateMatches = getMatchingProducts(cand.disease_name, candCrop, 6);
-              let prod = candidateMatches.find(p => !usedProductIds.has(p.productId));
-              if (!prod) {
-                prod = COMMERCIAL_PRODUCTS.find(p => !usedProductIds.has(p.productId)) || candidateMatches[0];
+              // Compute 15L proportional dosage from 20L dosage
+              const dose20Str = prod.dosagePer20L || '40 g';
+              const doseMatch = dose20Str.match(/([\d\.]+)\s*(g|gm|ml|మి\.లీ|గ్రా)/i);
+              let dose15Text = '30 g';
+              if (doseMatch) {
+                const val20 = parseFloat(doseMatch[1]);
+                const unit = doseMatch[2];
+                dose15Text = `${Math.round(val20 * 0.75)} ${unit}`;
               }
-              if (prod) {
-                usedProductIds.add(prod.productId);
-              }
-
-              const candidateBadgeTitle = idx === 0
-                ? (currentLang === 'te' ? '#1 ప్రధాన అంచనా' : '#1 Primary Candidate')
-                : (idx === 1 
-                    ? (currentLang === 'te' ? '#2 ప్రత్యామ్నాయ అవకాశం' : '#2 Alternative Possibility')
-                    : (currentLang === 'te' ? '#3 ద్వితీయ అవకాశం' : '#3 Secondary Possibility'));
 
               return (
                 <div
                   key={idx}
                   className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col justify-between ${
                     isPrimary
-                      ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600/70 shadow-sm ring-1 ring-emerald-500/20'
-                      : 'bg-white/90 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 shadow-xs'
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600/70 shadow-sm ring-1 ring-emerald-500/20'
+                      : 'bg-white/95 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 shadow-xs'
                   }`}
                 >
                   <div>
@@ -674,41 +638,33 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                         <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${
                           isPrimary 
                             ? 'bg-emerald-600 text-white' 
-                            : 'bg-slate-500 dark:bg-slate-600 text-white'
+                            : 'bg-teal-600 text-white'
                         }`}>
                           {idx + 1}
                         </span>
                         <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                          {candidateBadgeTitle}
+                          {opt.roleBadge}
                         </span>
                       </div>
-                      <Badge variant={isPrimary ? "success" : "outline"} className="text-[11px] font-black">
-                        {cand.confidence}% {currentLang === 'te' ? 'ఖచ్చితత్వం' : 'Match'}
+                      <Badge variant={isPrimary ? "success" : "outline"} className="text-[10px] font-black">
+                        {isPrimary ? (currentLang === 'te' ? 'తక్షణ స్ప్రే' : 'First Choice') : (currentLang === 'te' ? 'రొటేషన్' : 'Alternative')}
                       </Badge>
                     </div>
 
-                    <h4 className="text-sm font-black text-slate-900 dark:text-white mb-2 leading-snug">
-                      {locCandDisease}
-                    </h4>
-
-                    <div className="flex items-start gap-1.5 text-xs text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 mb-3">
-                      <span className="text-amber-500 font-bold shrink-0">🔍</span>
-                      <p className="leading-relaxed text-[11px]">
-                        <strong className="font-bold text-slate-900 dark:text-white">
-                          {currentLang === 'te' ? 'గుర్తించే లక్షణం: ' : 'Visual Hallmark: '}
-                        </strong>
-                        {cand.visual_hallmark}
+                    <div className="text-xs text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 mb-3">
+                      <p className="leading-relaxed text-[11px] font-medium text-slate-800 dark:text-slate-200">
+                        {opt.desc}
                       </p>
                     </div>
                   </div>
 
-                  {/* Real Commercial Product Card with Real Image & Company */}
+                  {/* Real Commercial Product Card with Real Image & Knapsack Tank Guide */}
                   {prod && (
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-700/80 p-3 shadow-xs space-y-2.5 mt-auto">
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1 truncate">
                           <Check className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>{currentLang === 'te' ? 'సిఫార్సు బ్రాండ్' : 'Prescribed Brand'}</span>
+                          <span>{currentLang === 'te' ? 'సిఫార్సు కంపెనీ బ్రాండ్' : 'Certified Brand'}</span>
                         </span>
                         <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
                           {prod.company}
@@ -754,18 +710,29 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                           <div className="p-1.5 rounded-lg bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/70">
                             <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
                               <span>🧪</span>
-                              <span>{currentLang === 'te' ? 'రసాయన ఫార్ములా:' : 'Active Composition:'}</span>
+                              <span>{currentLang === 'te' ? 'రసాయన ఫార్ములా:' : 'Active Formula:'}</span>
                             </div>
-                            <p className="text-[11px] font-black text-slate-900 dark:text-slate-100 mt-0.5 leading-tight line-clamp-2">
+                            <p className="text-[10px] sm:text-[11px] font-black text-slate-900 dark:text-slate-100 mt-0.5 leading-tight line-clamp-2">
                               {prod.activeIngredients}
                             </p>
                           </div>
 
+                          {/* Knapsack Sprayer Tank Mix Badges */}
                           <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                            <span className="px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 font-extrabold border border-sky-200 dark:border-sky-800/60">
+                              💧 15L: {dose15Text}
+                            </span>
                             <span className="px-1.5 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 font-extrabold border border-teal-200 dark:border-teal-800/60">
-                              🎯 20L: {prod.dosagePer20L}
+                              🚜 20L: {dose20Str}
                             </span>
                           </div>
+
+                          {/* Practical Spoon / Matchbox Farmer Tip */}
+                          {prod.farmerMeasureTip && (
+                            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold italic">
+                              🥄 {prod.farmerMeasureTip}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

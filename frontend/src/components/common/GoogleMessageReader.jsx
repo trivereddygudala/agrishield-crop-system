@@ -467,7 +467,7 @@ export default function GoogleMessageReader({
         `${cropInfo.threadTitle}. ${detailedDescription}`,
         `disease_audio_${messageId}`,
         currentLang,
-        0.92
+        0.8
       );
     }
   };
@@ -480,7 +480,7 @@ export default function GoogleMessageReader({
         systemAudioText,
         `sys_audio_${messageId}`,
         currentLang,
-        0.92
+        0.8
       );
     }
   };
@@ -664,16 +664,16 @@ export default function GoogleMessageReader({
           activeAudioElementRef.current = null;
         };
         audio.onerror = () => {
-          speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
+          speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.8);
         };
         audio.play().catch(() => {
-          speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
+          speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.8);
         });
       } catch (_) {
-        speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
+        speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.8);
       }
     } else {
-      speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
+      speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.8);
     }
   };
 

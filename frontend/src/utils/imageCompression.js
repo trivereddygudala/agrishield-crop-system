@@ -7,20 +7,22 @@
 
 export const compressImageForUpload = (file, options = {}) => {
   const {
-    maxDimension = 1280,
-    quality = 0.82,
-    maxSizeKB = 350,
+    maxDimension = 2560,
+    quality = 0.92,
+    maxSizeKB = 1800,
     outputType = 'image/jpeg'
   } = options;
 
   return new Promise((resolve) => {
-    // If not a compressable image or already under 180KB, return as-is
+    // If not a compressable image, return as-is
     if (!file || !['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(file.type)) {
       resolve({ file, originalSize: file?.size || 0, compressedSize: file?.size || 0, savingsPercent: 0, wasCompressed: false });
       return;
     }
 
-    if (file.size <= 180 * 1024) {
+    // High fidelity preservation: If image is already lightweight (under 2.5MB), keep native camera pixels
+    // without canvas re-encoding to preserve micro-lesions and fine concentric spot rings.
+    if (file.size <= 2.5 * 1024 * 1024) {
       resolve({ file, originalSize: file.size, compressedSize: file.size, savingsPercent: 0, wasCompressed: false });
       return;
     }

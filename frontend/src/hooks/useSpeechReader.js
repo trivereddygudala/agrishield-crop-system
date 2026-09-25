@@ -79,7 +79,7 @@ export const useSpeechReader = () => {
     return voices.find(v => v.default) || voices[0] || null;
   }, []);
 
-  const speak = useCallback((text, id = 'default', lang = 'en', rate = 1.0) => {
+  const speak = useCallback((text, id = 'default', lang = 'en', rate = 0.8) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       alert('Voice readout (Text-to-Speech) is not supported on this browser.');
       return;
@@ -107,7 +107,8 @@ export const useSpeechReader = () => {
 
     const targetLocale = getSpeechLocale(lang);
     utterance.lang = targetLocale;
-    utterance.rate = rate || 1.0;
+    // Calibrated to 0.8x speed for clear and relaxed rural farmer comprehension
+    utterance.rate = rate || 0.8;
     utterance.pitch = 1.0;
 
     const matchedVoice = findBestVoice(lang);
