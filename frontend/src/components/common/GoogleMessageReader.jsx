@@ -10,6 +10,7 @@ import {
 import { formatDateTime, timeAgo } from '../../utils/dateUtils';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { getDiseaseDetails, translateCrop, translateDisease } from '../../utils/diseaseAdvisoryData';
+import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
 import axios from 'axios';
 
@@ -22,6 +23,8 @@ export default function GoogleMessageReader({
   lang = 'te'
 }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isProvider = user?.role === 'equipment_provider';
   const [showFullReview, setShowFullReview] = useState(false);
   const reviewRef = useRef(null);
   const isTelugu = (lang || '').toLowerCase().startsWith('te');
@@ -313,53 +316,95 @@ export default function GoogleMessageReader({
               </div>
             </div>
 
-            {/* Farmer Details Card */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                <span>{isTelugu ? 'రైతు & సంప్రదింపు సమాచారం' : 'Farmer & Contact Information'}</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'రైతు పేరు' : 'Farmer Name'}</span>
-                  <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingFarmerName}</span>
+            {/* Contact Details Card: Provider contact for Farmers, Farmer contact for Providers */}
+            {isProvider ? (
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                  <span>{isTelugu ? 'రైతు & సంప్రదింపు సమాచారం' : 'Farmer & Contact Information'}</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'రైతు పేరు' : 'Farmer Name'}</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingFarmerName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'మొబైల్ ఫోన్' : 'Phone Number'}</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingFarmerPhone}</span>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'పొలం లొకేషన్' : 'Field Location'}</span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+                      {bookingVillage}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'మొబైల్ ఫోన్' : 'Phone Number'}</span>
-                  <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingFarmerPhone}</span>
-                </div>
-                <div className="sm:col-span-2">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'పొలం లొకేషన్' : 'Field Location'}</span>
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mt-0.5 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                    {bookingVillage}
-                  </span>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                {cleanFarmerPhone && (
-                  <>
-                    <a
-                      href={`tel:${cleanFarmerPhone}`}
-                      className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>{isTelugu ? 'కాల్ చేయండి' : 'Call Farmer'}</span>
-                    </a>
-                    <a
-                      href={`https://wa.me/${cleanFarmerPhone}?text=${encodeURIComponent(`Hello ${bookingFarmerName}, regarding your machinery booking #${rawBookingId} on AgriShield...`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span>WhatsApp</span>
-                    </a>
-                  </>
-                )}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  {cleanFarmerPhone && (
+                    <>
+                      <a
+                        href={`tel:${cleanFarmerPhone}`}
+                        className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>{isTelugu ? 'కాల్ చేయండి' : 'Call Farmer'}</span>
+                      </a>
+                      <a
+                        href={`https://wa.me/${cleanFarmerPhone}?text=${encodeURIComponent(`Hello ${bookingFarmerName}, regarding your machinery booking #${rawBookingId} on AgriShield...`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Truck className="w-4 h-4 text-emerald-600" />
+                  <span>{isTelugu ? 'యంత్రాల ప్రదాత సమాచారం' : 'Equipment Provider Details'}</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'ప్రదాత / సేవా కేంద్రం' : 'Provider Service Hub'}</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingProviderName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'హబ్ హెల్ప్‌లైన్' : 'Hub Phone'}</span>
+                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingProviderPhone}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  {cleanProviderPhone && (
+                    <>
+                      <a
+                        href={`tel:${cleanProviderPhone}`}
+                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>{isTelugu ? 'ప్రొవైడర్‌కు కాల్ చేయండి' : 'Call Provider'}</span>
+                      </a>
+                      <a
+                        href={`https://wa.me/${cleanProviderPhone}?text=${encodeURIComponent(`Hello ${bookingProviderName}, regarding my machinery booking #${rawBookingId} on AgriShield...`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Field Condition & Work Scope */}
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
@@ -388,58 +433,90 @@ export default function GoogleMessageReader({
               </div>
             </div>
 
-            {/* Provider Actions (Accept / Reject / Complete) */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {isTelugu ? 'ప్రొవైడర్ చర్యలు (Order Actions)' : 'Provider Order Management'}
-              </h4>
+            {/* Provider Actions (Accept / Reject / Complete) — ONLY visible to equipment_provider! */}
+            {isProvider ? (
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {isTelugu ? 'ప్రొవైడర్ చర్యలు (Order Actions)' : 'Provider Order Management'}
+                </h4>
 
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                {(!bookingStatus || bookingStatus === 'pending') && (
-                  <>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {(!bookingStatus || bookingStatus === 'pending') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateBookingStatus('confirmed')}
+                        className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
+                      >
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                        <span>{isTelugu ? 'బుకింగ్‌ను ఆమోదించండి' : 'Accept Booking'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateBookingStatus('rejected')}
+                        className="py-2.5 px-4 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-98 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>{isTelugu ? 'తిరస్కరించండి' : 'Decline'}</span>
+                      </button>
+                    </>
+                  )}
+
+                  {bookingStatus === 'confirmed' && (
                     <button
                       type="button"
-                      onClick={() => handleUpdateBookingStatus('confirmed')}
-                      className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
+                      onClick={() => handleUpdateBookingStatus('completed')}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
                     >
-                      <Check className="w-4 h-4 stroke-[2.5]" />
-                      <span>{isTelugu ? 'బుకింగ్‌ను ఆమోదించండి' : 'Accept Booking'}</span>
+                      <CheckCheck className="w-4 h-4" />
+                      <span>{isTelugu ? 'పని పూర్తయినట్లు నమోదు చేయండి' : 'Mark Job Completed'}</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateBookingStatus('rejected')}
-                      className="py-2.5 px-4 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-98 cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>{isTelugu ? 'తిరస్కరించండి' : 'Decline'}</span>
-                    </button>
-                  </>
-                )}
+                  )}
 
-                {bookingStatus === 'confirmed' && (
                   <button
                     type="button"
-                    onClick={() => handleUpdateBookingStatus('completed')}
-                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
+                    onClick={() => {
+                      setShowFullReview(false);
+                      navigate('/provider/dashboard?tab=orders');
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-700/70 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <CheckCheck className="w-4 h-4" />
-                    <span>{isTelugu ? 'పని పూర్తయినట్లు నమోదు చేయండి' : 'Mark Job Completed'}</span>
+                    <Truck className="w-4 h-4 text-indigo-600" />
+                    <span>{isTelugu ? 'ఫ్లీట్ హబ్ & అన్ని ఆర్డర్లను తెరవండి' : 'Open in Provider Fleet Hub'}</span>
                   </button>
-                )}
-
+                </div>
+              </div>
+            ) : (
+              /* Farmer View: Pure order summary without accept/decline buttons */
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {isTelugu ? 'బుకింగ్ ఆర్డర్ స్థితి (Booking Status)' : 'Booking Order Status'}
+                </h4>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{isTelugu ? 'ఆర్డర్ స్థితి' : 'Status'}:</span>
+                  <span className={`text-xs font-black px-2.5 py-1 rounded-full uppercase ${
+                    bookingStatus === 'confirmed' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                    bookingStatus === 'rejected' || bookingStatus === 'declined' ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30' :
+                    'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                  }`}>
+                    {bookingStatus === 'confirmed' ? (isTelugu ? '✅ ధృవీకరించబడింది (Confirmed)' : '✅ Confirmed') :
+                     bookingStatus === 'rejected' || bookingStatus === 'declined' ? (isTelugu ? '❌ తిరస్కరించబడింది (Declined)' : '❌ Declined') :
+                     (isTelugu ? '⏳ వేచి ఉంది (Pending)' : '⏳ Awaiting Provider Action')}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => {
                     setShowFullReview(false);
-                    navigate('/provider/dashboard?tab=orders');
+                    navigate('/equipment');
                   }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-700/70 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 transition-colors cursor-pointer"
                 >
-                  <Truck className="w-4 h-4 text-indigo-600" />
-                  <span>{isTelugu ? 'ఫ్లీట్ హబ్ & అన్ని ఆర్డర్లను తెరవండి' : 'Open in Provider Fleet Hub'}</span>
+                  <Truck className="w-4 h-4" />
+                  <span>{isTelugu ? 'నా బుకింగ్‌ల పేజీకి వెళ్లండి' : 'Open My Equipment Bookings'}</span>
                 </button>
               </div>
-            </div>
+            )}
 
             {/* Back to Notification */}
             <div className="pt-2 pb-6">
@@ -826,25 +903,47 @@ export default function GoogleMessageReader({
             {/* Smart Action Buttons Inside Message */}
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
               {(message.category === 'booking' || message.type === 'booking') ? (
-                <>
-                  <a
-                    href={`tel:${String(message.farmerPhone || message.phone || '9440182736').replace(/[^0-9]/g, '')}`}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-                  >
-                    <span>📞</span>
-                    <span>{isTelugu ? 'రైతుకు కాల్ చేయండి' : `Call Farmer (${String(message.farmerPhone || message.phone || '9440182736')})`}</span>
-                  </a>
+                isProvider ? (
+                  <>
+                    <a
+                      href={`tel:${cleanFarmerPhone}`}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      <span>📞</span>
+                      <span>{isTelugu ? 'రైతుకు కాల్ చేయండి' : `Call Farmer (${cleanFarmerPhone})`}</span>
+                    </a>
 
-                  <a
-                    href={`https://wa.me/${String(message.farmerPhone || message.phone || '9440182736').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${message.farmerName || 'Farmer'}, regarding your machinery booking on AgriShield...`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-                  >
-                    <span>💬</span>
-                    <span>WhatsApp</span>
-                  </a>
-                </>
+                    <a
+                      href={`https://wa.me/${cleanFarmerPhone}?text=${encodeURIComponent(`Hello ${bookingFarmerName}, regarding your machinery booking #${rawBookingId} on AgriShield...`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      <span>💬</span>
+                      <span>WhatsApp</span>
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/equipment')}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Truck className="w-4 h-4" />
+                      <span>{isTelugu ? 'నా బుకింగ్‌ల వివరాలు చూడండి' : 'View My Equipment Bookings'}</span>
+                    </button>
+                    {cleanProviderPhone && (
+                      <a
+                        href={`tel:${cleanProviderPhone}`}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95 shadow-xs"
+                      >
+                        <span>📞</span>
+                        <span>{isTelugu ? 'ప్రొవైడర్‌కు కాల్ చేయండి' : `Call Provider (${cleanProviderPhone})`}</span>
+                      </a>
+                    )}
+                  </>
+                )
               ) : (
                 <>
                   <button

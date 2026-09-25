@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v262) - Complete Removal of Accept/Decline from Farmer Tab & Picture 5 Native SMS Mockups
+- **Summary:**
+  1. 🚫 **Strict Role Isolation in Notification Details (`GoogleMessageReader.jsx`):**
+     - Completely removed "Provider Order Management" (`Accept Booking`, `Decline`, `Mark Completed`, `Open in Provider Fleet Hub`) from the Farmer view. Farmers will NEVER see or access provider accept/decline actions.
+     - Replaced the provider control panel with a clean farmer-appropriate **"Booking Order Status"** card (`Confirmed ✅ / Pending ⏳ / Declined ❌`) and a 1-tap **"Open My Equipment Bookings"** navigation button.
+     - Fixed contact info card: In Farmer view, displays **"Equipment Provider Details"** with provider service hub and direct "Call Provider" / "WhatsApp" controls, eliminating the bug where farmers were seeing "Call Farmer" (calling themselves).
+     - Inside chat speech bubble, replaced the "Call Farmer" action with "View My Equipment Bookings" and "Call Provider".
+  2. 📱 **Generated 3 Professional SMS UI Mockups inspired by Picture 5:**
+     - Option 1: Clean Native Android SMS (Direct Picture 5 Style with shortcode `56321`, speech bubbles, preview card, and SMS composer).
+     - Option 2: High-Tech Emerald AgriShield SMS (Verified badge, inline voucher card ₹1,200, waveform voice player).
+     - Option 3: Conversational Thread with Quick-Action Chips (`[📞 Call Provider]`, `[💬 WhatsApp]`, `[📄 Order Receipt]`).
+     - Rendered in interactive artifact `notification_sms_designs.md`.
+  3. 📦 **Production Build:** Verified with `npm run build` — 0 errors in 25.63s.
+- **Files modified**: `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v261) - 1-Tap Live Mobile GPS Toggle for Farm Weather & Rain Forecast
 - **Summary:** Added 1-tap Live Mobile GPS toggle on the Farm Weather & Rain Forecast card in `FieldIntelligenceWidget.jsx`:
   1. 📍 **Seamless Dual-Location Switching:**
