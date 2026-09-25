@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Lock, Eye, EyeOff, ShieldCheck, Globe, Fingerprint, ScanFace, Truck, Sprout, Phone } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ShieldCheck, Globe, Fingerprint, ScanFace, Truck, Sprout } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/index';
 import { useToast } from '../../components/ui/toast';
@@ -108,7 +108,7 @@ const LoginPage = () => {
     if (loading) return;
 
     if (!email || !password) {
-      const msg = isTe ? 'దయచేసి మీ మొబైల్/ఈమెయిల్ మరియు పాస్‌వర్డ్ నమోదు చేయండి.' : 'Please enter your mobile/email and password.';
+      const msg = isTe ? 'దయచేసి మీ యూజర్‌నేమ్ మరియు పాస్‌వర్డ్ నమోదు చేయండి.' : 'Please enter your username and password.';
       setErrorMsg(msg);
       toast.error('Validation Error', msg);
       return;
@@ -132,7 +132,7 @@ const LoginPage = () => {
       const raw = err.response?.data?.detail;
       const detail = Array.isArray(raw)
         ? raw.map(e => e.msg || JSON.stringify(e)).join(', ')
-        : (typeof raw === 'string' ? raw : (isTe ? 'ఖాతా లేదా పాస్‌వర్డ్ తప్పుగా ఉంది. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Incorrect mobile/email or password. Please try again.'));
+        : (typeof raw === 'string' ? raw : (isTe ? 'యూజర్‌నేమ్ లేదా పాస్‌వర్డ్ తప్పుగా ఉంది. దయచేసి మళ్ళీ ప్రయత్నించండి.' : 'Incorrect username or password. Please try again.'));
       setErrorMsg(detail);
       toast.error(t('auth.login.login_failed', 'Login Failed'), detail);
     } finally {
@@ -146,10 +146,10 @@ const LoginPage = () => {
     const accountToUse = (email || savedBiometricUser?.email || '').trim();
     if (!accountToUse) {
       const msg = isTe 
-        ? 'దయచేసి మీ మొబైల్ లేదా ఈమెయిల్ పైన నమోదు చేయండి.' 
-        : 'Please enter your mobile or email above first.';
+        ? 'దయచేసి మీ యూజర్‌నేమ్ పైన నమోదు చేయండి.' 
+        : 'Please enter your username above first.';
       setErrorMsg(msg);
-      toast.warning(isTe ? 'వివరాలు అవసరం' : 'Identifier Required', msg);
+      toast.warning(isTe ? 'యూజర్‌నేమ్ అవసరం' : 'Username Required', msg);
       return;
     }
 
@@ -268,14 +268,14 @@ const LoginPage = () => {
         style={{ backgroundImage: `url('/images/farmer_auth_bg.jpg')` }}
       >
         {/* Scenic Darkening Scrim for High Outdoor Contrast & Readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/50 to-slate-950/70 backdrop-blur-[1px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/60 to-slate-950/75 backdrop-blur-[2px] pointer-events-none" />
 
         {/* Top-Right Language Switcher */}
         <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
           <button
             type="button"
             onClick={() => setLangModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/20 hover:bg-white/30 dark:bg-black/30 dark:hover:bg-black/40 border border-white/30 text-xs font-black text-white transition-all backdrop-blur-md shadow-lg"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/30 text-xs font-black text-white transition-all backdrop-blur-md shadow-lg"
           >
             <Globe className="w-4 h-4 text-emerald-300" />
             <span>{currentLang?.nativeName || 'English'}</span>
@@ -289,60 +289,64 @@ const LoginPage = () => {
           initial={{ opacity: 0, y: 25, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-md rounded-3xl bg-white/92 dark:bg-[#07111e]/92 backdrop-blur-2xl border-2 border-white/50 dark:border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 relative overflow-hidden z-10 my-4"
+          className="w-full max-w-md rounded-3xl bg-slate-950/85 backdrop-blur-2xl border-2 border-emerald-500/40 shadow-[0_25px_70px_rgba(0,0,0,0.85)] p-6 sm:p-8 relative overflow-hidden z-10 my-4 text-white"
         >
           {/* Subtle Transparent AgriShield Emblem Watermark in Card Background */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-            <AgriShieldWatermark className="w-96 h-96 opacity-[0.08] dark:opacity-[0.11] text-emerald-600 dark:text-emerald-400" />
+            <AgriShieldWatermark className="w-96 h-96 opacity-[0.14] text-emerald-400" />
           </div>
 
           <div className="relative z-10">
             {/* Header: Logo & Role Badge */}
             <div className="flex items-center justify-between mb-4">
               <Link to="/" className="inline-flex items-center gap-2.5 group">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
-                  <Sprout className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/40">
+                  <Sprout className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <span className="font-black text-slate-900 dark:text-white tracking-tight text-xl font-display block">
-                    AgriShield <span className="text-emerald-500">AI</span>
+                  <span className="font-black text-white tracking-tight text-xl font-display block drop-shadow-sm">
+                    AgriShield <span className="text-emerald-400">AI</span>
                   </span>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block -mt-0.5">
+                  <span className="text-[10px] font-bold text-emerald-300/80 block -mt-0.5">
                     {isTe ? 'స్మార్ట్ వ్యవసాయ సేవలు' : 'Smart Agriculture Portal'}
                   </span>
                 </div>
               </Link>
 
-              <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border transition-all ${
+                role === 'equipment_provider'
+                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+              }`}>
                 {role === 'equipment_provider' ? (isTe ? 'ప్రదాత' : 'Provider') : (isTe ? 'రైతు' : 'Farmer')}
               </span>
             </div>
 
             {/* Welcoming Heading */}
             <div className="mt-2 mb-5">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
                 {isTe ? 'స్వాగతం / లాగిన్' : 'Welcome Back'}
               </h1>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs font-semibold text-slate-300 mt-1">
                 {isTe ? 'ఖాతా లేదా?' : "Don't have an account yet?"}{' '}
-                <Link to="/register" className="font-black text-emerald-600 dark:text-emerald-400 hover:underline">
+                <Link to="/register" className="font-black text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
                   {isTe ? 'ఇప్పుడే నమోదు చేయండి (Sign Up)' : 'Create Account'}
                 </Link>
               </p>
             </div>
 
-            {/* Role Switcher (Farmer vs Equipment Provider) */}
-            <div className="mb-5 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 grid grid-cols-2 gap-1.5">
+            {/* ── ROLE SWITCHER WITH COLOR GLOW (Farmer vs Equipment Provider) ── */}
+            <div className="mb-5 p-1.5 rounded-2xl bg-black/40 border border-white/15 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setRole('farmer')}
                 className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   role === 'farmer'
-                    ? 'bg-white dark:bg-emerald-600 text-emerald-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-2 border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.7)] scale-[1.02]'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10'
                 }`}
               >
-                <Sprout className="w-4 h-4" />
+                <Sprout className={`w-4 h-4 ${role === 'farmer' ? 'text-white' : 'text-slate-400'}`} />
                 <span>{isTe ? 'రైతు (Farmer)' : 'Farmer'}</span>
               </button>
 
@@ -351,11 +355,11 @@ const LoginPage = () => {
                 onClick={() => setRole('equipment_provider')}
                 className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   role === 'equipment_provider'
-                    ? 'bg-white dark:bg-indigo-600 text-indigo-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-2 border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.7)] scale-[1.02]'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10'
                 }`}
               >
-                <Truck className="w-4 h-4" />
+                <Truck className={`w-4 h-4 ${role === 'equipment_provider' ? 'text-white' : 'text-slate-400'}`} />
                 <span>{isTe ? 'యంత్రాల ప్రదాత' : 'Equipment Provider'}</span>
               </button>
             </div>
@@ -367,25 +371,25 @@ const LoginPage = () => {
                   type="button"
                   disabled={biometricLoading || loading}
                   onClick={handleBiometricSignIn}
-                  className="w-full p-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
+                  className="w-full p-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border-2 border-emerald-400/50 text-white font-black text-xs flex items-center justify-between transition-all cursor-pointer active:scale-[0.99] shadow-[0_0_15px_rgba(16,185,129,0.25)]"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-xl bg-emerald-600 text-white shadow-xs">
+                    <div className="p-1.5 rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/50">
                       {biometricLoading ? <ScanFace className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
                     </div>
-                    <span className="font-extrabold text-slate-900 dark:text-white">
+                    <span className="font-extrabold text-white text-sm">
                       {isTe ? '1-ట్యాప్ వేలిముద్రతో లాగిన్' : '1-Tap Biometric Sign In'}
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                  <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-400 text-slate-950 shadow-xs">
                     Fast
                   </span>
                 </button>
 
                 <div className="relative my-4 flex items-center justify-center">
-                  <div className="w-full border-t border-slate-200 dark:border-slate-800" />
-                  <span className="absolute px-3 bg-white/95 dark:bg-[#07111e]/95 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    {isTe ? 'లేదా పాస్‌వర్డ్‌తో' : 'OR PASSWORD'}
+                  <div className="w-full border-t border-white/20" />
+                  <span className="absolute px-3 bg-slate-950 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                    {isTe ? 'లేదా పాస్‌వర్డ్‌తో' : 'OR WITH PASSWORD'}
                   </span>
                 </div>
               </div>
@@ -393,7 +397,7 @@ const LoginPage = () => {
 
             {/* Error Message Alert */}
             {errorMsg && (
-              <div className="mb-4 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold leading-relaxed">
+              <div className="mb-4 p-3 rounded-2xl bg-rose-500/20 border-2 border-rose-500/50 text-rose-200 text-xs font-bold leading-relaxed">
                 {errorMsg}
               </div>
             )}
@@ -411,22 +415,22 @@ const LoginPage = () => {
                 autoComplete="off"
               />
 
-              {/* Mobile Number / Email Input */}
+              {/* Username Input (Replaced Mobile Number word with Username) */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
-                  {isTe ? 'మొబైల్ నంబర్ లేదా ఈమెయిల్' : 'Mobile Number or Email'}
+                <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm">
+                  {isTe ? 'యూజర్‌నేమ్ (Username)' : 'Username'}
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Phone className="w-4 h-4" />
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
+                    <User className="w-4 h-4" />
                   </div>
                   <input
                     type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={isTe ? 'ఉదా: 9876543210 లేదా పేరు' : 'e.g. 9876543210 or user@farm.com'}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                    placeholder={isTe ? 'ఉదా: farmer1 లేదా మీ యూజర్‌నేమ్' : 'e.g. farmer1 or your username'}
+                    className="w-full pl-10 pr-4 py-3.5 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                   />
                 </div>
               </div>
@@ -434,15 +438,15 @@ const LoginPage = () => {
               {/* Password Input */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
-                    {isTe ? 'పాస్‌వర్డ్' : 'Password'}
+                  <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm">
+                    {isTe ? 'పాస్‌వర్డ్ (Password)' : 'Password'}
                   </label>
-                  <Link to="/forgot-password" tabIndex={-1} className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline">
+                  <Link to="/forgot-password" tabIndex={-1} className="text-xs font-extrabold text-emerald-400 hover:text-emerald-300">
                     {isTe ? 'మర్చిపోయారా?' : 'Forgot Password?'}
                   </Link>
                 </div>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
@@ -451,12 +455,12 @@ const LoginPage = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-11 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                    className="w-full pl-10 pr-11 py-3.5 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -465,12 +469,12 @@ const LoginPage = () => {
 
               {/* Remember Me */}
               <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-200 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-400 accent-emerald-500"
                   />
                   <span>{isTe ? 'నన్ను గుర్తుంచుకో' : 'Remember me on this phone'}</span>
                 </label>
@@ -481,10 +485,10 @@ const LoginPage = () => {
                 <Button
                   type="submit"
                   loading={loading}
-                  className={`w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider text-white shadow-lg transition-all duration-300 cursor-pointer active:scale-[0.99] ${
+                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider text-white shadow-xl transition-all duration-300 cursor-pointer active:scale-[0.99] border ${
                     role === 'equipment_provider'
-                      ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
-                      : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-[0_0_25px_rgba(99,102,241,0.55)] border-indigo-300/40'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-[0_0_25px_rgba(16,185,129,0.55)] border-emerald-300/40'
                   }`}
                 >
                   {loading
@@ -494,13 +498,12 @@ const LoginPage = () => {
               </div>
             </form>
 
-            {/* Bottom Footer Info */}
-            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            {/* Bottom Footer Info (Cleaned: removed '256-bit SSL Protected') */}
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-center text-xs font-bold text-slate-300">
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 AgriShield Guard v2.0
               </span>
-              <span>256-bit SSL Protected</span>
             </div>
           </div>
         </motion.div>

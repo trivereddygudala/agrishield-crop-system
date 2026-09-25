@@ -213,14 +213,14 @@ const RegisterPage = () => {
       style={{ backgroundImage: `url('/images/farmer_auth_bg.jpg')` }}
     >
       {/* Scenic Darkening Scrim for High Outdoor Contrast & Readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/50 to-slate-950/70 backdrop-blur-[1px] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/60 to-slate-950/75 backdrop-blur-[2px] pointer-events-none" />
 
       {/* Top-Right Language Switcher */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
         <button
           type="button"
           onClick={() => setLangModalOpen(true)}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/20 hover:bg-white/30 dark:bg-black/30 dark:hover:bg-black/40 border border-white/30 text-xs font-black text-white transition-all backdrop-blur-md shadow-lg"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/30 text-xs font-black text-white transition-all backdrop-blur-md shadow-lg"
         >
           <Globe className="w-4 h-4 text-emerald-300" />
           <span>{currentLang?.nativeName || 'English'}</span>
@@ -234,76 +234,76 @@ const RegisterPage = () => {
         initial={{ opacity: 0, y: 25, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-lg rounded-3xl bg-white/92 dark:bg-[#07111e]/92 backdrop-blur-2xl border-2 border-white/50 dark:border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 relative overflow-hidden z-10 my-4"
+        className="w-full max-w-lg rounded-3xl bg-slate-950/85 backdrop-blur-2xl border-2 border-emerald-500/40 shadow-[0_25px_70px_rgba(0,0,0,0.85)] p-6 sm:p-8 relative overflow-hidden z-10 my-4 text-white"
       >
         {/* Subtle Transparent AgriShield Emblem Watermark in Card Background */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-          <AgriShieldWatermark className="w-96 h-96 opacity-[0.08] dark:opacity-[0.11] text-emerald-600 dark:text-emerald-400" />
+          <AgriShieldWatermark className="w-96 h-96 opacity-[0.14] text-emerald-400" />
         </div>
 
         <div className="relative z-10">
           {/* Header: Logo, Brand & Step Indicator */}
           <div className="flex items-center justify-between mb-3">
             <Link to="/" className="inline-flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
-                <Sprout className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/40">
+                <Sprout className="w-6 h-6 text-white" />
               </div>
               <div>
-                <span className="font-black text-slate-900 dark:text-white tracking-tight text-xl font-display block">
-                  AgriShield <span className="text-emerald-500">AI</span>
+                <span className="font-black text-white tracking-tight text-xl font-display block drop-shadow-sm">
+                  AgriShield <span className="text-emerald-400">AI</span>
                 </span>
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block -mt-0.5">
+                <span className="text-[10px] font-bold text-emerald-300/80 block -mt-0.5">
                   {isTe ? 'రైతు నమోదు వేదిక' : 'Farmer Registration'}
                 </span>
               </div>
             </Link>
 
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+            <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
               Step {step} of 2
             </span>
           </div>
 
           {/* Heading */}
           <div className="mt-2 mb-4">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
               {step === 1 
                 ? (isTe ? 'కొత్త ఖాతా తెరవండి' : 'Create Account') 
                 : (role === 'farmer' ? (isTe ? 'మీ 8 పంటల ఎంపిక' : 'Your 8 AI Crops') : (isTe ? 'యంత్రాల వివరాలు' : 'Machinery Fleet Setup'))}
             </h1>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs font-semibold text-slate-300 mt-1">
               {isTe ? 'ఇప్పటికే ఖాతా ఉందా?' : 'Already have an account?'}{' '}
-              <Link to="/login" className="font-black text-emerald-600 dark:text-emerald-400 hover:underline">
+              <Link to="/login" className="font-black text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
                 {isTe ? 'లాగిన్ అవ్వండి (Sign In)' : 'Sign In'}
               </Link>
             </p>
           </div>
 
-          {/* Role Switcher (Step 1) */}
+          {/* ── ROLE SWITCHER WITH COLOR GLOW (Step 1) ── */}
           {step === 1 && (
-            <div className="mb-4 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 grid grid-cols-2 gap-1.5">
+            <div className="mb-4 p-1.5 rounded-2xl bg-black/40 border border-white/15 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setRole('farmer')}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   role === 'farmer'
-                    ? 'bg-white dark:bg-emerald-600 text-emerald-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-2 border-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.7)] scale-[1.02]'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10'
                 }`}
               >
-                <Sprout className="w-4 h-4" />
+                <Sprout className={`w-4 h-4 ${role === 'farmer' ? 'text-white' : 'text-slate-400'}`} />
                 <span>{isTe ? 'రైతు (Farmer)' : 'Farmer'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRole('equipment_provider')}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   role === 'equipment_provider'
-                    ? 'bg-white dark:bg-indigo-600 text-indigo-700 dark:text-white shadow-sm border border-slate-200/80 dark:border-transparent'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-2 border-indigo-300 shadow-[0_0_25px_rgba(99,102,241,0.7)] scale-[1.02]'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10'
                 }`}
               >
-                <Truck className="w-4 h-4" />
+                <Truck className={`w-4 h-4 ${role === 'equipment_provider' ? 'text-white' : 'text-slate-400'}`} />
                 <span>{isTe ? 'యంత్రాల ప్రదాత' : 'Equipment Provider'}</span>
               </button>
             </div>
@@ -311,7 +311,7 @@ const RegisterPage = () => {
 
           {/* Error Banner */}
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold leading-relaxed">
+            <div className="mb-4 p-3 rounded-2xl bg-rose-500/20 border-2 border-rose-500/50 text-rose-200 text-xs font-bold leading-relaxed">
               {errorMsg}
             </div>
           )}
@@ -333,11 +333,11 @@ const RegisterPage = () => {
 
               {/* Name */}
               <div className="space-y-1">
-                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
+                <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm">
                   {role === 'equipment_provider' ? (isTe ? 'ప్రదాత / ఏజెన్సీ పేరు' : 'Provider / Business Name') : (isTe ? 'రైతు పూర్తి పేరు' : 'Full Name')}
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
                     <User className="h-4 w-4" />
                   </div>
                   <input
@@ -346,26 +346,26 @@ const RegisterPage = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder={role === 'equipment_provider' ? 'e.g. Balaji Agro Machinery Hub' : (isTe ? 'ఉదా: రమేష్ రెడ్డి' : 'e.g. Ramesh Reddy')}
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                    className="w-full pl-10 pr-3.5 py-3 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                   />
                 </div>
               </div>
 
-              {/* Mobile / Email */}
+              {/* Username (Replaced Mobile Number with Username) */}
               <div className="space-y-1">
-                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
-                  {isTe ? 'మొబైల్ నంబర్ లేదా ఈమెయిల్' : 'Mobile Number or Email'}
+                <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm">
+                  {isTe ? 'యూజర్‌నేమ్ (Username)' : 'Username'}
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Phone className="h-4 w-4" />
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-600">
+                    <User className="h-4 w-4" />
                   </div>
                   <input
                     type="text"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder={isTe ? 'ఉదా: 9876543210' : 'e.g. 9876543210 or user@farm.com'}
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                    placeholder={isTe ? 'ఉదా: farmer1 లేదా మీ యూజర్‌నేమ్' : 'e.g. farmer1 or your username'}
+                    className="w-full pl-10 pr-3.5 py-3 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                   />
                 </div>
               </div>
@@ -373,7 +373,7 @@ const RegisterPage = () => {
               {/* Passwords in 2 columns */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm">
                     {isTe ? 'పాస్‌వర్డ్' : 'Password'}
                   </label>
                   <div className="relative">
@@ -383,12 +383,12 @@ const RegisterPage = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full px-3.5 pr-9 py-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                      className="w-full px-3.5 pr-9 py-3 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-800 cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -396,7 +396,7 @@ const RegisterPage = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm">
                     {isTe ? 'పాస్‌వర్డ్ సరిచూడండి' : 'Confirm Password'}
                   </label>
                   <div className="relative">
@@ -406,12 +406,12 @@ const RegisterPage = () => {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full px-3.5 pr-9 py-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                      className="w-full px-3.5 pr-9 py-3 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-800 cursor-pointer"
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -422,8 +422,8 @@ const RegisterPage = () => {
               {/* Location: Village & District */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                  <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                     <span>{role === 'equipment_provider' ? (isTe ? 'హబ్ గ్రామం/నగరం' : 'Hub Village/Town') : (isTe ? 'గ్రామం' : 'Village')}</span>
                   </label>
                   <input
@@ -432,12 +432,12 @@ const RegisterPage = () => {
                     value={village}
                     onChange={(e) => setVillage(e.target.value)}
                     placeholder="e.g. Pasupugallu"
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                    className="w-full px-3.5 py-3 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300">
+                  <label className="block text-xs font-extrabold text-white tracking-wide drop-shadow-sm">
                     {isTe ? 'జిల్లా' : 'District'}
                   </label>
                   <input
@@ -446,7 +446,7 @@ const RegisterPage = () => {
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     placeholder="e.g. Prakasam"
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                    className="w-full px-3.5 py-3 rounded-2xl bg-white text-slate-950 font-bold text-sm placeholder-slate-400 border-2 border-white/50 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/30 shadow-md transition-all outline-none"
                   />
                 </div>
               </div>
@@ -455,10 +455,10 @@ const RegisterPage = () => {
               <div className="pt-2">
                 <Button
                   type="submit"
-                  className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99] ${
+                  className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-[0.99] border ${
                     role === 'equipment_provider'
-                      ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
-                      : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-[0_0_25px_rgba(99,102,241,0.55)] border-indigo-300/40'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-[0_0_25px_rgba(16,185,129,0.55)] border-emerald-300/40'
                   }`}
                 >
                   <span>{role === 'farmer' ? (isTe ? 'తదుపరి: పంటల ఎంపిక' : 'Next: Select Crops') : (isTe ? 'తదుపరి: యంత్రాల వివరాలు' : 'Next: Setup Fleet')}</span>
@@ -485,7 +485,7 @@ const RegisterPage = () => {
                 /* 2B: For Equipment Provider -> Fleet Categories */
                 <div className="space-y-3.5">
                   <div>
-                    <label className="text-xs font-black text-slate-800 dark:text-slate-200">
+                    <label className="text-xs font-black text-white">
                       {isTe ? 'మీరు అద్దెకు అందించే యంత్రాల కేటగిరీలను ఎంచుకోండి' : 'Select Machinery Categories You Provide for Rent'}
                     </label>
                   </div>
@@ -500,17 +500,17 @@ const RegisterPage = () => {
                           onClick={() => toggleEquipmentType(item.id)}
                           className={`p-3 rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-500 text-indigo-950 dark:text-white shadow-sm'
-                              : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                              ? 'bg-indigo-600 text-white border-2 border-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.6)]'
+                              : 'bg-slate-900/80 border-white/15 text-slate-300 hover:bg-slate-800'
                           }`}
                         >
                           <span className="text-2xl">{item.icon}</span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
                               <p className="text-xs font-black truncate">{isTe ? item.teluguName : item.name}</p>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />}
+                              {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
                             </div>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{item.desc}</p>
+                            <p className="text-[10px] text-slate-300/80 mt-0.5 line-clamp-1">{item.desc}</p>
                           </div>
                         </button>
                       );
@@ -518,12 +518,12 @@ const RegisterPage = () => {
                   </div>
 
                   {/* Operational Coverage Radius */}
-                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/15">
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-black text-slate-800 dark:text-slate-200">
+                      <label className="text-xs font-black text-white">
                         {isTe ? 'సేవా పరిధి' : 'Service Radius'}
                       </label>
-                      <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                      <span className="text-xs font-black text-indigo-300">
                         {providerRadiusKm} km
                       </span>
                     </div>
@@ -534,7 +534,7 @@ const RegisterPage = () => {
                       step="5"
                       value={providerRadiusKm}
                       onChange={(e) => setProviderRadiusKm(Number(e.target.value))}
-                      className="w-full accent-indigo-600 cursor-pointer"
+                      className="w-full accent-indigo-500 cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
                       <span>5 km (Local)</span>
@@ -550,7 +550,7 @@ const RegisterPage = () => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-3.5 rounded-2xl border border-white/20 text-xs font-bold text-slate-200 hover:bg-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>{isTe ? 'వెనుకకు' : 'Back'}</span>
@@ -559,10 +559,10 @@ const RegisterPage = () => {
                 <Button
                   type="submit"
                   loading={loading}
-                  className={`flex-1 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg transition-all cursor-pointer active:scale-[0.99] ${
+                  className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-xl transition-all cursor-pointer active:scale-[0.99] border ${
                     role === 'equipment_provider'
-                      ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30'
-                      : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 shadow-[0_0_25px_rgba(99,102,241,0.55)] border-indigo-300/40'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-[0_0_25px_rgba(16,185,129,0.55)] border-emerald-300/40'
                   }`}
                 >
                   {loading
@@ -573,13 +573,12 @@ const RegisterPage = () => {
             </form>
           )}
 
-          {/* Bottom Footer Info */}
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          {/* Bottom Footer Info (Cleaned: removed '256-bit Secure') */}
+          <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-center text-xs font-bold text-slate-300">
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
               AgriShield Verified Platform
             </span>
-            <span>256-bit Secure</span>
           </div>
         </div>
       </motion.div>
