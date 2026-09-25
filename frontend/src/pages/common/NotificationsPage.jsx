@@ -519,7 +519,7 @@ export default function NotificationsPage() {
     );
   }
 
-  // ─── GOOGLE MESSAGES FULL SMS READER VIEW ───
+  // ─── OPTION B FULL SCREEN REAL MESSENGER VIEW ───
   if (selectedMessage) {
     const { title: transTitle, message: transBody } = translateNotification(
       selectedMessage.title,
@@ -527,7 +527,7 @@ export default function NotificationsPage() {
       currentLang
     );
     return (
-      <div className="max-w-3xl mx-auto w-full pb-20 px-2 sm:px-4 pt-1 animate-fade-in">
+      <div className="fixed inset-0 z-50 bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
         <GoogleMessageReader
           message={selectedMessage}
           translatedTitle={transTitle}

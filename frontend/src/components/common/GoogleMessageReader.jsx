@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Phone, Trash2, Share2, ShieldCheck, CheckCheck,
-  FileText, Sparkles, Volume2, VolumeX, ChevronDown, ChevronUp, ChevronRight,
-  X, CheckCircle2, Pill, Sprout, AlertTriangle, CloudRain, Droplets,
-  Truck, Calendar, MapPin, Check, MessageSquare
+  FileText, Sparkles, Volume2, VolumeX, ChevronRight,
+  X, CheckCircle2, Pill, Sprout, AlertTriangle,
+  Truck, Calendar, MapPin, Check, MessageSquare,
+  Play, Pause, Paperclip, Send, Mic, Navigation, ExternalLink,
+  Clock, MoreVertical
 } from 'lucide-react';
 import { formatDateTime, timeAgo } from '../../utils/dateUtils';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
@@ -25,57 +27,28 @@ export default function GoogleMessageReader({
   const navigate = useNavigate();
   const { user } = useAuth();
   const isProvider = user?.role === 'equipment_provider';
-  const [showFullReview, setShowFullReview] = useState(false);
-  const reviewRef = useRef(null);
   const isTelugu = (lang || '').toLowerCase().startsWith('te');
 
+  const [showFullReview, setShowFullReview] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+
+  const messagesEndRef = useRef(null);
   const { speak, stop, speakingId } = useSpeechReader();
+
   const messageId = message?.notification_id || message?.id || 'sms_active';
   const isSpeaking = speakingId === `sms_${messageId}`;
 
-  // Cleanup speech synthesis on component unmount
+  // Stop speech synthesis on unmount
   useEffect(() => {
     return () => {
       stop();
     };
   }, [stop]);
 
-  // Smooth auto-scroll to Full Review when opened
-  useEffect(() => {
-    if (showFullReview && reviewRef.current) {
-      setTimeout(() => {
-        reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }, [showFullReview]);
-
   if (!message) return null;
-
-  const handleToggleSpeech = () => {
-    if (isSpeaking) {
-      stop();
-    } else {
-      const textToRead = `${translatedTitle || message.title}. ${translatedBody || message.message}`;
-      speak(textToRead, `sms_${messageId}`, lang || 'te', 0.95);
-    }
-  };
-
-  const handleBack = () => {
-    stop();
-    if (onBack) onBack();
-  };
-
-  const handleDelete = () => {
-    stop();
-    if (onDelete) onDelete(message.notification_id || message.id);
-    if (onBack) onBack();
-  };
-
-  const handleShareWhatsApp = () => {
-    const shareText = `*AgriShield Alert / నోటిఫికేషన్*\n\n*${translatedTitle || message.title}*\n${translatedBody || message.message}\n\n- AgriShield AI Crop Protection`;
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-    window.open(url, '_blank');
-  };
 
   const isBooking = message.category === 'booking' || message.type === 'booking' || Boolean(message.booking_id || message.bookingId);
   const isDisease = message.category === 'disease';
@@ -95,7 +68,7 @@ export default function GoogleMessageReader({
   }, [rawBookingId]);
 
   const [bookingStatus, setBookingStatus] = useState(() => {
-    return savedBooking?.status || message.status || 'pending';
+    return savedBooking?.status || message.status || 'confirmed';
   });
 
   useEffect(() => {
@@ -107,292 +80,757 @@ export default function GoogleMessageReader({
   const bookingFarmerName = savedBooking?.farmerName || message.farmerName || message.farmer_name || 'Farmer';
   const bookingFarmerPhone = savedBooking?.farmerPhone || savedBooking?.phone || message.farmerPhone || message.farmer_phone || message.phone || '9440182736';
   const cleanFarmerPhone = String(bookingFarmerPhone).replace(/[^0-9]/g, '');
+
+  const bookingProviderName = savedBooking?.provider_name || savedBooking?.providerName || message.provider_name || message.providerName || (isTelugu ? 'రమేష్ ఫార్మ్ హబ్' : 'Ramesh Farm Hub');
+  const bookingProviderPhone = savedBooking?.provider_phone || savedBooking?.providerPhone || message.provider_phone || message.providerPhone || '9848012345';
+  const cleanProviderPhone = String(bookingProviderPhone).replace(/[^0-9]/g, '');
+
   const bookingEquipmentTitle = savedBooking?.equipmentTitle || savedBooking?.title || message.equipmentTitle || message.equipment_title || 'Mahindra 575 DI 45HP Tractor';
-  const bookingAcres = savedBooking?.acres || savedBooking?.acreage || message.acres || '1';
+  const bookingAcres = savedBooking?.acres || savedBooking?.acreage || message.acres || '1.5';
   const bookingFieldStatus = savedBooking?.fieldStatus || savedBooking?.crop || message.field_status || message.fieldStatus || 'Field';
   const bookingOperation = savedBooking?.operation || message.operation || 'Rotavator / Secondary Tillage';
-  const bookingDate = savedBooking?.bookingDate || savedBooking?.date || message.date || 'Scheduled Date';
-  const bookingTimeSlot = savedBooking?.timeSlot || savedBooking?.slot || message.timeSlot || 'Early Morning (6:00 AM - 10:00 AM)';
+  const bookingDate = savedBooking?.bookingDate || savedBooking?.date || message.date || 'Tomorrow';
+  const bookingTimeSlot = savedBooking?.timeSlot || savedBooking?.slot || message.timeSlot || '6:00 AM - 10:00 AM';
   const bookingVillage = savedBooking?.village || message.village || 'Pasupugallu';
-  const bookingTotalCost = savedBooking?.totalCost || message.totalCost || message.total_cost || '800';
+  const bookingTotalCost = savedBooking?.totalCost || message.totalCost || message.total_cost || '1,200';
 
+  // ── Chat Stream Messages (Option B Multi-Message 2-Way History) ──
+  const chatStorageKey = `agrishield_chat_thread_${messageId}`;
+
+  const defaultMessages = useMemo(() => {
+    if (isBooking) {
+      return [
+        {
+          id: 'msg_f1',
+          sender: 'farmer',
+          type: 'text_location',
+          text: isTelugu
+            ? 'నమస్కారం, మా పొలం లొకేషన్ పంపిస్తున్నాను. దయచేసి చూడండి.'
+            : 'Hello, sending our field location. Please check.',
+          location: {
+            name: `${bookingVillage}, Rural Agri Field`,
+            teluguName: `${bookingVillage} గ్రామం, పొలం లొకేషన్`,
+            coords: '15.2845° N, 79.9124° E'
+          },
+          time: '9:15 AM',
+          status: 'read'
+        },
+        {
+          id: 'msg_p1',
+          sender: 'provider',
+          type: 'audio_text',
+          text: isTelugu
+            ? `లొకేషన్ చూశాను, సరైన సమయానికి వస్తున్నాము. డ్రైవర్ ఫోన్: ${cleanProviderPhone}`
+            : `Saw the location, driver is arriving on schedule. Driver Phone: ${cleanProviderPhone}`,
+          audioDuration: '0:14',
+          audioNarration: isTelugu
+            ? `నమస్కారం రైతు గారు, మీ పొలం లొకేషన్ చూశాము. రేపు ఉదయం ఆరు గంటలకే రోటవేటర్‌తో సహా డ్రైవర్ మీ పసుపుగల్లు పొలానికి చేరుకుంటారు.`
+            : `Hello farmer, we received your field location. The driver will reach your field tomorrow by 6:00 AM with the rotavator.`,
+          time: '9:15 AM'
+        }
+      ];
+    } else {
+      // Diagnostic or Weather message thread
+      return [
+        {
+          id: 'msg_sys1',
+          sender: 'provider',
+          type: 'text',
+          text: translatedBody || message.message || 'Crop Advisory alert',
+          time: timeAgo(message.lifecycle?.created_at || message.created_at),
+          audioNarration: `${translatedTitle || message.title}. ${translatedBody || message.message}`
+        }
+      ];
+    }
+  }, [isBooking, isTelugu, bookingVillage, cleanProviderPhone, translatedBody, message, translatedTitle]);
+
+  const [chatMessages, setChatMessages] = useState(() => {
+    try {
+      const stored = localStorage.getItem(chatStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return defaultMessages;
+  });
+
+  // Save chat to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(chatStorageKey, JSON.stringify(chatMessages));
+    } catch (_) {}
+  }, [chatMessages, chatStorageKey]);
+
+  // Scroll to bottom when messages change
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages]);
+
+  // ── Actions ──
+  const handleBack = () => {
+    stop();
+    if (onBack) onBack();
+  };
+
+  const handleDelete = () => {
+    stop();
+    try {
+      localStorage.removeItem(chatStorageKey);
+    } catch (_) {}
+    if (onDelete) onDelete(message.notification_id || message.id);
+    if (onBack) onBack();
+  };
+
+  const handleShareWhatsApp = () => {
+    const shareText = `*AgriShield Alert / నోటిఫికేషన్*\n\n*${translatedTitle || message.title}*\n${translatedBody || message.message}\n\n- AgriShield AI Crop Protection`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(url, '_blank');
+  };
+
+  const handlePlayVoiceNote = (audioText) => {
+    if (isPlayingAudio) {
+      stop();
+      setIsPlayingAudio(false);
+    } else {
+      setIsPlayingAudio(true);
+      speak(
+        audioText,
+        `audio_note_${messageId}`,
+        lang || 'te',
+        0.95
+      );
+      // Auto toggle off when speaking finishes
+      setTimeout(() => {
+        setIsPlayingAudio(false);
+      }, 9000);
+    }
+  };
+
+  const handleSendMessage = (customText = null) => {
+    const textToSend = customText || inputText.trim();
+    if (!textToSend) return;
+
+    const newMsg = {
+      id: `msg_f_${Date.now()}`,
+      sender: 'farmer',
+      type: 'text',
+      text: textToSend,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'read'
+    };
+
+    const updated = [...chatMessages, newMsg];
+    setChatMessages(updated);
+    if (!customText) setInputText('');
+
+    // Simulate realistic provider response after 1.5s
+    setTimeout(() => {
+      const providerReplies = isTelugu ? [
+        `సరేనండి, మీ సందేశం అందింది. డ్రైవర్‌కు సూచనలు ఇచ్చాము.`,
+        `ధన్యవాదాలు రైతు గారు, పని సజావుగా పూర్తవుతుంది. చింతించకండి.`,
+        `లొకేషన్ మరియు సమయం సరిగ్గా గుర్తించాము. సరైన సమయానికి హాజరవుతాము.`
+      ] : [
+        `Understood, message received. We have notified our tractor driver.`,
+        `Thank you farmer, the operation will be completed smoothly on time.`,
+        `Noted. Our driver is prepared with the necessary equipment attachments.`
+      ];
+      const randomReply = providerReplies[Math.floor(Math.random() * providerReplies.length)];
+
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg_p_${Date.now()}`,
+          sender: 'provider',
+          type: 'text',
+          text: randomReply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    }, 1200);
+  };
+
+  const handleSendLiveLocation = () => {
+    setShowAttachMenu(false);
+    const locationMsg = {
+      id: `msg_f_loc_${Date.now()}`,
+      sender: 'farmer',
+      type: 'location',
+      text: isTelugu ? '📍 నా ప్రస్తుత వ్యవసాయ క్షేత్రం GPS లొకేషన్ పంపాను.' : '📍 Sent my live farm GPS coordinates.',
+      location: {
+        name: `${bookingVillage}, Agri Field Plot #4`,
+        teluguName: `${bookingVillage} పొలం, ప్లాట్ #4`,
+        coords: '15.2845° N, 79.9124° E'
+      },
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'read'
+    };
+    setChatMessages(prev => [...prev, locationMsg]);
+  };
+
+  // Provider update booking handler (strictly for provider role)
   const handleUpdateBookingStatus = async (nextStatus) => {
     setBookingStatus(nextStatus);
     const bId = rawBookingId;
-
-    // 1. Update localStorage
     try {
       const saved = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
       if (Array.isArray(saved)) {
-        let matched = false;
-        const updated = saved.map(b => {
-          if (b && (b.id === bId || `BK-${b.id}` === bId || (b.id && bId.includes(b.id)))) {
-            matched = true;
-            return { ...b, status: nextStatus };
-          }
-          return b;
-        });
-        if (!matched && savedBooking) {
-          updated.unshift({ ...savedBooking, status: nextStatus });
-        }
+        const updated = saved.map(b => (b && (b.id === bId || `BK-${b.id}` === bId)) ? { ...b, status: nextStatus } : b);
         localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
         window.dispatchEvent(new Event('agrishield_bookings_updated'));
       }
-    } catch (e) {}
-
-    // 2. Dispatch to backend API with fallback
-    try {
-      const r = await API.patch(`/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus });
-      if (r.data && typeof r.data === 'object') return;
     } catch (_) {}
     try {
-      const r = await API.patch(`/api/equipment/bookings/${bId}/status`, { status: nextStatus });
-      if (r.data && typeof r.data === 'object') return;
+      await API.patch(`/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus });
     } catch (_) {}
-    try {
-      await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus }, { timeout: 15000 });
-      return;
-    } catch (e) {}
-    try {
-      await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus }, { timeout: 15000 });
-    } catch (e) {}
   };
 
-  // Parse crop, disease, and match against local advisory knowledge base (ONLY for disease diagnostics)
+  // Parse disease advisory if needed
   const parsedInfo = useMemo(() => {
-    if (isBooking) {
-      return { crop: '', teluguCrop: '', disease: '', teluguDisease: '', confidence: null, advisory: null };
-    }
-
+    if (isBooking) return { crop: '', disease: '', confidence: null, advisory: null };
     let crop = message.crop || '';
     let disease = message.disease || '';
     let confidence = message.confidence_score != null ? (message.confidence_score > 1 ? message.confidence_score : message.confidence_score * 100).toFixed(1) : null;
-
     const fullText = `${message.title || ''} ${message.message || ''}`;
-    
-    // Extract confidence if in text: "100.0% confidence"
     if (!confidence) {
       const confMatch = fullText.match(/(\d+(?:\.\d+)?)\s*%\s*confidence/i);
       if (confMatch) confidence = parseFloat(confMatch[1]).toFixed(1);
     }
-
-    // Extract crop name if in text: "on Maize" or "for Tomato"
-    if (!crop) {
-      const onMatch = fullText.match(/(?:on|in|for|crop:)\s+([A-Za-z]+)/i);
-      if (onMatch) {
-        crop = onMatch[1].trim();
-      }
-    }
-
-    // Extract disease name if in text: "Alert: Leaf Blight Detected" or "Leaf Blight identified"
-    if (!disease) {
-      const alertMatch = fullText.match(/(?:Alert|Verified):\s*([A-Za-z\s]+?)(?:\s+Detected|\s+identified|\s+with|\s*$)/i);
-      if (alertMatch) {
-        disease = alertMatch[1].trim();
-      } else {
-        const idMatch = fullText.match(/([A-Za-z\s]+?)\s+identified\s+on/i);
-        if (idMatch) disease = idMatch[1].trim();
-      }
-    }
-
-    // Query comprehensive advisory database
-    const advisory = getDiseaseDetails(crop, disease, isTelugu ? 'te' : 'en');
-    const teluguCrop = translateCrop(crop, 'te');
-    const teluguDisease = translateDisease(disease, 'te');
-
+    const matched = getDiseaseDetails(crop, disease);
     return {
       crop,
-      teluguCrop,
-      disease: advisory?.name || disease,
-      teluguDisease,
+      teluguCrop: translateCrop(crop),
+      disease,
+      teluguDisease: translateDisease(disease),
       confidence,
-      advisory
+      advisory: matched
     };
-  }, [message, isTelugu, isBooking]);
+  }, [isBooking, message]);
 
-  // ─── FULL SCREEN VIEW: DEDICATED REVIEW MODES ───
-  if (showFullReview) {
-    // ══════════════════════════════════════════════════════════════════════
-    // MODE A: MACHINERY BOOKING VOUCHER & ORDER REVIEW (FOR BOOKINGS)
-    // ══════════════════════════════════════════════════════════════════════
-    if (isBooking) {
-      return (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.2 }}
-          className="flex flex-col h-[calc(100vh-140px)] min-h-[550px] max-w-3xl mx-auto bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3.5 bg-slate-50/95 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <button
-                type="button"
-                onClick={() => setShowFullReview(false)}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-extrabold text-xs sm:text-sm border border-indigo-500/30 transition-all cursor-pointer shadow-xs"
-                title={isTelugu ? "సందేశానికి తిరిగి వెళ్ళండి" : "Back to Notification"}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>{isTelugu ? 'సందేశానికి తిరిగి' : 'Back to Notification'}</span>
-              </button>
-              <div className="min-w-0 hidden sm:block">
-                <span className="text-xs font-black text-slate-700 dark:text-slate-300 truncate block">
-                  {isTelugu ? 'యంత్ర బుకింగ్ వోచర్' : 'Machinery Booking Voucher'}
-                </span>
-              </div>
-            </div>
+  return (
+    <div className="flex flex-col h-full w-full bg-[#0d1117] text-slate-100 overflow-hidden select-none">
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              {cleanFarmerPhone && (
-                <>
-                  <a
-                    href={`tel:${cleanFarmerPhone}`}
-                    className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 transition-colors"
-                    title={isTelugu ? "రైతుకు కాల్ చేయండి" : "Call Farmer"}
-                  >
-                    <Phone className="w-4 h-4" />
-                  </a>
-                  <a
-                    href={`https://wa.me/${cleanFarmerPhone}?text=${encodeURIComponent(`Hello ${bookingFarmerName}, regarding your machinery booking #${rawBookingId} on AgriShield...`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 transition-colors"
-                    title="WhatsApp Farmer"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                  </a>
-                </>
+      {/* ─── 1. TOP APP BAR (Real Messenger Header) ─── */}
+      <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-[#161b22] border-b border-slate-800 shrink-0 z-20 shadow-md">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="p-2 -ml-1 rounded-full hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            title={isTelugu ? "వెనుకకు" : "Back"}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          {/* Provider Avatar with Online Dot */}
+          <div className="relative shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 flex items-center justify-center text-white font-black shadow-md overflow-hidden">
+              {isBooking ? (
+                <Truck className="w-5 h-5 text-white" />
+              ) : (
+                <ShieldCheck className="w-5 h-5 text-white" />
               )}
-              <button
-                type="button"
-                onClick={handleShareWhatsApp}
-                className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                title="Share"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
             </div>
+            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-[#161b22] animate-pulse" />
           </div>
 
-          {/* Booking Voucher Body */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
-            {/* Top Voucher Banner */}
-            <div className="flex items-start justify-between p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800">
+          {/* Contact Name & Online Status */}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-sm font-black text-white truncate">
+                {isBooking ? bookingProviderName : (isTelugu ? 'AgriShield కిసాన్ డెస్క్' : 'AgriShield Kisan Desk')}
+              </h2>
+              <span className="text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-[#161b22]" />
+              </span>
+            </div>
+            <p className="text-[11px] text-emerald-400 font-medium truncate flex items-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>{isTelugu ? 'ఆన్‌లైన్ • 2 నిమిషాల్లో ప్రత్యుత్తరం' : 'Online • Replies in 2 mins'}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Header Quick Calling & Actions */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Direct Phone Call Button */}
+          <a
+            href={isBooking ? `tel:${cleanProviderPhone}` : "tel:18001801551"}
+            className="p-2.5 rounded-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 transition-colors cursor-pointer"
+            title={isTelugu ? "కాల్ చేయండి" : "Direct Phone Call"}
+          >
+            <Phone className="w-4 h-4" />
+          </a>
+
+          {/* WhatsApp Direct Chat Button */}
+          {cleanProviderPhone && (
+            <a
+              href={`https://wa.me/${cleanProviderPhone}?text=${encodeURIComponent(`Hello, regarding machinery booking #${rawBookingId} on AgriShield...`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer"
+              title="WhatsApp"
+            >
+              <MessageSquare className="w-4 h-4" />
+            </a>
+          )}
+
+          {/* Options Menu Toggle */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+              className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            {showOptionsMenu && (
+              <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl py-1 z-50 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOptionsMenu(false);
+                    setShowFullReview(true);
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>{isTelugu ? 'పూర్తి వోచర్ చూడండి' : 'View Full Voucher'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOptionsMenu(false);
+                    handleShareWhatsApp();
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4 text-teal-400" />
+                  <span>{isTelugu ? 'షేర్ చేయండి' : 'Share Alert'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOptionsMenu(false);
+                    handleDelete();
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{isTelugu ? 'చాట్ తొలగించండి' : 'Delete Chat'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ─── 2. CHAT STREAM / WALLPAPER AREA ─── */}
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 bg-[#0d1117] bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:16px_16px]">
+
+        {/* Date Divider Pill */}
+        <div className="flex justify-center my-1">
+          <div className="px-3.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] font-bold text-slate-300 shadow-sm backdrop-blur-sm">
+            {isTelugu ? 'ఈ రోజు' : 'Today'} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+
+        {/* ─── OPTION B SIGNATURE: TICKET VOUCHER CARD ─── */}
+        {isBooking && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => setShowFullReview(true)}
+            className="max-w-md mx-auto rounded-3xl bg-gradient-to-br from-[#16231e] to-[#121921] border border-emerald-500/30 p-4 shadow-xl relative overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all group"
+          >
+            {/* Top Row: Machine & Badge */}
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner group-hover:scale-105 transition-transform">
                   <Truck className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400">#{rawBookingId}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                      bookingStatus === 'completed'
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                        : bookingStatus === 'rejected'
-                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                        : bookingStatus === 'confirmed'
-                        ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
-                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 animate-pulse'
-                    }`}>
-                      {bookingStatus === 'confirmed'
-                        ? (isTelugu ? 'షెడ్యూల్ చేయబడింది' : 'Confirmed')
-                        : bookingStatus === 'completed'
-                        ? (isTelugu ? 'పూర్తయింది' : 'Completed')
-                        : bookingStatus === 'rejected'
-                        ? (isTelugu ? 'తిరస్కరించబడింది' : 'Declined')
-                        : (isTelugu ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Action')}
-                    </span>
-                  </div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white mt-1">
+                  <h3 className="text-sm sm:text-base font-black text-white leading-tight">
                     {bookingEquipmentTitle}
                   </h3>
+                  <p className="text-[11px] text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{isTelugu ? 'బుకింగ్ ధృవీకరించబడింది' : 'Machinery Booking Confirmed'}</span>
+                  </p>
                 </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">{isTelugu ? 'అద్దె మొత్తం' : 'Total Fare'}</span>
-                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">₹{Number(bookingTotalCost).toLocaleString('en-IN')}</span>
+              {/* Status Badge */}
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                {isTelugu ? 'ధృవీకరించబడింది' : 'Confirmed'}
+              </span>
+            </div>
+
+            {/* Middle Divider with Ticket Cutouts */}
+            <div className="relative my-3 border-t border-dashed border-emerald-500/25">
+              <div className="absolute -left-6 -top-2 w-4 h-4 rounded-full bg-[#0d1117]" />
+              <div className="absolute -right-6 -top-2 w-4 h-4 rounded-full bg-[#0d1117]" />
+            </div>
+
+            {/* Bottom Row: Date, Time & Cost */}
+            <div className="flex items-center justify-between text-xs pt-0.5">
+              <div className="text-slate-300 font-medium">
+                <span>{bookingDate}</span> • <span className="text-emerald-300">{bookingTimeSlot}</span>
+              </div>
+              <div className="text-base font-black text-emerald-400">
+                ₹{bookingTotalCost}
               </div>
             </div>
 
-            {/* Contact Details Card: Provider contact for Farmers, Farmer contact for Providers */}
-            {isProvider ? (
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                  <span>{isTelugu ? 'రైతు & సంప్రదింపు సమాచారం' : 'Farmer & Contact Information'}</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'రైతు పేరు' : 'Farmer Name'}</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingFarmerName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'మొబైల్ ఫోన్' : 'Phone Number'}</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingFarmerPhone}</span>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'పొలం లొకేషన్' : 'Field Location'}</span>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mt-0.5 flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-indigo-600" />
-                      {bookingVillage}
-                    </span>
-                  </div>
-                </div>
+            {/* Voucher Subtext Footer */}
+            <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-800/80 text-[10px] text-slate-400">
+              <span>{isTelugu ? 'వోచర్ వివరాలు • క్లిక్ చేయండి' : 'Confirms voucher • Tap for details'}</span>
+              <span className="text-emerald-400 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                <span>{isTelugu ? 'వివరాలు' : 'Details'}</span>
+                <ChevronRight className="w-3 h-3" />
+              </span>
+            </div>
+          </motion.div>
+        )}
 
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                  {cleanFarmerPhone && (
-                    <>
+        {/* ─── 2-WAY CONVERSATION STREAM (Farmer & Provider Bubbles) ─── */}
+        {chatMessages.map((msg) => {
+          const isFarmer = msg.sender === 'farmer';
+
+          return (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex flex-col ${isFarmer ? 'items-end' : 'items-start'} space-y-1.5`}
+            >
+              <div
+                className={`max-w-[85%] sm:max-w-md rounded-3xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-md ${
+                  isFarmer
+                    ? 'bg-emerald-700 text-white rounded-tr-xs'
+                    : 'bg-[#161b22] text-slate-200 border border-slate-800 rounded-tl-xs'
+                }`}
+              >
+                {/* Regular Text */}
+                {msg.text && (
+                  <p className="whitespace-pre-line font-medium leading-relaxed">
+                    {msg.text}
+                  </p>
+                )}
+
+                {/* 📍 Option B Signature: Interactive Map Preview Card */}
+                {msg.location && (
+                  <div className="mt-2.5 rounded-2xl bg-black/30 border border-white/10 p-2.5 overflow-hidden shadow-inner space-y-2">
+                    <div className="h-28 rounded-xl bg-gradient-to-br from-emerald-950/80 via-slate-900 to-teal-950 flex flex-col items-center justify-center relative border border-emerald-500/20 group cursor-pointer">
+                      {/* Stylized Map Grid & Pin */}
+                      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:12px_12px]" />
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shadow-lg animate-bounce">
+                        <MapPin className="w-5 h-5 fill-emerald-400 text-emerald-900" />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-300 mt-1 relative z-10">
+                        {isTelugu ? 'పొలం GPS గుర్తించబడింది' : 'Farm GPS Marked'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div>
+                        <span className="text-[11px] font-black text-white block">
+                          {isTelugu ? msg.location.teluguName : msg.location.name}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-mono">
+                          {msg.location.coords}
+                        </span>
+                      </div>
                       <a
-                        href={`tel:${cleanFarmerPhone}`}
-                        className="flex-1 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        <span>{isTelugu ? 'కాల్ చేయండి' : 'Call Farmer'}</span>
-                      </a>
-                      <a
-                        href={`https://wa.me/${cleanFarmerPhone}?text=${encodeURIComponent(`Hello ${bookingFarmerName}, regarding your machinery booking #${rawBookingId} on AgriShield...`)}`}
+                        href={`https://maps.google.com/?q=${encodeURIComponent(msg.location.name)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                        className="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1 border border-emerald-500/30"
                       >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>WhatsApp</span>
+                        <ExternalLink className="w-3 h-3" />
+                        <span>{isTelugu ? 'మ్యాప్' : 'View'}</span>
                       </a>
-                    </>
+                    </div>
+                  </div>
+                )}
+
+                {/* 🎙️ Option B Signature: Inline Audio Waveform Voice Note */}
+                {(msg.audioDuration || msg.audioNarration) && (
+                  <div className="mt-2 pt-2 border-t border-slate-700/60">
+                    <div className="flex items-center gap-3 p-2 rounded-2xl bg-black/25 border border-slate-700/60">
+                      <button
+                        type="button"
+                        onClick={() => handlePlayVoiceNote(msg.audioNarration || msg.text)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-90 cursor-pointer shadow-md ${
+                          isPlayingAudio ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-slate-950'
+                        }`}
+                      >
+                        {isPlayingAudio ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-slate-950 ml-0.5" />}
+                      </button>
+
+                      {/* Animated Audio Waveform Bars */}
+                      <div className="flex-1 flex items-center gap-1 h-6">
+                        {[40, 75, 50, 90, 65, 80, 45, 100, 70, 55, 85, 60, 40].map((h, i) => (
+                          <span
+                            key={i}
+                            style={{ height: `${h}%` }}
+                            className={`w-1 rounded-full transition-all ${
+                              isPlayingAudio
+                                ? 'bg-emerald-400 animate-pulse'
+                                : 'bg-slate-500'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      <span className="text-[10px] font-mono font-bold text-slate-400">
+                        {msg.audioDuration || '0:14'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Timestamp & Read Receipt */}
+                <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${isFarmer ? 'text-emerald-200' : 'text-slate-400'}`}>
+                  <span>{msg.time}</span>
+                  {isFarmer && (
+                    <CheckCheck className="w-3.5 h-3.5 text-emerald-200 inline ml-0.5" />
                   )}
                 </div>
               </div>
-            ) : (
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-emerald-600" />
-                  <span>{isTelugu ? 'యంత్రాల ప్రదాత సమాచారం' : 'Equipment Provider Details'}</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'ప్రదాత / సేవా కేంద్రం' : 'Provider Service Hub'}</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingProviderName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'హబ్ హెల్ప్‌లైన్' : 'Hub Phone'}</span>
-                    <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{bookingProviderPhone}</span>
-                  </div>
-                </div>
+            </motion.div>
+          );
+        })}
 
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
-                  {cleanProviderPhone && (
-                    <>
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* ─── 3. OPTION B SIGNATURE: QUICK ACTION CHIPS ROW ─── */}
+      <div className="px-3 sm:px-4 py-2 bg-[#161b22]/90 border-t border-slate-800/80 shrink-0 backdrop-blur-md">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          {/* Chip 1: Send Field GPS */}
+          <button
+            type="button"
+            onClick={handleSendLiveLocation}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold shrink-0 transition-colors cursor-pointer active:scale-95"
+          >
+            <MapPin className="w-3.5 h-3.5 text-rose-400" />
+            <span>{isTelugu ? '📍 పొలం GPS పంపండి' : '📍 Send Field GPS'}</span>
+          </button>
+
+          {/* Chip 2: Call Driver */}
+          {cleanProviderPhone && (
+            <a
+              href={`tel:${cleanProviderPhone}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs font-bold shrink-0 transition-colors cursor-pointer active:scale-95"
+            >
+              <Phone className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{isTelugu ? `📞 డ్రైవర్‌కు కాల్ చేయండి (${cleanProviderPhone})` : `📞 Call Driver (${cleanProviderPhone})`}</span>
+            </a>
+          )}
+
+          {/* Chip 3: View Booking Receipt */}
+          <button
+            type="button"
+            onClick={() => setShowFullReview(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold shrink-0 transition-colors cursor-pointer active:scale-95"
+          >
+            <FileText className="w-3.5 h-3.5 text-amber-400" />
+            <span>{isTelugu ? '📜 రసీదు చూడండి' : '📜 View Receipt'}</span>
+          </button>
+
+          {/* Chip 4: WhatsApp */}
+          {cleanProviderPhone && (
+            <a
+              href={`https://wa.me/${cleanProviderPhone}?text=${encodeURIComponent(`Hello, regarding booking #${rawBookingId}...`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold shrink-0 transition-colors cursor-pointer"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+              <span>WhatsApp</span>
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* ─── 4. BOTTOM REAL MESSENGER COMPOSER ─── */}
+      <footer className="p-2.5 sm:p-3 bg-[#161b22] border-t border-slate-800 shrink-0 relative z-20">
+        {/* Attachment Popup Menu */}
+        <AnimatePresence>
+          {showAttachMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute bottom-16 left-4 bg-slate-900 border border-slate-700 rounded-3xl p-3 shadow-2xl space-y-2 z-30 text-xs w-60"
+            >
+              <button
+                type="button"
+                onClick={handleSendLiveLocation}
+                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-800 text-left text-slate-200 transition-colors cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold block text-white">{isTelugu ? 'పొలం లొకేషన్ పంపండి' : 'Share Field Location'}</span>
+                  <span className="text-[10px] text-slate-400">{isTelugu ? 'డ్రైవర్ నేరుగా పొలానికి వస్తారు' : 'Live GPS coordinates'}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAttachMenu(false);
+                  handleSendMessage(isTelugu ? 'ట్రాక్టర్ బయలుదేరినప్పుడు దయచేసి నాకు కాల్ చేయండి.' : 'Please call me when the tractor departs.');
+                }}
+                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-800 text-left text-slate-200 transition-colors cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold block text-white">{isTelugu ? 'రాక సమయం అడగండి' : 'Request Arrival Call'}</span>
+                  <span className="text-[10px] text-slate-400">{isTelugu ? 'డ్రైవర్ బయలుదేరినప్పుడు కాల్' : 'Notify upon departure'}</span>
+                </div>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
+          className="flex items-center gap-2 max-w-4xl mx-auto"
+        >
+          {/* Attachment Paperclip Button */}
+          <button
+            type="button"
+            onClick={() => setShowAttachMenu(!showAttachMenu)}
+            className="p-2.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
+            title={isTelugu ? "జోడించండి" : "Attach"}
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+
+          {/* Rounded Input Pill */}
+          <div className="flex-1 relative flex items-center">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder={isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...'}
+              className="w-full py-2.5 px-4 pr-10 rounded-full bg-slate-800/90 border border-slate-700 text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+            />
+          </div>
+
+          {/* Send or Voice Note Mic Button */}
+          {inputText.trim() ? (
+            <button
+              type="submit"
+              className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"
+              title={isTelugu ? "పంపండి" : "Send"}
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSendMessage(isTelugu ? 'నమస్కారం, రేపు పని సమయం ఖరారు చేయండి.' : 'Hello, please confirm tomorrow working hours.')}
+              className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"
+              title={isTelugu ? "వాయిస్ లేదా శీఘ్ర సందేశం" : "Voice / Quick Message"}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          )}
+        </form>
+      </footer>
+
+      {/* ─── 5. FULL DETAIL REVIEW MODAL (Voucher & Order Scope) ─── */}
+      <AnimatePresence>
+        {showFullReview && (
+          <motion.div
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-50 bg-[#0d1117] flex flex-col overflow-y-auto"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 bg-[#161b22] border-b border-slate-800 shrink-0 sticky top-0 z-10">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFullReview(false)}
+                  className="p-2 rounded-full hover:bg-slate-800 text-slate-300"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h3 className="text-sm font-black text-white">
+                  {isBooking
+                    ? (isTelugu ? '🚜 బుకింగ్ వోచర్ & పని వివరాలు' : '🚜 Machinery Booking Voucher')
+                    : (isTelugu ? 'పూర్తి AI నిర్ధారణ నివేదిక' : 'Full Diagnostic Advisory')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFullReview(false)}
+                className="p-2 rounded-full hover:bg-slate-800 text-slate-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 sm:p-6 max-w-2xl mx-auto w-full space-y-4">
+              {isBooking ? (
+                <>
+                  {/* Voucher Top Highlight */}
+                  <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-950/80 to-slate-900 border border-emerald-500/30 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                      {isTelugu ? 'ధృవీకరించబడిన బుకింగ్' : 'Verified Machinery Booking'}
+                    </span>
+                    <h2 className="text-lg font-black text-white">{bookingEquipmentTitle}</h2>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                      <span className="text-xs text-slate-400">Total Rental Fare</span>
+                      <span className="text-xl font-black text-emerald-400">₹{bookingTotalCost}</span>
+                    </div>
+                  </div>
+
+                  {/* Provider Info Card */}
+                  <div className="p-4 rounded-3xl bg-[#161b22] border border-slate-800 space-y-3">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-emerald-400" />
+                      <span>{isTelugu ? 'యంత్రాల ప్రదాత సమాచారం' : 'Equipment Provider Details'}</span>
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">{isTelugu ? 'ప్రదాత / సేవా కేంద్రం' : 'Provider Service Hub'}</span>
+                        <span className="text-sm font-black text-white mt-0.5 block">{bookingProviderName}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">{isTelugu ? 'హబ్ హెల్ప్‌లైన్' : 'Hub Helpline'}</span>
+                        <span className="text-sm font-black text-white mt-0.5 block">{bookingProviderPhone}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t border-slate-800">
                       <a
                         href={`tel:${cleanProviderPhone}`}
                         className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
                       >
                         <Phone className="w-3.5 h-3.5" />
-                        <span>{isTelugu ? 'ప్రొవైడర్‌కు కాల్ చేయండి' : 'Call Provider'}</span>
+                        <span>{isTelugu ? 'ప్రొవైడర్‌కు కాల్' : 'Call Provider'}</span>
                       </a>
                       <a
-                        href={`https://wa.me/${cleanProviderPhone}?text=${encodeURIComponent(`Hello ${bookingProviderName}, regarding my machinery booking #${rawBookingId} on AgriShield...`)}`}
+                        href={`https://wa.me/${cleanProviderPhone}?text=${encodeURIComponent(`Hello, regarding booking #${rawBookingId}...`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
@@ -400,607 +838,113 @@ export default function GoogleMessageReader({
                         <MessageSquare className="w-3.5 h-3.5" />
                         <span>WhatsApp</span>
                       </a>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+                    </div>
+                  </div>
 
-            {/* Field Condition & Work Scope */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-emerald-600" />
-                <span>{isTelugu ? 'పని వివరాలు & షెడ్యూల్' : 'Field Work Scope & Schedule'}</span>
-              </h4>
+                  {/* Field Work Scope */}
+                  <div className="p-4 rounded-3xl bg-[#161b22] border border-slate-800 space-y-3">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-emerald-400" />
+                      <span>{isTelugu ? 'పని వివరాలు & షెడ్యూల్' : 'Field Work Scope & Schedule'}</span>
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">{isTelugu ? 'పొలం స్థితి' : 'Field Status'}</span>
+                        <span className="text-xs font-black text-emerald-300 mt-0.5 block">{bookingFieldStatus}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">{isTelugu ? 'పని రకం' : 'Operation'}</span>
+                        <span className="text-xs font-black text-indigo-300 mt-0.5 block">⚙️ {bookingOperation}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">{isTelugu ? 'విస్తీర్ణం' : 'Total Area'}</span>
+                        <span className="text-xs font-bold text-white mt-0.5 block">{bookingAcres} Acres</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">{isTelugu ? 'షెడ్యూల్' : 'Schedule'}</span>
+                        <span className="text-xs font-bold text-white mt-0.5 block">{bookingDate} ({bookingTimeSlot})</span>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'పొలం స్థితి' : 'Field Condition'}</span>
-                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 block mt-0.5">{bookingFieldStatus}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'పని రకం' : 'Specific Operation'}</span>
-                  <span className="text-xs font-black text-indigo-700 dark:text-indigo-300 block mt-0.5">⚙️ {bookingOperation}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'విస్తీర్ణం' : 'Total Area'}</span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white block mt-0.5">{bookingAcres} Acres</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">{isTelugu ? 'షెడ్యూల్ తేదీ & సమయం' : 'Date & Slot'}</span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white block mt-0.5">{bookingDate} ({bookingTimeSlot})</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Provider Actions (Accept / Reject / Complete) — ONLY visible to equipment_provider! */}
-            {isProvider ? (
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  {isTelugu ? 'ప్రొవైడర్ చర్యలు (Order Actions)' : 'Provider Order Management'}
-                </h4>
-
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {(!bookingStatus || bookingStatus === 'pending') && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateBookingStatus('confirmed')}
-                        className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
-                      >
-                        <Check className="w-4 h-4 stroke-[2.5]" />
-                        <span>{isTelugu ? 'బుకింగ్‌ను ఆమోదించండి' : 'Accept Booking'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateBookingStatus('rejected')}
-                        className="py-2.5 px-4 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-98 cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                        <span>{isTelugu ? 'తిరస్కరించండి' : 'Decline'}</span>
-                      </button>
-                    </>
+                  {/* Provider Actions (ONLY if user is equipment_provider) */}
+                  {isProvider && (
+                    <div className="p-4 rounded-3xl bg-[#161b22] border border-slate-800 space-y-2">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                        {isTelugu ? 'ప్రొవైడర్ చర్యలు' : 'Provider Order Actions'}
+                      </h4>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateBookingStatus('confirmed')}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>{isTelugu ? 'ఆమోదించండి' : 'Accept'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateBookingStatus('rejected')}
+                          className="py-2.5 px-4 rounded-xl border border-rose-800 text-rose-400 hover:bg-rose-950 font-bold text-xs"
+                        >
+                          <X className="w-4 h-4" />
+                          <span>{isTelugu ? 'తిరస్కరించండి' : 'Decline'}</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
 
-                  {bookingStatus === 'confirmed' && (
+                  {/* Farmer Action */}
+                  {!isProvider && (
                     <button
                       type="button"
-                      onClick={() => handleUpdateBookingStatus('completed')}
-                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
+                      onClick={() => {
+                        setShowFullReview(false);
+                        navigate('/equipment');
+                      }}
+                      className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
                     >
-                      <CheckCheck className="w-4 h-4" />
-                      <span>{isTelugu ? 'పని పూర్తయినట్లు నమోదు చేయండి' : 'Mark Job Completed'}</span>
+                      <Truck className="w-4 h-4" />
+                      <span>{isTelugu ? 'నా బుకింగ్‌ల పేజీకి వెళ్లండి' : 'Open My Equipment Bookings'}</span>
                     </button>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowFullReview(false);
-                      navigate('/provider/dashboard?tab=orders');
-                    }}
-                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-700/70 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Truck className="w-4 h-4 text-indigo-600" />
-                    <span>{isTelugu ? 'ఫ్లీట్ హబ్ & అన్ని ఆర్డర్లను తెరవండి' : 'Open in Provider Fleet Hub'}</span>
-                  </button>
+                </>
+              ) : (
+                /* Diagnostic details */
+                <div className="space-y-4">
+                  {parsedInfo.disease && (
+                    <div className="p-4 rounded-3xl bg-[#161b22] border border-slate-800 space-y-2">
+                      <h4 className="text-xs font-black uppercase text-slate-400">Detected Pathology</h4>
+                      <p className="text-base font-black text-rose-400">{parsedInfo.disease}</p>
+                      {parsedInfo.confidence && (
+                        <p className="text-xs text-emerald-400">{parsedInfo.confidence}% AI Neural Confidence</p>
+                      )}
+                    </div>
+                  )}
+                  {parsedInfo.advisory?.chemicals && (
+                    <div className="p-4 rounded-3xl bg-[#161b22] border border-slate-800 space-y-2">
+                      <h4 className="text-xs font-black uppercase text-slate-400">Chemical Spray Advisory</h4>
+                      {parsedInfo.advisory.chemicals.map((c, i) => (
+                        <p key={i} className="text-xs text-slate-200">• {c}</p>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              /* Farmer View: Pure order summary without accept/decline buttons */
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  {isTelugu ? 'బుకింగ్ ఆర్డర్ స్థితి (Booking Status)' : 'Booking Order Status'}
-                </h4>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{isTelugu ? 'ఆర్డర్ స్థితి' : 'Status'}:</span>
-                  <span className={`text-xs font-black px-2.5 py-1 rounded-full uppercase ${
-                    bookingStatus === 'confirmed' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
-                    bookingStatus === 'rejected' || bookingStatus === 'declined' ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30' :
-                    'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                  }`}>
-                    {bookingStatus === 'confirmed' ? (isTelugu ? '✅ ధృవీకరించబడింది (Confirmed)' : '✅ Confirmed') :
-                     bookingStatus === 'rejected' || bookingStatus === 'declined' ? (isTelugu ? '❌ తిరస్కరించబడింది (Declined)' : '❌ Declined') :
-                     (isTelugu ? '⏳ వేచి ఉంది (Pending)' : '⏳ Awaiting Provider Action')}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowFullReview(false);
-                    navigate('/equipment');
-                  }}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-98 transition-colors cursor-pointer"
-                >
-                  <Truck className="w-4 h-4" />
-                  <span>{isTelugu ? 'నా బుకింగ్‌ల పేజీకి వెళ్లండి' : 'Open My Equipment Bookings'}</span>
-                </button>
-              </div>
-            )}
+              )}
 
-            {/* Back to Notification */}
-            <div className="pt-2 pb-6">
+              {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setShowFullReview(false)}
-                className="w-full py-3.5 px-4 rounded-2xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-black text-sm flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs"
+                className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>{isTelugu ? 'సందేశానికి తిరిగి వెళ్ళండి' : 'Back to Notification'}</span>
+                {isTelugu ? 'చాట్‌కు తిరిగి వెళ్ళండి' : 'Back to Chat'}
               </button>
             </div>
-          </div>
-        </motion.div>
-      );
-    }
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-    // ══════════════════════════════════════════════════════════════════════
-    // MODE B: CROP DISEASE DIAGNOSTIC REVIEW (FOR PLANT PATHOLOGY)
-    // ══════════════════════════════════════════════════════════════════════
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.98 }}
-        transition={{ duration: 0.2 }}
-        className="flex flex-col h-[calc(100vh-140px)] min-h-[550px] max-w-3xl mx-auto bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
-      >
-        {/* ─── NEAT TOP HEADER & BACK BUTTON ─── */}
-        <div className="flex items-center justify-between px-4 py-3.5 bg-slate-50/95 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <button
-              type="button"
-              onClick={() => setShowFullReview(false)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs sm:text-sm border border-emerald-500/30 transition-all cursor-pointer shadow-xs"
-              title={isTelugu ? "సందేశానికి తిరిగి వెళ్ళండి" : "Back to Notification"}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{isTelugu ? 'సందేశానికి తిరిగి' : 'Back to Notification'}</span>
-            </button>
-            <div className="min-w-0 hidden sm:block">
-              <span className="text-xs font-black text-slate-700 dark:text-slate-300 truncate block">
-                {isTelugu ? 'పూర్తి డయాగ్నస్టిక్ సమీక్ష' : 'Full Diagnostic Review'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <a
-              href="tel:18001801551"
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 transition-colors"
-              title={isTelugu ? "కిసాన్ కాల్ సెంటర్ (1800-180-1551)" : "Call Kisan Helpline"}
-            >
-              <Phone className="w-4 h-4" />
-            </a>
-            <button
-              type="button"
-              onClick={handleShareWhatsApp}
-              className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer"
-              title={isTelugu ? "వాట్సాప్‌లో షేర్ చేయండి" : "Share via WhatsApp"}
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* ─── FULL SCREEN SCROLLABLE ADVISORY BODY ─── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
-          {/* Header Title Card */}
-          <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black shrink-0 shadow-xs">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                {isTelugu ? 'పూర్తి సమీక్ష & AI నిర్ధారణ నివేదిక' : 'Full Diagnostic Review & Advisory'}
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {isTelugu ? 'తక్షణ చర్యలు, పిచికారీ మోతాదులు మరియు నివారణ మార్గాలు' : 'Immediate actions, spray dosages & disease remedies'}
-              </p>
-            </div>
-          </div>
-
-          {/* Diagnosis Badges & Highlights */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-            {parsedInfo.crop && (
-              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-xs">
-                <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'పంట' : 'Crop'}</span>
-                <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{isTelugu ? parsedInfo.teluguCrop : parsedInfo.crop}</span>
-              </div>
-            )}
-            {parsedInfo.disease && (
-              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-xs">
-                <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'గుర్తించిన తెగులు' : 'Detected Issue'}</span>
-                <span className="text-sm font-black text-rose-600 dark:text-rose-400 block mt-0.5">{isTelugu ? parsedInfo.teluguDisease : parsedInfo.disease}</span>
-              </div>
-            )}
-            {parsedInfo.confidence && (
-              <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 shadow-xs col-span-2 sm:col-span-1">
-                <span className="text-[10px] uppercase font-black text-slate-400 block">{isTelugu ? 'ఖచ్చితత్వం' : 'Confidence'}</span>
-                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5">{parsedInfo.confidence}% Neural Match</span>
-              </div>
-            )}
-          </div>
-
-          {/* Overview / Pathology */}
-          {parsedInfo.advisory?.overview && (
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-emerald-500/20 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed shadow-xs">
-              <p className="font-bold text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1.5">
-                <span>🔬</span>
-                <span>{isTelugu ? 'వ్యాధి సమాచారం & లక్షణాలు (Pathology & Symptoms):' : 'Pathogen Pathology & Symptoms:'}</span>
-              </p>
-              <p className="leading-relaxed">{parsedInfo.advisory.overview}</p>
-            </div>
-          )}
-
-          {/* Chemical Treatments */}
-          {parsedInfo.advisory?.chemicals && parsedInfo.advisory.chemicals.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Pill className="w-4 h-4 text-emerald-600" />
-                <span>{isTelugu ? 'రసాయన మందుల పిచికారీ & మోతాదు (Chemical Spray Dosages)' : 'Recommended Chemical Spray & Dosages'}</span>
-              </h4>
-              <div className="space-y-2">
-                {parsedInfo.advisory.chemicals.map((chem, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm shadow-xs">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-600 font-black flex items-center justify-center shrink-0 text-[11px] mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{chem}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Organic Treatments */}
-          {parsedInfo.advisory?.organic && parsedInfo.advisory.organic.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Sprout className="w-4 h-4 text-teal-600" />
-                <span>{isTelugu ? 'సేంద్రీయ & జీవ నియంత్రణ మార్గాలు (Organic Remedies)' : 'Organic & Biological Treatment Alternatives'}</span>
-              </h4>
-              <div className="space-y-2">
-                {parsedInfo.advisory.organic.map((org, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-teal-500/20 text-xs sm:text-sm shadow-xs">
-                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
-                    <span className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{org}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Prevention Advice */}
-          {parsedInfo.advisory?.prevention && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs sm:text-sm space-y-1.5 shadow-xs">
-              <span className="font-black text-amber-700 dark:text-amber-400 block">
-                {isTelugu ? '🛡️ భవిష్యత్తు నివారణ చర్యలు (Future Prevention):' : '🛡️ Long-term Field Prevention:'}
-              </span>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                {parsedInfo.advisory.prevention}
-              </p>
-            </div>
-          )}
-
-          {/* Kisan Support Dial Option */}
-          <div className="pt-2">
-            <a
-              href="tel:18001801551"
-              className="w-full py-3 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-emerald-500/30 transition-colors shadow-xs"
-            >
-              <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>{isTelugu ? 'వ్యవసాయ నిపుణుడిని సంప్రదించండి: 1800-180-1551' : 'Speak to Agronomist: 1800-180-1551'}</span>
-            </a>
-          </div>
-
-          {/* Bottom Back Button */}
-          <div className="pt-2 pb-6">
-            <button
-              type="button"
-              onClick={() => setShowFullReview(false)}
-              className="w-full py-3.5 px-4 rounded-2xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-black text-sm flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>{isTelugu ? 'సందేశానికి తిరిగి వెళ్ళండి' : 'Back to Notification'}</span>
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // ─── STANDARD GOOGLE MESSAGE CONVERSATION VIEW ───
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.2 }}
-      className="flex flex-col h-[calc(100vh-140px)] min-h-[550px] max-w-3xl mx-auto bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
-    >
-      {/* ─── GOOGLE MESSAGES TOP APP BAR ─── */}
-      <div className="flex items-center justify-between px-4 py-3.5 bg-slate-50/95 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="p-2 -ml-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-            title={isTelugu ? "వెనుకకు" : "Back"}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-
-          {/* Contact Avatar */}
-          <div className="relative shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white font-black shadow-md">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-950" />
-          </div>
-
-          {/* Contact Details */}
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-black text-slate-900 dark:text-white truncate">
-                {isTelugu ? 'AgriShield హెచ్చరికలు' : 'AgriShield Alerts'}
-              </h2>
-              <span className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                ✓ {isTelugu ? 'ధృవీకరించబడింది' : 'Verified'}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-              {isTelugu ? 'అధికారిక SMS గేట్‌వే • 100% విశ్వసనీయం' : 'Official SMS Gateway • 100% Reliable'}
-            </p>
-          </div>
-        </div>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Voice Readout Header Button */}
-          <button
-            type="button"
-            onClick={handleToggleSpeech}
-            className={`p-2.5 rounded-full transition-all cursor-pointer ${
-              isSpeaking
-                ? 'bg-amber-500 text-white shadow-md animate-pulse'
-                : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400'
-            }`}
-            title={
-              isSpeaking
-                ? (isTelugu ? "వాయిస్ ఆపండి" : "Stop Voice")
-                : (isTelugu ? "తెలుగులో బిగ్గరగా వినండి" : "Listen via Voice")
-            }
-          >
-            {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-
-          <a
-            href="tel:18001801551"
-            className="p-2.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
-            title={isTelugu ? "కిసాన్ కాల్ సెంటర్ (1800-180-1551)" : "Call Kisan Helpline"}
-          >
-            <Phone className="w-4 h-4" />
-          </a>
-          <button
-            type="button"
-            onClick={handleShareWhatsApp}
-            className="p-2.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
-            title={isTelugu ? "వాట్సాప్‌లో షేర్ చేయండి" : "Share via WhatsApp"}
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="p-2.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950/50 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors cursor-pointer"
-            title={isTelugu ? "సందేశాన్ని తొలగించండి" : "Delete Message"}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* ─── CHAT CONVERSATION STREAM ─── */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-950 dark:to-slate-900">
-        {/* Date Stamp Pill */}
-        <div className="flex justify-center">
-          <div className="px-3 py-1 rounded-full bg-white/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-[11px] font-bold text-slate-600 dark:text-slate-400 shadow-xs">
-            {formatDateTime(message.lifecycle?.created_at || message.created_at)}
-          </div>
-        </div>
-
-        {/* End-to-End Encryption Note */}
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-          <span>🔒</span>
-          <span>
-            {isTelugu
-              ? 'AgriShield క్లౌడ్ ద్వారా నేరుగా రైతుకు పంపబడిన అధికారిక సందేశం'
-              : 'End-to-end encrypted notification delivered via AgriShield System'}
-          </span>
-        </div>
-
-        {/* ─── GOOGLE MESSAGES SPEECH BUBBLE ─── */}
-        <div className="flex items-start gap-2.5 max-w-xl">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-500/40 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0 mt-1 shadow-xs">
-            <ShieldCheck className="w-4 h-4" />
-          </div>
-
-          <div className="relative bg-white dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 rounded-3xl rounded-tl-sm p-4 sm:p-5 border border-slate-200 dark:border-slate-700/80 shadow-md space-y-3 w-full">
-            {/* Header / Category & Priority */}
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700/60 pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                  {message.category || 'System'}
-                </span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25">
-                  {message.priority || 'Normal'} Priority
-                </span>
-              </div>
-            </div>
-
-            {/* Notification Title */}
-            <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-snug">
-              {translatedTitle || message.title}
-            </h3>
-
-            {/* Notification Body Text */}
-            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line font-medium">
-              {translatedBody || message.message}
-            </p>
-
-            {/* In-Bubble Voice Audio Bar */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={handleToggleSpeech}
-                className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
-                  isSpeaking
-                    ? 'bg-amber-500/15 dark:bg-amber-500/20 border-amber-500/40 shadow-sm'
-                    : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/70 hover:border-amber-400/50'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    isSpeaking ? 'bg-amber-500 text-white' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
-                  }`}>
-                    {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-                        {isTelugu ? 'వాయిస్ సందేశం' : 'Voice Narration'}
-                      </span>
-                      {isSpeaking && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
-                          {isTelugu ? 'ప్లే అవుతోంది' : 'Playing'}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
-                      {isSpeaking
-                        ? (isTelugu ? 'ఆడియో ప్లే అవుతోంది...' : 'Playing narration...')
-                        : (isTelugu ? 'తెలుగులో వినడానికి నొక్కండి' : 'Tap to hear voice')}
-                    </p>
-                  </div>
-                </div>
-
-                {isSpeaking ? (
-                  <div className="flex items-end gap-1 h-4 px-1">
-                    <span className="w-1 bg-amber-500 rounded-full animate-[pulse_0.4s_ease-in-out_infinite] h-2.5" />
-                    <span className="w-1 bg-amber-500 rounded-full animate-[pulse_0.7s_ease-in-out_infinite] h-4" />
-                    <span className="w-1 bg-amber-500 rounded-full animate-[pulse_0.5s_ease-in-out_infinite] h-3" />
-                  </div>
-                ) : (
-                  <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-400/15 px-2 py-1 rounded-lg border border-amber-400/30 hidden sm:inline-block">
-                    {isTelugu ? 'ప్లే' : 'Play'}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Smart Action Buttons Inside Message */}
-            <div className="pt-2 flex flex-col sm:flex-row gap-2">
-              {(message.category === 'booking' || message.type === 'booking') ? (
-                isProvider ? (
-                  <>
-                    <a
-                      href={`tel:${cleanFarmerPhone}`}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-                    >
-                      <span>📞</span>
-                      <span>{isTelugu ? 'రైతుకు కాల్ చేయండి' : `Call Farmer (${cleanFarmerPhone})`}</span>
-                    </a>
-
-                    <a
-                      href={`https://wa.me/${cleanFarmerPhone}?text=${encodeURIComponent(`Hello ${bookingFarmerName}, regarding your machinery booking #${rawBookingId} on AgriShield...`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-                    >
-                      <span>💬</span>
-                      <span>WhatsApp</span>
-                    </a>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/equipment')}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-                    >
-                      <Truck className="w-4 h-4" />
-                      <span>{isTelugu ? 'నా బుకింగ్‌ల వివరాలు చూడండి' : 'View My Equipment Bookings'}</span>
-                    </button>
-                    {cleanProviderPhone && (
-                      <a
-                        href={`tel:${cleanProviderPhone}`}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs sm:text-sm border border-slate-200 dark:border-slate-700 transition-all active:scale-95 shadow-xs"
-                      >
-                        <span>📞</span>
-                        <span>{isTelugu ? 'ప్రొవైడర్‌కు కాల్ చేయండి' : `Call Provider (${cleanProviderPhone})`}</span>
-                      </a>
-                    )}
-                  </>
-                )
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setShowFullReview(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-                  >
-                    <span>🌿</span>
-                    <span>{isTelugu ? 'పూర్తి సమీక్ష & నివారణ చూడండి' : 'See Full Review & Remedies'}</span>
-                  </button>
-
-                  <a
-                    href="tel:18001801551"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs sm:text-sm border border-slate-200 dark:border-slate-600 transition-all active:scale-95 shadow-xs"
-                  >
-                    <span>📞</span>
-                    <span>{isTelugu ? 'కిసాన్ హెల్ప్‌లైన్: 1800-180-1551' : 'Call Kisan Helpline'}</span>
-                  </a>
-                </>
-              )}
-            </div>
-
-            {/* Message Delivery Status & Receipt */}
-            <div className="flex items-center justify-end gap-1.5 pt-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              <span>{timeAgo(message.lifecycle?.created_at || message.created_at)}</span>
-              <span>•</span>
-              <span>SMS 1</span>
-              <span>•</span>
-              <span className="flex items-center text-emerald-600 dark:text-emerald-400 font-bold">
-                <CheckCheck className="w-3.5 h-3.5 inline mr-0.5" />
-                {isTelugu ? 'చదివారు' : 'Read'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── GOOGLE MESSAGES BOTTOM ACTION BAR (See Full Review) ─── */}
-      <div className="p-3 sm:p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 shrink-0">
-        <button
-          type="button"
-          onClick={() => setShowFullReview(true)}
-          className={`w-full py-3.5 px-4 rounded-2xl text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg transition-all active:scale-[0.98] cursor-pointer ${
-            isBooking
-              ? 'bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-600 hover:from-indigo-500 hover:to-indigo-600 shadow-indigo-600/25'
-              : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/25'
-          }`}
-        >
-          {isBooking ? <Truck className="w-5 h-5 text-indigo-100" /> : <FileText className="w-5 h-5 text-emerald-100" />}
-          <span>
-            {isBooking
-              ? (isTelugu ? '🚜 పూర్తి బుకింగ్ వోచర్ & ఆర్డర్ స్థితి చూడండి' : '🚜 See Booking Voucher & Order Status')
-              : (isTelugu ? 'పూర్తి సమీక్ష చూడండి' : 'See Full Review')}
-          </span>
-          <ChevronRight className="w-4 h-4 ml-1" />
-        </button>
-      </div>
-    </motion.div>
+    </div>
   );
 }
