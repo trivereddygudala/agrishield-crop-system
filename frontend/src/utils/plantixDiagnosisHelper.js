@@ -75,6 +75,15 @@ export const getScientificName = (cropName = '', diseaseName = '') => {
   if (dLow.includes('anthracnose') || dLow.includes('dieback')) return 'Colletotrichum capsici';
   if (dLow.includes('cercospora') || (dLow.includes('leaf spot') && cLow.includes('chilli'))) return 'Cercospora capsici';
   if (dLow.includes('curl') || dLow.includes('mosaic')) return 'Chilli Leaf Curl Begomovirus (ChiLCV)';
+  if (dLow.includes('choanephora') || dLow.includes('wet rot')) return 'Choanephora cucurbitarum';
+  if (dLow.includes('phytophthora')) return 'Phytophthora capsici';
+  if (dLow.includes('damping')) return 'Pythium aphanidermatum';
+  if (dLow.includes('nematode') || dLow.includes('root knot') || dLow.includes('root-knot')) return 'Meloidogyne incognita';
+  if (dLow.includes('bacterial wilt') || dLow.includes('ralstonia')) return 'Ralstonia solanacearum';
+  if (dLow.includes('fusarium') || dLow.includes('wilt')) return 'Fusarium oxysporum';
+  if (dLow.includes('stem borer') || dLow.includes('shoot borer') || dLow.includes('borer')) return 'Chilo partellus';
+  if (dLow.includes('fruit fly') || dLow.includes('maggot')) return 'Bactrocera cucurbitae';
+  if (dLow.includes('clubroot')) return 'Plasmodiophora brassicae';
   if (dLow.includes('early blight')) return 'Alternaria solani';
   if (dLow.includes('late blight')) return 'Phytophthora infestans';
   if (dLow.includes('powdery mildew')) return 'Leveillula taurica';
@@ -328,6 +337,72 @@ export const getPlantixAgronomicNarrative = (cropName = '', diseaseName = '', la
       return 'फंगल बीजाणु हवा और बारिश की बूंदों से फैलकर पत्तियों के ऊतकों पर हमला करते हैं। शुरुआत में छोटे गोलाकार भूरे धब्बे बनते हैं, जिनके चारों ओर पीला घेरा होता है। धब्बों का केंद्र सूखकर गिर जाता है जिससे पत्तियों में छेद हो जाते हैं। अधिक संक्रमण में पत्तियां पीली पड़कर गिर जाती हैं जिससे प्रकाश संश्लेषण कम होकर पैदावार घट जाती है। उच्च आर्द्रता और ओस में यह तेजी से फैलता है।';
     }
     return 'Fungal spores spread via wind and rain splashes, invading leaf parenchymal cells. Symptoms initiate as small circular necrotic spots with defined dark margins and chlorotic haloes. Central necrotic tissue dries and drops out, creating a shot-hole appearance. Severe defoliation inhibits photosynthesis and stunts crop yield. High relative humidity (>85%) and nocturnal dew accelerate spore germination.';
+  }
+
+  // Wet Rot / Choanephora Blight
+  if (dLow.includes('choanephora') || dLow.includes('wet rot')) {
+    if (lang === 'te') {
+      return 'ఈ శిలీంధ్ర తెగులు ప్రధానంగా పువ్వులు, లేత పిందెలు మరియు చిగుళ్లపై నీటితో నానిన నల్లటి తడి కుళ్లును కలిగిస్తుంది. అధిక గాలి తేమ మరియు వర్షపు జల్లులు ఉన్నప్పుడు పూలపై నల్లటి పిన్ హెడ్ లాంటి సన్నని వెంట్రుకల బూజు స్పష్టంగా కనిపిస్తుంది. పూత మొత్తం కుళ్ళిపోయి రాలిపోవడం వల్ల కాయలు ఏర్పడక భారీగా పంట నష్టం జరుగుతుంది.';
+    }
+    if (lang === 'hi') {
+      return 'यह फफूंद रोग मुख्य रूप से फूलों, नई कलियों और कोमल शाखाओं पर गीला काला सड़न पैदा करता है। अधिक नमी में फूलों पर काले पिन जैसी बारीक फफूंद उग आती है। फूल और छोटी फलियां सड़कर गिर जाती हैं जिससे पैदावार में भारी कमी आती है।';
+    }
+    return 'Choanephora causes a water-soaked, wet blackish decay of flowers, young pods, and tender growing shoot tips. Under high relative humidity, conspicuous stiff silvery fungal threads with black pin-head heads (sporangiophores) develop. Blighted blossoms wither and shed prematurely, drastically inhibiting fruit set.';
+  }
+
+  // Phytophthora Root Rot & Collar Rot
+  if (dLow.includes('phytophthora') || dLow.includes('root rot') || dLow.includes('collar rot')) {
+    if (lang === 'te') {
+      return 'ఈ శిలీంధ్రం నేల నుండి మొదలయ్యి ప్రధాన వేర్లు మరియు కాండం మొదలును కుళ్ళిపోయేలా చేస్తుంది. తెగులు సోకిన వేర్లు నల్లగా మారి నీటితో నానినట్లుగా ఊడిపోతాయి. నేలలో అధిక నీరు నిలవడం వల్ల ఆకస్మికంగా ఆకులు ఆకుపచ్చగా ఉన్నప్పుడే వాడిపోయి మొత్తం మొక్క కుప్పకూలి చనిపోతుంది.';
+    }
+    if (lang === 'hi') {
+      return 'यह रोग मिट्टी से फैलकर मुख्य जड़ों और तने के निचले हिस्से को सड़ा देता है। संक्रमित जड़ें काली और पिलपिली होकर आसानी से टूट जाती हैं। जलभराव होने पर पौधा हरा रहते हुए भी अचानक सूखकर गिर जाता है।';
+    }
+    return 'Phytophthora attacks the subterranean taproot and basal collar tissue, inducing dark water-soaked cortical decay. Diseased roots rot and easily slough away. Because water translocation is severed at the soil line, entire plants collapse into sudden green wilting during saturated field conditions.';
+  }
+
+  // Vascular Wilt (Fusarium & Bacterial Wilt)
+  if (dLow.includes('wilt') || dLow.includes('fusarium') || dLow.includes('ralstonia')) {
+    if (lang === 'te') {
+      return 'ఈ తెగులు మొక్కల నాళికా వ్యవస్థ (జైలమ్) లోకి చొరబడి నీరు మరియు పోషకాల ప్రసరణను నిరోధిస్తుంది. ప్రారంభంలో తీవ్రమైన ఎండ వేళల్లో ఆకులు వాలిపోయి, రాత్రి వేళల్లో కోలుకుంటాయి. కొన్ని రోజుల తర్వాత శాశ్వతంగా వాడిపోయి ఎండిపోతాయి. కాండం పొడవునా చీల్చి చూసినప్పుడు లోపలి నాళాలు గోధుమ రంగులోకి మారడం కనిపిస్తుంది.';
+    }
+    if (lang === 'hi') {
+      return 'यह रोग पौधे की जल संवहनी नलिकाओं में प्रवेश करके रस के प्रवाह को रोक देता है। शुरुआत में दोपहर की तेज धूप में पौधा मुरझाता है और रात में ठीक दिखता है, लेकिन कुछ दिनों में पूरी तरह सूख जाता है। तने को चीरकर देखने पर अंदर भूरी धारियां दिखती हैं।';
+    }
+    return 'Wilt pathogens colonize the xylem vascular bundles, physically impeding moisture and nutrient translocation. Foliage manifests flaccid mid-day wilting while recovering during nocturnal transpiration dips, before irreversible vascular collapse. Splitting the lower stem reveals characteristic dark brown vascular ring discoloration.';
+  }
+
+  // Damping-Off (Nursery Seedlings)
+  if (dLow.includes('damping')) {
+    if (lang === 'te') {
+      return 'నారుమడులలో విత్తనాలు మొలకెత్తే దశలో లేదా చిన్న నారు దశలో ఈ తెగులు తీవ్ర నష్టం కలిగిస్తుంది. కాండం మొదలు వద్ద నీటితో నానిన గోధుమ రంగు మచ్చ ఏర్పడి కాండం మెత్తబడి నారు నేలపై పడిపోయి కుళ్ళిపోతుంది. నారుమడిలో నీరు నిలవడం వల్ల తెగులు వేగంగా వ్యాపిస్తుంది.';
+    }
+    if (lang === 'hi') {
+      return 'नर्सरी में अंकुरण या छोटे पौधों की अवस्था में यह रोग लगता है। तने के आधार पर पानी जैसा भूरा धब्बा बनता है, जिससे तना कमजोर होकर पौधा जमीन पर गिर जाता है और सड़ जाता है।';
+    }
+    return 'Pythium damping-off causes severe post-emergence seedling mortality in nursery beds. Water-soaked constricted lesions girdle the stem base at the soil line, softening seedling tissues until they topple over and rot in waterlogged seedbeds.';
+  }
+
+  // Root-Knot Nematodes
+  if (dLow.includes('nematode') || dLow.includes('root knot') || dLow.includes('root-knot')) {
+    if (lang === 'te') {
+      return 'నేలలోని సూక్ష్మ నులిపురుగులు మొక్క వేర్లలోకి చొరబడి పెద్ద పెద్ద బుడిపెలు లేదా గడ్డలను ఏర్పరుస్తాయి. దీనివల్ల వేర్ల ద్వారా నీరు మరియు పోషకాలు అందక మొక్కలు గిడసబారి పసుపు రంగులోకి మారుతాయి. ఎండ వేళల్లో మొక్కలు త్వరగా వాడిపోతాయి మరియు దిగుబడి భారీగా పడిపోతుంది.';
+    }
+    if (lang === 'hi') {
+      return 'मिट्टी में मौजूद सूत्रकृमि जड़ों में प्रवेश कर गांठे बना देते हैं। इससे पौधे को पोषक तत्व और पानी नहीं मिल पाता, पौधे बौने रह जाते हैं और पत्तियां पीली पड़ जाती हैं।';
+    }
+    return 'Microscopic Meloidogyne nematodes penetrate root tips and induce hypertrophy, resulting in swollen, knobby root galls. Compromised root vascular systems cause chronic chlorosis, stunted terminal nodes, and mid-day wilting across field patches.';
+  }
+
+  // Stem Borer / Shoot Borer
+  if (dLow.includes('stem borer') || dLow.includes('shoot borer') || dLow.includes('borer')) {
+    if (lang === 'te') {
+      return 'ఈ పురుగులు కాండం లోపలికి లేదా కాయల్లోకి తొలిచి లోపలి గుజ్జును తినివేస్తాయి. కాండంపై చిన్న రంధ్రాలు మరియు రంపపు పొట్టు లాంటి పురుగు మలము కనిపిస్తుంది. చిగురు కొమ్మలు ఎండిపోయి "డెడ్ హార్ట్" గా మారి కొమ్మలు విరిగిపోతాయి.';
+    }
+    if (lang === 'hi') {
+      return 'यह इल्ली तने या फल के अंदर छेद करके भीतरी गूदे को खाती है। तने पर छेद और बुरादे जैसा मल दिखाई देता है। मुख्य शाखा सूख जाती है जिसे "डेड हार्ट" कहते हैं।';
+    }
+    return 'Larvae bore into central stems or developing fruits, excavating feeding tunnels packed with granular excreta (frass). Apical shoots wither into characteristic dry "dead hearts" that snap easily under light wind pressure.';
   }
 
   // Caterpillar / Spodoptera

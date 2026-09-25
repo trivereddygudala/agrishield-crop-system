@@ -271,7 +271,103 @@ def generate_fallback_extension_officer_report(crop: str, disease: str, confiden
         alt_chem = "Rotate with Isoprothiolane 40% EC @ 1.5 ml/L or Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1.0 ml/L."
         prev_chem = "Apply protective foliar spray when relative humidity exceeds 90% and nocturnal temperatures dip below 20°C."
 
-    # Category 7: General Blight / Leaf Spot / Mildew Default
+    # Category 7: Root-Knot Nematodes / Subterranean Galls
+    elif any(k in d_low for k in ["nematode", "root knot", "root-knot", "meloidogyne", "gall"]):
+        d_title = "Root-Knot Nematodes (Meloidogyne incognita)"
+        cand1_trait = f"Distinct swollen root knots/galls, stunted growth, and pale wilting foliage on {c_title}."
+        cand2_name = "Subterranean Collar Rot (Sclerotium rolfsii)"
+        cand2_trait = "Dark brown collar constriction with white mycelial threads at soil level."
+        cand3_name = "Fusarium Vascular Wilt"
+        cand3_trait = "Vascular browning and daytime leaf drooping without swollen root galls."
+        obs_symptoms = "Root system exhibits severe irregular swelling and knobby galls. Above-ground foliage shows chlorosis, stunting, and mid-day wilting due to blocked water and nutrient absorption."
+        field_cleanup = "Uproot and burn heavily galled root masses; incorporate mustard bio-fumigation or neem cake (100 kg/acre) into soil."
+        water_mgmt = "Avoid field-to-field flood irrigation which carries microscopic nematode juveniles to uninfected plots."
+        organic_spray = "Drench soil with Paecilomyces lilacinus / Purpureocillium bio-nematicide @ 5 g/L or cold-pressed Neem cake extract."
+        target_chem = "Apply Fluopyram 34.48% SC (Velum Prime) @ 2.5 ml per 10 L water via drip or drenching, or Carbofuran 3G @ 10 kg/acre."
+        alt_chem = "Drench with Cartap Hydrochloride 50% SP @ 2.0 g/L or Thiamethoxam 25% WG @ 1.0 g/L around root zone."
+        prev_chem = "Solarize nursery beds with transparent polythene sheets (25 microns) for 4 weeks during summer before sowing."
+
+    # Category 8: Damping-Off / Sclerotium Collar Rot
+    elif any(k in d_low for k in ["damping", "collar rot", "sclerotium", "stem rot", "rhizoctonia"]):
+        d_title = "Damping-Off / Collar Rot (Pythium / Sclerotium rolfsii)"
+        cand1_trait = f"Water-soaked brown constriction at the soil collar causing seedlings/stems to topple on {c_title}."
+        cand2_name = "Phytophthora Root Rot"
+        cand2_trait = "Extensive black water-soaked rotting of the taproot and subterranean root system."
+        cand3_name = "Bacterial Wilt"
+        cand3_trait = "Sudden collapse of green foliage with white bacterial ooze from cut stems."
+        obs_symptoms = "Water-soaked dark brown lesion girdles the stem base at the soil line. Stem tissue becomes soft and mushy, causing plants to keel over and wither."
+        field_cleanup = "Remove and destroy collapsed seedlings; drench surrounding healthy seedlings with biological antagonist."
+        water_mgmt = "Provide raised nursery beds (15 cm high) and ensure optimal drainage to prevent water stagnation around the collar."
+        organic_spray = "Drench nursery beds with Trichoderma viride or Pseudomonas fluorescens (10 g/L) enriched with well-decomposed FYM."
+        target_chem = "Drench stem base and soil with Metalaxyl 8% + Mancozeb 64% WP (Ridomil Gold) @ 2.0 g/L or Captan 50% WP @ 2.5 g/L."
+        alt_chem = "Drench with Copper Oxychloride 50% WP @ 3.0 g/L or Validamycin 3% L @ 2.0 ml/L for Rhizoctonia suppression."
+        prev_chem = "Treat seeds with Thiram 75% WP @ 3 g/kg seed or Carbendazim 50% WP @ 2 g/kg seed before sowing."
+
+    # Category 9: Phytophthora Root Rot / Wet Rot
+    elif any(k in d_low for k in ["phytophthora", "root rot", "wet rot", "choanephora", "blossom blight"]):
+        if any(k in d_low for k in ["choanephora", "wet rot", "blossom"]):
+            d_title = "Wet Rot / Choanephora Blight (Choanephora cucurbitarum)"
+            cand1_trait = f"Slimy wet blackening of flowers, young pods, and growing tips with whiskery fungal pins on {c_title}."
+            cand2_name = "Anthracnose Fruit Rot"
+            cand2_trait = "Sunken circular spots with concentric acervuli rings on mature fruit pods."
+            cand3_name = "Bacterial Soft Rot"
+            cand3_trait = "Foul-smelling watery decay without visible whiskery fungal fruiting structures."
+            obs_symptoms = "Flowers, young fruit buds, and shoot tips display water-soaked, blackish-brown slimy decay. Under high humidity, delicate whiskery fungal strands with black pinhead-like heads are visible."
+            field_cleanup = "Manually pick and destroy decaying blossoms and rotted pods; sanitize harvest shears."
+            water_mgmt = "Reduce irrigation frequency and avoid overhead wetting of flowers; widen plant spacing to improve canopy aeration."
+            organic_spray = "Spray copper-based organic bio-wash or Bacillus subtilis (5 g/L) at early morning."
+            target_chem = "Spray Copper Hydroxide 53.8% DF (Kocide) @ 2.0 g/L or Mancozeb 75% WP @ 2.5 g/L."
+            alt_chem = "Rotate with Tebuconazole 50% + Trifloxystrobin 25% WG (Nativo) @ 0.7 g/L or Azoxystrobin @ 1.0 ml/L."
+            prev_chem = "Apply protective copper spray during prolonged cloudy, drizzling monsoon weather."
+        else:
+            d_title = f"{c_title} Phytophthora Root Rot (Phytophthora capsici)"
+            cand1_trait = f"Sudden black water-soaked decay of taproot and lower collar with rapid plant collapse on {c_title}."
+            cand2_name = "Fusarium Vascular Wilt"
+            cand2_trait = "Yellowing leaves and brown vascular ring discoloration without slimy black root rot."
+            cand3_name = "Collar Rot (Sclerotium)"
+            cand3_trait = "White cottony mycelial fan and mustard-like brown sclerotia at soil line."
+            obs_symptoms = "Roots turn dark brown to black, water-soaked, and slough off easily when pulled. Entire canopy wilts suddenly while retaining dull green color."
+            field_cleanup = "Uproot diseased plants with adhering soil; sterilize planting holes with lime."
+            water_mgmt = "Construct deep drainage trenches between beds; never allow irrigation water to pond for more than 4 hours."
+            organic_spray = "Soil application of Trichoderma harzianum @ 5 kg/acre mixed with 500 kg neem-enriched compost."
+            target_chem = "Drench root zone with Metalaxyl-M 4% + Mancozeb 64% WP (Ridomil Gold) @ 2.5 g/L or Dimethomorph 50% WP @ 1.0 g/L."
+            alt_chem = "Drench with Cymoxanil 8% + Mancozeb 64% WP (Curzate) @ 2.0 g/L or Fosetyl-Al 80% WP (Aliette) @ 2.5 g/L."
+            prev_chem = "Plant on 15–20 cm raised beds and apply prophylactic root drenching immediately after transplanting."
+
+    # Category 10: Vascular Wilts (Fusarium & Bacterial Wilt)
+    elif any(k in d_low for k in ["wilt", "fusarium", "ralstonia"]):
+        is_bacterial = any(k in d_low for k in ["bacterial", "ralstonia"])
+        d_title = f"{c_title} Bacterial Wilt (Ralstonia solanacearum)" if is_bacterial else f"{c_title} Fusarium Wilt (Fusarium oxysporum)"
+        cand1_trait = f"Rapid daytime drooping of foliage with internal vascular browning on {c_title}."
+        cand2_name = "Phytophthora Root Rot"
+        cand2_trait = "Water-soaked blackening of roots and lower collar tissue."
+        cand3_name = "Root-Knot Nematode Infestation"
+        cand3_trait = "Swollen knobby root galls causing permanent nutrient starvation and wilting."
+        obs_symptoms = "Leaves turn pale and wilt during hot midday hours, initially recovering overnight before permanent wilt sets in. Longitudinal stem cuts reveal characteristic dark brown vascular ring discoloration."
+        field_cleanup = "Rogue and dispose of wilted plants immediately away from irrigation channels to prevent waterborne transmission."
+        water_mgmt = "Adopt drip irrigation; avoid excessive soil saturation that deprives roots of oxygen and stresses vascular bundles."
+        organic_spray = "Soil application of Pseudomonas fluorescens & Trichoderma viride (10 g/L) mixed in organic compost."
+        target_chem = "Drench base with Copper Oxychloride 50% WP @ 3.0 g/L + Streptocycline 1.0 g per 10 L water (for bacterial wilt) or Carbendazim 50% WP @ 2.0 g/L (for Fusarium)."
+        alt_chem = "Drench with Kasugamycin 3% SL @ 2.0 ml/L or Thiophenate Methyl 70% WP (Topsin-M) @ 1.5 g/L."
+        prev_chem = "Practice 3-year crop rotation with non-host crops (maize, sorghum, marigold) and maintain soil pH between 6.5–7.0."
+
+    # Category 11: Stem Borers, Shoot Borers & Internal Maggots
+    elif any(k in d_low for k in ["stem borer", "shoot borer", "borer", "pod fly", "maggot", "fruit fly", "chilo", "scirpophaga"]):
+        d_title = f"{c_title} Stem / Shoot Borer Infestation"
+        cand1_trait = f"Boreholes with sawdust-like frass on stems/fruits and 'dead heart' wilting shoot tips on {c_title}."
+        cand2_name = "Spodoptera litura (Chewing Foliar Damage)"
+        cand2_trait = "Irregular chewing holes on leaf blades without stem entry tunnels."
+        cand3_name = "Anthracnose / Fruit Rot"
+        cand3_trait = "Sunken circular dark spots on fruits without internal larval galleries."
+        obs_symptoms = "Internal tunneling inside stems or fruits packed with brownish granular frass (insect excreta). Central terminal shoots dry up into characteristic 'dead hearts', snapping easily."
+        field_cleanup = "Clip and destroy drying terminal shoot tips containing young boring larvae; install 8–10 pheromone traps per acre."
+        water_mgmt = "Avoid excess nitrogen fertilizer which produces thick, tender succulent stems vulnerable to borer penetration."
+        organic_spray = "Release egg parasitoid Trichogramma chilonis @ 20,000/acre; spray Bacillus thuringiensis (Bt) @ 2.0 g/L."
+        target_chem = "Apply Chlorantraniliprole 18.5% SC (Coragen) @ 0.3 ml/L or Cartap Hydrochloride 4G granules @ 8 kg/acre into soil/whorl."
+        alt_chem = "Spray Flubendiamide 39.35% SC (Fame) @ 0.2 ml/L or Fipronil 5% SC @ 2.0 ml/L for systemic borer protection."
+        prev_chem = "Set up light traps and pheromone traps to detect first moth emergence and time preventative sprays accordingly."
+
+    # Category 12: General Blight / Leaf Spot / Mildew Default
     else:
         if "rice" in c_low or "paddy" in c_low:
             cand2_name = "Brown Spot"
@@ -328,13 +424,38 @@ Provide exactly three distinct, safe chemical control strategies:
 
     return parse_extension_officer_markdown(raw_md)
 
+def _optimize_to_b64(path: str) -> Optional[str]:
+    """Helper to load and downscale image to max 800px (<60 KB) base64 string."""
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        from PIL import Image
+        import io
+        with Image.open(path) as img:
+            img_rgb = img.convert("RGB")
+            img_rgb.thumbnail((800, 800), Image.Resampling.LANCZOS)
+            buf = io.BytesIO()
+            img_rgb.save(buf, format="JPEG", quality=82, optimize=True)
+            return base64.b64encode(buf.getvalue()).decode("utf-8")
+    except Exception:
+        try:
+            with open(path, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+        except Exception:
+            return None
+
 async def cross_verify_disease_with_vision(
     image_path: str,
-    crop_hint: Optional[str] = None
+    crop_hint: Optional[str] = None,
+    root_image_path: Optional[str] = None,
+    stem_image_path: Optional[str] = None,
+    wilt_condition: Optional[str] = None,
+    soil_condition: Optional[str] = None,
+    crop_stage: Optional[str] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Expert multimodal diagnosis using the official Agricultural Extension Officer & Plant Pathologist prompt.
-    Analyzes visible plant anomalies and parses the 5 structured markdown blocks.
+    Supports single-call bundling of primary foliage, optional root collar, and optional cut fruit/stem cross-section.
     """
     gemini_key = getattr(settings, "GEMINI_API_KEY", "")
     if not gemini_key or "mock" in gemini_key or "PASTE" in gemini_key:
@@ -346,35 +467,48 @@ async def cross_verify_disease_with_vision(
         return None
 
     try:
-        # High-Performance Image Optimization: Downscale to max 800px (<60 KB payload)
-        # Prevents 10MB mobile uploads from stalling cloud vision timeouts
-        try:
-            from PIL import Image
-            import io
-            with Image.open(image_path) as img:
-                img_rgb = img.convert("RGB")
-                img_rgb.thumbnail((800, 800), Image.Resampling.LANCZOS)
-                buf = io.BytesIO()
-                img_rgb.save(buf, format="JPEG", quality=82, optimize=True)
-                image_bytes = buf.getvalue()
-        except Exception as img_err:
-            logger.debug(f"PIL resize bypassed, using raw bytes: {img_err}")
-            with open(image_path, "rb") as f:
-                image_bytes = f.read()
-
-        b64_img = base64.b64encode(image_bytes).decode("utf-8")
+        b64_main = _optimize_to_b64(image_path)
+        if not b64_main:
+            return None
 
         prompt = EXTENSION_OFFICER_PROMPT
         if crop_hint:
             prompt += f"\n\nContext Hint: The farmer indicates this plant is {crop_hint}."
 
+        parts = [
+            {"text": prompt},
+            {"inline_data": {"mime_type": "image/jpeg", "data": b64_main}}
+        ]
+
+        # Multi-part diagnostic bundling: 0 extra API cost, packed into single multimodal call
+        if root_image_path and os.path.exists(root_image_path):
+            b64_root = _optimize_to_b64(root_image_path)
+            if b64_root:
+                parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_root}})
+
+        if stem_image_path and os.path.exists(stem_image_path):
+            b64_stem = _optimize_to_b64(stem_image_path)
+            if b64_stem:
+                parts.append({"inline_data": {"mime_type": "image/jpeg", "data": b64_stem}})
+
+        # Inject questionnaire guidance
+        extra_hints = []
+        if root_image_path and os.path.exists(root_image_path):
+            extra_hints.append("- Additional Root/Collar photo provided: Check for root-knot galls, dark rotting taproots, collar fans, or clubbing.")
+        if stem_image_path and os.path.exists(stem_image_path):
+            extra_hints.append("- Additional Cut Fruit / Split Stem photo provided: Check for red rot pith discoloration, borer galleries, frass, or internal maggots.")
+        if wilt_condition:
+            extra_hints.append(f"- Farmer observed wilt condition: {wilt_condition}")
+        if soil_condition:
+            extra_hints.append(f"- Soil moisture condition: {soil_condition}")
+        if crop_stage:
+            extra_hints.append(f"- Crop growth stage: {crop_stage}")
+
+        if extra_hints:
+            parts[0]["text"] += "\n\n🔬 MULTI-PART & FIELD QUESTIONNAIRE CONTEXT:\n" + "\n".join(extra_hints)
+
         payload = {
-            "contents": [{
-                "parts": [
-                    {"text": prompt},
-                    {"inline_data": {"mime_type": "image/jpeg", "data": b64_img}}
-                ]
-            }],
+            "contents": [{"parts": parts}],
             "generationConfig": {
                 "temperature": 0.1,
                 "maxOutputTokens": 1024

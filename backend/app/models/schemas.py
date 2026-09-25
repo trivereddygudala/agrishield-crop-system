@@ -132,6 +132,7 @@ class PredictionResponse(PredictionBase):
     ensemble_used: Optional[bool] = False
     ensemble_provider: Optional[str] = None
     ensemble_notes: Optional[str] = None
+    multipart_scan_used: Optional[bool] = False
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow", arbitrary_types_allowed=True)
 
@@ -151,6 +152,11 @@ class PredictRequest(BaseModel):
     plant_type: Optional[str] = Field(default="crop", description="Plant identification domain: 'crop' or 'tree'")
     tree_filter: Optional[str] = Field(default=None, description="Optional tree species category to filter identification search space")
     organ: Optional[str] = Field(default="leaf", description="Plant organ for identification: 'leaf', 'flower', 'fruit', or 'bark'")
+    image_root_path: Optional[str] = Field(default=None, description="Optional path to root/collar photo for subterranean diseases")
+    image_stem_path: Optional[str] = Field(default=None, description="Optional path to cut fruit/split stem photo for internal borers")
+    wilt_condition: Optional[str] = Field(default=None, description="Wilt symptom: 'none', 'midday', or 'permanent'")
+    soil_condition: Optional[str] = Field(default=None, description="Soil moisture: 'normal', 'waterlogged', or 'dry'")
+    crop_stage: Optional[str] = Field(default=None, description="Crop stage: 'nursery', 'vegetative', 'flowering', 'mature'")
 
 class TranslatePlantRequest(BaseModel):
     plant: dict = Field(..., description="Plant botanical dictionary to translate")

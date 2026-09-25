@@ -396,7 +396,7 @@ const UploadImagePage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStartScan = async () => {
+  const handleStartScan = async (multipartData = {}) => {
     if (!selectedFile) {
       scanStore.setTabState(activeTab, { hasScanned: true });
       return;
@@ -476,6 +476,32 @@ const UploadImagePage = () => {
       const uploadRes = await API.post('/api/upload', formData);
       const imagePath = uploadRes.data.image_path;
 
+      let rootImagePath = undefined;
+      let stemImagePath = undefined;
+
+      // Handle optional multi-part photos (Root/Collar and Cut Stem/Inside Fruit)
+      if (multipartData.rootFile) {
+        try {
+          const rootFormData = new FormData();
+          rootFormData.append('file', multipartData.rootFile);
+          const rootRes = await API.post('/api/upload', rootFormData);
+          rootImagePath = rootRes.data.image_path;
+        } catch (rootErr) {
+          console.warn("Multi-part root photo upload bypassed:", rootErr);
+        }
+      }
+
+      if (multipartData.stemFile) {
+        try {
+          const stemFormData = new FormData();
+          stemFormData.append('file', multipartData.stemFile);
+          const stemRes = await API.post('/api/upload', stemFormData);
+          stemImagePath = stemRes.data.image_path;
+        } catch (stemErr) {
+          console.warn("Multi-part stem photo upload bypassed:", stemErr);
+        }
+      }
+
       let endpoint;
       if (activeTab === 'disease-diag') {
         endpoint = '/api/predict';
@@ -494,6 +520,17 @@ const UploadImagePage = () => {
 
       if (activeTab === 'disease-diag') {
         payload.crop_filter = selectedCropFilter || undefined;
+        if (rootImagePath) payload.image_root_path = rootImagePath;
+        if (stemImagePath) payload.image_stem_path = stemImagePath;
+        if (multipartData.wiltCondition && multipartData.wiltCondition !== 'none') {
+          payload.wilt_condition = multipartData.wiltCondition;
+        }
+        if (multipartData.soilCondition && multipartData.soilCondition !== 'normal') {
+          payload.soil_condition = multipartData.soilCondition;
+        }
+        if (multipartData.cropStage) {
+          payload.crop_stage = multipartData.cropStage;
+        }
       }
 
       if (activeTab === 'plant-id') {

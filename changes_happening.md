@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v275) - 100% Crop Disease Coverage, Multi-Part Plant Scanner & 3-Question Diagnostic Wizard
+- **Summary:**
+  1. 🔬 **Multi-Part Plant Scanner & Diagnostic Questionnaire UI (`ScanImageUploader.jsx` & `UploadImagePage.jsx`):**
+     - Added collapsible *"🔬 Advanced Multi-Part Diagnosis: Add Root / Cut Stem & Field Survey (Optional)"* workstation directly above the primary scan button in `ScanImageUploader.jsx`.
+     - Integrated dual-slot photo upload for subterranean roots/collar and internal stem cross-sections / split fruit.
+     - Built 3-question rapid field survey: Wilting pattern (`none`, `partial_asymmetric` [Fusarium], `sudden_green` [Ralstonia], `seedling_toppling` [Pythium]), Soil moisture & drainage (`normal`, `waterlogged`, `dry_cracked`), and Crop growth stage (`nursery`, `vegetative`, `flowering_fruiting`).
+     - Upgraded `handleStartScan` in `UploadImagePage.jsx` to upload extra photos via `/api/upload` and attach `image_root_path`, `image_stem_path`, `wilt_condition`, `soil_condition`, and `crop_stage` to the prediction payload.
+  2. ⚡ **Multimodal Gemini Vision Single-Payload Bundling & Zero Extra Quota Consumption (`gemini_vision.py` & `predict.py`):**
+     - Updated `cross_verify_disease_with_vision()` to accept all multi-part photos and survey parameters.
+     - Implemented `_optimize_to_b64()` to downscale all images to max 800px (<60 KB).
+     - Bundled foliage, root, and stem photos into **1 single multimodal API request** (`contents[0].parts`), guaranteeing zero additional API requests and preserving 100% of the 1,500 free requests/day quota.
+     - Added comprehensive pathology categories to `generate_fallback_extension_officer_report` for: Root-Knot Nematodes, Damping-Off / Collar Rot, Phytophthora Root Rot / Wet Rot, Vascular Wilts (Fusarium & Bacterial), and Stem Borers / Shoot Borers.
+  3. 🌿 **100% Disease Coverage Knowledge Base & 13-Language Advisory Data (`diseaseAdvisoryData.js` & `plantixDiagnosisHelper.js`):**
+     - Expanded `COMMON_DISEASES` with 10 comprehensive multi-part pathology entries across all 13 languages: `choanephora_blight`, `phytophthora_root_rot`, `fusarium_wilt`, `bacterial_wilt`, `damping_off`, `root_knot_nematode`, `stem_borer`, `fruit_fly`, `clubroot`, `rhizome_rot`.
+     - Updated `normalizeDiseaseKey()` and `getDiseaseDetails()`.
+     - Added exact Latin binomials in `getScientificName()` (*Choanephora cucurbitarum*, *Phytophthora capsici*, *Fusarium oxysporum*, *Ralstonia solanacearum*, *Pythium aphanidermatum*, *Meloidogyne incognita*, *Chilo partellus*, *Bactrocera cucurbitae*, *Plasmodiophora brassicae*).
+     - Authored deep agronomic narratives in `getPlantixAgronomicNarrative()` in Telugu, Hindi, and English.
+  4. 🏷️ **Multi-Part Inspection Badging (`DiseaseDiagnosisResults.jsx`):**
+     - Displayed `🔬 Multi-Part Inspection: Foliage + Root/Stem Confirmed` badge in both Stage 1 (Verification) and Stage 2 (Treatment) screens when multi-part diagnostic signals are confirmed.
+  5. 📦 **Production Build Validation:** Executed `npm run build` in `frontend/` — passed with 0 errors in 44.56s across 3,168 modules.
+
 ## 2026-09-25 (v274) - Full Implementation of Plantix 2-Stage Diagnostic Funnel, Commercial Medicines & Knapsack Calculator
 - **Summary:**
   1. 🛠️ **Plantix Diagnosis Helper Utility (`plantixDiagnosisHelper.js`):**

@@ -1390,6 +1390,30 @@ async def predict_pytorch_endpoint(
             detail=f"Specified image file does not exist on server: {req.image_path}"
         )
 
+    # Resolve optional multi-part photos (Root / Collar and Cut Fruit / Split Stem)
+    full_root_image_path = None
+    if getattr(req, "image_root_path", None):
+        clean_root = req.image_root_path.replace("/", os.sep).lstrip(os.sep)
+        for p in [os.path.join(base_dir, clean_root), os.path.join(repo_root, clean_root), os.path.abspath(req.image_root_path)]:
+            if os.path.exists(p):
+                full_root_image_path = p
+                break
+
+    full_stem_image_path = None
+    if getattr(req, "image_stem_path", None):
+        clean_stem = req.image_stem_path.replace("/", os.sep).lstrip(os.sep)
+        for p in [os.path.join(base_dir, clean_stem), os.path.join(repo_root, clean_stem), os.path.abspath(req.image_stem_path)]:
+            if os.path.exists(p):
+                full_stem_image_path = p
+                break
+
+    has_multipart_scan = bool(
+        full_root_image_path or full_stem_image_path or 
+        getattr(req, "wilt_condition", None) or 
+        getattr(req, "soil_condition", None) or 
+        getattr(req, "crop_stage", None)
+    )
+
     # Check if user explicitly designated a target crop category filter
     user_crop_filter = (getattr(req, "crop_filter", None) or "").strip()
 
@@ -1512,19 +1536,24 @@ async def predict_pytorch_endpoint(
     ensemble_provider = None
     ensemble_notes = None
 
-    if is_ambiguous or confidence < 0.75 or is_ood:
+    if is_ambiguous or confidence < 0.75 or is_ood or has_multipart_scan:
         try:
             from backend.app.services.gemini_vision import cross_verify_disease_with_vision
             vision_opinion = await cross_verify_disease_with_vision(
                 image_path=effective_image_path,
-                crop_hint=active_crop_filter or user_crop_filter or (None if is_ood else prediction_result.get("crop_name"))
+                crop_hint=active_crop_filter or user_crop_filter or (None if is_ood else prediction_result.get("crop_name")),
+                root_image_path=full_root_image_path,
+                stem_image_path=full_stem_image_path,
+                wilt_condition=getattr(req, "wilt_condition", None),
+                soil_condition=getattr(req, "soil_condition", None),
+                crop_stage=getattr(req, "crop_stage", None)
             )
             if vision_opinion and isinstance(vision_opinion, dict):
                 v_dis = vision_opinion.get("disease_name")
                 v_crop = vision_opinion.get("crop_name")
                 if v_dis and str(v_dis).lower() not in ["unknown", "n/a", "none", "unsupported"]:
                     ensemble_used = True
-                    ensemble_provider = "Google Gemini Flash Vision"
+                    ensemble_provider = "Google Gemini Flash Vision (Multi-Part)" if has_multipart_scan else "Google Gemini Flash Vision"
                     v_conf = float(vision_opinion.get("confidence", 0.92))
                     v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
                     v_is_healthy = bool(vision_opinion.get("is_healthy", False))
@@ -1577,6 +1606,7 @@ async def predict_pytorch_endpoint(
     prediction_result["ensemble_used"] = ensemble_used
     prediction_result["ensemble_provider"] = ensemble_provider
     prediction_result["ensemble_notes"] = ensemble_notes
+    prediction_result["multipart_scan_used"] = has_multipart_scan
 
     # Post-ensemble Safety Gates: Only reject if BOTH local model and Gemini Vision could not identify the image
     if not ensemble_used:

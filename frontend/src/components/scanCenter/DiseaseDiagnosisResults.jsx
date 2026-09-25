@@ -323,6 +323,13 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   <span>{scientificName}</span>
                 </p>
               )}
+
+              {liveResult?.multipart_scan_used && (
+                <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-400 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 text-xs font-black shadow-xs">
+                  <span>🔬</span>
+                  <span>{activeLang === 'te' ? 'మల్టీ-పార్ట్ తనిఖీ: ఆకు + వేరు / కాండం నిర్ధారణ' : 'Multi-Part Inspection: Foliage + Root/Stem Confirmed'}</span>
+                </div>
+              )}
             </div>
 
             {/* Specimen Comparison Gallery (Plantix Multi-Photo Swipe) */}
@@ -614,7 +621,12 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   <h3 className="text-base sm:text-lg font-black text-slate-950 dark:text-white leading-tight">
                     {localizedDisease}
                   </h3>
-                  <span className="text-xs text-slate-500 font-semibold">{localizedCrop} • {categoryInfo.label}</span>
+                  <span className="text-xs text-slate-500 font-semibold">
+                    {localizedCrop} • {categoryInfo.label}
+                    {liveResult?.multipart_scan_used && (
+                      <span className="ml-1.5 text-emerald-600 dark:text-emerald-400 font-bold">• 🔬 {activeLang === 'te' ? 'మల్టీ-పార్ట్' : 'Multi-Part'}</span>
+                    )}
+                  </span>
                 </div>
               </div>
 

@@ -1586,6 +1586,156 @@ export const COMMON_DISEASES = {
     "ur": "مرچ کا پتا مروڑ روگ",
     "en": "Chilli Leaf Curl (ChiLCV / Thrips)"
   },
+  "choanephora_blight": {
+    "te": "మిరపలో తడి కుళ్లు / చోనెఫోరా తెగులు",
+    "hi": "मिर्च में गीला सड़न रोग (चोनेफोरा ब्लाइट)",
+    "ta": "மிளகாய் பூ அழுகல் / ஈர அழுகல் நோய்",
+    "kn": "ಮೆಣಸಿನಕಾಯಿ ಹೂ ಕೊಳೆ ರೋಗ",
+    "ml": "മുളകിലെ പൂവ് ചീയൽ രോഗം",
+    "mr": "मिरचीवरील ओले कुजणे (चोनेफोरा ब्लाइट)",
+    "gu": "મરચીમાં ભીનો સડો",
+    "pa": "ਮਿਰਚ ਦਾ ਗਿੱਲਾ ਗਲਣ ਰੋਗ",
+    "bn": "লঙ্কার নরম পচা রোগ",
+    "or": "ଲଙ୍କା ଓଦା ପଚା ରୋଗ",
+    "as": "জলকীয়াৰ সেমেকা পচা ৰোগ",
+    "ur": "مرچ کا گیلا سڑن روگ",
+    "en": "Wet Rot / Choanephora Blight (Choanephora cucurbitarum)"
+  },
+  "phytophthora_root_rot": {
+    "te": "మిరపలో ఫైటోఫ్తోరా వేరు కుళ్లు తెగులు",
+    "hi": "मिर्च में फाइटोफ्थोरा जड़ सड़न",
+    "ta": "மிளகாய் பைட்டோப்தோரா வேர் அழுகல்",
+    "kn": "ಮೆಣಸಿನಕಾಯಿ ಬೇರು ಕೊಳೆ ರೋಗ",
+    "ml": "മുളകിലെ വേരുചീയൽ രോഗം",
+    "mr": "मिरचीवरील फायटोफ्थोरा मूळकूज",
+    "gu": "મરચીમાં મૂળનો સડો",
+    "pa": "ਮਿਰਚ ਦਾ ਜੜ੍ਹ ਗਲਣ ਰੋਗ",
+    "bn": "লঙ্কার গোড়া ও শিকড় পচা রোগ",
+    "or": "ଲଙ୍କା ମୂଳ ପଚା ରୋଗ",
+    "as": "জলকীয়াৰ শিপা পচা ৰোগ",
+    "ur": "مرچ کا جڑ سڑن روگ",
+    "en": "Phytophthora Root Rot (Phytophthora capsici)"
+  },
+  "fusarium_wilt": {
+    "te": "మిరపలో ఫ్యుసేరియం ఎండు తెగులు",
+    "hi": "मिर्च में फ्यूजेरियम उकठा रोग (विल्ट)",
+    "ta": "மிளகாய் பியூசாரியம் வாடல் நோய்",
+    "kn": "ಮೆಣಸಿನಕಾಯಿ ಸೊರಗು ರೋಗ (ಫ್ಯುಸೇರಿಯಮ್)",
+    "ml": "മുളകിലെ വാട്ടം രോഗം",
+    "mr": "मिरचीवरील फ्युजॅरियम मर रोग",
+    "gu": "મરચીમાં સુકારો (ફ્યુઝેરિયમ વિલ્ટ)",
+    "pa": "ਮਿਰਚ ਦਾ ਉਖੇੜਾ ਰੋਗ (ਵਿਲਟ)",
+    "bn": "লঙ্কার ঢলে পড়া রোগ",
+    "or": "ଲଙ୍କା ଶୁଖିଲା ରୋଗ (ଫ୍ୟୁଜାରିୟମ)",
+    "as": "জলকীয়াৰ ওলমি পৰা ৰোগ",
+    "ur": "مرچ کا فوزاریئم اکھٹا",
+    "en": "Fusarium Wilt (Fusarium oxysporum)"
+  },
+  "bacterial_wilt": {
+    "te": "మిరపలో బ్యాక్టీరియా ఎండు తెగులు",
+    "hi": "मिर्च में जीवाणु उकठा रोग (बैक्टीरियल विल्ट)",
+    "ta": "மிளகாய் பாக்டீரியா வாடல் நோய்",
+    "kn": "ಮೆಣಸಿನಕಾಯಿ ಬ್ಯಾಕ್ಟೀರಿಯಾ ಸೊರಗು ರೋಗ",
+    "ml": "മുളകിലെ ബാക്ടീരിയൽ വാട്ടം",
+    "mr": "मिरचीवरील जिवाणूजन्य मर रोग",
+    "gu": "મરચીમાં જીવાણુ સુકારો",
+    "pa": "ਮਿਰਚ ਦਾ ਜੀਵਾਣੂ ਉਖੇੜਾ",
+    "bn": "লঙ্কার ব্যাক্টেরিয়া ঘটিত ঢলে পড়া রোগ",
+    "or": "ଲଙ୍କା ଜୀବାଣୁ ମଉଳା ରୋଗ",
+    "as": "জলকীয়াৰ বেক্টেৰিয়া জনিত শুকান ৰোগ",
+    "ur": "مرچ کا بیکٹیریل اکھٹا",
+    "en": "Bacterial Wilt (Ralstonia solanacearum)"
+  },
+  "damping_off": {
+    "te": "నారుమడి కుళ్లు / డ్యాంపింగ్ ఆఫ్ తెగులు",
+    "hi": "नर्सरी में आर्द्र-पतन (डैम्पिंग-ऑफ)",
+    "ta": "நாற்றுக்கருகல் / டம்பிங் ஆப் நோய்",
+    "kn": "ಸಸಿಮಡಿ ಕೊಳೆ ರೋಗ (ಡ್ಯಾಂಪಿಂಗ್ ಆಫ್)",
+    "ml": "തൈചീയൽ രോഗം (ഡാംപിംഗ് ഓഫ്)",
+    "mr": "रोपवाटिकेतील रोपे कोलमडणे (डॅम्पिंग-ऑफ)",
+    "gu": "ધરૂનો કોહવારો (ડેમ્પિંગ ઓફ)",
+    "pa": "ਨਰਸਰੀ ਗਲਣ ਰੋਗ",
+    "bn": "চারা ধসা রোগ",
+    "or": "ତଳି ପଚା ରୋଗ",
+    "as": "পুলিপচা ৰোগ",
+    "ur": "نرسری پودا سڑن",
+    "en": "Damping-Off / Seedling Rot (Pythium aphanidermatum)"
+  },
+  "root_knot_nematode": {
+    "te": "వేరు బుడిపెల నులిపురుగులు (రూట్-నాట్ నెమటోడ్స్)",
+    "hi": "जड़-गांठ सूत्रकृमि (रूट-नॉट नेमाटोड)",
+    "ta": "வேர் முடிச்சு நூற்புழு நோய்",
+    "kn": "ಬೇರು ಗಂಟು ಜಂತುಹುಳು ರೋಗ",
+    "ml": "വേരുഗ്രന്ഥി നിമാവിരകൾ",
+    "mr": "मूळगाठ सूत्रकृमी (रूट-नॉट नेमाटोड)",
+    "gu": "કૃમિ રોગ (રુટ-નોટ નેમાટોડ)",
+    "pa": "ਜੜ੍ਹ ਗੰਢ ਨਿਮਾਟੋਡ",
+    "bn": "শিকড়ের কৃমি রোগ (রুট-নট নেমাটোড)",
+    "or": "ମୂଳ ଗଣ୍ଠି କୃମି ରୋଗ",
+    "as": "শিপাৰ গাঁথি পেলু ৰোগ",
+    "ur": "جڑ گانٹھ کیڑا (نیماٹوڈ)",
+    "en": "Root-Knot Nematodes (Meloidogyne incognita)"
+  },
+  "stem_borer": {
+    "te": "కాండం తొలిచే పురుగు (స్టెమ్ బోరర్)",
+    "hi": "तना छेदक कीट (स्टेम बोरर)",
+    "ta": "தண்டு துளைப்பான் பூச்சி",
+    "kn": "ಕಾಂಡ ಕೊರೆಯುವ ಹುಳು",
+    "ml": "തണ്ടുതുരപ്പൻ പുഴു",
+    "mr": "खोडकिडा (स्टेम बोरर)",
+    "gu": "ગાભમારાની ઈયળ",
+    "pa": "ਤਣਾ ਛੇਦਕ ਸੁੰਡੀ",
+    "bn": "মাজরা পোকা",
+    "or": "କାଣ୍ଡ ବିନ୍ଧା ପୋକ",
+    "as": "কাণ্ডবিন্ধা পোক",
+    "ur": "تنا چھیدک کیڑا",
+    "en": "Stem Borer / Shoot Borer (Chilo / Scirpophaga)"
+  },
+  "fruit_fly": {
+    "te": "కాయ తొలిచే ఈగ (ఫ్రూట్ ఫ్లై)",
+    "hi": "फल मक्खी (फ्रूट फ्लाई)",
+    "ta": "காய் ஈ / பழ ஈ",
+    "kn": "ಹಣ್ಣಿನ ನೊಣ",
+    "ml": "കായീച്ച",
+    "mr": "फळमाशी",
+    "gu": "ફળમાખી",
+    "pa": "ਫਲ ਮੱਖੀ",
+    "bn": "ফল মাছি পোকা",
+    "or": "ଫଳ ମାଛି ପୋକ",
+    "as": "ফলমাখি পোক",
+    "ur": "پھل مکھی",
+    "en": "Fruit Fly Maggots (Bactrocera cucurbitae)"
+  },
+  "clubroot": {
+    "te": "క్యాబేజీ క్లబ్‌రూట్ తెగులు",
+    "hi": "पत्तागोभी क्लब-रूट रोग",
+    "ta": "முட்டைக்கோஸ் கிளப்ரூட் நோய்",
+    "kn": "ಕ್ಲಬ್‌ರೂಟ್ ಬೇರು ರೋಗ",
+    "ml": "ക്ലബ്ബ് റൂട്ട് രോഗം",
+    "mr": "क्लब-रूट मूळ रोग",
+    "gu": "ક્લબ-રૂટ રોગ",
+    "pa": "ਕਲੱਬ-ਰੂਟ ਰੋਗ",
+    "bn": "ক্লাবরুট রোগ",
+    "or": "କ୍ଲବ୍‌ରୁଟ୍ ରୋଗ",
+    "as": "ক্লাবৰূট ৰোগ",
+    "ur": "کلب روٹ روگ",
+    "en": "Clubroot Disease (Plasmodiophora brassicae)"
+  },
+  "rhizome_rot": {
+    "te": "పసుపు / అల్లం దుంప కుళ్లు తెగులు",
+    "hi": "हल्दी / अदरक कंद सड़न रोग",
+    "ta": "மஞ்சள் / இஞ்சி கிழங்கு அழுகல் நோய்",
+    "kn": "ಶುಂಠಿ / ಅರಿಶಿನ ಗೆಡ್ಡೆ ಕೊಳೆ ರೋಗ",
+    "ml": "മഞ്ഞൾ / ഇഞ്ചി കിഴങ്ങ് ചീയൽ",
+    "mr": "हळद / आले कंदकूज रोग",
+    "gu": "ગાંઠનો સડો (હળદર / આદું)",
+    "pa": "ਹਲਦੀ ਗੰਢ ਗਲਣ ਰੋਗ",
+    "bn": "হলুদ ও আদা কন্দ পচা রোগ",
+    "or": "ଅଦା ଓ ହଳଦୀ କନ୍ଦ ପଚା ରୋଗ",
+    "as": "হালধি আৰু আদাৰ আলু পচা ৰোগ",
+    "ur": "ہلدی اور ادرک گانٹھ سڑن",
+    "en": "Rhizome Rot (Pythium aphanidermatum)"
+  },
   "northern_leaf_blight": {
     "te": "మొక్కజొన్న ఆకు మాడు తెగులు (నార్తర్న్ లీఫ్ బ్లైట్)",
     "hi": "मक्का पत्ती झुलसा रोग (नार्दर्न लीफ ब्लाइट)",
@@ -2441,12 +2591,48 @@ export function normalizeDiseaseKey(rawName = '', statusHint = '') {
     return 'tungro';
   }
 
-  if (str.includes('wilt') || str.includes('fusarium') || str.includes('ఎండు తెగులు') || str.includes('పల్లా తెగులు') || str.includes('उकठा') || str.includes('வாடல்') || str.includes('ಸೊರಗು') || str.includes('मर रोग')) {
-    return 'wilt';
+  if (str.includes('choanephora') || str.includes('wet rot') || str.includes('తడి కుళ్లు') || str.includes('गीला सड़न')) {
+    return 'choanephora_blight';
   }
 
-  if (str.includes('damping off') || str.includes('నారుకుళ్లు') || str.includes('आर्द्र गलन') || str.includes('நாற்று அழுகல்')) {
+  if (str.includes('phytophthora') || str.includes('ఫైటోఫ్తోరా') || str.includes('फाइटोफ्थोरा')) {
+    return 'phytophthora_root_rot';
+  }
+
+  if (str.includes('nematode') || str.includes('root knot') || str.includes('root-knot') || str.includes('నులిపురుగు') || str.includes('सूत्रकृमि')) {
+    return 'root_knot_nematode';
+  }
+
+  if (str.includes('clubroot') || str.includes('క్లబ్‌రూట్') || str.includes('क्लब-रूट')) {
+    return 'clubroot';
+  }
+
+  if (str.includes('bacterial wilt') || str.includes('ralstonia') || str.includes('బ్యాక్టీరియా ఎండు') || str.includes('जीवाणु उकठा')) {
+    return 'bacterial_wilt';
+  }
+
+  if (str.includes('fusarium') || str.includes('ఫ్యుసేరియం') || str.includes('फ्यूजेरियम')) {
+    return 'fusarium_wilt';
+  }
+
+  if (str.includes('damping') || str.includes('నారుకుళ్లు') || str.includes('आर्द्र गलन') || str.includes('நாற்று அழுகல்') || str.includes('డ్యాంపింగ్')) {
     return 'damping_off';
+  }
+
+  if (str.includes('stem borer') || str.includes('shoot borer') || str.includes('కాండం తొలిచే') || str.includes('तना छेदक')) {
+    return 'stem_borer';
+  }
+
+  if (str.includes('fruit fly') || str.includes('కాయ తొలిచే ఈగ') || str.includes('फल मक्खी')) {
+    return 'fruit_fly';
+  }
+
+  if (str.includes('rhizome') || str.includes('దుంప కుళ్లు')) {
+    return 'rhizome_rot';
+  }
+
+  if (str.includes('wilt') || str.includes('ఎండు తెగులు') || str.includes('పల్లా తెగులు') || str.includes('उकठा') || str.includes('வாடல்') || str.includes('ಸೊರಗು') || str.includes('मर रोग')) {
+    return 'fusarium_wilt';
   }
 
   if (str.includes('black rot') || str.includes('నల్ల కుళ్లు') || str.includes('काला सड़न') || str.includes('கரு அழுகல்')) {
@@ -2454,7 +2640,7 @@ export function normalizeDiseaseKey(rawName = '', statusHint = '') {
   }
 
   if (str.includes('root rot') || str.includes('collar rot') || str.includes('వేరు కుళ్లు') || str.includes('కాండం కుళ్లు') || str.includes('जड़ सड़न') || str.includes('വേര് ചീയൽ') || str.includes('വേర్ அழுகல்')) {
-    return 'root_rot';
+    return 'phytophthora_root_rot';
   }
 
   // Check substring match in reverse map
@@ -2555,6 +2741,15 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
     'black_rot': 'early blight',
     'root_rot': 'early blight',
     'damping_off': 'early blight',
+    'choanephora_blight': 'anthracnose',
+    'phytophthora_root_rot': 'early blight',
+    'fusarium_wilt': 'early blight',
+    'bacterial_wilt': 'bacterial spot',
+    'root_knot_nematode': 'spodoptera litura',
+    'stem_borer': 'spodoptera litura',
+    'fruit_fly': 'spodoptera litura',
+    'clubroot': 'early blight',
+    'rhizome_rot': 'early blight',
     'scab': 'target spot',
     'leaf_mold': 'powdery mildew',
     'mosaic_virus': 'leaf curl virus',

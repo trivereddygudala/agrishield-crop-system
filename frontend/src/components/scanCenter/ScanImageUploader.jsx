@@ -23,7 +23,9 @@ import {
   MapPin,
   Grid,
   Trees,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Button, Card, Dialog, Badge } from '../ui/index';
 import API from '../../services/api';
@@ -139,6 +141,18 @@ const ScanImageUploader = ({
   const [isBlurry, setIsBlurry] = useState(false);
   const [showGradcam, setShowGradcam] = useState(false);
   const [showSpeciesInfo, setShowSpeciesInfo] = useState(false);
+
+  // Multi-Part Diagnosis & Diagnostic Survey State
+  const [showMultiPart, setShowMultiPart] = useState(false);
+  const [rootFile, setRootFile] = useState(null);
+  const [rootPreview, setRootPreview] = useState(null);
+  const [stemFile, setStemFile] = useState(null);
+  const [stemPreview, setStemPreview] = useState(null);
+  const [wiltCondition, setWiltCondition] = useState('none');
+  const [soilCondition, setSoilCondition] = useState('normal');
+  const [cropStage, setCropStage] = useState('vegetative');
+  const rootInputRef = useRef(null);
+  const stemInputRef = useRef(null);
 
   // Real-Time Camera HUD & Leaf Ratio State
   const [leafRatio, setLeafRatio] = useState(0);
@@ -919,7 +933,17 @@ const ScanImageUploader = ({
               )}
               <button
                 type="button"
-                onClick={() => { setShowGradcam(false); setLastCapturedMeta(null); onClear(); }}
+                onClick={() => {
+                  setShowGradcam(false);
+                  setLastCapturedMeta(null);
+                  setRootFile(null);
+                  setRootPreview(null);
+                  setStemFile(null);
+                  setStemPreview(null);
+                  setWiltCondition('none');
+                  setSoilCondition('normal');
+                  onClear();
+                }}
                 className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-300 transition-all border border-slate-300/50 dark:border-white/10 flex items-center justify-center shadow-xs active:scale-95 cursor-pointer"
                 title="Remove Image"
               >
@@ -1164,13 +1188,278 @@ const ScanImageUploader = ({
         </div>
       )}
 
+      {/* Advanced Multi-Part Pathology Diagnosis & Field Survey (Optional) */}
+      {tabId === 'disease-diag' && (
+        <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 backdrop-blur-md overflow-hidden transition-all">
+          <button
+            type="button"
+            onClick={() => setShowMultiPart(!showMultiPart)}
+            className="w-full p-3.5 flex items-center justify-between text-left hover:bg-emerald-100/50 dark:hover:bg-emerald-900/30 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-base shrink-0">
+                🔬
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-black text-slate-900 dark:text-white">
+                    {isTelugu
+                      ? 'అధునాతన మల్టీ-పార్ట్ నిర్ధారణ: వేరు / కాండం ఫోటో & సర్వే (ఐచ్ఛికం)'
+                      : 'Advanced Multi-Part Diagnosis: Add Root / Cut Stem & Field Survey (Optional)'}
+                  </span>
+                  {(rootFile || stemFile || wiltCondition !== 'none' || soilCondition !== 'normal') && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-extrabold text-[10px]">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                  {isTelugu
+                    ? 'వడలిపోవుట (Fusarium/Ralstonia), వేరు కుళ్లు (Phytophthora/Pythium), కాండం తొలిచే పురుగులను 100% ఖచ్చితత్వంతో గుర్తిస్తుంది'
+                    : 'Confirms Wilts (Fusarium vs Bacterial), Root Rots (Phytophthora/Damping-Off) and Stem Borers with 100% accuracy'}
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 ml-2 text-slate-500 dark:text-slate-400">
+              {showMultiPart ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {showMultiPart && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="p-3.5 sm:p-4 border-t border-emerald-500/20 space-y-4"
+              >
+                {/* Multi-Part Photo Upload Slots */}
+                <div>
+                  <h5 className="text-[11px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 mb-2 flex items-center gap-1.5">
+                    <span>📸</span>
+                    <span>{isTelugu ? 'అదనపు నమూనా ఫోటోలు (ఐచ్ఛికం)' : 'Additional Specimen Photos (Optional)'}</span>
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Slot 1: Root / Collar */}
+                    <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                          <span>🌱</span>
+                          <span>{isTelugu ? 'వేరు / కాలర్ భాగం' : 'Root / Collar Region'}</span>
+                        </span>
+                        {rootFile && (
+                          <button
+                            type="button"
+                            onClick={() => { setRootFile(null); setRootPreview(null); }}
+                            className="text-[11px] font-bold text-rose-500 hover:text-rose-700 cursor-pointer"
+                          >
+                            ✕ {isTelugu ? 'తొలగించు' : 'Remove'}
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        ref={rootInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) {
+                            setRootFile(f);
+                            setRootPreview(URL.createObjectURL(f));
+                          }
+                        }}
+                      />
+
+                      {rootPreview ? (
+                        <div className="relative rounded-lg overflow-hidden h-24 bg-slate-950 flex items-center justify-center">
+                          <img src={rootPreview} alt="Root Specimen" className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => rootInputRef.current?.click()}
+                          className="w-full py-3 px-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 bg-slate-50 dark:bg-slate-800/50 text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Camera className="w-4 h-4 text-emerald-600" />
+                          <span>{isTelugu ? '+ వేరు / కాండం కింద భాగం ఫోటో తీయండి' : '+ Add Root / Collar Photo'}</span>
+                        </button>
+                      )}
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                        {isTelugu
+                          ? 'మొక్కను పీకి వేర్లు కడిగి ఫోటో తీయండి (వేరు కుళ్లు, నెమటోడ్లను గుర్తిస్తుంది).'
+                          : 'Uproot plant and snap roots (detects Root Rot, Nematodes, Damping-Off).'}
+                      </p>
+                    </div>
+
+                    {/* Slot 2: Cut Stem / Split Pod */}
+                    <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                          <span>🪵</span>
+                          <span>{isTelugu ? 'కత్తిరించిన కాండం / కాయ లోపల' : 'Cut Stem / Split Fruit'}</span>
+                        </span>
+                        {stemFile && (
+                          <button
+                            type="button"
+                            onClick={() => { setStemFile(null); setStemPreview(null); }}
+                            className="text-[11px] font-bold text-rose-500 hover:text-rose-700 cursor-pointer"
+                          >
+                            ✕ {isTelugu ? 'తొలగించు' : 'Remove'}
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        ref={stemInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) {
+                            setStemFile(f);
+                            setStemPreview(URL.createObjectURL(f));
+                          }
+                        }}
+                      />
+
+                      {stemPreview ? (
+                        <div className="relative rounded-lg overflow-hidden h-24 bg-slate-950 flex items-center justify-center">
+                          <img src={stemPreview} alt="Stem Specimen" className="h-full w-full object-cover" />
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => stemInputRef.current?.click()}
+                          className="w-full py-3 px-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 bg-slate-50 dark:bg-slate-800/50 text-[11px] font-semibold text-slate-600 dark:text-slate-400 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Camera className="w-4 h-4 text-emerald-600" />
+                          <span>{isTelugu ? '+ కత్తిరించిన కాండం ఫోటో తీయండి' : '+ Add Cut Stem / Inside Fruit'}</span>
+                        </button>
+                      )}
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                        {isTelugu
+                          ? 'కాండాన్ని నిలువుగా చీల్చి ఫోటో తీయండి (కాండం గోధుమ రంగు, పురుగు రంధ్రాలు).'
+                          : 'Slice stem lengthwise to show vascular browning (Fusarium) or borer tunnels.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3-Question Field Diagnostic Survey */}
+                <div className="space-y-3 pt-1 border-t border-emerald-500/20">
+                  <h5 className="text-[11px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                    <span>📋</span>
+                    <span>{isTelugu ? 'పొలం త్వరిత సర్వే (3 ప్రశ్నలు)' : 'Field Rapid Diagnostic Survey (3 Quick Questions)'}</span>
+                  </h5>
+
+                  {/* Q1: Wilting Condition */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      1. {isTelugu ? 'మొక్క వడలిపోవుట లక్షణం ఎలా ఉంది?' : 'Plant Wilting Pattern / Leaf Droop:'}
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'none', labelEn: 'Normal (No Wilting)', labelTe: 'వడలడం లేదు (సాధారణం)' },
+                        { id: 'partial_asymmetric', labelEn: 'One-Sided Branch Wilt', labelTe: 'ఒకవైపు కొమ్మలు వడలడం' },
+                        { id: 'sudden_green', labelEn: 'Sudden Green Collapse', labelTe: 'పచ్చగానే ఆకస్మిక వడలడం' },
+                        { id: 'seedling_toppling', labelEn: 'Seedling Toppling Over', labelTe: 'నారు నేలపై పడిపోవుట' }
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setWiltCondition(opt.id)}
+                          className={`p-2 rounded-xl text-[11px] font-bold text-left transition-all border cursor-pointer ${
+                            wiltCondition === opt.id
+                              ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                              : 'bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
+                          }`}
+                        >
+                          {isTelugu ? opt.labelTe : opt.labelEn}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Q2: Soil Moisture */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      2. {isTelugu ? 'పొలంలో నేల తేమ పరిస్థితి:' : 'Soil Moisture & Water Drainage:'}
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'normal', labelEn: 'Normal Moisture', labelTe: 'సాధారణ తేమ' },
+                        { id: 'waterlogged', labelEn: 'Waterlogged / Stagnant', labelTe: 'నీరు నిలిచింది (ముంపు)' },
+                        { id: 'dry_cracked', labelEn: 'Dry / Cracked Soil', labelTe: 'పొడి / నెర్రలు తీసిన నేల' }
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setSoilCondition(opt.id)}
+                          className={`p-2 rounded-xl text-[11px] font-bold text-left transition-all border cursor-pointer ${
+                            soilCondition === opt.id
+                              ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                              : 'bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
+                          }`}
+                        >
+                          {isTelugu ? opt.labelTe : opt.labelEn}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Q3: Crop Stage */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      3. {isTelugu ? 'పంట ప్రస్తుత దశ:' : 'Crop Growth Stage:'}
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'nursery', labelEn: 'Nursery / Seedling', labelTe: 'నారుమడి / మొలక దశ' },
+                        { id: 'vegetative', labelEn: 'Vegetative Growth', labelTe: 'ఎదుగుదల దశ' },
+                        { id: 'flowering_fruiting', labelEn: 'Flowering & Fruiting', labelTe: 'పూత & కాయ దశ' }
+                      ].map(opt => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setCropStage(opt.id)}
+                          className={`p-2 rounded-xl text-[11px] font-bold text-left transition-all border cursor-pointer ${
+                            cropStage === opt.id
+                              ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs'
+                              : 'bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
+                          }`}
+                        >
+                          {isTelugu ? opt.labelTe : opt.labelEn}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       {/* Action CTA Button */}
       <div className="mt-6">
         <Button
           variant="gradient"
           size="lg"
           className="w-full font-black shadow-lg shadow-emerald-500/20 text-sm py-4"
-          onClick={onStartScan}
+          onClick={() => {
+            if (onStartScan) {
+              onStartScan({
+                rootFile,
+                stemFile,
+                wiltCondition,
+                soilCondition,
+                cropStage
+              });
+            }
+          }}
           disabled={!selectedFile || loading}
           isLoading={loading}
           leftIcon={<Sparkles className="w-5 h-5 text-white" />}
