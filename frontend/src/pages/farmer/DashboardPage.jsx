@@ -81,6 +81,8 @@ const DashboardPage = () => {
   useEffect(() => {
     if (user?.role?.toLowerCase() === 'admin') {
       navigate('/admin', { replace: true });
+    } else if (user?.role?.toLowerCase() === 'equipment_provider') {
+      navigate('/provider/dashboard', { replace: true });
     }
   }, [user, navigate]);
 

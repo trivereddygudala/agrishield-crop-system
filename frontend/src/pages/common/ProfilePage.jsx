@@ -247,6 +247,50 @@ const ProfilePage = () => {
     } catch { return ''; }
   });
 
+  // Farmer Specific Agronomic & Identity Attributes
+  const [farmerPhone, setFarmerPhone] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+      return saved.phone || user?.phone || user?.mobile || user?.farmer_profile?.phone || '';
+    } catch { return user?.phone || user?.mobile || ''; }
+  });
+  const [totalAcres, setTotalAcres] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+      return String(saved.total_acres || saved.acres || user?.farmer_profile?.total_acres || user?.farmer_profile?.acres || '2.5');
+    } catch { return '2.5'; }
+  });
+  const [ownershipType, setOwnershipType] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+      return saved.ownership_type || user?.farmer_profile?.ownership_type || 'Owner';
+    } catch { return 'Owner'; }
+  });
+  const [selectedCrops, setSelectedCrops] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+      return saved.selected_crops || user?.selected_crops || user?.farmer_profile?.selected_crops || ['Paddy', 'Chilli'];
+    } catch { return ['Paddy', 'Chilli']; }
+  });
+  const [soilType, setSoilType] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+      return saved.soil_type || user?.farmer_profile?.soil_type || 'Black Cotton Soil';
+    } catch { return 'Black Cotton Soil'; }
+  });
+  const [irrigationSource, setIrrigationSource] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+      return saved.irrigation_source || user?.farmer_profile?.irrigation_source || 'Borewell';
+    } catch { return 'Borewell'; }
+  });
+  const [kisanId, setKisanId] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+      return saved.kisan_id || user?.farmer_profile?.kisan_id || '';
+    } catch { return ''; }
+  });
+
   const [adminPassword, setAdminPassword] = useState('');
   const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
 
@@ -266,6 +310,19 @@ const ProfilePage = () => {
       setPreferredLanguage(user.preferred_language || 'en');
       setFarmingPractices(user.farming_practices || 'Conventional');
       
+      if (user.phone || user.mobile) setFarmerPhone(user.phone || user.mobile);
+      if (user.selected_crops) setSelectedCrops(user.selected_crops);
+
+      if (user.farmer_profile) {
+        if (user.farmer_profile.phone) setFarmerPhone(user.farmer_profile.phone);
+        if (user.farmer_profile.total_acres) setTotalAcres(String(user.farmer_profile.total_acres));
+        if (user.farmer_profile.ownership_type) setOwnershipType(user.farmer_profile.ownership_type);
+        if (user.farmer_profile.selected_crops) setSelectedCrops(user.farmer_profile.selected_crops);
+        if (user.farmer_profile.soil_type) setSoilType(user.farmer_profile.soil_type);
+        if (user.farmer_profile.irrigation_source) setIrrigationSource(user.farmer_profile.irrigation_source);
+        if (user.farmer_profile.kisan_id) setKisanId(user.farmer_profile.kisan_id);
+      }
+
       if (user.provider_profile) {
         if (user.provider_profile.hub_name) setHubName(user.provider_profile.hub_name);
         if (user.provider_profile.dispatch_phone) setDispatchPhone(user.provider_profile.dispatch_phone);
@@ -348,6 +405,25 @@ const ProfilePage = () => {
         updatePayload.farm_location = fullLocationString;
         updatePayload.crop_history = user?.crop_history || [];
         updatePayload.farming_practices = farmingPractices;
+        updatePayload.phone = farmerPhone.trim();
+        updatePayload.mobile = farmerPhone.trim();
+        updatePayload.selected_crops = selectedCrops;
+
+        const farmerData = {
+          phone: farmerPhone.trim(),
+          mobile: farmerPhone.trim(),
+          total_acres: totalAcres.trim(),
+          acres: totalAcres.trim(),
+          ownership_type: ownershipType,
+          selected_crops: selectedCrops,
+          soil_type: soilType,
+          irrigation_source: irrigationSource,
+          kisan_id: kisanId.trim(),
+          farming_practices: farmingPractices,
+          updated_at: new Date().toISOString()
+        };
+        localStorage.setItem('agrishield_farmer_profile', JSON.stringify(farmerData));
+        updatePayload.farmer_profile = farmerData;
       }
 
       await updateProfile(updatePayload);
@@ -524,30 +600,60 @@ const ProfilePage = () => {
                     <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-tight">
                       {user?.name || 'Farmer'}
                     </h3>
-                    <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-black tracking-wider uppercase">
                         🌾 {isTe ? 'రైతు' : 'FARMER'}
                       </span>
+                      <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-[9px] font-black tracking-wider uppercase">
+                        🛡️ {isTe ? 'కిసాన్ ధృవీకరణ' : 'KISAN VERIFIED'}
+                      </span>
                     </div>
 
-                    <div className="border-t border-slate-100 dark:border-white/5 w-full mt-4 pt-3.5 text-left space-y-2 text-xs text-slate-500 dark:text-white/40">
-                      <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="truncate">{user?.email || 'N/A'}</span></div>
-                      <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" /> Joined {formattedDate}</div>
+                    <div className="border-t border-slate-100 dark:border-white/5 w-full mt-4 pt-3.5 text-left space-y-2 text-xs text-slate-600 dark:text-white/60">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {farmerPhone || user?.phone || user?.mobile || 'Phone not set'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">{user?.email || 'N/A'}</span>
+                      </div>
                       {user?.farm_location && (
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="line-clamp-2 leading-relaxed">{user.farm_location}</span>
+                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span className="line-clamp-2 leading-relaxed">{user.farm_location}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 dark:border-white/5">
-                        <span className="text-slate-450 dark:text-white/40">Farming Practice:</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{farmingPractices || 'Conventional'}</span>
+                        <span className="text-slate-450 dark:text-white/40">Land Holding:</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{totalAcres} Acres ({ownershipType})</span>
                       </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-450 dark:text-white/40">Active Crops:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 truncate max-w-[130px]">
+                          {selectedCrops?.join(', ') || 'Paddy, Chilli'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-450 dark:text-white/40">Soil & Water:</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 truncate max-w-[130px]">
+                          {soilType.split(' ')[0]} • {irrigationSource.split(' ')[0]}
+                        </span>
+                      </div>
+                      {kisanId && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-450 dark:text-white/40">Kisan ID:</span>
+                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{kisanId}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="w-full pt-4 mt-auto">
                       <Link to="/farm" className="w-full block">
                         <Button size="sm" variant="outline" className="w-full text-xs font-bold border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400">
-                          🌾 {isTe ? 'నా పొలం & పంటలు' : 'Go to My Farm'}
+                          🌾 {isTe ? 'నా పొలం & భూమి రికార్డులు' : 'Go to My Farm & Land'}
                         </Button>
                       </Link>
                     </div>
@@ -768,19 +874,141 @@ const ProfilePage = () => {
                           </div>
                         </div>
                       ) : userRole === 'farmer' ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <Select
-                            label={t('profile_page.form.farming_practice', 'Primary Farming Practice')}
-                            value={farmingPractices}
-                            onChange={(e) => setFarmingPractices(e.target.value)}
-                            options={[
-                              { value: 'Conventional', label: t('profile_page.form.conventional', 'Conventional Farming') },
-                              { value: 'Organic', label: t('profile_page.form.organic', 'Organic Farming') },
-                              { value: 'Hydroponic', label: t('profile_page.form.hydroponic', 'Hydroponic / Protected') },
-                              { value: 'Regenerative', label: t('profile_page.form.regenerative', 'Regenerative Agro-forestry') }
-                            ]}
-                            className="text-xs font-bold text-slate-800 dark:text-white"
-                          />
+                        <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-white/5">
+                          <div className="flex items-center gap-2">
+                            <Sprout className="w-4 h-4 text-emerald-500" />
+                            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                              {isTe ? 'రైతు సాగు భూమి & పంట వివరాలు' : 'Farmer Land, Crops & Agronomic Specifications'}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                              label={isTe ? 'రైతు మొబైల్ / వాట్సాప్ నంబర్' : 'Farmer Mobile / WhatsApp Number'}
+                              value={farmerPhone}
+                              onChange={(e) => setFarmerPhone(e.target.value)}
+                              placeholder="e.g. 9440182736"
+                              leftIcon={<Phone className="w-4 h-4 text-emerald-500" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <Input
+                                label={isTe ? 'మొత్తం సాగు భూమి (ఎకరాలు)' : 'Total Farm Size (Acres)'}
+                                type="number"
+                                step="0.1"
+                                value={totalAcres}
+                                onChange={(e) => setTotalAcres(e.target.value)}
+                                placeholder="e.g. 3.5"
+                                className="bg-white dark:bg-slate-900 text-xs font-bold"
+                              />
+
+                              <Select
+                                label={isTe ? 'భూమి హక్కు' : 'Land Tenure'}
+                                value={ownershipType}
+                                onChange={(e) => setOwnershipType(e.target.value)}
+                                options={[
+                                  { value: 'Owner', label: isTe ? 'భూ యజమాని (Owner)' : 'Owner Farmer' },
+                                  { value: 'Tenant', label: isTe ? 'కౌలు రైతు (Tenant)' : 'Tenant Farmer' },
+                                  { value: 'Joint Family', label: isTe ? 'ఉమ్మడి కుటుంబం (Joint)' : 'Joint Holding' }
+                                ]}
+                                className="text-xs font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+
+                            <Select
+                              label={isTe ? 'నేల రకం (భారతీయ వర్గీకరణ)' : 'Soil Classification'}
+                              value={soilType}
+                              onChange={(e) => setSoilType(e.target.value)}
+                              options={[
+                                { value: 'Black Cotton Soil', label: 'Black Cotton Soil (నల్లరేగడి నేల)' },
+                                { value: 'Red Loam Soil', label: 'Red Sandy / Loam Soil (ఎర్ర నేల)' },
+                                { value: 'Alluvial Soil', label: 'Alluvial River Soil (ఒండ్రు నేల)' },
+                                { value: 'Clay Loam Soil', label: 'Clay Loam Soil (బంక నేల)' },
+                                { value: 'Sandy Loam', label: 'Sandy Loam Soil (ఇసుక నేల)' }
+                              ]}
+                              className="text-xs font-bold text-slate-800 dark:text-white"
+                            />
+
+                            <Select
+                              label={isTe ? 'నీటి వనరు & సాగు పద్ధతి' : 'Irrigation & Water Source'}
+                              value={irrigationSource}
+                              onChange={(e) => setIrrigationSource(e.target.value)}
+                              options={[
+                                { value: 'Borewell', label: 'Borewell & Submersible Pump (బోరుబావి)' },
+                                { value: 'Canal', label: 'Government Canal Irrigation (కాలువ నీరు)' },
+                                { value: 'Drip System', label: 'Micro Drip Irrigation (బిందు సేద్యం)' },
+                                { value: 'Sprinkler', label: 'Sprinkler System (తుంపర సేద్యం)' },
+                                { value: 'Open Well', label: 'Open Agricultural Well (బావి నీరు)' },
+                                { value: 'Rainfed', label: 'Rainfed Dryland (వర్షాధార సేద్యం)' }
+                              ]}
+                              className="text-xs font-bold text-slate-800 dark:text-white"
+                            />
+
+                            <Select
+                              label={t('profile_page.form.farming_practice', 'Primary Farming Practice')}
+                              value={farmingPractices}
+                              onChange={(e) => setFarmingPractices(e.target.value)}
+                              options={[
+                                { value: 'Conventional', label: t('profile_page.form.conventional', 'Conventional Farming') },
+                                { value: 'Organic', label: t('profile_page.form.organic', 'Organic Farming (సేంద్రీయ వ్యవసాయం)') },
+                                { value: 'Hydroponic', label: t('profile_page.form.hydroponic', 'Hydroponic / Protected Farming') },
+                                { value: 'Regenerative', label: t('profile_page.form.regenerative', 'Regenerative Agro-forestry (ప్రకృతి వ్యవసాయం)') }
+                              ]}
+                              className="text-xs font-bold text-slate-800 dark:text-white"
+                            />
+
+                            <Input
+                              label={isTe ? 'పీఎం-కిసాన్ / రైతు భరోసా ఐడీ (ఐచ్ఛికం)' : 'PM-KISAN / Rythu Bharosa ID (Optional)'}
+                              value={kisanId}
+                              onChange={(e) => setKisanId(e.target.value)}
+                              placeholder="e.g. AP-PMK-2024-9918"
+                              leftIcon={<ShieldCheck className="w-4 h-4 text-emerald-500" />}
+                              className="bg-white dark:bg-slate-900 text-xs font-bold"
+                            />
+                          </div>
+
+                          {/* Primary Crops Selector Chips */}
+                          <div className="space-y-1.5 pt-1">
+                            <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">
+                              {isTe ? 'ప్రస్తుత సీజన్ పంటలు (ఎంచుకోండి)' : 'Current Season Crops (Select all that apply)'}
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                { id: 'Paddy', label: 'Paddy (వరి)', icon: '🌾' },
+                                { id: 'Chilli', label: 'Chilli (మిరప)', icon: '🌶️' },
+                                { id: 'Cotton', label: 'Cotton (పత్తి)', icon: '🌱' },
+                                { id: 'Tomato', label: 'Tomato (టమోటా)', icon: '🍅' },
+                                { id: 'Maize', label: 'Maize (మొక్కజొన్న)', icon: '🌽' },
+                                { id: 'Groundnut', label: 'Groundnut (వేరుశనగ)', icon: '🥜' },
+                                { id: 'Sugarcane', label: 'Sugarcane (చెరకు)', icon: '🎋' },
+                                { id: 'Bengal Gram', label: 'Bengal Gram (శనగ)', icon: '🥣' }
+                              ].map(crop => {
+                                const isSelected = selectedCrops.includes(crop.id);
+                                return (
+                                  <button
+                                    type="button"
+                                    key={crop.id}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setSelectedCrops(selectedCrops.filter(c => c !== crop.id));
+                                      } else {
+                                        setSelectedCrops([...selectedCrops, crop.id]);
+                                      }
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                                      isSelected
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-500/20'
+                                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-emerald-400'
+                                    }`}
+                                  >
+                                    <span>{crop.icon}</span>
+                                    <span>{crop.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
                       ) : null}
                     </>

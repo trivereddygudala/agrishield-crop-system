@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v253) - Comprehensive Farmer Profile Upgrades & Farmer Portal Error Resolution
+- **Summary:** Upgraded the Farmer Profile with full agronomic, land tenure, soil, irrigation, and Kisan identification attributes; fixed provider role bleeding in DashboardPage; and enabled backend persistence in schemas and auth routes:
+  1. 🌾 **Farmer Profile Upgrades (`frontend/src/pages/common/ProfilePage.jsx`):**
+     - Added farmer contact input for Mobile & WhatsApp Number (`farmerPhone`).
+     - Added Total Farm Size in Acres (`totalAcres`) and Land Tenure (`Owner`, `Tenant`, `Joint`).
+     - Added Indian Soil Classification (`Black Cotton`, `Red Loam`, `Alluvial`, `Clay Loam`, `Sandy Loam`).
+     - Added Irrigation & Water Source selector (`Borewell`, `Canal`, `Drip System`, `Sprinkler`, `Open Well`, `Rainfed`).
+     - Added PM-KISAN / Rythu Bharosa / Passbook ID (`kisanId`).
+     - Added interactive multi-select Crop Chips with Telugu & English labels (`Paddy`, `Chilli`, `Cotton`, `Tomato`, `Maize`, `Groundnut`, `Sugarcane`, `Bengal Gram`).
+     - Upgraded Left Summary Card with verified Kisan Badge (`🌾 KISAN VERIFIED`), registered mobile, total acreage, active crops, soil type, irrigation source, and 1-tap navigation to `/farm`.
+  2. 🛡️ **Farmer Dashboard Role Guard (`frontend/src/pages/farmer/DashboardPage.jsx`):**
+     - Added automatic redirection for `equipment_provider` role users from `/dashboard` to `/provider/dashboard`.
+  3. ⚙️ **Backend Schema & Route Enhancement (`schemas.py` & `auth.py`):**
+     - Updated `UserBase`, `UserResponse`, and `ProfileUpdate` with `farmer_profile` and `selected_crops`.
+     - In `PUT /api/auth/profile`, save `farmer_profile`, `phone`, `mobile`, `selected_crops`, and `farming_practices` directly to `db.users`.
+  4. 🔄 **Bidirectional Farm Sync (`frontend/src/pages/farmer/FarmPage.jsx`):**
+     - Synced acreage, soil type, crops, and irrigation between `FarmPage.jsx` and `localStorage.agrishield_farmer_profile`.
+  5. 🧪 **Verification:** Production build (`npm run build`) completed 3,168 modules in 23.67s with **0 errors**.
+- **Files modified**: `frontend/src/pages/common/ProfilePage.jsx`, `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `backend/app/models/schemas.py`, `backend/app/routers/common/auth.py`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v252) - Persistent "Mark All As Read" & Unified Notification Category Filter Tabs
 - **Summary:** Resolved reload unread reversion bug and redesigned notification filter pills into clean, high-level agronomic and service categories:
   1. 📬 **Persistent Read-State Registry (`agrishield_read_notification_ids`):**

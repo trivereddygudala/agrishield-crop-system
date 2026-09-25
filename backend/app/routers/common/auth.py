@@ -377,6 +377,14 @@ async def update_profile(
         update_dict["phone"] = update_data.phone
         if "mobile" not in update_dict:
             update_dict["mobile"] = update_data.phone
+    if update_data.farmer_profile is not None:
+        update_dict["farmer_profile"] = update_data.farmer_profile
+        f_phone = update_data.farmer_profile.get("phone") or update_data.farmer_profile.get("mobile")
+        if f_phone:
+            update_dict["phone"] = f_phone
+            update_dict["mobile"] = f_phone
+    if update_data.selected_crops is not None:
+        update_dict["selected_crops"] = update_data.selected_crops
     if update_data.provider_profile is not None:
         update_dict["provider_profile"] = update_data.provider_profile
         dispatch_p = update_data.provider_profile.get("dispatch_phone") or update_data.provider_profile.get("dispatchPhone")

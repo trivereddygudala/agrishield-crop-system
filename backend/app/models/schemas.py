@@ -22,6 +22,7 @@ class UserBase(BaseModel):
     phone: Optional[str] = Field(default=None)
     mobile: Optional[str] = Field(default=None)
     provider_profile: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    farmer_profile: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     @model_validator(mode='before')
     @classmethod
@@ -63,6 +64,7 @@ class ProfileUpdate(BaseModel):
     preferred_language: Optional[str] = None
     farmer_mode: Optional[bool] = None
     crop_history: Optional[List[Dict[str, Any]]] = None
+    selected_crops: Optional[List[str]] = None
     farming_practices: Optional[str] = None
     farm_profile_completed: Optional[bool] = None
     active_farm_id: Optional[str] = None
@@ -72,6 +74,7 @@ class ProfileUpdate(BaseModel):
     phone: Optional[str] = None
     mobile: Optional[str] = None
     provider_profile: Optional[Dict[str, Any]] = None
+    farmer_profile: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(extra="ignore")
 

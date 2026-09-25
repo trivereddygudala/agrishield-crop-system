@@ -222,6 +222,18 @@ const FarmPage = () => {
         await createFarm(payload);
       }
 
+      try {
+        const savedFP = JSON.parse(localStorage.getItem('agrishield_farmer_profile') || '{}');
+        savedFP.total_acres = String(payload.farm_size || savedFP.total_acres || '2.5');
+        savedFP.acres = savedFP.total_acres;
+        savedFP.soil_type = payload.soil_type || savedFP.soil_type;
+        savedFP.irrigation_source = payload.irrigation_method || savedFP.irrigation_source;
+        if (payload.crop_name && !savedFP.selected_crops?.includes(payload.crop_name)) {
+          savedFP.selected_crops = [payload.crop_name, ...(savedFP.selected_crops || [])];
+        }
+        localStorage.setItem('agrishield_farmer_profile', JSON.stringify(savedFP));
+      } catch (_) {}
+
       setToastMsg(t('farm_page.saved_success', 'Farm & Agronomic details saved successfully!'));
     } catch (err) {
       console.error("Save farm error:", err);
