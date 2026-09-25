@@ -82,18 +82,36 @@ export default function NotificationsPage() {
     setToastMsg(t('notifications_page.settings_saved', 'Notification preferences updated!'));
   };
 
+  const getReadIds = useCallback(() => {
+    try {
+      const raw = localStorage.getItem('agrishield_read_notification_ids');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  }, []);
+
+  const saveReadIds = useCallback((idsSet) => {
+    try {
+      localStorage.setItem('agrishield_read_notification_ids', JSON.stringify(Array.from(idsSet)));
+    } catch (_) {}
+  }, []);
+
   const fetchNotifications = useCallback(async (p = 1) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: p, limit: limit });
-      if (category !== 'All') params.set('category', category);
       if (priority !== 'All') params.set('priority', priority);
-      if (unreadOnly)         params.set('unread_only', 'true');
       
+      const readIds = getReadIds();
+
       let serverNotifs = [];
       try {
         const res = await API.get(`/api/v1/notifications?${params}`);
-        serverNotifs = res.data.notifications || [];
+        serverNotifs = (res.data.notifications || []).map(sn => {
+          const sId = sn.notification_id || sn.id || sn._id;
+          return (readIds.has(sId) || readIds.has(String(sId))) ? { ...sn, read: true } : sn;
+        });
       } catch (err) {
         console.warn("Could not fetch remote notifications, falling back to local:", err);
       }
@@ -124,6 +142,13 @@ export default function NotificationsPage() {
           } else {
             localNotifs = [...savedUserNotifs];
           }
+
+          // Hydrate read state from persistent readIds registry
+          localNotifs = localNotifs.map(ln => {
+            const lId = ln.notification_id || ln.id || ln.booking_id;
+            const isRead = readIds.has(lId) || (ln.booking_id && (readIds.has(`booking-${ln.booking_id}`) || readIds.has(ln.booking_id)));
+            return isRead ? { ...ln, read: true } : ln;
+          });
         }
       } catch (e) {}
 
@@ -154,6 +179,7 @@ export default function NotificationsPage() {
             bookings.forEach((b) => {
               const bId = b.id || `BK-${Math.floor(10000 + Math.random() * 90000)}`;
               const alreadyExists = localNotifs.some(n => n.booking_id === bId || n.id === `notif-${bId}` || n.notification_id === `notif-${bId}`);
+              const isAlreadyRead = readIds.has(`notif-${bId}`) || readIds.has(bId) || readIds.has(`booking-${bId}`) || b.status === 'completed';
               if (!alreadyExists) {
                 localNotifs.push({
                   notification_id: `notif-${bId}`,
@@ -175,7 +201,7 @@ export default function NotificationsPage() {
                   totalCost: b.totalCost || '800',
                   created_at: b.createdAt || new Date().toISOString(),
                   timestamp: b.createdAt || new Date().toISOString(),
-                  read: b.status === 'completed'
+                  read: isAlreadyRead
                 });
               }
             });
@@ -196,6 +222,12 @@ export default function NotificationsPage() {
                 const bId = b.id || b.bookingId;
                 const notifKey = `farmer-notif-${bId}-${b.status}`;
                 const alreadyExists = localNotifs.some(n => n.id === notifKey || n.notification_id === notifKey);
+                const isAlreadyRead = readIds.has(notifKey) || 
+                                     readIds.has(bId) || 
+                                     readIds.has(`booking-${bId}`) || 
+                                     readIds.has(`farmer-notif-${bId}-confirmed`) || 
+                                     readIds.has(`farmer-notif-${bId}-rejected`) || 
+                                     readIds.has(`farmer-notif-${bId}-declined`);
                 if (!alreadyExists) {
                   const isRejected = b.status === 'rejected' || b.status === 'declined';
                   const providerPhoneNum = b.providerPhone || b.provider_phone || '9876543210';
@@ -231,7 +263,7 @@ export default function NotificationsPage() {
                     booking_id: bId,
                     created_at: b.updatedAt || b.createdAt || new Date().toISOString(),
                     timestamp: b.updatedAt || b.createdAt || new Date().toISOString(),
-                    read: false,
+                    read: isAlreadyRead,
                     action_url: '/equipment-booking'
                   });
                 }
@@ -240,6 +272,11 @@ export default function NotificationsPage() {
           }
         } catch (e) {}
       }
+
+      // Persist local notifications with updated read states back to disk
+      try {
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify(localNotifs));
+      } catch (_) {}
 
       // Merge local and server without duplicates
       const merged = [...localNotifs];
@@ -250,26 +287,18 @@ export default function NotificationsPage() {
         }
       });
 
-      // Filter by category if not 'All'
-      let finalNotifs = merged;
-      if (category !== 'All') {
-        finalNotifs = finalNotifs.filter(n => (n.category || '').toLowerCase() === category.toLowerCase());
-      }
-      if (unreadOnly) {
-        finalNotifs = finalNotifs.filter(n => !n.read);
-      }
-      finalNotifs.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
+      merged.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
 
-      setNotifications(finalNotifs);
-      setTotal(finalNotifs.length);
-      setPages(Math.max(1, Math.ceil(finalNotifs.length / limit)));
+      setNotifications(merged);
+      setTotal(merged.length);
+      setPages(Math.max(1, Math.ceil(merged.length / limit)));
       setPage(p);
     } catch {
       setToastMsg(t('notifications_page.toast.load_failed', 'Failed to load notifications.'));
     } finally {
       setLoading(false);
     }
-  }, [category, priority, unreadOnly, limit, t, isEquipmentProvider, isTe]);
+  }, [limit, t, isEquipmentProvider, isTe, getReadIds, priority]);
 
   useEffect(() => { fetchNotifications(1); }, [fetchNotifications]);
 
@@ -305,13 +334,29 @@ export default function NotificationsPage() {
     if (e) e.stopPropagation();
     try {
       await API.put(`/api/v1/notifications/${id}/read`).catch(() => {});
-      setNotifications(prev => prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, read: true } : n));
+      const readIds = getReadIds();
+      readIds.add(id);
+      readIds.add(String(id));
+      saveReadIds(readIds);
+
+      setNotifications(prev => prev.map(n => {
+        const match = (n.notification_id === id || n.id === id || n.booking_id === id);
+        return match ? { ...n, read: true } : n;
+      }));
+
       try {
         const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => (n.notification_id === id || n.id === id) ? { ...n, read: true } : n)));
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => {
+          const match = (n.notification_id === id || n.id === id || n.booking_id === id);
+          return match ? { ...n, read: true } : n;
+        })));
       } catch (e) {}
-      setToastMsg(t('notifications_page.toast.marked_read', 'Marked as read.'));
-    } catch { setToastMsg(t('notifications_page.toast.mark_read_failed', 'Failed to mark as read.')); }
+
+      window.dispatchEvent(new CustomEvent('agrishield_notification_read', { detail: { id } }));
+      setToastMsg(isTe ? 'చదివినట్లు గుర్తించబడింది' : t('notifications_page.toast.marked_read', 'Marked as read.'));
+    } catch {
+      setToastMsg(isTe ? 'గుర్తించడంలో విఫలమైంది' : t('notifications_page.toast.mark_read_failed', 'Failed to mark as read.'));
+    }
   };
 
   const handleDelete = async (id, e) => {
@@ -332,13 +377,39 @@ export default function NotificationsPage() {
   const handleReadAll = async () => {
     try {
       await API.post('/api/v1/notifications/read-all').catch(() => {});
+      await API.post('/api/notifications/read-all').catch(() => {});
+
+      // Add all notification IDs and booking IDs to persistent read set
+      const readIds = getReadIds();
+      notifications.forEach(n => {
+        if (n.id) readIds.add(n.id);
+        if (n.notification_id) readIds.add(n.notification_id);
+        if (n.booking_id) {
+          readIds.add(n.booking_id);
+          readIds.add(`booking-${n.booking_id}`);
+          readIds.add(`farmer-notif-${n.booking_id}-confirmed`);
+          readIds.add(`farmer-notif-${n.booking_id}-rejected`);
+          readIds.add(`farmer-notif-${n.booking_id}-declined`);
+          readIds.add(`notif-${n.booking_id}`);
+        }
+      });
+      saveReadIds(readIds);
+
+      // Instantly update state
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+      // Save to localStorage
       try {
         const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => ({ ...n, read: true }))));
+        const updated = stored.map(n => ({ ...n, read: true }));
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify(updated));
       } catch (e) {}
-      setToastMsg(t('notifications_page.toast.all_read', 'All notifications marked as read.'));
-    } catch { setToastMsg(t('notifications_page.toast.all_read_failed', 'Failed to mark all as read.')); }
+
+      window.dispatchEvent(new CustomEvent('agrishield_notifications_all_read'));
+      setToastMsg(isTe ? 'అన్ని నోటిఫికేషన్‌లు చదివినట్లు గుర్తించబడ్డాయి.' : t('notifications_page.toast.all_read', 'All notifications marked as read.'));
+    } catch {
+      setToastMsg(isTe ? 'విఫలమైంది.' : t('notifications_page.toast.all_read_failed', 'Failed to mark all as read.'));
+    }
   };
 
   const playNotificationChime = () => {
@@ -390,30 +461,48 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const filteredNotifications = notifications.filter(n => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    const { title: dt, message: dm } = translateNotification(n.title, n.message, currentLang);
-    return (
-      (n.title || '').toLowerCase().includes(q) ||
-      (n.message || '').toLowerCase().includes(q) ||
-      (dt || '').toLowerCase().includes(q) ||
-      (dm || '').toLowerCase().includes(q)
-    );
+    // 1. Search Query
+    if (search) {
+      const q = search.toLowerCase();
+      const { title: dt, message: dm } = translateNotification(n.title, n.message, currentLang);
+      const matchesSearch = (n.title || '').toLowerCase().includes(q) ||
+        (n.message || '').toLowerCase().includes(q) ||
+        (dt || '').toLowerCase().includes(q) ||
+        (dm || '').toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+    }
+
+    // 2. Unread filter
+    if (unreadOnly && n.read) return false;
+
+    // 3. Category grouping
+    if (category === 'All') return true;
+
+    if (category === 'crop_alerts') {
+      const cat = (n.category || '').toLowerCase();
+      const isBooking = n.type === 'booking' || cat === 'booking' || n.isFarmerDecision === true || (n.id || '').startsWith('farmer-notif-') || (n.id || '').startsWith('notif-BK-');
+      return !isBooking;
+    }
+
+    if (category === 'machinery_services') {
+      const cat = (n.category || '').toLowerCase();
+      const isBooking = cat === 'booking' || n.type === 'booking' || n.isFarmerDecision === true || (n.id || '').startsWith('farmer-notif-') || (n.id || '').startsWith('notif-BK-');
+      return isBooking;
+    }
+
+    return (n.category || '').toLowerCase() === category.toLowerCase();
   });
 
-
   const FILTER_PILLS = isEquipmentProvider ? [
-    { id: 'All', label: 'All Messages', icon: MessageSquare },
-    { id: 'unread', label: `Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
-    { id: 'booking', label: '🚜 Machinery Bookings', icon: Truck },
-    { id: 'system', label: '🛡️ Hub & System', icon: Activity },
+    { id: 'All', label: isTe ? '🔔 అన్ని సందేశాలు' : '🔔 All Messages', icon: MessageSquare },
+    { id: 'unread', label: isTe ? `📬 చదవనివి (${unreadCount})` : `📬 Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
+    { id: 'machinery_services', label: isTe ? '🚜 యంత్రాల బుకింగ్ ఆర్డర్‌లు' : '🚜 Machinery Rental Orders', icon: Truck },
+    { id: 'crop_alerts', label: isTe ? '🛡️ హబ్ & సిస్టమ్ అలర్ట్‌లు' : '🛡️ Hub & System Alerts', icon: Activity },
   ] : [
-    { id: 'All', label: 'All Messages', icon: MessageSquare },
-    { id: 'unread', label: `Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
-    { id: 'disease', label: '🚨 Disease', icon: AlertTriangle },
-    { id: 'weather', label: '🌦️ Weather', icon: CloudRain },
-    { id: 'soil', label: '💧 Irrigation', icon: Droplets },
-    { id: 'battery', label: '🔋 Hardware', icon: BatteryWarning },
+    { id: 'All', label: isTe ? '🔔 అన్ని నోటిఫికేషన్‌లు' : '🔔 All Notifications', icon: MessageSquare },
+    { id: 'unread', label: isTe ? `📬 చదవనివి (${unreadCount})` : `📬 Unread (${unreadCount})`, icon: Bell, isUnreadPill: true },
+    { id: 'crop_alerts', label: isTe ? '🌿 పంట ఆరోగ్యం & పొలం హెచ్చరికలు' : '🌿 Crop Health & Field Alerts', icon: AlertTriangle },
+    { id: 'machinery_services', label: isTe ? '🚜 యంత్రాలు & సేవా ఆర్డర్‌లు' : '🚜 Machinery & Service Orders', icon: Truck },
   ];
 
   if (loading) {

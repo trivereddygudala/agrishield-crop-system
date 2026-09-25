@@ -311,8 +311,12 @@ class NotificationService:
     async def mark_all_read(db, user_id: str) -> int:
         """Mark all notifications of the user as read."""
         now_utc = datetime.now(timezone.utc)
+        uid_query = [{"user_id": user_id}, {"target_user_id": user_id}]
+        if ObjectId.is_valid(user_id):
+            uid_query.append({"user_id": ObjectId(user_id)})
+            uid_query.append({"target_user_id": ObjectId(user_id)})
         result = await db.notifications.update_many(
-            {"user_id": user_id, "read": False},
+            {"$or": uid_query, "read": False},
             {
                 "$set": {
                     "read": True,

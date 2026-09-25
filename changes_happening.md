@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v252) - Persistent "Mark All As Read" & Unified Notification Category Filter Tabs
+- **Summary:** Resolved reload unread reversion bug and redesigned notification filter pills into clean, high-level agronomic and service categories:
+  1. 📬 **Persistent Read-State Registry (`agrishield_read_notification_ids`):**
+     - Implemented `getReadIds` and `saveReadIds` maintaining a persistent Set in `localStorage`.
+     - When tapping "Mark All as Read" or marking any notification, every ID (`item.id`, `item.notification_id`, `booking_id`, and booking status keys) is saved to the persistent read set.
+     - On page reload, `fetchNotifications` hydrates read states against `readIds`, preventing dynamically synthesized machinery booking cards from reverting to `read: false`.
+     - Updated MongoDB `NotificationService.mark_all_read` in backend to match user records via both string and `ObjectId` queries.
+  2. 🏷️ **Unified Category Filter Selection Tabs:**
+     - **`🔔 All Notifications`** / **`అన్ని నోటిఫికేషన్‌లు`**: Complete unified notification stream.
+     - **`📬 Unread (N)`** / **`చదవనివి (N)`**: Dynamic unread counter and filter.
+     - **`🌿 Crop Health & Field Alerts`** / **`పంట ఆరోగ్యం & పొలం హెచ్చరికలు`**: Consolidated agronomic category grouping crop disease scans, extreme weather alerts, soil irrigation schedules, and hardware status.
+     - **`🚜 Machinery & Service Orders`** / **`యంత్రాలు & సేవా ఆర్డర్‌లు`**: Dedicated equipment provider booking queue for providers and provider accept/decline decisions for farmers.
+  3. 🧪 **Verification:** Production build (`npm run build`) packaged 3,168 modules in 25.95s with **0 errors**.
+- **Files modified**: `frontend/src/pages/common/NotificationsPage.jsx`, `backend/app/services/notification_service.py`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v251) - Completed Clean 3-Role Folder Architecture (Farmer, Equipment Provider, Admin) Across Frontend & Backend
 - **Summary:** Executed full architectural reorganization across frontend pages, backend routers, and test scripts into dedicated role-based directories (`farmer`, `provider`, `admin`, and `common/shared`) with 100% zero-regression backward compatibility:
   1. 🌾 **Frontend Role Reorganization (`frontend/src/pages/`):**
