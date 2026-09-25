@@ -2,6 +2,20 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v258) - Professional Top Header Boundaries & Separated Weather/Spray Boxes
+- **Summary:** Applied user-requested design refinements across the Farmer Dashboard:
+  1. 🏷️ **Picture 1 - Bounded Professional Top Header (`DashboardPage.jsx`):**
+     - Enclosed the farm overview (`field1 Overview`, `Pasupugallu, Prakasam`, current date, refresh button, and `Scan Crop Leaf` button) inside a dedicated, high-end card container (`p-4 sm:p-5 lg:p-6 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-md`).
+     - Added an emerald crop emblem badge (`🌾`) and structured the refresh + scan action buttons into a responsive, cohesive row.
+  2. 📦 **Picture 2 - Separated Boxes for Weather & Spray Safety (`FieldIntelligenceWidget.jsx`):**
+     - Split the combined widget into **two distinct, standalone boxes**:
+       - **Box 1 (Farm Weather & Rain Forecast):** Features big temperature display (`27°C • Feels like 29°C`), sky condition, 4 farmer metrics with practical indicators (Moisture, Rain chance today, Wind speed, Sun UV index), and a 3-day simple rain forecast.
+       - **Box 2 (Crop Spraying Safety Window):** Features a large status banner (`✅ SAFE TO SPRAY RIGHT NOW (8 AM – 11 AM)`), 4 clear reasons why it is safe (Gentle wind won't blow spray away, zero rain won't wash medicine off, dry leaves absorb quickly, low disease risk), and a practical midday heat warning tip.
+  3. 📦 **Production Verification:** Built cleanly with 0 errors in 23.12s.
+- **Files modified**: `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/components/intelligence/FieldIntelligenceWidget.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v257) - Farmer Home Transformation: Vibrant Light-Blurred Hero Banner & Unified Field Intelligence
 - **Summary:** Completely transformed the Farmer Dashboard / Home screen (`DashboardPage.jsx`):
   1. 🖼️ **Vibrant Light-Blurred Hero Banner with Neat Boundaries & Highlighting:**

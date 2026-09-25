@@ -254,46 +254,50 @@ const DashboardPage = () => {
       animate="show"
       className="space-y-6 w-full pb-6 max-w-[1600px] mx-auto"
     >
-      {/* ─── Header Section: Farmer Friendly (Matching Picture) ─── */}
-      <motion.div variants={itemVariants} className="flex flex-col gap-3 pb-2 border-b border-slate-200/80 dark:border-white/10">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="text-2xl sm:text-3xl" role="img" aria-label="crop">🌾</span>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-              {activeFarm?.farm_name ? `${activeFarm.farm_name} ${t('dashboard.overview', 'Overview')}` : t('dashboard.my_farm_overview', 'My Farm Overview')}
-            </h1>
+      {/* ─── Top Header Card (Field Overview & Scan Leaf Action - Bounded & Professional) ─── */}
+      <motion.div variants={itemVariants} className="col-span-12">
+        <div className="p-4 sm:p-5 lg:p-6 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-2xl shrink-0 shadow-xs">
+              🌾
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                {activeFarm?.farm_name ? `${activeFarm.farm_name} ${t('dashboard.overview', 'Overview')}` : t('dashboard.my_farm_overview', 'My Farm Overview')}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-semibold">
+                <span className="flex items-center gap-1 text-rose-500 font-bold">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  {farmLocationDisplay}
+                </span>
+                <span>•</span>
+                <span className="text-slate-700 dark:text-slate-300 font-bold">{currentDateFormatted}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-semibold">
-            <span className="flex items-center gap-1 text-rose-500 font-bold">
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              {farmLocationDisplay}
-            </span>
-            <span>•</span>
-            <span className="text-slate-700 dark:text-slate-300 font-bold">{currentDateFormatted}</span>
-          </div>
-        </div>
 
-        {/* Action Row: Refresh + Wide Pill Scan Crop Leaf Button */}
-        <div className="flex items-center gap-2.5 sm:gap-3 w-full pt-1">
-          <button 
-            type="button"
-            onClick={handleManualRefresh}
-            className="p-3 sm:p-3.5 rounded-2xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-600 dark:text-white/70 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
-            title={t('dashboard.refresh_btn', 'Refresh Dashboard Data')}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
-          </button>
-          <Link to="/upload" className="flex-1">
-            <Button 
-              variant="primary" 
-              size="lg" 
-              leftIcon={<Camera className="w-5 h-5" />} 
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-600/25 py-3 sm:py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all active:scale-[0.98] cursor-pointer"
+          {/* Action Row: Refresh + Wide Pill Scan Crop Leaf Button */}
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+            <button 
+              type="button"
+              onClick={handleManualRefresh}
+              className="p-3 sm:p-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:text-emerald-600 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
+              title={t('dashboard.refresh_btn', 'Refresh Dashboard Data')}
+              disabled={isRefreshing}
             >
-              {t('dashboard.scan_crop_leaf', 'Scan Crop Leaf')}
-            </Button>
-          </Link>
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
+            </button>
+            <Link to="/upload" className="flex-1 md:flex-initial">
+              <Button 
+                variant="primary" 
+                size="lg" 
+                leftIcon={<Camera className="w-5 h-5" />} 
+                className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-600/30 py-3 sm:py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all active:scale-[0.98] cursor-pointer"
+              >
+                {t('dashboard.scan_crop_leaf', 'Scan Crop Leaf')}
+              </Button>
+            </Link>
+          </div>
         </div>
       </motion.div>
 
