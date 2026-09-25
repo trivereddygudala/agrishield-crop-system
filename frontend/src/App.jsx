@@ -205,7 +205,14 @@ function App() {
                           <Route path="/help" element={<Navigate to="/support" replace />} />
                           <Route path="/helpdesk" element={<Navigate to="/support" replace />} />
                           <Route path="/admin" element={<AdminPage />} />
-                          <Route path="/admin/*" element={<AdminPage />} />
+                          <Route path="/equipment" element={<Navigate to="/equipment-booking" replace />} />
+                          <Route path="/equipment/*" element={<Navigate to="/equipment-booking" replace />} />
+                          <Route path="/my-bookings" element={<Navigate to="/equipment-booking" replace />} />
+                          <Route path="/disease-detection" element={<Navigate to="/scan" replace />} />
+                          <Route path="/disease-detection/*" element={<Navigate to="/scan" replace />} />
+                          <Route path="/scan-leaf" element={<Navigate to="/scan" replace />} />
+                          <Route path="/sensors" element={<Navigate to="/devices" replace />} />
+                          <Route path="/sensor" element={<Navigate to="/devices" replace />} />
                           <Route path="/scan" element={<UploadImagePage />} />
                           <Route path="/scan/:tab" element={<UploadImagePage />} />
                           <Route path="/ai-scan" element={<UploadImagePage />} />

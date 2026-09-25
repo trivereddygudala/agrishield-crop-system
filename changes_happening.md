@@ -2,6 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v271) - Full System Multi-Language Translations (Hindi, Tamil, Kannada, Malayalam, Odia, Telugu, English) & Route Aliasing
+- **Summary:**
+  1. 🌐 **Comprehensive 7-Language Coverage Across All 31 Modules (`translations.js`):**
+     - Fully populated all 9 previously missing modules (`analytics`, `notifications_page`, `auth`, `errors`, `languages_page`, `field_calculator`, `support_page`, `sdcard_page`, `languages_modal`) and all subkeys across all 7 supported languages: English (`en`), Telugu (`te`), Hindi (`hi`), Tamil (`ta`), Kannada (`kn`), Malayalam (`ml`), and Odia/Oriya (`or`).
+     - Expanded `translations.js` from 421 KB to 843 KB, achieving 100% dictionary completeness with 0 missing modules across all 7 regional languages.
+  2. 🛣️ **Route Error Resolution & Navigation Aliasing (`App.jsx`):**
+     - Analyzed route errors and clarified that routing does not break i18n dictionaries, but buttons with outdated paths (`/disease-detection`, `/equipment`, `/sensors`, `/my-bookings`, `/scan-leaf`) were causing 404 Not Found screen errors.
+     - Added aliases and catch-all redirects in `App.jsx` mapping:
+       - `/disease-detection` & `/disease-detection/*` ➔ `/scan`
+       - `/equipment` & `/equipment/*` ➔ `/equipment-booking`
+       - `/sensors` & `/sensor` ➔ `/devices`
+       - `/my-bookings` ➔ `/equipment-booking`
+       - `/scan-leaf` ➔ `/scan`
+  3. 📢 **Multilingual Notification Translation Engine (`notificationTranslator.js`):**
+     - Replaced binary English/Telugu branching with a comprehensive 7-language engine.
+     - Added exhaustive crop name dictionaries (`CROP_TRANSLATIONS`) and disease dictionaries (`DISEASE_TRANSLATIONS`) for `en`, `te`, `hi`, `ta`, `kn`, `ml`, and `or`.
+     - `translateNotification()` generates native, high-confidence titles and messages for all notification categories in the farmer's chosen tongue.
+  4. 🔬 **Multilingual 5–10 Line Agronomic Pathology Briefings (`diseaseAdvisoryData.js`):**
+     - Extended `getDetailedAgronomicDescription()` to generate full 5–10 line agronomic pathology reports covering diagnosis, foliar symptoms, microclimatic triggers, yield penalties, and curative sprays in `hi`, `ta`, `kn`, `ml`, `or`, `te`, and `en`.
+  5. 📱 **Multilingual In-Reader Language Dropdown & Speech Engine (`GoogleMessageReader.jsx`):**
+     - Upgraded the reader header with an interactive 7-language dropdown (`🌾 తెలుగు`, `🌐 English`, `🇮🇳 हिंदी`, `🌾 தமிழ்`, `🌾 ಕನ್ನಡ`, `🌴 മലയാളം`, `🌾 ଓଡ଼ିଆ`).
+     - Tapping any language immediately updates UI state, i18n instance, `localStorage`, pathology description, and TTS voice locale (`hi-IN`, `ta-IN`, `kn-IN`, `ml-IN`, `or-IN`, `te-IN`, `en-IN`).
+     - Updated weather & ESP32 alert audio text generator to construct native narration strings in all 7 regional languages.
+  6. 📦 **Production Build Verification:**
+     - Verified with `npm run build` in `frontend/`: built in 29.02s with 0 errors.
+- **Files modified**: `frontend/src/App.jsx`, `frontend/src/i18n/translations.js`, `frontend/src/utils/notificationTranslator.js`, `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v270) - Deep 5–10 Line Agronomic Pathology, Multilingual Voice Alerts & 2-Way Audio Messaging
 - **Summary:**
   1. 🌿 **5–10 Line Deep Agronomic Disease Description (`diseaseAdvisoryData.js` & `GoogleMessageReader.jsx`):**

@@ -1,104 +1,93 @@
 /**
  * AgriShield Agricultural Notification Content Translator
- * Automatically translates notification titles and bodies into Telugu / regional languages
- * for full farmer readability.
+ * Automatically translates notification titles and bodies into Telugu, Hindi, Tamil,
+ * Kannada, Malayalam, Odia, and English for full farmer readability.
  */
 
-const CROP_MAP_TE = {
-  'chilli': 'మిరప',
-  'chili': 'మిరప',
-  'mirapa': 'మిరప',
-  'rice': 'వరి',
-  'paddy': 'వరి',
-  'వరి పంట': 'వరి పంట',
-  'corn': 'మొక్కజొన్న',
-  'maize': 'మొక్కజొన్న',
-  'tomato': 'టమోటా',
-  'cotton': 'పత్తి',
-  'potato': 'బంగాళాదుంప',
-  'apple': 'యాపిల్',
-  'grape': 'ద్రాక్ష',
-  'grapes': 'ద్రాక్ష',
-  'mango': 'మామిడి',
-  'groundnut': 'వేరుశెనగ',
-  'peanut': 'వేరుశెనగ',
-  'wheat': 'గోధుమ',
-  'sugarcane': 'చెరకు',
-  'onion': 'ఉల్లిపాయ',
-  'soybean': 'సోయాబీన్',
-  'banana': 'అరటి',
-  'citrus': 'నిమ్మ / బత్తాయి',
-  'lemon': 'నిమ్మ',
-  'orange': 'నారింజ',
-  'pepper': 'మిరియాలు',
-  'bell pepper': 'బెంగళూరు మిరప (క్యాప్సికమ్)',
-  'capsicum': 'క్యాప్సికమ్',
-  'crop': 'పంట',
-  'general plant': 'మొక్క'
+export const CROP_TRANSLATIONS = {
+  chilli: { te: 'మిరప', hi: 'मिर्च', ta: 'மிளகாய்', kn: 'ಮೆಣಸಿನಕಾಯಿ', ml: 'മുളക്', or: 'ଲଙ୍କା', en: 'Chilli' },
+  chili: { te: 'మిరప', hi: 'मिर्च', ta: 'மிளகாய்', kn: 'ಮೆಣಸಿನಕಾಯಿ', ml: 'മുളക്', or: 'ଲଙ୍କା', en: 'Chilli' },
+  mirapa: { te: 'మిరప', hi: 'मिर्च', ta: 'மிளகாய்', kn: 'ಮೆಣಸಿನಕಾಯಿ', ml: 'മുളക്', or: 'ଲଙ୍କା', en: 'Chilli' },
+  rice: { te: 'వరి', hi: 'धान', ta: 'நெல்', kn: 'ಭತ್ತ', ml: 'നെല്ല്', or: 'ଧାନ', en: 'Paddy / Rice' },
+  paddy: { te: 'వరి', hi: 'धान', ta: 'நெல்', kn: 'ಭತ್ತ', ml: 'നെല്ല്', or: 'ଧାନ', en: 'Paddy' },
+  corn: { te: 'మొక్కజొన్న', hi: 'मक्का', ta: 'மக்காச்சோளம்', kn: 'ಮೆಕ್ಕೆಜೋಳ', ml: 'ചോളം', or: 'ମକା', en: 'Maize' },
+  maize: { te: 'మొక్కజొన్న', hi: 'मक्का', ta: 'மக்காச்சோளம்', kn: 'ಮೆಕ್ಕೆಜೋಳ', ml: 'ചോളം', or: 'ମକା', en: 'Maize' },
+  tomato: { te: 'టమాటా', hi: 'टमाटर', ta: 'தக்காளி', kn: 'ಟೊಮೆಟೊ', ml: 'തക്കാളി', or: 'ଟମାଟୋ', en: 'Tomato' },
+  cotton: { te: 'పత్తి', hi: 'कपास', ta: 'பருத்தி', kn: 'ಹತ್ತಿ', ml: 'പരുത്തി', or: 'କପା', en: 'Cotton' },
+  potato: { te: 'బంగాళాదుంప', hi: 'आलू', ta: 'உருளைக்கிழங்கு', kn: 'ಆಲೂಗಡ್ಡೆ', ml: 'ഉരുളക്കിഴങ്ങ്', or: 'ଆଳୁ', en: 'Potato' },
+  apple: { te: 'యాపిల్', hi: 'सेब', ta: 'ஆப்பிள்', kn: 'ಸೇಬು', ml: 'ആപ്പിൾ', or: 'ସେଓ', en: 'Apple' },
+  grape: { te: 'ద్రాక్ష', hi: 'अंगूर', ta: 'திராட்சை', kn: 'ದ್ರಾಕ್ಷಿ', ml: 'മുന്തിരി', or: 'ଅଙ୍ଗୁର', en: 'Grape' },
+  grapes: { te: 'ద్రాక్ష', hi: 'अंगूर', ta: 'திராட்சை', kn: 'ದ್ರಾಕ್ಷಿ', ml: 'മുന്തിരി', or: 'ଅଙ୍ଗୁର', en: 'Grapes' },
+  mango: { te: 'మామిడి', hi: 'आम', ta: 'மாம்பழம்', kn: 'ಮಾವು', ml: 'മാങ്ങ', or: 'ଆମ୍ବ', en: 'Mango' },
+  groundnut: { te: 'వేరుశనగ', hi: 'मूंगफली', ta: 'நிலக்கடலை', kn: 'ಕಡಲೆಕಾಯಿ', ml: 'നിലക്കടല', or: 'ଚିନାବାଦାମ', en: 'Groundnut' },
+  peanut: { te: 'వేరుశనగ', hi: 'मूंगफली', ta: 'நிலக்கடலை', kn: 'ಕಡಲೆಕಾಯಿ', ml: 'നിലക്കടല', or: 'ଚିନାବାଦାମ', en: 'Peanut' },
+  wheat: { te: 'గోధుమ', hi: 'गेहूं', ta: 'கோதுமை', kn: 'ಗೋಧಿ', ml: 'ഗോതമ്പ്', or: 'ଗହମ', en: 'Wheat' },
+  sugarcane: { te: 'చెరకు', hi: 'गन्ना', ta: 'கரும்பு', kn: 'ಕಬ್ಬು', ml: 'കരിമ്പ്', or: 'ଆଖୁ', en: 'Sugarcane' },
+  onion: { te: 'ఉల్లిపాయ', hi: 'प्याज', ta: 'வெங்காயம்', kn: 'ಈರುಳ್ಳಿ', ml: 'സവാള', or: 'ପିଆଜ', en: 'Onion' },
+  soybean: { te: 'సోయాబీన్', hi: 'सोयाबीन', ta: 'சோயாபீன்', kn: 'ಸೋಯಾಬೀನ್', ml: 'സോയാബീൻ', or: 'ସୋୟାବିନ୍', en: 'Soybean' },
+  banana: { te: 'అరటి', hi: 'केला', ta: 'வாழை', kn: 'ಬಾಳೆ', ml: 'വാഴ', or: 'କଦଳୀ', en: 'Banana' },
+  citrus: { te: 'నిమ్మ', hi: 'नींबू', ta: 'எலுமிச்சை', kn: 'ನಿಂಬೆ', ml: 'നാരങ്ങ', or: 'ଲେମ୍ବୁ', en: 'Citrus' },
+  lemon: { te: 'నిమ్మ', hi: 'नींबू', ta: 'எலுமிச்சை', kn: 'ನಿಂಬೆ', ml: 'നാരങ്ങ', or: 'ଲେମ୍ବୁ', en: 'Lemon' },
+  orange: { te: 'నారింజ', hi: 'संतरा', ta: 'ஆரஞ்சு', kn: 'ಕಿತ್ತಳೆ', ml: 'ഓറഞ്ച്', or: 'କମଳା', en: 'Orange' },
+  pepper: { te: 'మిరియాలు', hi: 'काली मिर्च', ta: 'மிளகு', kn: 'ಮೆಣಸು', ml: 'കുരുമുളക്', or: 'ଗୋଲମରିଚ', en: 'Pepper' },
+  capsicum: { te: 'క్యాప్సికమ్', hi: 'शिमला मिर्च', ta: 'குடைமிளகாய்', kn: 'ದೊಣ್ಣೆ ಮೆಣಸಿನಕಾಯಿ', ml: 'ക്യാപ്സിക്കം', or: 'କ୍ୟାପ୍ସିକମ୍', en: 'Capsicum' },
+  crop: { te: 'పంట', hi: 'फसल', ta: 'பயிர்', kn: 'ಬೆಳೆ', ml: 'വിള', or: 'ଫସଲ', en: 'Crop' },
+  plant: { te: 'మొక్క', hi: 'पौधा', ta: 'செடி', kn: 'ಗಿಡ', ml: 'ചെടി', or: 'ଗଛ', en: 'Plant' }
 };
 
-const DISEASE_MAP_TE = {
-  'leaf spot': 'ఆకు మచ్చ తెగులు',
-  'early blight': 'ముందస్తు ఆకు ఎండు తెగులు',
-  'late blight': 'మలి ఎండు తెగులు',
-  'powdery mildew': 'బూడిద తెగులు',
-  'downy mildew': 'డౌనీ మిల్డ్యూ తెగులు',
-  'anthracnose': 'కాయ కుళ్లు / ఆంత్రాక్నోస్',
-  'bacterial spot': 'బాక్టీరియల్ మచ్చ తెగులు',
-  'bacterial blight': 'బాక్టీరియల్ బ్లైట్',
-  'common rust': 'తుప్పు తెగులు',
-  'rust': 'తుప్పు తెగులు',
-  'stinkbug': 'గండీ నల్లి (దుర్వాసన పురుగు)',
-  'blast': 'అగ్గి తెగులు',
-  'yellow leaf curl virus': 'పసుపు ఆకు ముడత వైరస్',
-  'yellow leaf curl': 'పసుపు ఆకు ముడత వైరస్',
-  'leaf curl': 'ఆకు ముడత తెగులు',
-  'mosaic virus': 'మొజాయిక్ వైరస్',
-  'mosaic': 'మొజాయిక్ వైరస్',
-  'spider mites': 'ఎర్ర నల్లి తెగులు',
-  'two-spotted spider mite': 'ఎర్ర నల్లి పురుగు',
-  'red spider': 'ఎర్ర నల్లి తెగులు',
-  'brown spot': 'గోధుమ రంగు మచ్చ తెగులు',
-  'sheath blight': 'కాండం కుళ్ళు తెగులు',
-  'stem rot': 'కాండం కుళ్ళు తెగులు',
-  'collar rot': 'మొలక కుళ్లు తెగులు',
-  'root rot': 'వేరు కుళ్ళు తెగులు',
-  'fusarium wilt': 'ఎండు తెగులు (ఫ్యుసేరియం)',
-  'wilt': 'ఎండు తెగులు',
-  'scab': 'గజ్జి తెగులు',
-  'black rot': 'నల్ల కుళ్లు తెగులు',
-  'canker': 'క్యాంకర్ తెగులు',
-  'septoria leaf spot': 'సెప్టోరియా ఆకు మచ్చ తెగులు',
-  'cercospora leaf spot': 'సెర్కోస్పోరా ఆకు మచ్చ తెగులు',
-  'target spot': 'లక్ష్య మచ్చ తెగులు',
-  'leaf mold': 'ఆకు బూజు తెగులు',
-  'damping off': 'మొక్క కుళ్లు తెగులు',
-  'dieback': 'కొమ్మ ఎండు తెగులు',
-  'aphids': 'పేనుబంక',
-  'whitefly': 'తెల్లదోమ',
-  'thrips': 'తామర పురుగులు',
-  'stem borer': 'కాండం తొలిచే పురుగు',
-  'armyworm': 'లద్దె పురుగు',
-  'bollworm': 'కాయ తొలిచే పురుగు',
-  'healthy': 'ఆరోగ్యకరమైన పంట'
+export const DISEASE_TRANSLATIONS = {
+  'leaf spot': { te: 'ఆకు మచ్చ తెగులు', hi: 'पत्ती धब्बा रोग', ta: 'இலைப்புள்ளி நோய்', kn: 'ಎಲೆ ಚುಕ್ಕೆ ರೋಗ', ml: 'ഇലപ്പുള്ളി രോഗം', or: 'ପତ୍ର ଦାଗ ରୋଗ', en: 'Leaf Spot' },
+  'early blight': { te: 'ముందస్తు ఆకు ఎండు తెగులు', hi: 'अगेती झुलसा रोग', ta: 'முன் கருகல் நோய்', kn: 'ಮುಂಗಾರು ರೋಗ', ml: 'ഏർലി ബ്ലൈറ്റ്', or: 'ଆଗୁଆ ଝାଉଁଳା ରୋଗ', en: 'Early Blight' },
+  'late blight': { te: 'మలి ఎండు తెగులు', hi: 'पछेती झुलसा रोग', ta: 'பின் கருகல் நோய்', kn: 'ತಡವಾದ ರೋಗ', ml: 'ലേറ്റ് ബ്ലൈറ്റ്', or: 'ପଛୁଆ ଝାଉଁଳା ରୋଗ', en: 'Late Blight' },
+  'powdery mildew': { te: 'బూడిద తెగులు', hi: 'चूर्णिल आसिता (पाउडरी फफूंदी)', ta: 'சாம்பல் நோய்', kn: 'ಬೂದಿ ರೋಗ', ml: 'ചാരപ്പൂപ്പ് രോഗം', or: 'ପାଉଡର ଫିମ୍ପି', en: 'Powdery Mildew' },
+  'downy mildew': { te: 'డౌనీ మిల్డ్యూ తెగులు', hi: 'मृदुरोमिल आसिता', ta: 'அடிச்சாம்பல் நோய்', kn: 'ಡೌನಿ ಮಿಲ್ಡ್ಯೂ ರೋಗ', ml: 'ഡൗണി മിൽഡ്യൂ', or: 'ତଳିଆ ଫିମ୍ପି', en: 'Downy Mildew' },
+  'anthracnose': { te: 'కాయ కుళ్లు / ఆంత్రాక్నోస్', hi: 'एन्थ्रेक्नोज / फल सड़न', ta: 'ஆந்த்ராக்னோஸ் / பழ அழுகல்', kn: 'ಆಂಥ್ರಾಕ್ನೋಸ್ / ಕಾಯಿ ಕೊಳೆ', ml: 'ആന്ത്രാക്നോസ് / കായ്ചീയൽ', or: 'ଆନ୍ଥ୍ରାକନୋଜ୍ / ଫଳ ପଚା', en: 'Anthracnose' },
+  'bacterial spot': { te: 'బాక్టీరియల్ మచ్చ తెగులు', hi: 'जीवाणु धब्बा रोग', ta: 'பாக்டீரியா புள்ளி நோய்', kn: 'ಬ್ಯಾಕ್ಟೀರಿಯಾ ಚುಕ್ಕೆ ರೋಗ', ml: 'ബാക്ടീരിയൽ ഇലപ്പുള്ളി', or: 'ଜୀବାଣୁ ଦାଗ ରୋଗ', en: 'Bacterial Spot' },
+  'bacterial blight': { te: 'బాక్టీరియల్ బ్లైట్', hi: 'जीवाणु झुलसा रोग', ta: 'பாக்டீரியா கருகல் நோய்', kn: 'ಬ್ಯಾಕ್ಟೀರಿಯಾ ಬ್ಲೈಟ್', ml: 'ബാക്ടീരിയൽ ബ്ലാസ്റ്റ്', or: 'ଜୀବାଣୁ ଝାଉଁଳା ରୋଗ', en: 'Bacterial Blight' },
+  'common rust': { te: 'తుప్పు తెగులు', hi: 'गेरुआ / रस्ट रोग', ta: 'துரு நோய்', kn: 'ತುಕ್ಕು ರೋಗ', ml: 'തുരുമ്പ് രോഗം', or: 'କଳଙ୍କି ରୋଗ', en: 'Common Rust' },
+  'rust': { te: 'తుప్పు తెగులు', hi: 'गेरुआ / रस्ट रोग', ta: 'துரு நோய்', kn: 'ತುಕ್ಕು ರೋಗ', ml: 'തുരുമ്പ് രോഗം', or: 'କଳଙ୍କି ରୋଗ', en: 'Rust' },
+  'blast': { te: 'అగ్గి తెగులు', hi: 'झोंका / ब्लास्ट रोग', ta: 'குலை நோய் (பிளாஸ்ட்)', kn: 'ಬೆಂಕಿ ರೋಗ (ಬ್ಲಾಸ್ಟ್)', ml: 'കുലവാട്ടം (ബ്ലാസ്റ്റ്)', or: 'ପତ୍ରପୋଡ଼ା ରୋଗ', en: 'Blast' },
+  'yellow leaf curl': { te: 'పసుపు ఆకు ముడత వైరస్', hi: 'पीली पत्ती मरोड़ विषाणु', ta: 'மஞ்சள் இலை சுருள் வைரஸ்', kn: 'ಹಳದಿ ಎಲೆ ಮುದುರು ವೈರಸ್', ml: 'മഞ്ഞളിപ്പ് ഇലച്ചുരുൾ വൈറസ്', or: 'ହଳଦିଆ ପତ୍ର କୁଞ୍ଚନ ଭୂତାଣୁ', en: 'Yellow Leaf Curl Virus' },
+  'leaf curl': { te: 'ఆకు ముడత తెగులు', hi: 'पत्ती मरोड़ रोग (लीफ कर्ल)', ta: 'இலை சுருள் நோய்', kn: 'ಎಲೆ ಮುದುರು ರೋಗ', ml: 'ഇലച്ചുരുൾ രോഗം', or: 'ପତ୍ର କୁଞ୍ଚନ ରୋଗ', en: 'Leaf Curl' },
+  'mosaic virus': { te: 'మొజాయిక్ వైరస్', hi: 'मोज़ेक वायरस', ta: 'மொசைக் வைரஸ்', kn: 'ಮೊಸಾಯಿಕ್ ವೈರಸ್', ml: 'മൊസൈക് വൈറസ്', or: 'ମୋଜାଇକ୍ ଭୂତାଣୁ', en: 'Mosaic Virus' },
+  'mosaic': { te: 'మొజాయిక్ వైరస్', hi: 'मोज़ेक वायरस', ta: 'மொசைக் வைரஸ்', kn: 'ಮೊಸಾಯಿಕ್ ವೈರಸ್', ml: 'മൊസൈക് വൈറസ്', or: 'ମୋଜାଇକ୍ ଭୂତାଣୁ', en: 'Mosaic' },
+  'spider mites': { te: 'ఎర్ర నల్లి తెగులు', hi: 'लाल मकड़ी कीट', ta: 'செம்பேன்', kn: 'ಕೆಂಪು ನುಸಿ ಕೀಟ', ml: 'ചുവന്ന മണ്ഡരി', or: 'ନାଲି ବୁଢ଼ିଆଣୀ ପୋକ', en: 'Spider Mites' },
+  'fusarium wilt': { te: 'ఎండు తెగులు (ఫ్యుసేరియం)', hi: 'उकठा रोग (फ्यूजेरियम)', ta: 'வாடல் நோய் (பியூசேரியம்)', kn: 'ಸೊರಗು ರೋಗ (ಫ್ಯೂಸಾರಿಯಮ್)', ml: 'വാട്ട രോഗം (ഫ്യൂസേറിയം)', or: 'ଝାଉଁଳା ରୋଗ (ଫ୍ୟୁଜାରିୟମ୍)', en: 'Fusarium Wilt' },
+  'wilt': { te: 'ఎండు తెగులు', hi: 'उकठा / विल्ट रोग', ta: 'வாடல் நோய்', kn: 'ಸೊರಗು ರೋಗ', ml: 'വാട്ട രോഗം', or: 'ଝାଉଁଳା ରୋଗ', en: 'Wilt' },
+  'scab': { te: 'గజ్జి తెగులు', hi: 'पपड़ी / स्कैब रोग', ta: 'சொறி நோய்', kn: 'ಹುರುಕು ರೋಗ', ml: 'തുരുമ്പ് വ്രണം', or: 'ଖସୁ ରୋଗ', en: 'Scab' },
+  'caterpillar': { te: 'పొగాకు లద్దెపురుగు', hi: 'तम्बाकू की इल्ली / कटवर्म', ta: 'புகையிலை வெட்டுப்புழு', kn: 'ತಂಬಾಕು ಕಟಾವಿ ಹುಳು', ml: 'പുകയിലപ്പുഴു', or: 'ତମାଖୁ ଲଦିପୋକ', en: 'Caterpillar' },
+  'spodoptera': { te: 'పొగాకు లద్దెపురుగు', hi: 'तम्बाकू की इल्ली / कटवर्म', ta: 'புகையிலை வெட்டுப்புழு', kn: 'ತಂಬಾಕು ಕಟಾವಿ ಹುಳು', ml: 'പുകയിലപ്പുഴു', or: 'ତମାଖୁ ଲଦିପୋକ', en: 'Spodoptera Litura' },
+  'healthy': { te: 'ఆరోగ్యకరమైన పంట', hi: 'स्वस्थ फसल', ta: 'ஆரோக்கியமான பயிர்', kn: 'ಆರೋಗ್ಯಕರ ಬೆಳೆ', ml: 'ആരോഗ്യമുള്ള വിള', or: 'ସୁସ୍ଥ ଫସଲ', en: 'Healthy Crop' }
 };
 
-function resolveCropNameTe(rawCrop = '') {
-  if (!rawCrop) return 'పంట';
+export function resolveLocalizedCrop(rawCrop = '', lang = 'en') {
+  if (!rawCrop) return 'Crop';
   const clean = rawCrop.trim().toLowerCase();
-  if (CROP_MAP_TE[clean]) return CROP_MAP_TE[clean];
-  for (const [k, v] of Object.entries(CROP_MAP_TE)) {
-    if (clean.includes(k)) return v;
+  const langKey = (lang || 'en').toLowerCase().slice(0, 2);
+  
+  if (CROP_TRANSLATIONS[clean]) {
+    return CROP_TRANSLATIONS[clean][langKey] || CROP_TRANSLATIONS[clean].en || rawCrop;
+  }
+  for (const [k, v] of Object.entries(CROP_TRANSLATIONS)) {
+    if (clean.includes(k)) {
+      return v[langKey] || v.en || rawCrop;
+    }
   }
   return rawCrop.trim();
 }
 
-function resolveDiseaseNameTe(rawDis = '') {
-  if (!rawDis) return 'తెగులు';
+export function resolveLocalizedDisease(rawDis = '', lang = 'en') {
+  if (!rawDis) return 'Plant Disease';
   const clean = rawDis.trim().toLowerCase();
-  if (DISEASE_MAP_TE[clean]) return DISEASE_MAP_TE[clean];
-  for (const [k, v] of Object.entries(DISEASE_MAP_TE)) {
-    if (clean.includes(k)) return v;
+  const langKey = (lang || 'en').toLowerCase().slice(0, 2);
+
+  if (DISEASE_TRANSLATIONS[clean]) {
+    return DISEASE_TRANSLATIONS[clean][langKey] || DISEASE_TRANSLATIONS[clean].en || rawDis;
+  }
+  for (const [k, v] of Object.entries(DISEASE_TRANSLATIONS)) {
+    if (clean.includes(k)) {
+      return v[langKey] || v.en || rawDis;
+    }
   }
   return rawDis.trim();
 }
@@ -112,68 +101,155 @@ export function translateNotification(title = '', message = '', lang = 'te') {
   let transTitle = title;
   let transMessage = message;
 
+  const locCrop = (crop) => resolveLocalizedCrop(crop, currentLang);
+  const locDis = (dis) => resolveLocalizedDisease(dis, currentLang);
+
   // ─── 1. TRANSLATE TITLE ───
   const trimmedTitle = (title || '').trim();
   const matchDet = trimmedTitle.match(/(?:🚨\s*)?(?:Disease Detected|Disease Alert):\s*([^\n.]+?)(?:\s*Detected)?$/i);
+  
   if (matchDet) {
-    const teDis = resolveDiseaseNameTe(matchDet[1]);
-    transTitle = `🚨 రోగం గుర్తించబడింది: ${teDis}`;
+    const dName = locDis(matchDet[1]);
+    const titles = {
+      te: `🚨 రోగం గుర్తించబడింది: ${dName}`,
+      hi: `🚨 रोग का पता चला: ${dName}`,
+      ta: `🚨 நோய் கண்டறியப்பட்டது: ${dName}`,
+      kn: `🚨 ರೋಗ ಪತ್ತೆಯಾಗಿದೆ: ${dName}`,
+      ml: `🚨 രോഗം കണ്ടെത്തി: ${dName}`,
+      or: `🚨 ରୋଗ ଚିହ୍ନଟ ହେଲା: ${dName}`
+    };
+    transTitle = titles[currentLang] || `🚨 Disease Detected: ${dName}`;
   } else if (/Healthy Crop Verified/i.test(trimmedTitle)) {
     const cropPart = trimmedTitle.replace(/🌱\s*Healthy Crop Verified:\s*/i, '').trim();
-    const teCrop = resolveCropNameTe(cropPart);
-    transTitle = `🌱 ఆరోగ్యకరమైన పంట: ${teCrop}`;
+    const cName = locCrop(cropPart);
+    const titles = {
+      te: `🌱 ఆరోగ్యకరమైన పంట: ${cName}`,
+      hi: `🌱 स्वस्थ फसल: ${cName}`,
+      ta: `🌱 ஆரோக்கியமான பயிர்: ${cName}`,
+      kn: `🌱 ಆರೋಗ್ಯಕರ ಬೆಳೆ: ${cName}`,
+      ml: `🌱 ആരോഗ്യമുള്ള വിള: ${cName}`,
+      or: `🌱 ସୁସ୍ଥ ଫସଲ: ${cName}`
+    };
+    transTitle = titles[currentLang] || `🌱 Healthy Crop: ${cName}`;
   } else if (/^testing$/i.test(trimmedTitle) || /^test$/i.test(trimmedTitle)) {
-    transTitle = `పరీక్ష నోటిఫికేషన్`;
+    const titles = {
+      te: `పరీక్ష నోటిఫికేషన్`,
+      hi: `परीक्षण अधिसूचना`,
+      ta: `சோதனை அறிவிப்பு`,
+      kn: `ಪರೀಕ್ಷಾ ಅಧಿಸೂಚನೆ`,
+      ml: `ടെസ്റ്റ് അറിയിപ്പ്`,
+      or: `ପରୀକ୍ଷଣ ବିଜ୍ଞପ୍ତି`
+    };
+    transTitle = titles[currentLang] || `Test Notification`;
   } else if (/High Disease Vulnerability Alert/i.test(trimmedTitle)) {
-    transTitle = `🚨 అధిక పంట తెగులు ముప్పు హెచ్చరిక`;
+    const titles = {
+      te: `🚨 అధిక పంట తెగులు ముప్పు హెచ్చరిక`,
+      hi: `🚨 उच्च फसल रोग जोखिम चेतावनी`,
+      ta: `🚨 அதிக பயிர் நோய் அபாய எச்சரிக்கை`,
+      kn: `🚨 ಹೆಚ್ಚಿನ ಬೆಳೆ ರೋಗ ಅಪಾಯದ ಎಚ್ಚರಿಕೆ`,
+      ml: `🚨 ഉയർന്ന വിള രോഗ സാധ്യത മുന്നറിയിപ്പ്`,
+      or: `🚨 ଉଚ୍ଚ ଫସଲ ରୋଗ ବିପଦ ଚେତାବନୀ`
+    };
+    transTitle = titles[currentLang] || `🚨 High Disease Vulnerability Alert`;
   } else if (/ESP32 Battery Critical/i.test(trimmedTitle)) {
-    transTitle = `🚨 ESP32 బ్యాటరీ తక్కువగా ఉంది`;
+    const titles = {
+      te: `🚨 ESP32 బ్యాటరీ తక్కువగా ఉంది`,
+      hi: `🚨 ESP32 बैटरी कम है`,
+      ta: `🚨 ESP32 பேட்டரி குறைவாக உள்ளது`,
+      kn: `🚨 ESP32 ಬ್ಯಾಟರಿ ಕಡಿಮೆಯಾಗಿದೆ`,
+      ml: `🚨 ESP32 ബാറ്ററി കുറവാണ്`,
+      or: `🚨 ESP32 ବ୍ୟାଟେରୀ କମ ଅଛି`
+    };
+    transTitle = titles[currentLang] || `🚨 ESP32 Battery Critical`;
   } else if (/Outbreak Alert:/i.test(trimmedTitle)) {
-    transTitle = trimmedTitle.replace(/⚠️\s*Outbreak Alert:/i, '⚠️ గ్రామ పరిధి తెగులు హెచ్చరిక:');
+    const prefix = {
+      te: '⚠️ గ్రామ పరిధి తెగులు హెచ్చరిక:',
+      hi: '⚠️ क्षेत्रीय प्रकोप चेतावनी:',
+      ta: '⚠️ பகுதி நோய் எச்சரிக்கை:',
+      kn: '⚠️ ಪ್ರದೇಶ ರೋಗ ಎಚ್ಚರಿಕೆ:',
+      ml: '⚠️ മേഖലാ രോഗ മുന്നറിയിപ്പ്:',
+      or: '⚠️ ଆଞ୍ଚଳିକ ରୋଗ ଚେତାବନୀ:'
+    };
+    transTitle = trimmedTitle.replace(/⚠️\s*Outbreak Alert:/i, prefix[currentLang] || '⚠️ Outbreak Alert:');
   }
 
   // ─── 2. TRANSLATE BODY / MATTER ───
   const trimmedMsg = (message || '').trim();
 
-  // Pattern A: "Leaf Spot detected on Chilli with 66.1% confidence. Immediate treatment is..." / "identified on..."
+  // Pattern A: "Leaf Spot detected on Chilli with 66.1% confidence. Immediate treatment is..."
   const matchBody = trimmedMsg.match(/([^\n]+?)\s+(?:detected|identified)\s+on\s+([^\n]+?)\s+with\s+([\d.]+%?\s*confidence)(?:[.\s\S]*)/i);
   if (matchBody) {
-    const teDis = resolveDiseaseNameTe(matchBody[1]);
-    const teCrop = resolveCropNameTe(matchBody[2]);
+    const dName = locDis(matchBody[1]);
+    const cName = locCrop(matchBody[2]);
     const conf = matchBody[3].includes('%') ? matchBody[3] : `${matchBody[3]}%`;
-    const cropLabel = teCrop.endsWith('పంట') ? teCrop : `${teCrop} పంట`;
-    transMessage = `${cropLabel}లో ${conf} ఖచ్చితత్వంతో ${teDis} గుర్తించబడింది. పంట నష్టం జరగకుండా వెంటనే తగిన నివారణ చికిత్స చేపట్టండి. మందులు & పూర్తి మార్గదర్శకాల కోసం స్కాన్ ఫలితాలను చూడండి.`;
+
+    const msgs = {
+      te: `${cName} పంటలో ${conf} ఖచ్చితత్వంతో ${dName} గుర్తించబడింది. పంట నష్టం జరగకుండా వెంటనే తగిన నివారణ చికిత్స చేపట్టండి. మందులు & పూర్తి మార్గదర్శకాల కోసం స్కాన్ ఫలితాలను చూడండి.`,
+      hi: `${cName} में ${conf} सटीकता के साथ ${dName} पाया गया है। फसल को नुकसान से बचाने के लिए तुरंत अनुशंसित उपचार शुरू करें। दवा की खुराक और पूरी गाइड के लिए परिणाम देखें।`,
+      ta: `${cName} பயிரில் ${conf} துல்லியத்துடன் ${dName} கண்டறியப்பட்டுள்ளது. மகசூல் இழப்பைத் தடுக்க உடனடியாக பரிந்துரைக்கப்பட்ட சிகிச்சையைத் தொடங்குங்கள். மருந்து விபரங்களுக்கு முடிவுகளைப் பார்க்கவும்.`,
+      kn: `${cName} ಬೆಳೆಯಲ್ಲಿ ${conf} ನಿಖರತೆಯೊಂದಿಗೆ ${dName} ಕಂಡುಬಂದಿದೆ. ಬೆಳೆ ನಷ್ಟವನ್ನು ತಡೆಗಟ್ಟಲು ತಕ್ಷಣ ಶಿಫಾರಸು ಮಾಡಿದ ಚಿಕಿತ್ಸೆಯನ್ನು ಕೈಗೊಳ್ಳಿ. ಔಷಧಿಗಳ ವಿವರಗಳಿಗಾಗಿ ಫಲಿತಾಂಶಗಳನ್ನು ವೀಕ್ಷಿಸಿ.`,
+      ml: `${cName} വിളയിൽ ${conf} കൃത്യതയോടെ ${dName} കണ്ടെത്തി. വിളനാശം ഒഴിവാക്കാൻ ഉടൻ പ്രതിരോധ നടപടികൾ സ്വീകരിക്കുക. മരുന്നുകളുടെ വിവരങ്ങൾക്ക് ഫലം കാണുക.`,
+      or: `${cName} ରେ ${conf} ସଠିକତା ସହିତ ${dName} ଚିହ୍ନଟ ହୋଇଛି | ଫସଲ ନଷ୍ଟକୁ ରୋକିବା ପାଇଁ ତୁରନ୍ତ ଚିକିତ୍ସା କରନ୍ତୁ | ଔଷଧ ମାତ୍ରା ପାଇଁ ପରିଣାମ ଦେଖନ୍ତୁ |`
+    };
+    transMessage = msgs[currentLang] || `${dName} detected on ${cName} with ${conf}. Initiate appropriate treatment immediately to prevent crop damage.`;
   }
   // Pattern B: Healthy crop confirmation
   else if (/AI diagnosis complete: Your\s+([^\n]+?)\s+foliage is healthy with\s+([\d.]+%\s*confidence)/i.test(trimmedMsg)) {
     const matchHealthy = trimmedMsg.match(/AI diagnosis complete: Your\s+([^\n]+?)\s+foliage is healthy with\s+([\d.]+%\s*confidence)/i);
-    const teCrop = resolveCropNameTe(matchHealthy[1]);
-    const cropLabel = teCrop.endsWith('పంట') ? teCrop : `${teCrop} పంట`;
-    transMessage = `AI పంట నిర్ధారణ పూర్తయింది: మీ ${cropLabel} ఆకులు ${matchHealthy[2]} ఖచ్చితత్వంతో సంపూర్ణ ఆరోగ్యంగా ఉన్నాయి. సాధారణ నీటిపారుదల & ఎరువుల షెడ్యూల్ కొనసాగించండి.`;
+    const cName = locCrop(matchHealthy[1]);
+    const conf = matchHealthy[2];
+
+    const msgs = {
+      te: `AI పంట నిర్ధారణ పూర్తయింది: మీ ${cName} ఆకులు ${conf} ఖచ్చితత్వంతో సంపూర్ణ ఆరోగ్యంగా ఉన్నాయి. సాధారణ నీటిపారుదల & ఎరువుల షెడ్యూల్ కొనసాగించండి.`,
+      hi: `एआई फसल निदान पूर्ण: आपकी ${cName} की पत्तियां ${conf} सटीकता के साथ पूरी तरह स्वस्थ हैं। सामान्य सिंचाई और पोषण जारी रखें।`,
+      ta: `AI பயிர் ஆய்வு முடிந்தது: உங்கள் ${cName} பயிர் ${conf} துல்லியத்துடன் முற்றிலும் ஆரோக்கியமாக உள்ளது. வழக்கமான பாசனத்தை தொடரவும்.`,
+      kn: `AI ಬೆಳೆ ರೋಗ ಪತ್ತೆ ಪೂರ್ಣಗೊಂಡಿದೆ: ನಿಮ್ಮ ${cName} ಸಸ್ಯಗಳು ${conf} ನಿಖರತೆಯೊಂದಿಗೆ ಸಂಪೂರ್ಣವಾಗಿ ಆರೋಗ್ಯಕರವಾಗಿವೆ.`,
+      ml: `AI വിള പരിശോധന പൂർത്തിയായി: നിങ്ങളുടെ ${cName} ചെടികൾ ${conf} കൃത്യതയോടെ തികച്ചും ആരോഗ്യകരമാണ്.`,
+      or: `AI ଫସଲ ନିଦାନ ସମ୍ପୂର୍ଣ୍ଣ: ଆପଣଙ୍କ ${cName} ${conf} ସଠିକତା ସହିତ ସମ୍ପୂର୍ଣ୍ଣ ସୁସ୍ଥ ଅଛି |`
+    };
+    transMessage = msgs[currentLang] || `AI diagnosis complete: Your ${cName} foliage is healthy with ${conf}.`;
   }
-  // Pattern C: Testing notifications
-  else if (/this is only for testing do not panic for this/i.test(trimmedMsg)) {
-    transMessage = `ఇది కేవలం సిస్టమ్ పనితీరు పరీక్ష కోసం పంపబడిన సందేశం, దయచేసి ఆందోళన చెందవద్దు.`;
-  } else if (/^test$/i.test(trimmedMsg) || /^testing$/i.test(trimmedMsg)) {
-    transMessage = `సిస్టమ్ తనిఖీ సందేశం విజయవంతంగా చేరింది.`;
-  }
-  // Pattern D: Environmental & Weather humidity warnings
+  // Pattern C: Environmental & Weather humidity warnings
   else if (/Persistent canopy humidity/i.test(trimmedMsg)) {
-    transMessage = `పంటపై నిరంతర తేమ (>88%) నమోదైంది. ముందస్తు ఆకు ఎండు తెగులు వ్యాపించే అధిక ప్రమాదం ఉంది. ముందుజాగ్రత్తగా కాపర్ లేదా వేపనూనె పిచికారీ చేయండి.`;
+    const msgs = {
+      te: `పంటపై నిరంతర తేమ (>88%) నమోదైంది. ముందస్తు ఆకు ఎండు తెగులు వ్యాపించే అధిక ప్రమాదం ఉంది. ముందుజాగ్రత్తగా కాపర్ లేదా వేపనూనె పిచికారీ చేయండి.`,
+      hi: `फसल पर लगातार नमी (>88%) दर्ज की गई है। झुलसा रोग फैलने का उच्च जोखिम है। सावधानी के रूप में कॉपर या नीम के तेल का छिड़काव करें।`,
+      ta: `பயிரில் தொடர் ஈரப்பதம் (>88%) பதிவாகியுள்ளது. கருகல் நோய் பரவும் அபாயம் உள்ளது. முன்னெச்சரிக்கையாக வேப்ப எண்ணெய் தெளிக்கவும்.`,
+      kn: `ಬೆಳೆಯ ಮೇಲೆ ನಿರಂತರ ತೇವಾಂಶ (>88%) ದಾಖಲಾಗಿದೆ. ಮುಂಗಾರು ರೋಗ ಹರಡುವ ಸಾಧ್ಯತೆಯಿದೆ. ತಡೆಗಟ್ಟಲು ಬೇವಿನ ಎಣ್ಣೆ ಸಿಂಪಡಿಸಿ.`,
+      ml: `വിളയിൽ ഉയർന്ന ഈർപ്പം (>88%) രേഖപ്പെടുത്തി. ഇലക്കരിച്ചിൽ ഉണ്ടാകാൻ സാധ്യതയുണ്ട്. വേപ്പെണ്ണ തളിക്കുക.`,
+      or: `ଫସଲରେ ଅତ୍ୟଧିକ ଆର୍ଦ୍ରତା (>88%) ରେକର୍ଡ ହୋଇଛି | ଝାଉଁଳା ରୋଗ ବ୍ୟାପିବାର ଆଶଙ୍କା ଅଛି | ପ୍ରତିକାର ଭାବେ ନିମ୍ବ ତେଲ ସ୍ପ୍ରେ କରନ୍ତୁ |`
+    };
+    transMessage = msgs[currentLang] || message;
   }
-  // Pattern E: Neighborhood outbreak warning
+  // Pattern D: Neighborhood outbreak warning
   else if (/Alert: A severe case of\s+([^\n]+?)\s+on\s+([^\n]+?)\s+has been diagnosed in nearby\s+([^\n]+?)\s+village/i.test(trimmedMsg)) {
     const matchOutbreak = trimmedMsg.match(/Alert: A severe case of\s+([^\n]+?)\s+on\s+([^\n]+?)\s+has been diagnosed in nearby\s+([^\n]+?)\s+village/i);
-    const teDis = resolveDiseaseNameTe(matchOutbreak[1]);
-    const teCrop = resolveCropNameTe(matchOutbreak[2]);
-    const cropLabel = teCrop.endsWith('పంట') ? teCrop : `${teCrop} పంట`;
-    transMessage = `గ్రామ పరిధి హెచ్చరిక: సమీపంలోని ${matchOutbreak[3].trim()} గ్రామంలో ${cropLabel}లో తీవ్రమైన ${teDis} తెగులు గుర్తించబడింది. వెంటనే మీ పొలాన్ని తనిఖీ చేయండి.`;
+    const dName = locDis(matchOutbreak[1]);
+    const cName = locCrop(matchOutbreak[2]);
+    const village = matchOutbreak[3].trim();
+
+    const msgs = {
+      te: `గ్రామ పరిధి హెచ్చరిక: సమీపంలోని ${village} గ్రామంలో ${cName}లో తీవ్రమైన ${dName} తెగులు గుర్తించబడింది. వెంటనే మీ పొలాన్ని తనిఖీ చేయండి.`,
+      hi: `ग्राम चेतावनी: निकटवर्ती ${village} गाँव में ${cName} में गंभीर ${dName} पाया गया है। तुरंत अपने खेत का निरीक्षण करें।`,
+      ta: `கிராம எச்சரிக்கை: அருகிலுள்ள ${village} கிராமத்தில் ${cName} பயிரில் தீவிர ${dName} கண்டறியப்பட்டுள்ளது. உங்கள் வயலை உடனடியாக ஆய்வு செய்யவும்.`,
+      kn: `ಗ್ರಾಮ ಎಚ್ಚರಿಕೆ: ಹತ್ತಿರದ ${village} ಗ್ರಾಮದಲ್ಲಿ ${cName} ಬೆಳೆಯಲ್ಲಿ ತೀವ್ರ ${dName} ರೋಗ ಕಂಡುಬಂದಿದೆ. ತಕ್ಷಣ ನಿಮ್ಮ ಜಮೀನನ್ನು ಪರಿಶೀಲಿಸಿ.`,
+      ml: `ഗ്രാമ മുന്നറിയിപ്പ്: സമീപത്തുള്ള ${village} ഗ്രാമത്തിൽ ${cName} വിളയിൽ കഠിനമായ ${dName} രോഗം കണ്ടെത്തി. നിങ്ങളുടെ കൃഷിയിടം പരിശോധിക്കുക.`,
+      or: `ଗ୍ରାମ ଚେତାବନୀ: ନିକଟସ୍ଥ ${village} ଗାଁରେ ${cName} ରେ ଗମ୍ଭୀର ${dName} ଚିହ୍ନଟ ହୋଇଛି | ତୁରନ୍ତ ନିଜ ଜମି ଯାଞ୍ଚ କରନ୍ତୁ |`
+    };
+    transMessage = msgs[currentLang] || message;
   }
-  // Pattern F: Battery warning
+  // Pattern E: Battery warning
   else if (/ESP32 field node battery dropped to/i.test(trimmedMsg)) {
-    transMessage = `ఫీల్డ్ సెన్సార్ నోడ్ బ్యాటరీ తగ్గిపోయింది. డేటా నిలిచిపోకుండా ఉండేందుకు దయచేసి వెంటనే సోలార్ లేదా బ్యాటరీ ఛార్జ్ చేయండి.`;
+    const msgs = {
+      te: `ఫీల్డ్ సెన్సార్ నోడ్ బ్యాటరీ తగ్గిపోయింది. డేటా నిలిచిపోకుండా ఉండేందుకు దయచేసి వెంటనే సోలార్ లేదా బ్యాటరీ ఛార్జ్ చేయండి.`,
+      hi: `फील्ड सेंसर नोड की बैटरी कम हो गई है। डेटा रुकावट से बचने के लिए कृपया तुरंत सौर या बैटरी चार्ज करें।`,
+      ta: `சென்சார் நோடின் பேட்டரி குறைந்துள்ளது. தரவு இழப்பைத் தவிர்க்க உடனடியாக சார்ஜ் செய்யவும்.`,
+      kn: `ಫೀಲ್ಡ್ ಸಂವೇದಕ ನೋಡ್‌ನ ಬ್ಯಾಟರಿ ಕಡಿಮೆಯಾಗಿದೆ. ಡೇಟಾ ಅಡಚಣೆ ತಪ್ಪಿಸಲು ದಯವಿಟ್ಟು ತಕ್ಷಣ ಚಾರ್ಜ್ ಮಾಡಿ.`,
+      ml: `സെൻസർ നോഡിന്റെ ബാറ്ററി കുറഞ്ഞു. ഡാറ്റ നഷ്ടപ്പെടാതിരിക്കാൻ ദയവായി ഉടൻ ചാർജ് ചെയ്യുക.`,
+      or: `ସେନସର ନୋଡ୍ ବ୍ୟାଟେରୀ କମିଯାଇଛି | ଡାଟା ବନ୍ଦ ନହେବା ପାଇଁ ଦୟାକରି ତୁରନ୍ତ ଚାର୍ଜ କରନ୍ତୁ |`
+    };
+    transMessage = msgs[currentLang] || message;
   }
 
   return { title: transTitle, message: transMessage };
 }
-

@@ -20,83 +20,114 @@ import {
   translateDisease,
   getDetailedAgronomicDescription
 } from '../../utils/diseaseAdvisoryData';
+import { translateNotification } from '../../utils/notificationTranslator';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
 
+export const READER_LANGUAGES = [
+  { code: 'te', name: 'తెలుగు', flag: '🌾', label: 'తెలుగు (Telugu)' },
+  { code: 'en', name: 'English', flag: '🌐', label: 'English' },
+  { code: 'hi', name: 'हिंदी', flag: '🇮🇳', label: 'हिंदी (Hindi)' },
+  { code: 'ta', name: 'தமிழ்', flag: '🌾', label: 'தமிழ் (Tamil)' },
+  { code: 'kn', name: 'ಕನ್ನಡ', flag: '🌾', label: 'ಕನ್ನಡ (Kannada)' },
+  { code: 'ml', name: 'മലയാളം', flag: '🌴', label: 'മലയാളം (Malayalam)' },
+  { code: 'or', name: 'ଓଡ଼ିଆ', flag: '🌾', label: 'ଓଡ଼ିଆ (Odia)' }
+];
+
 /**
- * Intelligent crop & disease extractor
+ * Intelligent crop & disease extractor supporting all 7 regional languages
  */
-function extractCropDetails(item, isTelugu = false) {
+function extractCropDetails(item, lang = 'te') {
+  const normLang = (lang || 'en').split('-')[0].toLowerCase();
   if (!item) {
     return {
       cropKey: 'crop',
-      cropName: isTelugu ? 'పంట' : 'Crop',
+      cropName: translateCrop('crop', normLang) || 'Crop',
       cropEmoji: '🌿',
       diseaseName: null,
-      threadTitle: isTelugu ? '🌿 పంట రక్షణ సలహా' : '🌿 Crop Health Advisory'
+      threadTitle: normLang === 'te' ? '🌿 పంట రక్షణ సలహా' : (normLang === 'hi' ? '🌿 फसल सुरक्षा सलाह' : '🌿 Crop Health Advisory')
     };
   }
 
   const rawText = `${item.crop_name || ''} ${item.crop || ''} ${item.crop_type || ''} ${item.title || ''} ${item.title_te || ''} ${item.message || ''} ${item.message_te || ''}`.toLowerCase();
 
   const CROPS = [
-    { key: 'chilli', en: 'Chilli', te: 'మిరప', emoji: '🌶️', regex: /(chilli|chili|pepper|మిరప|mirapa)/i },
-    { key: 'maize', en: 'Maize', te: 'మొక్కజొన్న', emoji: '🌽', regex: /(maize|corn|మొక్కజొన్న|mokkajonna)/i },
-    { key: 'tomato', en: 'Tomato', te: 'టమాటా', emoji: '🍅', regex: /(tomato|టమాటా|టమాట|tamata)/i },
-    { key: 'paddy', en: 'Paddy', te: 'వరి', emoji: '🌾', regex: /(paddy|rice|వరి|vari)/i },
-    { key: 'cotton', en: 'Cotton', te: 'పత్తి', emoji: '🧶', regex: /(cotton|పత్తి|patti)/i },
-    { key: 'groundnut', en: 'Groundnut', te: 'వేరుశనగ', emoji: '🥜', regex: /(groundnut|peanut|వేరుశనగ|verusanaga)/i },
-    { key: 'sugarcane', en: 'Sugarcane', te: 'చెరకు', emoji: '🎋', regex: /(sugarcane|చెరకు|cheraku)/i },
-    { key: 'banana', en: 'Banana', te: 'అరటి', emoji: '🍌', regex: /(banana|అరటి|arati)/i },
-    { key: 'mango', en: 'Mango', te: 'మామిడి', emoji: '🥭', regex: /(mango|మామిడి|mamidi)/i },
-    { key: 'onion', en: 'Onion', te: 'ఉల్లి', emoji: '🧅', regex: /(onion|ఉల్లి|ulli)/i },
-    { key: 'potato', en: 'Potato', te: 'బంగాళాదుంప', emoji: '🥔', regex: /(potato|బంగాళాదుంప|bangaladumpa)/i },
-    { key: 'soybean', en: 'Soybean', te: 'సోయాబీన్', emoji: '🫘', regex: /(soybean|soya|సోయా)/i },
-    { key: 'wheat', en: 'Wheat', te: 'గోధుమ', emoji: '🌾', regex: /(wheat|గోధుమ|godhuma)/i },
-    { key: 'grape', en: 'Grape', te: 'ద్రాక్ష', emoji: '🍇', regex: /(grape|ద్రాక్ష|draksha)/i },
-    { key: 'citrus', en: 'Citrus', te: 'నిమ్మ', emoji: '🍋', regex: /(citrus|lemon|lime|నిమ్మ|nimma)/i },
+    { key: 'chilli', en: 'Chilli', te: 'మిరప', hi: 'मिर्च', ta: 'மிளகாய்', kn: 'ಮೆಣಸಿನಕಾಯಿ', ml: 'മുളക്', or: 'ଲଙ୍କା', emoji: '🌶️', regex: /(chilli|chili|pepper|మిరప|mirapa|मिर्च|மிளகாய்|ಮೆಣಸಿನಕಾಯಿ|മുളക്|ଲଙ୍କା)/i },
+    { key: 'maize', en: 'Maize', te: 'మొక్కజొన్న', hi: 'मक्का', ta: 'மக்காச்சோளம்', kn: 'ಮೆಕ್ಕೆಜೋಳ', ml: 'ചോളം', or: 'ମକା', emoji: '🌽', regex: /(maize|corn|మొక్కజొన్న|mokkajonna|मक्का|மக்காச்சோளம்|ಮೆಕ್ಕೆಜೋಳ|ചോളം|ମକା)/i },
+    { key: 'tomato', en: 'Tomato', te: 'టమాటా', hi: 'टमाटर', ta: 'தக்காளி', kn: 'ಟೊಮೆಟೊ', ml: 'തക്കാളി', or: 'ଟମାଟୋ', emoji: '🍅', regex: /(tomato|టమాటా|టమాట|tamata|टमाटर|தக்காளி|ಟೊಮೆಟೊ|തക്കാളി|ଟମାଟୋ)/i },
+    { key: 'paddy', en: 'Paddy', te: 'వరి', hi: 'धान / चावल', ta: 'நெல்', kn: 'ಭತ್ತ', ml: 'നെല്ല്', or: 'ଧାନ', emoji: '🌾', regex: /(paddy|rice|వరి|vari|धान|चावल|நெல்|ಭತ್ತ|നെല്ല്|ଧାନ)/i },
+    { key: 'cotton', en: 'Cotton', te: 'పత్తి', hi: 'कपास', ta: 'பருத்தி', kn: 'ಹತ್ತಿ', ml: 'പരുത്തി', or: 'କପା', emoji: '🧶', regex: /(cotton|పత్తి|patti|कपास|பருத்தி|ಹತ್ತಿ|പരുത്തി|କପା)/i },
+    { key: 'groundnut', en: 'Groundnut', te: 'వేరుశనగ', hi: 'मूंगफली', ta: 'வேர்க்கடலை', kn: 'ಕಡಲೆಕಾಯಿ', ml: 'നിലക്കടല', or: 'ଚିନାବାଦାମ', emoji: '🥜', regex: /(groundnut|peanut|వేరుశనగ|verusanaga|मूंगफली|வேர்க்கடலை|ಕಡಲೆಕಾಯಿ|നിലക്കടല|ଚିନାବାଦାମ)/i },
+    { key: 'sugarcane', en: 'Sugarcane', te: 'చెరకు', hi: 'गन्ना', ta: 'கரும்பு', kn: 'ಕಬ್ಬು', ml: 'കരിമ്പ്', or: 'ଆଖୁ', emoji: '🎋', regex: /(sugarcane|చెరకు|cheraku|गन्ना|கரும்பு|ಕಬ್ಬು|കരിമ്പ്|ଆଖୁ)/i },
+    { key: 'banana', en: 'Banana', te: 'అరటి', hi: 'केला', ta: 'வாழை', kn: 'ಬಾಳೆ', ml: 'വാഴ', or: 'କଦଳୀ', emoji: '🍌', regex: /(banana|అరటి|arati|केला|வாழை|ಬಾಳೆ|വാഴ|କଦଳୀ)/i },
+    { key: 'mango', en: 'Mango', te: 'మామిడి', hi: 'आम', ta: 'மாம்பழம்', kn: 'ಮಾವಿನ ಹಣ್ಣು', ml: 'മാങ്ങ', or: 'ଆମ୍ବ', emoji: '🥭', regex: /(mango|మామిడి|mamidi|आम|மாம்பழம்|ಮಾವಿನ ಹಣ್ಣು|മാങ്ങ|ଆମ୍ବ)/i },
+    { key: 'onion', en: 'Onion', te: 'ఉల్లి', hi: 'प्याज', ta: 'வெங்காயம்', kn: 'ಈರುಳ್ಳಿ', ml: 'സவாള', or: 'ପିଆଜ', emoji: '🧅', regex: /(onion|ఉల్లి|ulli|प्याज|வெங்காயம்|ಈರುಳ್ಳಿ|സவாള|ପିଆଜ)/i },
+    { key: 'potato', en: 'Potato', te: 'బంగాళాదుంప', hi: 'आलू', ta: 'உருளைக்கிழங்கு', kn: 'ಆಲೂಗಡ್ಡೆ', ml: 'ഉരുളക്കിഴങ്ങ്', or: 'ଆଳୁ', emoji: '🥔', regex: /(potato|బంగాళాదుంప|bangaladumpa|आलू|உருளைக்கிழங்கு|ಆಲೂಗಡ್ಡೆ|ഉരുളക്കിഴങ്ങ്|ଆଳୁ)/i },
+    { key: 'soybean', en: 'Soybean', te: 'సోయాబీన్', hi: 'सोयाबीन', ta: 'சோயாபீன்', kn: 'ಸೋಯಾಬೀನ್', ml: 'സോയാബീൻ', or: 'ସୋୟାବିନ୍', emoji: '🫘', regex: /(soybean|soya|సోయా|सोयाबीन|சோயாபீன்|ಸೋಯಾಬೀನ್|സോയാബീൻ|ସୋୟାବିନ୍)/i },
+    { key: 'wheat', en: 'Wheat', te: 'గోధుమ', hi: 'गेहूं', ta: 'கோதுமை', kn: 'ಗೋಧಿ', ml: 'ഗോതമ്പ്', or: 'ଗହମ', emoji: '🌾', regex: /(wheat|గోధుమ|godhuma|गेहूं|கோதுமை|ಗೋಧಿ|ഗോതമ്പ്|ଗହମ)/i },
+    { key: 'grape', en: 'Grape', te: 'ద్రాక్ష', hi: 'अंगूर', ta: 'திராட்சை', kn: 'ದ್ರಾಕ್ಷಿ', ml: 'മുന്തിരി', or: 'ଅଙ୍ଗୁର', emoji: '🍇', regex: /(grape|ద్రాక్ష|draksha|अंगूर|திராட்சை|ದ್ರಾಕ್ಷಿ|മുന്തിരി|ଅଙ୍ଗୁର)/i },
+    { key: 'citrus', en: 'Citrus', te: 'నిమ్మ', hi: 'नींबू', ta: 'எலுமிச்சை', kn: 'ನಿಂಬೆ', ml: 'നാരങ്ങ', or: 'ଲେମ୍ବୁ', emoji: '🍋', regex: /(citrus|lemon|lime|నిమ్మ|nimma|नींबू|எலுமிச்சை|ನಿಂಬೆ|നാരങ്ങ|ଲେମ୍ବୁ)/i },
   ];
 
   const matchedCrop = CROPS.find(c => c.regex.test(rawText));
 
   const DISEASES = [
-    { key: 'early_blight', en: 'Early Blight', te: 'ఎర్లీ బ్లైట్', regex: /(early blight|ఎర్లీ బ్లైట్)/i },
-    { key: 'late_blight', en: 'Late Blight', te: 'లేట్ బ్లైట్', regex: /(late blight|లేట్ బ్లైట్)/i },
-    { key: 'leaf_spot', en: 'Leaf Spot', te: 'ఆకు మచ్చతెగులు', regex: /(leaf spot|cercospora|ఆకు మచ్చ|మచ్చతెగులు)/i },
-    { key: 'powdery_mildew', en: 'Powdery Mildew', te: 'బూడిద తెగులు', regex: /(powdery mildew|బూడిద తెగులు)/i },
-    { key: 'rust', en: 'Rust', te: 'తుప్పు తెగులు', regex: /(rust|తుప్పు)/i },
-    { key: 'wilt', en: 'Wilt', te: 'ఎండు తెగులు', regex: /(wilt|fusarium|ఎండు తెగులు)/i },
-    { key: 'bacterial_blight', en: 'Bacterial Blight', te: 'బాక్టీరియల్ బ్లైట్', regex: /(bacterial blight|బాక్టీరియల్ బ్లైట్)/i },
-    { key: 'blast', en: 'Blast', te: 'అగ్గి తెగులు', regex: /(blast|magnaporthe|అగ్గి తెగులు)/i },
-    { key: 'spodoptera', en: 'Caterpillar / Cutworm', te: 'లద్దెపురుగు', regex: /(spodoptera|caterpillar|cutworm|లద్దెపురుగు)/i }
+    { key: 'early_blight', en: 'Early Blight', te: 'ఎర్లీ బ్లైట్', hi: 'अगेती झुलसा', ta: 'முன் கருகல்', kn: 'ಮುಂಗಾರು ರೋಗ', ml: 'ഏർലി ബ്ലൈറ്റ്', or: 'ଆଗୁଆ ଝାଉଁଳା', regex: /(early blight|ఎర్లీ బ్లైట్|अगेती झुलसा|முன் கருகல்|ಮುಂಗಾರು ರೋಗ|ഏർലി ബ്ലൈറ്റ്|ଆଗୁଆ ଝାଉଁଳା)/i },
+    { key: 'late_blight', en: 'Late Blight', te: 'లేట్ బ్లైట్', hi: 'पछेती झुलसा', ta: 'பின் கருகல்', kn: 'ಹಿಂಗಾರು ರೋಗ', ml: 'ലേറ്റ് ബ്ലൈಟ್', or: 'ପଛୁଆ ଝାଉଁଳା', regex: /(late blight|లేట్ బ్లైట్|पछेती झुलसा|பின் கருகல்|ಹಿಂಗಾರು ರೋಗ|ലേറ്റ് ബ്ലൈറ്റ്|ପଛୁଆ ଝାଉଁଳା)/i },
+    { key: 'leaf_spot', en: 'Leaf Spot', te: 'ఆకు మచ్చతెగులు', hi: 'पत्ती धब्बा रोग', ta: 'இலைப்புள்ளி நோய்', kn: 'ಎಲೆ ಚುಕ್ಕೆ ರೋಗ', ml: 'ഇലപ്പുള്ളി രോഗം', or: 'ପତ୍ର ଦାଗ ରୋଗ', regex: /(leaf spot|cercospora|ఆకు మచ్చ|మచ్చతెగులు|पत्ती धब्बा|இலைப்புள்ளி|ಎಲೆ ಚುಕ್ಕೆ|ഇലപ്പുള്ളി|ପତ୍ର ଦାଗ)/i },
+    { key: 'powdery_mildew', en: 'Powdery Mildew', te: 'బూడిద తెగులు', hi: 'चूर्णी फफूंद (पाउडरी मिल्ड्यू)', ta: 'சாம்பல் நோய்', kn: 'ಬೂದಿ ರೋಗ', ml: 'ചാരപ്പൂപ്പ് രോഗം', or: 'ପାଉଡରି ମିଲ୍ଡ୍ୟୁ', regex: /(powdery mildew|బూడిద తెగులు|पाउडरी मिल्ड्यू|चूर्णी फफूंद|சாம்பல் நோய்|ಬೂದಿ ರೋಗ|ചാരപ്പൂപ്പ്|ପାଉଡରି)/i },
+    { key: 'rust', en: 'Rust', te: 'తుప్పు తెగులు', hi: 'गेरुआ / रतुआ रोग', ta: 'துரு நோய்', kn: 'ತುಕ್ಕು ರೋಗ', ml: 'തുരുമ്പ് രോഗം', or: 'କଳଙ୍କି ରୋଗ', regex: /(rust|తుప్పు|रतुआ|गेरुआ|துரு நோய்|ತುಕ್ಕು|തുരുമ്പ്|କଳଙ୍କି)/i },
+    { key: 'wilt', en: 'Wilt', te: 'ఎండు తెగులు', hi: 'उकठा / विल्ट रोग', ta: 'வாடல் நோய்', kn: 'ಸೊರಗು ರೋಗ', ml: 'വാട്ടം രോഗം', or: 'ଝାଉଁଳା ରୋଗ', regex: /(wilt|fusarium|ఎండు తెగులు|उकठा|வாடல்|ಸೊರಗು|വാട്ടം|ଝାଉଁଳା)/i },
+    { key: 'bacterial_blight', en: 'Bacterial Blight', te: 'బాక్టీరియల్ బ్లైట్', hi: 'जीवाणु झुलसा', ta: 'பாக்டீரியா கருகல்', kn: 'ಬ್ಯಾಕ್ಟೀರಿಯಲ್ ರೋಗ', ml: 'ബാക്ടീരിയൽ ബ്ലൈറ്റ്', or: 'ଜୀବାଣୁ ଝାଉଁଳା', regex: /(bacterial blight|బాక్టీరియల్ బ్లైట్|जीवाणु झुलसा|பாக்டீரியா கருகல்|ಬ್ಯಾಕ್ಟೀರಿಯಲ್|ബാക്ടീരിയൽ)/i },
+    { key: 'blast', en: 'Blast', te: 'అగ్గి తెగులు', hi: 'ब्लास्ट रोग', ta: 'குலை நோய்', kn: 'ಬೆಂಕಿ ರೋಗ', ml: 'കുലവാട്ടം', or: 'ବ୍ଲାଷ୍ଟ ରୋଗ', regex: /(blast|magnaporthe|అగ్గి తెగులు|ब्लास्ट|குலை நோய்|ಬೆಂಕಿ ರೋಗ|കുಲവാട്ടം)/i },
+    { key: 'spodoptera', en: 'Caterpillar / Cutworm', te: 'లద్దెపురుగు', hi: 'तम्बाकू की इल्ली / कटवर्म', ta: 'புகையிலை வெட்டுப்புழு', kn: 'ತಂಬಾಕು ಕಂಬಳಿಹುಳು', ml: 'പുകയിലപ്പുഴു', or: 'ପୋକ / କଟ୍‌ୱର୍ମ', regex: /(spodoptera|caterpillar|cutworm|లద్దెపురుగు|इल्ली|कटवर्म|வெட்டுப்புழு|ಕಂಬಳಿಹುಳು|പുകയിലപ്പുഴു|ପୋକ)/i }
   ];
 
   const matchedDisease = DISEASES.find(d => d.regex.test(rawText));
 
   if (matchedCrop) {
-    const cropName = isTelugu ? matchedCrop.te : matchedCrop.en;
+    const cropName = matchedCrop[normLang] || translateCrop(matchedCrop.key, normLang) || matchedCrop.en;
     let title = '';
     if (matchedDisease) {
-      const diseaseName = isTelugu ? matchedDisease.te : matchedDisease.en;
+      const diseaseName = matchedDisease[normLang] || translateDisease(matchedDisease.key, normLang, matchedCrop.key) || matchedDisease.en;
       title = `${matchedCrop.emoji} ${cropName} • ${diseaseName}`;
     } else {
-      title = isTelugu ? `${matchedCrop.emoji} ${cropName} పంట సలహా` : `${matchedCrop.emoji} ${cropName} Crop Advisory`;
+      const advisoryWord = {
+        te: 'పంట సలహా',
+        hi: 'फसल सलाह',
+        ta: 'பயிர் ஆலோசனை',
+        kn: 'ಬೆಳೆ ಸಲಹೆ',
+        ml: 'വിള ഉപദേശം',
+        or: 'ଫସଲ ପରାମର୍ଶ',
+        en: 'Crop Advisory'
+      }[normLang] || 'Crop Advisory';
+      title = `${matchedCrop.emoji} ${cropName} ${advisoryWord}`;
     }
     return {
       cropKey: matchedCrop.key,
       cropName,
       cropEmoji: matchedCrop.emoji,
-      diseaseName: matchedDisease ? (isTelugu ? matchedDisease.te : matchedDisease.en) : null,
+      diseaseName: matchedDisease ? (matchedDisease[normLang] || matchedDisease.en) : null,
       threadTitle: title
     };
   }
 
+  const defaultAdvisory = {
+    te: '🌿 పంట రక్షణ సలహా',
+    hi: '🌿 फसल स्वास्थ्य सलाह',
+    ta: '🌿 பயிர் சுகாதார ஆலோசனை',
+    kn: '🌿 ಬೆಳೆ ಆರೋಗ್ಯ ಸಲಹೆ',
+    ml: '🌿 വിള ആരോഗ്യ ഉപദേശം',
+    or: '🌿 ଫସଲ ସୁରକ୍ଷା ପରାମର୍ଶ',
+    en: '🌿 Crop Health Advisory'
+  }[normLang] || '🌿 Crop Health Advisory';
+
   return {
     cropKey: 'crop',
-    cropName: isTelugu ? 'పంట' : 'Crop',
+    cropName: translateCrop('crop', normLang) || 'Crop',
     cropEmoji: '🌿',
-    diseaseName: matchedDisease ? (isTelugu ? matchedDisease.te : matchedDisease.en) : null,
-    threadTitle: isTelugu ? '🌿 పంట రక్షణ సలహా' : '🌿 Crop Health Advisory'
+    diseaseName: matchedDisease ? (matchedDisease[normLang] || matchedDisease.en) : null,
+    threadTitle: defaultAdvisory
   };
 }
 
@@ -129,6 +160,9 @@ export default function GoogleMessageReader({
   const [showFullReview, setShowFullReview] = useState(false);
   const [inputText, setInputText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+
+  const activeLangObj = READER_LANGUAGES.find(l => (currentLang || '').toLowerCase().startsWith(l.code)) || READER_LANGUAGES[0];
 
   // ── Voice Recording & Playback States (Pattern C) ──
   const [isRecording, setIsRecording] = useState(false);
@@ -168,13 +202,23 @@ export default function GoogleMessageReader({
 
   // ── Determine Differentiated Notification Pattern ──
   const isBooking = message.category === 'booking' || message.type === 'booking' || Boolean(message.booking_id || message.bookingId);
-  const isDisease = message.category === 'disease' || (!isBooking && Boolean(message.crop || message.disease || /(blight|spot|mildew|rust|wilt|blast|rot|caterpillar|లద్దెపురుగు|తెగులు|మచ్చ)/i.test(`${message.title || ''} ${message.message || ''}`)));
+  const isDisease = message.category === 'disease' || (!isBooking && Boolean(message.crop || message.disease || /(blight|spot|mildew|rust|wilt|blast|rot|caterpillar|లద్దెపురుగు|తెగులు|మచ్చ|झुलसा|धब्बा|रोग)/i.test(`${message.title || ''} ${message.message || ''}`)));
   const isSystemOrHardware = !isBooking && !isDisease;
 
-  // ── Crop & Disease Extraction ──
+  // ── Multilingual Dynamic Notification Translation ──
+  const activeNotification = useMemo(() => {
+    const normLang = (currentLang || 'en').split('-')[0].toLowerCase();
+    const trans = translateNotification(message.title, message.message, normLang);
+    return {
+      title: (normLang === (lang || '').toLowerCase() && translatedTitle) || trans.title || message.title,
+      message: (normLang === (lang || '').toLowerCase() && translatedBody) || trans.message || message.message
+    };
+  }, [message, currentLang, translatedTitle, translatedBody, lang]);
+
+  // ── Multilingual Crop & Disease Extraction ──
   const cropInfo = useMemo(() => {
-    return extractCropDetails(message, isTelugu);
-  }, [message, isTelugu]);
+    return extractCropDetails(message, currentLang);
+  }, [message, currentLang]);
 
   const parsedInfo = useMemo(() => {
     let crop = message.crop || cropInfo.cropKey || '';
@@ -185,16 +229,18 @@ export default function GoogleMessageReader({
       const confMatch = fullText.match(/(\d+(?:\.\d+)?)\s*%\s*confidence/i);
       if (confMatch) confidence = parseFloat(confMatch[1]).toFixed(1);
     }
-    const matched = getDiseaseDetails(crop, disease, isTelugu ? 'te' : 'en');
+    const matched = getDiseaseDetails(crop, disease, currentLang);
     return {
       crop,
+      localizedCrop: translateCrop(crop, currentLang),
       teluguCrop: translateCrop(crop, 'te'),
       disease,
+      localizedDisease: translateDisease(disease, currentLang, crop),
       teluguDisease: translateDisease(disease, 'te', crop),
       confidence: confidence || '94.6',
       advisory: matched
     };
-  }, [message, cropInfo, isTelugu]);
+  }, [message, cropInfo, currentLang]);
 
   // ── 5–10 Lines Agronomic Pathology Description ──
   const detailedDescription = useMemo(() => {
@@ -203,24 +249,35 @@ export default function GoogleMessageReader({
       parsedInfo.disease,
       currentLang,
       parsedInfo.confidence,
-      translatedBody || message.message
+      activeNotification.message
     );
-  }, [cropInfo.cropKey, parsedInfo.disease, currentLang, parsedInfo.confidence, translatedBody, message.message]);
+  }, [cropInfo.cropKey, parsedInfo.disease, currentLang, parsedInfo.confidence, activeNotification.message]);
 
-  // ── Weather & System Hardware Audio Narration Text ──
+  // ── Multilingual Weather & System Hardware Audio Narration Text ──
   const systemAudioText = useMemo(() => {
-    const title = translatedTitle || message.title || (isTelugu ? 'సిస్టమ్ అలర్ట్' : 'System Hardware Alert');
-    const body = translatedBody || message.message || '';
+    const normLang = (currentLang || 'en').split('-')[0].toLowerCase();
+    const title = activeNotification.title;
+    const body = activeNotification.message || '';
     let telemetry = '';
     if (message.node_id || message.battery != null || message.humidity != null) {
-      if (isTelugu) {
+      if (normLang === 'te') {
         telemetry = ` పరికర వివరాలు: ${message.node_id ? `నోడ్ ఐడీ ${message.node_id}.` : ''} ${message.battery != null ? `బ్యాటరీ శాతం ${message.battery} శాతం.` : ''} ${message.humidity != null ? `గాలిలో తేమ ${message.humidity} శాతం.` : ''}`;
+      } else if (normLang === 'hi') {
+        telemetry = ` उपकरण विवरण: ${message.node_id ? `नोड आईडी ${message.node_id}.` : ''} ${message.battery != null ? `बैटरी स्तर ${message.battery} प्रतिशत.` : ''} ${message.humidity != null ? `हवा में नमी ${message.humidity} प्रतिशत.` : ''}`;
+      } else if (normLang === 'ta') {
+        telemetry = ` சாதன விவரங்கள்: ${message.node_id ? `நோட் ஐடி ${message.node_id}.` : ''} ${message.battery != null ? `பேட்டரி ${message.battery} சதவீதம்.` : ''} ${message.humidity != null ? `ஈரப்பதம் ${message.humidity} சதவீதம்.` : ''}`;
+      } else if (normLang === 'kn') {
+        telemetry = ` ಸಾಧನದ ವಿವರಗಳು: ${message.node_id ? `ನೋಡ್ ಐಡಿ ${message.node_id}.` : ''} ${message.battery != null ? `ಬ್ಯಾಟರಿ ${message.battery} ಪ್ರತಿಶತ.` : ''} ${message.humidity != null ? `ತೇವಾಂಶ ${message.humidity} ಪ್ರತಿಶತ.` : ''}`;
+      } else if (normLang === 'ml') {
+        telemetry = ` ഉപകരണ വിവരങ്ങൾ: ${message.node_id ? `നോഡ് ഐഡി ${message.node_id}.` : ''} ${message.battery != null ? `ബാറ്ററി ${message.battery} ശതമാനം.` : ''} ${message.humidity != null ? `ഈർപ്പം ${message.humidity} ശതമാനം.` : ''}`;
+      } else if (normLang === 'or') {
+        telemetry = ` ଉପକରଣ ବିବରଣୀ: ${message.node_id ? `ନୋଡ୍ ଆଇଡି ${message.node_id}.` : ''} ${message.battery != null ? `ବ୍ୟାଟେରୀ ${message.battery} ପ୍ରତିଶତ.` : ''} ${message.humidity != null ? `ଆର୍ଦ୍ରତା ${message.humidity} ପ୍ରତିଶତ.` : ''}`;
       } else {
         telemetry = ` Device telemetry: ${message.node_id ? `Node ID ${message.node_id}.` : ''} ${message.battery != null ? `Battery at ${message.battery} percent.` : ''} ${message.humidity != null ? `Relative humidity ${message.humidity} percent.` : ''}`;
       }
     }
     return `${title}. ${body}. ${telemetry}`;
-  }, [translatedTitle, message, isTelugu, translatedBody]);
+  }, [activeNotification, message, currentLang]);
 
   // ── Equipment Booking State & Precise Village Details ──
   const rawBookingId = message.booking_id || message.bookingId || (message.id?.startsWith('notif-') ? message.id.replace('notif-', '') : message.id) || 'BK-21407';
@@ -763,30 +820,52 @@ export default function GoogleMessageReader({
 
         {/* Header Action Buttons & In-Reader Language Switcher */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* In-Reader Language Toggle Pill */}
-          <div className="flex items-center rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shadow-xs mr-1">
+          {/* Multilingual In-Reader Language Dropdown */}
+          <div className="relative">
             <button
               type="button"
-              onClick={() => handleToggleLanguage('te')}
-              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
-                isTelugu
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+              onClick={() => setShowLangMenu(prev => !prev)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-[11px] sm:text-xs font-bold text-slate-800 dark:text-slate-200 transition-all cursor-pointer shadow-xs mr-1"
+              title="Change Reader Language / భాష మార్చండి"
             >
-              తెలుగు
+              <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{activeLangObj.name}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => handleToggleLanguage('en')}
-              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
-                !isTelugu
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              EN
-            </button>
+
+            {showLangMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowLangMenu(false)} />
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#161b22] border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl py-1 z-50 overflow-hidden">
+                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                    Select Language
+                  </div>
+                  {READER_LANGUAGES.map(l => {
+                    const isSelected = (currentLang || '').toLowerCase().startsWith(l.code);
+                    return (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => {
+                          handleToggleLanguage(l.code);
+                          setShowLangMenu(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-bold flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer ${
+                          isSelected
+                            ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30'
+                            : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span>{l.flag}</span>
+                          <span>{l.label}</span>
+                        </span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Audio TTS toggle button for Disease or System Advisories */}
@@ -882,7 +961,7 @@ export default function GoogleMessageReader({
                   </span>
                   {parsedInfo.disease && (
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                      {isTelugu ? (parsedInfo.teluguDisease || parsedInfo.disease) : parsedInfo.disease}
+                      {parsedInfo.localizedDisease || parsedInfo.disease}
                     </span>
                   )}
                 </div>
@@ -922,7 +1001,15 @@ export default function GoogleMessageReader({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                    <span>{isTelugu ? 'ఆడియో చికిత్సా సలహా (తెలుగు వాయిస్)' : 'Voice Treatment Advisory (English Speech)'}</span>
+                    <span>
+                      {currentLang.startsWith('te') ? 'ఆడియో చికిత్సా సలహా (తెలుగు వాయిస్)' :
+                       currentLang.startsWith('hi') ? 'ऑडियो उपचार सलाह (हिंदी आवाज)' :
+                       currentLang.startsWith('ta') ? 'சிகிச்சை வழிகாட்டி (தமிழ் குரல்)' :
+                       currentLang.startsWith('kn') ? 'ಚಿಕಿತ್ಸಾ ಸಲಹೆ (ಕನ್ನಡ ಧ್ವನಿ)' :
+                       currentLang.startsWith('ml') ? 'ചികിത്സാ നിർദ്ദേശം (മലയാളം ശബ്ദം)' :
+                       currentLang.startsWith('or') ? 'ଚିକିତ୍ସା ପରାମର୍ଶ (ଓଡ଼ିଆ ଭଏସ)' :
+                       'Voice Treatment Advisory (English Speech)'}
+                    </span>
                     <span className="text-[10px] text-slate-500 font-mono">0:28</span>
                   </div>
 
@@ -1034,7 +1121,7 @@ export default function GoogleMessageReader({
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                      {translatedTitle || message.title || (isTelugu ? 'సిస్టమ్ అలర్ట్' : 'System Hardware Alert')}
+                      {activeNotification.title || (isTelugu ? 'సిస్టమ్ అలర్ట్' : 'System Hardware Alert')}
                     </h3>
                     <span className="text-[10px] text-slate-500 font-medium">
                       {formatDateTime(message.lifecycle?.created_at || message.created_at)}
@@ -1049,7 +1136,7 @@ export default function GoogleMessageReader({
 
               {/* Alert Content Text */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line font-medium">
-                {translatedBody || message.message}
+                {activeNotification.message}
               </div>
 
               {/* Hardware Telemetry Snippet if present */}
@@ -1091,7 +1178,15 @@ export default function GoogleMessageReader({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                    <span>{isTelugu ? 'వాతావరణ / సెన్సార్ ఆడియో హెచ్చరిక' : 'Weather / Sensor Voice Alert'}</span>
+                    <span>
+                      {currentLang.startsWith('te') ? 'వాతావరణ / సెన్సార్ ఆడియో హెచ్చరిక' :
+                       currentLang.startsWith('hi') ? 'मौसम / सेंसर ऑडियो चेतावनी' :
+                       currentLang.startsWith('ta') ? 'வானிலை / சென்சார் குரல் எச்சரிக்கை' :
+                       currentLang.startsWith('kn') ? 'ಹವಾಮಾನ / ಸಂವೇದಕ ಧ್ವನಿ ಎಚ್ಚರಿಕೆ' :
+                       currentLang.startsWith('ml') ? 'കാലാവസ്ഥ / സെൻസർ ശബ്ദ മുന്നറിയിപ്പ്' :
+                       currentLang.startsWith('or') ? 'ପାଣିପାଗ / ସେନ୍ସର ଭଏସ ସତର୍କତା' :
+                       'Weather / Sensor Voice Alert'}
+                    </span>
                     <span className="text-[10px] text-slate-500 font-mono">0:18</span>
                   </div>
 
