@@ -519,7 +519,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 >
                   {(() => {
                     const path = location.pathname;
-                    if (path === '/dashboard') return t('nav.dashboard', 'AgriShield');
+                    if (path === '/dashboard') return t('nav.dashboard', 'Home');
                     if (path === '/upload' || path === '/result') return t('nav.scan_crop', 'AI Crop Doctor');
                     if (path === '/history') return t('nav.scan_history', 'Scan History');
                     if (path === '/analytics') return t('nav.analytics', 'Sensor Analytics');
@@ -752,15 +752,6 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                     </button>
                   );
                 })}
-
-                {/* Direct shortcut to configure 1-3 languages in Profile */}
-                <Link
-                  to="/profile?tab=languages"
-                  title="Configure Preferred Languages (1-3) in Profile"
-                  className="p-1 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors ml-0.5"
-                >
-                  <SettingsIcon className="w-3.5 h-3.5" />
-                </Link>
               </div>
 
 

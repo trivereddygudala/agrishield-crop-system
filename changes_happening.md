@@ -5464,5 +5464,21 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
 - **Production Build Validation:**
   - Built with `npm run build`: 3,169 modules transformed, 0 errors in 25.86s.
 
+9/25/2026: Top Bar Settings Icon Removal, "Home / Dashboard" Renamed to "Home", and Full Standalone Languages Hub (v279):
+- **Top Bar Settings Icon Complete Removal (`AppLayout.jsx`):**
+  - Removed the gear settings icon (`<SettingsIcon />`) from beside the language pills in the top navigation bar.
+  - The top bar now strictly displays only the 1, 2, or 3 clean language buttons (e.g. `[ 🌾 TE ] [ 🌐 EN ]` on mobile, `[ 🌾 తెలుగు ] [ 🌐 English ]` on desktop) with zero extraneous icons.
+- **Renamed "Home / Dashboard" to "Home" (`AppLayout.jsx`, `translations.js`):**
+  - Updated `nav.dashboard` in `translations.js` from `"Home / Dashboard"` to `"Home"` across English and regional languages (Hindi `"होम"`, Telugu `"హోమ్"`).
+  - Updated header title fallback in `AppLayout.jsx` from `'AgriShield'` to `'Home'`.
+- **Full Standalone In-Page Languages Hub (`LanguagesPage.jsx`):**
+  - Transformed `/languages` into a complete standalone language configuration hub.
+  - Users can configure their 1 to 3 preferred languages directly on this page with priority rank badges (`1st Primary`, `2nd`, `3rd`) and a live preview card.
+  - Added dedicated in-page "Save Preferences" button and instant live activation.
+  - Eliminated the redirect banner linking to `/profile?tab=languages` — farmers configure and save preferences directly on `/languages` with zero redirects.
+- **Production Build Validation:**
+  - Ran `npm run build`: 3,169 modules transformed, built with 0 errors in 32.89s.
+
+
 
 
