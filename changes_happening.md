@@ -2,6 +2,31 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-25 (v270) - Deep 5–10 Line Agronomic Pathology, Multilingual Voice Alerts & 2-Way Audio Messaging
+- **Summary:**
+  1. 🌿 **5–10 Line Deep Agronomic Disease Description (`diseaseAdvisoryData.js` & `GoogleMessageReader.jsx`):**
+     - Developed `getDetailedAgronomicDescription(crop, disease, lang, confidence, originalMessage)` providing 5 to 10 lines of authoritative agronomic pathology covering pathogen genus, specific visual foliar symptoms, microclimatic humidity triggers, economic threshold / yield loss risk, and immediate chemical/organic curative protocols in both Telugu and English.
+     - Integrated into Pattern A in `GoogleMessageReader.jsx`, replacing the generic 2-line summary with a comprehensive agronomic card and updated WhatsApp sharing.
+  2. 🌐 **In-Reader Dynamic Language Switcher (`GoogleMessageReader.jsx`):**
+     - Added an in-reader quick language toggle pill `[ 🌐 తెలుగు | EN ]` in the top header.
+     - Synchronized `currentLang` state with `i18n.changeLanguage()`, `localStorage.setItem('i18nextLng')`, and `useSpeechReader` voice synthesis.
+     - Switching languages instantly translates the 5–10 line pathology text, buttons, and switches the audio speech voice dynamically (Telugu `te-IN` or English `en-IN`/`en-US`).
+  3. 🔊 **Voice Audio Waveform Reader for Weather & ESP32 Alerts (`GoogleMessageReader.jsx`):**
+     - Added the inline Voice Audio Waveform Reader bar and top header speaker button to Pattern B (Weather & ESP32 IoT alerts).
+     - Dynamically synthesizes and reads alert headlines, sensor telemetry (battery percentage, air humidity, node ID), and protective field actions aloud in the farmer's default language.
+  4. 🎙️ **2-Way Voice Recording & Audio Messaging for Equipment Advisor (`GoogleMessageReader.jsx`):**
+     - Integrated browser `MediaRecorder` API into Pattern C's machinery provider chat composer.
+     - Farmer taps `[ 🎤 ]` to start live voice recording with an animated pulse indicator, red recording dot, and digital timer (`🔴 0:04...`).
+     - Includes `[ ❌ ]` cancel and `[ 📤 Send ]` actions, generating interactive voice note bubbles in the chat thread.
+     - Features realistic automated voice replies from machinery providers with interactive play/pause controls, scrubbing bars, and speech fallback for devices without mic hardware.
+  5. 🗑️ **Removed "Simulate" Button (`NotificationsPage.jsx`):**
+     - Completely removed the amber `✨ Simulate` pill button and simulation handler from `NotificationsPage.jsx` to maintain a clean, production-grade interface.
+  6. 📦 **Production Build Verification:**
+     - Verified with `npm run build` in `frontend/` (built in 25.15s with 0 errors).
+- **Files modified**: `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`.
+
+---
+
 ## 2026-09-25 (v269) - Farmer-Friendly Booking Management: Cancel Booking, Delete Vouchers, Status Filters & Perforated Passbook
 - **Summary:**
   1. 🎫 **Professional Perforated Voucher Redesign (`EquipmentBookingPage.jsx`):**

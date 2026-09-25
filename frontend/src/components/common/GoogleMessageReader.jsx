@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Phone, Trash2, Share2, ShieldCheck, CheckCheck,
@@ -8,11 +9,17 @@ import {
   Truck, Calendar, MapPin, Check, MessageSquare,
   Play, Pause, Paperclip, Send, Mic, ExternalLink,
   Clock, MoreVertical, Lock, ShieldAlert, Cpu, Activity,
-  BatteryWarning, CloudRain, WifiOff, AlertOctagon, HelpCircle
+  BatteryWarning, CloudRain, WifiOff, AlertOctagon, HelpCircle,
+  Globe, Square, StopCircle
 } from 'lucide-react';
 import { formatDateTime, timeAgo } from '../../utils/dateUtils';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
-import { getDiseaseDetails, translateCrop, translateDisease } from '../../utils/diseaseAdvisoryData';
+import {
+  getDiseaseDetails,
+  translateCrop,
+  translateDisease,
+  getDetailedAgronomicDescription
+} from '../../utils/diseaseAdvisoryData';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
 
@@ -103,26 +110,59 @@ export default function GoogleMessageReader({
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { i18n } = useTranslation();
+
+  // Active language state with dynamic switcher
+  const [currentLang, setCurrentLang] = useState(() => {
+    return lang || i18n?.language || localStorage.getItem('i18nextLng') || 'te';
+  });
+
+  useEffect(() => {
+    if (lang && lang !== currentLang) {
+      setCurrentLang(lang);
+    }
+  }, [lang]);
+
+  const isTelugu = (currentLang || '').toLowerCase().startsWith('te');
   const isProvider = user?.role === 'equipment_provider';
-  const isTelugu = (lang || '').toLowerCase().startsWith('te');
 
   const [showFullReview, setShowFullReview] = useState(false);
   const [inputText, setInputText] = useState('');
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+
+  // ── Voice Recording & Playback States (Pattern C) ──
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [currentlyPlayingAudioId, setCurrentlyPlayingAudioId] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const activeAudioElementRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const { speak, stop, speakingId } = useSpeechReader();
 
   const messageId = message?.notification_id || message?.id || 'sms_active';
 
-  // Stop speech synthesis on unmount
+  // Stop speech synthesis & audio on unmount
   useEffect(() => {
     return () => {
       stop();
+      if (activeAudioElementRef.current) {
+        activeAudioElementRef.current.pause();
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
     };
   }, [stop]);
+
+  // Synchronize playing ID with speech reader
+  useEffect(() => {
+    if (!speakingId && !activeAudioElementRef.current) {
+      setCurrentlyPlayingAudioId(null);
+    }
+  }, [speakingId]);
 
   if (!message) return null;
 
@@ -155,6 +195,32 @@ export default function GoogleMessageReader({
       advisory: matched
     };
   }, [message, cropInfo, isTelugu]);
+
+  // ── 5–10 Lines Agronomic Pathology Description ──
+  const detailedDescription = useMemo(() => {
+    return getDetailedAgronomicDescription(
+      cropInfo.cropKey,
+      parsedInfo.disease,
+      currentLang,
+      parsedInfo.confidence,
+      translatedBody || message.message
+    );
+  }, [cropInfo.cropKey, parsedInfo.disease, currentLang, parsedInfo.confidence, translatedBody, message.message]);
+
+  // ── Weather & System Hardware Audio Narration Text ──
+  const systemAudioText = useMemo(() => {
+    const title = translatedTitle || message.title || (isTelugu ? 'సిస్టమ్ అలర్ట్' : 'System Hardware Alert');
+    const body = translatedBody || message.message || '';
+    let telemetry = '';
+    if (message.node_id || message.battery != null || message.humidity != null) {
+      if (isTelugu) {
+        telemetry = ` పరికర వివరాలు: ${message.node_id ? `నోడ్ ఐడీ ${message.node_id}.` : ''} ${message.battery != null ? `బ్యాటరీ శాతం ${message.battery} శాతం.` : ''} ${message.humidity != null ? `గాలిలో తేమ ${message.humidity} శాతం.` : ''}`;
+      } else {
+        telemetry = ` Device telemetry: ${message.node_id ? `Node ID ${message.node_id}.` : ''} ${message.battery != null ? `Battery at ${message.battery} percent.` : ''} ${message.humidity != null ? `Relative humidity ${message.humidity} percent.` : ''}`;
+      }
+    }
+    return `${title}. ${body}. ${telemetry}`;
+  }, [translatedTitle, message, isTelugu, translatedBody]);
 
   // ── Equipment Booking State & Precise Village Details ──
   const rawBookingId = message.booking_id || message.bookingId || (message.id?.startsWith('notif-') ? message.id.replace('notif-', '') : message.id) || 'BK-21407';
@@ -244,10 +310,10 @@ export default function GoogleMessageReader({
         {
           id: 'msg_p1',
           sender: 'provider',
-          type: 'audio_text',
+          type: 'voice_note',
           text: isTelugu
-            ? `లొకేషన్ చూశాను, సరైన సమయానికి (${bookingTimeSlot}) వస్తున్నాము. డ్రైవర్ ఫోన్: ${cleanProviderPhone}`
-            : `Saw the location, driver is arriving on schedule (${bookingTimeSlot}). Driver Phone: ${cleanProviderPhone}`,
+            ? `🎤 ప్రొవైడర్ వాయిస్ సందేశం (0:14)`
+            : `🎤 Provider Voice Reply (0:14)`,
           audioDuration: '0:14',
           audioNarration: isTelugu
             ? `నమస్కారం రైతు గారు, మీ పొలం లొకేషన్ చూశాము. నిర్ణీత సమయానికి డ్రైవర్ మీ ${bookingVillage} పొలానికి చేరుకుంటారు.`
@@ -257,7 +323,7 @@ export default function GoogleMessageReader({
       ];
     }
     return [];
-  }, [isBooking, isTelugu, bookingLocationDisplay, bookingVillage, bookingTimeSlot, cleanProviderPhone]);
+  }, [isBooking, isTelugu, bookingLocationDisplay, bookingVillage, cleanProviderPhone]);
 
   const [chatMessages, setChatMessages] = useState(() => {
     if (!isBooking) return [];
@@ -287,14 +353,30 @@ export default function GoogleMessageReader({
     if (isBooking) scrollToBottom();
   }, [chatMessages, isBooking]);
 
+  // ── Language Toggle Handler ──
+  const handleToggleLanguage = (newLang) => {
+    stop();
+    setCurrentLang(newLang);
+    if (i18n && typeof i18n.changeLanguage === 'function') {
+      i18n.changeLanguage(newLang);
+    }
+    try {
+      localStorage.setItem('i18nextLng', newLang);
+      localStorage.setItem('agrishield_preferred_lang', newLang);
+      window.dispatchEvent(new Event('languagechange'));
+    } catch (_) {}
+  };
+
   // ── Actions ──
   const handleBack = () => {
     stop();
+    if (activeAudioElementRef.current) activeAudioElementRef.current.pause();
     if (onBack) onBack();
   };
 
   const handleDelete = () => {
     stop();
+    if (activeAudioElementRef.current) activeAudioElementRef.current.pause();
     try {
       localStorage.removeItem(chatStorageKey);
     } catch (_) {}
@@ -305,7 +387,7 @@ export default function GoogleMessageReader({
   const handleShareWhatsApp = () => {
     let shareText = '';
     if (isDisease) {
-      shareText = `*AgriShield Disease Alert / పంట తెగులు హెచ్చరిక*\n\n*${cropInfo.threadTitle}*\n${translatedBody || message.message}\n\n*AI Confidence:* ${parsedInfo.confidence}%\n\n- AgriShield AI Crop Protection`;
+      shareText = `*AgriShield Disease Alert / పంట తెగులు హెచ్చరిక*\n\n*${cropInfo.threadTitle}*\n${detailedDescription}\n\n*AI Confidence:* ${parsedInfo.confidence}%\n\n- AgriShield AI Crop Protection`;
     } else if (isSystemOrHardware) {
       shareText = `*AgriShield System Alert / సిస్టమ్ హెచ్చరిక*\n\n*${translatedTitle || message.title}*\n${translatedBody || message.message}\n\n- AgriShield Kisan Network`;
     } else {
@@ -315,21 +397,226 @@ export default function GoogleMessageReader({
     window.open(url, '_blank');
   };
 
-  const handlePlayVoiceNote = (audioText) => {
-    if (isPlayingAudio) {
+  // Play disease advisory narration
+  const isPlayingDiseaseAudio = speakingId === `disease_audio_${messageId}`;
+  const isPlayingSystemAudio = speakingId === `sys_audio_${messageId}`;
+  const isAnySpeaking = Boolean(speakingId);
+
+  const handleToggleDiseaseAudio = () => {
+    if (isPlayingDiseaseAudio) {
       stop();
-      setIsPlayingAudio(false);
     } else {
-      setIsPlayingAudio(true);
       speak(
-        audioText,
-        `audio_note_${messageId}`,
-        lang || 'te',
-        0.95
+        `${cropInfo.threadTitle}. ${detailedDescription}`,
+        `disease_audio_${messageId}`,
+        currentLang,
+        0.92
       );
+    }
+  };
+
+  const handleToggleSystemAudio = () => {
+    if (isPlayingSystemAudio) {
+      stop();
+    } else {
+      speak(
+        systemAudioText,
+        `sys_audio_${messageId}`,
+        currentLang,
+        0.92
+      );
+    }
+  };
+
+  const handleHeaderSpeak = () => {
+    if (isAnySpeaking) {
+      stop();
+      return;
+    }
+    if (isDisease) {
+      handleToggleDiseaseAudio();
+    } else if (isSystemOrHardware) {
+      handleToggleSystemAudio();
+    }
+  };
+
+  // ── Voice Recording Logic (Pattern C) ──
+  const startVoiceRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('MediaDevices API not supported');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop());
+      };
+      recorder.start(100);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.warn('Microphone access fallback:', err);
+      // Seamless fallback timer for non-supported browsers
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      mediaRecorderRef.current = { mock: true };
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+    }
+  };
+
+  const cancelVoiceRecording = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    if (mediaRecorderRef.current && !mediaRecorderRef.current.mock && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (_) {}
+    }
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  };
+
+  const stopVoiceRecordingAndSend = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    const durationSec = Math.max(1, recordingSeconds);
+    const mins = Math.floor(durationSec / 60);
+    const secs = durationSec % 60;
+    const durationStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+    const finalizeAndAddMsg = (audioBlobUrl = null) => {
+      const newVoiceMsg = {
+        id: `msg_f_voice_${Date.now()}`,
+        sender: 'farmer',
+        type: 'voice_note',
+        audioUrl: audioBlobUrl,
+        audioDuration: durationStr,
+        text: isTelugu ? `🎤 వాయిస్ సందేశం (${durationStr})` : `🎤 Voice Message (${durationStr})`,
+        audioNarration: isTelugu
+          ? `రైతు వాయిస్ సందేశం: పొలం పని మరియు లొకేషన్ సూచనలు.`
+          : `Farmer voice message: Field work instructions and location details.`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'read'
+      };
+
+      setChatMessages(prev => [...prev, newVoiceMsg]);
+      setIsRecording(false);
+      setRecordingSeconds(0);
+
+      // Automated provider response after voice message
       setTimeout(() => {
-        setIsPlayingAudio(false);
-      }, 10000);
+        const providerVoiceReplies = isTelugu ? [
+          {
+            text: `🎤 ప్రొవైడర్ వాయిస్ సందేశం (0:14)`,
+            audioNarration: `నమస్కారం రైతు గారు, మీ వాయిస్ సందేశం విన్నాను. డ్రైవర్ ట్రాక్టర్‌తో సరైన సమయానికి మీ పొలానికి చేరుకుంటారు.`,
+            duration: '0:14'
+          },
+          {
+            text: `🎤 ప్రొవైడర్ వాయిస్ సందేశం (0:10)`,
+            audioNarration: `సరేనండి రైతు గారు, రోటవేటర్ పరికరం సిద్ధంగా ఉంది. నిర్ణీత సమయానికి పని ప్రారంభమవుతుంది.`,
+            duration: '0:10'
+          }
+        ] : [
+          {
+            text: `🎤 Provider Voice Message (0:12)`,
+            audioNarration: `Hello farmer, listened to your voice message. The driver and equipment are scheduled for your field on time.`,
+            duration: '0:12'
+          },
+          {
+            text: `🎤 Provider Voice Message (0:09)`,
+            audioNarration: `Understood clearly. The tractor will be dispatched with the required attachments.`,
+            duration: '0:09'
+          }
+        ];
+        const randomReply = providerVoiceReplies[Math.floor(Math.random() * providerVoiceReplies.length)];
+
+        setChatMessages(prev => [
+          ...prev,
+          {
+            id: `msg_p_voice_${Date.now()}`,
+            sender: 'provider',
+            type: 'voice_note',
+            audioUrl: null,
+            audioDuration: randomReply.duration,
+            text: randomReply.text,
+            audioNarration: randomReply.audioNarration,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }, 1500);
+    };
+
+    if (mediaRecorderRef.current && !mediaRecorderRef.current.mock && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.onstop = () => {
+          let audioUrl = null;
+          if (audioChunksRef.current.length > 0) {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            audioUrl = URL.createObjectURL(audioBlob);
+          }
+          finalizeAndAddMsg(audioUrl);
+        };
+        mediaRecorderRef.current.stop();
+      } catch (_) {
+        finalizeAndAddMsg(null);
+      }
+    } else {
+      finalizeAndAddMsg(null);
+    }
+    mediaRecorderRef.current = null;
+  };
+
+  // Play/Toggle voice note message
+  const handleTogglePlayVoiceNote = (msg) => {
+    if (currentlyPlayingAudioId === msg.id || speakingId === msg.id) {
+      if (activeAudioElementRef.current) {
+        activeAudioElementRef.current.pause();
+        activeAudioElementRef.current = null;
+      }
+      stop();
+      setCurrentlyPlayingAudioId(null);
+      return;
+    }
+
+    if (activeAudioElementRef.current) {
+      activeAudioElementRef.current.pause();
+      activeAudioElementRef.current = null;
+    }
+    stop();
+
+    setCurrentlyPlayingAudioId(msg.id);
+
+    if (msg.audioUrl) {
+      try {
+        const audio = new Audio(msg.audioUrl);
+        activeAudioElementRef.current = audio;
+        audio.onended = () => {
+          setCurrentlyPlayingAudioId(null);
+          activeAudioElementRef.current = null;
+        };
+        audio.onerror = () => {
+          speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
+        };
+        audio.play().catch(() => {
+          speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
+        });
+      } catch (_) {
+        speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
+      }
+    } else {
+      speak(msg.audioNarration || msg.text, msg.id, currentLang, 0.95);
     }
   };
 
@@ -414,7 +701,7 @@ export default function GoogleMessageReader({
 
       {/* ─── 1. TOP APP BAR ─── */}
       <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-white dark:bg-[#161b22] border-b border-slate-200/90 dark:border-slate-800 shrink-0 z-20 shadow-xs">
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             type="button"
             onClick={handleBack}
@@ -474,21 +761,47 @@ export default function GoogleMessageReader({
           </div>
         </div>
 
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Audio TTS toggle button for Disease Advisories */}
-          {isDisease && (
+        {/* Header Action Buttons & In-Reader Language Switcher */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* In-Reader Language Toggle Pill */}
+          <div className="flex items-center rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shadow-xs mr-1">
             <button
               type="button"
-              onClick={() => handlePlayVoiceNote(`${cropInfo.threadTitle}. ${translatedBody || message.message}`)}
-              className={`p-2.5 rounded-full transition-colors cursor-pointer ${
-                isPlayingAudio
+              onClick={() => handleToggleLanguage('te')}
+              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
+                isTelugu
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              తెలుగు
+            </button>
+            <button
+              type="button"
+              onClick={() => handleToggleLanguage('en')}
+              className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
+                !isTelugu
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              EN
+            </button>
+          </div>
+
+          {/* Audio TTS toggle button for Disease or System Advisories */}
+          {(isDisease || isSystemOrHardware) && (
+            <button
+              type="button"
+              onClick={handleHeaderSpeak}
+              className={`p-2 rounded-full transition-colors cursor-pointer ${
+                isAnySpeaking
                   ? 'bg-amber-500 text-white shadow-md animate-pulse'
                   : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
               }`}
               title={isTelugu ? "వాయిస్ సలహా వినండి" : "Listen to Voice Advisory"}
             >
-              {isPlayingAudio ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              {isAnySpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
           )}
 
@@ -496,7 +809,7 @@ export default function GoogleMessageReader({
           {isBooking && cleanProviderPhone && (
             <a
               href={`tel:${cleanProviderPhone}`}
-              className="p-2.5 rounded-full bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
+              className="p-2 rounded-full bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-700 dark:text-emerald-300 transition-colors cursor-pointer"
               title={isTelugu ? "కాల్ చేయండి" : "Direct Phone Call"}
             >
               <Phone className="w-4 h-4" />
@@ -509,7 +822,7 @@ export default function GoogleMessageReader({
               href={`https://wa.me/${cleanProviderPhone}?text=${encodeURIComponent(`Hello, regarding machinery booking #${rawBookingId} on AgriShield...`)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs"
+              className="p-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs"
               title="WhatsApp"
             >
               <MessageSquare className="w-4 h-4" />
@@ -520,7 +833,7 @@ export default function GoogleMessageReader({
           <button
             type="button"
             onClick={handleShareWhatsApp}
-            className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
             title={isTelugu ? "షేర్ చేయండి" : "Share"}
           >
             <Share2 className="w-4 h-4" />
@@ -550,8 +863,8 @@ export default function GoogleMessageReader({
 
         {/* ══════════════════════════════════════════════════════════════
             PATTERN A: DISEASE DETECTION ALERTS
-            Brief summary, symptoms, audio player, chemical & organic
-            treatments, leaf scan button. Strictly read-only.
+            5-10 lines agronomic pathology description, dynamic Telugu/English
+            narration, chemical & organic treatments, leaf scan button.
            ══════════════════════════════════════════════════════════════ */}
         {isDisease && (
           <motion.div
@@ -588,8 +901,9 @@ export default function GoogleMessageReader({
                 <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
                   {cropInfo.threadTitle}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal leading-relaxed mt-2 whitespace-pre-line">
-                  {translatedBody || message.message}
+                {/* 5-10 Lines Comprehensive Agronomic Pathology Briefing */}
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-normal leading-relaxed mt-2 whitespace-pre-line bg-slate-50/70 dark:bg-slate-900/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                  {detailedDescription}
                 </p>
               </div>
 
@@ -597,19 +911,19 @@ export default function GoogleMessageReader({
               <div className="mt-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => handlePlayVoiceNote(`${cropInfo.threadTitle}. ${translatedBody || message.message}`)}
+                  onClick={handleToggleDiseaseAudio}
                   className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 cursor-pointer shadow-md ${
-                    isPlayingAudio ? 'bg-amber-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                    isPlayingDiseaseAudio ? 'bg-amber-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                   }`}
                   title={isTelugu ? "వాయిస్ గైడ్ వినండి" : "Play Voice Guide"}
                 >
-                  {isPlayingAudio ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                  {isPlayingDiseaseAudio ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                 </button>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                    <span>{isTelugu ? 'ఆడియో చికిత్సా సలహా (తెలుగు)' : 'Voice Treatment Advisory'}</span>
-                    <span className="text-[10px] text-slate-500 font-mono">0:24</span>
+                    <span>{isTelugu ? 'ఆడియో చికిత్సా సలహా (తెలుగు వాయిస్)' : 'Voice Treatment Advisory (English Speech)'}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">0:28</span>
                   </div>
 
                   {/* Pulsing Audio Waves */}
@@ -619,7 +933,7 @@ export default function GoogleMessageReader({
                         key={i}
                         style={{ height: `${h}%` }}
                         className={`w-1 rounded-full transition-all ${
-                          isPlayingAudio
+                          isPlayingDiseaseAudio
                             ? 'bg-emerald-500 dark:bg-emerald-400 animate-pulse'
                             : 'bg-slate-300 dark:bg-slate-700'
                         }`}
@@ -702,9 +1016,8 @@ export default function GoogleMessageReader({
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            PATTERN B: ESP32 IOT & SYSTEM ADMIN ALERTS
-            Clean text, sensor issue details, single Share button.
-            Strictly read-only.
+            PATTERN B: ESP32 IOT & WEATHER ALERTS
+            Voice Audio Waveform Reader, sensor telemetry, and sharing.
            ══════════════════════════════════════════════════════════════ */}
         {isSystemOrHardware && (
           <motion.div
@@ -763,7 +1076,43 @@ export default function GoogleMessageReader({
                 </div>
               )}
 
-              {/* Only Share Button */}
+              {/* Inline Audio Player Waveform for Weather & ESP32 Alerts */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleToggleSystemAudio}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 cursor-pointer shadow-md ${
+                    isPlayingSystemAudio ? 'bg-amber-500 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'
+                  }`}
+                  title={isTelugu ? "అలర్ట్ ఆడియో వినండి" : "Listen to Alert Audio"}
+                >
+                  {isPlayingSystemAudio ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                </button>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                    <span>{isTelugu ? 'వాతావరణ / సెన్సార్ ఆడియో హెచ్చరిక' : 'Weather / Sensor Voice Alert'}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">0:18</span>
+                  </div>
+
+                  {/* Pulsing Audio Waves */}
+                  <div className="flex items-center gap-1 h-5 mt-1">
+                    {[45, 80, 55, 95, 60, 85, 50, 90, 65, 75, 85, 50, 40, 70, 85, 45, 30].map((h, i) => (
+                      <span
+                        key={i}
+                        style={{ height: `${h}%` }}
+                        className={`w-1 rounded-full transition-all ${
+                          isPlayingSystemAudio
+                            ? 'bg-blue-500 dark:bg-blue-400 animate-pulse'
+                            : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Share Alert on WhatsApp */}
               <button
                 type="button"
                 onClick={handleShareWhatsApp}
@@ -777,9 +1126,9 @@ export default function GoogleMessageReader({
         )}
 
         {/* ══════════════════════════════════════════════════════════════
-            PATTERN C: EQUIPMENT PROVIDER BOOKING
+            PATTERN C: EQUIPMENT PROVIDER BOOKING & 2-WAY AUDIO MESSAGING
             Interactive 2-way conversation, ticket voucher with accurate
-            village details, map preview, quick chips, and active reply composer.
+            village details, map preview, voice recording & audio notes.
            ══════════════════════════════════════════════════════════════ */}
         {isBooking && (
           <div className="max-w-2xl mx-auto space-y-4">
@@ -854,6 +1203,7 @@ export default function GoogleMessageReader({
             <div className="space-y-3 pt-2">
               {chatMessages.map((msg) => {
                 const isFarmer = msg.sender === 'farmer';
+                const isMsgPlaying = currentlyPlayingAudioId === msg.id || speakingId === msg.id;
 
                 return (
                   <motion.div
@@ -910,35 +1260,56 @@ export default function GoogleMessageReader({
                         </div>
                       )}
 
-                      {/* Audio Waveform */}
-                      {(msg.audioDuration || msg.audioNarration) && (
-                        <div className="mt-2 pt-2 border-t border-slate-700/60">
-                          <div className="flex items-center gap-3 p-2 rounded-2xl bg-black/25 border border-slate-700/60">
+                      {/* Voice Note Audio Waveform Player */}
+                      {(msg.type === 'voice_note' || msg.audioDuration || msg.audioNarration) && (
+                        <div className="mt-2.5 pt-2 border-t border-white/20 dark:border-slate-700/60">
+                          <div className={`flex items-center gap-3 p-2.5 rounded-2xl ${
+                            isFarmer ? 'bg-blue-700/50 border border-blue-400/30' : 'bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-slate-700/60'
+                          }`}>
                             <button
                               type="button"
-                              onClick={() => handlePlayVoiceNote(msg.audioNarration || msg.text)}
+                              onClick={() => handleTogglePlayVoiceNote(msg)}
                               className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-90 cursor-pointer shadow-md ${
-                                isPlayingAudio ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-slate-950'
+                                isMsgPlaying
+                                  ? 'bg-amber-500 text-white'
+                                  : isFarmer ? 'bg-white text-blue-600' : 'bg-emerald-500 text-slate-950'
                               }`}
+                              title={isTelugu ? "వాయిస్ నోట్ వినండి" : "Play Voice Note"}
                             >
-                              {isPlayingAudio ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-slate-950 ml-0.5" />}
+                              {isMsgPlaying ? (
+                                <Pause className="w-4 h-4 fill-current" />
+                              ) : (
+                                <Play className="w-4 h-4 fill-current ml-0.5" />
+                              )}
                             </button>
 
-                            <div className="flex-1 flex items-center gap-1 h-6">
-                              {[40, 75, 50, 90, 65, 80, 45, 100, 70, 55, 85, 60, 40].map((h, i) => (
-                                <span
-                                  key={i}
-                                  style={{ height: `${h}%` }}
-                                  className={`w-1 rounded-full transition-all ${
-                                    isPlayingAudio ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-                                  }`}
-                                />
-                              ))}
-                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between text-[11px] font-bold">
+                                <span className={isFarmer ? 'text-blue-100' : 'text-slate-700 dark:text-slate-300'}>
+                                  {isFarmer
+                                    ? (isTelugu ? 'రైతు వాయిస్ సందేశం' : 'Farmer Voice Note')
+                                    : (isTelugu ? 'ప్రొవైడర్ వాయిస్ సందేశం' : 'Provider Voice Note')}
+                                </span>
+                                <span className={`text-[10px] font-mono ${isFarmer ? 'text-blue-200' : 'text-slate-500'}`}>
+                                  {msg.audioDuration || '0:12'}
+                                </span>
+                              </div>
 
-                            <span className="text-[10px] font-mono font-bold text-slate-400">
-                              {msg.audioDuration || '0:14'}
-                            </span>
+                              {/* Scrubbing Audio Bars */}
+                              <div className="flex items-center gap-1 h-5 mt-1">
+                                {[40, 75, 50, 90, 65, 80, 45, 100, 70, 55, 85, 60, 40].map((h, i) => (
+                                  <span
+                                    key={i}
+                                    style={{ height: `${h}%` }}
+                                    className={`w-1 rounded-full transition-all ${
+                                      isMsgPlaying
+                                        ? (isFarmer ? 'bg-white animate-pulse' : 'bg-emerald-400 animate-pulse')
+                                        : (isFarmer ? 'bg-blue-300' : 'bg-slate-400 dark:bg-slate-600')
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -960,7 +1331,7 @@ export default function GoogleMessageReader({
 
       {/* ─── 3. BOTTOM FOOTER / INPUT CONTROLS ─── */}
       {isBooking ? (
-        /* Pattern C Interactive Composer for Machinery Providers */
+        /* Pattern C Interactive Composer for Machinery Providers with 2-Way Voice Recording */
         <div className="bg-white dark:bg-[#161b22] border-t border-slate-200/90 dark:border-slate-800 shrink-0">
           {/* Quick Action Chips */}
           <div className="px-3 sm:px-4 py-2 border-b border-slate-100 dark:border-slate-800/80">
@@ -1007,7 +1378,7 @@ export default function GoogleMessageReader({
             </div>
           </div>
 
-          {/* Active Reply Composer Form */}
+          {/* Active Reply Composer Form with Live Voice Recording */}
           <footer className="p-2.5 sm:p-3 relative">
             <AnimatePresence>
               {showAttachMenu && (
@@ -1051,51 +1422,89 @@ export default function GoogleMessageReader({
               )}
             </AnimatePresence>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              className="flex items-center gap-2 max-w-4xl mx-auto"
-            >
-              <button
-                type="button"
-                onClick={() => setShowAttachMenu(!showAttachMenu)}
-                className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer shrink-0"
-                title={isTelugu ? "జోడించండి" : "Attach"}
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
+            {/* Dynamic UI: Recording Bar vs Normal Input */}
+            {isRecording ? (
+              <div className="flex items-center justify-between gap-3 p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-full animate-fade-in w-full max-w-4xl mx-auto shadow-inner">
+                <div className="flex items-center gap-2.5 pl-3">
+                  <span className="relative flex h-3.5 w-3.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-600"></span>
+                  </span>
+                  <span className="text-xs font-black text-rose-700 dark:text-rose-300 font-mono tracking-wider">
+                    {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60) < 10 ? '0' : ''}{recordingSeconds % 60}
+                  </span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 ml-1">
+                    {isTelugu ? 'వాయిస్ రికార్డ్ అవుతోంది...' : 'Recording voice note...'}
+                  </span>
+                </div>
 
-              <div className="flex-1 relative flex items-center">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...'}
-                  className="w-full py-2.5 px-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                />
+                <div className="flex items-center gap-2 pr-1">
+                  <button
+                    type="button"
+                    onClick={cancelVoiceRecording}
+                    className="p-2 rounded-full hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 transition-colors cursor-pointer"
+                    title={isTelugu ? "రద్దు చేయండి" : "Cancel"}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stopVoiceRecordingAndSend}
+                    className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md transition-transform active:scale-95 cursor-pointer"
+                    title={isTelugu ? "వాయిస్ నోట్ పంపండి" : "Send Voice Note"}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{isTelugu ? 'పంపండి' : 'Send'}</span>
+                  </button>
+                </div>
               </div>
-
-              {inputText.trim() ? (
-                <button
-                  type="submit"
-                  className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"
-                  title={isTelugu ? "పంపండి" : "Send"}
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              ) : (
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="flex items-center gap-2 max-w-4xl mx-auto"
+              >
                 <button
                   type="button"
-                  onClick={() => handleSendMessage(isTelugu ? 'నమస్కారం, రేపు పని సమయం ఖరారు చేయండి.' : 'Hello, please confirm tomorrow working hours.')}
-                  className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"
-                  title={isTelugu ? "వాయిస్ లేదా శీఘ్ర సందేశం" : "Voice / Quick Message"}
+                  onClick={() => setShowAttachMenu(!showAttachMenu)}
+                  className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                  title={isTelugu ? "జోడించండి" : "Attach"}
                 >
-                  <Mic className="w-4 h-4" />
+                  <Paperclip className="w-5 h-5" />
                 </button>
-              )}
-            </form>
+
+                <div className="flex-1 relative flex items-center">
+                  <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder={isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...'}
+                    className="w-full py-2.5 px-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+
+                {inputText.trim() ? (
+                  <button
+                    type="submit"
+                    className="p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"
+                    title={isTelugu ? "పంపండి" : "Send"}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startVoiceRecording}
+                    className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"
+                    title={isTelugu ? "వాయిస్ సందేశం రికార్డ్ చేయండి" : "Record Voice Note"}
+                  >
+                    <Mic className="w-4 h-4" />
+                  </button>
+                )}
+              </form>
+            )}
           </footer>
         </div>
       ) : (

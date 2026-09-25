@@ -560,24 +560,6 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleSimulateAlert = () => {
-    playNotificationChime();
-    const simulated = {
-      notification_id: 'SIM-' + Date.now(),
-      title: '🚨 High Disease Vulnerability Alert',
-      title_te: '🚨 తీవ్రమైన పంట తెగులు హెచ్చరిక',
-      message: 'Persistent canopy humidity (>88%) detected. High risk of Tomato Early Blight outbreak. Preventative copper or neem foliar spray strongly advised.',
-      message_te: 'పొలంలో తేమ శాతం (>88%) పెరిగింది. టమాటా ఎర్లీ బ్లైట్ తెగులు వ్యాపించే ప్రమాదం ఉంది. వెంటనే వేప నూనె లేదా కాపర్ స్ప్రే పిచికారీ చేయండి.',
-      category: 'disease',
-      priority: 'High',
-      created_at: new Date().toISOString(),
-      read: false
-    };
-    setNotifications(prev => [simulated, ...prev]);
-    setTotal(t => t + 1);
-    setToastMsg(t('notifications_page.toast.simulated', 'Simulated crop disease alert delivered with audio chime!'));
-  };
-
   const handleClear = async () => {
     if (!window.confirm(t('notifications_page.confirm_clear', 'Clear all messages and notifications?'))) return;
     try {
@@ -771,15 +753,6 @@ export default function NotificationsPage() {
 
         {/* Header Action Icons */}
         <div className="flex items-center gap-1.5">
-          {/* Simulate Alert Button */}
-          <button
-            onClick={handleSimulateAlert}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-500/20 transition-all shadow-xs cursor-pointer"
-            title="Simulate Real-Time Crop Warning"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Simulate</span>
-          </button>
 
           {/* Mark All Read */}
           {unreadCount > 0 && (

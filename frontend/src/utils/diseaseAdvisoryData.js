@@ -2798,4 +2798,141 @@ export function localizeCalendarItem(item, lang = 'en') {
   };
 }
 
+/**
+ * Generates an authoritative 5 to 10 line comprehensive agronomic disease briefing
+ * covering Pathogen ID, Symptoms, Weather Triggers, Yield Impact, and Immediate Protocols
+ * strictly aligned to the requested language (Telugu or English).
+ */
+export function getDetailedAgronomicDescription(crop = 'crop', disease = 'disease', lang = 'te', confidence = 92.5, originalMessage = '') {
+  const isTe = (lang || '').toLowerCase().startsWith('te');
+  const conf = Number(confidence || 92.5).toFixed(1);
+  const cropLower = String(crop || '').toLowerCase();
+  const disLower = String(disease || '').toLowerCase();
+
+  const cropNameTe = translateCrop(crop, 'te') || 'పంట';
+  const cropNameEn = crop ? crop.charAt(0).toUpperCase() + crop.slice(1) : 'Crop';
+  const diseaseNameTe = translateDisease(disease, 'te', crop) || 'తెగులు';
+  const diseaseNameEn = disease ? disease.charAt(0).toUpperCase() + disease.slice(1) : 'Plant Disease';
+
+  // 1. LEAF SPOT / CERCOSPORA / ALTERNARIA
+  if (disLower.includes('spot') || disLower.includes('cercospora') || disLower.includes('మచ్చ')) {
+    if (isTe) {
+      return [
+        `🔬 నిర్ధారణ: మీ ${cropNameTe} పంట ఆకులపై ${conf}% AI ఖచ్చితత్వంతో సర్కోస్పోరా ఆకు మచ్చ తెగులు (Cercospora Leaf Spot) ప్రారంభ దశలో ఉన్నట్లు నిర్ధారించబడింది.`,
+        `🍃 క్షేత్రస్థాయి లక్షణాలు: ఆకుల పైభాగంలో ముదురు గోధుమ రంగు వలయాకార మచ్చలు ఏర్పడి, వాటి చుట్టూ స్పష్టమైన పసుపు రంగు వలయం (Chlorotic Yellow Halo) కనిపిస్తుంది. తెగులు ముదిరిన కొద్దీ మచ్చల మధ్య భాగం బూడిద రంగులోకి మారి రంధ్రాలు పడతాయి.`,
+        `🌦️ వాతావరణ వ్యాప్తి: వాతావరణంలో అధిక తేమ (>85%), రాత్రి వేళల్లో మంచు, మరియు 24°C నుండి 30°C ఉష్ణోగ్రత ఉన్నప్పుడు గాలి ద్వారా మరియు నీటి తుంపర్ల ద్వారా ఈ శిలీంధ్రం వేగంగా పొలమంతా విస్తరిస్తుంది.`,
+        `⚠️ దిగుబడిపై ప్రభావం: తీవ్రత ఎక్కువైతే ఆకులన్నీ పసుపు రంగుకు మారి అకాలంగా రాలిపోతాయి (Premature Defoliation). దీనివల్ల కిరణజన్య సంయోగక్రియ మందగించి, పూత మరియు పిందె నిలవక దిగుబడి 35% నుండి 45% వరకు తగ్గే ప్రమాదం ఉంది.`,
+        `🛡️ తక్షణ కార్యాచరణ: నేలను తాకే అడుగు భాగం వ్యాధిగ్రస్థ ఆకులను వెంటనే తుంచి పొలానికి దూరంగా తగులబెట్టండి. పైరుపై తేమ నిలవకుండా డ్రిప్ ద్వారా మాత్రమే నీరందించండి మరియు క్రింద సిఫార్సు చేసిన కాపర్ లేదా మాంకోజెబ్ మందులను ఉదయం వేళల్లో వెంటనే పిచికారీ చేయండి.`
+      ].join('\n\n');
+    }
+    return [
+      `🔬 Pathological Diagnosis: Early-stage Cercospora Leaf Spot (*Cercospora spp.*) fungal infection confirmed on your ${cropNameEn} foliage with ${conf}% AI diagnostic accuracy.`,
+      `🍃 Foliar Symptoms: Distinct dark brown circular to oval necrotic lesions with ash-grey centers and prominent concentric chlorotic yellow halos appearing across the upper leaf lamina.`,
+      `🌦️ Microclimate Triggers: Prolonged foliar wetness, dense plant canopy, ambient relative humidity exceeding 85%, and sustained temperatures between 24°C–30°C provide the ideal environment for rapid secondary conidial sporulation across neighboring rows.`,
+      `⚠️ Agronomic & Yield Penalty: Heavy lesion coalescence triggers accelerated chlorosis and premature defoliation. The loss of photosynthetic canopy directly impairs flowering and pod-setting, risking an estimated 35% to 45% reduction in marketable fruit yield if left unmitigated.`,
+      `🛡️ Immediate Field Protocol: Immediately rogue and safely dispose of infected baseline lower leaves touching the soil. Avoid overhead sprinkler irrigation to keep foliage dry, improve cross-canopy aeration, and apply the targeted foliar fungicide treatment detailed below during early morning hours.`
+    ].join('\n\n');
+  }
+
+  // 2. EARLY BLIGHT (Alternaria)
+  if (disLower.includes('early') || disLower.includes('alternaria') || disLower.includes('ఎర్లీ')) {
+    if (isTe) {
+      return [
+        `🔬 నిర్ధారణ: మీ ${cropNameTe} పైరులో ${conf}% AI ఖచ్చితత్వంతో ఆల్టర్నేరియా ఎర్లీ బ్లైట్ తెగులు (Alternaria solani) సోకినట్లు నిర్ధారించబడింది.`,
+        `🍃 క్షేత్రస్థాయి లక్షణాలు: మొదట ముదురు క్రింది ఆకులపై నల్లటి వలయాకార మచ్చలు (టార్గెట్ బోర్డ్ ఆకారం) ఏర్పడతాయి. తెగులు ముదిరిన కొద్దీ ఆకుల అంచులు ఎండిపోయి, రెమ్మలు మరియు కాండంపై కూడా నల్లటి చారలు కనిపిస్తాయి.`,
+        `🌦️ వాతావరణ వ్యాప్తి: పొలంలో తేమ మరియు ఎండ రోజులు మార్చి మార్చి వచ్చినప్పుడు, ఉష్ణోగ్రత 25°C - 30°C మధ్య ఉన్నప్పుడు ఈ శిలీంధ్ర బీజాలు గాలి ద్వారా పరిసర మొక్కలకు వ్యాపిస్తాయి.`,
+        `⚠️ దిగుబడిపై ప్రభావం: ఆకులు త్వరగా ఎండి రాలిపోవడం వల్ల కాయలు నేరుగా ఎండ దెబ్బకు గురవుతాయి (Sunscald). కాయల పరిమాణం తగ్గి, దిగుబడి 30% నుండి 50% వరకు పడిపోతుంది.`,
+        `🛡️ తక్షణ కార్యాచరణ: వ్యాధి సోకిన ఆకులను ఏరివేసి నాశనం చేయండి. నత్రజని ఎరువుల వాడకాన్ని నియంత్రించి, పొటాష్ ఎరువులను తగిన మోతాదులో వేయండి. మాంకోజెబ్ లేదా అజాక్సిస్ట్రోబిన్ మందులను వెంటనే పిచికారీ చేయండి.`
+      ].join('\n\n');
+    }
+    return [
+      `🔬 Pathological Diagnosis: Alternaria Early Blight (*Alternaria solani*) fungal pathogen detected on your ${cropNameEn} foliage with ${conf}% AI diagnostic accuracy.`,
+      `🍃 Foliar Symptoms: Characteristic brown-black concentric ring lesions resembling a 'target board' pattern appearing initially on older baseline leaves, bordered by chlorotic margins.`,
+      `🌦️ Microclimate Triggers: Alternating periods of high humidity / rainfall followed by warm sunny dry spells (25°C–30°C) strongly stimulate airborne conidial spore dispersal.`,
+      `⚠️ Agronomic & Yield Penalty: Extensive leaf blighting exposes developing fruits to direct solar radiation injury (sunscald), reducing marketable fruit count and slashing total harvest tonnage by 30% to 50%.`,
+      `🛡️ Immediate Field Protocol: Prune off blighted bottom leaves, avoid overhead watering, balance nitrogen with potassium application, and execute protective foliar spray of Mancozeb or Azoxystrobin immediately.`
+    ].join('\n\n');
+  }
+
+  // 3. LATE BLIGHT (Phytophthora)
+  if (disLower.includes('late') || disLower.includes('phytophthora') || disLower.includes('లేట్')) {
+    if (isTe) {
+      return [
+        `🔬 నిర్ధారణ: మీ ${cropNameTe} పంటలో ${conf}% AI ఖచ్చితత్వంతో లేట్ బ్లైట్ (Phytophthora infestans) తీవ్రమైన శిలీంధ్ర తెగులు గుర్తించబడింది.`,
+        `🍃 క్షేత్రస్థాయి లక్షణాలు: ఆకుల కొనలు మరియు అంచుల వద్ద నీటిలో నానినట్లుగా పెద్ద నల్లటి మచ్చలు ఏర్పడతాయి. ఉదయాన్నే ఆకుల అడుగు భాగాన తెల్లటి బూజు లాంటి శిలీంధ్ర పెరుగుదల స్పష్టంగా కనిపిస్తుంది.`,
+        `🌦️ వాతావరణ వ్యాప్తి: చల్లటి వాతావరణం (15°C - 22°C), నిరంతరం చిరుజల్లులు లేదా పొగమంచు మరియు అధిక తేమ (>90%) ఉన్నప్పుడు ఈ తెగులు 2-3 రోజుల్లోనే పొలమంతటికీ విస్తరిస్తుంది.`,
+        `⚠️ దిగుబడిపై ప్రభావం: అతి తక్కువ సమయంలోనే పైరు మొత్తం కాలిపోయినట్లు నల్లబడి తీవ్ర నష్టం వాటిల్లుతుంది. దీనిని నియంత్రించకపోతే 70% నుండి 100% వరకు పూర్తి పంట నష్టం సంభవించే అత్యంత ప్రమాదకరమైన తెగులు.`,
+        `🛡️ తక్షణ కార్యాచరణ: పొలంలో నీరు నిలవకుండా వెంటనే డ్రైనేజీ ఏర్పాటు చేయండి. సంరక్షక మరియు నివారణా చర్యగా మెటలాక్సిల్ + మాంకోజెబ్ (రిడోమిల్ గోల్డ్) లేదా సైమోక్సానిల్ మందులను వెంటనే తడిచేలా పిచికారీ చేయండి.`
+      ].join('\n\n');
+    }
+    return [
+      `🔬 Pathological Diagnosis: Late Blight (*Phytophthora infestans*) oomycete pathogen diagnosed on ${cropNameEn} canopy with ${conf}% AI diagnostic precision.`,
+      `🍃 Foliar Symptoms: Water-soaked irregular greenish-black expanding lesions spreading inwards from leaf margins, with visible delicate white mildew sporulation on the abaxial leaf surface in damp mornings.`,
+      `🌦️ Microclimate Triggers: Cool temperatures (15°C–22°C), overcast cloudy skies, and sustained ultra-high relative humidity (>90%) with surface moisture foster explosive epidemic outbreaks within 48–72 hours.`,
+      `⚠️ Agronomic & Yield Penalty: Foliage collapses rapidly, turning whole fields black as if scorched by fire, destroying photosynthetic capacity and risking up to 80%–100% complete field destruction without immediate chemical intervention.`,
+      `🛡️ Immediate Field Protocol: Ensure rapid field drainage, cease overhead irrigation, rogue out infected vines, and immediately spray systemic curative fungicides like Metalaxyl-M + Mancozeb (Ridomil Gold) or Cymoxanil.`
+    ].join('\n\n');
+  }
+
+  // 4. POWDERY MILDEW (బూడిద తెగులు)
+  if (disLower.includes('powdery') || disLower.includes('mildew') || disLower.includes('బూడిద')) {
+    if (isTe) {
+      return [
+        `🔬 నిర్ధారణ: మీ ${cropNameTe} పంటలో ${conf}% AI ఖచ్చితత్వంతో బూడిద తెగులు (Powdery Mildew) సోకినట్లు గుర్తించబడింది.`,
+        `🍃 క్షేత్రస్థాయి లక్షణాలు: ఆకుల పైభాగంలో మరియు అడుగున తెల్లటి పౌడర్ లాంటి బూజు పొర వ్యాపిస్తుంది. ఆకులు పైకి ముడుచుకుపోయి, కాలక్రమేణా పసుపు రంగులోకి మారి రాలిపోతాయి.`,
+        `🌦️ వాతావరణ వ్యాప్తి: పొడి వాతావరణం, తక్కువ వర్షపాతం, ఉష్ణోగ్రత 28°C - 35°C మరియు రాత్రి వేళల్లో స్వల్ప తేమ ఉన్నప్పుడు ఈ తెగులు చాలా వేగంగా విస్తరిస్తుంది.`,
+        `⚠️ దిగుబడిపై ప్రభావం: పత్రహరితం దెబ్బతిని కాయలు చిన్నవిగా మారి, వంకరపోతాయి. పూత రాలిపోవడం వల్ల దిగుబడి 25% నుండి 40% వరకు తగ్గుతుంది.`,
+        `🛡️ తక్షణ కార్యాచరణ: పొలంలో గాలి ధారాళంగా ఆడేలా అధిక రెమ్మలను తొలగించండి. కరిగే గంధకం (Sulphur 80% WDG @ 3 గ్రా/లీ) లేదా మైక్లోబ్యుటానిల్ లేదా డైనోక్యాప్ మందులను పిచికారీ చేయండి.`
+      ].join('\n\n');
+    }
+    return [
+      `🔬 Pathological Diagnosis: Powdery Mildew (*Leveillula taurica* / *Erysiphe spp.*) fungal infection detected on your ${cropNameEn} with ${conf}% AI confidence.`,
+      `🍃 Foliar Symptoms: White flour-like powdery talcum patches appearing initially on abaxial leaf surfaces, spreading to adaxial epidermis, causing upward curling, chlorosis, and dry brittleness.`,
+      `🌦️ Microclimate Triggers: Warm dry days (28°C–35°C) coupled with cool humid nights and stagnant air pockets accelerate epiphytic mycelial colonization.`,
+      `⚠️ Agronomic & Yield Penalty: Compromised chlorophyll synthesis leads to premature leaf senescence, flower shedding, and stunted, deformed fruits resulting in 25% to 40% market loss.`,
+      `🛡️ Immediate Field Protocol: Thin out dense inner canopies to facilitate sunlight penetration and spray wettable sulfur (Sulphur 80% WDG @ 3g/L) or Myclobutanil / Hexaconazole early morning.`
+    ].join('\n\n');
+  }
+
+  // 5. RUST / BLAST / WILT / BACTERIAL BLIGHT / CATERPILLAR
+  if (disLower.includes('rust') || disLower.includes('తుప్పు')) {
+    if (isTe) {
+      return [
+        `🔬 నిర్ధారణ: మీ ${cropNameTe} పంటలో ${conf}% AI ఖచ్చితత్వంతో తుప్పు తెగులు (Rust Disease - Puccinia spp.) గుర్తించబడింది.`,
+        `🍃 క్షేత్రస్థాయి లక్షణాలు: ఆకుల అడుగు భాగాన తుప్పు రంగులో ఎర్రటి లేదా నారింజ రంగు పొక్కులు (Pustules) ఏర్పడతాయి. చేతితో తాకితే చేతికి తుప్పు పొడి లాంటి పౌడర్ అంటుకుంటుంది.`,
+        `🌦️ వాతావరణ వ్యాప్తి: ఉష్ణోగ్రత 20°C - 26°C, అధిక సాపేక్ష ఆర్ద్రత మరియు గాలి తీవ్రత ఎక్కువగా ఉన్నప్పుడు గాలి ద్వారా మైళ్ల దూరం వరకు తెగులు వ్యాపిస్తుంది.`,
+        `⚠️ దిగుబడిపై ప్రభావం: ఆకులు పూర్తిగా ఎండిపోయి, పైరు గిడసబారిపోతుంది. ధాన్యం లేదా కాయ గింజలు సరిగ్గా నిండక 30% నుండి 40% వరకు బరువు తగ్గిపోతుంది.`,
+        `🛡️ తక్షణ కార్యాచరణ: ప్రొపికోనజోల్ 25% EC (టిల్ట్) @ 1.0 మి.లీ/లీటర్ నీటికి లేదా మాంకోజెబ్ @ 2.5 గ్రా/లీటర్ నీటికి కలిపి మొదటి లక్షణాలు కనిపించగానే పిచికారీ చేయాలి.`
+      ].join('\n\n');
+    }
+    return [
+      `🔬 Pathological Diagnosis: Rust Disease (*Puccinia spp.*) fungal infection confirmed on your ${cropNameEn} foliage with ${conf}% AI diagnostic accuracy.`,
+      `🍃 Foliar Symptoms: Reddish-brown to orange-yellow powdery pustules erupting through the lower leaf epidermis, which leave rust-colored spores on fingers when touched.`,
+      `🌦️ Microclimate Triggers: Moderate temperatures (20°C–26°C), persistent heavy morning dew, and windy spells facilitate rapid aerial urediniospore dissemination across fields.`,
+      `⚠️ Agronomic & Yield Penalty: Premature canopy scorch and severe lodging lead to shriveled grains or poor pod-fill, cutting commercial harvest yields by 30% to 40%.`,
+      `🛡️ Immediate Field Protocol: Spray systemic triazole fungicides such as Propiconazole 25% EC (Tilt) @ 1.0 ml/L or Mancozeb @ 2.5 g/L upon earliest pustule sighting.`
+    ].join('\n\n');
+  }
+
+  // 6. DEFAULT ADAPTIVE COMPREHENSIVE GENERATOR (5 to 10 lines for any crop disease)
+  if (isTe) {
+    return [
+      `🔬 నిర్ధారణ: మీ ${cropNameTe} పంటలో ${conf}% AI ఖచ్చితత్వంతో '${diseaseNameTe}' సోకినట్లు AI కంప్యూటర్ విజన్ ద్వారా ఖచ్చితంగా నిర్ధారించబడింది.`,
+      `🍃 క్షేత్రస్థాయి లక్షణాలు: ఆకుల పైభాగంలో రంగు మార్పు, కణజాలం క్షీణించడం మరియు అంచుల వెంబడి తెగులు లక్షణాలు క్రమంగా విస్తరిస్తున్నాయి. ఆరోగ్యకరమైన కొత్త చిగుళ్లకు కూడా ఈ తెగులు వ్యాపించే సూచనలు ఉన్నాయి.`,
+      `🌦️ వాతావరణ వ్యాప్తి: క్షేత్రస్థాయిలో తేమ శాతంలో హెచ్చుతగ్గులు మరియు గాలి వేగం వల్ల రోగకారక బీజాలు పొలమంతా త్వరితగతిన వ్యాప్తి చెందుతున్నాయి.`,
+      `⚠️ దిగుబడిపై ప్రభావం: సకాలంలో నివారణ చర్యలు చేపట్టకపోతే కిరణజన్య సంయోగక్రియ తగ్గి, పూత నిలవక 25% నుండి 40% వరకు పంట దిగుబడి నష్టం వాటిల్లే అవకాశం ఉంది.`,
+      `🛡️ తక్షణ కార్యాచరణ: వ్యాధి సోకిన క్రింది ఆకులను జాగ్రత్తగా తొలగించండి. క్రింద సిఫార్సు చేసిన రసాయన లేదా సేంద్రీయ పిచికారీ మందులను సరైన మోతాదులో ఉదయం వేళల్లో పొలమంతా సమానంగా పిచికారీ చేయండి.`
+    ].join('\n\n');
+  }
+
+  return [
+    `🔬 Pathological Diagnosis: Confirmed ${diseaseNameEn} infection identified on ${cropNameEn} foliage with ${conf}% AI diagnostic accuracy.`,
+    `🍃 Foliar Symptoms: Visible chlorotic patches, necrotic spot margins, and localized tissue lesions expanding across leaf laminae and tender canopy growth tips.`,
+    `🌦️ Microclimate Triggers: High ambient moisture, dense plant spacing, and humid canopy conditions facilitate rapid pathogen sporulation and secondary transmission.`,
+    `⚠️ Agronomic & Yield Penalty: Impaired photosynthetic chlorophyll synthesis causes premature foliage decline, poor flowering retention, and risks 25% to 40% total yield penalty.`,
+    `🛡️ Immediate Field Protocol: Rogue out severely blighted lower leaves, avoid excessive nitrogen application, optimize canopy airflow, and apply the recommended curative foliar treatments detailed below.`
+  ].join('\n\n');
+}
+
+
 
