@@ -152,6 +152,7 @@ class NotificationService:
             "read": False,
             "confidence_score": notification.confidence_score or 0.9,
             "action_url": notification.action_url,
+            "booking_id": getattr(notification, "booking_id", None),
             "correlated_alert_ids": [],
             "correlation_root": False,
             "lifecycle": {

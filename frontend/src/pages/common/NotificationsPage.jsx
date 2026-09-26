@@ -341,6 +341,18 @@ export default function NotificationsPage() {
             return true;
           });
 
+          // Deduplicate any fragmented chat cards for the same booking, keeping only the most recent
+          const seenChatBookings = new Set();
+          localNotifs = localNotifs.filter(n => {
+            const isChatOrBooking = n.type === 'booking_chat' || n.category === 'booking' || (n.id && String(n.id).startsWith('notif-chat-'));
+            const bId = n.booking_id || (n.id && String(n.id).startsWith('notif-chat-') ? n.id.replace('notif-chat-', '') : null);
+            if (isChatOrBooking && bId) {
+              if (seenChatBookings.has(bId)) return false;
+              seenChatBookings.add(bId);
+            }
+            return true;
+          });
+
           localNotifs = localNotifs.map(ln => {
             const lId = ln.notification_id || ln.id || ln.booking_id;
             const isRead = readIds.has(lId) || (ln.booking_id && (readIds.has(`booking-${ln.booking_id}`) || readIds.has(ln.booking_id)));
@@ -509,36 +521,77 @@ export default function NotificationsPage() {
         }
       });
 
-      // ── CONVERSATION THREAD GROUPING (Issue 1) ──
-      // Group multiple individual chat notifications for the same booking/conversation into ONE unified card
+      // ── FAIL-SAFE CONVERSATION THREAD GROUPING (WhatsApp Style) ──
+      // Group all chat notifications, booking requests, and status decisions for the same booking/conversation into ONE unified card
       const threadGroups = new Map();
       const standaloneNotifs = [];
 
       rawMerged.forEach(item => {
-        const rawBId = item.booking_id || item.bookingId || item.id;
-        const cleanBId = String(rawBId || '')
-          .trim()
-          .replace(/^notif-(?:stat-)?/, '')
-          .replace(/^farmer-notif-/, '')
-          .replace(/^notif-order-/, '')
-          .replace(/^notif-chat-/, '')
-          .replace(/^notif-/, '')
-          .replace(/-(?:confirmed|rejected|declined|completed).*$/, '');
+        // Layer 1: Direct booking ID fields
+        let extractedBId = item.booking_id || item.bookingId;
 
-        const canonicalBId = cleanBId ? (cleanBId.startsWith('BK-') ? cleanBId : `BK-${cleanBId}`) : null;
+        // Layer 2: Extract bookingId / booking_id / id from action_url
+        if (!extractedBId && item.action_url) {
+          const m = item.action_url.match(/[?&](?:bookingId|booking_id|id)=([^&]+)/i);
+          if (m && m[1]) extractedBId = m[1];
+        }
+
+        // Layer 3: Extract from title or message (e.g. "(#BK-12345)", "(BK-12345)", "#BK-12345", "New Message (BK-12345)")
+        if (!extractedBId && (item.title || item.message)) {
+          const combined = `${item.title || ''} ${item.message || ''}`;
+          const m = combined.match(/\b(BK-[A-Za-z0-9_-]+)\b/i) || combined.match(/#([A-Za-z0-9_-]{4,})/);
+          if (m && m[1]) extractedBId = m[1];
+        }
+
+        // Layer 4: Extract from notification id if prefixed with BK-
+        if (!extractedBId && item.id) {
+          const sId = String(item.id);
+          const m = sId.match(/(BK-[A-Za-z0-9_-]+)/i);
+          if (m && m[1]) extractedBId = m[1];
+        }
+
+        // Clean prefixes and status tags
+        let cleanBId = String(extractedBId || '').trim();
+        if (cleanBId) {
+          cleanBId = cleanBId
+            .replace(/^notif-(?:stat-)?/, '')
+            .replace(/^farmer-notif-/, '')
+            .replace(/^notif-order-/, '')
+            .replace(/^notif-chat-/, '')
+            .replace(/^notif-/, '')
+            .replace(/-(?:confirmed|rejected|declined|completed|status).*$/, '');
+          if (!cleanBId.startsWith('BK-') && /^\d+$/.test(cleanBId)) {
+            cleanBId = `BK-${cleanBId}`;
+          }
+        }
+
         const isBookingOrChat = item.category === 'booking' ||
+                               item.category === 'equipment_booking' ||
                                item.type === 'booking' ||
                                item.type === 'booking_chat' ||
                                item.type === 'booking_status' ||
                                Boolean(item.isFarmerDecision) ||
+                               (item.title && (item.title.includes('New Message') || item.title.includes('యంత్ర') || item.title.includes('Machinery Booking') || item.title.includes('🚜'))) ||
                                (item.id && (String(item.id).startsWith('notif-chat-') || String(item.id).startsWith('notif-stat-') || String(item.id).startsWith('farmer-notif-')));
-        
-        if (canonicalBId && isBookingOrChat) {
-          const groupKey = `booking_thread_${canonicalBId}`;
-          if (!threadGroups.has(groupKey)) {
-            threadGroups.set(groupKey, []);
+
+        // Determine thread grouping key
+        let threadKey = null;
+        if (cleanBId && isBookingOrChat) {
+          threadKey = `booking_thread_${cleanBId}`;
+        } else if (isBookingOrChat) {
+          // Layer 5 Fallback: Group by counterpart contact (phone or name) so all messages between the same farmer & provider coalesce
+          const counterpart = item.farmerPhone || item.phone || item.farmerName || item.providerPhone || item.providerName;
+          if (counterpart) {
+            const sanitized = String(counterpart).replace(/[^a-zA-Z0-9]/g, '_');
+            threadKey = `booking_partner_${sanitized}`;
           }
-          threadGroups.get(groupKey).push({ ...item, canonicalBookingId: canonicalBId });
+        }
+
+        if (threadKey) {
+          if (!threadGroups.has(threadKey)) {
+            threadGroups.set(threadKey, []);
+          }
+          threadGroups.get(threadKey).push({ ...item, canonicalBookingId: cleanBId || threadKey });
         } else {
           standaloneNotifs.push(item);
         }
@@ -552,7 +605,7 @@ export default function NotificationsPage() {
         const unreadItems = items.filter(it => !it.read);
         const unreadCount = unreadItems.length;
         const allIds = Array.from(new Set(items.flatMap(it => [it.notification_id, it.id, it._id]).filter(Boolean)));
-        const threadBId = latest.canonicalBookingId || latest.booking_id || groupKey.replace('booking_thread_', '');
+        const threadBId = latest.canonicalBookingId || latest.booking_id || groupKey.replace('booking_thread_', '').replace('booking_partner_', '');
 
         consolidatedThreads.push({
           ...latest,
@@ -1127,35 +1180,31 @@ export default function NotificationsPage() {
 
                   {/* Message Content / Snippet */}
                   <div className="flex-1 min-w-0 space-y-1">
-                    {/* Top Row: Sender Title + Verified Badge + Timestamp */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center min-w-0">
-                        <h3 className={`text-sm sm:text-base font-bold truncate tracking-tight ${
-                          isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'
-                        }`}>
-                          {meta.senderTitle}
-                        </h3>
-                        {/* Verified Green Checkmark (✓) */}
-                        <span className="inline-flex items-center ml-1 text-emerald-600 dark:text-emerald-400 shrink-0" title="Verified AgriShield Entity">
-                          <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white dark:text-slate-900" />
-                        </span>
-                      </div>
-
-                      {/* Relative Timestamp */}
-                      <span className={`text-xs font-semibold shrink-0 ${
-                        isUnread ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-500 dark:text-slate-400'
+                    {/* Top Row: Sender Title + Verified Badge */}
+                    <div className="flex items-center min-w-0">
+                      <h3 className={`text-sm sm:text-base font-bold truncate tracking-tight ${
+                        isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'
                       }`}>
-                        {timeString}
+                        {meta.senderTitle}
+                      </h3>
+                      {/* Verified Green Checkmark (✓) */}
+                      <span className="inline-flex items-center ml-1 text-emerald-600 dark:text-emerald-400 shrink-0" title="Verified AgriShield Entity">
+                        <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white dark:text-slate-900" />
                       </span>
                     </div>
 
-                    {/* Truncated Message Preview Snippet */}
-                    <p className={`text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 leading-relaxed ${
+                    {/* Truncated Message Preview Snippet with Read Receipts (✓✓) */}
+                    <p className={`text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 leading-relaxed flex items-center gap-1.5 ${
                       isUnread
                         ? 'text-slate-900 dark:text-slate-100 font-semibold'
                         : 'text-slate-600 dark:text-slate-400 font-normal'
                     }`}>
-                      {displayMessage || displayTitle}
+                      {(item.category === 'booking' || item.type === 'booking' || item.type === 'booking_chat' || item.isThread) && (
+                        <span className={`shrink-0 text-xs font-bold ${isUnread ? 'text-slate-400 dark:text-slate-500' : 'text-blue-500 dark:text-blue-400'}`} title={isUnread ? 'Sent' : 'Delivered & Read'}>
+                          {isUnread ? '✓' : '✓✓'}
+                        </span>
+                      )}
+                      <span className="truncate">{displayMessage || displayTitle}</span>
                     </p>
 
                     {/* Category & Status Chips */}
@@ -1167,101 +1216,43 @@ export default function NotificationsPage() {
                         {meta.categoryLabel}
                       </span>
                     </div>
-
-                    {/* Quick Action Buttons: Open Chat, Call, WhatsApp, Order Links */}
-                    {(item.category === 'booking' || item.type === 'booking' || item.type === 'booking_chat' || item.isThread) && (
-                      <div className="flex flex-wrap items-center gap-2 pt-1.5" onClick={(e) => e.stopPropagation()}>
-                        {/* Dedicated Open Chat Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMessage(item);
-                            if (isUnread) handleMarkRead(item.notification_id || item.id, e, item.threadItemIds);
-                          }}
-                          className="px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                          <span>{isTe ? 'చాట్ తెరవండి' : 'Open Chat'}</span>
-                        </button>
-
-                        {isEquipmentProvider ? (
-                          <>
-                            <a
-                              href={`tel:${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}`}
-                              className="px-3 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
-                            >
-                              <Phone className="w-3 h-3" />
-                              <span>{isTe ? 'రైతుకు కాల్' : 'Call Farmer'}</span>
-                            </a>
-                            <a
-                              href={`https://wa.me/${String(item.farmerPhone || item.phone || '9440182736').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.farmerName || 'Farmer'}, regarding your machinery booking on AgriShield...`)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                              <span>WhatsApp</span>
-                            </a>
-                            <Link
-                              to="/provider/dashboard?tab=orders"
-                              className="px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold transition-colors"
-                            >
-                              {isTe ? 'ఆర్డర్లలో చూడండి' : 'View Orders'}
-                            </Link>
-                          </>
-                        ) : (
-                          <>
-                            <a
-                              href={`tel:${String(item.providerPhone || '9876543210').replace(/[^0-9]/g, '')}`}
-                              className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
-                            >
-                              <Phone className="w-3 h-3" />
-                              <span>{isTe ? 'ప్రొవైడర్‌కు కాల్' : 'Call Provider'}</span>
-                            </a>
-                            <a
-                              href={`https://wa.me/${String(item.providerPhone || '9876543210').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${item.providerName || 'Provider'}, regarding my equipment booking #${item.booking_id || ''}...`)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1 rounded-full bg-teal-600 hover:bg-teal-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                              <span>WhatsApp</span>
-                            </a>
-                            <Link
-                              to="/equipment-booking"
-                              className="px-3 py-1 rounded-full bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold transition-colors"
-                            >
-                              {isTe ? 'బుకింగ్ చూడండి' : 'View Voucher'}
-                            </Link>
-                          </>
-                        )}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Right Column: Unread Pill Badge & Actions */}
-                  <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
-                    {/* Google Messages Signature Blue Unread Pill Badge showing thread unread count */}
+                  {/* Right Column: Time, WhatsApp Green Unread Badge & Hover Actions */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                    <span className={`text-xs ${
+                      isUnread ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400 font-medium'
+                    }`}>
+                      {timeString}
+                    </span>
+
+                    {/* WhatsApp Green Unread Pill Badge */}
                     {isUnread && (
-                      <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-black shadow-xs min-w-[20px] text-center">
+                      <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-black shadow-xs flex items-center justify-center ring-2 ring-emerald-200 dark:ring-emerald-900/60 animate-pulse">
                         {item.threadUnreadCount || item.threadCount || 1}
                       </span>
                     )}
 
                     {/* Quick Row Actions on hover */}
-                    <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity mt-0.5">
                       {isUnread && (
                         <button
-                          onClick={(e) => handleMarkRead(item.notification_id || item.id, e, item.threadItemIds)}
-                          className="p-1.5 rounded-full hover:bg-blue-100 dark:hover:bg-blue-950 text-blue-600 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkRead(item.notification_id || item.id, e, item.threadItemIds);
+                          }}
+                          className="p-1.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-950 text-emerald-600 transition-colors cursor-pointer"
                           title="Mark Read"
                         >
                           <Check className="w-3.5 h-3.5" />
                         </button>
                       )}
                       <button
-                        onClick={(e) => handleDelete(item.notification_id || item.id, e, item.threadItemIds)}
-                        className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-500 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item.notification_id || item.id, e, item.threadItemIds);
+                        }}
+                        className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
                         title="Delete Message"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

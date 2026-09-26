@@ -98,6 +98,7 @@ class NotificationBase(BaseModel):
     device_id: Optional[str] = None
     farm_id: Optional[str] = None
     action_url: Optional[str] = None
+    booking_id: Optional[str] = None
     confidence_score: Optional[float] = None
 
 class NotificationCreate(NotificationBase):

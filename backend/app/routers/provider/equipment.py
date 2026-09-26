@@ -228,6 +228,7 @@ async def create_booking(booking_data: Dict[str, Any] = Body(...)):
                     message=f"Farmer {booking_data.get('farmerName', 'Farmer')} booked {booking_data.get('equipmentName', 'Machinery')} ({booking_data.get('acres', '1')} acres) for {booking_data.get('date', 'Today')}.",
                     category="equipment_booking",
                     priority="High",
+                    booking_id=booking_id,
                     action_url="/provider/dashboard?tab=orders"
                 )
             )
@@ -419,6 +420,7 @@ async def update_booking_status(
                     message=f"Reservation for {updated_booking.get('equipmentName', updated_booking.get('title', 'Machinery'))} is now {status_label.lower()}.",
                     category="equipment_booking",
                     priority="High",
+                    booking_id=booking_id,
                     action_url="/equipment-booking"
                 )
             )
@@ -763,6 +765,7 @@ async def send_booking_chat_message(
                     message=f"{sender_name}: \"{preview_text}\"",
                     category="booking",
                     priority="Normal",
+                    booking_id=canonical_id,
                     action_url=f"/notifications?bookingId={canonical_id}"
                 )
             )

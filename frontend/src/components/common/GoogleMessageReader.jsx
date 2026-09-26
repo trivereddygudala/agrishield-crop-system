@@ -1258,6 +1258,17 @@ export default function GoogleMessageReader({
             </button>
           )}
 
+          {/* Quick Call Button for Equipment Booking Conversations */}
+          {isBooking && (
+            <a
+              href={`tel:${isProviderViewer ? cleanFarmerPhone : cleanProviderPhone}`}
+              className="p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+              title={isProviderViewer ? (isTelugu ? 'రైతుకు కాల్ చేయండి' : 'Call Farmer') : (isTelugu ? 'ప్రొవైడర్‌కు కాల్ చేయండి' : 'Call Provider')}
+            >
+              <Phone className="w-4 h-4" />
+            </a>
+          )}
+
           {/* Share Button */}
           <button
             type="button"
@@ -1886,16 +1897,57 @@ export default function GoogleMessageReader({
                     <div>
                       <span className="font-bold block text-slate-900 dark:text-white">
                         {isProviderViewer
-                          ? (isTelugu ? 'బయలుదేరినట్లు సమాచారం' : 'Dispatch Update')
-                          : (isTelugu ? 'రాక సమయం అడగండి' : 'Request Arrival Call')}
-                      </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                        {isProviderViewer
                           ? (isTelugu ? 'రైతుకు వెంటనే తెలియజేయండి' : 'Notify farmer of departure')
                           : (isTelugu ? 'డ్రైవర్ బయలుదేరినప్పుడు కాల్' : 'Notify upon departure')}
                       </span>
                     </div>
                   </button>
+
+                  {/* Call Contact (Farmer or Provider) */}
+                  <a
+                    href={`tel:${isProviderViewer ? cleanFarmerPhone : cleanProviderPhone}`}
+                    onClick={() => setShowAttachMenu(false)}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold block text-slate-900 dark:text-white">
+                        {isProviderViewer
+                          ? (isTelugu ? 'రైతుకు కాల్ చేయండి' : 'Call Farmer')
+                          : (isTelugu ? 'ప్రొవైడర్‌కు కాల్ చేయండి' : 'Call Provider')}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                        {isProviderViewer ? bookingFarmerPhone : bookingProviderPhone}
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* Direct WhatsApp Message */}
+                  <a
+                    href={`https://wa.me/${isProviderViewer ? cleanFarmerPhone : cleanProviderPhone}?text=${encodeURIComponent(
+                      isProviderViewer
+                        ? `Hello ${bookingFarmerName}, regarding your machinery booking #${canonicalBookingId} on AgriShield...`
+                        : `Hello ${bookingProviderName}, regarding my machinery booking #${canonicalBookingId} on AgriShield...`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowAttachMenu(false)}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <MessageSquare className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold block text-slate-900 dark:text-white">
+                        {isTelugu ? 'వాట్సాప్‌లో మాట్లాడండి' : 'Chat on WhatsApp'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {isTelugu ? 'తక్షణ వాట్సాప్ సందేశం' : 'Direct WhatsApp chat'}
+                      </span>
+                    </div>
+                  </a>
                 </motion.div>
               )}
             </AnimatePresence>

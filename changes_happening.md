@@ -2,6 +2,29 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v306) - Single Unified WhatsApp-Style Conversation Threads, Paperclip Quick Actions & Header Phone Shortcut
+- **Summary:**
+  1. 💬 **WhatsApp-Style Single Conversation Thread Grouping (`NotificationsPage.jsx`):**
+     - Resolved root cause where individual messages (`"hii"`, `"10 to 11"`, `"Tractor is dispatched..."`) each generated a separate notification card due to missing root `booking_id` in server notifications falling back to unique MongoDB ObjectIds.
+     - Implemented fail-safe 4-layer booking ID extractor: (1) direct `booking_id` field, (2) `action_url` query parser (`bookingId=...`), (3) regex parser extracting `BK-XXXXX` from title/message, (4) counterpart contact fallback (phone/name).
+     - All messages, status decisions, and inquiries for a booking or partner unconditionally collapse into **1 single conversation thread row**, exactly like WhatsApp and Google Messages.
+     - Added automatic local storage deduplication routine removing fragmented duplicate chat records on load.
+  2. 📱 **Streamlined Conversation Cards & UI Cleanup (`NotificationsPage.jsx`):**
+     - Completely removed cluttered buttons from cards: `Open Chat`, `Call Farmer` / `Call Provider`, `WhatsApp`, and `View Orders`.
+     - Made the entire conversation card tap-to-open chat directly.
+     - Added **Enhancement 1 (WhatsApp Green Unread Badge)**: Compact emerald circle with unread count (`item.threadUnreadCount`) positioned in the right column under the timestamp.
+     - Added **Enhancement 3 (Double Checkmark in Snippet)**: Added read receipt checkmarks (`✓✓` in blue when read, `✓` in slate when unread) in the snippet preview.
+  3. 📎 **Quick Actions Moved to Attachment/Link Tab (`GoogleMessageReader.jsx`):**
+     - Added **Call Contact** (`Call Farmer` / `Call Provider`) inside the paperclip attachment popup menu with phone number subtitle and direct `tel:` dialing.
+     - Added **WhatsApp Direct Chat** inside the paperclip attachment popup menu opening `https://wa.me/<phone>` with pre-filled machinery reservation details.
+  4. 📞 **Clean Top Header Quick Call Shortcut (`GoogleMessageReader.jsx`):**
+     - Added **Enhancement 2 (Top Header Call Shortcut)**: Placed a dedicated phone call button in the chat header next to the language switcher, perfectly spaced with `p-2 rounded-full` styling, preventing any navigation bar crowding or layout shifts.
+  5. 🗄️ **Backend First-Class `booking_id` Support (`notification.py`, `equipment.py`, `notification_service.py`):**
+     - Added `booking_id: Optional[str] = None` to `NotificationBase` and `NotificationResponse`.
+     - Updated `NotificationService.create_notification` to persist `booking_id` in MongoDB documents.
+     - Passed `booking_id=canonical_id` across chat message and booking status endpoints.
+- **Files modified:** `backend/app/models/notification.py`, `backend/app/services/notification_service.py`, `backend/app/routers/provider/equipment.py`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-26 (v305) - Real Voice Note Audio Recording (MediaRecorder + Waveform Player) & Confirmed Booking Status Unified Thread Sync
 - **Summary:**
   1. 🎙️ **Feature 1: Real Voice Note Audio Recording (`GoogleMessageReader.jsx`):**
