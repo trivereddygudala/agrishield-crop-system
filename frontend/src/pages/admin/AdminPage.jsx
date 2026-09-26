@@ -48,6 +48,7 @@ import {
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import UserGeographyMap from '../../components/admin/UserGeographyMap';
+import SystemDiagnosticsTab from '../../components/admin/SystemDiagnosticsTab';
 import { parseServerDate, formatDateTime, timeAgo } from '../../utils/dateUtils';
 
 export default function AdminPage() {
@@ -778,6 +779,14 @@ export default function AdminPage() {
       icon: ShieldAlert, 
       badge: (firewallStatus?.active_bans_count > 0 || (firewallStatus?.jailed_ips && firewallStatus.jailed_ips.length > 0)) ? `${firewallStatus.jailed_ips?.length || firewallStatus.active_bans_count} Jailed` : '5 Walls Active', 
       badgeColor: (firewallStatus?.active_bans_count > 0 || (firewallStatus?.jailed_ips && firewallStatus.jailed_ips.length > 0)) ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
+    },
+    { 
+      id: 'diagnostics', 
+      label: 'AI Sentinel (RCA)', 
+      description: 'Autonomous Root-Cause Analysis, canary probes, repetitive bias detectors, and zero-cost quota shield.',
+      icon: Activity, 
+      badge: 'RCA Sentinel', 
+      badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
     { 
       id: 'settings', 
@@ -3217,6 +3226,13 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: SYSTEM DIAGNOSTICS & ROOT-CAUSE ANALYSIS (RCA)      */}
+      {/* ======================================================== */}
+      {activeTab === 'diagnostics' && (
+        <SystemDiagnosticsTab />
       )}
 
       {/* Bottom Return Bar for dedicated module workspaces */}

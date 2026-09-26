@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import uuid
 import shutil
 import logging
@@ -1524,6 +1525,7 @@ async def predict_pytorch_endpoint(
     Independent PyTorch inference endpoint for AI Scan Center (Disease Diagnosis tab).
     Uses the main predict_crop_disease pipeline with full diagnostics and optional translation.
     """
+    _req_start_t = time.perf_counter()
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     repo_root = os.path.dirname(base_dir)
 
@@ -2419,6 +2421,29 @@ async def predict_pytorch_endpoint(
                         print(f"[NVIDIA OUTBREAK ALERT] Broadcasted outbreak warning alerts to {len(notified_users)} nearby farmers in {user_district} district.")
             except Exception as outbreak_err:
                 print(f"[NVIDIA OUTBREAK WARNING] Outbreak broadcast bypassed: {outbreak_err}")
+
+    # Microsecond Autonomous Diagnostic Telemetry Trace (<0.05ms in-memory ring buffer)
+    try:
+        from backend.app.services.system_diagnostics import DiagnosticTracer
+        DiagnosticTracer.record_trace(
+            endpoint="/api/predict",
+            latency_ms=(time.perf_counter() - _req_start_t) * 1000 if '_req_start_t' in locals() else 0.0,
+            status="SUCCESS",
+            input_meta={"crop_filter": getattr(req, "crop_filter", None), "language": getattr(req, "language", None)},
+            raw_prediction={
+                "crop_name": prediction_result.get("canonical_crop_name") or prediction_result.get("crop_name"),
+                "disease_name": prediction_result.get("canonical_disease_name") or prediction_result.get("disease_name")
+            },
+            override_applied=bool(prediction_result.get("override_applied")),
+            dual_ai_used=bool(prediction_result.get("ensemble_used")),
+            final_prediction={
+                "crop_name": prediction_result.get("crop_name"),
+                "disease_name": prediction_result.get("disease_name"),
+                "confidence": prediction_result.get("confidence")
+            }
+        )
+    except Exception:
+        pass
 
     return prediction_record
 

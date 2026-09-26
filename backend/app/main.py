@@ -160,8 +160,14 @@ app.include_router(agrochemical.router, prefix="/api/agrochemical")
 app.include_router(agrochemical.router, prefix="/api/v1")
 app.include_router(agrochemical.router, prefix="/api")
 
+# Autonomous Root-Cause Analysis (RCA) & Diagnostics Sentinel Router
+from backend.app.routers.common import diagnostics
+app.include_router(diagnostics.router, prefix="/api/v1")
+app.include_router(diagnostics.router, prefix="/api")
+
 # 3. Dynamic V1 Router construction mapping legacy routers to v1 paths
 v1_router = APIRouter(prefix="/api/v1")
+
 
 for router_module in [auth.router, predict.router, ai.router, farm_profiles.router, analytics.router, intelligence.router, admin.router, support.router]:
     for route in router_module.routes:
