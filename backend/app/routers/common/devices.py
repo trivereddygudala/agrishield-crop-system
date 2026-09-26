@@ -1,13 +1,66 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
 import httpx
+import ipaddress
+import urllib.parse
+from bson import ObjectId
+
 from backend.app.db.mongodb import db_instance
+from backend.app.routers.auth import get_current_user
 from backend.app.routers.notifications import ws_manager
 from backend.app.services.firmware_service import is_hardware_compatible, compare_versions, log_ota_audit
 
 router = APIRouter(prefix="/api/v1/devices", tags=["Device Management"])
+
+DANGEROUS_HOSTNAMES = {"localhost", "metadata.google.internal", "instance-data", "metadata"}
+
+def validate_proxy_destination(ip_str: str) -> str:
+    """Validate destination address to prevent SSRF against loopback, cloud metadata, and link-local ranges."""
+    if not ip_str or not isinstance(ip_str, str):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No IP address provided")
+
+    clean = ip_str.strip().lower()
+    if "://" in clean:
+        clean = urllib.parse.urlparse(clean).hostname or clean
+
+    if clean in DANGEROUS_HOSTNAMES or clean.endswith(".localhost"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Access to loopback or cloud metadata hostnames is forbidden."
+        )
+
+    try:
+        ip_obj = ipaddress.ip_address(clean)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid IP address format. Hostnames are not allowed."
+        )
+
+    if ip_obj.is_loopback:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Access to loopback IP addresses (127.0.0.0/8, ::1) is forbidden."
+        )
+    if ip_obj.is_link_local:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Access to link-local and cloud metadata addresses (169.254.0.0/16) is forbidden."
+        )
+    if ip_obj.is_multicast:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Access to multicast IP addresses is forbidden."
+        )
+    if ip_obj.is_reserved or ip_obj.is_unspecified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Access to reserved or unspecified IP addresses is forbidden."
+        )
+    return clean
 
 class ProxyPayload(BaseModel):
     ip: str
@@ -52,7 +105,7 @@ async def enqueue_device_command(payload: CommandPayload):
         doc = await db_instance.db["devices"].find_one({"device_id": payload.device_id}, {"pending_commands": 1})
         if doc and len(doc.get("pending_commands", [])) >= 10:
             raise HTTPException(status_code=429, detail="Command queue full for this device")
-            
+
         await db_instance.db["devices"].update_one(
             {"device_id": payload.device_id},
             {"$push": {"pending_commands": payload.command}},
@@ -123,7 +176,7 @@ async def register_device(data: DeviceRegistration):
             "last_seen": datetime.now(timezone.utc),
             "status": "online"
         }
-        
+
         if data.ota_status:
             update_doc["ota_history"] = {
                 "status": data.ota_status,
@@ -164,16 +217,16 @@ async def check_ota_update(device_id: str, current_version: str):
     """Check if an OTA firmware update is available for the specified device."""
     device_doc = await db_instance.db["devices"].find_one({"device_id": device_id})
     hardware_model = device_doc.get("hardware_model", "ESP32 DevKit V1") if device_doc else "ESP32 DevKit V1"
-    
+
     cursor = db_instance.db["firmware_releases"].find({"is_active": True})
     releases = await cursor.to_list(length=100)
-    
+
     latest_release = None
     for rel in releases:
         if is_hardware_compatible(hardware_model, rel.get("hardware_model", "ESP32 DevKit V1")):
             if not latest_release or compare_versions(rel["version"], latest_release["version"]) > 0:
                 latest_release = rel
-                
+
     if not latest_release:
         return {
             "update_available": False,
@@ -184,9 +237,9 @@ async def check_ota_update(device_id: str, current_version: str):
             "release_notes": "No firmware releases available for this hardware model.",
             "hardware_model": hardware_model
         }
-        
+
     is_newer = compare_versions(latest_release["version"], current_version) > 0
-    
+
     try:
         await log_ota_audit(db_instance.db, "OTA_QUERY", device_id, {
             "current_version": current_version,
@@ -196,7 +249,7 @@ async def check_ota_update(device_id: str, current_version: str):
         })
     except Exception:
         pass
-        
+
     download_url = f"/api/v1/firmware/download/{latest_release['version']}?hardware_model={hardware_model}" if is_newer else ""
     return {
         "update_available": is_newer,
@@ -209,12 +262,27 @@ async def check_ota_update(device_id: str, current_version: str):
     }
 
 @router.get("/status")
-async def get_all_devices():
-    """Retrieve status of all registered devices for the frontend dashboard."""
+async def get_all_devices(current_user: dict = Depends(get_current_user)):
+    """Retrieve status of devices for authorized users (Admin sees all; Farmer sees own devices only)."""
     if not hasattr(db_instance, "db") or db_instance.db is None:
         return []
+
+    user_role = current_user.get("role", "farmer").lower()
+    user_id = current_user.get("id") or str(current_user.get("_id", ""))
+
+    if user_role == "admin":
+        query = {}
+    elif user_role == "farmer":
+        query_conditions = [{"user_id": user_id}]
+        if ObjectId.is_valid(user_id):
+            query_conditions.append({"user_id": ObjectId(user_id)})
+        query = {"$or": query_conditions}
+    else:
+        # Equipment providers or other roles have no associated farmer IoT devices
+        return []
+
     try:
-        cursor = db_instance.db["devices"].find({}, {"_id": 0}).sort("last_seen", -1)
+        cursor = db_instance.db["devices"].find(query, {"_id": 0}).sort("last_seen", -1)
         devices = await cursor.to_list(length=100)
     except Exception:
         return []
@@ -223,7 +291,7 @@ async def get_all_devices():
         last_seen = dev.get("last_seen")
         if not last_seen and "latest_telemetry" in dev and "received_at" in dev["latest_telemetry"]:
             last_seen = dev["latest_telemetry"]["received_at"]
-        
+
         parsed_dt = None
         if isinstance(last_seen, datetime):
             parsed_dt = last_seen
@@ -234,7 +302,7 @@ async def get_all_devices():
                 parsed_dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00')).replace(tzinfo=None)
             except Exception:
                 pass
-        
+
         if parsed_dt:
             seconds_since_seen = (now - parsed_dt).total_seconds()
             if seconds_since_seen > 120:
@@ -248,13 +316,43 @@ async def get_all_devices():
     return devices
 
 @router.post("/proxy")
-async def device_proxy(proxy_data: ProxyPayload):
-    """Proxy requests from frontend to ESP32 local IP to bypass mixed-content blocks."""
+async def device_proxy(
+    proxy_data: ProxyPayload,
+    current_user: dict = Depends(get_current_user)
+):
+    """Proxy requests from frontend to ESP32 local IP with authentication, ownership, and SSRF validation."""
+    user_role = current_user.get("role", "farmer").lower()
+    if user_role not in ["admin", "farmer"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: IoT device proxy is restricted to farmers and administrators."
+        )
+
     if not proxy_data.ip:
-        raise HTTPException(status_code=400, detail="No IP address provided")
-        
-    target_url = f"http://{proxy_data.ip}{proxy_data.endpoint}"
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No IP address provided")
+
+    # SSRF destination validation
+    validated_ip = validate_proxy_destination(proxy_data.ip)
+
+    # Scoped device ownership check for farmers
+    if user_role == "farmer" and hasattr(db_instance, "db") and db_instance.db is not None:
+        user_id = current_user.get("id") or str(current_user.get("_id", ""))
+        foreign_device = await db_instance.db["devices"].find_one({
+            "ip": validated_ip,
+            "user_id": {"$nin": [user_id, ObjectId(user_id)]} if ObjectId.is_valid(user_id) else {"$ne": user_id}
+        })
+        if foreign_device:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: this device belongs to another farmer."
+            )
+
+    clean_endpoint = (proxy_data.endpoint or "").strip()
+    if not clean_endpoint.startswith("/"):
+        clean_endpoint = "/" + clean_endpoint
+
+    target_url = f"http://{validated_ip}{clean_endpoint}"
+
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
             headers = {"X-API-Key": "crop_iot_secure_key_2026"}
@@ -262,7 +360,7 @@ async def device_proxy(proxy_data: ProxyPayload):
                 resp = await client.post(target_url, data=proxy_data.payload, headers=headers)
             else:
                 resp = await client.get(target_url, headers=headers)
-                
+
             try:
                 return resp.json()
             except Exception:
@@ -274,19 +372,46 @@ async def device_proxy(proxy_data: ProxyPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from fastapi.responses import Response
-
 @router.get("/proxy-download")
-async def device_proxy_download(ip: str, endpoint: str):
-    """Proxy file downloads from ESP32 to bypass mixed-content blocks and header issues."""
-    target_url = f"http://{ip}{endpoint}"
+async def device_proxy_download(
+    ip: str = Query(..., description="Target device IP"),
+    endpoint: str = Query(..., description="Device download endpoint"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Proxy file downloads from ESP32 with authentication, ownership, and SSRF validation."""
+    user_role = current_user.get("role", "farmer").lower()
+    if user_role not in ["admin", "farmer"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: IoT device proxy is restricted to farmers and administrators."
+        )
+
+    validated_ip = validate_proxy_destination(ip)
+
+    if user_role == "farmer" and hasattr(db_instance, "db") and db_instance.db is not None:
+        user_id = current_user.get("id") or str(current_user.get("_id", ""))
+        foreign_device = await db_instance.db["devices"].find_one({
+            "ip": validated_ip,
+            "user_id": {"$nin": [user_id, ObjectId(user_id)]} if ObjectId.is_valid(user_id) else {"$ne": user_id}
+        })
+        if foreign_device:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: this device belongs to another farmer."
+            )
+
+    clean_endpoint = (endpoint or "").strip()
+    if not clean_endpoint.startswith("/"):
+        clean_endpoint = "/" + clean_endpoint
+
+    target_url = f"http://{validated_ip}{clean_endpoint}"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             headers = {"X-API-Key": "crop_iot_secure_key_2026"}
             resp = await client.get(target_url, headers=headers)
             if resp.status_code != 200:
                 raise HTTPException(status_code=resp.status_code, detail="Failed to fetch file from device")
-            
+
             return Response(
                 content=resp.content,
                 media_type=resp.headers.get("content-type", "application/octet-stream"),

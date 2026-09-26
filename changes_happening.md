@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-27 (v316) - Phase 1 Security Remediation: SSRF Defense & Scoped IoT Device Telemetry Access Control
+- **Summary:**
+  1. 🛡️ **SSRF Remediation for Device Proxy (POST /api/v1/devices/proxy & GET /api/v1/devices/proxy-download):**
+     - Enforced mandatory authentication via Depends(get_current_user) rejecting anonymous requests with HTTP 401 before any network activity.
+     - Enforced role isolation: restricted proxy usage to dmin and armer; equipment providers and untrusted roles receive HTTP 403 Forbidden.
+     - Implemented safe address validation (alidate_proxy_destination) using Python ipaddress and urllib.parse blocking loopback (127.0.0.0/8, ::1), link-local/cloud metadata (169.254.0.0/16), multicast, reserved ranges, and dangerous hostnames (localhost, metadata.google.internal).
+     - Implemented farmer device ownership verification: farmers cannot proxy outbound requests to IP addresses belonging to other farmers.
+  2. 🔒 **Device Telemetry Scoping (GET /api/v1/devices/status):**
+     - Enforced mandatory authentication via Depends(get_current_user) rejecting anonymous requests with HTTP 401.
+     - Scoped database query: farmers receive only IoT device records registered under their user_id.
+     - Equipment providers receive an empty list ([]).
+     - Administrators retain full fleet visibility across all devices (query = {}), preserving Admin Portal functionality.
+  3. 🧪 **Focused Verification Suite (ackend/tests/test_devices_security.py):**
+     - Added comprehensive automated test suite verifying all 7 security requirements across Anonymous, Farmer, Provider, and Admin roles.
+     - All 7 tests passing cleanly.
+- **Files modified:** ackend/app/routers/common/devices.py, ackend/tests/test_devices_security.py, changes_happening.md.
+
 ## 2026-09-26 (v315) - Distributed AI Cluster Scaling: Render AI Worker 3 Integration & 4-Tier Automated Failover Routing
 - **Summary:**
   1. 🌐 **AI Worker 3 Public Deployment Live (`https://agrishield-ai-worker-3.onrender.com`):**
