@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v308) - Removed Provider Location Sharing, Fixed Village Location (Pasupugallu), and Real-Time Notification Popups without Manual Refresh
+- **Summary:**
+  1. 📍 **Removed Provider Location Sharing (`GoogleMessageReader.jsx`):**
+     - Completely removed the location sharing option from the equipment provider's paperclip attachment menu (`!isProviderViewer`), ensuring only farmers can share their location.
+  2. 🏡 **Farmer Authentic Village Location (No "Field/Plot" Confusion):**
+     - Connected authentic village center coordinates from `VILLAGE_COORDINATES` in `indiaLocations.js` (`[15.8020, 79.8050]` for Pasupugallu).
+     - Replaced all misleading "Field / Plot" (`పొలం, ప్లాట్` / `Agri Field Plot`) labels with authentic "Village Location" (`గ్రామ లొకేషన్` / `Pasupugallu Village` / `పసుపుగల్లు గ్రామం`).
+     - Upgraded the chat location card with direct Google Maps village navigation (`https://www.google.com/maps/search/?api=1&query=15.8020,79.8050`).
+     - Updated the chat header banner to display `గ్రామ లొకేషన్:` (Village Location).
+  3. 🔔 **Real-Time Notification Popups Without Manual Refresh (`NotificationsPage.jsx` & `AppLayout.jsx`):**
+     - **NotificationsPage 2.5s Auto-Poller:** Added an active 2.5-second polling interval and BroadcastChannel listener in `NotificationsPage.jsx` so incoming messages, bookings, and updates immediately appear on screen without manual refresh.
+     - **App-Wide Notification Toast Popups & Audio Chime (`AppLayout.jsx`):** Added a 3.5-second background poller for `/api/notifications/unread`, Web Audio API audio chime (`playNotificationChime`), and real-time event/BroadcastChannel listener.
+     - Whenever a new notification or chat message arrives, an animated floating toast pops up at the bottom right (with dynamic icon, title, message preview, and 1-tap jump to chat) accompanied by an audible two-tone chime, across all pages of the application.
+- **Files modified:** `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/components/AppLayout.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-26 (v307) - Voice Note Audio Playback Fix, WebM Infinity Duration Resolution & Backend Audio Persistence
 - **Summary:**
   1. 🔊 **Voice Note Audio Playback Root Cause Resolution (`equipment.py`, `GoogleMessageReader.jsx`):**

@@ -304,6 +304,26 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     localStorage.setItem('theme', nextDark ? 'dark' : 'light');
   };
 
+  const seenNotificationIdsRef = useRef(new Set());
+  const hasInitializedAlertsRef = useRef(false);
+
+  const playNotificationChime = useCallback(() => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (_) {}
+  }, []);
+
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
     try {
@@ -331,9 +351,36 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         alertData = [mockAlarm, ...alertData.slice(0, 4)];
       }
 
+      // Check for incoming new unread alerts in real-time
+      if (hasInitializedAlertsRef.current && alertData.length > 0) {
+        const freshAlerts = alertData.filter(a => {
+          const aId = a.notification_id || a.id || a._id;
+          return aId && !seenNotificationIdsRef.current.has(aId);
+        });
+
+        if (freshAlerts.length > 0) {
+          freshAlerts.forEach(a => {
+            const aId = a.notification_id || a.id || a._id;
+            if (aId) seenNotificationIdsRef.current.add(aId);
+          });
+          const newest = freshAlerts[0];
+          setLiveAlert(newest);
+          playNotificationChime();
+          setUnreadCount(prev => prev + freshAlerts.length);
+          setTimeout(() => setLiveAlert(null), 6000);
+        }
+      } else {
+        // Initial run: record existing alert IDs so old ones don't trigger chime or popup
+        alertData.forEach(a => {
+          const aId = a.notification_id || a.id || a._id;
+          if (aId) seenNotificationIdsRef.current.add(aId);
+        });
+        hasInitializedAlertsRef.current = true;
+      }
+
       setRecentAlerts(alertData);
     } catch { /* silently ignore */ }
-  }, [user]);
+  }, [user, playNotificationChime]);
 
   // Global WebSocket Context hook
   const { connectionStatus, lastMessageTime, lastTelemetry, deviceStatusMap, unreadCount: wsUnreadCount, latestAlert } = useWebSocket();
@@ -393,9 +440,61 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     }
   }, [fetchNodeStatus, connectionStatus]);
 
+  // Active real-time background polling (3.5 seconds) ensuring popups & unread badges fire without manual refresh
   useEffect(() => {
     fetchUnreadCount();
-  }, [fetchUnreadCount]);
+    fetchRecentAlerts();
+
+    const notifPollTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCount();
+        fetchRecentAlerts();
+      }
+    }, 3500);
+
+    return () => clearInterval(notifPollTimer);
+  }, [fetchUnreadCount, fetchRecentAlerts]);
+
+  // Real-time custom event & cross-tab BroadcastChannel listener
+  useEffect(() => {
+    const handleIncomingNotif = (notif) => {
+      if (!notif) return;
+      const notifId = notif.notification_id || notif.id || notif._id;
+      if (notifId && seenNotificationIdsRef.current.has(notifId)) return;
+      if (notifId) seenNotificationIdsRef.current.add(notifId);
+
+      const userRole = user?.role?.toLowerCase() || 'farmer';
+      if (notif.target_role && notif.target_role !== userRole && notif.role && notif.role !== userRole) {
+        return;
+      }
+
+      setLiveAlert(notif);
+      setRecentAlerts(prev => [notif, ...prev.filter(n => (n.notification_id || n.id) !== notifId)].slice(0, 5));
+      setUnreadCount(prev => prev + 1);
+      playNotificationChime();
+      setTimeout(() => setLiveAlert(null), 6000);
+    };
+
+    const onCustomEvent = (e) => handleIncomingNotif(e.detail);
+    window.addEventListener('agrishield_new_notification', onCustomEvent);
+    window.addEventListener('newBookingNotification', onCustomEvent);
+
+    let bcNotif;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bcNotif = new BroadcastChannel('agrishield_notifications_channel');
+        bcNotif.onmessage = (event) => {
+          if (event.data) handleIncomingNotif(event.data);
+        };
+      }
+    } catch (_) {}
+
+    return () => {
+      window.removeEventListener('agrishield_new_notification', onCustomEvent);
+      window.removeEventListener('newBookingNotification', onCustomEvent);
+      bcNotif?.close();
+    };
+  }, [user, playNotificationChime]);
 
   // Sync global WebSocket unread count
   useEffect(() => {
@@ -409,10 +508,11 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     if (latestAlert) {
       setRecentAlerts(prev => [latestAlert, ...prev].slice(0, 5));
       setLiveAlert(latestAlert);
+      playNotificationChime();
       const t = setTimeout(() => { setLiveAlert(null); }, 6000);
       return () => clearTimeout(t);
     }
-  }, [latestAlert]);
+  }, [latestAlert, playNotificationChime]);
 
   // Sync hardware status bar in real-time without polling when telemetry updates arrive over WebSocket
   useEffect(() => {
@@ -925,7 +1025,11 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             <div className="flex-grow min-w-0 pr-1">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{t('nav.live_alert_tag', 'AI Diagnosis Alert')}</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  {liveAlert.category === 'booking' || liveAlert.type === 'booking_chat' 
+                    ? (i18n.language === 'te' ? '💬 వ్యవసాయ సందేశం' : '💬 Farm Message') 
+                    : t('nav.live_alert_tag', 'AI Diagnosis Alert')}
+                </span>
               </div>
               <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 leading-snug">{liveAlert.title}</h4>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{liveAlert.message}</p>

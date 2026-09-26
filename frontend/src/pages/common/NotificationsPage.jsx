@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Bell, Search, Trash2, CheckCheck, Filter, RefreshCw,
+  Bell, BellRing, Search, Trash2, CheckCheck, Filter, RefreshCw,
   AlertTriangle, CloudRain, Droplets, BatteryWarning,
   WifiOff, Activity, ChevronDown, ChevronLeft, ChevronRight, X, BellOff, Download, Clock, Check,
   Settings, Volume2, VolumeX, ShieldAlert, Sparkles, SlidersHorizontal, MessageSquare, Truck, Phone,
@@ -189,6 +189,8 @@ export default function NotificationsPage() {
   const [priority, setPriority] = useState('All');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [newAlertPopup, setNewAlertPopup] = useState(null);
+  const knownNotifIdsRef = useRef(new Set());
 
   // Selected Notification Dialog (Google Message Reader / 2-way View)
   const [selectedMessage, setSelectedMessage] = useState(null);
@@ -629,6 +631,30 @@ export default function NotificationsPage() {
       const finalMerged = [...consolidatedThreads, ...standaloneNotifs];
       finalMerged.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
 
+      // Real-time detection of newly arrived notifications without manual refresh
+      if (hasLoadedOnceRef.current) {
+        const incomingNew = finalMerged.filter(n => {
+          const id = n.notification_id || n.id || n._id;
+          return id && !knownNotifIdsRef.current.has(id);
+        });
+        if (incomingNew.length > 0) {
+          incomingNew.forEach(n => {
+            const id = n.notification_id || n.id || n._id;
+            if (id) knownNotifIdsRef.current.add(id);
+          });
+          playNotificationChime();
+          const firstNew = incomingNew[0];
+          setNewAlertPopup(firstNew);
+          setTimeout(() => setNewAlertPopup(null), 6000);
+        }
+      } else {
+        // Initial run: record all existing notification IDs so they do not chime on mount
+        finalMerged.forEach(n => {
+          const id = n.notification_id || n.id || n._id;
+          if (id) knownNotifIdsRef.current.add(id);
+        });
+      }
+
       setNotifications(finalMerged);
       setTotal(finalMerged.length);
     } catch {
@@ -642,6 +668,13 @@ export default function NotificationsPage() {
   useEffect(() => {
     // Initial fetch
     fetchNotifications(false);
+
+    // Active real-time background polling interval (2.5 seconds) ensuring notifications pop up without manual page refresh
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications(true);
+      }
+    }, 2500);
 
     // Silent background revalidations (Stale-While-Revalidate pattern: zero skeleton blinking)
     let revalidateTimer;
@@ -662,6 +695,7 @@ export default function NotificationsPage() {
     document.addEventListener('visibilitychange', handleRevalidateNotifs);
 
     return () => {
+      clearInterval(pollInterval);
       clearTimeout(revalidateTimer);
       window.removeEventListener('agrishield_notifications_updated', debouncedSilentFetch);
       window.removeEventListener('storage', debouncedSilentFetch);
@@ -673,16 +707,35 @@ export default function NotificationsPage() {
   useEffect(() => {
     const handleNewNotif = (e) => {
       if (e.detail) {
-        setNotifications(prev => [e.detail, ...prev.filter(n => (n.id || n.notification_id) !== (e.detail.id || e.detail.notification_id))]);
+        const item = e.detail;
+        const itemId = item.id || item.notification_id;
+        if (itemId) knownNotifIdsRef.current.add(itemId);
+        setNotifications(prev => [item, ...prev.filter(n => (n.id || n.notification_id) !== itemId)]);
         setTotal(t => t + 1);
         playNotificationChime();
+        setNewAlertPopup(item);
+        setTimeout(() => setNewAlertPopup(null), 6000);
       }
     };
     window.addEventListener('agrishield_new_notification', handleNewNotif);
     window.addEventListener('newBookingNotification', handleNewNotif);
+
+    let bc;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('agrishield_notifications_channel');
+        bc.onmessage = (event) => {
+          if (event.data) {
+            handleNewNotif({ detail: event.data });
+          }
+        };
+      }
+    } catch (_) {}
+
     return () => {
       window.removeEventListener('agrishield_new_notification', handleNewNotif);
       window.removeEventListener('newBookingNotification', handleNewNotif);
+      bc?.close();
     };
   }, []);
 
@@ -1003,6 +1056,54 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-[#f1f3f9] dark:bg-[#111318] text-slate-900 dark:text-slate-100 transition-colors duration-200 pb-32 pt-2 px-3 sm:px-6 max-w-3xl mx-auto space-y-3.5 animate-fade-in relative">
+
+      {/* Real-Time Floating Popup Toast for Incoming Notifications */}
+      <AnimatePresence>
+        {newAlertPopup && (
+          <motion.div
+            initial={{ opacity: 0, y: -25, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            onClick={() => {
+              setSelectedMessage(newAlertPopup);
+              setNewAlertPopup(null);
+            }}
+            className="fixed top-18 inset-x-4 sm:inset-x-auto sm:right-6 sm:w-96 z-50 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-emerald-500/40 shadow-2xl backdrop-blur-xl flex items-start gap-3 cursor-pointer group hover:border-emerald-500 transition-all"
+          >
+            <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <BellRing className="w-5 h-5 animate-bounce" />
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
+                  {isTe ? 'కొత్త నోటిఫికేషన్ వచ్చింది' : 'New Notification Alert'}
+                </span>
+              </div>
+              <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                {newAlertPopup.title || (isTe ? 'కొత్త సందేశం' : 'New Message')}
+              </h4>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate mt-0.5">
+                {newAlertPopup.message}
+              </p>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-1.5 inline-flex items-center gap-1 group-hover:underline">
+                <span>{isTe ? 'సందేశం తెరవండి' : 'Tap to open conversation'}</span>
+                <span>&rarr;</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setNewAlertPopup(null);
+              }}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Toast Feedback */}
       {toastMsg && (

@@ -23,6 +23,7 @@ import {
 import { translateNotification } from '../../utils/notificationTranslator';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
+import { VILLAGE_COORDINATES } from '../../data/indiaLocations';
 
 export const READER_LANGUAGES = [
   { code: 'te', name: 'తెలుగు', flag: '🌾', label: 'తెలుగు (Telugu)' },
@@ -1074,22 +1075,46 @@ export default function GoogleMessageReader({
           : [];
         localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+        try {
+          if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            const nbc = new BroadcastChannel('agrishield_notifications_channel');
+            nbc.postMessage(notifObj);
+            nbc.close();
+          }
+        } catch (_) {}
       } catch (_) {}
     } catch (_) {}
   };
 
   const handleSendLiveLocation = () => {
     setShowAttachMenu(false);
+    if (isProviderViewer) return; // Strict role restriction: Providers do not share location
+
+    const defaultCoords = [15.8020, 79.8050]; // Pasupugallu village center
+    const villageCoords = (typeof VILLAGE_COORDINATES !== 'undefined' && VILLAGE_COORDINATES[bookingVillage]) 
+      ? VILLAGE_COORDINATES[bookingVillage] 
+      : defaultCoords;
+
+    const lat = villageCoords[0];
+    const lng = villageCoords[1];
+    const coordsStr = `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`;
+
     const locationMsg = {
-      id: `msg_${mySenderRole}_loc_${Date.now()}`,
-      sender: mySenderRole,
-      senderName: user?.name || (isProviderViewer ? (isTelugu ? 'పరికర ప్రొవైడర్' : 'Equipment Provider') : (isTelugu ? 'రైతు' : 'Farmer')),
+      id: `msg_farmer_loc_${Date.now()}`,
+      sender: 'farmer',
+      senderName: user?.name || (isTelugu ? 'రైతు' : 'Farmer'),
       type: 'location',
-      text: isTelugu ? `📍 వ్యవసాయ క్షేత్రం లొకేషన్ పంపాను (${bookingVillage}).` : `📍 Shared field location (${bookingVillage}).`,
+      text: isTelugu ? `📍 గ్రామ లొకేషన్ పంపాను (${bookingVillage} గ్రామం).` : `📍 Shared village location (${bookingVillage} Village).`,
       location: {
-        name: `${bookingVillage}, Agri Field Plot`,
-        teluguName: `${bookingVillage} పొలం, ప్లాట్`,
-        coords: '15.2845° N, 79.9124° E'
+        name: `${bookingVillage} Village`,
+        teluguName: `${bookingVillage} గ్రామం`,
+        village: bookingVillage,
+        mandal: bookingMandal || 'Mundlamuru',
+        district: bookingDistrict || 'Prakasam',
+        coords: coordsStr,
+        lat: lat,
+        lng: lng,
+        mapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
       },
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       timestamp: new Date().toISOString(),
@@ -1110,6 +1135,37 @@ export default function GoogleMessageReader({
         }
       } catch (_) {}
       API.post(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`, locationMsg).catch(() => {});
+
+      // Dispatch real-time notification to equipment provider
+      const notifObj = {
+        id: `notif-chat-${canonicalBookingId}`,
+        notification_id: `notif-chat-${canonicalBookingId}`,
+        category: 'booking',
+        type: 'booking_chat',
+        priority: 'Medium',
+        role: 'equipment_provider',
+        target_role: 'equipment_provider',
+        title: isTelugu ? `📍 గ్రామ లొకేషన్ - ${bookingEquipmentTitle}` : `📍 Village Location - ${bookingEquipmentTitle}`,
+        message: `${user?.name || (isTelugu ? 'రైతు' : 'Farmer')}: 📍 ${bookingVillage} ${isTelugu ? 'గ్రామం లొకేషన్' : 'Village Location'}`,
+        booking_id: canonicalBookingId,
+        bookingId: canonicalBookingId,
+        created_at: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      try {
+        const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const filteredExisting = Array.isArray(existingNotifs)
+          ? existingNotifs.filter(n => n && n.booking_id !== canonicalBookingId && !String(n.id || '').startsWith(`notif-chat-${canonicalBookingId}`))
+          : [];
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
+        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const nbc = new BroadcastChannel('agrishield_notifications_channel');
+          nbc.postMessage(notifObj);
+          nbc.close();
+        }
+      } catch (_) {}
     } catch (_) {}
   };
 
@@ -1173,6 +1229,13 @@ export default function GoogleMessageReader({
           : [];
         localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+        try {
+          if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            const nbc = new BroadcastChannel('agrishield_notifications_channel');
+            nbc.postMessage(notifObj);
+            nbc.close();
+          }
+        } catch (_) {}
       } catch (_) {}
     } catch (_) {}
   };
@@ -1769,11 +1832,11 @@ export default function GoogleMessageReader({
                     <div className="absolute -right-6 -top-2 w-4 h-4 rounded-full bg-[#f3f5fa] dark:bg-[#0d1117]" />
                   </div>
 
-                  {/* Exact Village & Field Location Details */}
+                  {/* Exact Village Location Details */}
                   <div className="p-2.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40 text-xs space-y-1 mb-2">
                     <div className="flex items-center gap-1.5 text-emerald-900 dark:text-emerald-200 font-bold">
                       <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                      <span className="text-[11px]">{isTelugu ? 'పొలం లొకేషన్:' : 'Field Location:'}</span>
+                      <span className="text-[11px]">{isTelugu ? 'గ్రామ లొకేషన్:' : 'Village Location:'}</span>
                       <span className="text-[12px] font-black text-slate-900 dark:text-white">{bookingLocationDisplay}</span>
                     </div>
                     <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-2 pl-5">
@@ -1889,27 +1952,29 @@ export default function GoogleMessageReader({
                               <MapPin className="w-4 h-4 fill-emerald-400 text-emerald-900" />
                             </div>
                             <span className="text-[10px] font-bold text-emerald-300 mt-1 relative z-10">
-                              {isTelugu ? 'పొలం GPS' : 'Field GPS Shared'}
+                              {isTelugu ? 'గ్రామ GPS' : 'Village GPS Location'}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-between pt-1">
                             <div>
                               <span className="text-[11px] font-black text-white block">
-                                {isTelugu ? msg.location.teluguName : msg.location.name}
+                                {isTelugu
+                                  ? (msg.location.teluguName || `${msg.location.village || bookingVillage} గ్రామం`)
+                                  : (msg.location.name || `${msg.location.village || bookingVillage} Village`)}
                               </span>
                               <span className="text-[9px] text-slate-400 font-mono">
                                 {msg.location.coords}
                               </span>
                             </div>
                             <a
-                              href={`https://maps.google.com/?q=${encodeURIComponent(msg.location.name)}`}
+                              href={msg.location.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(msg.location.coords || msg.location.name)}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1 border border-emerald-500/30"
+                              className="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10px] font-bold flex items-center gap-1 border border-emerald-500/30 cursor-pointer"
                             >
                               <ExternalLink className="w-3 h-3" />
-                              <span>{isTelugu ? 'మ్యాప్' : 'View'}</span>
+                              <span>{isTelugu ? 'మ్యాప్స్' : 'Maps'}</span>
                             </a>
                           </div>
                         </div>
@@ -1944,19 +2009,26 @@ export default function GoogleMessageReader({
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute bottom-16 left-3 sm:left-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-3 shadow-2xl space-y-1.5 z-30 text-xs w-68 sm:w-72"
                 >
-                  <button
-                    type="button"
-                    onClick={handleSendLiveLocation}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-bold block text-slate-900 dark:text-white">{isTelugu ? 'పొలం లొకేషన్ పంపండి' : 'Share Field Location'}</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400">{bookingVillage}</span>
-                    </div>
-                  </button>
+                  {/* Share Village Location (FARMER ONLY - completely hidden from provider side) */}
+                  {!isProviderViewer && (
+                    <button
+                      type="button"
+                      onClick={handleSendLiveLocation}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-rose-500/15 text-rose-500 flex items-center justify-center shrink-0">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="font-bold block text-slate-900 dark:text-white">
+                          {isTelugu ? 'గ్రామ లొకేషన్ పంపండి' : 'Share Village Location'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          {bookingVillage} {isTelugu ? 'గ్రామం' : 'Village'}
+                        </span>
+                      </div>
+                    </button>
+                  )}
 
                   <button
                     type="button"
