@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/:path*"
+      "destination": "https://agrishield-ai-worker-3.onrender.com/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/uploads/:path*"
+      "destination": "https://agrishield-ai-worker-3.onrender.com/uploads/:path*"
     },
     {
       "source": "/(.*)",
