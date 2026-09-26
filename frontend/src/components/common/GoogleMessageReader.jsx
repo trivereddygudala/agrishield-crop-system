@@ -136,7 +136,7 @@ function extractCropDetails(item, lang = 'te') {
 /**
  * Modern voice note bubble with inline audio player and animated waveforms
  */
-function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
+function VoiceNoteBubble({ msg, isMyMessage, isTelugu, onDelete, activeMsgActionId, setActiveMsgActionId }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -212,28 +212,8 @@ function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
 
   const togglePlay = () => {
     const audio = audioRef.current;
-
-    // Graceful fallback: If audioUrl is missing or empty (e.g. from earlier stripped messages)
     if (!msg.audioUrl || !audio) {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        if (isPlaying) {
-          window.speechSynthesis.cancel();
-          setIsPlaying(false);
-        } else {
-          window.speechSynthesis.cancel();
-          const cleanText = (msg.text || '').replace(/🎤\s*|\(\d+s\)/g, '').trim() || (isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message');
-          const utterance = new SpeechSynthesisUtterance(cleanText);
-          utterance.rate = 0.85;
-          utterance.onstart = () => setIsPlaying(true);
-          utterance.onend = () => {
-            setIsPlaying(false);
-            setProgress(0);
-            setCurrentTime(0);
-          };
-          utterance.onerror = () => setIsPlaying(false);
-          window.speechSynthesis.speak(utterance);
-        }
-      }
+      setIsPlaying(false);
       return;
     }
 
@@ -256,21 +236,7 @@ function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
           .then(() => setIsPlaying(true))
           .catch(err => {
             console.warn('Native audio play error, falling back:', err);
-            // Fallback to speech synthesis if browser audio decoder fails on codec
-            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-              const cleanText = (msg.text || '').replace(/🎤\s*|\(\d+s\)/g, '').trim() || (isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message');
-              const utterance = new SpeechSynthesisUtterance(cleanText);
-              utterance.rate = 0.85;
-              utterance.onstart = () => setIsPlaying(true);
-              utterance.onend = () => {
-                setIsPlaying(false);
-                setProgress(0);
-              };
-              utterance.onerror = () => setIsPlaying(false);
-              window.speechSynthesis.speak(utterance);
-            } else {
-              setIsPlaying(false);
-            }
+            setIsPlaying(false);
           });
       }
     }
@@ -285,50 +251,101 @@ function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
   };
 
   return (
-    <div className="flex items-center gap-2.5 py-1 min-w-[210px] sm:min-w-[250px]">
-      <audio ref={audioRef} src={msg.audioUrl} preload="auto" />
-      <button
-        type="button"
-        onClick={togglePlay}
-        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-md transition-transform active:scale-90 cursor-pointer ${
-          isMyMessage
-            ? 'bg-white text-blue-600 hover:bg-blue-50'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700'
-        }`}
-        title={isPlaying ? 'Pause' : 'Play voice note'}
-      >
-        {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />}
-      </button>
+    <div className="flex flex-col space-y-1">
+      <div className="flex items-center gap-2 py-1 min-w-[210px] sm:min-w-[250px]">
+        <audio ref={audioRef} src={msg.audioUrl} preload="auto" />
+        <button
+          type="button"
+          onClick={togglePlay}
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-md transition-transform active:scale-90 cursor-pointer ${
+            isMyMessage
+              ? 'bg-white text-blue-600 hover:bg-blue-50'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+          }`}
+          title={isPlaying ? 'Pause' : 'Play voice note'}
+        >
+          {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />}
+        </button>
 
-      <div className="flex-1 space-y-1.5 min-w-0">
-        <div className="flex items-center gap-1 h-5 overflow-hidden">
-          {[40, 75, 55, 90, 60, 85, 45, 95, 70, 50, 80, 65, 90, 45, 70].map((h, i) => {
-            const barProgress = (i / 15) * 100;
-            const isPlayed = progress >= barProgress;
-            return (
-              <span
-                key={i}
-                className={`w-1 rounded-full transition-all duration-150 ${
-                  isPlayed
-                    ? (isMyMessage ? 'bg-white' : 'bg-emerald-600 dark:bg-emerald-400')
-                    : (isMyMessage ? 'bg-blue-300/40' : 'bg-slate-300 dark:bg-slate-700')
-                } ${isPlaying && isPlayed ? 'animate-pulse' : ''}`}
-                style={{ height: `${Math.max(6, (h * (isPlaying ? 1.2 : 1)) / 4)}px` }}
-              />
-            );
-          })}
+        <div className="flex-1 space-y-1.5 min-w-0">
+          <div className="flex items-center gap-1 h-5 overflow-hidden">
+            {[40, 75, 55, 90, 60, 85, 45, 95, 70, 50, 80, 65, 90, 45, 70].map((h, i) => {
+              const barProgress = (i / 15) * 100;
+              const isPlayed = progress >= barProgress;
+              return (
+                <span
+                  key={i}
+                  className={`w-1 rounded-full transition-all duration-150 ${
+                    isPlayed
+                      ? (isMyMessage ? 'bg-white' : 'bg-emerald-600 dark:bg-emerald-400')
+                      : (isMyMessage ? 'bg-blue-300/40' : 'bg-slate-300 dark:bg-slate-700')
+                  } ${isPlaying && isPlayed ? 'animate-pulse' : ''}`}
+                  style={{ height: `${Math.max(6, (h * (isPlaying ? 1.2 : 1)) / 4)}px` }}
+                />
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between text-[10px] font-mono">
+            <span className={isMyMessage ? 'text-blue-100 font-semibold' : 'text-slate-500 dark:text-slate-400'}>
+              {isPlaying ? formatSec(currentTime) : formatSec(duration)}
+            </span>
+            <span className={`flex items-center gap-1 ${isMyMessage ? 'text-blue-100 font-semibold' : 'text-emerald-600 dark:text-emerald-400 font-semibold'}`}>
+              <Mic className="w-3 h-3" />
+              <span>{isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message'}</span>
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between text-[10px] font-mono">
-          <span className={isMyMessage ? 'text-blue-100 font-semibold' : 'text-slate-500 dark:text-slate-400'}>
-            {isPlaying ? formatSec(currentTime) : formatSec(duration)}
-          </span>
-          <span className={`flex items-center gap-1 ${isMyMessage ? 'text-blue-100 font-semibold' : 'text-emerald-600 dark:text-emerald-400 font-semibold'}`}>
-            <Mic className="w-3 h-3" />
-            <span>{isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message'}</span>
-          </span>
-        </div>
+        {/* 3-Dots Action Menu for Voice Notes */}
+        {setActiveMsgActionId && (
+          <div className="shrink-0 relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMsgActionId(activeMsgActionId === msg.id ? null : msg.id);
+              }}
+              className={`p-1 rounded-full transition-colors cursor-pointer ${
+                isMyMessage
+                  ? 'hover:bg-blue-500/60 text-blue-200 hover:text-white'
+                  : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+              }`}
+              title={isTelugu ? 'ఎంపికలు (తొలగించండి)' : 'Voice note options (Delete)'}
+            >
+              <MoreVertical className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Voice Note Delete Popover */}
+      <AnimatePresence>
+        {activeMsgActionId === msg.id && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 5 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 5 }}
+            className={`mt-1 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-20 flex items-center gap-1 ${
+              isMyMessage ? 'self-end' : 'self-start'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (setActiveMsgActionId) setActiveMsgActionId(null);
+                if (onDelete) onDelete();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+              title={isTelugu ? 'వాయిస్ సందేశాన్ని తొలగించండి' : 'Delete voice message'}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{isTelugu ? 'వాయిస్ తొలగించండి' : 'Delete Voice Note'}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -547,7 +564,7 @@ export default function GoogleMessageReader({
         }
       };
 
-      recorder.start(100);
+      recorder.start();
       setIsRecordingVoice(true);
       setRecordingSeconds(0);
 
@@ -2097,7 +2114,14 @@ export default function GoogleMessageReader({
                     >
                       {/* Message Content: Voice Note Audio Bubble OR Text with TTS & Translation */}
                       {msg.type === 'voice_note' || msg.audioUrl ? (
-                        <VoiceNoteBubble msg={msg} isMyMessage={isMyMessage} isTelugu={isTelugu} />
+                        <VoiceNoteBubble
+                        msg={msg}
+                        isMyMessage={isMyMessage}
+                        isTelugu={isTelugu}
+                        onDelete={() => handleDeleteSingleMessage(msg.id)}
+                        activeMsgActionId={activeMsgActionId}
+                        setActiveMsgActionId={setActiveMsgActionId}
+                      />
                       ) : (
                         <div className="flex flex-col space-y-1">
                           <div className="flex items-start justify-between gap-2">
@@ -2112,7 +2136,9 @@ export default function GoogleMessageReader({
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    speak(displayMsgText, `msg_${msg.id}`, currentLang, 0.85);
+                                    const isTeluguContent = /[\u0C00-\u0C7F]/.test(displayMsgText) || /(?:vastanu|vastunna|nenu|ekkad|chey|undi|karchu|repu|bayalu)/i.test(displayMsgText);
+                                    const speechLang = (isTelugu || isTeluguContent) ? 'te-IN' : currentLang;
+                                    speak(displayMsgText, `msg_${msg.id}`, speechLang, 0.85);
                                   }}
                                   className={`p-1.5 rounded-full transition-all cursor-pointer ${
                                     speakingId === `msg_${msg.id}`

@@ -1254,6 +1254,7 @@ async def agrochemical_scan_endpoint(
         scan_record = {
             "user_id": str(current_user["id"]),
             "image_path": req.image_path,
+            "image_data_url": getattr(req, "image_data_url", None),
             "crop_name": "Agrochemical Product",
             "disease_name": info.get("product_name", "Scanned Agrochemical"),
             "confidence": float(agro_res.get("confidence", 95.0) / 100.0 if agro_res.get("confidence", 95.0) > 1.0 else agro_res.get("confidence", 0.95)),
@@ -2280,6 +2281,7 @@ async def predict_pytorch_endpoint(
     prediction_record = {
         "user_id": user_id_val,
         "image_path": req.image_path,
+        "image_data_url": getattr(req, "image_data_url", None),
         "crop_name": prediction_result["crop_name"],
         "disease_name": prediction_result["disease_name"],
         "confidence": float(prediction_result["confidence"]),

@@ -81,6 +81,7 @@ class ProfileUpdate(BaseModel):
 # Prediction schemas
 class PredictionBase(BaseModel):
     image_path: str
+    image_data_url: Optional[str] = None
     crop_name: str
     disease_name: str
     confidence: float
@@ -157,6 +158,7 @@ class PredictRequest(BaseModel):
     wilt_condition: Optional[str] = Field(default=None, description="Wilt symptom: 'none', 'midday', or 'permanent'")
     soil_condition: Optional[str] = Field(default=None, description="Soil moisture: 'normal', 'waterlogged', or 'dry'")
     crop_stage: Optional[str] = Field(default=None, description="Crop stage: 'nursery', 'vegetative', 'flowering', 'mature'")
+    image_data_url: Optional[str] = Field(default=None, description="Optional lightweight Plantix-style WebP thumbnail base64 data URL (<30KB) for permanent history retention")
 
 class TranslatePlantRequest(BaseModel):
     plant: dict = Field(..., description="Plant botanical dictionary to translate")

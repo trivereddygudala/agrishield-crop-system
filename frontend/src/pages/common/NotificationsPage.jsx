@@ -820,20 +820,42 @@ export default function NotificationsPage() {
 
       const readIds = getReadIds();
       notifications.forEach(n => {
-        if (n.id) readIds.add(n.id);
-        if (n.notification_id) readIds.add(n.notification_id);
+        if (n.id) readIds.add(String(n.id));
+        if (n.notification_id) readIds.add(String(n.notification_id));
         if (n.booking_id) {
-          readIds.add(n.booking_id);
+          readIds.add(String(n.booking_id));
           readIds.add(`booking-${n.booking_id}`);
           readIds.add(`farmer-notif-${n.booking_id}-confirmed`);
           readIds.add(`farmer-notif-${n.booking_id}-rejected`);
           readIds.add(`farmer-notif-${n.booking_id}-declined`);
           readIds.add(`notif-${n.booking_id}`);
+          readIds.add(`notif-chat-${n.booking_id}`);
+        }
+        if (Array.isArray(n.threadItemIds)) {
+          n.threadItemIds.forEach(subId => {
+            if (subId) {
+              readIds.add(String(subId));
+              API.put(`/api/v1/notifications/${subId}/read`).catch(() => {});
+            }
+          });
+        }
+        if (Array.isArray(n.threadItems)) {
+          n.threadItems.forEach(it => {
+            const itId = it.notification_id || it.id || it._id;
+            if (itId) {
+              readIds.add(String(itId));
+              API.put(`/api/v1/notifications/${itId}/read`).catch(() => {});
+            }
+          });
         }
       });
       saveReadIds(readIds);
 
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications(prev => prev.map(n => ({
+        ...n,
+        read: true,
+        threadUnreadCount: 0
+      })));
 
       try {
         const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
@@ -1260,7 +1282,7 @@ export default function NotificationsPage() {
                   exit={{ opacity: 0, x: -15 }}
                   onClick={() => {
                     setSelectedMessage(item);
-                    if (isUnread) handleMarkRead(item.notification_id || item.id);
+                    if (isUnread) handleMarkRead(item.notification_id || item.id, null, item.threadItemIds);
                   }}
                   className={`flex items-start gap-3.5 p-3.5 sm:p-4 cursor-pointer transition-colors relative group select-none ${
                     isUnread
@@ -1328,9 +1350,9 @@ export default function NotificationsPage() {
                     </span>
 
                     {/* WhatsApp Green Unread Pill Badge */}
-                    {isUnread && (
+                    {isUnread && (item.threadUnreadCount > 0 || !item.isThread) && (
                       <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-black shadow-xs flex items-center justify-center ring-2 ring-emerald-200 dark:ring-emerald-900/60 animate-pulse">
-                        {item.threadUnreadCount || item.threadCount || 1}
+                        {item.threadUnreadCount > 0 ? item.threadUnreadCount : 1}
                       </span>
                     )}
 

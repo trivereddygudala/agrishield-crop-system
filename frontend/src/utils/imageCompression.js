@@ -118,3 +118,59 @@ export const formatFileSize = (bytes) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
+
+/**
+ * Plantix-Style Compact Thumbnail Generator
+ * Generates an ultra-optimized ~15KB-25KB WebP/JPEG data URL for permanent database retention
+ * ensuring scan leaf history is never lost even if container disks restart.
+ */
+export const generatePlantixThumbnail = (fileOrUrl, maxDim = 320, quality = 0.72) => {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        let width = img.naturalWidth || img.width;
+        let height = img.naturalHeight || img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let dataUrl = canvas.toDataURL('image/webp', quality);
+        if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(dataUrl);
+      };
+      img.onerror = () => resolve(null);
+
+      if (typeof fileOrUrl === 'string') {
+        img.src = fileOrUrl;
+      } else if (fileOrUrl instanceof Blob || fileOrUrl instanceof File) {
+        const objectUrl = URL.createObjectURL(fileOrUrl);
+        img.src = objectUrl;
+      } else {
+        resolve(null);
+      }
+    } catch {
+      resolve(null);
+    }
+  });
+};
+

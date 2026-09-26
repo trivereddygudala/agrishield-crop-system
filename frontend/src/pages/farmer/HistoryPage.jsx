@@ -709,12 +709,18 @@ const HistoryPage = () => {
                   >
                     <div className="p-3.5 flex items-start gap-3">
                       <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
-                        {item.image_path ? (
+                        {item.image_data_url || item.image_path ? (
                           <img
-                            src={`${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
+                            src={item.image_data_url || `${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
                             alt="Scan"
                             className="w-full h-full object-cover"
-                            onError={(e) => { e.target.style.display = 'none'; }}
+                            onError={(e) => {
+                              if (item.image_data_url && e.target.src !== item.image_data_url) {
+                                e.target.src = item.image_data_url;
+                              } else {
+                                e.target.style.display = 'none';
+                              }
+                            }}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] font-semibold">{t('history.no_photo', 'No Photo')}</div>
@@ -844,12 +850,18 @@ const HistoryPage = () => {
                         <div>
                           {/* Image Thumbnail */}
                           <div className="h-40 w-full bg-slate-100 dark:bg-slate-950 relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
-                            {item.image_path ? (
+                            {item.image_data_url || item.image_path ? (
                               <img
-                                src={`${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
+                                src={item.image_data_url || `${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
                                 alt="Leaf Scan"
                                 className="w-full h-full object-cover"
-                                onError={(e) => { e.target.style.display = 'none'; }}
+                                onError={(e) => {
+                                  if (item.image_data_url && e.target.src !== item.image_data_url) {
+                                    e.target.src = item.image_data_url;
+                                  } else {
+                                    e.target.style.display = 'none';
+                                  }
+                                }}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-semibold">{t('history.no_image', 'No Image')}</div>
@@ -1015,12 +1027,18 @@ const HistoryPage = () => {
                           <TableRow key={item.id}>
                             <TableCell>
                               <div className="w-10 h-10 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-800">
-                                {item.image_path ? (
+                                {item.image_data_url || item.image_path ? (
                                   <img
-                                    src={`${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
+                                    src={item.image_data_url || `${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
                                     alt="Scan"
                                     className="w-full h-full object-cover"
-                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    onError={(e) => {
+                                      if (item.image_data_url && e.target.src !== item.image_data_url) {
+                                        e.target.src = item.image_data_url;
+                                      } else {
+                                        e.target.style.display = 'none';
+                                      }
+                                    }}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px]">{t('history.photo', 'Photo')}</div>
@@ -1168,12 +1186,18 @@ const HistoryPage = () => {
               {/* Header Profile */}
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <div className="w-16 h-16 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
-                  {inspectRecord.image_path ? (
+                  {inspectRecord.image_data_url || inspectRecord.image_path ? (
                     <img
-                      src={`${backendBaseUrl}/${inspectRecord.image_path.replace(/\\/g, '/')}`}
+                      src={inspectRecord.image_data_url || `${backendBaseUrl}/${inspectRecord.image_path.replace(/\\/g, '/')}`}
                       alt="Crop Scan"
                       className="w-full h-full object-cover"
-                      onError={(e) => { e.target.style.display = 'none'; }}
+                      onError={(e) => {
+                        if (inspectRecord.image_data_url && e.target.src !== inspectRecord.image_data_url) {
+                          e.target.src = inspectRecord.image_data_url;
+                        } else {
+                          e.target.style.display = 'none';
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">🌿</div>

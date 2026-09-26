@@ -15,7 +15,7 @@ import MultiLeafUploader from '../../components/scanCenter/MultiLeafUploader';
 import MultiLeafResults from '../../components/scanCenter/MultiLeafResults';
 import { useFarm } from '../../context/FarmContext';
 import { Badge, Button } from '../../components/ui/index';
-import { compressImageForUpload, formatFileSize } from '../../utils/imageCompression';
+import { compressImageForUpload, formatFileSize, generatePlantixThumbnail } from '../../utils/imageCompression';
 import { queueOfflineScan } from '../../utils/offlineQueue';
 import { diagnoseOfflineLeaf, identifyOfflinePlant } from '../../utils/offlineDiagnosticEngine';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
@@ -542,12 +542,97 @@ const UploadImagePage = () => {
         // Strict isolation: Plant identification must always analyze the specimen dynamically without inheriting farm crop filters
       }
 
+      // 1. Generate lightweight Plantix WebP thumbnail (<25KB)
+      let plantixThumbnail = null;
+      try {
+        plantixThumbnail = await generatePlantixThumbnail(selectedFile || previewUrl, 320, 0.72);
+        if (plantixThumbnail) {
+          payload.image_data_url = plantixThumbnail;
+        }
+      } catch (thumbErr) {
+        console.warn("Plantix thumbnail generation skipped:", thumbErr);
+      }
+
       const predictRes = await API.post(endpoint, payload);
       scanStore.setTabState(activeTab, {
         liveResult: predictRes.data,
         hasScanned: true,
         loading: false
       });
+
+      // Dispatch real-time farmer notification & audio alert
+      try {
+        const resData = predictRes.data || {};
+        const isTe = activeLang === 'te';
+        const isHealthy = resData.prediction_status === 'healthy' || (resData.disease_name || '').toLowerCase().includes('healthy');
+        const notifId = `scan-diag-${Date.now()}`;
+        const cropName = resData.crop_name || 'Crop';
+        const diseaseName = resData.disease_name || 'Scan Completed';
+        const confidencePct = Math.round(Number(resData.confidence || 0.95) > 1 ? Number(resData.confidence) : Number(resData.confidence || 0.95) * 100);
+
+        const notifItem = {
+          id: notifId,
+          notification_id: notifId,
+          category: activeTab === 'agro-scan' ? 'recommendation' : 'disease',
+          title: isTe 
+            ? (isHealthy ? `🌱 ఆరోగ్యకరమైన పంట: ${cropName}` : `🚨 రోగం గుర్తించబడింది: ${diseaseName}`)
+            : (isHealthy ? `🌱 Healthy Crop: ${cropName}` : `🚨 Disease Alert: ${diseaseName}`),
+          message: isTe
+            ? (isHealthy 
+                ? `${cropName} పంట ఆకులు ${confidencePct}% ఖచ్చితత్వంతో ఆరోగ్యంగా ఉన్నట్లు నిర్ధారించబడింది.`
+                : `${cropName} పంటలో ${confidencePct}% ఖచ్చితత్వంతో ${diseaseName} గుర్తించబడింది. వెంటనే నివారణ చర్యలు చూడండి.`)
+            : (isHealthy
+                ? `${cropName} foliage verified healthy with ${confidencePct}% confidence.`
+                : `${diseaseName} identified on ${cropName} with ${confidencePct}% confidence. Tap to view prescription.`),
+          priority: isHealthy ? 'Low' : 'Critical',
+          created_at: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+          read: false,
+          action_url: '/result',
+          image_data_url: plantixThumbnail || null
+        };
+
+        // Persist into user notifications storage
+        try {
+          const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+          const updated = [notifItem, ...stored.filter(n => (n.id || n.notification_id) !== notifId)].slice(0, 100);
+          localStorage.setItem('agrishield_user_notifications', JSON.stringify(updated));
+        } catch (_) {}
+
+        // Broadcast locally & across browser tabs
+        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifItem }));
+        try {
+          if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+            const bc = new BroadcastChannel('agrishield_notifications_channel');
+            bc.postMessage(notifItem);
+            bc.close();
+          }
+        } catch (_) {}
+
+        // Play pleasant audio alert (higher chime for diseased alert, calm chime for healthy)
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = isHealthy ? 'sine' : 'triangle';
+          if (!isHealthy) {
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.setValueAtTime(660, ctx.currentTime + 0.12);
+            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.24);
+          } else {
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+          }
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (!isHealthy ? 0.45 : 0.35));
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + (!isHealthy ? 0.45 : 0.35));
+        } catch (_) {}
+      } catch (notifErr) {
+        console.warn("Scan notification dispatch notice:", notifErr);
+      }
     } catch (err) {
       console.warn("Backend error during scan:", err);
 

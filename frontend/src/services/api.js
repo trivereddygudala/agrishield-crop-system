@@ -4,6 +4,38 @@ export const PRIMARY_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.c
 export const SECONDARY_RENDER_BACKEND = 'https://agrishield-ai-worker-2.onrender.com';
 export const LEGACY_RENDER_BACKEND = 'https://agrishield-crop-system.onrender.com';
 
+/**
+ * Intelligent Cluster Router:
+ * Dynamically partitions workloads across the 3 Render accounts to prevent memory bottlenecking
+ * and optimize free-tier resource allocation (3x 750 free compute hours).
+ *
+ * 1. Worker 1 (agrishield-ai-worker-1): Deep Learning PyTorch AI inference (/api/predict, /api/upload)
+ * 2. Worker 2 (agrishield-ai-worker-2): Species ID, OCR vision & translation (/api/identify-plant, /api/agrochemical-scan)
+ * 3. Main Node (agrishield-crop-system): Auth, Equipment Rental, Real-Time Notifications, History, DB Transactions
+ */
+export const getTargetClusterNode = (url) => {
+  if (!url) return PRIMARY_RENDER_BACKEND;
+  const path = url.toLowerCase();
+
+  // Worker 1: Heavy PyTorch Leaf Disease Inference & Image Uploads
+  if (path.includes('/predict') || path.includes('/upload')) {
+    return PRIMARY_RENDER_BACKEND;
+  }
+
+  // Worker 2: Species Identification, OCR Agrochemical Scan & Botanical Translations
+  if (
+    path.includes('/identify-plant') ||
+    path.includes('/agrochemical') ||
+    path.includes('/translate') ||
+    path.includes('/crop-advisor')
+  ) {
+    return SECONDARY_RENDER_BACKEND;
+  }
+
+  // Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, IoT
+  return LEGACY_RENDER_BACKEND;
+};
+
 export const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
   // When running on production domains (e.g., Vercel), route directly to healthy primary worker
@@ -23,13 +55,21 @@ const API = axios.create({
   }
 });
 
-// Request interceptor to add JWT authorization token dynamically
+// Request interceptor to add JWT authorization token dynamically & assign cluster worker
 API.interceptors.request.use(
   (config) => {
     // When sending FormData (e.g. image uploads), delete Content-Type so browser sets multipart boundary automatically
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
+
+    // In production, dynamically route request to the designated cluster node
+    if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      if (!config.baseURL || config.baseURL === PRIMARY_RENDER_BACKEND || config.baseURL === SECONDARY_RENDER_BACKEND || config.baseURL === LEGACY_RENDER_BACKEND) {
+        config.baseURL = getTargetClusterNode(config.url);
+      }
+    }
+
     const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
     const token = storage.getItem('token');
     if (token) {
@@ -63,9 +103,9 @@ API.interceptors.response.use(
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
 
-    // Automated Cluster Failover: If primary worker-1 returned 404 or network timeout, retry on worker-2
+    // Automated Cluster Failover: If current worker returned 404, 502, 503, or network timeout, cycle across the cluster
     const shouldFailover = (
-      (error.response && error.response.status === 404) ||
+      (error.response && [404, 502, 503, 504].includes(error.response.status)) ||
       error.code === 'ERR_NETWORK' ||
       error.code === 'ECONNABORTED'
     );
@@ -74,7 +114,15 @@ API.interceptors.response.use(
       originalRequest._failoverRetry = true;
       try {
         const fallbackConfig = { ...originalRequest };
-        fallbackConfig.baseURL = SECONDARY_RENDER_BACKEND;
+        const currentBase = fallbackConfig.baseURL || '';
+        if (currentBase === PRIMARY_RENDER_BACKEND) {
+          fallbackConfig.baseURL = SECONDARY_RENDER_BACKEND;
+        } else if (currentBase === SECONDARY_RENDER_BACKEND) {
+          fallbackConfig.baseURL = LEGACY_RENDER_BACKEND;
+        } else {
+          fallbackConfig.baseURL = PRIMARY_RENDER_BACKEND;
+        }
+
         const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
         const token = storage.getItem('token');
         if (token && fallbackConfig.headers) {
@@ -82,7 +130,7 @@ API.interceptors.response.use(
         }
         return await axios(fallbackConfig);
       } catch (workerErr) {
-        // Fall through to regular error handling if secondary fallback also fails
+        // Fall through to second fallback or regular error handling
       }
     }
 

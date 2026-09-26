@@ -2,6 +2,38 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v312) - Voice Note Actions & Native Playback, Telinglish TTS Phonics, WhatsApp Unread Zero-Sync, Instant Disease Alerts, Plantix WebP Thumbnails & Tri-Cluster Load Balancer
+- **Summary:**
+  1. 🎙️ **Voice Notes Deletion Menu & True Audio Playback (`GoogleMessageReader.jsx`):**
+     - Added 3-dots action popover (`MoreVertical`) with 🗑️ "Delete Voice Note" (`వాయిస్ సందేశం తొలగించు`) to voice bubbles in chat.
+     - Removed robotic `speechSynthesis` fallback from `togglePlay` and error catches so user recorded audio plays naturally without synthetic TTS reciting "Voice Message" or "వాయిస్ సందేశం".
+     - Upgraded MediaRecorder to call `recorder.start()` instead of `recorder.start(100)` to eliminate fragmented EBML headers on mobile Chromium.
+  2. 🗣️ **Telinglish Romanized Conversational TTS Translation (`notificationTranslator.js`, `GoogleMessageReader.jsx`):**
+     - Enriched `CHAT_PHRASES` with high-frequency Romanized Telugu sentences ("ok nenu vastanu" ➔ "సరే, నేను వస్తాను.", "ekkadunnav", "call cheyandi", "ippude bayaluderanu", "repu vastanu", "entha karchu", "tractor ready").
+     - Equipped message reader with automatic Telugu content detection (`/[\u0C00-\u0C7F]/.test(text) || /(?:vastanu|vastunna|nenu|ekkad|chey|undi|karchu)/i.test(text)`), routing pronunciation to Telugu phonetics (`te-IN`).
+  3. 🟢 **Notifications Unread Zero-Sync & Sub-ID Cleansing (`NotificationsPage.jsx`):**
+     - Fixed bug where reading all messages still displayed "31" on Ramesh's card: corrected badge condition `{isUnread && (item.threadUnreadCount > 0 || !item.isThread) && ...}` so `threadCount` never leaks when unread count is 0.
+     - Upgraded `handleReadAll` and card click handlers to recursively iterate through all `threadItemIds` and `threadItems`, synchronizing read receipts to backend and local storage.
+  4. 🌾 **Instant Disease Diagnosis Alerts & Audio Chime (`UploadImagePage.jsx`):**
+     - Directly generates, saves, and broadcasts real-time farmer diagnosis notification upon scan completion.
+     - Triggers audible harmonic audio tone (pleasant tranquil tone for healthy crop, distinct urgent alert chime for diseased foliage).
+  5. 🌿 **Plantix-Style WebP Thumbnails in MongoDB (`predict.py`, `schemas.py`, `imageCompression.js`, `HistoryPage.jsx`):**
+     - Added client-side `generatePlantixThumbnail` producing ultra-optimized 320px WebP base64 thumbnails (<25KB).
+     - Persists thumbnail directly in MongoDB `predictions` documents (`image_data_url`) alongside `image_path`.
+     - Ensures leaf scan photos survive Render container restarts and redeployments, completely eliminating 404 broken images in History.
+  6. 🚫 **Decommissioned Intrusive Offline PWA Floating Banner (`OfflineStatusBar.jsx`):**
+     - Suppressed the floating banner so it returns `null`, removing the top screen obstruction.
+     - Auto-clears orphan IndexedDB queue records on startup.
+  7. 🌐 **Intelligent Tri-Cluster Load Balancer (`api.js`):**
+     - Dynamically partitions frontend workloads across the 3 Render accounts:
+       * Worker 1 (`agrishield-ai-worker-1.onrender.com`): Deep learning PyTorch disease inference (`/api/predict`, `/api/upload`).
+       * Worker 2 (`agrishield-ai-worker-2.onrender.com`): Botanical identification, OCR agrochemical scan, and translations (`/api/identify-plant`, `/api/agrochemical-scan`).
+       * Cluster Main (`agrishield-crop-system.onrender.com`): Equipment rental, auth, real-time notifications, farm profiles, history, and DB.
+     - Automatic cross-cluster failover cycling through available nodes on 404/502/network timeouts.
+  8. 🧪 **Validation:**
+     - Verified frontend compilation via `npm run build`: cleanly bundled 3,164 modules in 23.32s with **0 errors**.
+- **Files modified:** `backend/app/models/schemas.py`, `backend/app/routers/farmer/predict.py`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/components/common/OfflineStatusBar.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/pages/farmer/HistoryPage.jsx`, `frontend/src/pages/farmer/UploadImagePage.jsx`, `frontend/src/services/api.js`, `frontend/src/utils/imageCompression.js`, `frontend/src/utils/notificationTranslator.js`, `changes_happening.md`.
+
 ## 2026-09-26 (v311) - Autonomous Root-Cause Analysis (RCA) & Self-Diagnostic Watchdog System with Zero-Cost Quota Shield
 - **Summary:**
   1. 🛡️ **Autonomous Root-Cause Analysis (RCA) Engine (`system_diagnostics.py`):**

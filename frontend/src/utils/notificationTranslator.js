@@ -259,6 +259,77 @@ export function translateNotification(title = '', message = '', lang = 'te') {
  * Instantly translates spoken and typed sentences into Telugu, Hindi, Tamil, etc.
  */
 export const CHAT_PHRASES = [
+  // ── Authentic Romanized Telugu (Telinglish) Real Field Phrases ──
+  {
+    regex: /(?:ok\s*nenu\s*vastanu|nenu\s*vastanu|nenu\s*vastunna|vastanu|vastunna|vastanu\s*lendi)/i,
+    te: 'సరే, నేను వస్తాను.',
+    hi: 'हाँ, मैं आ रहा हूँ।',
+    ta: 'சரி, நான் வருகிறேன்.',
+    kn: 'ಸರಿ, ನಾನು ಬರುತ್ತೇನೆ.',
+    ml: 'ശരി, ഞാൻ വരാം.',
+    or: 'ଠିକ୍ ଅଛି, ମୁଁ ଆସୁଛି।',
+    en: 'Okay, I will come.'
+  },
+  {
+    regex: /(?:ekkadunnav|ekada\s*unnav|ekkada\s*unnav|ekadunnav)/i,
+    te: 'మీరు ఎక్కడ ఉన్నారు? లొకేషన్ చెప్పండి.',
+    hi: 'आप कहाँ हैं? लोकेशन बताइए।',
+    ta: 'எங்கே இருக்கிறீர்கள்? இருப்பிடம் சொல்லுங்கள்.',
+    kn: 'ಎಲ್ಲಿದ್ದೀರಿ? ಸ್ಥಳ ತಿಳಿಸಿ.',
+    ml: 'എവിടെയാണ്? ലൊക്കേഷൻ പറയൂ.',
+    or: 'କେଉଁଠି ଅଛନ୍ତି? ଲୋକେସନ କୁହନ୍ତୁ।',
+    en: 'Where are you? Share location.'
+  },
+  {
+    regex: /(?:call\s*chey|call\s*cheyandi|phone\s*chey|phone\s*cheyandi)/i,
+    te: 'దయచేసి ఫోన్ కాల్ చేయండి.',
+    hi: 'कृपया फोन कॉल करें।',
+    ta: 'தயவுசெய்து போன் கால் செய்யுங்கள்.',
+    kn: 'ದಯವಿಟ್ಟು ಫೋನ್ ಮಾಡಿ.',
+    ml: 'ദയവായി ഫോൺ ചെയ്യുക.',
+    or: 'ଦୟାକରି ଫୋନ୍ କଲ୍ କରନ୍ତୁ।',
+    en: 'Please make a phone call.'
+  },
+  {
+    regex: /(?:ippude\s*bayaluderanu|bayaluderanu|bayaluderam|vastunna\s*dharilo)/i,
+    te: 'ఇప్పుడే బయలుదేరాను, దారిలో ఉన్నాను.',
+    hi: 'अभी निकल चुका हूँ, रास्ते में हूँ।',
+    ta: 'இப்போதே கிளம்பிவிட்டேன், வழியில் உள்ளேன்.',
+    kn: 'ಈಗಷ್ಟೇ ಹೊರಟಿದ್ದೇನೆ, ದಾರಿಯಲ್ಲಿದ್ದೇನೆ.',
+    ml: 'ഇപ്പോൾ പുറപ്പെട്ടു, വഴിയിലാണ്.',
+    or: 'ଏବେ ବାହାରିଲି, ରାସ୍ତାରେ ଅଛି।',
+    en: 'Just departed, on the way.'
+  },
+  {
+    regex: /(?:repu\s*vastanu|repu\s*vastam|repu\s*morning)/i,
+    te: 'రేపు ఉదయం వస్తాను.',
+    hi: 'कल सुबह आऊँगा।',
+    ta: 'நாளை காலை வருகிறேன்.',
+    kn: 'ನಾಳೆ ಬೆಳಿಗ್ಗೆ ಬರುತ್ತೇನೆ.',
+    ml: 'നാളെ രാവിലെ വരാം.',
+    or: 'କାଲି ସକାଳେ ଆସିବି।',
+    en: 'Will come tomorrow morning.'
+  },
+  {
+    regex: /(?:entha\s*karchu|rate\s*entha|rate\s*enta|cost\s*entha)/i,
+    te: 'ఎకరాకు ఎంత ఖర్చు అవుతుంది?',
+    hi: 'प्रति एकड़ कितना खर्च होगा?',
+    ta: 'ஏக்கருக்கு எவ்வளவு கட்டணம்?',
+    kn: 'ಎಕರೆಗೆ ಎಷ್ಟು ವೆಚ್ಚವಾಗುತ್ತದೆ?',
+    ml: 'ഏക്കറിന് എത്ര ചിലവാകും?',
+    or: 'ଏକର ପ୍ରତି କେତେ ଖର୍ଚ୍ଚ ହେବ?',
+    en: 'How much is the cost per acre?'
+  },
+  {
+    regex: /(?:tractor\s+ready|machine\s+ready|ready\s+ga\s+undi)/i,
+    te: 'ట్రాక్టర్ / యంత్రం సిద్ధంగా ఉంది.',
+    hi: 'ट्रैक्टर / मशीन तैयार है।',
+    ta: 'டிராக்டர் / இயந்திரம் தயாராக உள்ளது.',
+    kn: 'ಟ್ರಾಕ್ಟರ್ / ಯಂತ್ರ ಸಿದ್ಧವಾಗಿದೆ.',
+    ml: 'ട്രാക്ടർ / മെഷീൻ തയ്യാറാണ്.',
+    or: 'ଟ୍ରାକ୍ଟର / ମେସିନ୍ ପ୍ରସ୍ତୁତ ଅଛି।',
+    en: 'Tractor / Machinery is ready.'
+  },
   {
     regex: /(?:tractor\s+is\s+dispatched|tractor\s+dispatched|20\s+minutes?)/i,
     te: 'ట్రాక్టర్ బయలుదేరింది, 20 నిమిషాల్లో మీ పొలానికి చేరుకుంటుంది.',
