@@ -190,6 +190,56 @@ export default function GoogleMessageReader({
     }
   }, [speakingId]);
 
+  // ── Speech-to-Text Microphone Dictation State ──
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const toggleSpeechRecognition = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert(isTelugu ? 'ఈ బ్రౌజర్‌లో మైక్రోఫోన్ వాయిస్ రికగ్నిషన్ సపోర్ట్ లేదు.' : 'Microphone speech recognition is not supported in this browser.');
+      return;
+    }
+
+    if (isListening) {
+      try { recognitionRef.current?.stop(); } catch (_) {}
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      const langMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', or: 'or-IN', en: 'en-IN' };
+      recognition.lang = langMap[(currentLang || 'en').split('-')[0]] || 'en-IN';
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = () => setIsListening(false);
+      recognition.onresult = (e) => {
+        const transcript = e.results[0]?.[0]?.transcript;
+        if (transcript) {
+          setInputText(prev => prev ? `${prev} ${transcript}` : transcript);
+        }
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn('Speech recognition start failed:', err);
+      setIsListening(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      try { recognitionRef.current?.stop(); } catch (_) {}
+    };
+  }, []);
+
   if (!message) return null;
 
   // ── Determine Differentiated Notification Pattern ──
@@ -1306,11 +1356,37 @@ export default function GoogleMessageReader({
                           : 'bg-white dark:bg-[#161b22] text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-800 rounded-tl-xs shadow-xs'
                       }`}
                     >
-                      {msg.text && (
-                        <p className="whitespace-pre-line font-medium leading-relaxed">
-                          {msg.text}
-                        </p>
-                      )}
+                      {/* Message Text with Voice TTS Speaker Button */}
+                      <div className="flex items-start justify-between gap-2">
+                        {msg.text && (
+                          <p className="whitespace-pre-line font-medium leading-relaxed flex-1">
+                            {msg.text}
+                          </p>
+                        )}
+                        {msg.text && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              speak(msg.text, `msg_${msg.id}`, currentLang, 0.85);
+                            }}
+                            className={`p-1.5 rounded-full transition-all shrink-0 cursor-pointer ${
+                              speakingId === `msg_${msg.id}`
+                                ? 'bg-amber-400 text-slate-950 animate-pulse'
+                                : (isMyMessage
+                                    ? 'bg-blue-500/50 hover:bg-blue-500 text-white'
+                                    : 'bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300')
+                            }`}
+                            title={isTelugu ? 'వినండి (ఆడియో)' : 'Listen to message'}
+                          >
+                            {speakingId === `msg_${msg.id}` ? (
+                              <VolumeX className="w-3.5 h-3.5" />
+                            ) : (
+                              <Volume2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
 
                       {/* Map Location Card (Manual intentional attachment only) */}
                       {msg.location && (
@@ -1468,8 +1544,20 @@ export default function GoogleMessageReader({
                       ? (isTelugu ? 'రైతుకు సందేశం టైప్ చేయండి...' : 'Type message to Farmer...')
                       : (isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...')
                   }
-                  className="w-full py-2.5 px-4 pr-10 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full py-2.5 pl-4 pr-11 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 />
+                <button
+                  type="button"
+                  onClick={toggleSpeechRecognition}
+                  className={`absolute right-2 p-1.5 rounded-full transition-all cursor-pointer ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse shadow-md shadow-red-500/40'
+                      : 'text-slate-400 hover:text-emerald-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                  title={isTelugu ? 'వాయిస్ టైపింగ్ (మైక్రోఫోన్)' : 'Voice typing (Microphone)'}
+                >
+                  <Mic className={`w-4 h-4 ${isListening ? 'animate-bounce' : ''}`} />
+                </button>
               </div>
 
               <button

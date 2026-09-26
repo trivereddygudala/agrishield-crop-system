@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v302) - 3 Core Chat Pillars: Bi-Directional Live Messaging, Dynamic Booking Lifecycle & Multilingual Voice/Audio
+- **Summary:**
+  1. 💬 **Pillar 1: Persistent Real-Time Live Messaging:**
+     - Zero-latency multi-tab synchronization via `BroadcastChannel('agrishield_equipment_chat')`.
+     - Dual-tier persistent backend storage in `backend/app/routers/provider/equipment.py` using MongoDB (`equipment_chat_messages` collection) with file fallback (`backend/app/data/equipment_chat_messages.json`).
+     - 2.5-second cross-browser / cross-device polling loop delivering incoming messages seamlessly in both directions between Farmer and Provider portals.
+     - Outgoing messages auto-sync to backend, broadcast channels, and local cache with optimistic UI rendering.
+  2. 🚜 **Pillar 2: Dynamic Booking & Inquiry Status Lifecycle:**
+     - Full reactive status workflow resolving `inquiry` ➔ `pending` ➔ `confirmed` / `declined` ➔ `completed`.
+     - Contextual cards display tailored color badges (Sky for inquiries, Amber for pending review, Emerald for confirmed bookings, Rose for declined, Indigo for completed work).
+     - Live poller automatically detects provider approval/rejection and updates farmer's screen in real time without refreshing.
+     - Rich ticket vouchers display precise village names, acres, date/time slots, and pricing.
+  3. 🔊 **Pillar 3: Multilingual Voice & Audio Readout:**
+     - Integrated 1-tap Text-to-Speech (TTS) speaker icon (`Volume2` / `VolumeX`) directly on individual chat message bubbles in `GoogleMessageReader.jsx`, allowing farmers and providers to listen to any message in their selected regional language (Telugu, Hindi, Tamil, Kannada, Malayalam, Odia, English).
+     - Integrated microphone speech-to-text dictation button (`Mic`) right inside the chat composer input field for hands-free message entry.
+     - Pre-existing voice narration player for agronomic disease advisories and weather/sensor alerts with pulsating audio waveform bars.
+  4. 🧪 **Validation:**
+     - Ran `npm run build` in `frontend/`: successfully compiled in 26.29s with **0 errors**.
+- **Files modified:** `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v301) - 2-Way Equipment Chat Cross-Device Synchronization & Dynamic Booking Status Resolution
 - **Summary:**
   1. 🛠️ **Dynamic Machinery Booking Status & Header Resolution (`GoogleMessageReader.jsx`, `EquipmentBookingPage.jsx`):**
