@@ -56,27 +56,29 @@ import {
   saveDeletedBookingId
 } from '../../utils/equipmentDeduplication';
 import { recordCrossDeviceDeletion } from '../../services/crossDeviceSync';
+import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
 // Concept 2 Clean Studio Machinery Image Resolver
 const getEquipmentFallbackImage = (category, title = '') => {
   const t = String(title || '').toLowerCase();
   const c = String(category || '').toLowerCase();
+  const photos = (typeof CURATED_FARM_PHOTOS !== 'undefined' && CURATED_FARM_PHOTOS) ? CURATED_FARM_PHOTOS : {};
   if (c === 'drone' || t.includes('drone') || t.includes('agras') || t.includes('spray')) {
-    return CURATED_FARM_PHOTOS.drone || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=800&q=80';
+    return photos.drone || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=800&q=80';
   }
   if (c === 'irrigation' || c === 'pump' || t.includes('pump') || t.includes('solar') || t.includes('water')) {
-    return CURATED_FARM_PHOTOS.solarPump || 'https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?auto=format&fit=crop&w=800&q=80';
+    return photos.solarPump || 'https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?auto=format&fit=crop&w=800&q=80';
   }
   if (c === 'harvester' || t.includes('harvester') || t.includes('cutter')) {
-    return CURATED_FARM_PHOTOS.harvester || 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80';
+    return photos.harvester || 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80';
   }
   if (c === 'implement' || t.includes('rotavator') || t.includes('plough') || t.includes('tiller')) {
-    return CURATED_FARM_PHOTOS.rotavator || 'https://images.unsplash.com/photo-1589923188900-85dae523342b?auto=format&fit=crop&w=800&q=80';
+    return photos.rotavator || 'https://images.unsplash.com/photo-1589923188900-85dae523342b?auto=format&fit=crop&w=800&q=80';
   }
   if (t.includes('john deere')) {
-    return CURATED_FARM_PHOTOS.tractor || 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=800&q=80';
+    return photos.tractor || 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=800&q=80';
   }
-  return CURATED_FARM_PHOTOS.tractorJohnDeere || CURATED_FARM_PHOTOS.tractorField || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80';
+  return photos.tractorJohnDeere || photos.tractorField || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80';
 };
 
 export default function ProviderDashboardPage() {

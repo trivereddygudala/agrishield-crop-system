@@ -2,6 +2,17 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v300) - Provider Booking Orders Resolution: Missing CURATED_FARM_PHOTOS Import Fix
+- **Summary:**
+  1. 🛠️ **Diagnosed and Resolved ReferenceError (`ProviderDashboardPage.jsx`):**
+     - Diagnosed browser crash `ReferenceError: CURATED_FARM_PHOTOS is not defined at Kt (ProviderDashboardPage-b0e121cc.js:1:2169)` when opening "Booking Orders" in the Provider Portal.
+     - Root cause: `getEquipmentFallbackImage` referenced `CURATED_FARM_PHOTOS` to render fallback equipment thumbnails for incoming machinery booking orders, but `CURATED_FARM_PHOTOS` was never imported into `ProviderDashboardPage.jsx`.
+     - Added `import { CURATED_FARM_PHOTOS } from '../../services/photoService';`.
+     - Hardened `getEquipmentFallbackImage` with defensive fallback checking `(typeof CURATED_FARM_PHOTOS !== 'undefined' && CURATED_FARM_PHOTOS) ? CURATED_FARM_PHOTOS : {}` to guarantee zero-crash execution on any network or edge condition.
+  2. 🧪 **Validation:**
+     - Executed full production build (`npm run build`): compiled 3,163 modules in 25.83s with **0 errors**, generating clean bundle `dist/assets/ProviderDashboardPage-a6a5efe4.js`.
+- **Files modified:** `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v299) - Mobile Machinery Registration Modal UX Overhaul (Scrollable Body & Sticky Bottom Action Bar)
 - **Summary:**
   1. 🛠️ **Resolved Mobile Save & Submit Visibility (`ProviderDashboardPage.jsx`):**
