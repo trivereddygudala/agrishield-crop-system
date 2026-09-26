@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v307) - Voice Note Audio Playback Fix, WebM Infinity Duration Resolution & Backend Audio Persistence
+- **Summary:**
+  1. 🔊 **Voice Note Audio Playback Root Cause Resolution (`equipment.py`, `GoogleMessageReader.jsx`):**
+     - Diagnosed why clicking the play button on recorded voice memos in the live site was not playing:
+       - Root Cause 1: In `backend/app/routers/provider/equipment.py`, the `POST /bookings/{booking_id}/messages` handler previously only extracted `"location"`, completely omitting `"audioUrl"` and `"duration"`. Consequently, whenever the 2.5-second polling loop fetched messages from the server, it overwrote local messages with server versions that lacked `audioUrl`, resulting in empty audio sources (`src=""`) and `0:00` durations.
+       - Root Cause 2: In `GoogleMessageReader.jsx`, Chromium browsers (Chrome, Edge) record WebM audio streams without finalized EBML duration headers, causing `audio.duration` to evaluate to `Infinity`, which caused `Math.round(Infinity)` and NaN/0 progress calculations.
+  2. 🛠️ **Full Fix Implementation:**
+     - **Backend Audio Preservation (`equipment.py`):** Added explicit extraction and database persistence for `audioUrl` and `duration` in `send_booking_chat_message`.
+     - **Safe Server Message Merging (`GoogleMessageReader.jsx`):** In `fetchRemoteChat`, safely merged remote messages while preserving locally cached `audioUrl`, `duration`, and `location` if the server copy lacks them.
+     - **Chromium WebM Infinity Handling (`VoiceNoteBubble`):** Added `isFinite(audio.duration)` validation with fallback to `msg.duration` or parsed duration from message text, ensuring accurate progress bars and timer displays.
+     - **Reload & Codec Fallback:** Added `preload="auto"` and `audio.load()` upon `audioUrl` change, plus graceful SpeechSynthesis readout fallback if an earlier stripped audio file is encountered.
+  3. 🧪 **Validation:**
+     - Executed production build (`npm run build` in `frontend/`) with **0 errors**.
+- **Files modified:** `backend/app/routers/provider/equipment.py`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-26 (v306) - Single Unified WhatsApp-Style Conversation Threads, Paperclip Quick Actions & Header Phone Shortcut
 - **Summary:**
   1. 💬 **WhatsApp-Style Single Conversation Thread Grouping (`NotificationsPage.jsx`):**

@@ -138,22 +138,42 @@ function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(msg.duration || 0);
+  const [duration, setDuration] = useState(() => {
+    if (msg.duration && isFinite(msg.duration) && msg.duration > 0) return Math.round(msg.duration);
+    // Parse duration from text like "🎤 Voice Message (5s)"
+    const match = String(msg.text || '').match(/\((\d+)s\)/);
+    if (match && match[1]) return parseInt(match[1], 10);
+    return 3;
+  });
   const audioRef = useRef(null);
+
+  const getValidDuration = (aud) => {
+    if (aud && aud.duration && isFinite(aud.duration) && !isNaN(aud.duration) && aud.duration > 0) {
+      return aud.duration;
+    }
+    return duration || (msg.duration && isFinite(msg.duration) ? msg.duration : 3);
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const onTimeUpdate = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
-        setProgress((audio.currentTime / audio.duration) * 100);
+      const validDur = getValidDuration(audio);
+      if (validDur > 0) {
+        setProgress(Math.min(100, (audio.currentTime / validDur) * 100));
         setCurrentTime(audio.currentTime);
       }
     };
 
     const onLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
+      if (audio.duration && isFinite(audio.duration) && !isNaN(audio.duration) && audio.duration > 0) {
+        setDuration(Math.round(audio.duration));
+      }
+    };
+
+    const onDurationChange = () => {
+      if (audio.duration && isFinite(audio.duration) && !isNaN(audio.duration) && audio.duration > 0) {
         setDuration(Math.round(audio.duration));
       }
     };
@@ -164,20 +184,56 @@ function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
       setCurrentTime(0);
     };
 
+    const onError = (e) => {
+      console.warn("Audio element playback error, ready for fallback:", e);
+      setIsPlaying(false);
+    };
+
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('durationchange', onDurationChange);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+
+    if (msg.audioUrl) {
+      try { audio.load(); } catch (_) {}
+    }
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('durationchange', onDurationChange);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
     };
-  }, []);
+  }, [msg.audioUrl, msg.duration]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
-    if (!audio) return;
+
+    // Graceful fallback: If audioUrl is missing or empty (e.g. from earlier stripped messages)
+    if (!msg.audioUrl || !audio) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        if (isPlaying) {
+          window.speechSynthesis.cancel();
+          setIsPlaying(false);
+        } else {
+          window.speechSynthesis.cancel();
+          const cleanText = (msg.text || '').replace(/🎤\s*|\(\d+s\)/g, '').trim() || (isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message');
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.rate = 0.85;
+          utterance.onstart = () => setIsPlaying(true);
+          utterance.onend = () => {
+            setIsPlaying(false);
+            setProgress(0);
+            setCurrentTime(0);
+          };
+          utterance.onerror = () => setIsPlaying(false);
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+      return;
+    }
 
     if (isPlaying) {
       audio.pause();
@@ -188,12 +244,39 @@ function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
           try { a.pause(); } catch (_) {}
         }
       });
-      audio.play().then(() => setIsPlaying(true)).catch(err => console.warn('Audio play failed:', err));
+      if (progress >= 99) {
+        audio.currentTime = 0;
+        setProgress(0);
+      }
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch(err => {
+            console.warn('Native audio play error, falling back:', err);
+            // Fallback to speech synthesis if browser audio decoder fails on codec
+            if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+              const cleanText = (msg.text || '').replace(/🎤\s*|\(\d+s\)/g, '').trim() || (isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message');
+              const utterance = new SpeechSynthesisUtterance(cleanText);
+              utterance.rate = 0.85;
+              utterance.onstart = () => setIsPlaying(true);
+              utterance.onend = () => {
+                setIsPlaying(false);
+                setProgress(0);
+              };
+              utterance.onerror = () => setIsPlaying(false);
+              window.speechSynthesis.speak(utterance);
+            } else {
+              setIsPlaying(false);
+            }
+          });
+      }
     }
   };
 
   const formatSec = (sec) => {
-    const s = Math.round(sec || 0);
+    if (!sec || isNaN(sec) || !isFinite(sec)) return '0:00';
+    const s = Math.round(sec);
     const m = Math.floor(s / 60);
     const rem = s % 60;
     return `${m}:${rem.toString().padStart(2, '0')}`;
@@ -201,7 +284,7 @@ function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
 
   return (
     <div className="flex items-center gap-2.5 py-1 min-w-[210px] sm:min-w-[250px]">
-      <audio ref={audioRef} src={msg.audioUrl} preload="metadata" />
+      <audio ref={audioRef} src={msg.audioUrl} preload="auto" />
       <button
         type="button"
         onClick={togglePlay}
@@ -763,7 +846,20 @@ export default function GoogleMessageReader({
           setChatMessages(prev => {
             const map = new Map();
             prev.forEach(m => map.set(m.id, m));
-            serverMsgs.forEach(m => map.set(m.id, m));
+            serverMsgs.forEach(m => {
+              const existing = map.get(m.id);
+              if (existing) {
+                map.set(m.id, {
+                  ...existing,
+                  ...m,
+                  audioUrl: m.audioUrl || existing.audioUrl,
+                  duration: m.duration || existing.duration,
+                  location: m.location || existing.location
+                });
+              } else {
+                map.set(m.id, m);
+              }
+            });
             const merged = Array.from(map.values()).sort((a, b) => {
               const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
               const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;

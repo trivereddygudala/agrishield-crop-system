@@ -720,6 +720,10 @@ async def send_booking_chat_message(
     }
     if "location" in payload:
         new_message["location"] = payload["location"]
+    if "audioUrl" in payload:
+        new_message["audioUrl"] = payload["audioUrl"]
+    if "duration" in payload:
+        new_message["duration"] = payload["duration"]
 
     # Update memory & disk
     _load_disk_chat_messages()
