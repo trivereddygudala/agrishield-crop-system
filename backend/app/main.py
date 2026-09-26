@@ -107,8 +107,7 @@ else:
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if (env_mode == "production" and "*" not in origins) else [],
-    allow_origin_regex=".*",
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -149,14 +148,10 @@ app.include_router(market.router, prefix="/api/v1/market")
 app.include_router(market.router, prefix="/api/market")
 
 # Botanical Plant & Weed Identification Router
-app.include_router(plant_id.router, prefix="/api/v1/plants")
-app.include_router(plant_id.router, prefix="/api/plants")
 app.include_router(plant_id.router, prefix="/api/v1")
 app.include_router(plant_id.router, prefix="/api")
 
 # Agrochemical OCR Scanning, Comparison & Recommendation Router
-app.include_router(agrochemical.router, prefix="/api/v1/agrochemical")
-app.include_router(agrochemical.router, prefix="/api/agrochemical")
 app.include_router(agrochemical.router, prefix="/api/v1")
 app.include_router(agrochemical.router, prefix="/api")
 

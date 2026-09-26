@@ -4,10 +4,12 @@ from datetime import datetime, timezone
 from pydantic import BaseModel
 from bson import ObjectId
 from backend.app.db.mongodb import get_database
-from backend.app.core.security import require_role
+from backend.app.core.security import require_role, hash_password, validate_password_strength
 from backend.app.core.rate_limiter import rate_limit, ADMIN_LIMIT
 from backend.app.core.audit_logger import log_security_event
 from backend.app.models.schemas import UserResponse
+from backend.app.services.notification_service import NotificationService
+from backend.app.models.notification import NotificationCreate
 
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 
@@ -71,7 +73,6 @@ async def get_user_by_id(user_id: str, db = Depends(get_database)):
     user["_id"] = str(user["_id"])
     return user
 
-from backend.app.core.audit_logger import log_security_event
 
 @router.put("/users/{user_id}/role", dependencies=[Depends(require_role("admin"))])
 async def update_user_role(user_id: str, new_role: str = Query(..., pattern="^(admin|farmer|equipment_provider|researcher|tester|guest)$"), db = Depends(get_database)):
@@ -90,7 +91,6 @@ async def update_user_role(user_id: str, new_role: str = Query(..., pattern="^(a
     log_security_event("USER_ROLE_UPDATED", {"user_id": user_id, "new_role": new_role}, level="INFO")
     return {"message": f"Successfully updated user {user_id} role to '{new_role}'."}
 
-from pydantic import BaseModel
 
 class UserEditRequest(BaseModel):
     name: Optional[str] = None
@@ -170,8 +170,6 @@ async def get_audit_logs(
             log["timestamp"] = log["timestamp"].isoformat()
     return logs
 
-from backend.app.core.security import hash_password, validate_password_strength
-
 @router.post("/users/{user_id}/reset-password", dependencies=[Depends(require_role("admin"))])
 async def reset_user_password(user_id: str, payload: AdminPasswordResetRequest, db = Depends(get_database)):
     """Admin Endpoint: Force reset password for any user account."""
@@ -199,7 +197,6 @@ async def reset_user_password(user_id: str, payload: AdminPasswordResetRequest, 
     log_security_event("ADMIN_PASSWORD_RESET", {"target_user_id": user_id}, level="WARNING")
     return {"message": "User password successfully reset."}
 
-from datetime import datetime, timezone
 
 class AdminCreateUserRequest(BaseModel):
     name: str
@@ -268,20 +265,31 @@ async def admin_create_new_user(payload: AdminCreateUserRequest, db = Depends(ge
     }
 
 
-from backend.app.services.notification_service import NotificationService
-from backend.app.models.notification import NotificationCreate
-
 class AdminBroadcastRequest(BaseModel):
     title: str
     message: str
     priority: str = "High"
+    audience: str = "all"  # 'farmers' | 'providers' | 'all'
 
 @router.post("/broadcast", dependencies=[Depends(require_role("admin"))])
-async def broadcast_system_notification(payload: AdminBroadcastRequest, db = Depends(get_database)):
-    """Admin Endpoint: Broadcast a global system notification to all users."""
-    users_cursor = db.users.find({}, {"_id": 1})
+async def broadcast_system_notification(
+    payload: AdminBroadcastRequest,
+    current_user: dict = Depends(require_role("admin")),
+    db = Depends(get_database)
+):
+    """Admin Endpoint: Broadcast a targeted notification to all users, farmers only, or providers only."""
+    # Build query filter based on audience
+    audience = (payload.audience or "all").lower()
+    if audience == "farmers":
+        query = {"role": "farmer"}
+    elif audience == "providers":
+        query = {"role": "equipment_provider"}
+    else:
+        query = {}  # all users
+
+    users_cursor = db.users.find(query, {"_id": 1})
     users_list = await users_cursor.to_list(length=None)
-    
+
     count = 0
     for u in users_list:
         uid_str = str(u["_id"])
@@ -291,15 +299,70 @@ async def broadcast_system_notification(payload: AdminBroadcastRequest, db = Dep
                 user_id=uid_str,
                 title=payload.title,
                 message=payload.message,
-                category="system",
+                category="broadcast",
                 priority=payload.priority,
                 action_url="/dashboard"
             )
         )
         count += 1
-        
-    log_security_event("GLOBAL_BROADCAST_DISPATCHED", {"title": payload.title, "priority": payload.priority, "recipients_count": count}, level="INFO")
-    return {"status": "success", "message": f"Successfully broadcasted to {count} users."}
+
+    # Persist broadcast record to DB for history
+    broadcast_doc = {
+        "title": payload.title,
+        "message": payload.message,
+        "priority": payload.priority,
+        "audience": audience,
+        "recipient_count": count,
+        "dispatched_by": current_user.get("email", "admin"),
+        "status": "Delivered",
+        "dispatched_at": datetime.now(timezone.utc)
+    }
+    inserted = await db.broadcasts.insert_one(broadcast_doc)
+    broadcast_doc["id"] = str(inserted.inserted_id)
+
+    log_security_event(
+        "GLOBAL_BROADCAST_DISPATCHED",
+        {"title": payload.title, "priority": payload.priority, "audience": audience, "recipients_count": count},
+        level="INFO"
+    )
+    return {
+        "status": "success",
+        "message": f"Successfully broadcasted to {count} users ({audience}).",
+        "broadcast": {
+            "id": broadcast_doc["id"],
+            "title": payload.title,
+            "message": payload.message,
+            "priority": payload.priority,
+            "audience": audience,
+            "recipient_count": count,
+            "dispatched_by": broadcast_doc["dispatched_by"],
+            "status": "Delivered",
+            "dispatched_at": broadcast_doc["dispatched_at"].isoformat()
+        }
+    }
+
+@router.get("/broadcast/history", dependencies=[Depends(require_role("admin"))])
+async def get_broadcast_history(
+    limit: int = Query(50, ge=1, le=200),
+    db = Depends(get_database)
+):
+    """Admin Endpoint: Retrieve persistent broadcast dispatch history from MongoDB."""
+    cursor = db.broadcasts.find({}).sort("dispatched_at", -1).limit(limit)
+    records = await cursor.to_list(length=limit)
+    result = []
+    for r in records:
+        result.append({
+            "id": str(r["_id"]),
+            "title": r.get("title", ""),
+            "message": r.get("message", ""),
+            "priority": r.get("priority", "Normal"),
+            "audience": r.get("audience", "all"),
+            "recipient_count": r.get("recipient_count", 0),
+            "dispatched_by": r.get("dispatched_by", "admin"),
+            "status": r.get("status", "Delivered"),
+            "dispatched_at": r["dispatched_at"].isoformat() if isinstance(r.get("dispatched_at"), datetime) else r.get("dispatched_at", "")
+        })
+    return {"total": len(result), "broadcasts": result}
 
 
 @router.get("/user-geography", dependencies=[Depends(require_role("admin")), Depends(rate_limit(ADMIN_LIMIT, 60))])

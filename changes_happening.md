@@ -6132,3 +6132,25 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
   - Upgraded delete confirmation modals to `z-[100]` to avoid nav bar overlaps.
 - **Files Modified:** `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
 
+
+---
+## [2026-09-26 21:02:00 IST] Phase 1 Audit Report Completed
+Completed full system audit across frontend AdminPage.jsx, NotificationsPage.jsx, backend admin.py, support.py, main.py, security.py, api.js. 10 issues identified (4 CRITICAL, 4 MEDIUM, 2 LOW). Report artifact written to phase1_audit_report.md. No code modified - DISCOVERY phase only.
+
+---
+## [2026-09-26 21:12:58] Phase 2 Implementation — All Approved Fixes Applied
+
+### Backend Changes
+- **C1 (CORS Security):** Removed llow_origin_regex=".*" bypass in main.py. Now enforces strict llow_origins whitelist.
+- **C2 (Broadcast Persistence):** POST /api/admin/broadcast now saves each dispatch to MongoDB roadcasts collection. New GET /api/admin/broadcast/history endpoint returns paginated history for any admin session/device.
+- **C3 (Audience Targeting):** Broadcast endpoint now accepts udience: 'farmers' | 'providers' | 'all' and filters users collection by role before dispatching notifications.
+- **M4 (Route Deduplication):** Removed quadruple router registrations for plant_id and grochemical routers in main.py. Now mounted twice only (/api/v1 + /api).
+- **L2 (Duplicate Imports):** All mid-file duplicate rom ... imports removed from dmin.py. All symbols consolidated at top.
+- **Persistent Login:** ACCESS_TOKEN_EXPIRE_MINUTES = 525600 (365 days), REFRESH_TOKEN_EXPIRE_DAYS = 365 in config.py.
+
+### Frontend Changes
+- **L1 (Label Fix):** "8 Core Administrative Modules" → "10 Core Administrative Modules" in AdminPage.jsx.
+- **C2 (Broadcast History from DB):** roadcastHistory state now loads from GET /api/admin/broadcast/history on mount via etchBroadcastHistory(). Broadcast submission now uses server-returned record for local history update. localStorage seed removed.
+- **M1 (Helpdesk Provider Filter):** Added supportUserTypeFilter state and "Submitted By" filter row in Helpdesk tab with 🌐 All / 🌾 Farmers / 🚜 Equipment Providers buttons + Clear action.
+- **M2 (Admin AI Chatbot):** Created AdminAIChatbot.jsx — session-only floating chatbot with violet/indigo gradient branding, quick prompts, typing indicator, copy-to-clipboard, expand/minimize, and secure badge. Mounted in AdminPage.jsx.
+- **M3 (Notification Chips):** Already correctly implemented. No change needed.

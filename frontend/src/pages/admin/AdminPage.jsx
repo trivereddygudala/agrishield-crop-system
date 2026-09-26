@@ -49,6 +49,7 @@ import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import UserGeographyMap from '../../components/admin/UserGeographyMap';
 import SystemDiagnosticsTab from '../../components/admin/SystemDiagnosticsTab';
+import AdminAIChatbot from '../../components/admin/AdminAIChatbot';
 import { parseServerDate, formatDateTime, timeAgo } from '../../utils/dateUtils';
 
 export default function AdminPage() {
@@ -101,34 +102,8 @@ export default function AdminPage() {
   const [broadcastAudience, setBroadcastAudience] = useState('farmers'); // 'farmers' | 'providers' | 'all'
   const [broadcastMode, setBroadcastMode] = useState('dispatch'); // 'dispatch' | 'history'
   const [isBroadcasting, setIsBroadcasting] = useState(false);
-  const [broadcastHistory, setBroadcastHistory] = useState(() => {
-    try {
-      const saved = localStorage.getItem('agrishield_broadcast_history');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [
-      {
-        id: 'BC-INIT-1',
-        title: '🚨 Urgent: Yellow Rust Outbreak Warning in Coastal Districts',
-        message: 'High humidity in coastal Andhra triggered yellow rust risk. Apply recommended propiconazole spray early morning.',
-        priority: 'High',
-        audience: 'farmers',
-        timestamp: new Date(Date.now() - 3600000 * 36).toISOString(),
-        recipientCount: 7,
-        status: 'Delivered'
-      },
-      {
-        id: 'BC-INIT-2',
-        title: '🚜 Equipment Advisory: Harvester Demand Surge in Krishna',
-        message: 'Paddy harvesting is commencing. Verify machinery availability and update your acreage rates for local farmers.',
-        priority: 'Normal',
-        audience: 'providers',
-        timestamp: new Date(Date.now() - 3600000 * 72).toISOString(),
-        recipientCount: 3,
-        status: 'Delivered'
-      }
-    ];
-  });
+  const [broadcastHistory, setBroadcastHistory] = useState([]);
+  const [broadcastHistoryLoading, setBroadcastHistoryLoading] = useState(false);
 
   // Admin Modals & Data Editing State
   const [editingUser, setEditingUser] = useState(null);
@@ -153,6 +128,7 @@ export default function AdminPage() {
   const [supportStatusFilter, setSupportStatusFilter] = useState('all');
   const [supportCategoryFilter, setSupportCategoryFilter] = useState('all');
   const [supportPriorityFilter, setSupportPriorityFilter] = useState('all');
+  const [supportUserTypeFilter, setSupportUserTypeFilter] = useState('all'); // 'all' | 'farmer' | 'equipment_provider'
   const [supportSearchTerm, setSupportSearchTerm] = useState('');
   const [updatingTicketId, setUpdatingTicketId] = useState(null);
   const [ticketResolutionInputs, setTicketResolutionInputs] = useState({});
@@ -387,40 +363,47 @@ export default function AdminPage() {
     setError('');
     setSuccessMsg('');
     try {
-      await API.post('/api/admin/broadcast', {
-        title: broadcastTitle,
-        message: broadcastMessage,
-        priority: broadcastPriority,
-        audience: broadcastAudience
-      }).catch(() => {
-        return API.post('/api/v1/admin/broadcast', {
+      let res;
+      try {
+        res = await API.post('/api/admin/broadcast', {
           title: broadcastTitle,
           message: broadcastMessage,
           priority: broadcastPriority,
           audience: broadcastAudience
         });
-      });
+      } catch {
+        res = await API.post('/api/v1/admin/broadcast', {
+          title: broadcastTitle,
+          message: broadcastMessage,
+          priority: broadcastPriority,
+          audience: broadcastAudience
+        });
+      }
 
-      const audienceCount = broadcastAudience === 'farmers'
-        ? (totalFarmers || totalUsers)
-        : (broadcastAudience === 'providers' ? (totalProviders || 3) : totalUsers);
-
-      const newRecord = {
+      // Use server-returned broadcast record to update local history
+      const serverBc = res?.data?.broadcast;
+      const newRecord = serverBc ? {
+        id: serverBc.id,
+        title: serverBc.title,
+        message: serverBc.message,
+        priority: serverBc.priority,
+        audience: serverBc.audience,
+        timestamp: serverBc.dispatched_at,
+        recipientCount: serverBc.recipient_count,
+        status: serverBc.status || 'Delivered',
+        dispatchedBy: serverBc.dispatched_by
+      } : {
         id: `BC-${Date.now()}`,
         title: broadcastTitle,
         message: broadcastMessage,
         priority: broadcastPriority,
         audience: broadcastAudience,
         timestamp: new Date().toISOString(),
-        recipientCount: audienceCount,
+        recipientCount: broadcastAudience === 'farmers' ? totalFarmers : (broadcastAudience === 'providers' ? totalProviders : totalUsers),
         status: 'Delivered'
       };
 
-      const updatedHistory = [newRecord, ...broadcastHistory];
-      setBroadcastHistory(updatedHistory);
-      try {
-        localStorage.setItem('agrishield_broadcast_history', JSON.stringify(updatedHistory));
-      } catch (_) {}
+      setBroadcastHistory(prev => [newRecord, ...prev]);
 
       // Dispatch real-time local event so admin & user notifications reflect it immediately
       window.dispatchEvent(new CustomEvent('agrishield_new_notification', {
@@ -448,14 +431,10 @@ export default function AdminPage() {
     }
   };
 
-  const handleRecallBroadcast = (bId) => {
+  const handleRecallBroadcast = async (bId) => {
     if (!window.confirm('Are you sure you want to recall and delete this broadcast announcement from history?')) return;
-    const updated = broadcastHistory.filter(b => b.id !== bId);
-    setBroadcastHistory(updated);
-    try {
-      localStorage.setItem('agrishield_broadcast_history', JSON.stringify(updated));
-    } catch (_) {}
-    setSuccessMsg('Broadcast alert recalled and removed from history.');
+    setBroadcastHistory(prev => prev.filter(b => b.id !== bId));
+    setSuccessMsg('Broadcast alert recalled and removed from local view.');
   };
 
   const handleCreateUserSubmit = async (e) => {
@@ -680,6 +659,41 @@ export default function AdminPage() {
     }
   };
 
+  // Fetch broadcast history from MongoDB (replaces localStorage seed)
+  const fetchBroadcastHistory = async () => {
+    setBroadcastHistoryLoading(true);
+    try {
+      let res;
+      try {
+        res = await API.get('/api/admin/broadcast/history');
+      } catch {
+        res = await API.get('/api/v1/admin/broadcast/history');
+      }
+      const broadcasts = res.data?.broadcasts || [];
+      // Normalize server shape to match UI shape
+      const normalized = broadcasts.map(b => ({
+        id: b.id,
+        title: b.title,
+        message: b.message,
+        priority: b.priority,
+        audience: b.audience,
+        timestamp: b.dispatched_at,
+        recipientCount: b.recipient_count,
+        status: b.status || 'Delivered',
+        dispatchedBy: b.dispatched_by
+      }));
+      setBroadcastHistory(normalized);
+    } catch (e) {
+      // Graceful fallback: load any locally cached seed entries
+      try {
+        const saved = localStorage.getItem('agrishield_broadcast_history');
+        if (saved) setBroadcastHistory(JSON.parse(saved));
+      } catch (_) {}
+    } finally {
+      setBroadcastHistoryLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchIotNodes();
@@ -689,6 +703,7 @@ export default function AdminPage() {
     fetchSupportTickets();
     fetchSupportConfig();
     fetchFirewallStatus();
+    fetchBroadcastHistory();
     
     const iotInterval = setInterval(fetchIotNodes, 10000);
     const auditInterval = setInterval(fetchAuditLogs, 15000);
@@ -765,7 +780,14 @@ export default function AdminPage() {
       if (supportStatusFilter === 'resolved' && ticket.status !== 'resolved') return false;
     }
 
-    // 2. Category Filter
+    // 2. User Type Filter (M1: farmer vs equipment_provider)
+    if (supportUserTypeFilter !== 'all') {
+      const role = (ticket.user_role || ticket.submitter_role || '').toLowerCase();
+      if (supportUserTypeFilter === 'farmer' && role !== 'farmer') return false;
+      if (supportUserTypeFilter === 'equipment_provider' && role !== 'equipment_provider') return false;
+    }
+
+    // 3. Category Filter
     if (supportCategoryFilter !== 'all') {
       if (supportCategoryFilter === 'urgent_callback' || supportCategoryFilter === 'callback_request') {
         if (!ticket.is_callback_request && ticket.category !== 'urgent_callback' && ticket.category !== 'callback_request') return false;
@@ -774,10 +796,10 @@ export default function AdminPage() {
       }
     }
 
-    // 3. Priority Filter
+    // 4. Priority Filter
     if (supportPriorityFilter !== 'all' && ticket.priority !== supportPriorityFilter) return false;
 
-    // 4. Search Filter
+    // 5. Search Filter
     if (supportSearchTerm) {
       const q = supportSearchTerm.toLowerCase();
       const numMatch = ticket.ticket_number && ticket.ticket_number.toLowerCase().includes(q);
@@ -1008,7 +1030,7 @@ export default function AdminPage() {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  8 Core Administrative Modules
+                  10 Core Administrative Modules
                 </h3>
               </div>
               <span className="text-[11px] font-bold text-slate-400 hidden sm:inline">
@@ -2833,6 +2855,36 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* M1: Submitted-by User Type Filter (Farmer vs Equipment Provider) */}
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider shrink-0">Submitted By:</span>
+              {[
+                { id: 'all', label: '🌐 All Users', color: 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' },
+                { id: 'farmer', label: '🌾 Farmers', color: 'bg-emerald-600 text-white' },
+                { id: 'equipment_provider', label: '🚜 Equipment Providers', color: 'bg-sky-600 text-white' },
+              ].map((ut) => (
+                <button
+                  key={ut.id}
+                  onClick={() => setSupportUserTypeFilter(ut.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                    supportUserTypeFilter === ut.id
+                      ? `${ut.color} border-transparent shadow-sm`
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                  }`}
+                >
+                  {ut.label}
+                </button>
+              ))}
+              {supportUserTypeFilter !== 'all' && (
+                <button
+                  onClick={() => setSupportUserTypeFilter('all')}
+                  className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 text-[10px] font-black border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition-all cursor-pointer"
+                >
+                  Clear ✕
+                </button>
+              )}
+            </div>
+
             {/* Dropdown Filters for Category & Priority */}
             <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
               <div className="flex items-center gap-2">
@@ -3934,6 +3986,8 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      {/* ── M2: PRIVATE ADMIN AI CHATBOT (floating, session-scoped) ── */}
+      <AdminAIChatbot />
     </div>
   );
 }

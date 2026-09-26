@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ISSUER: str = "crop_disease_detection_api"
     JWT_AUDIENCE: str = "crop_disease_detection_app"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 120  # 2 hours
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7      # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 525600  # 365 days — permanent login until explicit logout
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 365     # 365 days — stays logged in for a full year
     MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_DURATION_MINUTES: int = 15
 
