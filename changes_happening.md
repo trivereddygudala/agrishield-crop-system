@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v299) - Mobile Machinery Registration Modal UX Overhaul (Scrollable Body & Sticky Bottom Action Bar)
+- **Summary:**
+  1. 🛠️ **Resolved Mobile Save & Submit Visibility (`ProviderDashboardPage.jsx`):**
+     - Diagnosed an issue on mobile phones and small laptop screens where the "List Machinery for Rent" modal stretched beyond the viewport height without inner scrolling (`overflow-y-auto`), causing the "Save & Publish to Catalog" button to disappear below the fold or be obscured by the bottom navigation bar.
+     - Elevated modal overlay z-index to `z-[100]` with `backdrop-blur-sm` so the modal dialog always appears above the fixed bottom navigation bar (`z-50`).
+     - Re-architected modal layout with strict viewport boundaries: `max-w-lg max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl overflow-hidden`.
+     - Created a **sticky top header** (`shrink-0 border-b`) with title, subtitle, and close button.
+     - Created a **smoothly scrollable body** (`flex-1 overflow-y-auto space-y-3.5`) containing all form input fields.
+     - Created a **sticky bottom footer action bar** (`shrink-0 p-4 border-t bg-slate-50/95 dark:bg-[#070e17]/95 backdrop-blur-sm`) that permanently displays the **Save & Publish to Catalog** button (`సేవ్ చేసి ప్రచురించండి`) with checkmark icon and cancel button, ensuring effortless 1-tap machinery publishing on any screen without needing to scroll to the end of the form.
+  2. 🔒 **Confirmation Dialog Parity:**
+     - Elevated machinery deletion confirmation modal to `z-[100]` to avoid any z-index conflicts with app chrome.
+  3. 🧪 **Validation:**
+     - Compiled production bundle with `npm run build`: 3,163 modules transformed and built cleanly with **0 errors** in 31.19s.
+- **Files modified:** `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v298) - Universal Equipment Catalog Synchronization & Zero-Resurrection Authoritative State Fix
 - **Summary:**
   1. 🛠️ **Authoritative Remote Equipment Catalog Enforcement (`EquipmentBookingPage.jsx`):**
@@ -5804,6 +5819,15 @@ pm run build (3,155 modules transformed, 0 errors, built in 33.75s).
 - **Production Build Validation:**
   - Ran `npm run build` in `frontend/`: 3,161 modules transformed, built with 0 errors in 45.07s.
 - **Files Modified:** `frontend/src/components/AppLayout.jsx`, `frontend/src/pages/common/MorePage.jsx`, `frontend/src/components/common/LanguageSelectModal.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
-
-
+9/26/2026: Provider Add Equipment Modal Mobile Responsiveness & Sticky Save Footer (v284):
+- **Diagnosed Provider Machinery Registration Issue:**
+  - Analyzed provider "List Machinery for Rent" modal on mobile viewports.
+  - Identified critical layout defect: the modal container lacked `max-h-[92vh]`, `flex-col`, and internal `overflow-y-auto`, causing the 750px+ form to overflow the mobile viewport and clip the bottom actions.
+  - Identified stacking context collision: modal overlay and mobile bottom navigation bar in `AppLayout.jsx` both had `z-50`, causing the bottom nav bar to render over the modal on mobile devices.
+- **Mobile Responsive & Sticky Action Footer Implementation:**
+  - Re-engineered `isAddModalOpen` modal in `frontend/src/pages/provider/ProviderDashboardPage.jsx` with `z-[100]`, backdrop blur, and responsive bounds (`max-w-lg max-h-[92vh] sm:max-h-[88vh] flex flex-col rounded-3xl overflow-hidden`).
+  - Separated modal into sticky header (`shrink-0 border-b`), scrollable input body (`flex-1 overflow-y-auto space-y-3.5`), and sticky bottom action bar (`shrink-0 border-t bg-slate-50/95 dark:bg-[#070e17]/95 backdrop-blur-sm`).
+  - Ensured the "Save & Publish to Catalog" (`సేవ్ చేసి ప్రచురించండి`) button with checkmark icon is permanently visible and accessible on all mobile screens without scrolling off-page.
+  - Upgraded delete confirmation modals to `z-[100]` to avoid nav bar overlaps.
+- **Files Modified:** `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
 
