@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v303) - Notification Conversation Thread Grouping, Provider Agronomy Segregation & Silent Background Refresh
+- **Summary:**
+  1. 💬 **Single Grouped Conversation Threads (Picture 1 Resolution):**
+     - Diagnosed issue where every individual chat message from a user generated a new standalone notification item, flooding the notification center with repetitive rows ("Ramesh: what is the time...", "Ramesh: tell", "Ramesh: hii").
+     - Architected thread-level grouping in `NotificationsPage.jsx` aggregating notifications by canonical booking ID (`BK-XXXXX`).
+     - Collapses multiple alerts into 1 unified conversation row displaying the latest chat snippet, time ago, sender badge, and a signature Google Messages blue unread pill badge showing total unread messages in the thread (`item.threadUnreadCount`).
+     - Added dedicated "Open Chat" (`చాట్ తెరవండి`) button and thread-aware action handlers (`Mark Read` and `Delete` operate on all items in the thread simultaneously).
+     - Enhanced `GoogleMessageReader.jsx` to seed conversation bubbles from thread items if local storage is uninitialized.
+  2. 🌾 **Role-Based Telemetry Segregation (Picture 2 Resolution):**
+     - Diagnosed why soil moisture drop recommendations and crop advisories were leaking into the Equipment Provider portal.
+     - Implemented strict role-based filtering in `backend/app/services/notification_service.py`: machinery providers (`equipment_provider`) are excluded from farm-level telemetry (soil moisture, rainfall/spray windows, disease outbreaks, IoT sensor battery warnings). Providers strictly receive equipment bookings, machinery chats, order status transitions, and machinery service notifications.
+     - Added complementary client-side safety filter in `NotificationsPage.jsx` ensuring providers never see agronomic telemetry cards.
+  3. ⚡ **Silent Background Refresh & Screen Flickering Elimination (Picture 3 Resolution):**
+     - Diagnosed screen blinking and repeated flashing skeleton reloaders in both Farmer and Provider notification centers: background polling intervals triggered `setLoading(true)`, causing the component to unmount the active list and mount 4 animated skeleton cards every few seconds.
+     - Upgraded `fetchNotifications` to a true Stale-While-Revalidate pattern: `loading` state is only engaged on the very first mount if the local cache is empty.
+     - All periodic polling, tab refocus updates, and background synchronizations run completely silently in the background, preserving scroll position and user interaction without screen flickers.
+  4. 🧪 **Validation:**
+     - Executed full frontend production build (`npm run build`): compiled 3,163 modules in 27.35s with **0 errors**.
+- **Files modified:** `backend/app/routers/common/notifications.py`, `backend/app/services/notification_service.py`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v302) - 3 Core Chat Pillars: Bi-Directional Live Messaging, Dynamic Booking Lifecycle & Multilingual Voice/Audio
 - **Summary:**
   1. 💬 **Pillar 1: Persistent Real-Time Live Messaging:**

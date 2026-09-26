@@ -216,13 +216,18 @@ class NotificationService:
         page: int = 1, 
         category: Optional[str] = None, 
         priority: Optional[str] = None,
-        unread_only: bool = False
+        unread_only: bool = False,
+        role: Optional[str] = None
     ) -> Tuple[List[Dict[str, Any]], int]:
-        """Fetch paginated notification logs for user."""
+        """Fetch paginated notification logs for user with strict role isolation."""
         query = {"user_id": user_id}
         
-        if category:
+        if role == "equipment_provider":
+            # Equipment providers should never receive agronomic soil moisture, crop disease, or field telemetry alerts
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat"]}
+        elif category:
             query["category"] = category
+            
         if priority:
             query["priority"] = priority
         if unread_only:

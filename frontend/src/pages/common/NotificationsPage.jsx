@@ -183,6 +183,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const hasLoadedOnceRef = React.useRef(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [priority, setPriority] = useState('All');
@@ -246,9 +247,12 @@ export default function NotificationsPage() {
     } catch (_) {}
   }, []);
 
-  // Fetch and hydrate notifications with role-based isolation
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
+  // Fetch and hydrate notifications with strict role-based isolation & unified conversation grouping
+  const fetchNotifications = useCallback(async (isSilent = false) => {
+    // Only show full-screen skeleton on the very first mount when the list is completely empty
+    if (!isSilent && !hasLoadedOnceRef.current && notifications.length === 0) {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams({ limit: 50 });
       if (priority !== 'All') params.set('priority', priority);
@@ -268,13 +272,27 @@ export default function NotificationsPage() {
             const sId = sn.notification_id || sn.id || sn._id;
             return (readIds.has(sId) || readIds.has(String(sId))) ? { ...sn, read: true } : sn;
           });
+
+        // Strict role filtering for server notifications:
+        // Equipment providers MUST NEVER receive crop diseases, soil moisture, or weather alerts!
+        if (isEquipmentProvider) {
+          serverNotifs = serverNotifs.filter(sn => {
+            const cat = (sn.category || '').toLowerCase();
+            const title = (sn.title || '').toLowerCase();
+            const msg = (sn.message || '').toLowerCase();
+            const isAgronomic = cat === 'soil' || cat === 'disease' || cat === 'weather' || cat === 'crop' || cat === 'irrigation' ||
+              title.includes('soil moisture') || title.includes('irrigation') || title.includes('crop health') || title.includes('నేల తేమ') ||
+              msg.includes('soil moisture') || msg.includes('recommended irrigation') || msg.includes('తేమ');
+            return !isAgronomic;
+          });
+        }
       } catch (err) {
         console.warn("Could not fetch remote notifications, falling back to local:", err);
       }
 
       // Load local notifications with strict role-based isolation:
       // Farmers must NEVER receive "New Machinery Booking Received" or incoming requests.
-      // Farmers ONLY receive Accept or Decline decision notifications from providers.
+      // Equipment providers must NEVER receive soil moisture drops, pest advisories, or weather forecasts.
       let localNotifs = [];
       try {
         const savedUserNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
@@ -293,8 +311,22 @@ export default function NotificationsPage() {
               return !isIncomingOrder;
             });
           } else {
-            // Display notifications intended for equipment providers
-            localNotifs = savedUserNotifs.filter(n => {
+            // Clean up any rogue soil moisture or agronomic alerts that were previously saved in provider storage
+            const cleaned = savedUserNotifs.filter(n => {
+              const cat = (n.category || '').toLowerCase();
+              const title = (n.title || '').toLowerCase();
+              const msg = (n.message || '').toLowerCase();
+              const isAgronomic = cat === 'soil' || cat === 'disease' || cat === 'weather' || cat === 'crop' || cat === 'irrigation' ||
+                title.includes('soil moisture') || title.includes('irrigation') || title.includes('crop health') || title.includes('నేల తేమ') ||
+                msg.includes('soil moisture') || msg.includes('recommended irrigation') || msg.includes('తేమ');
+              return !isAgronomic;
+            });
+            if (cleaned.length !== savedUserNotifs.length) {
+              try { localStorage.setItem('agrishield_user_notifications', JSON.stringify(cleaned)); } catch (_) {}
+            }
+
+            // Display notifications intended for equipment providers (strictly exclude farmer soil, disease, and weather alerts)
+            localNotifs = cleaned.filter(n => {
               if (n.target_role === 'farmer' && (n.type === 'booking_status' || n.category === 'booking_status')) return false;
               return true;
             });
@@ -469,39 +501,99 @@ export default function NotificationsPage() {
       } catch (_) {}
 
       // Merge local and server without duplicates
-      const merged = [...localNotifs];
+      const rawMerged = [...localNotifs];
       serverNotifs.forEach((sn) => {
         const snId = sn.notification_id || sn.id || sn._id;
-        if (!merged.some(m => (m.notification_id || m.id || m._id) === snId)) {
-          merged.push(sn);
+        if (!rawMerged.some(m => (m.notification_id || m.id || m._id) === snId)) {
+          rawMerged.push(sn);
         }
       });
 
-      merged.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
+      // ── CONVERSATION THREAD GROUPING (Issue 1) ──
+      // Group multiple individual chat notifications for the same booking/conversation into ONE unified card
+      const threadGroups = new Map();
+      const standaloneNotifs = [];
 
-      setNotifications(merged);
-      setTotal(merged.length);
+      rawMerged.forEach(item => {
+        const bId = item.booking_id || item.bookingId;
+        const isBookingOrChat = item.category === 'booking' || item.type === 'booking' || item.type === 'booking_chat' || (item.id && String(item.id).startsWith('notif-chat-'));
+        
+        if (bId && isBookingOrChat) {
+          const groupKey = `booking_thread_${bId}`;
+          if (!threadGroups.has(groupKey)) {
+            threadGroups.set(groupKey, []);
+          }
+          threadGroups.get(groupKey).push(item);
+        } else {
+          standaloneNotifs.push(item);
+        }
+      });
+
+      const consolidatedThreads = [];
+      threadGroups.forEach((items, groupKey) => {
+        // Sort items inside this thread by timestamp descending (newest first)
+        items.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
+        const latest = items[0];
+        const unreadItems = items.filter(it => !it.read);
+        const unreadCount = unreadItems.length;
+        const allIds = Array.from(new Set(items.flatMap(it => [it.notification_id, it.id, it._id]).filter(Boolean)));
+
+        consolidatedThreads.push({
+          ...latest,
+          id: latest.id || `thread-${latest.booking_id}`,
+          notification_id: latest.notification_id || `thread-${latest.booking_id}`,
+          isThread: true,
+          threadCount: items.length,
+          threadUnreadCount: unreadCount,
+          threadItemIds: allIds,
+          read: unreadCount === 0,
+          // Show newest message
+          message: latest.message,
+          title: latest.title,
+          timestamp: latest.created_at || latest.timestamp
+        });
+      });
+
+      const finalMerged = [...consolidatedThreads, ...standaloneNotifs];
+      finalMerged.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
+
+      setNotifications(finalMerged);
+      setTotal(finalMerged.length);
     } catch {
       setToastMsg(t('notifications_page.toast.load_failed', 'Failed to load notifications.'));
     } finally {
       setLoading(false);
+      hasLoadedOnceRef.current = true;
     }
   }, [t, isEquipmentProvider, isTe, getReadIds, priority]);
 
   useEffect(() => {
-    fetchNotifications();
-    const handleRevalidateNotifs = () => {
-      if (document.visibilityState === 'visible') fetchNotifications();
+    // Initial fetch
+    fetchNotifications(false);
+
+    // Silent background revalidations (Stale-While-Revalidate pattern: zero skeleton blinking)
+    let revalidateTimer;
+    const debouncedSilentFetch = () => {
+      clearTimeout(revalidateTimer);
+      revalidateTimer = setTimeout(() => {
+        fetchNotifications(true);
+      }, 300);
     };
-    window.addEventListener('agrishield_notifications_updated', fetchNotifications);
-    window.addEventListener('storage', fetchNotifications);
-    window.addEventListener('focus', fetchNotifications);
+
+    const handleRevalidateNotifs = () => {
+      if (document.visibilityState === 'visible') debouncedSilentFetch();
+    };
+
+    window.addEventListener('agrishield_notifications_updated', debouncedSilentFetch);
+    window.addEventListener('storage', debouncedSilentFetch);
+    window.addEventListener('focus', debouncedSilentFetch);
     document.addEventListener('visibilitychange', handleRevalidateNotifs);
 
     return () => {
-      window.removeEventListener('agrishield_notifications_updated', fetchNotifications);
-      window.removeEventListener('storage', fetchNotifications);
-      window.removeEventListener('focus', fetchNotifications);
+      clearTimeout(revalidateTimer);
+      window.removeEventListener('agrishield_notifications_updated', debouncedSilentFetch);
+      window.removeEventListener('storage', debouncedSilentFetch);
+      window.removeEventListener('focus', debouncedSilentFetch);
       document.removeEventListener('visibilitychange', handleRevalidateNotifs);
     };
   }, [fetchNotifications]);
@@ -534,26 +626,31 @@ export default function NotificationsPage() {
     }
   }, [latestAlert]);
 
-  const handleMarkRead = async (id, e) => {
+  const handleMarkRead = async (id, e, threadItemIds = null) => {
     if (e) e.stopPropagation();
     try {
-      await API.put(`/api/v1/notifications/${id}/read`).catch(() => {});
+      const idsToMark = Array.isArray(threadItemIds) && threadItemIds.length > 0 ? threadItemIds : [id];
       const readIds = getReadIds();
-      readIds.add(id);
-      readIds.add(String(id));
+      idsToMark.forEach(itemId => {
+        API.put(`/api/v1/notifications/${itemId}/read`).catch(() => {});
+        readIds.add(itemId);
+        readIds.add(String(itemId));
+      });
       saveReadIds(readIds);
 
       setNotifications(prev => prev.map(n => {
-        const match = (n.notification_id === id || n.id === id || n.booking_id === id);
+        const match = idsToMark.includes(n.notification_id) || idsToMark.includes(n.id) || (n.booking_id && idsToMark.includes(n.booking_id));
         return match ? { ...n, read: true } : n;
       }));
 
       try {
         const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => {
-          const match = (n.notification_id === id || n.id === id || n.booking_id === id);
-          return match ? { ...n, read: true } : n;
-        })));
+        if (Array.isArray(stored)) {
+          localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => {
+            const match = idsToMark.includes(n.notification_id) || idsToMark.includes(n.id) || (n.booking_id && idsToMark.includes(n.booking_id));
+            return match ? { ...n, read: true } : n;
+          })));
+        }
       } catch (e) {}
 
       window.dispatchEvent(new CustomEvent('agrishield_notification_read', { detail: { id } }));
@@ -563,21 +660,28 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleDelete = async (id, e) => {
+  const handleDelete = async (id, e, threadItemIds = null) => {
     if (e) e.stopPropagation();
     try {
-      // 1. Permanently blacklist this notification ID so background fetch & synthesis never resurrect it
-      saveDeletedNotificationId(id);
-      recordCrossDeviceDeletion('notification', id, 'User deleted notification');
+      const idsToDelete = Array.isArray(threadItemIds) && threadItemIds.length > 0 ? threadItemIds : [id];
+      idsToDelete.forEach(itemId => {
+        // 1. Permanently blacklist this notification ID so background fetch & synthesis never resurrect it
+        saveDeletedNotificationId(itemId);
+        recordCrossDeviceDeletion('notification', itemId, 'User deleted notification');
+        API.delete(`/api/v1/notifications/${itemId}`).catch(() => {});
+      });
 
-      await API.delete(`/api/v1/notifications/${id}`).catch(() => {});
-      setNotifications(prev => prev.filter(n => n.notification_id !== id && n.id !== id && n.booking_id !== id));
-      setTotal(t => Math.max(0, t - 1));
+      setNotifications(prev => prev.filter(n => !idsToDelete.includes(n.notification_id) && !idsToDelete.includes(n.id) && !idsToDelete.includes(n.booking_id)));
+      setTotal(t => Math.max(0, t - idsToDelete.length));
       try {
         const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.filter(n => n.notification_id !== id && n.id !== id && n.booking_id !== id)));
+        if (Array.isArray(stored)) {
+          localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.filter(n => !idsToDelete.includes(n.notification_id) && !idsToDelete.includes(n.id) && !idsToDelete.includes(n.booking_id))));
+        }
       } catch (e) {}
-      if (selectedMessage?.notification_id === id || selectedMessage?.id === id) setSelectedMessage(null);
+      if (selectedMessage && (idsToDelete.includes(selectedMessage.notification_id) || idsToDelete.includes(selectedMessage.id) || idsToDelete.includes(selectedMessage.booking_id))) {
+        setSelectedMessage(null);
+      }
       setToastMsg(isTe ? 'సందేశం తొలగించబడింది.' : t('notifications_page.toast.deleted', 'Notification deleted.'));
     } catch {
       setToastMsg(t('notifications_page.toast.delete_failed', 'Failed to delete notification.'));
@@ -700,14 +804,24 @@ export default function NotificationsPage() {
   }, [notifications, search, unreadOnly, category, currentLang]);
 
   // Google Messages Category Filter Chips
-  const FILTER_PILLS = useMemo(() => [
-    { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
-    { id: 'unread', label: isTe ? `చదవనివి (${unreadCount})` : `Unread (${unreadCount})`, isUnreadPill: true },
-    { id: 'provider', label: isTe ? '🚜 యంత్రాలు & ప్రొవైడర్లు' : '🚜 Providers & Orders' },
-    { id: 'crop_alerts', label: isTe ? '🌿 పంట హెచ్చరికలు' : '🌿 Crop Alerts' },
-    { id: 'weather', label: isTe ? '🌦️ వాతావరణం' : '🌦️ Weather' },
-    { id: 'support', label: isTe ? '🛡️ సహాయం & సిస్టమ్' : '🛡️ Support' }
-  ], [isTe, unreadCount]);
+  const FILTER_PILLS = useMemo(() => {
+    if (isEquipmentProvider) {
+      return [
+        { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
+        { id: 'unread', label: isTe ? `చదవనివి (${unreadCount})` : `Unread (${unreadCount})`, isUnreadPill: true },
+        { id: 'provider', label: isTe ? '🚜 బుకింగ్‌లు & ఆర్డర్‌లు' : '🚜 Bookings & Orders' },
+        { id: 'support', label: isTe ? '🛡️ సహాయం & సిస్టమ్' : '🛡️ Support' }
+      ];
+    }
+    return [
+      { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
+      { id: 'unread', label: isTe ? `చదవనివి (${unreadCount})` : `Unread (${unreadCount})`, isUnreadPill: true },
+      { id: 'provider', label: isTe ? '🚜 యంత్రాలు & ప్రొవైడర్లు' : '🚜 Providers & Orders' },
+      { id: 'crop_alerts', label: isTe ? '🌿 పంట హెచ్చరికలు' : '🌿 Crop Alerts' },
+      { id: 'weather', label: isTe ? '🌦️ వాతావరణం' : '🌦️ Weather' },
+      { id: 'support', label: isTe ? '🛡️ సహాయం & సిస్టమ్' : '🛡️ Support' }
+    ];
+  }, [isTe, unreadCount, isEquipmentProvider]);
 
   // Helper to determine sender metadata and high-contrast color avatar
   const getThreadMeta = useCallback((item) => {
@@ -769,8 +883,8 @@ export default function NotificationsPage() {
     return '🌱';
   }, [user]);
 
-  // Loading skeleton
-  if (loading) {
+  // Loading skeleton - ONLY on initial mount when cache is empty (zero screen flicker during revalidation)
+  if (loading && notifications.length === 0 && !hasLoadedOnceRef.current) {
     return (
       <div className="min-h-screen bg-[#f1f3f9] dark:bg-[#111318] p-4 sm:p-6 max-w-3xl mx-auto space-y-4">
         <Skeleton className="h-14 w-full rounded-full bg-slate-200/80 dark:bg-slate-800" />
@@ -809,7 +923,7 @@ export default function NotificationsPage() {
           translatedBody={transBody}
           lang={currentLang}
           onBack={() => setSelectedMessage(null)}
-          onDelete={(id) => handleDelete(id)}
+          onDelete={(id) => handleDelete(id, null, selectedMessage.threadItemIds)}
         />
       </div>
     );
@@ -1035,9 +1149,22 @@ export default function NotificationsPage() {
                       </span>
                     </div>
 
-                    {/* Quick Call & WhatsApp Action Buttons for Machinery Orders */}
-                    {(item.category === 'booking' || item.type === 'booking') && (
+                    {/* Quick Action Buttons: Open Chat, Call, WhatsApp, Order Links */}
+                    {(item.category === 'booking' || item.type === 'booking' || item.type === 'booking_chat' || item.isThread) && (
                       <div className="flex flex-wrap items-center gap-2 pt-1.5" onClick={(e) => e.stopPropagation()}>
+                        {/* Dedicated Open Chat Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMessage(item);
+                            if (isUnread) handleMarkRead(item.notification_id || item.id, e, item.threadItemIds);
+                          }}
+                          className="px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          <span>{isTe ? 'చాట్ తెరవండి' : 'Open Chat'}</span>
+                        </button>
+
                         {isEquipmentProvider ? (
                           <>
                             <a
@@ -1095,10 +1222,10 @@ export default function NotificationsPage() {
 
                   {/* Right Column: Unread Pill Badge & Actions */}
                   <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
-                    {/* Google Messages Signature Blue Unread Pill Badge */}
+                    {/* Google Messages Signature Blue Unread Pill Badge showing thread unread count */}
                     {isUnread && (
                       <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-black shadow-xs min-w-[20px] text-center">
-                        1
+                        {item.threadUnreadCount || item.threadCount || 1}
                       </span>
                     )}
 
@@ -1106,7 +1233,7 @@ export default function NotificationsPage() {
                     <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                       {isUnread && (
                         <button
-                          onClick={(e) => handleMarkRead(item.notification_id || item.id, e)}
+                          onClick={(e) => handleMarkRead(item.notification_id || item.id, e, item.threadItemIds)}
                           className="p-1.5 rounded-full hover:bg-blue-100 dark:hover:bg-blue-950 text-blue-600 transition-colors"
                           title="Mark Read"
                         >
@@ -1114,7 +1241,7 @@ export default function NotificationsPage() {
                         </button>
                       )}
                       <button
-                        onClick={(e) => handleDelete(item.notification_id || item.id, e)}
+                        onClick={(e) => handleDelete(item.notification_id || item.id, e, item.threadItemIds)}
                         className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-500 transition-colors"
                         title="Delete Message"
                       >

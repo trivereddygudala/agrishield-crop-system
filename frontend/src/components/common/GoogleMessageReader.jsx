@@ -434,6 +434,18 @@ export default function GoogleMessageReader({
         }
       }
     } catch (_) {}
+
+    // Seed from threadItems if available from synthesized notifications
+    if (Array.isArray(message?.threadItems) && message.threadItems.length > 0) {
+      return message.threadItems
+        .filter(item => item && (item.message || item.title))
+        .map((item, idx) => ({
+          id: item.notification_id || item.id || `thread_seed_${idx}`,
+          sender: item.sender || (item.isFarmerDecision || item.type === 'booking_farmer_message' ? 'farmer' : (isProvider ? 'farmer' : 'provider')),
+          text: item.message || item.title || '',
+          timestamp: item.created_at || item.timestamp || new Date().toISOString()
+        }));
+    }
     return [];
   });
 
@@ -665,11 +677,11 @@ export default function GoogleMessageReader({
       // Send to Backend API for cross-browser, cross-device real-time sync
       API.post(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`, newMsg).catch(() => {});
 
-      // Generate in-app notification for the counterparty
+      // Upsert a single unified conversation thread notification for the counterparty (prevents multiple duplicate notifications)
       const recipientRole = isProviderViewer ? 'farmer' : 'equipment_provider';
       const senderDisplayName = user?.name || (isProviderViewer ? (isTelugu ? 'పరికర ప్రొవైడర్' : 'Equipment Provider') : (isTelugu ? 'రైతు' : 'Farmer'));
       const notifObj = {
-        id: `notif-chat-${canonicalBookingId}-${Date.now()}`,
+        id: `notif-chat-${canonicalBookingId}`,
         notification_id: `notif-chat-${canonicalBookingId}`,
         category: 'booking',
         type: 'booking_chat',
@@ -681,12 +693,17 @@ export default function GoogleMessageReader({
         booking_id: canonicalBookingId,
         bookingId: canonicalBookingId,
         created_at: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
         read: false
       };
-      const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-      localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...existingNotifs]));
-      window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
-      API.post('/api/v1/notifications/test', notifObj).catch(() => {});
+      try {
+        const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const filteredExisting = Array.isArray(existingNotifs)
+          ? existingNotifs.filter(n => n && n.booking_id !== canonicalBookingId && !String(n.id || '').startsWith(`notif-chat-${canonicalBookingId}`))
+          : [];
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
+        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+      } catch (_) {}
     } catch (_) {}
   };
 

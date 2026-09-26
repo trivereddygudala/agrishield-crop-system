@@ -128,7 +128,8 @@ async def get_notifications(
         page=page, 
         category=category, 
         priority=priority,
-        unread_only=unread_only
+        unread_only=unread_only,
+        role=current_user.get("role")
     )
     pages = (total + limit - 1) // limit if total > 0 else 1
     return {
@@ -325,23 +326,38 @@ async def trigger_test_alert(
     db = Depends(get_database)
 ):
     """Send localized dummy notification test to verified websocket and push clients."""
-    # Create soil moisture low mock alert
-    telemetry_mock = {"soil_moisture": 18.4, "liters": 5.0}
-    
-    doc = await NotificationService.create_notification(
-        db,
-        NotificationCreate(
-            user_id=str(current_user["id"]),
-            title="Soil Moisture Low",
-            message="Soil moisture level is critically low. Recommended irrigation: 5 L/m².",
-            category="soil",
-            priority="High",
-            action_url="/recommendations",
-            confidence_score=0.98
-        ),
-        template_key="soil_moisture_low",
-        template_context=telemetry_mock
-    )
+    user_role = current_user.get("role", "farmer")
+    if user_role == "equipment_provider":
+        doc = await NotificationService.create_notification(
+            db,
+            NotificationCreate(
+                user_id=str(current_user["id"]),
+                title="🚜 New Machinery Booking Inquiry",
+                message="Farmer inquired about tractor availability for field cultivation.",
+                category="booking",
+                priority="High",
+                action_url="/provider/dashboard?tab=orders",
+                confidence_score=0.98
+            )
+        )
+    else:
+        # Create soil moisture low mock alert only for farmers
+        telemetry_mock = {"soil_moisture": 18.4, "liters": 5.0}
+        
+        doc = await NotificationService.create_notification(
+            db,
+            NotificationCreate(
+                user_id=str(current_user["id"]),
+                title="Soil Moisture Low",
+                message="Soil moisture level is critically low. Recommended irrigation: 5 L/m².",
+                category="soil",
+                priority="High",
+                action_url="/recommendations",
+                confidence_score=0.98
+            ),
+            template_key="soil_moisture_low",
+            template_context=telemetry_mock
+        )
     return {"status": "success", "message": "Test notification dispatched", "notification": doc}
 
 @router.get("/api/test-trigger-all")
