@@ -1,5 +1,5 @@
-// AgriShield Service Worker — Zero-Internet PWA & Offline Engine v3.5
-const CACHE_NAME = 'agrishield-v3.5-pwa-offline';
+// AgriShield Service Worker — Zero-Internet PWA & Offline Engine v303
+const CACHE_NAME = 'agrishield-v303-live';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_ASSETS = [

@@ -2,6 +2,19 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v304) - Antigravity Anti-Clearing Rules, Vercel Root Build Automation & Service Worker Cache Purge
+- **Summary:**
+  1. 🛡️ **Strict Antigravity Zero-Purge Mandate (`.agents/AGENTS.md`, `GEMINI.md`):**
+     - Enforced strict workspace constraint prohibiting Antigravity or subagents from clearing, truncating, or ignoring conversation context when transcripts grow large.
+     - Added mandatory Post-Compaction Recovery Protocol: whenever context compaction occurs, the assistant must immediately inspect `chat by user.md` and `changes_happening.md` to autonomously resume incomplete tasks without losing instructions.
+  2. 🌐 **Root Deployment Build Configuration (`package.json`, `vercel.json`):**
+     - Diagnosed why recent git pushes (`286c754`, `82acfb5`, `5256210`) were not reflecting on the live website: the repository root lacked a `"build"` script and root `vercel.json`. If Vercel deployed from the repo root, builds would fail or remain stale.
+     - Added `"build": "npm --prefix frontend run build"` in root `package.json` and created root `vercel.json` configuring `outputDirectory: "frontend/dist"`.
+  3. ⚡ **Service Worker Cache Invalidation & Anti-Cache HTTP Headers (`sw.js`, `vercel.json`):**
+     - Upgraded PWA cache version to `agrishield-v303-live` in `frontend/public/sw.js`, activating automatic client-side cache cleanup and claiming active tabs.
+     - Configured `Cache-Control: public, max-age=0, must-revalidate` in `vercel.json` so browsers always fetch fresh `index.html` referencing updated JS chunks.
+- **Files modified:** `.agents/AGENTS.md`, `GEMINI.md`, `package.json`, `vercel.json`, `frontend/vercel.json`, `frontend/public/sw.js`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-26 (v303) - Notification Conversation Thread Grouping, Provider Agronomy Segregation & Silent Background Refresh
 - **Summary:**
   1. 💬 **Single Grouped Conversation Threads (Picture 1 Resolution):**
@@ -123,7 +136,8 @@
      - Built-in multi-tier fallback support for Render worker clusters (`worker-1`, `worker-2`).
   3. 🛡️ **Zero-Resurrection Authoritative State in Farmer & Provider Portals:**
      - **Equipment Booking (`EquipmentBookingPage.jsx`):** Eliminated the flaw where locally cached bookings were merged back on top of remote bookings. Remote server is now strictly authoritative; only in-flight bookings created in the last 45 seconds are preserved locally. Tapping delete permanently broadcasts tombstones across devices.
-     - **Provider Dashboard (`ProviderDashboardPage.jsx`):** Remote bookings and equipment fleet are now strictly authoritative. Deleting machinery or bookings broadcasts tombstones so farmer mobile devices instantly remove them without resurrection. Added `visibilitychange` listeners for instant refresh on phone wake.
+   
+   ipment fleet are now strictly authoritative. Deleting machinery or bookings broadcasts tombstones so farmer mobile devices instantly remove them without resurrection. Added `visibilitychange` listeners for instant refresh on phone wake.
      - **Diagnosis History (`HistoryPage.jsx`):** Deleted scan records record deletion tombstones, invalidate cached history, and auto-refresh on screen unlock/tab focus.
      - **Notifications Inbox (`NotificationsPage.jsx`):** Deleted notifications record tombstones, preventing background tasks and notification synthesizers on other phones from resurrecting cleared items.
   4. 🔒 **Security & API Route Access:**
