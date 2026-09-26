@@ -899,13 +899,14 @@ export default function ProviderDashboardPage() {
           try {
             if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
               const bc = new BroadcastChannel('agrishield_equipment_chat');
-              bc.postMessage({ canonicalBookingId: `BK-${cleanBId}`, message: noticeMsg });
+              bc.postMessage({ canonicalBookingId: `BK-${cleanBId}`, message: noticeMsg, nextStatus });
               bc.close();
             }
           } catch (_) {}
           API.post(`/api/v1/equipment/bookings/BK-${cleanBId}/messages`, noticeMsg).catch(() => {});
         } catch (_) {}
 
+        window.dispatchEvent(new Event('agrishield_bookings_updated'));
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
       }
     }

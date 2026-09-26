@@ -515,15 +515,30 @@ export default function NotificationsPage() {
       const standaloneNotifs = [];
 
       rawMerged.forEach(item => {
-        const bId = item.booking_id || item.bookingId;
-        const isBookingOrChat = item.category === 'booking' || item.type === 'booking' || item.type === 'booking_chat' || (item.id && String(item.id).startsWith('notif-chat-'));
+        const rawBId = item.booking_id || item.bookingId || item.id;
+        const cleanBId = String(rawBId || '')
+          .trim()
+          .replace(/^notif-(?:stat-)?/, '')
+          .replace(/^farmer-notif-/, '')
+          .replace(/^notif-order-/, '')
+          .replace(/^notif-chat-/, '')
+          .replace(/^notif-/, '')
+          .replace(/-(?:confirmed|rejected|declined|completed).*$/, '');
+
+        const canonicalBId = cleanBId ? (cleanBId.startsWith('BK-') ? cleanBId : `BK-${cleanBId}`) : null;
+        const isBookingOrChat = item.category === 'booking' ||
+                               item.type === 'booking' ||
+                               item.type === 'booking_chat' ||
+                               item.type === 'booking_status' ||
+                               Boolean(item.isFarmerDecision) ||
+                               (item.id && (String(item.id).startsWith('notif-chat-') || String(item.id).startsWith('notif-stat-') || String(item.id).startsWith('farmer-notif-')));
         
-        if (bId && isBookingOrChat) {
-          const groupKey = `booking_thread_${bId}`;
+        if (canonicalBId && isBookingOrChat) {
+          const groupKey = `booking_thread_${canonicalBId}`;
           if (!threadGroups.has(groupKey)) {
             threadGroups.set(groupKey, []);
           }
-          threadGroups.get(groupKey).push(item);
+          threadGroups.get(groupKey).push({ ...item, canonicalBookingId: canonicalBId });
         } else {
           standaloneNotifs.push(item);
         }
@@ -537,15 +552,19 @@ export default function NotificationsPage() {
         const unreadItems = items.filter(it => !it.read);
         const unreadCount = unreadItems.length;
         const allIds = Array.from(new Set(items.flatMap(it => [it.notification_id, it.id, it._id]).filter(Boolean)));
+        const threadBId = latest.canonicalBookingId || latest.booking_id || groupKey.replace('booking_thread_', '');
 
         consolidatedThreads.push({
           ...latest,
-          id: latest.id || `thread-${latest.booking_id}`,
-          notification_id: latest.notification_id || `thread-${latest.booking_id}`,
+          id: latest.id || `thread-${threadBId}`,
+          notification_id: latest.notification_id || `thread-${threadBId}`,
+          booking_id: threadBId,
+          bookingId: threadBId,
           isThread: true,
           threadCount: items.length,
           threadUnreadCount: unreadCount,
           threadItemIds: allIds,
+          threadItems: items,
           read: unreadCount === 0,
           // Show newest message
           message: latest.message,

@@ -131,6 +131,123 @@ function extractCropDetails(item, lang = 'te') {
   };
 }
 
+/**
+ * Modern voice note bubble with inline audio player and animated waveforms
+ */
+function VoiceNoteBubble({ msg, isMyMessage, isTelugu }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(msg.duration || 0);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+        setCurrentTime(audio.currentTime);
+      }
+    };
+
+    const onLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(Math.round(audio.duration));
+      }
+    };
+
+    const onEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      document.querySelectorAll('audio').forEach(a => {
+        if (a !== audio) {
+          try { a.pause(); } catch (_) {}
+        }
+      });
+      audio.play().then(() => setIsPlaying(true)).catch(err => console.warn('Audio play failed:', err));
+    }
+  };
+
+  const formatSec = (sec) => {
+    const s = Math.round(sec || 0);
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return `${m}:${rem.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2.5 py-1 min-w-[210px] sm:min-w-[250px]">
+      <audio ref={audioRef} src={msg.audioUrl} preload="metadata" />
+      <button
+        type="button"
+        onClick={togglePlay}
+        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 shadow-md transition-transform active:scale-90 cursor-pointer ${
+          isMyMessage
+            ? 'bg-white text-blue-600 hover:bg-blue-50'
+            : 'bg-emerald-600 text-white hover:bg-emerald-700'
+        }`}
+        title={isPlaying ? 'Pause' : 'Play voice note'}
+      >
+        {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />}
+      </button>
+
+      <div className="flex-1 space-y-1.5 min-w-0">
+        <div className="flex items-center gap-1 h-5 overflow-hidden">
+          {[40, 75, 55, 90, 60, 85, 45, 95, 70, 50, 80, 65, 90, 45, 70].map((h, i) => {
+            const barProgress = (i / 15) * 100;
+            const isPlayed = progress >= barProgress;
+            return (
+              <span
+                key={i}
+                className={`w-1 rounded-full transition-all duration-150 ${
+                  isPlayed
+                    ? (isMyMessage ? 'bg-white' : 'bg-emerald-600 dark:bg-emerald-400')
+                    : (isMyMessage ? 'bg-blue-300/40' : 'bg-slate-300 dark:bg-slate-700')
+                } ${isPlaying && isPlayed ? 'animate-pulse' : ''}`}
+                style={{ height: `${Math.max(6, (h * (isPlaying ? 1.2 : 1)) / 4)}px` }}
+              />
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] font-mono">
+          <span className={isMyMessage ? 'text-blue-100 font-semibold' : 'text-slate-500 dark:text-slate-400'}>
+            {isPlaying ? formatSec(currentTime) : formatSec(duration)}
+          </span>
+          <span className={`flex items-center gap-1 ${isMyMessage ? 'text-blue-100 font-semibold' : 'text-emerald-600 dark:text-emerald-400 font-semibold'}`}>
+            <Mic className="w-3 h-3" />
+            <span>{isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message'}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function GoogleMessageReader({
   message,
   translatedTitle,
@@ -240,6 +357,119 @@ export default function GoogleMessageReader({
     };
   }, []);
 
+  // ── Real Voice Note Audio Recording State (Hardware Mic + MediaRecorder) ──
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const audioStreamRef = useRef(null);
+
+  const startVoiceRecording = async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      alert(isTelugu ? 'మీ బ్రౌజర్‌లో మైక్రోఫోన్ ఆడియో రికార్డింగ్ సపోర్ట్ లేదు.' : 'Audio recording is not supported in this browser.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      let mimeType = 'audio/webm';
+      if (typeof MediaRecorder !== 'undefined') {
+        if (!MediaRecorder.isTypeSupported('audio/webm')) {
+          if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+          else if (MediaRecorder.isTypeSupported('audio/ogg')) mimeType = 'audio/ogg';
+          else mimeType = '';
+        }
+      }
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.start(100);
+      setIsRecordingVoice(true);
+      setRecordingSeconds(0);
+
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.warn('Microphone access error:', err);
+      alert(isTelugu ? 'దయచేసి మైక్రోఫోన్ అనుమతి ఇవ్వండి.' : 'Please allow microphone access to record voice messages.');
+      setIsRecordingVoice(false);
+    }
+  };
+
+  const cancelVoiceRecording = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch (_) {}
+    }
+    if (audioStreamRef.current) {
+      try { audioStreamRef.current.getTracks().forEach(t => t.stop()); } catch (_) {}
+    }
+    audioChunksRef.current = [];
+    setIsRecordingVoice(false);
+    setRecordingSeconds(0);
+  };
+
+  const stopAndSendVoiceRecording = () => {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    const duration = recordingSeconds || 1;
+
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+      cancelVoiceRecording();
+      return;
+    }
+
+    mediaRecorderRef.current.onstop = () => {
+      try {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: mediaRecorderRef.current.mimeType || 'audio/webm'
+        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Audio = reader.result;
+          handleSendVoiceNote(base64Audio, duration);
+        };
+        reader.readAsDataURL(audioBlob);
+      } catch (e) {
+        console.warn('Error processing audio recording:', e);
+      } finally {
+        if (audioStreamRef.current) {
+          try { audioStreamRef.current.getTracks().forEach(t => t.stop()); } catch (_) {}
+        }
+        audioChunksRef.current = [];
+        setIsRecordingVoice(false);
+        setRecordingSeconds(0);
+      }
+    };
+
+    try {
+      mediaRecorderRef.current.stop();
+    } catch (_) {
+      cancelVoiceRecording();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (audioStreamRef.current) {
+        try { audioStreamRef.current.getTracks().forEach(t => t.stop()); } catch (_) {}
+      }
+    };
+  }, []);
+
   if (!message) return null;
 
   // ── Determine Differentiated Notification Pattern ──
@@ -324,10 +554,16 @@ export default function GoogleMessageReader({
   // ── Equipment Booking State & Precise Village Details ──
   const rawBookingId = message.booking_id || message.bookingId || (message.id?.startsWith('notif-') ? message.id.replace('notif-', '') : message.id) || 'BK-21407';
 
-  // Canonical normalized booking thread key (strips any notification prefixes)
+  // Canonical normalized booking thread key (strips any notification prefixes and status suffixes)
   const canonicalBookingId = useMemo(() => {
     const raw = String(message.booking_id || message.bookingId || message.id || '').trim();
-    const clean = raw.replace(/^notif-(?:stat-)?/, '').replace(/^notif-order-/, '').replace(/^notif-chat-/, '').replace(/^notif-/, '');
+    const clean = raw
+      .replace(/^notif-(?:stat-)?/, '')
+      .replace(/^farmer-notif-/, '')
+      .replace(/^notif-order-/, '')
+      .replace(/^notif-chat-/, '')
+      .replace(/^notif-/, '')
+      .replace(/-(?:confirmed|rejected|declined|completed).*$/, '');
     if (clean.startsWith('BK-')) return clean;
     if (clean.length > 0) return `BK-${clean}`;
     return 'BK-21407';
@@ -353,8 +589,39 @@ export default function GoogleMessageReader({
     }
   }, [savedBooking]);
 
-  // Sync latest booking status from server for multi-device live consistency
+  // Reactive listener for local bookings updates and cross-tab storage updates
   useEffect(() => {
+    if (!isBooking) return;
+
+    const syncStatusFromStorage = () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
+        if (Array.isArray(saved)) {
+          const match = saved.find(b => b && (
+            b.id === rawBookingId ||
+            `BK-${b.id}` === rawBookingId ||
+            b.id === canonicalBookingId ||
+            (b.id && canonicalBookingId.includes(b.id))
+          ));
+          if (match && match.status) {
+            setBookingStatus(match.status);
+          }
+        }
+      } catch (_) {}
+    };
+
+    window.addEventListener('agrishield_bookings_updated', syncStatusFromStorage);
+    window.addEventListener('storage', syncStatusFromStorage);
+
+    return () => {
+      window.removeEventListener('agrishield_bookings_updated', syncStatusFromStorage);
+      window.removeEventListener('storage', syncStatusFromStorage);
+    };
+  }, [isBooking, rawBookingId, canonicalBookingId]);
+
+  // Sync latest booking status from server periodically for multi-device live consistency
+  useEffect(() => {
+    if (!isBooking) return;
     let isMounted = true;
     const fetchFreshBookingStatus = async () => {
       try {
@@ -372,10 +639,13 @@ export default function GoogleMessageReader({
         }
       } catch (_) {}
     };
-    if (isBooking) {
-      fetchFreshBookingStatus();
-    }
-    return () => { isMounted = false; };
+
+    fetchFreshBookingStatus();
+    const interval = setInterval(fetchFreshBookingStatus, 2500);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isBooking, rawBookingId, canonicalBookingId]);
 
   const bookingFarmerName = savedBooking?.farmerName || message.farmerName || message.farmer_name || 'Farmer';
@@ -429,8 +699,8 @@ export default function GoogleMessageReader({
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Strictly purge any legacy mock location or voice notes
-          return parsed.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1' && m.type !== 'voice_note');
+          // Strictly purge only legacy dummy mock messages
+          return parsed.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1');
         }
       }
     } catch (_) {}
@@ -467,13 +737,18 @@ export default function GoogleMessageReader({
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         bc = new BroadcastChannel('agrishield_equipment_chat');
         bc.onmessage = (event) => {
-          if (event.data?.canonicalBookingId === canonicalBookingId && event.data?.message) {
-            setChatMessages(prev => {
-              if (prev.some(m => m.id === event.data.message.id)) return prev;
-              const next = [...prev, event.data.message];
-              try { localStorage.setItem(chatStorageKey, JSON.stringify(next)); } catch (_) {}
-              return next;
-            });
+          if (event.data?.canonicalBookingId === canonicalBookingId) {
+            if (event.data?.nextStatus) {
+              setBookingStatus(event.data.nextStatus);
+            }
+            if (event.data?.message) {
+              setChatMessages(prev => {
+                if (prev.some(m => m.id === event.data.message.id)) return prev;
+                const next = [...prev, event.data.message];
+                try { localStorage.setItem(chatStorageKey, JSON.stringify(next)); } catch (_) {}
+                return next;
+              });
+            }
           }
         };
       }
@@ -484,7 +759,7 @@ export default function GoogleMessageReader({
       try {
         const res = await API.get(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`);
         if (res.data?.messages && Array.isArray(res.data.messages) && isMounted) {
-          const serverMsgs = res.data.messages.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1' && m.type !== 'voice_note');
+          const serverMsgs = res.data.messages.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1');
           setChatMessages(prev => {
             const map = new Map();
             prev.forEach(m => map.set(m.id, m));
@@ -514,7 +789,7 @@ export default function GoogleMessageReader({
         try {
           const parsed = JSON.parse(e.newValue);
           if (Array.isArray(parsed)) {
-            const clean = parsed.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1' && m.type !== 'voice_note');
+            const clean = parsed.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1');
             setChatMessages(clean);
           }
         } catch (_) {}
@@ -742,19 +1017,109 @@ export default function GoogleMessageReader({
     } catch (_) {}
   };
 
+  const handleSendVoiceNote = (audioDataUrl, durationSec) => {
+    if (!audioDataUrl) return;
+
+    const newMsg = {
+      id: `msg_voice_${mySenderRole}_${Date.now()}`,
+      sender: mySenderRole,
+      senderName: user?.name || (isProviderViewer ? (isTelugu ? 'పరికర ప్రొవైడర్' : 'Equipment Provider') : (isTelugu ? 'రైతు' : 'Farmer')),
+      type: 'voice_note',
+      audioUrl: audioDataUrl,
+      duration: durationSec || 1,
+      text: isTelugu ? `🎤 వాయిస్ సందేశం (${durationSec}s)` : `🎤 Voice Message (${durationSec}s)`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
+      status: 'sent'
+    };
+
+    const updated = [...chatMessages, newMsg];
+    setChatMessages(updated);
+
+    try {
+      localStorage.setItem(chatStorageKey, JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('agrishield_chat_message_sent', {
+        detail: { storageKey: chatStorageKey, message: newMsg }
+      }));
+
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('agrishield_equipment_chat');
+          bc.postMessage({ canonicalBookingId, message: newMsg });
+          bc.close();
+        }
+      } catch (_) {}
+
+      API.post(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`, newMsg).catch(() => {});
+
+      const recipientRole = isProviderViewer ? 'farmer' : 'equipment_provider';
+      const senderDisplayName = user?.name || (isProviderViewer ? (isTelugu ? 'పరికర ప్రొవైడర్' : 'Equipment Provider') : (isTelugu ? 'రైతు' : 'Farmer'));
+      const notifObj = {
+        id: `notif-chat-${canonicalBookingId}`,
+        notification_id: `notif-chat-${canonicalBookingId}`,
+        category: 'booking',
+        type: 'booking_chat',
+        priority: 'Medium',
+        role: recipientRole,
+        target_role: recipientRole,
+        title: isTelugu ? `💬 కొత్త వాయిస్ సందేశం - ${bookingEquipmentTitle}` : `💬 New Voice Message - ${bookingEquipmentTitle}`,
+        message: `${senderDisplayName}: 🎤 ${isTelugu ? 'వాయిస్ సందేశం' : 'Voice Message'} (${durationSec}s)`,
+        booking_id: canonicalBookingId,
+        bookingId: canonicalBookingId,
+        created_at: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      try {
+        const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const filteredExisting = Array.isArray(existingNotifs)
+          ? existingNotifs.filter(n => n && n.booking_id !== canonicalBookingId && !String(n.id || '').startsWith(`notif-chat-${canonicalBookingId}`))
+          : [];
+        localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
+        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+      } catch (_) {}
+    } catch (_) {}
+  };
+
   const handleUpdateBookingStatus = async (nextStatus) => {
     setBookingStatus(nextStatus);
     const bId = rawBookingId;
     try {
       const saved = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
       if (Array.isArray(saved)) {
-        const updated = saved.map(b => (b && (b.id === bId || `BK-${b.id}` === bId)) ? { ...b, status: nextStatus } : b);
+        const updated = saved.map(b => (b && (b.id === bId || `BK-${b.id}` === bId || b.id === canonicalBookingId)) ? { ...b, status: nextStatus, updatedAt: new Date().toISOString() } : b);
         localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
         window.dispatchEvent(new Event('agrishield_bookings_updated'));
       }
     } catch (_) {}
+
+    // Add milestone confirmation message to the chat
+    if (nextStatus === 'confirmed') {
+      const noticeMsg = {
+        id: `msg_sys_${Date.now()}`,
+        sender: 'system',
+        type: 'system_notice',
+        text: isTelugu
+          ? `✅ పరికర ప్రొవైడర్ మీ బుకింగ్‌ను ఆమోదించారు (${bookingDate} కోసం షెడ్యూల్ చేయబడింది)`
+          : `✅ Booking Accepted by Provider (Scheduled for ${bookingDate})`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setChatMessages(prev => {
+        const next = [...prev, noticeMsg];
+        try { localStorage.setItem(chatStorageKey, JSON.stringify(next)); } catch (_) {}
+        return next;
+      });
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('agrishield_equipment_chat');
+          bc.postMessage({ canonicalBookingId, message: noticeMsg, nextStatus });
+          bc.close();
+        }
+      } catch (_) {}
+    }
+
     try {
-      await API.patch(`/api/v1/equipment/bookings/${bId}/status`, { status: nextStatus });
+      await API.patch(`/api/v1/equipment/bookings/${canonicalBookingId}/status`, { status: nextStatus });
     } catch (_) {}
   };
 
@@ -1373,37 +1738,41 @@ export default function GoogleMessageReader({
                           : 'bg-white dark:bg-[#161b22] text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-800 rounded-tl-xs shadow-xs'
                       }`}
                     >
-                      {/* Message Text with Voice TTS Speaker Button */}
-                      <div className="flex items-start justify-between gap-2">
-                        {msg.text && (
-                          <p className="whitespace-pre-line font-medium leading-relaxed flex-1">
-                            {msg.text}
-                          </p>
-                        )}
-                        {msg.text && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              speak(msg.text, `msg_${msg.id}`, currentLang, 0.85);
-                            }}
-                            className={`p-1.5 rounded-full transition-all shrink-0 cursor-pointer ${
-                              speakingId === `msg_${msg.id}`
-                                ? 'bg-amber-400 text-slate-950 animate-pulse'
-                                : (isMyMessage
-                                    ? 'bg-blue-500/50 hover:bg-blue-500 text-white'
-                                    : 'bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300')
-                            }`}
-                            title={isTelugu ? 'వినండి (ఆడియో)' : 'Listen to message'}
-                          >
-                            {speakingId === `msg_${msg.id}` ? (
-                              <VolumeX className="w-3.5 h-3.5" />
-                            ) : (
-                              <Volume2 className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        )}
-                      </div>
+                      {/* Message Content: Voice Note Audio Bubble OR Text with TTS */}
+                      {msg.type === 'voice_note' || msg.audioUrl ? (
+                        <VoiceNoteBubble msg={msg} isMyMessage={isMyMessage} isTelugu={isTelugu} />
+                      ) : (
+                        <div className="flex items-start justify-between gap-2">
+                          {msg.text && (
+                            <p className="whitespace-pre-line font-medium leading-relaxed flex-1">
+                              {msg.text}
+                            </p>
+                          )}
+                          {msg.text && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                speak(msg.text, `msg_${msg.id}`, currentLang, 0.85);
+                              }}
+                              className={`p-1.5 rounded-full transition-all shrink-0 cursor-pointer ${
+                                speakingId === `msg_${msg.id}`
+                                  ? 'bg-amber-400 text-slate-950 animate-pulse'
+                                  : (isMyMessage
+                                      ? 'bg-blue-500/50 hover:bg-blue-500 text-white'
+                                      : 'bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300')
+                              }`}
+                              title={isTelugu ? 'వినండి (ఆడియో)' : 'Listen to message'}
+                            >
+                              {speakingId === `msg_${msg.id}` ? (
+                                <VolumeX className="w-3.5 h-3.5" />
+                              ) : (
+                                <Volume2 className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {/* Map Location Card (Manual intentional attachment only) */}
                       {msg.location && (
@@ -1551,44 +1920,93 @@ export default function GoogleMessageReader({
                 <Paperclip className="w-5 h-5" />
               </button>
 
-              <div className="flex-1 relative flex items-center">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={
-                    isProviderViewer
-                      ? (isTelugu ? 'రైతుకు సందేశం టైప్ చేయండి...' : 'Type message to Farmer...')
-                      : (isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...')
-                  }
-                  className="w-full py-2.5 pl-4 pr-11 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={toggleSpeechRecognition}
-                  className={`absolute right-2 p-1.5 rounded-full transition-all cursor-pointer ${
-                    isListening
-                      ? 'bg-red-500 text-white animate-pulse shadow-md shadow-red-500/40'
-                      : 'text-slate-400 hover:text-emerald-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
-                  title={isTelugu ? 'వాయిస్ టైపింగ్ (మైక్రోఫోన్)' : 'Voice typing (Microphone)'}
-                >
-                  <Mic className={`w-4 h-4 ${isListening ? 'animate-bounce' : ''}`} />
-                </button>
-              </div>
+              {isRecordingVoice ? (
+                <div className="flex-1 flex items-center justify-between py-2 px-3.5 rounded-full bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 shadow-inner">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+                    <span className="text-xs font-mono font-bold text-rose-600 dark:text-rose-400 shrink-0">
+                      {Math.floor(recordingSeconds / 60).toString().padStart(2, '0')}:{(recordingSeconds % 60).toString().padStart(2, '0')}
+                    </span>
+                    <div className="flex items-center gap-0.5 ml-1.5 shrink-0">
+                      <span className="w-1 h-2.5 bg-rose-500 rounded-full animate-pulse" />
+                      <span className="w-1 h-4 bg-rose-600 rounded-full animate-bounce" />
+                      <span className="w-1 h-2 bg-rose-400 rounded-full animate-pulse" />
+                      <span className="w-1 h-5 bg-rose-600 rounded-full animate-bounce" />
+                      <span className="w-1 h-3 bg-rose-500 rounded-full animate-pulse" />
+                    </div>
+                    <span className="text-[11px] font-semibold text-rose-500 truncate hidden sm:inline ml-1">
+                      {isTelugu ? 'వాయిస్ రికార్డ్ అవుతోంది...' : 'Recording voice note...'}
+                    </span>
+                  </div>
 
-              <button
-                type="submit"
-                disabled={!inputText.trim()}
-                className={`p-3 rounded-full transition-transform active:scale-95 cursor-pointer shrink-0 ${
-                  inputText.trim()
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30'
-                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
-                }`}
-                title={isTelugu ? "పంపండి" : "Send"}
-              >
-                <Send className="w-4 h-4" />
-              </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={cancelVoiceRecording}
+                      className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 cursor-pointer transition-colors"
+                      title={isTelugu ? 'రద్దు చేయండి' : 'Discard recording'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopAndSendVoiceRecording}
+                      className="py-1 px-3 sm:px-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-md shadow-emerald-600/30 cursor-pointer transition-transform active:scale-95"
+                      title={isTelugu ? 'వాయిస్ సందేశం పంపండి' : 'Send Voice Note'}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>{isTelugu ? 'పంపండి' : 'Send'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 relative flex items-center">
+                    <input
+                      type="text"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      placeholder={
+                        isProviderViewer
+                          ? (isTelugu ? 'రైతుకు సందేశం టైప్ చేయండి...' : 'Type message to Farmer...')
+                          : (isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...')
+                      }
+                      className="w-full py-2.5 pl-4 pr-11 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={toggleSpeechRecognition}
+                      className={`absolute right-2 p-1.5 rounded-full transition-all cursor-pointer ${
+                        isListening
+                          ? 'bg-red-500 text-white animate-pulse shadow-md shadow-red-500/40'
+                          : 'text-slate-400 hover:text-emerald-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                      title={isTelugu ? 'వాయిస్ టైపింగ్ (మైక్రోఫోన్)' : 'Voice typing (Microphone)'}
+                    >
+                      <Mic className={`w-4 h-4 ${isListening ? 'animate-bounce' : ''}`} />
+                    </button>
+                  </div>
+
+                  {inputText.trim() ? (
+                    <button
+                      type="submit"
+                      className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"
+                      title={isTelugu ? "పంపండి" : "Send"}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={startVoiceRecording}
+                      className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 cursor-pointer shrink-0 flex items-center justify-center group"
+                      title={isTelugu ? "వాయిస్ మెసేజ్ రికార్డ్ చేయండి" : "Record voice message"}
+                    >
+                      <Mic className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    </button>
+                  )}
+                </>
+              )}
             </form>
           </footer>
         </div>

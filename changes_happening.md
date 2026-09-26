@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v305) - Real Voice Note Audio Recording (MediaRecorder + Waveform Player) & Confirmed Booking Status Unified Thread Sync
+- **Summary:**
+  1. 🎙️ **Feature 1: Real Voice Note Audio Recording (`GoogleMessageReader.jsx`):**
+     - Replaced text-only dictation with full browser `MediaRecorder` audio recording pipeline supporting audio/webm and audio/mp4 formats.
+     - Interactive recording composer bar: pulsing red live-recording beacon, live elapsed timer (`MM:SS`), animated sound wave visualizer, cancel/trash button (`Trash2`), and immediate send button (`Send`).
+     - Added voice memo button (`Mic` icon) on the right side of the chat composer input when empty, alongside media attachment icons.
+     - Custom audio playback bubble (`VoiceNoteBubble`): circular play/pause button (`Play` / `Pause`), dynamic waveform bars animating during playback, live playback progress timer, audio duration formatting, and regional language indicator.
+     - Voice notes encoded as base64 and synchronized across local storage, `BroadcastChannel('agrishield_equipment_chat')`, and backend chat API.
+     - Removed aggressive `m.type !== 'voice_note'` filters so farmer and provider recorded voice notes are permanently retained in the thread.
+  2. 🚜 **Feature 2: Confirmed Booking Status & Unified Thread Sync (`NotificationsPage.jsx`, `ProviderDashboardPage.jsx`, `GoogleMessageReader.jsx`):**
+     - Resolved root cause where provider marking a booking as "Confirmed & Scheduled" created a separate disconnected notification card instead of updating the farmer's chat screen.
+     - Canonical ID Normalizer: Added comprehensive ID cleanser stripping `notif-`, `notif-stat-`, and `farmer-notif-` prefixes so status notifications, inquiries, and chat messages coalesce into a single unified conversation thread (`booking_thread_BK-XXXXX`).
+     - Real-Time Status Synchronization: Added reactive `agrishield_bookings_updated` event listener and cross-device 2.5s polling loop in `GoogleMessageReader.jsx`. When the provider confirms a booking, the farmer's chat header badge instantly transitions to Emerald "Machinery Booking Confirmed" (`బుకింగ్ ధృవీకరించబడింది`) without refreshing.
+     - Updated `ProviderDashboardPage.jsx` to broadcast `status_updated` via `BroadcastChannel` and dispatch `agrishield_bookings_updated` window events.
+  3. 🧪 **Validation:**
+     - Ran full production build (`npm run build` in `frontend/`): successfully compiled 3,163 modules in 23.66s with **0 errors**.
+- **Files modified:** `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chats_by_user.md`, `chat by user.md`.
+
 ## 2026-09-26 (v304) - Antigravity Anti-Clearing Rules, Vercel Root Build Automation & Service Worker Cache Purge
 - **Summary:**
   1. 🛡️ **Strict Antigravity Zero-Purge Mandate (`.agents/AGENTS.md`, `GEMINI.md`):**
