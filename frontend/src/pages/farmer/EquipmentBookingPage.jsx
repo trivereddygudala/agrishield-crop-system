@@ -118,28 +118,36 @@ export default function EquipmentBookingPage() {
   // 100% Real User Equipment Database with Multi-Store & Fleet LocalStorage sync (Zero Duplicates)
   const loadMergedEquipment = useCallback(() => {
     try {
-      const providerSaved = JSON.parse(localStorage.getItem('agrishield_provider_fleet_inventory') || '[]');
-      const customSaved = JSON.parse(localStorage.getItem('agrishield_custom_equipment_listings') || '[]');
+      const deletedEquipIds = getDeletedEquipmentIds();
+      const isSynced = localStorage.getItem('agrishield_equipment_catalog_synced') === 'true';
+      const rawSaved = localStorage.getItem('agrishield_provider_fleet_inventory');
+      const customRaw = localStorage.getItem('agrishield_custom_equipment_listings');
 
-      // providerSaved takes priority as it represents the provider's latest active status and toggles
-      const allItems = [
-        ...(Array.isArray(providerSaved) ? providerSaved : []),
-        ...(Array.isArray(customSaved) ? customSaved : []),
-        ...CANONICAL_STARTER_FLEET
-      ];
+      if (rawSaved !== null) {
+        const providerSaved = JSON.parse(rawSaved);
+        if (Array.isArray(providerSaved)) {
+          if (providerSaved.length > 0 || isSynced) {
+            return deduplicateEquipment(providerSaved, deletedEquipIds);
+          }
+        }
+      }
 
-      const cleanItems = deduplicateEquipment(allItems);
+      if (customRaw !== null) {
+        const customSaved = JSON.parse(customRaw);
+        if (Array.isArray(customSaved) && (customSaved.length > 0 || isSynced)) {
+          return deduplicateEquipment(customSaved, deletedEquipIds);
+        }
+      }
 
-      // Clean corrupted localStorage entries immediately so duplicates never persist across reloads
-      try {
-        localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanItems));
-        localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanItems));
-      } catch (e) {}
+      // If never synced before, load canonical starter fleet filtered by blacklisted deletions
+      if (!isSynced) {
+        return deduplicateEquipment(CANONICAL_STARTER_FLEET, deletedEquipIds);
+      }
 
-      return cleanItems;
+      return [];
     } catch (e) {
       console.warn('Failed to parse equipment:', e);
-      return CANONICAL_STARTER_FLEET;
+      return [];
     }
   }, []);
 
@@ -319,24 +327,46 @@ export default function EquipmentBookingPage() {
         try {
           res = await API.get('/api/v1/equipment/catalog');
         } catch (_) {}
-        if (!res?.data?.equipment && !res?.data?.catalog) {
+        let serverItems = null;
+        if (res?.data && (Array.isArray(res.data.equipment) || Array.isArray(res.data.catalog))) {
+          serverItems = Array.isArray(res.data.equipment) ? res.data.equipment : res.data.catalog;
+        }
+
+        if (serverItems === null) {
           try {
             res = await API.get('/api/equipment/catalog');
+            if (res?.data && (Array.isArray(res.data.equipment) || Array.isArray(res.data.catalog))) {
+              serverItems = Array.isArray(res.data.equipment) ? res.data.equipment : res.data.catalog;
+            }
           } catch (_) {}
         }
-        if (!res?.data?.equipment && !res?.data?.catalog) {
+
+        if (serverItems === null) {
           try {
             res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
+            if (res?.data && (Array.isArray(res.data.equipment) || Array.isArray(res.data.catalog))) {
+              serverItems = Array.isArray(res.data.equipment) ? res.data.equipment : res.data.catalog;
+            }
           } catch (_) {}
         }
-        const serverItems = res?.data?.equipment || res?.data?.catalog;
-        if (isMounted && Array.isArray(serverItems) && serverItems.length > 0) {
+
+        if (serverItems === null) {
+          try {
+            res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
+            if (res?.data && (Array.isArray(res.data.equipment) || Array.isArray(res.data.catalog))) {
+              serverItems = Array.isArray(res.data.equipment) ? res.data.equipment : res.data.catalog;
+            }
+          } catch (_) {}
+        }
+
+        if (isMounted && Array.isArray(serverItems)) {
           const deletedEquipIds = getDeletedEquipmentIds();
           const cleanCatalog = deduplicateEquipment(serverItems, deletedEquipIds);
           setEquipmentList(cleanCatalog);
           try {
             localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanCatalog));
             localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCatalog));
+            localStorage.setItem('agrishield_equipment_catalog_synced', 'true');
           } catch (_) {}
         }
       } catch (_) {}
@@ -399,39 +429,7 @@ export default function EquipmentBookingPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Derived cascading dropdowns for Location Switcher Modal
-  // Fetch remote equipment catalog from backend for multi-device sync
-  useEffect(() => {
-    const fetchRemoteCatalog = async () => {
-      try {
-        let res;
-        try {
-          res = await API.get('/api/v1/equipment/catalog');
-        } catch (_) {}
-        if (!res?.data?.catalog && !res?.data?.equipment) {
-          try {
-            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
-          } catch (_) {}
-        }
-        if (!res?.data?.catalog && !res?.data?.equipment) {
-          try {
-            res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
-          } catch (_) {}
-        }
-        const catalogItems = res?.data?.catalog || res?.data?.equipment;
-        if (catalogItems && Array.isArray(catalogItems) && catalogItems.length > 0) {
-          setEquipmentList(prev => {
-            const merged = deduplicateEquipment([...prev, ...catalogItems]);
-            try {
-              localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(merged));
-            } catch (_) {}
-            return merged;
-          });
-        }
-      } catch (_) {}
-    };
-    fetchRemoteCatalog();
-  }, []);
+
 
   const availableDistricts = useMemo(() => getDistricts(locationState), [locationState]);
   const availableMandals = useMemo(() => getMandals(locationState, locationDistrict), [locationState, locationDistrict]);

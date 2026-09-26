@@ -220,15 +220,22 @@ export default function ProviderDashboardPage() {
   // ── Fleet Inventory State (Saved to localStorage with Zero Duplicates & Blacklist Protection) ──
   const [fleetList, setFleetList] = useState(() => {
     try {
+      const isSynced = localStorage.getItem('agrishield_equipment_catalog_synced') === 'true';
       const saved = localStorage.getItem('agrishield_provider_fleet_inventory');
       if (saved !== null) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return deduplicateEquipment(parsed, getDeletedEquipmentIds());
+          if (parsed.length > 0 || isSynced) {
+            return deduplicateEquipment(parsed, getDeletedEquipmentIds());
+          }
         }
       }
+      if (!isSynced) {
+        return deduplicateEquipment(CANONICAL_STARTER_FLEET, getDeletedEquipmentIds());
+      }
+      return [];
     } catch (e) {}
-    return deduplicateEquipment(CANONICAL_STARTER_FLEET, getDeletedEquipmentIds());
+    return [];
   });
 
   useEffect(() => {
@@ -246,28 +253,42 @@ export default function ProviderDashboardPage() {
       try {
         const phone = user?.phone;
         const endpoint = phone ? `/api/v1/equipment/catalog?provider_phone=${encodeURIComponent(phone)}` : '/api/v1/equipment/catalog';
-        let res;
+        let res = null;
         try {
           res = await API.get(endpoint);
         } catch (_) {}
-        if (!res?.data?.catalog && !res?.data?.equipment) {
+
+        let catalogItems = null;
+        if (res?.data && (Array.isArray(res.data.catalog) || Array.isArray(res.data.equipment))) {
+          catalogItems = Array.isArray(res.data.catalog) ? res.data.catalog : res.data.equipment;
+        }
+
+        if (catalogItems === null) {
           try {
             res = await axios.get(`https://agrishield-ai-worker-1.onrender.com${endpoint}`, { timeout: 10000 });
+            if (res?.data && (Array.isArray(res.data.catalog) || Array.isArray(res.data.equipment))) {
+              catalogItems = Array.isArray(res.data.catalog) ? res.data.catalog : res.data.equipment;
+            }
           } catch (_) {}
         }
-        if (!res?.data?.catalog && !res?.data?.equipment) {
+
+        if (catalogItems === null) {
           try {
             res = await axios.get(`https://agrishield-ai-worker-2.onrender.com${endpoint}`, { timeout: 10000 });
+            if (res?.data && (Array.isArray(res.data.catalog) || Array.isArray(res.data.equipment))) {
+              catalogItems = Array.isArray(res.data.catalog) ? res.data.catalog : res.data.equipment;
+            }
           } catch (_) {}
         }
-        const catalogItems = res?.data?.catalog || res?.data?.equipment;
-        if (catalogItems && Array.isArray(catalogItems) && catalogItems.length > 0) {
+
+        if (Array.isArray(catalogItems)) {
           const deletedEquipIds = getDeletedEquipmentIds();
           const cleanCatalog = deduplicateEquipment(catalogItems, deletedEquipIds);
           setFleetList(cleanCatalog);
           try {
             localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanCatalog));
             localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCatalog));
+            localStorage.setItem('agrishield_equipment_catalog_synced', 'true');
           } catch (_) {}
         }
       } catch (_) {}

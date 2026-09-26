@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v298) - Universal Equipment Catalog Synchronization & Zero-Resurrection Authoritative State Fix
+- **Summary:**
+  1. 🛠️ **Authoritative Remote Equipment Catalog Enforcement (`EquipmentBookingPage.jsx`):**
+     - Resolved the critical cross-device issue where the equipment booking page was resurrecting 5 starter fleet items upon reload even when the remote server catalog had 0 items.
+     - Updated `loadMergedEquipment` to check `isSynced` flag (`agrishield_equipment_catalog_synced`). If the catalog was previously synced or saved items are empty, it respects the empty state `[]` instead of blindly appending `CANONICAL_STARTER_FLEET`.
+     - Replaced strict `serverItems.length > 0` condition with proper array detection `Array.isArray(serverItems)` in `fetchRemoteCatalog`, allowing valid empty catalogs `[]` to clear the local inventory and mark `agrishield_equipment_catalog_synced = 'true'`.
+     - Removed redundant duplicate `fetchRemoteCatalog` effect that was re-merging previous state on every mount.
+  2. 🚜 **Provider Fleet Synchronization Parity (`ProviderDashboardPage.jsx`):**
+     - Updated `fleetList` initial state in `ProviderDashboardPage.jsx` to respect the `isSynced` flag and empty inventory states.
+     - Updated `fetchRemoteFleet` to handle empty server catalogs `[]` without discarding the response, ensuring true cross-device synchronization between providers and farmers.
+  3. 🧪 **Validation:**
+     - Compiled production bundle with `npm run build`: 3,163 modules transformed and built cleanly with **0 errors** in 40.59s.
+     - Verified with `git status`: only `EquipmentBookingPage.jsx`, `ProviderDashboardPage.jsx`, and `changes_happening.md` modified.
+- **Files modified:** `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v297) - Master Cross-Device Multi-Phone Real-Time Deletion Synchronization & Tombstone Architecture
 - **Summary:**
   1. 🌐 **Master Deletion Tombstone Backend Service (`sync_service.py`, `backend/app/routers/common/sync.py`):**
