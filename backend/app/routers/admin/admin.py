@@ -285,7 +285,8 @@ async def broadcast_system_notification(
     elif audience == "providers":
         query = {"role": "equipment_provider"}
     else:
-        query = {}  # all users
+        # Exclude admin accounts from "all" broadcasts — admins access broadcasts via admin panel
+        query = {"role": {"$ne": "admin"}}
 
     users_cursor = db.users.find(query, {"_id": 1})
     users_list = await users_cursor.to_list(length=None)

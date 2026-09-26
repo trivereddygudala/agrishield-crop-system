@@ -215,18 +215,32 @@ async def create_booking(booking_data: Dict[str, Any] = Body(...)):
                     "$or": [
                         {"phone": clean_p},
                         {"mobile": clean_p},
-                        {"phone": {"$regex": clean_p[-10:]}},
-                        {"role": "equipment_provider"}
+                        {"phone": {"$regex": clean_p[-10:]}}
                     ]
                 })
-            target_uid = str(prov_user["_id"]) if prov_user else "provider_hub"
+            if not prov_user:
+                prov_name = booking_data.get("providerName") or booking_data.get("provider_name") or booking_data.get("owner") or ""
+                if prov_name:
+                    import re as _re
+                    prov_user = await db_instance.db["users"].find_one({
+                        "name": {"$regex": f"^{_re.escape(prov_name.strip())}$", "$options": "i"},
+                        "role": "equipment_provider"
+                    })
+            if not prov_user:
+                prov_email = booking_data.get("providerEmail") or booking_data.get("provider_email") or ""
+                if prov_email:
+                    prov_user = await db_instance.db["users"].find_one({"email": prov_email.lower().strip()})
+            if not prov_user:
+                prov_user = await db_instance.db["users"].find_one({"role": "equipment_provider"})
+
+            target_uid = str(prov_user["_id"]) if prov_user else (booking_data.get("providerId") or "provider_hub")
             await NotificationService.create_notification(
                 db_instance.db,
                 NotificationCreate(
                     user_id=target_uid,
                     title=f"🚜 New Machinery Booking Request: #{booking_id}",
                     message=f"Farmer {booking_data.get('farmerName', 'Farmer')} booked {booking_data.get('equipmentName', 'Machinery')} ({booking_data.get('acres', '1')} acres) for {booking_data.get('date', 'Today')}.",
-                    category="equipment_booking",
+                    category="booking",
                     priority="High",
                     booking_id=booking_id,
                     action_url="/provider/dashboard?tab=orders"
@@ -304,18 +318,32 @@ async def create_bookings_batch(bookings_data: List[Dict[str, Any]] = Body(...))
                     "$or": [
                         {"phone": clean_p},
                         {"mobile": clean_p},
-                        {"phone": {"$regex": clean_p[-10:]}},
-                        {"role": "equipment_provider"}
+                        {"phone": {"$regex": clean_p[-10:]}}
                     ]
                 })
-            target_uid = str(prov_user["_id"]) if prov_user else "provider_hub"
+            if not prov_user:
+                prov_name = first_b.get("providerName") or first_b.get("provider_name") or first_b.get("owner") or ""
+                if prov_name:
+                    import re as _re
+                    prov_user = await db_instance.db["users"].find_one({
+                        "name": {"$regex": f"^{_re.escape(prov_name.strip())}$", "$options": "i"},
+                        "role": "equipment_provider"
+                    })
+            if not prov_user:
+                prov_email = first_b.get("providerEmail") or first_b.get("provider_email") or ""
+                if prov_email:
+                    prov_user = await db_instance.db["users"].find_one({"email": prov_email.lower().strip()})
+            if not prov_user:
+                prov_user = await db_instance.db["users"].find_one({"role": "equipment_provider"})
+
+            target_uid = str(prov_user["_id"]) if prov_user else (first_b.get("providerId") or "provider_hub")
             await NotificationService.create_notification(
                 db_instance.db,
                 NotificationCreate(
                     user_id=target_uid,
                     title=f"🚜 {len(processed_bookings)} New Machinery Bookings Received!",
                     message=f"Farmer {first_b.get('farmerName', 'Farmer')} submitted a high-volume booking batch of {len(processed_bookings)} equipment reservations.",
-                    category="equipment_booking",
+                    category="booking",
                     priority="High",
                     action_url="/provider/dashboard?tab=orders"
                 )
@@ -402,6 +430,7 @@ async def update_booking_status(
         try:
             from backend.app.services.notification_service import NotificationService
             from backend.app.models.notification import NotificationCreate
+            # Resolve farmer user: try phone → name → email → userId stored in booking
             f_phone = updated_booking.get("farmerPhone") or updated_booking.get("phone") or ""
             clean_f = "".join(filter(str.isdigit, str(f_phone)))
             farmer_user = None
@@ -409,21 +438,39 @@ async def update_booking_status(
                 farmer_user = await db_instance.db["users"].find_one({
                     "$or": [{"phone": clean_f}, {"mobile": clean_f}, {"phone": {"$regex": clean_f[-10:]}}]
                 })
-            target_uid = str(farmer_user["_id"]) if farmer_user else (updated_booking.get("userId") or "farmer_user")
-            status_emoji = "✅" if new_status == "confirmed" else ("❌" if new_status in ["rejected", "cancelled"] else "🚜")
-            status_label = "Confirmed" if new_status == "confirmed" else ("Cancelled" if new_status == "cancelled" else ("Declined" if new_status == "rejected" else new_status.title()))
-            await NotificationService.create_notification(
-                db_instance.db,
-                NotificationCreate(
-                    user_id=target_uid,
-                    title=f"{status_emoji} Machinery Booking #{booking_id} {status_label}",
-                    message=f"Reservation for {updated_booking.get('equipmentName', updated_booking.get('title', 'Machinery'))} is now {status_label.lower()}.",
-                    category="equipment_booking",
-                    priority="High",
-                    booking_id=booking_id,
-                    action_url="/equipment-booking"
+            if not farmer_user:
+                # Fallback: look up by farmerName stored in booking
+                farmer_name = updated_booking.get("farmerName") or updated_booking.get("farmer_name") or ""
+                if farmer_name:
+                    import re as _re
+                    farmer_user = await db_instance.db["users"].find_one(
+                        {"name": {"$regex": f"^{_re.escape(farmer_name.strip())}$", "$options": "i"}}
+                    )
+            if not farmer_user:
+                # Fallback: look up by farmerEmail
+                farmer_email = updated_booking.get("farmerEmail") or updated_booking.get("farmer_email") or ""
+                if farmer_email:
+                    farmer_user = await db_instance.db["users"].find_one({"email": farmer_email.lower().strip()})
+            # Final fallback: use userId stored in booking document
+            booking_user_id = updated_booking.get("userId") or updated_booking.get("user_id") or ""
+            target_uid = str(farmer_user["_id"]) if farmer_user else booking_user_id
+            if not target_uid:
+                print(f"⚠️ [EquipmentBookings] Cannot resolve farmer for booking {booking_id} — skipping notification")
+            else:
+                status_emoji = "✅" if new_status == "confirmed" else ("❌" if new_status in ["rejected", "cancelled"] else "🚜")
+                status_label = "Confirmed" if new_status == "confirmed" else ("Cancelled" if new_status == "cancelled" else ("Declined" if new_status == "rejected" else new_status.title()))
+                await NotificationService.create_notification(
+                    db_instance.db,
+                    NotificationCreate(
+                        user_id=target_uid,
+                        title=f"{status_emoji} Machinery Booking #{booking_id} {status_label}",
+                        message=f"Reservation for {updated_booking.get('equipmentName', updated_booking.get('title', 'Machinery'))} is now {status_label.lower()}.",
+                        category="booking",
+                        priority="High",
+                        booking_id=booking_id,
+                        action_url="/equipment-booking"
+                    )
                 )
-            )
         except Exception as n_err:
             print(f"⚠️ [EquipmentBookings] Notification dispatch notice: {n_err}")
 
@@ -600,9 +647,15 @@ async def register_equipment_item(equipment_data: Dict[str, Any] = Body(...)):
     _in_memory_catalog = updated_list
     _save_disk_catalog()
 
+    # Detect if this is a NEW listing (not an edit): createdAt was NOT in original payload
+    is_new_listing = not equipment_data.get("_was_existing", False) and equipment_data.get("createdAt") == equipment_data.get("updatedAt")
+
     # Save to MongoDB
     if db_instance.db is not None:
         try:
+            # Check if it already existed before this upsert (to avoid duplicate admin notifications on edits)
+            existing_check = await db_instance.db["equipment_catalog"].find_one({"id": eq_id}, {"_id": 1, "createdAt": 1})
+            is_new_listing = existing_check is None  # truly new only if no prior record
             await db_instance.db["equipment_catalog"].update_one(
                 {"id": eq_id},
                 {"$set": equipment_data},
@@ -610,6 +663,45 @@ async def register_equipment_item(equipment_data: Dict[str, Any] = Body(...)):
             )
         except Exception as e:
             print(f"⚠️ [EquipmentCatalog] Mongo catalog update notice: {e}")
+            # ISSUE-08 fix: if DB verification failed we cannot confirm this is a new listing.
+            # Fail safe: treat as existing/edit so no false admin notification is sent.
+            is_new_listing = False
+
+        # Notify all admin users about the new machinery listing (new listings only, not edits)
+        if is_new_listing:
+            try:
+                from backend.app.services.notification_service import NotificationService
+                from backend.app.models.notification import NotificationCreate
+                # Try role=admin first, then email fallback
+                admin_cursor = db_instance.db["users"].find({"role": "admin"}, {"_id": 1})
+                admin_users = await admin_cursor.to_list(length=None)
+                if not admin_users:
+                    email_cursor = db_instance.db["users"].find(
+                        {"email": {"$regex": "admin", "$options": "i"}}, {"_id": 1}
+                    )
+                    admin_users = await email_cursor.to_list(length=None)
+                if not admin_users:
+                    print(f"⚠️ [EquipmentCatalog] No admin users found for notification dispatch — listing {eq_id}")
+                eq_name = equipment_data.get("name") or equipment_data.get("title") or "Machinery"
+                eq_type = equipment_data.get("type") or equipment_data.get("category") or "Equipment"
+                provider_name = equipment_data.get("providerName") or equipment_data.get("owner") or "Equipment Provider"
+                for admin_u in admin_users:
+                    notif_result = await NotificationService.create_notification(
+                        db_instance.db,
+                        NotificationCreate(
+                            user_id=str(admin_u["_id"]),
+                            title=f"🚜 New Machinery Listed: {eq_name}",
+                            message=f"{provider_name} listed a new {eq_type} ({eq_name}) available for rental. ID: {eq_id}.",
+                            category="machinery_listing",
+                            priority="Medium",
+                            action_url="/admin/dashboard?tab=fleet"
+                        )
+                    )
+                    print(f"✅ [EquipmentCatalog] Admin notif dispatched to {admin_u['_id']}: {notif_result.get('notification_id', 'no-id')}")
+            except Exception as notif_err:
+                print(f"⚠️ [EquipmentCatalog] Admin notification dispatch error: {notif_err}")
+    else:
+        print("⚠️ [EquipmentCatalog] MongoDB not connected — skipping admin notification for new listing")
 
     return {
         "success": True,

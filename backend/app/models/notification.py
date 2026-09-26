@@ -123,7 +123,7 @@ class NotificationHistoryResponse(BaseModel):
     pages: int
 
 class NotificationAcknowledge(BaseModel):
-    acknowledged_action: str = Field(default="Acknowledged by farmer")
+    acknowledged_action: str = Field(default="Acknowledged")
 
 class FCMTokenRegister(BaseModel):
     token: str

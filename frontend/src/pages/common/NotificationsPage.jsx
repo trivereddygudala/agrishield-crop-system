@@ -522,9 +522,16 @@ export default function NotificationsPage() {
                     });
                   }
 
-                  // Field addition notice
+                  // Field addition notice — ONLY if farmer has real farm profile data (ISSUE-06 fix)
+                  const hasFarmData = u.farm_profile_completed === true || u.farm_profile_completed === 'true' ||
+                    (u.crop_type && u.crop_type !== '') ||
+                    (u.farm_location && (u.farm_location.village || typeof u.farm_location === 'string'));
                   const fieldKey = `admin-field-${u.id}`;
-                  if (!deletedNotifIds.has(fieldKey) && !localNotifs.some(n => n.id === fieldKey || n.notification_id === fieldKey)) {
+                  if (hasFarmData && !deletedNotifIds.has(fieldKey) && !localNotifs.some(n => n.id === fieldKey || n.notification_id === fieldKey)) {
+                    const cropInfo = u.crop_type ? `Crop: ${u.crop_type}` : 'Crop: Not specified';
+                    const soilInfo = u.soil_type ? `Soil: ${u.soil_type}` : 'Soil: Not specified';
+                    const iotStatus = u.iot_devices_count > 0 ? 'IoT: Synced' : 'IoT: Not connected';
+                    const locationLabel = u.farm_location?.village || (typeof u.farm_location === 'string' ? u.farm_location : null) || 'Location not set';
                     localNotifs.push({
                       id: fieldKey,
                       notification_id: fieldKey,
@@ -532,10 +539,10 @@ export default function NotificationsPage() {
                       type: 'farm_field',
                       priority: 'Normal',
                       farmerName: u.name || 'Farmer',
-                      title: isTe ? `🌱 కొత్త పొలం జోడించబడింది: ${u.name || 'రైతు'} పొలం (2.5 ఎకరాలు)` : `🌱 New Farm Field Added: ${u.name || 'Farmer'}'s Field (2.5 Acres)`,
+                      title: isTe ? `🌱 కొత్త పొలం జోడించబడింది: ${u.name || 'రైతు'} పొలం` : `🌱 New Farm Field Added: ${u.name || 'Farmer'}'s Field`,
                       message: isTe
-                        ? `రైతు: ${u.name || 'రైతు'} • పంట: వరి / పత్తి • నేల: నల్ల రేగడి నేల • ప్రాంతం: ${u.farm_location?.village || 'గుంటూరు'} • స్థితి: IoT సింక్ చేయబడింది`
-                        : `Farmer: ${u.name || 'Farmer'} • Crop: Paddy / Rice • Soil: Black Alluvial • Location: ${u.farm_location?.village || 'Guntur'} • Telemetry: IoT Synced`,
+                        ? `రైతు: ${u.name || 'రైతు'} • ప్రాంతం: ${locationLabel} • ప్రొఫైల్: పూర్తయింది`
+                        : `Farmer: ${u.name || 'Farmer'} • ${cropInfo} • ${soilInfo} • Location: ${locationLabel} • ${iotStatus}`,
                       created_at: u.created_at || u.createdAt || new Date().toISOString(),
                       timestamp: u.created_at || u.createdAt || new Date().toISOString(),
                       read: readIds.has(fieldKey)
@@ -944,7 +951,7 @@ export default function NotificationsPage() {
   const handleReadAll = async () => {
     try {
       await API.post('/api/v1/notifications/read-all').catch(() => {});
-      await API.post('/api/notifications/read-all').catch(() => {});
+      // Note: /api/notifications/read-all is an alias of the above — removed duplicate call (ISSUE-13)
 
       const readIds = getReadIds();
       notifications.forEach(n => {
@@ -1089,9 +1096,18 @@ export default function NotificationsPage() {
       }
 
       if (category === 'provider') return isBooking;
-      if (category === 'crop_alerts') return cat === 'disease' || (!isBooking && cat !== 'weather');
+      // ISSUE-04 FIX: crop_alerts is now an explicit whitelist, not a catch-all
+      if (category === 'crop_alerts') return ['disease', 'soil', 'recommendation', 'crop'].includes(cat);
       if (category === 'weather') return cat === 'weather';
-      if (category === 'support') return cat === 'system' || cat === 'battery' || cat === 'device' || cat === 'recommendation';
+      // Phase 13: Device & Battery filter for farmers
+      if (category === 'device_battery') return cat === 'device' || cat === 'battery';
+      // Broadcasts filter (farmer announcements & provider announcements)
+      if (category === 'broadcasts') return cat === 'broadcast';
+      // ISSUE-07 FIX: Provider support filter uses only system/message/chat (not farmer IoT categories)
+      if (category === 'support') {
+        if (isEquipmentProvider) return cat === 'system' || cat === 'message' || cat === 'chat';
+        return cat === 'system' || cat === 'battery' || cat === 'device' || cat === 'recommendation';
+      }
 
       return cat === category.toLowerCase();
     });
@@ -1111,20 +1127,24 @@ export default function NotificationsPage() {
       ];
     }
     if (isEquipmentProvider) {
+      // Phase 14: Provider filter structure — only relevant categories (ISSUE-07)
       return [
         { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
         { id: 'unread', label: isTe ? `చదవనివి (${unreadCount})` : `Unread (${unreadCount})`, isUnreadPill: true },
         { id: 'provider', label: isTe ? '🚜 బుకింగ్‌లు & ఆర్డర్‌లు' : '🚜 Bookings & Orders' },
-        { id: 'support', label: isTe ? '🛡️ సహాయం & సిస్టమ్' : '🛡️ Support' }
+        { id: 'broadcasts', label: isTe ? '📢 ప్రకటనలు' : '📢 Announcements' },
+        { id: 'support', label: isTe ? '🛡️ సిస్టమ్' : '🛡️ System' }
       ];
     }
+    // Phase 13: Farmer filter structure — explicit categories (ISSUE-04)
     return [
       { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
       { id: 'unread', label: isTe ? `చదవనివి (${unreadCount})` : `Unread (${unreadCount})`, isUnreadPill: true },
-      { id: 'provider', label: isTe ? '🚜 యంత్రాలు & ప్రొవైడర్లు' : '🚜 Providers & Orders' },
       { id: 'crop_alerts', label: isTe ? '🌿 పంట హెచ్చరికలు' : '🌿 Crop Alerts' },
       { id: 'weather', label: isTe ? '🌦️ వాతావరణం' : '🌦️ Weather' },
-      { id: 'support', label: isTe ? '🛡️ సహాయం & సిస్టమ్' : '🛡️ Support' }
+      { id: 'provider', label: isTe ? '🚜 యంత్రాలు & బుకింగ్‌లు' : '🚜 Machinery Bookings' },
+      { id: 'device_battery', label: isTe ? '📡 పరికరాలు & బ్యాటరీ' : '📡 Device & Battery' },
+      { id: 'broadcasts', label: isTe ? '📢 ప్రకటనలు' : '📢 Announcements' }
     ];
   }, [isTe, unreadCount, isEquipmentProvider, isAdmin]);
 

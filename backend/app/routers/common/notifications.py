@@ -89,8 +89,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
     if not payload:
         await websocket.close(code=4001, reason="Invalid or expired authentication token")
         return
-    token_user_id = str(payload.get("sub", ""))
-    if token_user_id and token_user_id != user_id:
+    token_user_id = str(payload.get("sub") or "").strip()
+    if not token_user_id:
+        await websocket.close(code=4001, reason="Token missing or invalid subject claim")
+        return
+    if token_user_id != user_id:
         await websocket.close(code=4003, reason="Token subject mismatch")
         return
 
@@ -146,11 +149,12 @@ async def get_unread_notifications(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Fetch recent unread alerts list."""
+    """Fetch recent unread alerts list with role-based filtering."""
     return await NotificationService.get_unread_notifications(
         db, 
         user_id=str(current_user["id"]), 
-        limit=limit
+        limit=limit,
+        role=current_user.get("role")
     )
 
 # --- Notification Updates (Read / Acknowledge / Delete) ---
@@ -238,8 +242,8 @@ async def get_unread_count(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Return actual unread notifications count."""
-    count = await NotificationService.get_unread_count(db, user_id=str(current_user["id"]))
+    """Return actual unread notifications count filtered by role."""
+    count = await NotificationService.get_unread_count(db, user_id=str(current_user["id"]), role=current_user.get("role"))
     return {"unread_count": count}
 
 # --- Settings / Preferences ---
@@ -359,26 +363,4 @@ async def trigger_test_alert(
             template_context=telemetry_mock
         )
     return {"status": "success", "message": "Test notification dispatched", "notification": doc}
-
-@router.get("/api/test-trigger-all")
-async def test_trigger_all():
-    """Unauthenticated trigger to broadcast a test notification to ALL active websocket users."""
-    if not ws_manager.active_connections:
-        return {"status": "error", "message": "No active websocket connections"}
-    
-    count = 0
-    for uid in list(ws_manager.active_connections.keys()):
-        count += 1
-        await ws_manager.broadcast_to_user(uid, {
-            "type": "new_notification",
-            "unread_count": 99,
-            "notification": {
-                "title": "System Test Alert",
-                "message": "This is a live test of the real-time notification popup system.",
-                "category": "system",
-                "priority": "High",
-                "action_url": "/dashboard"
-            }
-        })
-    return {"status": "success", "message": f"Broadcasted to {count} users"}
 

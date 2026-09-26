@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v314) - Enterprise Notification System Hardening: Multi-Strategy Role-Aware Dispatch, Operational Category Whitelisting, and End-to-End Delivery Resilience
+- **Summary:**
+  1. 🛡️ **Insecure Debug Endpoint Removal & WebSocket Auth Hardening (`notifications.py`):**
+     - Completely removed unauthenticated debug route `GET /api/test-trigger-all` that could broadcast test alerts to all active WebSocket connections.
+     - Split WebSocket JWT verification into two distinct, strict guards (`if not token_user_id` → 4001, `if token_user_id != user_id` → 4003) eliminating Python empty string truthiness bypass.
+  2. 👥 **Role-Aware Filtering & WebSocket Over-Count Elimination (`notification_service.py`, `notifications.py`):**
+     - Added `role` parameter to `get_unread_notifications()` and `get_unread_count()` applying the equipment provider category whitelist (`["booking", "equipment", "fleet", "system", "provider", "message", "chat"]`).
+     - Derived recipient role from user profile in `NotificationService.create_notification` WebSocket push, eliminating transient badge inflation for equipment providers.
+  3. 🌾 **Farmer & Provider Filter Separation & Deduplication (`NotificationsPage.jsx`):**
+     - Replaced farmer `crop_alerts` catch-all filter with explicit whitelist: `['disease', 'soil', 'recommendation', 'crop']`.
+     - Created dedicated `📡 Device & Battery` and `📢 Announcements` filter pills for farmers.
+     - Normalized provider `support` filter to `['system', 'message', 'chat']`, stripping irrelevant farmer IoT and battery alerts.
+     - Conditioned `farm_field` card synthesis strictly on authentic farm profile data (`crop_type`, `soil_type`, `farm_location`), preventing phantom farm field alerts.
+     - Removed redundant duplicate REST call in `handleReadAll`.
+  4. 🚜 **Multi-Strategy Booking & Equipment Notification Resolution (`equipment.py`):**
+     - Hardened farmer notification dispatch on booking status changes: resolved farmer via clean phone number, farmer name regex, farmer email, and stored `userId`, eliminating orphan notifications to literal string `"farmer_user"`.
+     - Hardened provider notification dispatch on booking creation: resolved provider via clean phone, provider name regex, provider email, or active `equipment_provider` role.
+     - Unified booking categories across single and batch booking endpoints to `"booking"` matching provider whitelist.
+     - Added server-side admin notification dispatch for genuinely new equipment listings (`is_new_listing`) with database verification preventing false notifications on edits.
+  5. 🆘 **Helpdesk Support Ticket Admin Notifications (`support.py`):**
+     - Added automatic notification creation for all administrators upon support ticket submission with `db_instance.db` fallback and email regex fallback.
+  6. ⚙️ **Notification Service Category Gate Normalization (`notification_service.py`):**
+     - Added operational categories (`booking`, `support`, `machinery_listing`, `equipment`, `chat`, `message`, `fleet`) to the preference gate bypass list alongside `system`, preventing critical transaction alerts from being suppressed by default IoT preference toggles.
+  7. 🧹 **Model Cleanup (`notification.py`):**
+     - Neutralized `NotificationAcknowledge` action default from `"Acknowledged by farmer"` to `"Acknowledged"`.
+     - Removed legacy `target_user_id` query clauses from `mark_all_read`.
+- **Files modified:** `backend/app/models/notification.py`, `backend/app/routers/admin/admin.py`, `backend/app/routers/common/notifications.py`, `backend/app/routers/common/support.py`, `backend/app/routers/provider/equipment.py`, `backend/app/services/notification_service.py`, `frontend/src/pages/common/NotificationsPage.jsx`, `changes_happening.md`.
+
 ## 2026-09-26 (v313) - Admin Portal Upgrades: Isolated Notifications & Rich Onboarding Cards, Dual Helpdesk Routing, Targeted Broadcast Hub with In-Place History, Sleek Module Navigation, Admin Copilot Specialization & Universal Voice Deduplication Engine
 - **Summary:**
   1. 🎙️ **Universal Speech-to-Text Deduplication Engine Across All Portals (`speechSanitizer.js`, `AIAssistantPage.jsx`, `GoogleMessageReader.jsx`, `FloatingAIAssistant.jsx`, `VoiceCropDoctorModal.jsx`):**
@@ -6154,3 +6182,60 @@ Completed full system audit across frontend AdminPage.jsx, NotificationsPage.jsx
 - **M1 (Helpdesk Provider Filter):** Added supportUserTypeFilter state and "Submitted By" filter row in Helpdesk tab with 🌐 All / 🌾 Farmers / 🚜 Equipment Providers buttons + Clear action.
 - **M2 (Admin AI Chatbot):** Created AdminAIChatbot.jsx — session-only floating chatbot with violet/indigo gradient branding, quick prompts, typing indicator, copy-to-clipboard, expand/minimize, and secure badge. Mounted in AdminPage.jsx.
 - **M3 (Notification Chips):** Already correctly implemented. No change needed.
+
+---
+[2026-09-26 21:50] NOTIFICATION SYSTEM FIXES (All 13 Issues + Phase 12-14)
+
+Phase 2 - Security:
+- ISSUE-01 FIXED: Removed unauthenticated GET /api/test-trigger-all endpoint
+- ISSUE-02 FIXED: WebSocket JWT sub empty-string bypass fixed with explicit null check
+
+Phase 3 - Role Filtering:
+- ISSUE-03 FIXED: get_unread_count and get_unread_notifications now accept role param and apply equipment_provider whitelist
+- ISSUE-11 FIXED: Removed dead target_user_id query from mark_all_read
+- ISSUE-12 FIXED: NotificationAcknowledge default changed from farmer-specific to neutral Acknowledged
+
+Phase 5:
+- ISSUE-05 FIXED: Admin broadcast audience=all now excludes role=admin via  query
+
+Phase 6:
+- ISSUE-09 FIXED: Booking notification category changed from equipment_booking to booking in equipment.py
+
+Phase 8:
+- ISSUE-08 FIXED: New machinery listing creates server notification for all admin users
+
+Phase 10:
+- ISSUE-10 FIXED: Support ticket submission triggers admin notification with category=support
+
+Frontend Fixes (NotificationsPage.jsx):
+- ISSUE-04 FIXED: Farmer crop_alerts filter now explicit whitelist [disease,soil,recommendation,crop]
+- ISSUE-06 FIXED: admin farm_field notification only generated for farmers with real farm data
+- ISSUE-07 FIXED: Provider Support filter now uses system/message/chat only
+- ISSUE-13 FIXED: Removed duplicate /api/notifications/read-all call in handleReadAll
+- Phase 12: Admin filters unchanged (already correct)
+- Phase 13: Farmer filters updated with Device & Battery + Announcements pills
+- Phase 14: Provider filters updated with Announcements + System pills
+
+Files Modified:
+1. backend/app/routers/common/notifications.py
+2. backend/app/services/notification_service.py
+3. backend/app/models/notification.py
+4. backend/app/routers/admin/admin.py
+5. backend/app/routers/provider/equipment.py
+6. backend/app/routers/common/support.py
+7. frontend/src/pages/common/NotificationsPage.jsx
+
+
+---
+
+## 2026-09-26 — ISSUE-03 + ISSUE-08 Targeted Fixes
+
+### ISSUE-03: WebSocket unread_count role-filtering gap
+**File:** backend/app/services/notification_service.py (line 186-191)
+**Change:** In create_notification() WS push block, derive recipient_role from already-fetched user_doc (no extra DB query). Pass role=recipient_role to get_unread_count() so WS-pushed unread_count is role-filtered identically to REST /count endpoint.
+**Impact:** Equipment Provider WS badge no longer transiently overcounts non-whitelisted categories. Admin and Farmer unaffected (whitelist only activates for role=equipment_provider).
+
+### ISSUE-08: Equipment edit race condition — false admin notification
+**File:** backend/app/routers/provider/equipment.py (lines 619-621)
+**Change:** Added is_new_listing = False inside the except block after MongoDB find_one/update_one failure. DB errors now fail-safe: treat as existing listing (edit), never send a false machinery_listing admin notification.
+**Impact:** Successful new-listing path unchanged. Successful edit path unchanged. Only DB-exception path now safely suppresses notification.

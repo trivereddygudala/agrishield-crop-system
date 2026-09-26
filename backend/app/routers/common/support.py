@@ -131,6 +131,42 @@ async def create_support_ticket(
     result = await db.support_tickets.insert_one(ticket_doc)
     ticket_doc["_id"] = result.inserted_id
 
+    # Notify all admin users about the new support ticket
+    try:
+        from backend.app.services.notification_service import NotificationService
+        from backend.app.models.notification import NotificationCreate
+        from backend.app.db.mongodb import db_instance
+        submitter_role = current_user.get("role", "farmer")
+        role_label = "Equipment Provider" if submitter_role == "equipment_provider" else "Farmer"
+        # Use db_instance.db as the primary (avoids Vercel Depends stale connection race)
+        active_db = db_instance.db if db_instance.db is not None else db
+        # Find all admin users: try role field first, then email pattern fallback
+        admin_cursor = active_db.users.find({"role": "admin"}, {"_id": 1})
+        admin_users = await admin_cursor.to_list(length=None)
+        if not admin_users:
+            # Fallback: find by email pattern (admin@agrishield.com pattern)
+            email_cursor = active_db.users.find(
+                {"email": {"$regex": "admin", "$options": "i"}}, {"_id": 1}
+            )
+            admin_users = await email_cursor.to_list(length=None)
+        if not admin_users:
+            print(f"⚠️ [SupportTickets] No admin users found in DB for notification dispatch — ticket #{ticket_num}")
+        for admin_u in admin_users:
+            notif_result = await NotificationService.create_notification(
+                active_db,
+                NotificationCreate(
+                    user_id=str(admin_u["_id"]),
+                    title=f"🆘 New Helpdesk Ticket #{ticket_num}",
+                    message=f"{role_label} {name} submitted a support request: \"{payload.subject.strip()[:80]}\". Priority: {payload.priority.title()}.",
+                    category="support",
+                    priority="High" if payload.priority in ["urgent", "high"] else "Medium",
+                    action_url="/admin/dashboard?tab=support"
+                )
+            )
+            print(f"✅ [SupportTickets] Admin notif dispatched to {admin_u['_id']}: {notif_result.get('notification_id', 'no-id')}")
+    except Exception as notif_err:
+        print(f"⚠️ [SupportTickets] Admin notification dispatch error: {notif_err}")
+
     return {
         "success": True,
         "message": f"Support ticket #{ticket_num} registered! Our agro-technical team will review it shortly.",

@@ -74,7 +74,7 @@ class NotificationService:
 
         # Check category toggle (System broadcasts bypass this)
         cat_lower = str(category or "").lower()
-        if cat_lower != "system":
+        if cat_lower not in ["system", "booking", "support", "machinery_listing", "equipment", "chat", "message", "fleet"]:
             cat_map = {
                 "soil": "soil_alerts",
                 "weather": "weather_alerts",
@@ -183,8 +183,12 @@ class NotificationService:
         # 5. Live WebSocket Push
         if active_websocket_manager:
             try:
-                # Broadcast live count and socket payload
-                count = await NotificationService.get_unread_count(db, user_id)
+                # Derive recipient role from already-fetched user_doc for role-aware unread count (ISSUE-03)
+                # user_doc was fetched above for preferred_lang — no extra DB query needed.
+                # get_unread_count applies provider whitelist only when role=="equipment_provider";
+                # admin and farmer pass through unchanged.
+                recipient_role = user_doc.get("role") if user_doc else None
+                count = await NotificationService.get_unread_count(db, user_id, role=recipient_role)
                 await active_websocket_manager.broadcast_to_user(user_id, {
                     "type": "new_notification",
                     "unread_count": count,
@@ -248,9 +252,12 @@ class NotificationService:
         return records, total
 
     @staticmethod
-    async def get_unread_notifications(db, user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """Fetch unread alerts list."""
-        cursor = db.notifications.find({"user_id": user_id, "read": False}).sort("lifecycle.created_at", -1).limit(limit)
+    async def get_unread_notifications(db, user_id: str, limit: int = 10, role: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Fetch unread alerts list with role-based category filtering (mirrors get_notifications filter)."""
+        query: Dict[str, Any] = {"user_id": user_id, "read": False}
+        if role == "equipment_provider":
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat"]}
+        cursor = db.notifications.find(query).sort("lifecycle.created_at", -1).limit(limit)
         records = await cursor.to_list(length=limit)
         for r in records:
             r["notification_id"] = str(r["_id"])
@@ -317,10 +324,9 @@ class NotificationService:
     async def mark_all_read(db, user_id: str) -> int:
         """Mark all notifications of the user as read."""
         now_utc = datetime.now(timezone.utc)
-        uid_query = [{"user_id": user_id}, {"target_user_id": user_id}]
+        uid_query = [{"user_id": user_id}]
         if ObjectId.is_valid(user_id):
             uid_query.append({"user_id": ObjectId(user_id)})
-            uid_query.append({"target_user_id": ObjectId(user_id)})
         result = await db.notifications.update_many(
             {"$or": uid_query, "read": False},
             {
@@ -411,9 +417,12 @@ class NotificationService:
         return result.deleted_count
 
     @staticmethod
-    async def get_unread_count(db, user_id: str) -> int:
-        """Return count of unread notifications."""
-        return await db.notifications.count_documents({"user_id": user_id, "read": False})
+    async def get_unread_count(db, user_id: str, role: Optional[str] = None) -> int:
+        """Return count of unread notifications filtered by role (mirrors get_notifications filter)."""
+        query: Dict[str, Any] = {"user_id": user_id, "read": False}
+        if role == "equipment_provider":
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat"]}
+        return await db.notifications.count_documents(query)
 
     @staticmethod
     async def get_notification_settings(db, user_id: str) -> Dict[str, Any]:
