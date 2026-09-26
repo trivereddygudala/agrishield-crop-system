@@ -15,6 +15,153 @@ import API from '../../services/api';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import ScanLanguageBar from './ScanLanguageBar';
 
+const AGRO_UI_LOCALIZATIONS = {
+  en: {
+    identity: "3. 📦 Product Identity Card",
+    descriptionCrops: "4. 📝 Product Description & Approved Target Crops",
+    composition: "5. 🧪 Composition & Technical Actives",
+    pricing: "6. 💰 Pricing & Financials",
+    mixingPPE: "7. 🛡️ Step-by-Step Mixing Protocol & PPE Safety Handling",
+    scanAnother: "Scan Another Product / Bottle",
+    stopAudio: "Stop Audio",
+    listenAudio: "Listen Instructions",
+    copied: "Copied Markdown!",
+    copyReport: "Copy Markdown Report (Share)"
+  },
+  te: {
+    identity: "3. 📦 ఉత్పత్తి గుర్తింపు వివరాలు",
+    descriptionCrops: "4. 📝 వివరణ & ఆమోదిత పంటలు",
+    composition: "5. 🧪 కూర్పు & క్రియాశీల రసాయనాలు",
+    pricing: "6. 💰 ధర & ఆర్థిక వివరాలు",
+    mixingPPE: "7. 🛡️ మిక్సింగ్ విధానం & PPE భద్రత",
+    scanAnother: "మరో మందు సీసాను స్కాన్ చేయండి",
+    stopAudio: "వాయిస్ ఆపండి",
+    listenAudio: "వివరాలు వినండి",
+    copied: "కాపీ చేయబడింది!",
+    copyReport: "రిపోర్ట్ కాపీ (Markdown)"
+  },
+  hi: {
+    identity: "3. 📦 उत्पाद पहचान पत्र",
+    descriptionCrops: "4. 📝 उत्पाद विवरण और अनुशंसित फसलें",
+    composition: "5. 🧪 रासायनिक संरचना और सक्रिय तत्व",
+    pricing: "6. 💰 मूल्य निर्धारण और वित्तीय विवरण",
+    mixingPPE: "7. 🛡️ घोल बनाने की विधि और पीपीई सुरक्षा",
+    scanAnother: "दूसरी बोतल स्कैन करें",
+    stopAudio: "आवाज रोकें",
+    listenAudio: "विवरण सुनें",
+    copied: "कॉपी हो गया!",
+    copyReport: "रिपोर्ट कॉपी करें"
+  },
+  ta: {
+    identity: "3. 📦 தயாரிப்பு அடையாள அட்டை",
+    descriptionCrops: "4. 📝 தயாரிப்பு விளக்கம் & அங்கீகரிக்கப்பட்ட பயிர்கள்",
+    composition: "5. 🧪 வேதியியல் கலவை & செயலில் உள்ள பொருட்கள்",
+    pricing: "6. 💰 விலை & நிதி விவரங்கள்",
+    mixingPPE: "7. 🛡️ கலவை முறை & பிபிஇ பாதுகாப்பு விதிமுறைகள்",
+    scanAnother: "மற்றொரு பொருளை ஸ்கேன் செய்",
+    stopAudio: "ஆடியோவை நிறுத்து",
+    listenAudio: "விவரங்களை கேளுங்கள்",
+    copied: "நகலெடுக்கப்பட்டது!",
+    copyReport: "அறிக்கையை நகலெடு"
+  },
+  kn: {
+    identity: "3. 📦 ಉತ್ಪನ್ನ ಗುರುತಿನ ಚೀಟಿ",
+    descriptionCrops: "4. 📝 ಉತ್ಪನ್ನ ವಿವರಣೆ ಮತ್ತು ಅನುಮೋದಿತ ಬೆಳೆಗಳು",
+    composition: "5. 🧪 ಸಂಯೋಜನೆ ಮತ್ತು ಸಕ್ರಿಯ ರಾಸಾಯನಿಕಗಳು",
+    pricing: "6. 💰 ಬೆಲೆ ಮತ್ತು ಆರ್ಥಿಕ ವಿವರಗಳು",
+    mixingPPE: "7. 🛡️ ಮಿಶ್ರಣ ವಿಧಾನ ಮತ್ತು ಪಿಪಿಇ ಸುರಕ್ಷತೆ",
+    scanAnother: "ಮತ್ತೊಂದು ಬಾಟಲಿಯನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+    stopAudio: "ಧ್ವನಿ ನಿಲ್ಲಿಸಿ",
+    listenAudio: "ವಿವರಗಳನ್ನು ಆಲಿಸಿ",
+    copied: "ನಕಲಿಸಲಾಗಿದೆ!",
+    copyReport: "ವರದಿ ನಕಲಿಸಿ"
+  },
+  ml: {
+    identity: "3. 📦 ഉൽപ്പന്ന തിരിച്ചറിയൽ കാർഡ്",
+    descriptionCrops: "4. 📝 ഉൽപ്പന്ന വിവരണം & അംഗീകൃത വിളകൾ",
+    composition: "5. 🧪 ഘടനയും സജീവ ഘടകങ്ങളും",
+    pricing: "6. 💰 വിലയും സാമ്പത്തിക വിവരങ്ങളും",
+    mixingPPE: "7. 🛡️ മിശ്രിത രീതി & പിപിഇ സുരക്ഷാ മുൻകരുതലുകൾ",
+    scanAnother: "മറ്റൊരു കുപ്പി സ്കാൻ ചെയ്യുക",
+    stopAudio: "ശബ്ദം നിർത്തുക",
+    listenAudio: "വിവരങ്ങൾ കേൾക്കുക",
+    copied: "പകർത്തി!",
+    copyReport: "റിപ്പോർട്ട് പകർത്തുക"
+  },
+  mr: {
+    identity: "3. 📦 उत्पादन ओळख कार्ड",
+    descriptionCrops: "4. 📝 उत्पादन तपशील आणि शिफारस केलेली पिके",
+    composition: "5. 🧪 रासायनिक रचना आणि सक्रिय घटक",
+    pricing: "6. 💰 किंमत आणि आर्थिक तपशील",
+    mixingPPE: "7. 🛡️ द्रावण तयार करण्याची पद्धत आणि पीपीई सुरक्षा",
+    scanAnother: "दुसरी बाटली स्कॅन करा",
+    stopAudio: "आवाज थांबवा",
+    listenAudio: "तपशील ऐका",
+    copied: "कॉपी केले!",
+    copyReport: "अहवाल कॉपी करा"
+  },
+  gu: {
+    identity: "3. 📦 ઉત્પાદન ઓળખ પત્ર",
+    descriptionCrops: "4. 📝 ઉત્પાદન વર્ણન અને માન્ય પાક",
+    composition: "5. 🧪 રાસાયણિક બંધારણ અને સક્રિય ઘટકો",
+    pricing: "6. 💰 કિંમત અને આર્થિક વિગતો",
+    mixingPPE: "7. 🛡️ મિશ્રણ પદ્ધતિ અને પીપીઇ સુરક્ષા",
+    scanAnother: "બીજી બોટલ સ્કેન કરો",
+    stopAudio: "અવાજ બંધ કરો",
+    listenAudio: "વિગતો સાંભળો",
+    copied: "કૉપિ થઈ ગયું!",
+    copyReport: "અહેવાલ કૉપિ કરો"
+  },
+  bn: {
+    identity: "3. 📦 পণ্য সনাক্তকরণ কার্ড",
+    descriptionCrops: "4. 📝 পণ্যের বিবরণ ও অনুমোদিত ফসল",
+    composition: "5. 🧪 রাসায়নিক উপাদান ও সক্রিয় উপাদান",
+    pricing: "6. 💰 মূল্য ও আর্থিক বিবরণ",
+    mixingPPE: "7. 🛡️ মিশ্রণ পদ্ধতি ও পিপিই নিরাপত্তা",
+    scanAnother: "অন্য বোতল স্ক্যান করুন",
+    stopAudio: "অডিও বন্ধ করুন",
+    listenAudio: "বিবরণ শুনুন",
+    copied: "কপি করা হয়েছে!",
+    copyReport: "রিপোর্ট কপি করুন"
+  },
+  pa: {
+    identity: "3. 📦 ਉਤਪਾਦ ਪਛਾਣ ਪੱਤਰ",
+    descriptionCrops: "4. 📝 ਉਤਪਾਦ ਵੇਰਵਾ ਅਤੇ ਮਨਜ਼ੂਰਸ਼ੁਦਾ ਫ਼ਸਲਾਂ",
+    composition: "5. 🧪 ਰਸਾਇਣਕ ਬਣਤਰ ਅਤੇ ਕਿਰਿਆਸ਼ੀਲ ਤੱਤ",
+    pricing: "6. 💰 ਕੀਮਤ ਅਤੇ ਵਿੱਤੀ ਵੇਰਵੇ",
+    mixingPPE: "7. 🛡️ ਘੋਲ ਤਿਆਰ ਕਰਨ ਦਾ ਢੰਗ ਅਤੇ ਪੀਪੀਈ ਸੁਰੱਖਿਆ",
+    scanAnother: "ਹੋਰ ਬੋਤਲ ਸਕੈਨ ਕਰੋ",
+    stopAudio: "ਆਵਾਜ਼ ਬੰਦ ਕਰੋ",
+    listenAudio: "ਵੇਰਵੇ ਸੁਣੋ",
+    copied: "ਕਾਪੀ ਹੋ ਗਿਆ!",
+    copyReport: "ਰਿਪੋਰਟ ਕਾਪੀ ਕਰੋ"
+  },
+  or: {
+    identity: "3. 📦 ଉତ୍ପାଦ ପରିଚୟ ପତ୍ର",
+    descriptionCrops: "4. 📝 ଉତ୍ପାଦ ବିବରଣୀ ଏବଂ ଅନୁମୋଦିତ ଫସଲ",
+    composition: "5. 🧪 ରାସାୟନିକ ସଂରଚନା ଏବଂ ସକ୍ରିୟ ଉପାଦାନ",
+    pricing: "6. 💰 ମୂଲ୍ୟ ଏବଂ ଆର୍ଥିକ ବିବରଣୀ",
+    mixingPPE: "7. 🛡️ ମିଶ୍ରଣ ପ୍ରଣାଳୀ ଏବଂ ପିପିଇ ସୁରକ୍ଷା",
+    scanAnother: "ଅନ୍ୟ ବୋତଲ ସ୍କାନ୍ କରନ୍ତୁ",
+    stopAudio: "ଅଡିଓ ବନ୍ଦ କରନ୍ତୁ",
+    listenAudio: "ବିବରଣୀ ଶୁଣନ୍ତୁ",
+    copied: "କପି ହୋଇଗଲା!",
+    copyReport: "ରିପୋର୍ଟ କପି କରନ୍ତୁ"
+  },
+  ur: {
+    identity: "3. 📦 پروڈکٹ شناختی کارڈ",
+    descriptionCrops: "4. 📝 پروڈکٹ تفصیل اور منظور شدہ فصلیں",
+    composition: "5. 🧪 کیمیائی ساخت اور فعال اجزاء",
+    pricing: "6. 💰 قیمت اور مالیاتی تفصیلات",
+    mixingPPE: "7. 🛡️ مکسنگ کا طریقہ اور پی پی ای حفاظتی تدابیر",
+    scanAnother: "دوسری بوتل اسکین کریں",
+    stopAudio: "آواز روکیں",
+    listenAudio: "تفصیلات سنیں",
+    copied: "کاپی ہو گیا!",
+    copyReport: "رپورٹ کاپی کریں"
+  }
+};
+
 const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
   const { t, i18n } = useTranslation();
   const overrides = {};
@@ -38,6 +185,8 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     } catch (_) {}
     return sessionStorage.getItem('agrishield_tab_lang_agro') || currentLang || 'en';
   });
+
+  const locUI = AGRO_UI_LOCALIZATIONS[activeLang] || AGRO_UI_LOCALIZATIONS[activeLang?.slice(0, 2)] || AGRO_UI_LOCALIZATIONS.en;
 
   // Listen for changes saved in Profile -> Languages tab
   useEffect(() => {
@@ -350,13 +499,13 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
               <Button
                 variant="glass"
                 size="sm"
-                onClick={() => speak(agroSpeech, 'agro_summary', currentLang)}
+                onClick={() => speak(agroSpeech, 'agro_summary', activeLang)}
                 leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'agro_summary' ? 'animate-bounce text-indigo-300' : 'text-white'}`} />}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm rounded-xl"
               >
                 {speakingId === 'agro_summary' 
-                  ? (currentLang === 'te' ? 'వాయిస్ ఆపండి' : currentLang === 'hi' ? 'आवाज रोकें' : 'Stop Audio') 
-                  : (currentLang === 'te' ? 'వివరాలు వినండి' : currentLang === 'hi' ? 'विवरण सुनें' : 'Listen Instructions')}
+                  ? (locUI.stopAudio || 'Stop Audio') 
+                  : (locUI.listenAudio || 'Listen Instructions')}
               </Button>
               <Button
                 variant="glass"
@@ -365,7 +514,7 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
                 leftIcon={copiedMarkdown ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-emerald-300" />}
                 className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-sm rounded-xl"
               >
-                {copiedMarkdown ? (currentLang === 'te' ? 'కాపీ చేయబడింది!' : 'Copied Markdown!') : (currentLang === 'te' ? 'రిపోర్ట్ కాపీ (Markdown)' : 'Copy Markdown Report')}
+                {copiedMarkdown ? (locUI.copied || 'Copied Markdown!') : (locUI.copyReport || 'Copy Markdown Report')}
               </Button>
             </div>
           </div>
@@ -421,13 +570,13 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     // ==================== CARD 3: 📦 PRODUCT IDENTITY CARD ====================
     const renderProductIdentity = () => (
       <CollapsibleSection 
-        title={currentLang === 'te' ? '3. 📦 ఉత్పత్తి గుర్తింపు వివరాలు' : '3. 📦 Product Identity Card'} 
+        title={locUI.identity || '3. 📦 Product Identity Card'} 
         icon={Package} 
         badge="Identity & Verification" 
         defaultOpen={true}
         onSpeak={() => {
           const text = `${productDetails.brand_name} by ${productDetails.company}. Category: ${categoryMeta.label}. Formulation: ${productDetails.formulation}. Batch: ${productDetails.batch_number}.`;
-          speak(text, 'agro_identity', currentLang);
+          speak(text, 'agro_identity', activeLang);
         }}
         isSpeaking={speakingId === 'agro_identity'}
       >
@@ -492,13 +641,13 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     // ==================== CARD 4: 📝 PRODUCT DESCRIPTION & APPROVED TARGET CROPS ====================
     const renderDescriptionAndCrops = () => (
       <CollapsibleSection 
-        title={currentLang === 'te' ? '4. 📝 వివరణ & ఆమోదిత పంటలు' : '4. 📝 Product Description & Approved Target Crops'} 
+        title={locUI.descriptionCrops || '4. 📝 Product Description & Approved Target Crops'} 
         icon={ClipboardList} 
         badge="Agronomic Scope" 
         defaultOpen={true}
         onSpeak={() => {
           const text = `${productDetails.detailed_description || detailedDescription}. Approved crops: ${Array.isArray(chemicalExplanation.approved_crops) ? chemicalExplanation.approved_crops.join(', ') : chemicalExplanation.approved_crops}.`;
-          speak(text, 'agro_desc_crops', currentLang);
+          speak(text, 'agro_desc_crops', activeLang);
         }}
         isSpeaking={speakingId === 'agro_desc_crops'}
       >
@@ -654,13 +803,13 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     // ==================== CARD 5: 🧪 COMPOSITION & TECHNICAL ACTIVES ====================
     const renderCompositionActives = () => (
       <CollapsibleSection 
-        title={currentLang === 'te' ? '5. 🧪 కూర్పు & క్రియాశీల రసాయనాలు' : '5. 🧪 Composition & Technical Actives'} 
+        title={locUI.composition || '5. 🧪 Composition & Technical Actives'} 
         icon={FlaskConical} 
         badge="Chemical Profile" 
         defaultOpen={true}
         onSpeak={() => {
           const text = `Active formulation: ${productDetails.active_ingredient}. Primary function: ${productDetails.primary_function}. Mode of action: ${chemicalExplanation.action_mode}.`;
-          speak(text, 'agro_composition', currentLang);
+          speak(text, 'agro_composition', activeLang);
         }}
         isSpeaking={speakingId === 'agro_composition'}
       >
@@ -695,13 +844,13 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     // ==================== CARD 6: 💰 PRICING & FINANCIALS ====================
     const renderPricingFinancials = () => (
       <CollapsibleSection 
-        title={currentLang === 'te' ? '6. 💰 ధర & ఆర్థిక వివరాలు' : '6. 💰 Pricing & Financials'} 
+        title={locUI.pricing || '6. 💰 Pricing & Financials'} 
         icon={IndianRupee} 
         badge="NBS & Retail MRP" 
         defaultOpen={true}
         onSpeak={() => {
           const text = `Retail price: ${productDetails.mrp_price}. Government subsidy: ${productDetails.government_subsidy}. Net package weight: ${productDetails.net_quantity}.`;
-          speak(text, 'agro_pricing', currentLang);
+          speak(text, 'agro_pricing', activeLang);
         }}
         isSpeaking={speakingId === 'agro_pricing'}
       >
@@ -747,13 +896,13 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     // ==================== CARD 7: 🛡️ STEP-BY-STEP MIXING PROTOCOL & PPE SAFETY HANDLING ====================
     const renderMixingAndPPE = () => (
       <CollapsibleSection 
-        title={currentLang === 'te' ? '7. 🛡️ మిక్సింగ్ విధానం & PPE భద్రత' : '7. 🛡️ Step-by-Step Mixing Protocol & PPE Safety Handling'} 
+        title={locUI.mixingPPE || '7. 🛡️ Step-by-Step Mixing Protocol & PPE Safety Handling'} 
         icon={ShieldCheck} 
         badge="Safety & Mixing" 
         defaultOpen={true}
         onSpeak={() => {
           const text = `Mixing instructions: ${Array.isArray(userInstructions.mixing_guide) ? userInstructions.mixing_guide.join('. ') : userInstructions.mixing_guide}. Mandatory PPE includes chemical-resistant gloves, protective goggles, and vapor mask.`;
-          speak(text, 'agro_mixing_ppe', currentLang);
+          speak(text, 'agro_mixing_ppe', activeLang);
         }}
         isSpeaking={speakingId === 'agro_mixing_ppe'}
       >
@@ -912,7 +1061,7 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
           const text = isFertilizer
             ? `Approved crops: ${Array.isArray(chemicalExplanation.approved_crops) ? chemicalExplanation.approved_crops.join(', ') : chemicalExplanation.approved_crops}. Growth stages: vegetative, flowering, and fruiting support.`
             : `Mode of action: ${chemicalExplanation.action_mode}. Approved crops: ${Array.isArray(chemicalExplanation.approved_crops) ? chemicalExplanation.approved_crops.join(', ') : chemicalExplanation.approved_crops}. Targets: ${Array.isArray(chemicalExplanation.target_diseases_and_pests) ? chemicalExplanation.target_diseases_and_pests.join(', ') : chemicalExplanation.target_diseases_and_pests}. Pre-harvest interval: ${chemicalExplanation.preharvest_interval}.`;
-          speak(text, 'agro_explanation', currentLang);
+          speak(text, 'agro_explanation', activeLang);
         }}
         isSpeaking={speakingId === 'agro_explanation'}
       >
@@ -1085,7 +1234,7 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
           }}
         >
           <RotateCcw className="w-4 h-4" />
-          <span>{currentLang === 'te' ? 'మరో మందు సీసాను స్కాన్ చేయండి' : currentLang === 'hi' ? 'दूसरी बोतल स्कैन करें' : 'Scan Another Product / Bottle'}</span>
+          <span>{locUI.scanAnother || 'Scan Another Product / Bottle'}</span>
         </Button>
       </div>
 

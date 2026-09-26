@@ -10,7 +10,7 @@ import {
   Play, Pause, Paperclip, Send, Mic, ExternalLink,
   Clock, MoreVertical, Lock, ShieldAlert, Cpu, Activity,
   BatteryWarning, CloudRain, WifiOff, AlertOctagon, HelpCircle,
-  Globe, Square, StopCircle
+  Globe, Square, StopCircle, Edit2, ArrowDown, Languages, RotateCcw
 } from 'lucide-react';
 import { formatDateTime, timeAgo } from '../../utils/dateUtils';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
@@ -20,7 +20,8 @@ import {
   translateDisease,
   getDetailedAgronomicDescription
 } from '../../utils/diseaseAdvisoryData';
-import { translateNotification } from '../../utils/notificationTranslator';
+import { translateNotification, translateChatMessage } from '../../utils/notificationTranslator';
+
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
 import { VILLAGE_COORDINATES } from '../../data/indiaLocations';
@@ -363,6 +364,34 @@ export default function GoogleMessageReader({
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
 
+  // ── Single Message Editing & Deletion State ──
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [activeMsgActionId, setActiveMsgActionId] = useState(null);
+  const [toastNotification, setToastNotification] = useState('');
+  const [originalViewMap, setOriginalViewMap] = useState({});
+
+  const toggleOriginalView = (msgId) => {
+    setOriginalViewMap(prev => ({
+      ...prev,
+      [msgId]: !prev[msgId]
+    }));
+  };
+
+  // ── Scroll Stability Tracking (Eliminates Elastic Rubber-Band Bug) ──
+  const scrollContainerRef = useRef(null);
+  const isUserScrolledUpRef = useRef(false);
+  const initialScrollDoneRef = useRef(false);
+  const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
+
+  const handleContainerScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const isUp = distanceFromBottom > 90;
+    isUserScrolledUpRef.current = isUp;
+    setShowScrollBottomBtn(isUp);
+  };
+
   const activeLangObj = READER_LANGUAGES.find(l => (currentLang || '').toLowerCase().startsWith(l.code)) || READER_LANGUAGES[0];
 
   // ── Voice Narration State for Disease/System Advisories ──
@@ -391,40 +420,78 @@ export default function GoogleMessageReader({
     }
   }, [speakingId]);
 
-  // ── Speech-to-Text Microphone Dictation State ──
+  // ── Enhanced Telugu Speech-to-Text Microphone State & Engine ──
   const [isListening, setIsListening] = useState(false);
+  const [speechLanguage, setSpeechLanguage] = useState(() => {
+    return isTelugu ? 'te-IN' : 'en-IN';
+  });
+  const [liveSpeechTranscript, setLiveSpeechTranscript] = useState('');
   const recognitionRef = useRef(null);
+
+  // Sync speech recognition language when reader language changes
+  useEffect(() => {
+    setSpeechLanguage(isTelugu ? 'te-IN' : 'en-IN');
+  }, [isTelugu]);
 
   const toggleSpeechRecognition = () => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert(isTelugu ? 'ఈ బ్రౌజర్‌లో మైక్రోఫోన్ వాయిస్ రికగ్నిషన్ సపోర్ట్ లేదు.' : 'Microphone speech recognition is not supported in this browser.');
+      alert(isTelugu ? 'ఈ బ్రౌజర్‌లో మైక్రోఫోన్ వాయిస్ రికగ్నిషన్ సపోర్ట్ లేదు. దయచేసి Chrome లేదా Edge బ్రౌజర్ ఉపయోగించండి.' : 'Microphone speech recognition is not supported in this browser. Please use Chrome or Edge.');
       return;
     }
 
     if (isListening) {
       try { recognitionRef.current?.stop(); } catch (_) {}
       setIsListening(false);
+      setLiveSpeechTranscript('');
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      const langMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', or: 'or-IN', en: 'en-IN' };
-      recognition.lang = langMap[(currentLang || 'en').split('-')[0]] || 'en-IN';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = () => setIsListening(false);
-      recognition.onresult = (e) => {
-        const transcript = e.results[0]?.[0]?.transcript;
-        if (transcript) {
-          setInputText(prev => prev ? `${prev} ${transcript}` : transcript);
-        }
+      const langMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', or: 'or-IN', en: 'en-IN' };
+      const chosenLang = speechLanguage || langMap[(currentLang || 'te').split('-')[0]] || 'te-IN';
+      recognition.lang = chosenLang;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setLiveSpeechTranscript('');
+      };
+
+      recognition.onend = () => {
         setIsListening(false);
+        setLiveSpeechTranscript('');
+      };
+
+      recognition.onerror = (err) => {
+        console.warn('Speech recognition error encountered:', err);
+        setIsListening(false);
+        setLiveSpeechTranscript('');
+      };
+
+      recognition.onresult = (e) => {
+        let interim = '';
+        let final = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          const res = e.results[i];
+          if (res.isFinal) {
+            final += res[0].transcript;
+          } else {
+            interim += res[0].transcript;
+          }
+        }
+        if (interim) {
+          setLiveSpeechTranscript(interim);
+        }
+        if (final) {
+          setInputText(prev => prev ? `${prev} ${final.trim()}` : final.trim());
+          setLiveSpeechTranscript('');
+        }
       };
 
       recognitionRef.current = recognition;
@@ -432,6 +499,7 @@ export default function GoogleMessageReader({
     } catch (err) {
       console.warn('Speech recognition start failed:', err);
       setIsListening(false);
+      setLiveSpeechTranscript('');
     }
   };
 
@@ -440,6 +508,7 @@ export default function GoogleMessageReader({
       try { recognitionRef.current?.stop(); } catch (_) {}
     };
   }, []);
+
 
   // ── Real Voice Note Audio Recording State (Hardware Mic + MediaRecorder) ──
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -825,6 +894,14 @@ export default function GoogleMessageReader({
             if (event.data?.nextStatus) {
               setBookingStatus(event.data.nextStatus);
             }
+            if (event.data?.type === 'delete_message' && event.data?.messageId) {
+              setChatMessages(prev => prev.filter(m => m.id !== event.data.messageId));
+              return;
+            }
+            if (event.data?.type === 'edit_message' && event.data?.messageId) {
+              setChatMessages(prev => prev.map(m => m.id === event.data.messageId ? { ...m, text: event.data.text, edited: true } : m));
+              return;
+            }
             if (event.data?.message) {
               setChatMessages(prev => {
                 if (prev.some(m => m.id === event.data.message.id)) return prev;
@@ -866,6 +943,17 @@ export default function GoogleMessageReader({
               const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
               return ta - tb;
             });
+
+            // Zero-churn comparison: if server copy is identical, return prev to prevent unneeded re-renders & rubber-band scroll
+            if (prev.length === merged.length) {
+              const isIdentical = prev.every((item, i) =>
+                item.id === merged[i].id &&
+                item.text === merged[i].text &&
+                Boolean(item.edited) === Boolean(merged[i].edited)
+              );
+              if (isIdentical) return prev;
+            }
+
             try {
               localStorage.setItem(chatStorageKey, JSON.stringify(merged));
             } catch (_) {}
@@ -913,13 +1001,84 @@ export default function GoogleMessageReader({
     };
   }, [chatStorageKey, isBooking, canonicalBookingId]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (force = false) => {
+    // Never auto-scroll down if user is deliberately reading previous chat history!
+    if (!force && isUserScrolledUpRef.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setShowScrollBottomBtn(false);
   };
 
   useEffect(() => {
-    if (isBooking) scrollToBottom();
+    if (!isBooking) return;
+    if (!initialScrollDoneRef.current) {
+      initialScrollDoneRef.current = true;
+      scrollToBottom(true);
+      return;
+    }
+    // Only scroll if user was already at bottom (eliminates elastic rubber-band bug)
+    if (!isUserScrolledUpRef.current) {
+      scrollToBottom(false);
+    }
   }, [chatMessages, isBooking]);
+
+  const handleSaveEdit = async () => {
+    if (!editingMessage) return;
+    const newText = (inputText || '').trim();
+    if (!newText) return;
+
+    const targetId = editingMessage.id;
+    const nowIso = new Date().toISOString();
+    const updated = chatMessages.map(m => m.id === targetId ? { ...m, text: newText, edited: true, editedAt: nowIso } : m);
+    setChatMessages(updated);
+    setEditingMessage(null);
+    setInputText('');
+
+    try {
+      localStorage.setItem(chatStorageKey, JSON.stringify(updated));
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('agrishield_equipment_chat');
+        bc.postMessage({ canonicalBookingId, type: 'edit_message', messageId: targetId, text: newText });
+        bc.close();
+      }
+      await API.patch(`/api/v1/equipment/bookings/${canonicalBookingId}/messages/${targetId}`, { text: newText });
+      setToastNotification(isTelugu ? 'సందేశం సవరించబడింది' : 'Message edited');
+      setTimeout(() => setToastNotification(''), 3000);
+    } catch (err) {
+      console.warn('Failed to edit message on server:', err);
+    }
+  };
+
+  const handleDeleteSingleMessage = async (msgId) => {
+    setActiveMsgActionId(null);
+    const updated = chatMessages.filter(m => m.id !== msgId);
+    setChatMessages(updated);
+
+    try {
+      localStorage.setItem(chatStorageKey, JSON.stringify(updated));
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('agrishield_equipment_chat');
+        bc.postMessage({ canonicalBookingId, type: 'delete_message', messageId: msgId });
+        bc.close();
+      }
+      await API.delete(`/api/v1/equipment/bookings/${canonicalBookingId}/messages/${msgId}`);
+      setToastNotification(isTelugu ? 'సందేశం తొలగించబడింది' : 'Message deleted');
+      setTimeout(() => setToastNotification(''), 3000);
+    } catch (err) {
+      console.warn('Failed to delete message on server:', err);
+    }
+  };
+
+  const handleStartEditMessage = (msg) => {
+    setActiveMsgActionId(null);
+    setEditingMessage(msg);
+    setInputText(msg.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setInputText('');
+  };
+
 
   // ── Language Toggle Handler ──
   const handleToggleLanguage = (newLang) => {
@@ -1013,8 +1172,13 @@ export default function GoogleMessageReader({
   const mySenderRole = isProviderViewer ? 'provider' : 'farmer';
 
   const handleSendMessage = (customText = null) => {
+    if (editingMessage && !customText) {
+      handleSaveEdit();
+      return;
+    }
     const textToSend = (customText || inputText || '').trim();
     if (!textToSend) return;
+
 
     const newMsg = {
       id: `msg_${mySenderRole}_${Date.now()}`,
@@ -1451,7 +1615,25 @@ export default function GoogleMessageReader({
       </header>
 
       {/* ─── 2. MAIN BODY AREA: PATTERN-SPECIFIC RENDERING ─── */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 bg-[#f3f5fa] dark:bg-[#0d1117] bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:16px_16px]">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleContainerScroll}
+        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 bg-[#f3f5fa] dark:bg-[#0d1117] bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:16px_16px] relative"
+      >
+        {/* Floating Action Feedback Toast */}
+        <AnimatePresence>
+          {toastNotification && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -15, scale: 0.95 }}
+              className="sticky top-2 z-30 mx-auto max-w-xs px-3.5 py-1.5 rounded-full bg-slate-900/95 text-white text-xs font-bold text-center shadow-lg border border-slate-700/80 backdrop-blur-sm flex items-center justify-center gap-1.5"
+            >
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{toastNotification}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Date Divider Pill */}
         <div className="flex justify-center my-1">
@@ -1459,6 +1641,7 @@ export default function GoogleMessageReader({
             {isTelugu ? 'ఈ రోజు' : 'Today'} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
+
 
         {/* ══════════════════════════════════════════════════════════════
             PATTERN A: DISEASE DETECTION ALERTS
@@ -1887,13 +2070,17 @@ export default function GoogleMessageReader({
                 }
 
                 const isMyMessage = msg.sender === mySenderRole;
+                const translatedText = translateChatMessage(msg.text, currentLang);
+                const hasTranslation = Boolean(translatedText && translatedText !== msg.text);
+                const showOriginal = Boolean(originalViewMap[msg.id]);
+                const displayMsgText = (hasTranslation && !showOriginal) ? translatedText : msg.text;
 
                 return (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex flex-col ${isMyMessage ? 'items-end' : 'items-start'} space-y-1`}
+                    className={`flex flex-col ${isMyMessage ? 'items-end' : 'items-start'} space-y-1 relative`}
                   >
                     {!isMyMessage && (
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 px-1">
@@ -1902,45 +2089,133 @@ export default function GoogleMessageReader({
                     )}
 
                     <div
-                      className={`max-w-[85%] sm:max-w-md rounded-3xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm ${
+                      className={`max-w-[88%] sm:max-w-md rounded-3xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-sm relative group/bubble ${
                         isMyMessage
                           ? 'bg-blue-600 text-white rounded-tr-xs shadow-blue-500/10'
                           : 'bg-white dark:bg-[#161b22] text-slate-800 dark:text-slate-200 border border-slate-200/90 dark:border-slate-800 rounded-tl-xs shadow-xs'
                       }`}
                     >
-                      {/* Message Content: Voice Note Audio Bubble OR Text with TTS */}
+                      {/* Message Content: Voice Note Audio Bubble OR Text with TTS & Translation */}
                       {msg.type === 'voice_note' || msg.audioUrl ? (
                         <VoiceNoteBubble msg={msg} isMyMessage={isMyMessage} isTelugu={isTelugu} />
                       ) : (
-                        <div className="flex items-start justify-between gap-2">
-                          {msg.text && (
-                            <p className="whitespace-pre-line font-medium leading-relaxed flex-1">
-                              {msg.text}
-                            </p>
-                          )}
-                          {msg.text && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                speak(msg.text, `msg_${msg.id}`, currentLang, 0.85);
-                              }}
-                              className={`p-1.5 rounded-full transition-all shrink-0 cursor-pointer ${
-                                speakingId === `msg_${msg.id}`
-                                  ? 'bg-amber-400 text-slate-950 animate-pulse'
-                                  : (isMyMessage
-                                      ? 'bg-blue-500/50 hover:bg-blue-500 text-white'
-                                      : 'bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300')
-                              }`}
-                              title={isTelugu ? 'వినండి (ఆడియో)' : 'Listen to message'}
-                            >
-                              {speakingId === `msg_${msg.id}` ? (
-                                <VolumeX className="w-3.5 h-3.5" />
-                              ) : (
-                                <Volume2 className="w-3.5 h-3.5" />
+                        <div className="flex flex-col space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            {displayMsgText && (
+                              <p className="whitespace-pre-line font-medium leading-relaxed flex-1">
+                                {displayMsgText}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              {displayMsgText && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    speak(displayMsgText, `msg_${msg.id}`, currentLang, 0.85);
+                                  }}
+                                  className={`p-1.5 rounded-full transition-all cursor-pointer ${
+                                    speakingId === `msg_${msg.id}`
+                                      ? 'bg-amber-400 text-slate-950 animate-pulse'
+                                      : (isMyMessage
+                                          ? 'bg-blue-500/50 hover:bg-blue-500 text-white'
+                                          : 'bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300')
+                                  }`}
+                                  title={isTelugu ? 'వినండి (ఆడియో)' : 'Listen to message'}
+                                >
+                                  {speakingId === `msg_${msg.id}` ? (
+                                    <VolumeX className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
                               )}
-                            </button>
+
+                              {/* 3-Dots Options Menu Trigger (Edit & Delete) */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMsgActionId(activeMsgActionId === msg.id ? null : msg.id);
+                                }}
+                                className={`p-1 rounded-full transition-colors cursor-pointer ${
+                                  isMyMessage
+                                    ? 'hover:bg-blue-500/60 text-blue-200 hover:text-white'
+                                    : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                                }`}
+                                title={isTelugu ? 'ఎంపికలు (సవరించండి / తొలగించండి)' : 'Message options (Edit / Delete)'}
+                              >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Translation Switcher Badge if translated */}
+                          {hasTranslation && (
+                            <div className="flex items-center gap-1.5 pt-0.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleOriginalView(msg.id);
+                                }}
+                                className={`text-[10px] font-bold inline-flex items-center gap-1 px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                                  isMyMessage
+                                    ? 'bg-blue-700/70 hover:bg-blue-700 text-blue-100'
+                                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-emerald-700 dark:text-emerald-300 border border-slate-200 dark:border-slate-700'
+                                }`}
+                              >
+                                <Globe className="w-2.5 h-2.5" />
+                                <span>
+                                  {showOriginal
+                                    ? (isTelugu ? '🔄 తెలుగు అనువాదం చూపించు' : '🔄 Show Translation')
+                                    : (isTelugu ? '🌐 అసలు ఇంగ్లీష్ చూడండి' : '🌐 Show Original English')}
+                                </span>
+                              </button>
+                            </div>
                           )}
+
+                          {/* Action Menu Popover (Edit & Delete) */}
+                          <AnimatePresence>
+                            {activeMsgActionId === msg.id && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                                className={`mt-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl z-20 flex items-center gap-1 ${
+                                  isMyMessage ? 'self-end' : 'self-start'
+                                }`}
+                              >
+                                {isMyMessage && !msg.audioUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartEditMessage(msg);
+                                    }}
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600 transition-colors cursor-pointer"
+                                    title={isTelugu ? 'సందేశాన్ని సవరించండి' : 'Edit message'}
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5 text-amber-500" />
+                                    <span>{isTelugu ? 'సవరించండి' : 'Edit'}</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSingleMessage(msg.id);
+                                  }}
+                                  className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                  title={isTelugu ? 'సందేశాన్ని తొలగించండి' : 'Delete message'}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>{isTelugu ? 'తొలగించండి' : 'Delete'}</span>
+                                </button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       )}
 
@@ -1981,6 +2256,11 @@ export default function GoogleMessageReader({
                       )}
 
                       <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${isMyMessage ? 'text-blue-100' : 'text-slate-400'}`}>
+                        {msg.edited && (
+                          <span className="italic mr-0.5 text-[9px] opacity-75">
+                            {isTelugu ? '(సవరించబడింది)' : '(edited)'}
+                          </span>
+                        )}
                         <span>{msg.time}</span>
                         {isMyMessage && <CheckCheck className="w-3.5 h-3.5 text-blue-100 inline ml-0.5" />}
                       </div>
@@ -1990,6 +2270,24 @@ export default function GoogleMessageReader({
               })}
 
               <div ref={messagesEndRef} />
+
+              {/* Floating Jump to Latest Button */}
+              <AnimatePresence>
+                {showScrollBottomBtn && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 15, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                    type="button"
+                    onClick={() => scrollToBottom(true)}
+                    className="fixed bottom-20 sm:bottom-24 right-4 sm:right-8 z-30 px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl text-xs font-bold flex items-center gap-1.5 transition-transform active:scale-95 cursor-pointer ring-2 ring-white/20"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5 animate-bounce" />
+                    <span>{isTelugu ? 'తాజా సందేశాలకు వెళ్ళండి' : 'Jump to latest'}</span>
+                  </motion.button>
+                )}
+              </AnimatePresence>
+
             </div>
           </div>
         )}
@@ -2120,10 +2418,101 @@ export default function GoogleMessageReader({
               )}
             </AnimatePresence>
 
+            {/* Active Toast Notification */}
+            <AnimatePresence>
+              {toastNotification && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="mb-2 max-w-md mx-auto py-1.5 px-3.5 rounded-full bg-slate-900/90 text-white text-xs font-semibold shadow-xl backdrop-blur flex items-center justify-center gap-2 border border-slate-700"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{toastNotification}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Active Message Editing Banner */}
+            <AnimatePresence>
+              {editingMessage && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-2 max-w-4xl mx-auto flex items-center justify-between px-3.5 py-1.5 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/80 rounded-2xl text-xs shadow-xs"
+                >
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Edit2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <div className="min-w-0">
+                      <span className="font-bold text-amber-900 dark:text-amber-200 block text-[10px]">
+                        {isTelugu ? 'సందేశాన్ని సవరించడం' : 'Editing Message'}
+                      </span>
+                      <p className="text-slate-600 dark:text-slate-300 truncate text-xs max-w-xs sm:max-w-md">
+                        {editingMessage.text}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="p-1 rounded-full hover:bg-amber-200/60 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 cursor-pointer transition-colors"
+                    title={isTelugu ? 'రద్దు చేయండి' : 'Cancel'}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Live Speech-to-Text Listening Banner */}
+            <AnimatePresence>
+              {isListening && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className="mb-2 max-w-4xl mx-auto flex items-center justify-between px-3.5 py-1.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/70 rounded-2xl text-xs shadow-xs"
+                >
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+                    <span className="font-bold text-rose-700 dark:text-rose-300 shrink-0 text-xs">
+                      {speechLanguage === 'te-IN' ? '🌾 తెలుగు వాయిస్ వింటోంది:' : '🌐 Listening in English:'}
+                    </span>
+                    <span className="text-slate-700 dark:text-slate-200 italic truncate text-xs">
+                      {liveSpeechTranscript || (isTelugu ? 'ఇప్పుడు మాట్లాడండి...' : 'Speak now into microphone...')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setSpeechLanguage(prev => prev === 'te-IN' ? 'en-IN' : 'te-IN')}
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                      title="Switch Speech Recognition Language"
+                    >
+                      {speechLanguage === 'te-IN' ? 'తెలుగు' : 'EN'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggleSpeechRecognition}
+                      className="p-1 rounded-full hover:bg-rose-200/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 cursor-pointer transition-colors"
+                      title={isTelugu ? 'ఆపండి' : 'Stop'}
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleSendMessage();
+                if (editingMessage) {
+                  handleSaveEdit();
+                } else {
+                  handleSendMessage();
+                }
               }}
               className="flex items-center gap-2 max-w-4xl mx-auto"
             >
@@ -2187,9 +2576,11 @@ export default function GoogleMessageReader({
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       placeholder={
-                        isProviderViewer
-                          ? (isTelugu ? 'రైతుకు సందేశం టైప్ చేయండి...' : 'Type message to Farmer...')
-                          : (isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...')
+                        editingMessage
+                          ? (isTelugu ? 'సవరించిన సందేశాన్ని టైప్ చేయండి...' : 'Edit your message...')
+                          : isProviderViewer
+                            ? (isTelugu ? 'రైతుకు సందేశం టైప్ చేయండి...' : 'Type message to Farmer...')
+                            : (isTelugu ? 'ప్రొవైడర్‌కు సందేశం టైప్ చేయండి...' : 'Type message to Provider...')
                       }
                       className="w-full py-2.5 pl-4 pr-11 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                     />
@@ -2198,7 +2589,7 @@ export default function GoogleMessageReader({
                       onClick={toggleSpeechRecognition}
                       className={`absolute right-2 p-1.5 rounded-full transition-all cursor-pointer ${
                         isListening
-                          ? 'bg-red-500 text-white animate-pulse shadow-md shadow-red-500/40'
+                          ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/40'
                           : 'text-slate-400 hover:text-emerald-500 hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                       title={isTelugu ? 'వాయిస్ టైపింగ్ (మైక్రోఫోన్)' : 'Voice typing (Microphone)'}
@@ -2207,7 +2598,26 @@ export default function GoogleMessageReader({
                     </button>
                   </div>
 
-                  {inputText.trim() ? (
+                  {editingMessage ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="p-2.5 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                        title={isTelugu ? 'రద్దు చేయండి' : 'Cancel edit'}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-3.5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/30 transition-transform active:scale-95 cursor-pointer"
+                        title={isTelugu ? "సవరణ సేవ్ చేయండి" : "Save edit"}
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>{isTelugu ? 'సేవ్' : 'Save'}</span>
+                      </button>
+                    </div>
+                  ) : inputText.trim() ? (
                     <button
                       type="submit"
                       className="p-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 cursor-pointer shrink-0"

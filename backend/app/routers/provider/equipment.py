@@ -794,3 +794,108 @@ async def post_chat_messages_body(payload: Dict[str, Any] = Body(...)):
     b_id = payload.get("booking_id") or payload.get("bookingId") or "BK-GENERAL"
     return await send_booking_chat_message(b_id, payload)
 
+
+@router.delete("/bookings/{booking_id}/messages/{message_id}")
+async def delete_booking_chat_message(
+    booking_id: str,
+    message_id: str
+):
+    """
+    Delete a single message from a booking chat thread across all devices.
+    """
+    global _in_memory_chat_threads
+    canonical_id = _normalize_chat_booking_id(booking_id)
+
+    # 1. Update in-memory & disk
+    _load_disk_chat_messages()
+    current_list = _in_memory_chat_threads.get(canonical_id, [])
+    updated_list = [m for m in current_list if m.get("id") != message_id]
+    _in_memory_chat_threads[canonical_id] = updated_list
+    _save_disk_chat_messages()
+
+    # 2. Update MongoDB
+    if db_instance.db is not None:
+        try:
+            await db_instance.db["equipment_chat_messages"].update_one(
+                {"booking_id": canonical_id},
+                {"$pull": {"messages": {"id": message_id}}}
+            )
+        except Exception as e:
+            print(f"⚠️ [EquipmentChat] Mongo message deletion notice: {e}")
+
+    return {
+        "success": True,
+        "booking_id": canonical_id,
+        "deleted_message_id": message_id,
+        "remaining_count": len(updated_list)
+    }
+
+
+@router.patch("/bookings/{booking_id}/messages/{message_id}")
+async def edit_booking_chat_message(
+    booking_id: str,
+    message_id: str,
+    payload: Dict[str, Any] = Body(...)
+):
+    """
+    Edit the text of an existing chat message.
+    """
+    global _in_memory_chat_threads
+    canonical_id = _normalize_chat_booking_id(booking_id)
+    new_text = (payload.get("text") or "").strip()
+    if not new_text:
+        raise HTTPException(status_code=400, detail="Updated message text cannot be empty")
+
+    _load_disk_chat_messages()
+    current_list = _in_memory_chat_threads.get(canonical_id, [])
+    updated_msg = None
+    now_iso = datetime.now().isoformat()
+
+    for m in current_list:
+        if m.get("id") == message_id:
+            m["text"] = new_text
+            m["edited"] = True
+            m["editedAt"] = now_iso
+            updated_msg = m
+            break
+
+    _in_memory_chat_threads[canonical_id] = current_list
+    _save_disk_chat_messages()
+
+    if db_instance.db is not None:
+        try:
+            await db_instance.db["equipment_chat_messages"].update_one(
+                {"booking_id": canonical_id, "messages.id": message_id},
+                {"$set": {
+                    "messages.$.text": new_text,
+                    "messages.$.edited": True,
+                    "messages.$.editedAt": now_iso
+                }}
+            )
+        except Exception as e:
+            print(f"⚠️ [EquipmentChat] Mongo message edit notice: {e}")
+
+    return {
+        "success": True,
+        "booking_id": canonical_id,
+        "message": updated_msg or {"id": message_id, "text": new_text, "edited": True}
+    }
+
+
+@router.delete("/chat/messages")
+async def delete_chat_messages_query(
+    booking_id: str = Query(..., description="Booking ID"),
+    message_id: str = Query(..., description="Message ID")
+):
+    return await delete_booking_chat_message(booking_id, message_id)
+
+
+@router.patch("/chat/messages")
+async def patch_chat_messages_body(payload: Dict[str, Any] = Body(...)):
+    b_id = payload.get("booking_id") or payload.get("bookingId") or "BK-GENERAL"
+    m_id = payload.get("message_id") or payload.get("id")
+    if not m_id:
+        raise HTTPException(status_code=400, detail="message_id is required")
+    return await edit_booking_chat_message(b_id, m_id, payload)
+
+

@@ -515,12 +515,13 @@ async def cross_verify_disease_with_vision(
             }
         }
 
-        # Updated modern Google Gemini model identifiers with resilient timeout
+        # Updated active Google Gemini model identifiers with dynamic fallback & cache
         models_to_try = [
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro"
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-3.5-flash",
+            "gemini-3.8-flash"
         ]
         fast_timeout = httpx.Timeout(connect=3.5, read=18.0, write=5.0, pool=3.5)
         async with httpx.AsyncClient(timeout=fast_timeout) as client:
@@ -635,8 +636,11 @@ Do NOT output any markdown blocks or conversational text outside the JSON object
         }
 
         models_to_try = [
-            "gemini-flash-lite-latest",
-            "gemini-flash-latest"
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-3.5-flash",
+            "gemini-3.8-flash"
         ]
         async with httpx.AsyncClient(timeout=12.0) as client:
             for model_name in models_to_try:

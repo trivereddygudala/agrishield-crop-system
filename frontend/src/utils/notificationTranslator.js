@@ -253,3 +253,123 @@ export function translateNotification(title = '', message = '', lang = 'te') {
 
   return { title: transTitle, message: transMessage };
 }
+
+/**
+ * Real-time Conversational Chat Message Translator for Equipment Booking & Farmer Queries
+ * Instantly translates spoken and typed sentences into Telugu, Hindi, Tamil, etc.
+ */
+export const CHAT_PHRASES = [
+  {
+    regex: /(?:tractor\s+is\s+dispatched|tractor\s+dispatched|20\s+minutes?)/i,
+    te: 'ట్రాక్టర్ బయలుదేరింది, 20 నిమిషాల్లో మీ పొలానికి చేరుకుంటుంది.',
+    hi: 'ट्रैक्टर निकल चुका है, 20 मिनट में आपके खेत पर पहुंच जाएगा।',
+    ta: 'டிராக்டர் புறப்பட்டுவிட்டது, 20 நிமிடங்களில் உங்கள் வயலுக்கு வந்து சேரும்.',
+    kn: 'ಟ್ರಾಕ್ಟರ್ ಹೊರಟಿದೆ, 20 ನಿಮಿಷಗಳಲ್ಲಿ ನಿಮ್ಮ ಜಮೀನನ್ನು ತಲುಪುತ್ತದೆ.',
+    ml: 'ട്രാക്ടർ പുറപ്പെട്ടു, 20 മിനിറ്റിനുള്ളിൽ നിങ്ങളുടെ വയലിലെത്തും.',
+    or: 'ଟ୍ରାକ୍ଟର ବାହାରିଛି, ୨୦ ମିନିଟରେ ଆପଣଙ୍କ ଜମିରେ ପହଞ୍ଚିବ।'
+  },
+  {
+    regex: /(?:please\s+call\s+me\s+when\s+the\s+tractor\s+departs|call\s+me\s+when\s+tractor\s+departs|call\s+when\s+depart)/i,
+    te: 'ట్రాక్టర్ బయలుదేరినప్పుడు దయచేసి నాకు కాల్ చేయండి.',
+    hi: 'कृपया ट्रैक्टर निकलते समय मुझे कॉल करें।',
+    ta: 'டிராக்டர் புறப்படும்போது தயவுசெய்து எனக்கு அழைக்கவும்.',
+    kn: 'ದಯವಿಟ್ಟು ಟ್ರಾಕ್ಟರ್ ಹೊರಡುವಾಗ ನನಗೆ ಕರೆ ಮಾಡಿ.',
+    ml: 'ട്രാക്ടർ പുറപ്പെടുമ്പോൾ ദയവായി എന്നെ വിളിക്കുക.',
+    or: 'ଟ୍ରାକ୍ଟର ବାହାରିବା ସମୟରେ ଦୟାକରି ମୋତେ କଲ୍ କରନ୍ତୁ।'
+  },
+  {
+    regex: /^(?:hello|hii|hi|hey)\b/i,
+    te: 'హలో / నమస్కారం! ఎలా ఉన్నారు?',
+    hi: 'नमस्ते / हैलो! कैसे हैं?',
+    ta: 'வணக்கம்! எப்படி இருக்கிறீர்கள்?',
+    kn: 'ನಮಸ್ಕಾರ! ಹೇಗಿದ್ದೀರಾ?',
+    ml: 'ഹലോ / നമസ്കാരം!',
+    or: 'ନମସ୍କାର / ହାଲୋ!'
+  },
+  {
+    regex: /(?:what\s+is\s+the\s+time|what\s+time|when\s+will\s+you\s+arrive|when\s+you\s+come|when\s+will\s+you\s+come|reach|time\s+tell)/i,
+    te: 'మీరు ఏ సమయానికి వస్తారు? దయచేసి చెప్పండి.',
+    hi: 'आप किस समय आएंगे? कृपया बताएं।',
+    ta: 'நீங்கள் எந்த நேரத்திற்கு வருவீர்கள்? சொல்லுங்கள்.',
+    kn: 'ನೀವು ಎಷ್ಟು ಗಂಟೆಗೆ ಬರುತ್ತೀರಿ? ದಯವಿಟ್ಟು ತಿಳಿಸಿ.',
+    ml: 'നിങ്ങൾ എപ്പോൾ എത്തും? ദയവായി പറയുക.',
+    or: 'ଆପଣ କେତେବେଳେ ଆସିବେ? ଦୟାକରି କୁହନ୍ତୁ।'
+  },
+  {
+    regex: /\b10\s*(?:to|-)\s*11\b/i,
+    te: 'ఉదయం 10:00 నుండి 11:00 గంటల మధ్యలో వస్తాను.',
+    hi: 'सुबह 10:00 से 11:00 बजे के बीच आऊंगा।',
+    ta: 'காலை 10:00 முதல் 11:00 மணிக்குள் வருகிறேன்.',
+    kn: 'ಬೆಳಿಗ್ಗೆ 10:00 ರಿಂದ 11:00 ರ ನಡುವೆ ಬರುತ್ತೇನೆ.',
+    ml: 'രാവിലെ 10:00 നും 11:00 നും ഇടയിൽ എത്തും.',
+    or: 'ସକାଳ ୧୦:୦୦ ରୁ ୧୧:୦୦ ମଧ୍ୟରେ ଆସିବି।'
+  },
+  {
+    regex: /(?:waiting\s+at\s+the\s+field|waiting\s+at\s+farm|in\s+the\s+field|reach\s+soon)/i,
+    te: 'నేను పొలం వద్ద వేచి చూస్తున్నాను, దయచేసి త్వరగా రండి.',
+    hi: 'मैं खेत पर प्रतीक्षा कर रहा हूँ, कृपया जल्दी आएं।',
+    ta: 'நான் வயலில் காத்திருக்கிறேன், தயவுசெய்து விரைவாக வாருங்கள்.',
+    kn: 'ನಾನು ಜಮೀನಿನಲ್ಲಿ ಕಾಯುತ್ತಿದ್ದೇನೆ, ದಯವಿಟ್ಟು ಬೇಗ ಬನ್ನಿ.',
+    ml: 'ഞാൻ വയലിൽ കാത്തിരിക്കുന്നു, ദയവായി വേഗം വരൂ.',
+    or: 'ମୁଁ ଜମିରେ ଅପେକ୍ଷା କରିଛି, ଦୟାକରି ଶୀଘ୍ର ଆସନ୍ତୁ।'
+  },
+  {
+    regex: /(?:send\s+location|share\s+location|where\s+are\s+you)/i,
+    te: 'మీరు ఎక్కడ ఉన్నారు? దయచేసి మీ లొకేషన్ పంపండి.',
+    hi: 'आप कहाँ हैं? कृपया अपनी लोकेशन भेजें।',
+    ta: 'நீங்கள் எங்கே இருக்கிறீர்கள்? உங்கள் இருப்பிடத்தை அனுப்பவும்.',
+    kn: 'ನೀವು ಎಲ್ಲಿದ್ದೀರಿ? ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸ್ಥಳ ಕಳುಹಿಸಿ.',
+    ml: 'നിങ്ങൾ എവിടെയാണ്? ദയവായി ലൊക്കേഷൻ അയക്കുക.',
+    or: 'ଆପଣ କେଉଁଠି ଅଛନ୍ତି? ଦୟାକରି ଲୋକେସନ ପଠାନ୍ତୁ।'
+  },
+  {
+    regex: /(?:how\s+much\s+is\s+the\s+cost|total\s+cost|rate\s+per\s+acre|rate|price)/i,
+    te: 'ఎకరాకు ఎంత ఖర్చు అవుతుంది? మొత్తం ఎంత?',
+    hi: 'प्रति एकड़ कितना खर्च होगा? कुल राशि कितनी है?',
+    ta: 'ஏக்கருக்கு எவ்வளவு கட்டணம்? மொத்தம் எவ்வளவு?',
+    kn: 'ಎಕರೆಗೆ ಎಷ್ಟು ವೆಚ್ಚವಾಗುತ್ತದೆ? ಒಟ್ಟು ದರ ಎಷ್ಟು?',
+    ml: 'ഏക്കറിന് എത്ര ചിലവാകും? ആകെ തുക എത്ര?',
+    or: 'ଏକର ପ୍ରତି କେତେ ଖର୍ଚ୍ଚ ହେବ? ମୋଟ କେତେ ଟଙ୍କା?'
+  },
+  {
+    regex: /(?:okay|ok|thank\s*you|thanks|done|confirmed)/i,
+    te: 'సరే, ధన్యవాదాలు! పని పూర్తయింది.',
+    hi: 'ठीक है, धन्यवाद! कार्य पक्का हुआ।',
+    ta: 'சரி, நன்றி! வேலை முடிந்தது.',
+    kn: 'ಸರಿ, ಧನ್ಯವಾದಗಳು! ಖಚಿತವಾಯಿತು.',
+    ml: 'ശരി, നന്ദി!',
+    or: 'ଠିକ୍ ଅଛି, ଧନ୍ୟବାଦ!'
+  }
+];
+
+export function translateChatMessage(text = '', lang = 'te') {
+  if (!text || typeof text !== 'string') return text;
+  const currentLang = (lang || 'en').toLowerCase().slice(0, 2);
+  if (currentLang === 'en') return text;
+
+  const trimmed = text.trim();
+
+  // 1. Direct regex rule lookup
+  for (const item of CHAT_PHRASES) {
+    if (item.regex.test(trimmed)) {
+      return item[currentLang] || item.te || text;
+    }
+  }
+
+  // 2. Booking system notices
+  if (/Machinery Booking Confirmed/i.test(trimmed)) {
+    const s = { te: 'బుకింగ్ ధృవీకరించబడింది', hi: 'बुकिंग कन्फर्म हो गई', ta: 'முன்பதிவு உறுதி செய்யப்பட்டது', kn: 'ಬುಕಿಂಗ್ ದೃಢೀಕರಿಸಲಾಗಿದೆ' };
+    return s[currentLang] || text;
+  }
+  if (/Booking Request Pending/i.test(trimmed)) {
+    const s = { te: 'బుకింగ్ అభ్యర్థన పెండింగ్‌లో ఉంది', hi: 'बुकिंग अनुरोध लंबित है', ta: 'முன்பதிவு கோரிக்கை நிலுவையில் உள்ளது', kn: 'ಬುಕಿಂಗ್ ಬಾಕಿ ಉಳಿದಿದೆ' };
+    return s[currentLang] || text;
+  }
+  if (/Booking Declined/i.test(trimmed)) {
+    const s = { te: 'బుకింగ్ తిరస్కరించబడింది', hi: 'बुकिंग अस्वीकार कर दी गई', ta: 'முன்பதிவு நிராகரிக்கப்பட்டது', kn: 'ಬುಕಿಂಗ್ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ' };
+    return s[currentLang] || text;
+  }
+
+  return text;
+}
+

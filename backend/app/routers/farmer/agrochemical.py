@@ -162,8 +162,7 @@ async def agrochemical_scan_endpoint(
 
 @router.post("/translate-agrochemical")
 async def translate_agrochemical_endpoint(
-    req: TranslateAgrochemicalRequest,
-    current_user: dict = Depends(get_current_user)
+    req: TranslateAgrochemicalRequest
 ):
     """
     On-demand translation endpoint for active agrochemical scan results.

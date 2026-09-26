@@ -527,18 +527,24 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     effective_crop_filter = crop_filter.strip() if (crop_filter and crop_filter.strip()) else None
 
     # Stage 1: Auto-Crop Prior Aggregation (Hierarchical Bayesian Clustering)
-    # When farmer submits without manual crop lock, aggregate class probability mass by crop family across all 1,252 classes
+    # When farmer submits without manual crop lock, aggregate class probability mass across genuine agricultural crops
+    KNOWN_AGRI_CROPS = {
+        "Tomato", "Potato", "Rice", "Paddy", "Chilli", "Cotton", "Groundnut", 
+        "Maize", "Corn", "Soybean", "Sugarcane", "Wheat", "Grape", "Apple", 
+        "Mango", "Banana", "Citrus", "Lemon", "Onion", "Peach", "Strawberry", "Cherry", "Papaya"
+    }
+
     if not effective_crop_filter:
         crop_family_mass = {}
         for idx, cls in enumerate(classes):
             c_name, _, c_status = parse_class_label(cls)
-            if c_status != "unsupported" and c_name not in ["Unknown", "General Plant"]:
+            if c_status != "unsupported" and c_name in KNOWN_AGRI_CROPS:
                 crop_family_mass[c_name] = crop_family_mass.get(c_name, 0.0) + float(probs[idx])
         
         if crop_family_mass:
             best_auto_crop, best_auto_mass = max(crop_family_mass.items(), key=lambda x: x[1])
-            # If the dominant crop family captures significant probability (> 10% mass across 1,252 classes)
-            if best_auto_mass >= 0.10:
+            # If the dominant crop family captures significant probability (> 12% mass across recognized crops)
+            if best_auto_mass >= 0.12 and best_auto_crop in KNOWN_AGRI_CROPS:
                 effective_crop_filter = best_auto_crop
 
     if effective_crop_filter:

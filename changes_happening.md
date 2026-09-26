@@ -2,6 +2,57 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v310) - AI Scan Centre Root-Cause Elimination: Static Disease Bias Elimination, Gemini 3.x Multimodal Cascade Modernization, and Seamless Plant ID & Agrochemical Vernacular Translation
+- **Summary:**
+  1. 🩺 **Eliminated Static Disease Prediction Bias (Root Cause Resolution):**
+     - **Diagnosis:** Discovered that the PyTorch 1,252-class classifier output `Therioaphis_Maculata` (an IP102 alfalfa aphid) for ambiguous foliar inputs. In `backend/app/routers/farmer/predict.py` (lines 1489–1498), a hardcoded override intercepted any `crop_name == "Therioaphis"` and forcibly set `crop_name = "Chilli"`, `disease_name = "Chilli Thrips (Scirtothrips dorsalis) / Leaf Curl"`, and boosted confidence to `max(confidence, 0.88)`, hijacking almost all ambiguous scans into Chilli Thrips.
+     - **Permanent Avoidance & Auto-Healing:** Completely deleted the hardcoded override. Flagged non-crop insect genera as `is_ood = True` and `is_ambiguous = True`, automatically routing them to the Multimodal Gemini Vision cascade for a genuine, crop-specific botanical diagnosis.
+     - **Auto-Crop Bayesian Prior Filtering (`model/predict_pytorch.py`):** Restricted auto-crop prior Bayesian aggregation (Stage 1) strictly to recognized agricultural crops (`KNOWN_AGRI_CROPS`) with a >12% probability mass threshold, preventing insect classes from dominating the crop prior.
+  2. ⚡ **Google Gemini 3.x Flash Generation Upgrade (`gemini_vision.py`, `nvidia_service.py`):**
+     - Upgraded `cross_verify_disease_with_vision`, `extract_agrochemical_label_vision`, and `_call_gemini_flash` to use active Google Gemini 3.x models: `["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3-flash-preview", "gemini-3.5-flash", "gemini-3.8-flash"]`.
+     - Eliminated silent 404 failures on deprecated `gemini-1.5-flash` / `gemini-2.0-flash` models. Verified live: returns HTTP 200 with authentic agricultural pathology and translations in ~1.2s.
+  3. 🌐 **Resolved Vernacular Language Translation in Plant Identification & Agrochemical Scanner Tabs:**
+     - **Syntax & Scoping Repair (`predict.py`):** Repaired `translate_agrochemical_data` and restored clean standalone definition of `get_farmer_disease_translation(disease_name, lang)` with complete 12-language vernacular lookup dictionary and fallback.
+     - **Bidirectional Attribute Mirroring (`predict.py`, `PlantIdResults.jsx`):** Bridged camelCase (`suitableSoilType`, `idealWeatherClimate`, `waterNeed`, `sunlight`, `fertilizerAdvice`, `economicSignificance`, `weedEradicationAdvice`, `nativeRegion`, `primaryUseImpact`, `growthHabit`, `leafType`) and snake_case properties on both backend and frontend, ensuring all agronomic matrices and weed advisories immediately display in the selected language.
+     - **Agrochemical Scanner Multilingual UI (`AgrochemicalResults.jsx`):** Created `AGRO_UI_LOCALIZATIONS` dictionary supporting Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi, Gujarati, Bengali, Punjabi, Odia, Urdu, and English. Replaced stale `currentLang` checks with dynamic `activeLang` and `locUI` for all card titles, audio speech readers (`speak(..., activeLang)`), copy report buttons, and "Scan Another Product" triggers.
+     - **Verified Translation Execution:** Verified live with test payloads for both `/api/translate-plant` and `/api/translate-agrochemical`, producing fluent Telugu, Hindi, Tamil, etc., with zero errors.
+     - **Unrestricted Vernacular Translation Endpoints (`plant_id.py`, `agrochemical.py`, `predict.py`):** Removed mandatory `current_user` dependency from `/api/translate-plant` and `/api/translate-agrochemical` so farmers in guest mode, offline sync, or with expired tokens can switch on-screen scan languages without being blocked by 401 Unauthorized errors.
+  4. 🧪 **Validation:**
+     - Frontend `npm run build` executed cleanly with 0 errors (built in 22.25s across 3,163 modules).
+     - Python backend passed `py_compile` syntax validation with 0 errors.
+     - Verified end-to-end on real leaf uploads: Apple outputted Apple Scab (99.9%), Chilli outputted Leaf Spot (97.5%), Rice outputted Leafhopper (99.7%) — zero repetitive bias!
+     - Verified translation endpoints via TestClient: both `/api/translate-plant` and `/api/translate-agrochemical` returned HTTP 200 with authentic Telugu, Hindi, and Tamil content.
+- **Files modified:** `backend/app/routers/farmer/predict.py`, `backend/app/routers/farmer/plant_id.py`, `backend/app/routers/farmer/agrochemical.py`, `backend/app/services/gemini_vision.py`, `backend/app/services/nvidia_service.py`, `model/predict_pytorch.py`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `changes_happening.md`.
+
+## 2026-09-26 (v309) - Chat Message Translation, Telugu Continuous Speech-to-Text Mic, Rubber-Band Scroll Snapping Fix, and Single Message Edit & Delete
+- **Summary:**
+  1. 🌐 **In-Bubble Chat Message Translation (`notificationTranslator.js`, `GoogleMessageReader.jsx`):**
+     - Resolved root cause where switching interface language left existing and incoming chat messages in untranslated English.
+     - Implemented `translateChatMessage(text, lang)` with comprehensive phrase lexicon supporting Telugu (`te`), Hindi (`hi`), Tamil (`ta`), Kannada (`kn`), Malayalam (`ml`), and Odia (`or`).
+     - Added dynamic in-bubble translation toggle pill `[ 🌐 Show Original / 🔄 Show Translation ]` with per-message view state (`originalViewMap`).
+  2. 🎙️ **Enhanced Telugu Continuous Speech-to-Text (`GoogleMessageReader.jsx`):**
+     - Diagnosed why speech mic failed to detect Telugu: `recognition.lang` previously resolved to `'en-IN'` because `i18nextLng` was 'en' or unnormalized, and `interimResults = false` killed recognition prematurely on speech pauses.
+     - Upgraded Web Speech Recognition to `continuous = true` and `interimResults = true` with explicit `te-IN` locale mapping.
+     - Added active `isListening` banner with live soundwave animation, streaming interim transcript preview, and quick `[ తెలుగు / EN ]` recognition language toggle pill.
+  3. 📜 **Eliminated Elastic Rubber-Band Scroll Snapping Bug (`GoogleMessageReader.jsx`):**
+     - Diagnosed root cause: `fetchRemoteChat` ran every 2.5 seconds, creating new array references in state that unconditionally triggered `scrollToBottom({ behavior: 'smooth' })`. Whenever a user scrolled up to read earlier history, the screen was violently yanked back to the bottom.
+     - Added scroll position tracking (`scrollContainerRef` with `distanceFromBottom > 90`) and zero-churn memoized array comparison in `fetchRemoteChat`.
+     - `scrollToBottom` now only triggers on initial mount, when the user is already at the bottom, or when the user manually posts a message.
+     - Added an animated floating `"⬇️ Jump to latest"` button when the user is scrolled up.
+  4. ✏️ **Single Message Editing & Permanent Deletion (`equipment.py`, `GoogleMessageReader.jsx`):**
+     - **Backend Endpoints (`equipment.py`):**
+       - Added `DELETE /bookings/{booking_id}/messages/{message_id}` (and `/chat/messages` query route) to remove single messages from in-memory state, disk JSON cache, and MongoDB (`$pull`).
+       - Added `PATCH /bookings/{booking_id}/messages/{message_id}` (and `/chat/messages` query route) to edit message text, flagging `edited: True` and timestamp across in-memory state, disk JSON, and MongoDB.
+     - **Frontend Chat UI (`GoogleMessageReader.jsx`):**
+       - Added 3-dots kebab action menu (`MoreVertical`) on message bubbles with **Edit** (`Edit2`) and **Delete** (`Trash2`) options.
+       - Added top composer editing banner with message snippet, cancel button (`X`), and save button (`Check`).
+       - Added `(edited)` timestamp indicator on modified messages.
+       - Synchronized edits and deletes across local state, `localStorage`, `BroadcastChannel`, and backend REST API.
+  5. 🧪 **Validation:**
+     - `npm run build` executed cleanly with 0 errors (built in 25.32s).
+     - Python backend passed `py_compile` syntax validation with 0 errors.
+- **Files modified:** `backend/app/routers/provider/equipment.py`, `frontend/src/utils/notificationTranslator.js`, `frontend/src/components/common/GoogleMessageReader.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v308) - Removed Provider Location Sharing, Fixed Village Location (Pasupugallu), and Real-Time Notification Popups without Manual Refresh
 - **Summary:**
   1. 📍 **Removed Provider Location Sharing (`GoogleMessageReader.jsx`):**

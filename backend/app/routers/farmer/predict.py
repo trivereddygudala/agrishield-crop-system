@@ -340,36 +340,41 @@ async def translate_plant_data(plant_obj: dict, target_lang: str) -> dict:
     # Determine authentic regional common name
     regional_names = plant_obj.get("regional_names") or source_obj.get("regional_names") or {}
     localized_name = regional_names.get(lang_code)
-    if not localized_name:
-        localized_name = get_farmer_crop_translation(source_obj.get("common_name", ""), lang_code)
+    raw_cname = source_obj.get("common_name", "") or source_obj.get("commonName", "") or source_obj.get("crop_name", "")
+    if not localized_name and raw_cname:
+        localized_name = get_farmer_crop_translation(raw_cname, lang_code)
     if not localized_name:
         try:
             from backend.app.services.plant_identifier.plant_information import get_authentic_regional_names
-            reg = get_authentic_regional_names(source_obj.get("common_name", "") or source_obj.get("scientific_name", ""))
-            localized_name = reg.get(lang_code, source_obj.get("common_name", ""))
+            reg = get_authentic_regional_names(raw_cname or source_obj.get("scientific_name", "") or source_obj.get("scientificName", ""))
+            localized_name = reg.get(lang_code, raw_cname)
             regional_names.update(reg)
         except Exception:
-            localized_name = source_obj.get("common_name", "")
+            localized_name = raw_cname
 
-    # Fields to translate from canonical English source
+    care_matrix = source_obj.get("general_care_matrix", {}) if isinstance(source_obj.get("general_care_matrix"), dict) else {}
+    growth_params = source_obj.get("growth_parameters", {}) if isinstance(source_obj.get("growth_parameters"), dict) else {}
+
+    # Fields to translate from canonical English source (accepting both snake_case and camelCase)
     fields_to_translate = {
-        "category": source_obj.get("category", ""),
-        "description": source_obj.get("description", ""),
-        "growth_stage": source_obj.get("growth_stage", ""),
+        "category": source_obj.get("category", "") or source_obj.get("identifiedType", ""),
+        "description": source_obj.get("description", "") or source_obj.get("botanical_description", "") or source_obj.get("botanicalDescription", ""),
+        "growth_stage": source_obj.get("growth_stage", "") or source_obj.get("growthHabit", ""),
         "growing_season": source_obj.get("growing_season", ""),
         "harvest_season": source_obj.get("harvest_season", ""),
-        "leaf_type": source_obj.get("leaf_type", ""),
-        "soil_type": source_obj.get("soil_type", ""),
-        "temperature_range": source_obj.get("temperature_range", ""),
-        "water_requirement": source_obj.get("water_requirement", ""),
-        "sunlight_requirement": source_obj.get("sunlight_requirement", ""),
-        "fertilizer_recommendation": source_obj.get("fertilizer_recommendation", ""),
-        "economic_importance": source_obj.get("economic_importance", ""),
-        "weed_eradication_advice": source_obj.get("weed_eradication_advice", ""),
-        "native_region": source_obj.get("native_region", ""),
-        "common_uses": source_obj.get("common_uses", []),
-        "common_diseases": source_obj.get("common_diseases", []),
-        "common_pests": source_obj.get("common_pests", [])
+        "leaf_type": source_obj.get("leaf_type", "") or source_obj.get("leafType", ""),
+        "soil_type": source_obj.get("soil_type", "") or source_obj.get("suitableSoilType", "") or source_obj.get("soilpH", "") or growth_params.get("soil_ph", ""),
+        "temperature_range": source_obj.get("temperature_range", "") or source_obj.get("idealWeatherClimate", "") or source_obj.get("temperature", "") or growth_params.get("ideal_temperature", ""),
+        "water_requirement": source_obj.get("water_requirement", "") or source_obj.get("waterNeed", "") or care_matrix.get("watering", ""),
+        "sunlight_requirement": source_obj.get("sunlight_requirement", "") or source_obj.get("sunlight", "") or care_matrix.get("sunlight", ""),
+        "fertilizer_recommendation": source_obj.get("fertilizer_recommendation", "") or source_obj.get("fertilizerAdvice", "") or source_obj.get("fertilizer", "") or care_matrix.get("fertilizer", ""),
+        "micronutrients": source_obj.get("micronutrients", "") or care_matrix.get("micronutrients", ""),
+        "economic_importance": source_obj.get("economic_importance", "") or source_obj.get("economicSignificance", "") or source_obj.get("primaryUseImpact", ""),
+        "weed_eradication_advice": source_obj.get("weed_eradication_advice", "") or source_obj.get("weedEradicationAdvice", "") or source_obj.get("weedEradication", ""),
+        "native_region": source_obj.get("native_region", "") or source_obj.get("nativeRegion", ""),
+        "common_uses": source_obj.get("common_uses", []) or source_obj.get("commonUses", []),
+        "common_diseases": source_obj.get("common_diseases", []) or source_obj.get("commonDiseases", []),
+        "common_pests": source_obj.get("common_pests", []) or source_obj.get("commonPests", [])
     }
     fields_to_send = {k: v for k, v in fields_to_translate.items() if v}
 
@@ -386,7 +391,7 @@ async def translate_plant_data(plant_obj: dict, target_lang: str) -> dict:
         "ur": "Urdu (اردو)",
         "bn": "Bengali (বাংলা)",
         "or": "Odia (ଓଡ଼ିଆ)",
-        "as": "Assamese (অসমীয়া)"
+        "as": "Assamese (অসমীయా)"
     }
     target_lang_name = lang_names.get(lang_code, "Indian regional language")
 
@@ -431,7 +436,7 @@ Fields to translate:
 
     # 3. Tertiary: Fast GoogleTranslator fallback with in-memory RAM cache
     is_untranslated = (
-        not translated_fields or
+        not translated_fields or len(translated_fields) == 0 or
         (fields_to_send.get("description") and translated_fields.get("description") == fields_to_send.get("description"))
     )
     if is_untranslated:
@@ -464,11 +469,90 @@ Fields to translate:
 
     # Construct translated plant dictionary
     translated_plant = plant_obj.copy()
-    translated_plant["common_name"] = localized_name or plant_obj.get("common_name", "")
+    final_cname = localized_name or plant_obj.get("common_name", "") or plant_obj.get("commonName", "")
+    translated_plant["common_name"] = final_cname
+    translated_plant["commonName"] = final_cname
     translated_plant["regional_names"] = regional_names
     for k, v in translated_fields.items():
         if v:
             translated_plant[k] = v
+
+    # Mirror translations into camelCase keys and direct fields for instant frontend binding
+    if "soil_type" in translated_fields:
+        translated_plant["suitableSoilType"] = translated_fields["soil_type"]
+        translated_plant["soil_type"] = translated_fields["soil_type"]
+        translated_plant["soilpH"] = translated_fields["soil_type"]
+    if "temperature_range" in translated_fields:
+        translated_plant["idealWeatherClimate"] = translated_fields["temperature_range"]
+        translated_plant["temperature_range"] = translated_fields["temperature_range"]
+        translated_plant["temperature"] = translated_fields["temperature_range"]
+    if "water_requirement" in translated_fields:
+        translated_plant["waterNeed"] = translated_fields["water_requirement"]
+        translated_plant["water_requirement"] = translated_fields["water_requirement"]
+    if "sunlight_requirement" in translated_fields:
+        translated_plant["sunlight"] = translated_fields["sunlight_requirement"]
+        translated_plant["sunlight_requirement"] = translated_fields["sunlight_requirement"]
+    if "fertilizer_recommendation" in translated_fields:
+        translated_plant["fertilizerAdvice"] = translated_fields["fertilizer_recommendation"]
+        translated_plant["fertilizer"] = translated_fields["fertilizer_recommendation"]
+        translated_plant["fertilizer_recommendation"] = translated_fields["fertilizer_recommendation"]
+    if "economic_importance" in translated_fields:
+        translated_plant["economicSignificance"] = translated_fields["economic_importance"]
+        translated_plant["primaryUseImpact"] = translated_fields["economic_importance"]
+        translated_plant["economic_importance"] = translated_fields["economic_importance"]
+    if "weed_eradication_advice" in translated_fields:
+        translated_plant["weedEradicationAdvice"] = translated_fields["weed_eradication_advice"]
+        translated_plant["weedEradication"] = translated_fields["weed_eradication_advice"]
+        translated_plant["weed_eradication_advice"] = translated_fields["weed_eradication_advice"]
+    if "native_region" in translated_fields:
+        translated_plant["nativeRegion"] = translated_fields["native_region"]
+        translated_plant["native_region"] = translated_fields["native_region"]
+    if "growth_stage" in translated_fields:
+        translated_plant["growthHabit"] = translated_fields["growth_stage"]
+        translated_plant["growth_stage"] = translated_fields["growth_stage"]
+    if "leaf_type" in translated_fields:
+        translated_plant["leafType"] = translated_fields["leaf_type"]
+        translated_plant["leaf_type"] = translated_fields["leaf_type"]
+    if "description" in translated_fields:
+        translated_plant["description"] = translated_fields["description"]
+        translated_plant["botanical_description"] = translated_fields["description"]
+        translated_plant["botanicalDescription"] = translated_fields["description"]
+
+    if "micronutrients" in translated_fields:
+        translated_plant["micronutrients"] = translated_fields["micronutrients"]
+
+    # Also update nested structures if present
+    if "general_care_matrix" in translated_plant and isinstance(translated_plant["general_care_matrix"], dict):
+        gcm = dict(translated_plant["general_care_matrix"])
+        if "water_requirement" in translated_fields:
+            gcm["watering"] = translated_fields["water_requirement"]
+        if "sunlight_requirement" in translated_fields:
+            gcm["sunlight"] = translated_fields["sunlight_requirement"]
+        if "fertilizer_recommendation" in translated_fields:
+            gcm["fertilizer"] = translated_fields["fertilizer_recommendation"]
+        if "micronutrients" in translated_fields:
+            gcm["micronutrients"] = translated_fields["micronutrients"]
+        translated_plant["general_care_matrix"] = gcm
+
+    if "care_matrix" in translated_plant and isinstance(translated_plant["care_matrix"], dict):
+        cm = dict(translated_plant["care_matrix"])
+        if "water_requirement" in translated_fields:
+            cm["watering"] = translated_fields["water_requirement"]
+        if "sunlight_requirement" in translated_fields:
+            cm["sunlight"] = translated_fields["sunlight_requirement"]
+        if "fertilizer_recommendation" in translated_fields:
+            cm["fertilizer"] = translated_fields["fertilizer_recommendation"]
+        if "micronutrients" in translated_fields:
+            cm["micronutrients"] = translated_fields["micronutrients"]
+        translated_plant["care_matrix"] = cm
+
+    if "growth_parameters" in translated_plant and isinstance(translated_plant["growth_parameters"], dict):
+        gp = dict(translated_plant["growth_parameters"])
+        if "soil_type" in translated_fields:
+            gp["soil_ph"] = translated_fields["soil_type"]
+        if "temperature_range" in translated_fields:
+            gp["ideal_temperature"] = translated_fields["temperature_range"]
+        translated_plant["growth_parameters"] = gp
 
     # Attach bidirectional multi-language cache
     if "translations" not in plant_obj:
@@ -502,13 +586,15 @@ async def translate_agrochemical_data(agro_obj: dict, target_lang: str) -> dict:
     source_obj = agro_obj.get("translations", {}).get("en", agro_obj)
     english_version = copy.deepcopy(source_obj)
 
-    prod_details = source_obj.get("product_details", {}) or {}
-    user_instr = source_obj.get("user_instructions", {}) or {}
-    chem_expl = source_obj.get("chemical_explanation", {}) or {}
+    info_dict = source_obj.get("info", {}) if isinstance(source_obj.get("info"), dict) else {}
+    prod_details = source_obj.get("product_details", {}) or info_dict.get("product_details", {}) or {}
+    user_instr = source_obj.get("user_instructions", {}) or info_dict.get("user_instructions", {}) or {}
+    chem_expl = source_obj.get("chemical_explanation", {}) or info_dict.get("chemical_explanation", {}) or {}
     growth_stages = chem_expl.get("fertilizer_growth_stages") or {}
 
     fields_to_translate = {
-        "detailed_description": prod_details.get("detailed_description", ""),
+        "detailed_description": prod_details.get("detailed_description", "") or source_obj.get("detailed_description", "") or info_dict.get("detailed_description", ""),
+        "primary_function": prod_details.get("primary_function", "") or source_obj.get("primary_function", "") or info_dict.get("primary_function", ""),
         "action_mode": chem_expl.get("action_mode", ""),
         "utility_and_benefits": chem_expl.get("utility_and_benefits", ""),
         "preharvest_interval": chem_expl.get("preharvest_interval", ""),
@@ -625,6 +711,11 @@ Fields to translate:
     if "product_details" in translated_agro and isinstance(translated_agro["product_details"], dict):
         if "detailed_description" in translated_fields:
             translated_agro["product_details"]["detailed_description"] = translated_fields["detailed_description"]
+        if "primary_function" in translated_fields:
+            translated_agro["product_details"]["primary_function"] = translated_fields["primary_function"]
+
+    if "primary_function" in translated_fields:
+        translated_agro["primary_function"] = translated_fields["primary_function"]
 
     if "user_instructions" in translated_agro and isinstance(translated_agro["user_instructions"], dict):
         if "best_spray_timing" in translated_fields:
@@ -640,7 +731,68 @@ Fields to translate:
         if "action_mode" in translated_fields:
             translated_agro["chemical_explanation"]["action_mode"] = translated_fields["action_mode"]
         if "utility_and_benefits" in translated_fields:
-          disease_db = {
+            translated_agro["chemical_explanation"]["utility_and_benefits"] = translated_fields["utility_and_benefits"]
+        if "preharvest_interval" in translated_fields:
+            translated_agro["chemical_explanation"]["preharvest_interval"] = translated_fields["preharvest_interval"]
+        if "approved_crops" in translated_fields:
+            translated_agro["chemical_explanation"]["approved_crops"] = translated_fields["approved_crops"]
+        if "target_diseases_and_pests" in translated_fields:
+            translated_agro["chemical_explanation"]["target_diseases_and_pests"] = translated_fields["target_diseases_and_pests"]
+
+        if "fertilizer_growth_stages" in translated_agro["chemical_explanation"] and isinstance(translated_agro["chemical_explanation"]["fertilizer_growth_stages"], dict):
+            gst = translated_agro["chemical_explanation"]["fertilizer_growth_stages"]
+            if "veg_stage" in translated_fields:
+                gst["vegetative_stage"] = translated_fields["veg_stage"]
+            if "bloom_stage" in translated_fields:
+                gst["flowering_stage"] = translated_fields["bloom_stage"]
+            if "fruit_stage" in translated_fields:
+                gst["fruiting_stage"] = translated_fields["fruit_stage"]
+
+    for field in ["farmer_tips", "dosage", "safety_instructions", "mixing_instructions"]:
+        if field in translated_fields:
+            translated_agro[field] = translated_fields[field]
+
+    # Mirror into info dict if present for backwards compatibility with legacy UI components
+    if "info" in translated_agro and isinstance(translated_agro["info"], dict):
+        if "detailed_description" in translated_fields:
+            translated_agro["info"]["detailed_description"] = translated_fields["detailed_description"]
+        if "primary_function" in translated_fields:
+            translated_agro["info"]["primary_function"] = translated_fields["primary_function"]
+        if "action_mode" in translated_fields:
+            translated_agro["info"]["action_mode"] = translated_fields["action_mode"]
+        if "utility_and_benefits" in translated_fields:
+            translated_agro["info"]["utility_and_benefits"] = translated_fields["utility_and_benefits"]
+        if "preharvest_interval" in translated_fields:
+            translated_agro["info"]["preharvest_interval"] = translated_fields["preharvest_interval"]
+        if "approved_crops" in translated_fields:
+            translated_agro["info"]["target_crops"] = translated_fields["approved_crops"]
+        if "target_diseases_and_pests" in translated_fields:
+            translated_agro["info"]["target_diseases"] = translated_fields["target_diseases_and_pests"]
+        if "chemical_explanation" in translated_agro and isinstance(translated_agro["chemical_explanation"], dict):
+            if "fertilizer_growth_stages" in translated_agro["chemical_explanation"]:
+                translated_agro["info"]["fertilizer_growth_stages"] = translated_agro["chemical_explanation"]["fertilizer_growth_stages"]
+
+
+    # Attach bidirectional multi-language cache
+    if "translations" not in agro_obj:
+        agro_obj["translations"] = {}
+    agro_obj["translations"]["en"] = english_version
+    agro_obj["translations"][lang_code] = copy.deepcopy(translated_agro)
+    translated_agro["translations"] = agro_obj["translations"]
+
+    return translated_agro
+
+
+def get_farmer_disease_translation(disease_name: str, lang: str) -> str:
+    """
+    Returns vernacular translation for common agricultural diseases across Indian languages.
+    """
+    if not disease_name:
+        return ""
+    dis_lower = disease_name.lower().strip()
+    lang_lower = lang.lower().strip()[:2]
+
+    disease_db = {
         "sheath blight": {
             "te": "పొడ తెగులు (షీత్ బ్లైట్)",
             "hi": "शीथ ब्लाइट (पर्णच्छद झुलसा)",
@@ -958,6 +1110,7 @@ Fields to translate:
     for dis_key, langs in disease_db.items():
         if dis_key in dis_lower:
             return langs.get(lang_lower, disease_name)
+    return disease_name
 
 
 router = APIRouter(prefix="/api", tags=["Predictions"])
@@ -1197,8 +1350,7 @@ async def scan_agrochemical_endpoint(
 
 @router.post("/translate-agrochemical")
 async def translate_agrochemical_endpoint(
-    req: TranslateAgrochemicalRequest,
-    current_user: dict = Depends(get_current_user)
+    req: TranslateAgrochemicalRequest
 ):
     """
     On-demand translation endpoint for active agrochemical scan results.
@@ -1330,8 +1482,7 @@ async def identify_plant_endpoint(
 
 @router.post("/translate-plant")
 async def translate_plant_endpoint(
-    req: TranslatePlantRequest,
-    current_user: dict = Depends(get_current_user)
+    req: TranslatePlantRequest
 ):
     """
     On-demand translation endpoint for active plant identification results.
@@ -1485,35 +1636,22 @@ async def predict_pytorch_endpoint(
     except Exception as chew_ex:
         logger.debug(f"Chewing pest analysis exception: {chew_ex}")
 
-    # Normalize non-crop insect genus labels (e.g. Therioaphis maculata / spotted alfalfa aphid)
-    if prediction_result.get("crop_name") in ["Therioaphis", "General Plant", "Unknown"] or raw_label.startswith("Therioaphis"):
-        target_c = (user_crop_filter or "Chilli").title()
-        prediction_result["crop_name"] = target_c
-        if target_c.lower() in ["chilli", "pepper", "capsicum"]:
-            prediction_result["disease_name"] = "Chilli Thrips (Scirtothrips dorsalis) / Leaf Curl"
-            prediction_result["raw_label"] = "Chilli___Thrips"
-            prediction_result["prediction_status"] = "diseased"
-            prediction_result["confidence"] = max(confidence, 0.88)
-            confidence = prediction_result["confidence"]
+    # Identify non-crop insect genus labels or unverified model anomalies from IP102 dataset
+    is_non_crop_label = (
+        prediction_result.get("crop_name") in ["Therioaphis", "General Plant", "Unknown", "Acrobasis", "Lytta", "Spodoptera"] or 
+        raw_label.startswith(("Therioaphis", "Lytta", "Acrobasis", "General_Plant"))
+    )
+    if is_non_crop_label:
+        is_ood = True
+        prediction_result["prediction_status"] = "unsupported"
+        if user_crop_filter:
+            prediction_result["crop_name"] = user_crop_filter.title()
 
-    # Auxiliary Chewing Defoliation Check (Only applied to known caterpillar host crops, never to curled chilli foliage)
+    # Auxiliary Chewing Defoliation Check (Only applied to known caterpillar host crops when chewing holes are physically detected)
     final_crop_low = (user_crop_filter or prediction_result.get("crop_name", "")).lower()
     if is_ood and confidence < 0.50 and chewing_analysis and chewing_analysis.get("detected"):
         final_crop = user_crop_filter.title() if user_crop_filter else prediction_result.get("crop_name", "Crop")
-        if final_crop_low in ["chilli", "pepper", "capsicum"]:
-            # In Chilli, leaf curling and edge puckering is caused by Thrips (Scirtothrips dorsalis) or Leaf Curl Virus, never caterpillars
-            pest_name = "Chilli Thrips (Scirtothrips dorsalis) / Leaf Curl"
-            pest_conf = 0.90
-            prediction_result["crop_name"] = final_crop
-            prediction_result["disease_name"] = pest_name
-            prediction_result["confidence"] = pest_conf
-            prediction_result["prediction_status"] = "diseased"
-            prediction_result["disease_severity"] = "Moderate"
-            prediction_result["raw_label"] = f"{final_crop}___Thrips"
-            confidence = pest_conf
-            prediction_result["chemical_treatment"] = "Spray Solomon (Bayer) @ 1.0 ml/L or Exponus (BASF) @ 0.5 ml/L or JUMP (Bayer) @ 0.3 g/L."
-            prediction_result["organic_treatment"] = "Install blue and yellow sticky traps (20/acre) + Spray cold-pressed Neem Oil (10,000 ppm) @ 5 ml/L."
-        else:
+        if final_crop_low not in ["chilli", "pepper", "capsicum"]:
             pest_name = "Spodoptera litura (Tobacco Caterpillar) / Cutworm Infestation"
             pest_conf = float(chewing_analysis.get("confidence", 0.85))
             prediction_result["crop_name"] = final_crop
@@ -1528,7 +1666,7 @@ async def predict_pytorch_endpoint(
             prediction_result["organic_treatment"] = "Apply Bacillus thuringiensis (Bt) @ 2.0 g/L or Neem Oil (10,000 ppm) @ 5 ml/L with soap surfactant."
 
     # Evaluate Ambiguity
-    is_ambiguous = is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
+    is_ambiguous = is_non_crop_label or is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
     prediction_result["is_ambiguous"] = is_ambiguous
 
     # Dual AI Ensemble: If confidence is below 75%, ambiguous, or flagged as OOD, cross-verify with Google Gemini Flash Vision

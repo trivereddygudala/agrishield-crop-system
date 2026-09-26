@@ -276,7 +276,13 @@ class NVIDIAService:
                 }
             }
 
-            models_to_try = ["gemini-flash-lite-latest", "gemini-flash-latest"]
+            models_to_try = [
+                "gemini-3.5-flash-lite",
+                "gemini-3.1-flash-lite",
+                "gemini-3-flash-preview",
+                "gemini-3.5-flash",
+                "gemini-3.8-flash"
+            ]
             async with httpx.AsyncClient(timeout=8.0) as http_client:
                 for model_name in models_to_try:
                     try:

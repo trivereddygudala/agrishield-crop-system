@@ -95,8 +95,7 @@ async def identify_plant_endpoint(
 
 @router.post("/translate-plant")
 async def translate_plant_endpoint(
-    req: TranslatePlantRequest,
-    current_user: dict = Depends(get_current_user)
+    req: TranslatePlantRequest
 ):
     """
     On-demand translation endpoint for active plant identification results.

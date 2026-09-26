@@ -835,7 +835,19 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
 
     return {
       ...merged,
-      commonName: finalCommonName
+      commonName: finalCommonName,
+      description: localizedOverride?.description || merged.description,
+      suitableSoilType: localizedOverride?.suitableSoilType || localizedOverride?.soil_type || merged.suitableSoilType,
+      idealWeatherClimate: localizedOverride?.idealWeatherClimate || localizedOverride?.temperature_range || merged.idealWeatherClimate,
+      waterNeed: localizedOverride?.waterNeed || localizedOverride?.water_requirement || merged.waterNeed,
+      sunlight: localizedOverride?.sunlight || localizedOverride?.sunlight_requirement || merged.sunlight,
+      fertilizerAdvice: localizedOverride?.fertilizerAdvice || localizedOverride?.fertilizer_recommendation || merged.fertilizerAdvice,
+      economicSignificance: localizedOverride?.economicSignificance || localizedOverride?.economic_importance || merged.economicSignificance,
+      primaryUseImpact: localizedOverride?.primaryUseImpact || localizedOverride?.economic_importance || merged.primaryUseImpact,
+      weedEradicationAdvice: localizedOverride?.weedEradicationAdvice || localizedOverride?.weed_eradication_advice || merged.weedEradicationAdvice,
+      nativeRegion: localizedOverride?.nativeRegion || localizedOverride?.native_region || merged.nativeRegion,
+      growthHabit: localizedOverride?.growthHabit || localizedOverride?.growth_stage || merged.growthHabit,
+      leafType: localizedOverride?.leafType || localizedOverride?.leaf_type || merged.leafType
     };
   }, [rawInfo, translatedCache, activeLang]);
 
