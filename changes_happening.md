@@ -2,6 +2,33 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v313) - Admin Portal Upgrades: Isolated Notifications & Rich Onboarding Cards, Dual Helpdesk Routing, Targeted Broadcast Hub with In-Place History, Sleek Module Navigation, Admin Copilot Specialization & Universal Voice Deduplication Engine
+- **Summary:**
+  1. 🎙️ **Universal Speech-to-Text Deduplication Engine Across All Portals (`speechSanitizer.js`, `AIAssistantPage.jsx`, `GoogleMessageReader.jsx`, `FloatingAIAssistant.jsx`, `VoiceCropDoctorModal.jsx`):**
+     - Architected `deduplicateSpeechTranscript` and `processSpeechRecognitionEvent` eliminating the Android Chrome Web Speech API multi-token stutter glitch (*"whatwhat arewhat are thewhat are the recent..."*).
+     - Separated `isFinal` and `interimTranscript` buffers with token-level and n-gram loop suppression.
+     - Applied universally across AI Copilot chat, Messaging & Notifications voice input, Floating Assistant, and Voice Doctor modal.
+  2. 🔔 **Admin Notifications Isolation & Rich Onboarding Cards (`NotificationsPage.jsx`):**
+     - Gated personal machinery booking synthesis to farmers only (`if (!isEquipmentProvider && !isAdmin)`), completely removing Ramesh provider bookings from the Admin inbox.
+     - Implemented Admin-specific category filter chips: `All`, `Unread`, `🌾 Farmers & Fields`, `🚜 Providers & Machinery`, `🆘 Helpdesk Tickets`, `🚨 System & Security`, `📢 Broadcasts Sent`.
+     - Synthesized rich activity cards for Admin: **New Farmer Registrations** (phone, district, language, onboarding status), **New Farm Field Additions** (acres, soil, crop, location), **New Equipment Provider Onboardings** (owner, hub, KYC status), and **New Machinery Listings** (rate, horsepower, provider).
+  3. 📢 **Targeted Multi-Channel Global Broadcasts & In-Place History (`AdminPage.jsx`):**
+     - Added targeted channel selector pills: `🌾 Farmers Channel`, `🚜 Equipment Providers Channel`, and `🌐 All Users Channel` with dynamic audience counts.
+     - Integrated a top sub-navigation switcher (`[ 📢 Dispatch New Broadcast ]` | `[ 📜 Broadcast History ]`).
+     - Built an embedded responsive broadcast history feed showing past dispatches, audience reach, delivery status, timestamps, and 🗑️ recall controls directly inside the module without navigating away to notifications.
+  4. 🎨 **Sleek Single-Row Module Navigation Bar (`AdminPage.jsx`):**
+     - Removed the redundant, awkward breadcrumb line (`Admin Hub > Tab Name`) across all 8 administrative modules.
+     - Redesigned the top navigation bar into a unified, clean responsive flex row: `[ ← Return to Admin Modules ]` on the left and `[ 🔄 Refresh Data ]` on the right.
+  5. 🎧 **Equipment Provider Helpdesk Access & Dual Admin Routing (`ProviderDashboardPage.jsx`, `NotificationsPage.jsx`):**
+     - Added a prominent `Helpdesk & Support` button in the Provider Dashboard header, granting machinery providers direct access to `/support`.
+     - Contextualized Helpdesk tickets in Admin view with distinct badges and identities (`🌾 Farmer: [Name]` vs `🚜 Provider: [Name]`).
+  6. 🤖 **Admin Intelligence AI Copilot Specialization (`AIAssistantPage.jsx`):**
+     - Conditionally hid the farmer-facing `🌿 AgriShield Live` voice assistant button for administrators.
+     - Dedicated the Copilot strictly to enterprise administration (security audits, rate limits, telemetry, user management, and platform health).
+  7. 🧪 **Validation:**
+     - Executed full production build `npm --prefix frontend run build`: cleanly bundled 3,164 modules in 27.62s with **0 errors**.
+- **Files modified:** `frontend/src/components/FloatingAIAssistant.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`, `frontend/src/pages/admin/AdminPage.jsx`, `frontend/src/pages/common/AIAssistantPage.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/utils/speechSanitizer.js`, `changes_happening.md`.
+
 ## 2026-09-26 (v312) - Voice Note Actions & Native Playback, Telinglish TTS Phonics, WhatsApp Unread Zero-Sync, Instant Disease Alerts, Plantix WebP Thumbnails & Tri-Cluster Load Balancer
 - **Summary:**
   1. 🎙️ **Voice Notes Deletion Menu & True Audio Playback (`GoogleMessageReader.jsx`):**

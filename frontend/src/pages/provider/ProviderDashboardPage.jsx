@@ -1158,6 +1158,17 @@ export default function ProviderDashboardPage() {
 
           {/* Action Pills */}
           <div className="flex flex-wrap items-center gap-3">
+            {/* Machinery Provider Helpdesk Link */}
+            <button
+              type="button"
+              onClick={() => navigate('/support')}
+              className="px-4 py-2.5 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-black flex items-center gap-2 transition-all shadow-xs cursor-pointer btn-spring"
+              title={isTe ? "మెషినరీ ప్రొవైడర్ హెల్ప్‌డెస్క్ & వివాద పరిష్కారం" : "Machinery Provider Helpdesk & Support"}
+            >
+              <Headphones className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>{isTe ? 'హెల్ప్‌డెస్క్ సహాయం' : 'Helpdesk & Support'}</span>
+            </button>
+
             {/* ── HIGH VISIBILITY ONLINE / OFFLINE TOGGLE BUTTON ── */}
             <button
               type="button"

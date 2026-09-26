@@ -189,3 +189,80 @@ export function cleanChatBubbleText(text, lang = 'en') {
 
   return s;
 }
+
+/**
+ * High-Precision Speech-to-Text Deduplication Engine
+ * Fixes Web Speech API multi-token repetition loops on Android & mobile browsers
+ * (e.g. eliminates "whatwhat arewhat are thewhat are the recent..." stutter glitch).
+ */
+export function deduplicateSpeechTranscript(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+
+  let text = raw.trim();
+
+  // 1. Fix glued repeated words (e.g., "whatwhat" -> "what")
+  text = text.replace(/([a-zA-Z\u0C00-\u0C7F\u0900-\u097F]{3,})\1+/gi, '$1');
+
+  // 2. Tokenize into words
+  const tokens = text.split(/\s+/).filter(Boolean);
+  if (tokens.length <= 1) return text;
+
+  // 3. Remove consecutive repeated words ("recent recent" -> "recent")
+  const dedupedTokens = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const cur = tokens[i];
+    const prev = dedupedTokens[dedupedTokens.length - 1];
+    if (!prev || cur.toLowerCase() !== prev.toLowerCase()) {
+      dedupedTokens.push(cur);
+    }
+  }
+
+  // 4. Multi-word phrase loop suppression (e.g., "what are the what are the" -> "what are the")
+  let words = [...dedupedTokens];
+  let changed = true;
+  let iterations = 0;
+  while (changed && iterations < 10) {
+    changed = false;
+    iterations++;
+    for (let k = 2; k <= 6; k++) {
+      for (let i = 0; i <= words.length - 2 * k; i++) {
+        const phraseA = words.slice(i, i + k).join(' ').toLowerCase();
+        const phraseB = words.slice(i + k, i + 2 * k).join(' ').toLowerCase();
+        if (phraseA === phraseB) {
+          words.splice(i + k, k);
+          changed = true;
+          break;
+        }
+      }
+      if (changed) break;
+    }
+  }
+
+  return words.join(' ');
+}
+
+/**
+ * Universal processor for Web Speech API `onresult` events across all portals
+ * Handles Android Chrome SpeechRecognition results with clean separation of
+ * final and interim buffers.
+ */
+export function processSpeechRecognitionEvent(event) {
+  if (!event || !event.results) return '';
+
+  let finalTranscript = '';
+  let interimTranscript = '';
+
+  for (let i = 0; i < event.results.length; ++i) {
+    const res = event.results[i];
+    const transcriptText = res[0]?.transcript || '';
+    if (res.isFinal) {
+      finalTranscript += ' ' + transcriptText;
+    } else {
+      interimTranscript = transcriptText;
+    }
+  }
+
+  const combined = (finalTranscript + ' ' + interimTranscript).trim();
+  return deduplicateSpeechTranscript(combined);
+}
+

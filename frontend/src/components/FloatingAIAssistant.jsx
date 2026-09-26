@@ -43,6 +43,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSpeechReader } from '../hooks/useSpeechReader';
 import { compressImageForUpload } from '../utils/imageCompression';
 import { printPrescriptionSlip } from '../utils/prescriptionShare';
+import { deduplicateSpeechTranscript } from '../utils/speechSanitizer';
 
 /* ───────────────────────────────────────
    Inline text renderer: **bold**, `code`
@@ -494,7 +495,8 @@ export default function FloatingAIAssistant() {
         recognition.lang = bcpMap[activeLangKey] || 'en-IN';
 
         recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
+          const raw = event.results[0]?.[0]?.transcript || '';
+          const transcript = deduplicateSpeechTranscript(raw);
           if (transcript) {
             setInputValue(transcript);
             handleSend(transcript);

@@ -18,6 +18,7 @@ import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { compressImageForUpload } from '../../utils/imageCompression';
 import { printPrescriptionSlip } from '../../utils/prescriptionShare';
 import { generateAndDownloadPrescriptionPDF } from '../../utils/pdfPrescriptionGenerator';
+import { processSpeechRecognitionEvent } from '../../utils/speechSanitizer';
 import VoiceCropDoctorModal from '../../components/intelligence/VoiceCropDoctorModal';
 
 /* ───────────────────────────────────────
@@ -815,7 +816,7 @@ const AIAssistantPage = () => {
       rec.lang = bcpMap[activeLangKey] || 'en-IN';
       rec.onstart = () => setIsListening(true);
       rec.onresult = (e) => {
-        const transcript = Array.from(e.results).map(res => res[0].transcript).join('');
+        const transcript = processSpeechRecognitionEvent(e);
         if (transcript) {
           setInputQuery(transcript);
         }
@@ -1032,19 +1033,21 @@ const AIAssistantPage = () => {
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* AgriShield Live Assistant Button */}
-            <button
-              onClick={() => setShowVoiceDoctor(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 dark:text-emerald-300 text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
-              title={isTe ? "అగ్రిషీల్డ్ లైవ్ అసిస్టెంట్ తెరవండి" : "Open AgriShield Live Assistant"}
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="font-extrabold tracking-wide">AgriShield Live</span>
-            </button>
+            {/* AgriShield Live Assistant Button (Only for Farmers / Non-Admin) */}
+            {userRole !== 'admin' && (
+              <button
+                onClick={() => setShowVoiceDoctor(true)}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 dark:text-emerald-300 text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+                title={isTe ? "అగ్రిషీల్డ్ లైవ్ అసిస్టెంట్ తెరవండి" : "Open AgriShield Live Assistant"}
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-extrabold tracking-wide">AgriShield Live</span>
+              </button>
+            )}
 
             <button 
               onClick={fetchSessions}

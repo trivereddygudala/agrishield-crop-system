@@ -21,6 +21,7 @@ import {
   getDetailedAgronomicDescription
 } from '../../utils/diseaseAdvisoryData';
 import { translateNotification, translateChatMessage } from '../../utils/notificationTranslator';
+import { deduplicateSpeechTranscript } from '../../utils/speechSanitizer';
 
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
@@ -506,7 +507,7 @@ export default function GoogleMessageReader({
           setLiveSpeechTranscript(interim);
         }
         if (final) {
-          setInputText(prev => prev ? `${prev} ${final.trim()}` : final.trim());
+          setInputText(prev => deduplicateSpeechTranscript(prev ? `${prev} ${final.trim()}` : final.trim()));
           setLiveSpeechTranscript('');
         }
       };

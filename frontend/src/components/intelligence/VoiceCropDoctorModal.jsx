@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFarm } from '../../context/FarmContext';
-import { sanitizeTextForSpeech, cleanChatBubbleText } from '../../utils/speechSanitizer';
+import { sanitizeTextForSpeech, cleanChatBubbleText, processSpeechRecognitionEvent } from '../../utils/speechSanitizer';
 import API from '../../services/api';
 
 // 6 Official Supported Regional Languages for AgriShield Live
@@ -144,10 +144,7 @@ export const VoiceCropDoctorModal = ({
     };
 
     rec.onresult = (event) => {
-      let fullTranscript = '';
-      for (let i = 0; i < event.results.length; i++) {
-        fullTranscript += event.results[i][0].transcript;
-      }
+      const fullTranscript = processSpeechRecognitionEvent(event);
       setTranscript(fullTranscript);
       setTextInput(fullTranscript);
 
