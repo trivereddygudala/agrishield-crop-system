@@ -2,15 +2,15 @@ import axios from 'axios';
 
 export const PRIMARY_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.com';
 export const SECONDARY_RENDER_BACKEND = 'https://agrishield-ai-worker-2.onrender.com';
+export const TERTIARY_RENDER_BACKEND = 'https://agrishield-ai-worker-3.onrender.com';
 export const LEGACY_RENDER_BACKEND = 'https://agrishield-crop-system.onrender.com';
 
 /**
  * Intelligent Cluster Router:
- * Dynamically partitions workloads across the 3 Render accounts to prevent memory bottlenecking
- * and optimize free-tier resource allocation (3x 750 free compute hours).
+ * Dynamically partitions workloads across the Render worker cluster:
  *
  * 1. Worker 1 (agrishield-ai-worker-1): Deep Learning PyTorch AI inference (/api/predict, /api/upload)
- * 2. Worker 2 (agrishield-ai-worker-2): Species ID, OCR vision & translation (/api/identify-plant, /api/agrochemical-scan)
+ * 2. Worker 3 (agrishield-ai-worker-3): Species ID, OCR vision, translations & AI load-balancer (/api/identify-plant, /api/agrochemical-scan)
  * 3. Main Node (agrishield-crop-system): Auth, Equipment Rental, Real-Time Notifications, History, DB Transactions
  */
 export const getTargetClusterNode = (url) => {
@@ -22,14 +22,14 @@ export const getTargetClusterNode = (url) => {
     return PRIMARY_RENDER_BACKEND;
   }
 
-  // Worker 2: Species Identification, OCR Agrochemical Scan & Botanical Translations
+  // Worker 3: Species Identification, OCR Agrochemical Scan & Botanical Translations (fresh active worker)
   if (
     path.includes('/identify-plant') ||
     path.includes('/agrochemical') ||
     path.includes('/translate') ||
     path.includes('/crop-advisor')
   ) {
-    return SECONDARY_RENDER_BACKEND;
+    return TERTIARY_RENDER_BACKEND;
   }
 
   // Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, IoT
@@ -116,6 +116,8 @@ API.interceptors.response.use(
         const fallbackConfig = { ...originalRequest };
         const currentBase = fallbackConfig.baseURL || '';
         if (currentBase === PRIMARY_RENDER_BACKEND) {
+          fallbackConfig.baseURL = TERTIARY_RENDER_BACKEND;
+        } else if (currentBase === TERTIARY_RENDER_BACKEND) {
           fallbackConfig.baseURL = SECONDARY_RENDER_BACKEND;
         } else if (currentBase === SECONDARY_RENDER_BACKEND) {
           fallbackConfig.baseURL = LEGACY_RENDER_BACKEND;

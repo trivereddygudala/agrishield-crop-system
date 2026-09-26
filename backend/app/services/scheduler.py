@@ -170,6 +170,10 @@ async def render_keepalive_loop():
         if w2_url:
             target_urls.add(w2_url)
             
+        w3_url = (os.getenv("AI_WORKER_3_URL", "https://agrishield-ai-worker-3.onrender.com") or "").strip().rstrip("/")
+        if w3_url:
+            target_urls.add(w3_url)
+            
         extra_urls = os.getenv("EXTRA_KEEPALIVE_URLS", "")
         if extra_urls:
             for u in extra_urls.split(","):

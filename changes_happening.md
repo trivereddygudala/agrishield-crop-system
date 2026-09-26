@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v315) - Distributed AI Cluster Scaling: Render AI Worker 3 Integration & 4-Tier Automated Failover Routing
+- **Summary:**
+  1. 🌐 **AI Worker 3 Public Deployment Live (`https://agrishield-ai-worker-3.onrender.com`):**
+     - Provisioned dedicated high-speed cloud container on Render Account 4 with fresh 500 monthly build pipeline minutes.
+     - Verified live connectivity: Swagger OpenAPI `/docs` responding with **HTTP 200 OK**.
+  2. ⚙️ **Backend Cluster Configuration (`config.py`, `ai_cluster.py`, `scheduler.py`):**
+     - Registered `AI_WORKER_3_URL = "https://agrishield-ai-worker-3.onrender.com"` in application core configuration.
+     - Added Worker 3 into `AIClusterDispatcher` round-robin prediction load balancer pool across Worker 1, Worker 2, and Worker 3.
+     - Wired Worker 3 into background scheduler heartbeat ping (`CLUSTER KEEPALIVE`) to prevent idle spin-down.
+  3. 🚀 **Frontend Intelligent Cluster Router (`api.js`):**
+     - Exported `TERTIARY_RENDER_BACKEND = 'https://agrishield-ai-worker-3.onrender.com'`.
+     - Routed botanical identification (`/identify-plant`), agrochemical label scans (`/agrochemical`), and translations to Worker 3.
+     - Upgraded automated Axios failover cycle across all 4 cluster nodes: Primary (Worker 1) $\rightarrow$ Tertiary (Worker 3) $\rightarrow$ Secondary (Worker 2) $\rightarrow$ Legacy Main Node $\rightarrow$ Primary.
+- **Files modified:** `backend/app/core/config.py`, `backend/app/services/ai_cluster.py`, `backend/app/services/scheduler.py`, `frontend/src/services/api.js`, `changes_happening.md`.
+
 ## 2026-09-26 (v314) - Enterprise Notification System Hardening: Multi-Strategy Role-Aware Dispatch, Operational Category Whitelisting, and End-to-End Delivery Resilience
 - **Summary:**
   1. 🛡️ **Insecure Debug Endpoint Removal & WebSocket Auth Hardening (`notifications.py`):**

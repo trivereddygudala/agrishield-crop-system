@@ -27,9 +27,10 @@ class AIClusterDispatcher:
         workers = []
         w1 = (getattr(settings, "AI_WORKER_1_URL", "") or os.environ.get("AI_WORKER_1_URL", "")).strip().rstrip("/")
         w2 = (getattr(settings, "AI_WORKER_2_URL", "") or os.environ.get("AI_WORKER_2_URL", "")).strip().rstrip("/")
+        w3 = (getattr(settings, "AI_WORKER_3_URL", "") or os.environ.get("AI_WORKER_3_URL", "")).strip().rstrip("/")
         
         now = time.time()
-        for w in [w1, w2]:
+        for w in [w1, w2, w3]:
             if w and now > self._worker_cooldowns.get(w, 0.0):
                 workers.append(w)
         return workers
