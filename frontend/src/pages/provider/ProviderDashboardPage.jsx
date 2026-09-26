@@ -896,6 +896,14 @@ export default function ProviderDashboardPage() {
           window.dispatchEvent(new CustomEvent('agrishield_chat_message_sent', {
             detail: { storageKey: canonicalKey, message: noticeMsg }
           }));
+          try {
+            if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+              const bc = new BroadcastChannel('agrishield_equipment_chat');
+              bc.postMessage({ canonicalBookingId: `BK-${cleanBId}`, message: noticeMsg });
+              bc.close();
+            }
+          } catch (_) {}
+          API.post(`/api/v1/equipment/bookings/BK-${cleanBId}/messages`, noticeMsg).catch(() => {});
         } catch (_) {}
 
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));

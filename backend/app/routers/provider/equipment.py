@@ -66,9 +66,44 @@ def _save_disk_catalog():
     except Exception as e:
         print(f"⚠️ [EquipmentCatalog] Failed saving to disk: {e}")
 
+CHAT_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "equipment_chat_messages.json")
+_in_memory_chat_threads: Dict[str, List[Dict[str, Any]]] = {}
+
+def _normalize_chat_booking_id(raw_id: str) -> str:
+    raw = str(raw_id or "").strip()
+    clean = raw.replace("notif-stat-", "").replace("notif-order-", "").replace("notif-chat-", "").replace("notif-", "").replace("fleet_", "")
+    if clean.startswith("BK-") or clean.startswith("INQ-"):
+        return clean
+    if clean.isdigit() or (len(clean) > 0 and not clean.startswith("BK-")):
+        return f"BK-{clean}"
+    return "BK-GENERAL"
+
+def _load_disk_chat_messages() -> Dict[str, List[Dict[str, Any]]]:
+    global _in_memory_chat_threads
+    if os.path.exists(CHAT_FILE):
+        try:
+            with open(CHAT_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    _in_memory_chat_threads = data
+                    return _in_memory_chat_threads
+        except Exception as e:
+            print(f"⚠️ [EquipmentChat] Failed loading from disk: {e}")
+    return _in_memory_chat_threads
+
+def _save_disk_chat_messages():
+    global _in_memory_chat_threads
+    try:
+        os.makedirs(os.path.dirname(CHAT_FILE), exist_ok=True)
+        with open(CHAT_FILE, "w", encoding="utf-8") as f:
+            json.dump(_in_memory_chat_threads, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ [EquipmentChat] Failed saving to disk: {e}")
+
 # Initialize from disk on startup
 _load_disk_bookings()
 _load_disk_catalog()
+_load_disk_chat_messages()
 
 
 @router.get("/bookings")
@@ -608,3 +643,147 @@ async def delete_equipment_item(equipment_id: str):
             pass
 
     return {"success": True, "message": f"Equipment listing {equipment_id} permanently removed across all devices"}
+
+
+# ═══════════════════════════════════════════════════════════════════
+# CROSS-DEVICE REAL-TIME EQUIPMENT CHAT MESSAGING ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════
+
+@router.get("/bookings/{booking_id}/messages")
+async def get_booking_chat_messages(booking_id: str):
+    """
+    Retrieve all real-time chat messages for an equipment booking thread.
+    Synchronizes cross-browser, cross-device communications between Farmer and Provider.
+    """
+    canonical_id = _normalize_chat_booking_id(booking_id)
+    messages = []
+
+    # 1. Check MongoDB if active
+    if db_instance.db is not None:
+        try:
+            doc = await db_instance.db["equipment_chat_messages"].find_one({
+                "$or": [
+                    {"booking_id": canonical_id},
+                    {"booking_id": booking_id},
+                    {"bookingId": canonical_id}
+                ]
+            })
+            if doc and isinstance(doc.get("messages"), list):
+                messages = doc["messages"]
+        except Exception as e:
+            print(f"⚠️ [EquipmentChat] Mongo fetch notice: {e}")
+
+    # 2. Check in-memory / disk cache if mongo was empty or offline
+    if not messages:
+        threads = _load_disk_chat_messages()
+        messages = threads.get(canonical_id) or threads.get(booking_id) or []
+
+    return {
+        "success": True,
+        "booking_id": canonical_id,
+        "count": len(messages),
+        "messages": messages
+    }
+
+
+@router.post("/bookings/{booking_id}/messages")
+async def send_booking_chat_message(
+    booking_id: str,
+    payload: Dict[str, Any] = Body(...)
+):
+    """
+    Post a new chat message to a booking thread.
+    Instantly saves and propagates to all active devices (web, mobile, cross-browser).
+    """
+    global _in_memory_chat_threads
+    canonical_id = _normalize_chat_booking_id(booking_id)
+
+    msg_id = payload.get("id") or f"msg_{int(datetime.now().timestamp() * 1000)}"
+    text = (payload.get("text") or "").strip()
+    sender = payload.get("sender") or "farmer"
+    sender_name = payload.get("senderName") or ("Equipment Provider" if sender == "provider" else "Farmer")
+    msg_type = payload.get("type") or "text"
+    time_str = payload.get("time") or datetime.now().strftime("%I:%M %p")
+    timestamp = payload.get("timestamp") or datetime.now().isoformat()
+
+    new_message = {
+        "id": msg_id,
+        "sender": sender,
+        "senderName": sender_name,
+        "type": msg_type,
+        "text": text,
+        "time": time_str,
+        "timestamp": timestamp,
+        "status": "sent"
+    }
+    if "location" in payload:
+        new_message["location"] = payload["location"]
+
+    # Update memory & disk
+    _load_disk_chat_messages()
+    current_list = _in_memory_chat_threads.get(canonical_id, [])
+    # Deduplicate by id
+    if not any(m.get("id") == msg_id for m in current_list):
+        current_list.append(new_message)
+    _in_memory_chat_threads[canonical_id] = current_list
+    _save_disk_chat_messages()
+
+    # Update MongoDB
+    if db_instance.db is not None:
+        try:
+            await db_instance.db["equipment_chat_messages"].update_one(
+                {"booking_id": canonical_id},
+                {
+                    "$set": {"updated_at": datetime.now().isoformat()},
+                    "$addToSet": {"messages": new_message}
+                },
+                upsert=True
+            )
+        except Exception as e:
+            print(f"⚠️ [EquipmentChat] Mongo update notice: {e}")
+
+    # Trigger counterparty in-app notification in DB if available
+    try:
+        from backend.app.services.notification_service import NotificationService
+        from backend.app.models.notification import NotificationCreate
+        recipient_role = "equipment_provider" if sender == "farmer" else "farmer"
+        preview_text = text[:80] if text else "Sent a location attachment"
+
+        target_uid = "provider_hub" if recipient_role == "equipment_provider" else "farmer_hub"
+        if db_instance.db is not None:
+            user_doc = await db_instance.db["users"].find_one({"role": recipient_role})
+            if user_doc:
+                target_uid = str(user_doc["_id"])
+
+            await NotificationService.create_notification(
+                db_instance.db,
+                NotificationCreate(
+                    user_id=target_uid,
+                    title=f"💬 New Message ({canonical_id})",
+                    message=f"{sender_name}: \"{preview_text}\"",
+                    category="booking",
+                    priority="Normal",
+                    action_url=f"/notifications?bookingId={canonical_id}"
+                )
+            )
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "booking_id": canonical_id,
+        "message": new_message,
+        "total": len(current_list)
+    }
+
+
+@router.get("/chat/messages")
+async def get_chat_messages_query(booking_id: str = Query(..., description="Booking ID")):
+    return await get_booking_chat_messages(booking_id)
+
+
+@router.post("/chat/messages")
+async def post_chat_messages_body(payload: Dict[str, Any] = Body(...)):
+    b_id = payload.get("booking_id") or payload.get("bookingId") or "BK-GENERAL"
+    return await send_booking_chat_message(b_id, payload)
+

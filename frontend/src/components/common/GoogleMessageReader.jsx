@@ -294,7 +294,7 @@ export default function GoogleMessageReader({
   }, [rawBookingId, canonicalBookingId]);
 
   const [bookingStatus, setBookingStatus] = useState(() => {
-    return savedBooking?.status || message.status || 'confirmed';
+    return savedBooking?.status || message.status || 'pending';
   });
 
   useEffect(() => {
@@ -302,6 +302,31 @@ export default function GoogleMessageReader({
       setBookingStatus(savedBooking.status);
     }
   }, [savedBooking]);
+
+  // Sync latest booking status from server for multi-device live consistency
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFreshBookingStatus = async () => {
+      try {
+        const res = await API.get('/api/v1/equipment/bookings');
+        if (res.data?.bookings && Array.isArray(res.data.bookings) && isMounted) {
+          const match = res.data.bookings.find(b => b && (
+            b.id === rawBookingId ||
+            `BK-${b.id}` === rawBookingId ||
+            b.id === canonicalBookingId ||
+            (b.id && canonicalBookingId.includes(b.id))
+          ));
+          if (match && match.status) {
+            setBookingStatus(match.status);
+          }
+        }
+      } catch (_) {}
+    };
+    if (isBooking) {
+      fetchFreshBookingStatus();
+    }
+    return () => { isMounted = false; };
+  }, [isBooking, rawBookingId, canonicalBookingId]);
 
   const bookingFarmerName = savedBooking?.farmerName || message.farmerName || message.farmer_name || 'Farmer';
   const bookingFarmerPhone = savedBooking?.farmerPhone || savedBooking?.phone || message.farmerPhone || message.farmer_phone || message.phone || '9440182736';
@@ -370,9 +395,58 @@ export default function GoogleMessageReader({
     }
   }, [chatMessages, chatStorageKey, isBooking]);
 
-  // Real-time live synchronization across tabs and active messenger windows
+  // Real-time live synchronization across tabs, browsers, and mobile devices
   useEffect(() => {
     if (!isBooking) return;
+
+    let isMounted = true;
+    let bc = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('agrishield_equipment_chat');
+        bc.onmessage = (event) => {
+          if (event.data?.canonicalBookingId === canonicalBookingId && event.data?.message) {
+            setChatMessages(prev => {
+              if (prev.some(m => m.id === event.data.message.id)) return prev;
+              const next = [...prev, event.data.message];
+              try { localStorage.setItem(chatStorageKey, JSON.stringify(next)); } catch (_) {}
+              return next;
+            });
+          }
+        };
+      }
+    } catch (_) {}
+
+    const fetchRemoteChat = async () => {
+      if (!canonicalBookingId) return;
+      try {
+        const res = await API.get(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`);
+        if (res.data?.messages && Array.isArray(res.data.messages) && isMounted) {
+          const serverMsgs = res.data.messages.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1' && m.type !== 'voice_note');
+          setChatMessages(prev => {
+            const map = new Map();
+            prev.forEach(m => map.set(m.id, m));
+            serverMsgs.forEach(m => map.set(m.id, m));
+            const merged = Array.from(map.values()).sort((a, b) => {
+              const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+              const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+              return ta - tb;
+            });
+            try {
+              localStorage.setItem(chatStorageKey, JSON.stringify(merged));
+            } catch (_) {}
+            return merged;
+          });
+        }
+      } catch (_) {}
+    };
+
+    // Initial fetch on mount
+    fetchRemoteChat();
+
+    // Fast 2.5-second polling for multi-browser / multi-device instant sync
+    const pollInterval = setInterval(fetchRemoteChat, 2500);
+
     const handleStorageChange = (e) => {
       if (e.key === chatStorageKey && e.newValue) {
         try {
@@ -392,13 +466,18 @@ export default function GoogleMessageReader({
         });
       }
     };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('agrishield_chat_message_sent', handleCustomMsg);
+
     return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+      if (bc) bc.close();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('agrishield_chat_message_sent', handleCustomMsg);
     };
-  }, [chatStorageKey, isBooking]);
+  }, [chatStorageKey, isBooking, canonicalBookingId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -510,6 +589,7 @@ export default function GoogleMessageReader({
       type: 'text',
       text: textToSend,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
       status: 'sent'
     };
 
@@ -522,6 +602,18 @@ export default function GoogleMessageReader({
       window.dispatchEvent(new CustomEvent('agrishield_chat_message_sent', {
         detail: { storageKey: chatStorageKey, message: newMsg }
       }));
+
+      // BroadcastChannel for instant same-browser cross-tab sync
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('agrishield_equipment_chat');
+          bc.postMessage({ canonicalBookingId, message: newMsg });
+          bc.close();
+        }
+      } catch (_) {}
+
+      // Send to Backend API for cross-browser, cross-device real-time sync
+      API.post(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`, newMsg).catch(() => {});
 
       // Generate in-app notification for the counterparty
       const recipientRole = isProviderViewer ? 'farmer' : 'equipment_provider';
@@ -544,6 +636,7 @@ export default function GoogleMessageReader({
       const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
       localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...existingNotifs]));
       window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+      API.post('/api/v1/notifications/test', notifObj).catch(() => {});
     } catch (_) {}
   };
 
@@ -561,6 +654,7 @@ export default function GoogleMessageReader({
         coords: '15.2845° N, 79.9124° E'
       },
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
       status: 'sent'
     };
     const updated = [...chatMessages, locationMsg];
@@ -570,6 +664,14 @@ export default function GoogleMessageReader({
       window.dispatchEvent(new CustomEvent('agrishield_chat_message_sent', {
         detail: { storageKey: chatStorageKey, message: locationMsg }
       }));
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('agrishield_equipment_chat');
+          bc.postMessage({ canonicalBookingId, message: locationMsg });
+          bc.close();
+        }
+      } catch (_) {}
+      API.post(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`, locationMsg).catch(() => {});
     } catch (_) {}
   };
 
@@ -1043,72 +1145,124 @@ export default function GoogleMessageReader({
            ══════════════════════════════════════════════════════════════ */}
         {isBooking && (
           <div className="max-w-2xl mx-auto space-y-4">
-            {/* Ticket Voucher Card with Correct Village Details */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              onClick={() => setShowFullReview(true)}
-              className="rounded-3xl bg-white dark:bg-gradient-to-br dark:from-[#16231e] dark:to-[#121921] border border-slate-200/90 dark:border-emerald-500/30 p-4 shadow-sm relative overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all group"
-            >
-              {/* Top Row: Machine & Badge */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                    <Truck className="w-6 h-6" />
+            {/* Dynamic Status Resolution for Card */}
+            {(() => {
+              const normStatus = String(bookingStatus || message?.status || 'pending').toLowerCase();
+              const isConfirmed = normStatus === 'confirmed' || normStatus === 'accepted';
+              const isInquiry = normStatus === 'inquiry';
+              const isRejected = normStatus === 'rejected' || normStatus === 'declined';
+              const isCompleted = normStatus === 'completed';
+
+              let statusText = isTelugu ? 'బుకింగ్ అభ్యర్థన పెండింగ్‌లో ఉంది' : 'Booking Request Pending';
+              let statusBadgeText = isTelugu ? 'పెండింగ్‌లో ఉంది' : 'Pending';
+              let statusTextColor = 'text-amber-600 dark:text-amber-400';
+              let statusBadgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30';
+              let statusIcon = <Clock className="w-3.5 h-3.5" />;
+              let statusIconBoxClass = 'bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400';
+              let cardBorderClass = 'border-slate-200/90 dark:border-slate-700/60 hover:border-amber-500/50';
+
+              if (isConfirmed) {
+                statusText = isTelugu ? 'బుకింగ్ ధృవీకరించబడింది' : 'Machinery Booking Confirmed';
+                statusBadgeText = isTelugu ? 'ధృవీకరించబడింది' : 'Confirmed';
+                statusTextColor = 'text-emerald-600 dark:text-emerald-400';
+                statusBadgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30';
+                statusIcon = <CheckCircle2 className="w-3.5 h-3.5" />;
+                statusIconBoxClass = 'bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
+                cardBorderClass = 'border-slate-200/90 dark:border-emerald-500/30 hover:border-emerald-500/50';
+              } else if (isInquiry) {
+                statusText = isTelugu ? 'యంత్ర అద్దె విచారణ' : 'Machinery Rental Inquiry';
+                statusBadgeText = isTelugu ? 'విచారణ' : 'Inquiry';
+                statusTextColor = 'text-sky-600 dark:text-sky-400';
+                statusBadgeClass = 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-400 border border-sky-200 dark:border-sky-500/30';
+                statusIcon = <MessageSquare className="w-3.5 h-3.5" />;
+                statusIconBoxClass = 'bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30 text-sky-600 dark:text-sky-400';
+                cardBorderClass = 'border-slate-200/90 dark:border-sky-500/30 hover:border-sky-500/50';
+              } else if (isRejected) {
+                statusText = isTelugu ? 'బుకింగ్ తిరస్కరించబడింది' : 'Booking Declined';
+                statusBadgeText = isTelugu ? 'తిరస్కరించబడింది' : 'Declined';
+                statusTextColor = 'text-rose-600 dark:text-rose-400';
+                statusBadgeClass = 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30';
+                statusIcon = <AlertOctagon className="w-3.5 h-3.5" />;
+                statusIconBoxClass = 'bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/30 text-rose-600 dark:text-rose-400';
+                cardBorderClass = 'border-slate-200/90 dark:border-rose-500/30 hover:border-rose-500/50';
+              } else if (isCompleted) {
+                statusText = isTelugu ? 'పని పూర్తయింది' : 'Work Completed';
+                statusBadgeText = isTelugu ? 'పూర్తయింది' : 'Completed';
+                statusTextColor = 'text-indigo-600 dark:text-indigo-400';
+                statusBadgeClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30';
+                statusIcon = <ShieldCheck className="w-3.5 h-3.5" />;
+                statusIconBoxClass = 'bg-indigo-500/15 dark:bg-indigo-500/20 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400';
+                cardBorderClass = 'border-slate-200/90 dark:border-indigo-500/30 hover:border-indigo-500/50';
+              }
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={() => setShowFullReview(true)}
+                  className={`rounded-3xl bg-white dark:bg-gradient-to-br dark:from-[#16231e] dark:to-[#121921] border ${cardBorderClass} p-4 shadow-sm relative overflow-hidden cursor-pointer transition-all group`}
+                >
+                  {/* Top Row: Machine & Badge */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform ${statusIconBoxClass}`}>
+                        <Truck className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
+                          {bookingEquipmentTitle}
+                        </h3>
+                        <p className={`text-[11px] font-bold mt-0.5 flex items-center gap-1 ${statusTextColor}`}>
+                          {statusIcon}
+                          <span>{statusText}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusBadgeClass}`}>
+                      {statusBadgeText}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
-                      {bookingEquipmentTitle}
-                    </h3>
-                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{isTelugu ? 'బుకింగ్ ధృవీకరించబడింది' : 'Machinery Booking Confirmed'}</span>
-                    </p>
+
+                  {/* Middle Divider with Ticket Cutouts */}
+                  <div className="relative my-3 border-t border-dashed border-slate-200 dark:border-slate-700/60">
+                    <div className="absolute -left-6 -top-2 w-4 h-4 rounded-full bg-[#f3f5fa] dark:bg-[#0d1117]" />
+                    <div className="absolute -right-6 -top-2 w-4 h-4 rounded-full bg-[#f3f5fa] dark:bg-[#0d1117]" />
                   </div>
-                </div>
 
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                  {isTelugu ? 'ధృవీకరించబడింది' : 'Confirmed'}
-                </span>
-              </div>
+                  {/* Exact Village & Field Location Details */}
+                  <div className="p-2.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40 text-xs space-y-1 mb-2">
+                    <div className="flex items-center gap-1.5 text-emerald-900 dark:text-emerald-200 font-bold">
+                      <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                      <span className="text-[11px]">{isTelugu ? 'పొలం లొకేషన్:' : 'Field Location:'}</span>
+                      <span className="text-[12px] font-black text-slate-900 dark:text-white">{bookingLocationDisplay}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-2 pl-5">
+                      <span>{bookingAcres} Acres</span> • <span>⚙️ {bookingOperation}</span>
+                    </div>
+                  </div>
 
-              {/* Middle Divider with Ticket Cutouts */}
-              <div className="relative my-3 border-t border-dashed border-slate-200 dark:border-emerald-500/25">
-                <div className="absolute -left-6 -top-2 w-4 h-4 rounded-full bg-[#f3f5fa] dark:bg-[#0d1117]" />
-                <div className="absolute -right-6 -top-2 w-4 h-4 rounded-full bg-[#f3f5fa] dark:bg-[#0d1117]" />
-              </div>
+                  {/* Bottom Row: Date, Time & Cost */}
+                  <div className="flex items-center justify-between text-xs pt-0.5">
+                    <div className="text-slate-600 dark:text-slate-300 font-medium">
+                      <span>{bookingDate}</span> • <span className="text-emerald-600 dark:text-emerald-300 font-bold">{bookingTimeSlot}</span>
+                    </div>
+                    <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                      ₹{bookingTotalCost}
+                    </div>
+                  </div>
 
-              {/* Exact Village & Field Location Details */}
-              <div className="p-2.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40 text-xs space-y-1 mb-2">
-                <div className="flex items-center gap-1.5 text-emerald-900 dark:text-emerald-200 font-bold">
-                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                  <span className="text-[11px]">{isTelugu ? 'పొలం లొకేషన్:' : 'Field Location:'}</span>
-                  <span className="text-[12px] font-black text-slate-900 dark:text-white">{bookingLocationDisplay}</span>
-                </div>
-                <div className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-2 pl-5">
-                  <span>{bookingAcres} Acres</span> • <span>⚙️ {bookingOperation}</span>
-                </div>
-              </div>
-
-              {/* Bottom Row: Date, Time & Cost */}
-              <div className="flex items-center justify-between text-xs pt-0.5">
-                <div className="text-slate-600 dark:text-slate-300 font-medium">
-                  <span>{bookingDate}</span> • <span className="text-emerald-600 dark:text-emerald-300 font-bold">{bookingTimeSlot}</span>
-                </div>
-                <div className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                  ₹{bookingTotalCost}
-                </div>
-              </div>
-
-              {/* Voucher Subtext Footer */}
-              <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-500 dark:text-slate-400">
-                <span>{isTelugu ? 'వోచర్ వివరాలు • క్లిక్ చేయండి' : 'Confirms voucher • Tap for details'}</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  <span>{isTelugu ? 'వివరాలు' : 'Details'}</span>
-                  <ChevronRight className="w-3 h-3" />
-                </span>
-              </div>
-            </motion.div>
+                  {/* Voucher Subtext Footer */}
+                  <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 dark:border-slate-800/80 text-[10px] text-slate-500 dark:text-slate-400">
+                    <span>{isTelugu ? (isConfirmed ? 'ధృవీకరించబడిన వోచర్ • వివరాలు చూడండి' : 'బుకింగ్ సమాచారం • వివరాలు చూడండి') : (isConfirmed ? 'Confirmed voucher • Tap for details' : 'Booking status & review • Tap for details')}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                      <span>{isTelugu ? 'వివరాలు' : 'Details'}</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })()}
 
             {/* 2-Way Chat Stream Bubbles */}
             <div className="space-y-3 pt-2">

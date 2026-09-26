@@ -492,7 +492,7 @@ export default function EquipmentBookingPage() {
       district: locationDistrict || item.district || 'Prakasam',
       acres: '2',
       totalCost: item.ratePerAcre || item.hourlyRate || '800',
-      status: item.available ? 'confirmed' : 'pending',
+      status: 'inquiry',
       message: isTe
         ? `నమస్తే! నేను మీ ${item.title} యంత్రం అద్దెకు తీసుకోవడం గురించి సంప్రదిస్తున్నాను.`
         : `Hello! Inquiring to rent your ${item.title} via AgriShield AI.`

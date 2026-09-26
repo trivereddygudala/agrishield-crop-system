@@ -2,6 +2,33 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-26 (v301) - 2-Way Equipment Chat Cross-Device Synchronization & Dynamic Booking Status Resolution
+- **Summary:**
+  1. 🛠️ **Dynamic Machinery Booking Status & Header Resolution (`GoogleMessageReader.jsx`, `EquipmentBookingPage.jsx`):**
+     - Diagnosed and fixed the issue where the chat card header falsely displayed "Machinery Booking Confirmed" / "Confirmed" even when the booking was pending provider review or an initial inquiry.
+     - Replaced the hardcoded confirmed header and badge with a reactive status resolver in `GoogleMessageReader.jsx`:
+       - `pending`: Amber badge, clock icon, "Booking Request Pending" (`బుకింగ్ అభ్యర్థన పెండింగ్‌లో ఉంది`).
+       - `inquiry`: Sky badge, message square icon, "Machinery Rental Inquiry" (`యంత్ర అద్దె విచారణ`).
+       - `confirmed`: Emerald badge, check circle icon, "Machinery Booking Confirmed" (`బుకింగ్ ధృవీకరించబడింది`).
+       - `rejected`: Rose badge, alert octagon icon, "Booking Declined" (`బుకింగ్ తిరస్కరించబడింది`).
+       - `completed`: Indigo badge, shield check icon, "Work Completed" (`పని పూర్తయింది`).
+     - Added server status polling hook in `GoogleMessageReader.jsx` querying `/api/v1/equipment/bookings` to sync live status updates across devices.
+     - Fixed `openChatForMachine` in `EquipmentBookingPage.jsx` to set initial `status: 'inquiry'` instead of `confirmed`.
+  2. 💬 **Full Two-Way Equipment Chat Real-Time Backend & Cross-Browser Synchronization (`equipment.py`, `GoogleMessageReader.jsx`, `ProviderDashboardPage.jsx`):**
+     - Diagnosed root cause why messages typed by a farmer (e.g., "Hi") never reached the provider on another browser/device: messages were strictly stored in sender's local browser `localStorage` and never communicated with the server.
+     - Architected persistent backend chat infrastructure in `backend/app/routers/provider/equipment.py`:
+       - Endpoints: `GET /api/v1/equipment/bookings/{booking_id}/messages` and `POST /api/v1/equipment/bookings/{booking_id}/messages`.
+       - Dual persistence to MongoDB (`equipment_chat_messages` collection) and file storage (`backend/app/data/equipment_chat_messages.json`).
+       - Dispatches in-app counterparty notification to the provider/farmer upon message receipt.
+     - Integrated real-time sync into `GoogleMessageReader.jsx`:
+       - Loads chat thread from server on mount.
+       - Continuously synchronizes via 2.5s polling loop and instantaneous `BroadcastChannel('agrishield_equipment_chat')`.
+       - `handleSendMessage` and `handleSendLiveLocation` dispatch to backend API, BroadcastChannel, and local cache.
+     - Updated `ProviderDashboardPage.jsx` so acceptance milestone notices sync to backend chat thread.
+  3. 🧪 **Validation:**
+     - Ran `npm run build` in `frontend/`: compiled 3,163 modules in 27.30s with **0 errors**.
+- **Files modified:** `backend/app/routers/provider/equipment.py`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-09-26 (v300) - Provider Booking Orders Resolution: Missing CURATED_FARM_PHOTOS Import Fix
 - **Summary:**
   1. 🛠️ **Diagnosed and Resolved ReferenceError (`ProviderDashboardPage.jsx`):**
