@@ -9,18 +9,17 @@ class FirmwareReleaseCreate(BaseModel):
     is_active: bool = Field(True, description="Whether this release is active and available for OTA deployment")
 
 class FirmwareMetadata(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="ignore")
     
     version: str
     filename: str
     sha256: str
-    size_bytes: int
-    hardware_model: str
-    release_notes: str
-    is_active: bool
-    uploaded_at: datetime
-    uploaded_by: str
-    file_path: str
+    size_bytes: int = 0
+    hardware_model: str = "ESP32 DevKit V1"
+    release_notes: Optional[str] = ""
+    is_active: bool = True
+    uploaded_at: Optional[datetime] = None
+    uploaded_by: Optional[str] = "admin"
 
 class FirmwareUploadResponse(BaseModel):
     status: str = "success"
@@ -36,9 +35,9 @@ class OtaCheckResponse(BaseModel):
     latest_version: str
     download_url: str
     sha256: str
-    size_bytes: int
-    release_notes: str
-    hardware_model: str
+    size_bytes: int = 0
+    release_notes: Optional[str] = ""
+    hardware_model: str = "ESP32 DevKit V1"
 
 class OtaAuditLogEntry(BaseModel):
     action: str

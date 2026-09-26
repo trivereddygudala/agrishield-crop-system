@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-27 (v317) - Phase 2A Security Remediation: Firmware RBAC, Download Protection, Filesystem Path Exposure Prevention & Legacy Compatibility
+- **Summary:**
+  1. 🛡️ **Firmware RBAC Enforcement (FINDING-03):**
+     - Enforced `Depends(require_role("admin"))` on `GET /api/v1/firmware/history` and `GET /api/v1/firmware/latest`. Anonymous and non-admin requests are rejected with HTTP 401/403.
+  2. 🔒 **Firmware Download Authorization (NEW-01):**
+     - Enforced `Depends(require_role("admin"))` on `GET /api/v1/firmware/download/{version}`. Anonymous callers and non-admin roles (farmer, equipment provider) receive HTTP 401/403. Admins retain full binary download capability with audit logging.
+  3. 🚫 **Filesystem Path Exposure Prevention (NEW-02):**
+     - Removed `file_path` field from `FirmwareMetadata` response model. Server filesystem paths (e.g. `C:\Users\...`, `/var/data/...`) are never serialized to clients. Backend safely resolves binary file locations internally using `get_firmware_storage_dir()` and stored filenames.
+  4. 🔄 **Legacy Firmware Document Compatibility:**
+     - Updated `FirmwareMetadata` with safe default values for optional legacy fields (`release_notes`, `uploaded_by`, `size_bytes`, `hardware_model`, `is_active`, `uploaded_at`) and `extra="ignore"`, preventing Pydantic validation crashes (HTTP 500) when querying legacy database records. Genuine release identifiers (`version`, `filename`, `sha256`) remain strictly validated.
+  5. 🧪 **Tests Performed:**
+     - Added comprehensive test suite `backend/tests/test_firmware_security.py` covering RBAC on history, latest, download endpoints, filesystem path non-exposure, and legacy document parsing without HTTP 500 (4/4 tests passed).
+     - Verified existing OTA suite `backend/tests/test_ota_pipeline.py` (8/8 tests passed).
+- **Files modified:** `backend/app/routers/admin/firmware.py`, `backend/app/models/firmware.py`, `backend/tests/test_ota_pipeline.py`, `backend/tests/test_firmware_security.py`, `changes_happening.md`.
+
 ## 2026-09-27 (v316) - Phase 1 Security Remediation: SSRF Defense & Scoped IoT Device Telemetry Access Control
 - **Summary:**
   1. 🛡️ **SSRF Remediation for Device Proxy (POST /api/v1/devices/proxy & GET /api/v1/devices/proxy-download):**

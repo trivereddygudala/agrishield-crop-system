@@ -95,7 +95,7 @@ def test_2_firmware_upload_and_checksum():
     assert payload["firmware"]["hardware_model"] == "ESP32 DevKit V1"
     
     # Verify file was written to disk
-    file_path = payload["firmware"]["file_path"]
+    file_path = os.path.join(get_firmware_storage_dir(), payload["firmware"]["filename"])
     assert os.path.exists(file_path)
     if os.path.exists(file_path):
         os.remove(file_path)
@@ -109,11 +109,13 @@ def test_3_firmware_download():
     data = {"version": "v2.1.0", "hardware_model": "ESP32 DevKit V1"}
     upload_res = client.post("/api/v1/firmware/upload", files=files, data=data, headers=get_auth_headers("admin"))
     assert upload_res.status_code == 201
-    file_path = upload_res.json()["firmware"]["file_path"]
+    assert "file_path" not in upload_res.json()["firmware"]
+    filename = upload_res.json()["firmware"]["filename"]
+    file_path = os.path.join(get_firmware_storage_dir(), filename)
     
     try:
-        # Download firmware via endpoint
-        res = client.get("/api/v1/firmware/download/v2.1.0?hardware_model=ESP32 DevKit V1")
+        # Download firmware via endpoint (requires admin auth)
+        res = client.get("/api/v1/firmware/download/v2.1.0?hardware_model=ESP32 DevKit V1", headers=get_auth_headers("admin"))
         assert res.status_code == 200
         assert res.headers.get("X-Checksum-Sha256") == expected_sha
         assert len(res.content) == 1024
@@ -136,13 +138,13 @@ def test_4_semantic_version_comparison_and_ota_check():
     res1 = client.post("/api/v1/firmware/upload", files={"file": ("v2.0.bin", io.BytesIO(content1), "application/octet-stream")}, data={"version": v1, "hardware_model": "ESP32 DevKit V1"}, headers=headers)
     if res1.status_code not in (200, 201):
         print("Upload failed for res1:", res1.json())
-    path1 = res1.json()["firmware"]["file_path"]
+    path1 = os.path.join(get_firmware_storage_dir(), res1.json()["firmware"]["filename"])
     
     # Upload v2.5.0
     res2 = client.post("/api/v1/firmware/upload", files={"file": ("v2.5.bin", io.BytesIO(content2), "application/octet-stream")}, data={"version": v2, "hardware_model": "ESP32 DevKit V1"}, headers=headers)
     if res2.status_code not in (200, 201):
         print("Upload failed for res2:", res2.json())
-    path2 = res2.json()["firmware"]["file_path"]
+    path2 = os.path.join(get_firmware_storage_dir(), res2.json()["firmware"]["filename"])
     
     try:
         # Pre-register device in mock DB
@@ -174,7 +176,7 @@ def test_5_unsupported_hardware_rejection():
     """Verify firmware targeted for a specific hardware model is not offered to unsupported devices."""
     content = create_mock_firmware_bytes(0xE9, 512)
     res = client.post("/api/v1/firmware/upload", files={"file": ("agri.bin", io.BytesIO(content), "application/octet-stream")}, data={"version": "v3.0.0", "hardware_model": "AgriShield_ESP32"}, headers=get_auth_headers("admin"))
-    path = res.json()["firmware"]["file_path"]
+    path = os.path.join(get_firmware_storage_dir(), res.json()["firmware"]["filename"])
     
     try:
         asyncio.run(database_for_testing.devices.insert_one({
@@ -223,15 +225,18 @@ def test_8_firmware_history_and_delete():
     
     upload_res = client.post("/api/v1/firmware/upload", files={"file": ("hist.bin", io.BytesIO(content), "application/octet-stream")}, data={"version": "v1.5.0", "hardware_model": "ESP32 DevKit V1"}, headers=headers)
     assert upload_res.status_code == 201
-    file_path = upload_res.json()["firmware"]["file_path"]
+    assert "file_path" not in upload_res.json()["firmware"]
+    filename = upload_res.json()["firmware"]["filename"]
+    file_path = os.path.join(get_firmware_storage_dir(), filename)
     assert os.path.exists(file_path)
     
-    # 1. Check history
-    hist_res = client.get("/api/v1/firmware/history")
+    # 1. Check history (requires admin auth)
+    hist_res = client.get("/api/v1/firmware/history", headers=headers)
     assert hist_res.status_code == 200
     hist_payload = hist_res.json()
     assert hist_payload["total"] >= 1
     assert any(rel["version"] == "v1.5.0" for rel in hist_payload["releases"])
+    assert all("file_path" not in rel for rel in hist_payload["releases"])
     
     # 2. Delete firmware release as admin
     del_res = client.delete("/api/v1/firmware/v1.5.0?hardware_model=ESP32 DevKit V1", headers=headers)

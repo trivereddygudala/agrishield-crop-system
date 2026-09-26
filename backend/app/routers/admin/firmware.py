@@ -99,19 +99,24 @@ async def upload_firmware(
         firmware=FirmwareMetadata(**doc)
     )
 
-@router.get("/latest", response_model=FirmwareMetadata)
+@router.get("/latest", response_model=FirmwareMetadata, dependencies=[Depends(require_role("admin"))])
 async def get_latest_firmware(
     hardware_model: Optional[str] = Query(None, description="Filter by hardware model"),
     db = Depends(get_database)
 ):
-    """Retrieve metadata of the latest active firmware release for the specified hardware model."""
+    """
+    Strict Admin Endpoint: Retrieve metadata of the latest active firmware release for the specified hardware model.
+    Requires 'admin' role authentication.
+    """
     cursor = db["firmware_releases"].find({"is_active": True})
     releases = await cursor.to_list(length=100)
     
     latest_rel = None
     for rel in releases:
         if is_hardware_compatible(hardware_model, rel.get("hardware_model", "ESP32 DevKit V1")):
-            if not latest_rel or compare_versions(rel["version"], latest_rel["version"]) > 0:
+            rel_version = rel.get("version", "0.0.0")
+            latest_version = latest_rel.get("version", "0.0.0") if latest_rel else "0.0.0"
+            if not latest_rel or compare_versions(rel_version, latest_version) > 0:
                 latest_rel = rel
                 
     if not latest_rel:
@@ -122,13 +127,16 @@ async def get_latest_firmware(
         
     return FirmwareMetadata(**latest_rel)
 
-@router.get("/history", response_model=FirmwareListResponse)
+@router.get("/history", response_model=FirmwareListResponse, dependencies=[Depends(require_role("admin"))])
 async def list_firmware_history(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db = Depends(get_database)
 ):
-    """Retrieve complete history of uploaded firmware releases."""
+    """
+    Strict Admin Endpoint: Retrieve complete history of uploaded firmware releases.
+    Requires 'admin' role authentication.
+    """
     total = await db["firmware_releases"].count_documents({})
     cursor = db["firmware_releases"].find({}).sort("uploaded_at", -1).skip(skip).limit(limit)
     releases_list = await cursor.to_list(length=limit)
@@ -136,15 +144,16 @@ async def list_firmware_history(
     metadata_list = [FirmwareMetadata(**rel) for rel in releases_list]
     return FirmwareListResponse(total=total, releases=metadata_list)
 
-@router.get("/download/{version}")
+@router.get("/download/{version}", dependencies=[Depends(require_role("admin"))])
 async def download_firmware(
     version: str,
     hardware_model: Optional[str] = Query(None, description="Filter by target hardware model"),
+    current_user: dict = Depends(require_role("admin")),
     db = Depends(get_database)
 ):
     """
-    Stream the requested firmware binary file.
-    Includes X-Checksum-Sha256 header for client-side cryptographic verification.
+    Strict Admin Endpoint: Stream the requested firmware binary file.
+    Requires 'admin' role authentication. Includes X-Checksum-Sha256 header for client-side cryptographic verification.
     """
     query = {"version": version.strip(), "is_active": True}
     if hardware_model:
@@ -162,24 +171,30 @@ async def download_firmware(
         )
         
     file_path = doc.get("file_path", "")
-    if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Firmware binary file is missing from server disk storage."
-        )
+    if not file_path or not os.path.exists(file_path):
+        storage_dir = get_firmware_storage_dir()
+        fallback_path = os.path.join(storage_dir, doc.get("filename", ""))
+        if os.path.exists(fallback_path):
+            file_path = fallback_path
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Firmware binary file is missing from server disk storage."
+            )
         
-    await log_ota_audit(db, "FIRMWARE_DOWNLOAD", "client", {
-        "version": doc["version"],
-        "sha256": doc["sha256"],
-        "hardware_model": doc["hardware_model"]
+    actor = current_user.get("email", str(current_user.get("sub", "admin")))
+    await log_ota_audit(db, "FIRMWARE_DOWNLOAD", actor, {
+        "version": doc.get("version", version),
+        "sha256": doc.get("sha256", ""),
+        "hardware_model": doc.get("hardware_model", "ESP32 DevKit V1")
     })
     
     return FileResponse(
         path=file_path,
         media_type="application/octet-stream",
         headers={
-            "X-Checksum-Sha256": doc["sha256"],
-            "Content-Disposition": f'attachment; filename="{doc["filename"]}"'
+            "X-Checksum-Sha256": doc.get("sha256", ""),
+            "Content-Disposition": f'attachment; filename="{doc.get("filename", f"firmware_{version}.bin")}"'
         }
     )
 
