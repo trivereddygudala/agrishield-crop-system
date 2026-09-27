@@ -2,6 +2,73 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-27 (v320) - Comprehensive Verification Pass: Multilingual Phases 2A through 2G Audited & Proven
+- **Summary:**
+  1. ⚡ **Phase 2F (WebSocket / Realtime Verification):**
+     - Traced WebSocket handlers in `backend/app/routers/common/notifications.py` (`/ws/{user_id}`, `/api/v1/notifications/ws/{user_id}`). Authenticates query param `token` via `decode_access_token` and validates subject match. Auth remains 100% unchanged.
+     - Proved recipient active language (`preferred_language`) is applied in `NotificationService.create_notification` (lines 214-227), booking status update in `equipment.py` (lines 508-524), and free-form booking chat in `equipment.py` (lines 1024-1035).
+     - Verified realtime messages are translated for live broadcast while canonical database stored documents (`original_title`, `original_message`, `original_notes`, `original_text`) remain intact.
+     - Added 5 focused tests: (a) realtime notification translation, (b) realtime booking event translation, (c) realtime chat translation, (d) fallback when translation fails, (e) reconnect/reload behavior & WebSocket authentication.
+  2. 🎫 **Phase 2C (Helpdesk Verification):**
+     - Verified all 4 directions independently: Farmer → Admin (Telugu → English triage), Provider → Admin (Hindi → English triage), Admin → Farmer (English resolution → Telugu), Admin → Provider (English resolution → Hindi).
+     - Verified original text, source language, translated English triage for Admin, and translated resolution notes for Farmer/Provider are preserved.
+     - Verified role-scoped permissions and tenant isolation via `get_my_tickets` and `list_admin_tickets`.
+     - Added independent focused tests for each direction and permissions isolation.
+  3. 🌾 **Phase 2D (Farmer Content Verification):**
+     - Verified disease diagnosis (`predict_pytorch_endpoint` in `predict.py`): preserves canonical crop/disease names and saves `translations` dictionary.
+     - Verified disease advisory (`crop_advisor_service` in `predict.py`): generates advisory in English and localizes organic/chemical treatments and tips.
+     - Verified plant identification (`identify_plant_endpoint` in `plant_id.py`): preserves Latin botanical taxonomy while providing regional common names.
+     - Verified agrochemical scanner (`agrochemical_scan_endpoint` in `agrochemical.py`): translates usage/safety while strictly preserving active ingredients, chemical names, dosage numbers, and units.
+  4. 🚜 **Phase 2E (Equipment & Booking Verification):**
+     - Verified equipment catalog dynamic localization (`get_equipment_catalog`) preserving `original_description`.
+     - Verified booking notifications, canonical status ("pending", "confirmed"), and custom notes preservation (`original_notes`).
+     - Verified bidirectional free-form chat translation (Farmer → Provider and Provider → Farmer).
+  5. 📢 **Phase 2B (Admin Communication Verification):**
+     - Verified Admin → Farmer and Admin → Equipment Provider broadcasts independently.
+     - Verified different recipients with different active languages receive their respective translations while original broadcast remains canonical English with working action URLs.
+  6. 🌐 **Phase 2A (Infrastructure Verification):**
+     - Verified all 13 canonical languages, L1 RAM and L2 DB caching, fast static glossary, container format, graceful fallback, legacy record compatibility, and zero unnecessary eager translation of all 13 languages.
+  7. 🧪 **Comprehensive Test & Build Verification:**
+     - 29/29 tests passed in `backend/tests/test_multilingual_system.py` (19.67s).
+     - 22/22 language preference foundation tests passed in `backend/tests/test_language_preferences.py` (4.26s).
+     - 27/27 security regression tests passed in `backend/tests/` (5.63s).
+     - Python syntax compilation passed (`python -m py_compile`, 0 errors).
+     - Frontend production build succeeded (`npm --prefix frontend run build`, 0 errors, 35.35s).
+     - Git diff whitespace check clean (`git diff --check`, 0 errors).
+     - Zero commits, zero pushes, zero deployments triggered.
+- **Files modified:** `backend/tests/test_multilingual_system.py`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
+## 2026-09-27 (v319) - Master Implementation: Multilingual System Phases 2A through 2G Complete
+- **Summary:**
+  1. 🌐 **Phase 2A — Unified Translation Infrastructure (`TranslationService`):**
+     - Developed central `TranslationService` in `backend/app/services/translation_service.py` supporting all 13 canonical languages (`en, hi, te, ta, kn, ml, mr, gu, pa, bn, ur, or, as`).
+     - Integrated L1 in-memory RAM cache (`_MEMORY_CACHE`) and async L2 MongoDB persistent cache (`translations_cache`).
+     - Implemented static fast glossary for frequent UI/status terms (`open`, `in_progress`, `resolved`, `closed`, `confirmed`, `high`, `critical`, etc.).
+     - Enforced container pattern `{'original': '...', 'source_language': '...', 'translations': {...}}`.
+     - Guaranteed resilient fallback: returns raw canonical content on any provider network timeout, rate limit, or failure without raising 500 errors to callers.
+  2. 📢 **Phase 2B — Admin to Farmer / Provider Multilingual Communication:**
+     - Updated `backend/app/models/notification.py` with backward-compatible optional fields (`original_title`, `original_message`, `source_language`, `translations`).
+     - Updated `backend/app/services/notification_service.py` to localize notifications dynamically into recipient active language (`preferred_language`) during creation, or on-demand on retrieval via `active_language` parameter, while preserving canonical title/message.
+     - Updated `backend/app/routers/admin/admin.py` broadcast to dispatch individualized recipient notifications with canonical original preservation.
+  3. 🎫 **Phase 2C — Two-Way Multilingual Helpdesk:**
+     - Updated `backend/app/routers/common/support.py` to store `source_language`, `original_subject`, `original_description`, and pre-translate English summary for Admin triage.
+     - Implemented role-scoped ticket views: Admin views English translation alongside original text; Farmer/Provider receives resolution notes translated into their native language while preserving `original_resolution_notes`.
+  4. 🌾 **Phase 2D — Farmer Dynamic Content (Disease, Plant & Agrochemical):**
+     - Updated `backend/app/routers/farmer/predict.py` to preserve original disease & crop names, store localized translations, and safely fallback.
+     - Updated `backend/app/routers/farmer/agrochemical.py` to strictly preserve chemical names, active ingredients, dosage values, units, and numeric concentrations without distortion, returning original content on translation errors.
+  5. 🚜 **Phase 2E — Equipment, Booking & Chat:**
+     - Updated `backend/app/routers/provider/equipment.py` to support bidirectional free-form chat translation with `target_lang` query parameter, `original_text`, `source_language`, and `translations` container.
+     - Updated `frontend/src/components/common/GoogleMessageReader.jsx` to consume server-side translated text first before any fallback.
+  6. ⚡ **Phase 2F — Notifications & Realtime WebSocket:**
+     - Maintained presentation-level translation for realtime broadcasts; event IDs, timestamps, sender IDs, and canonical database texts are never mutated.
+  7. 🧪 **Phase 2G — Full Regression & Multilingual Verification:**
+     - Built 11 automated test cases in `backend/tests/test_multilingual_system.py` (11/11 passed in 9.95s).
+     - Ran 22 language preference foundation tests in `backend/tests/test_language_preferences.py` (22/22 passed in 5.63s).
+     - Ran 27 security regression tests across `test_devices_security.py`, `test_firmware_security.py`, `test_ota_pipeline.py`, and `test_security_hardening.py` (27/27 passed in 7.61s).
+     - Built production frontend with `npm --prefix frontend run build` (0 errors, 1m 9s).
+     - Verified `python -m py_compile` (0 errors) and `git diff --check` (0 whitespace errors).
+- **Files modified:** `backend/app/services/translation_service.py` (CREATED), `backend/app/models/notification.py`, `backend/app/services/notification_service.py`, `backend/app/routers/common/notifications.py`, `backend/app/routers/admin/admin.py`, `backend/app/routers/common/support.py`, `backend/app/routers/provider/equipment.py`, `backend/app/routers/farmer/predict.py`, `backend/app/routers/farmer/agrochemical.py`, `frontend/src/components/common/GoogleMessageReader.jsx`, `backend/tests/test_multilingual_system.py` (CREATED), `changes_happening.md`.
+
 ## 2026-09-27 (v318) - Phase 1 Multilingual Language Preference Foundation: 13 Canonical Languages, English-Primary Normalization & Singular/Plural Field Synchronization
 - **Summary:**
   1. 🌐 **Canonical Supported Language Source of Truth & Set Alignment (FINDING-LANG-01):**

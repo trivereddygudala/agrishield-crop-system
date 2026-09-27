@@ -111,6 +111,7 @@ async def get_all_bookings(
     provider_phone: Optional[str] = Query(None, description="Filter by equipment provider phone"),
     farmer_phone: Optional[str] = Query(None, description="Filter by farmer phone"),
     status: Optional[str] = Query(None, description="Filter by status (pending, confirmed, completed, rejected)"),
+    language: Optional[str] = Query(None, description="Active language code for localization"),
     limit: Optional[int] = Query(2500, description="Max bookings to return (default 2500 for stress testing)")
 ):
     """
@@ -119,14 +120,18 @@ async def get_all_bookings(
     Strictly filters out any deleted tombstones to guarantee zero resurrection across mobile devices.
     """
     bookings = []
-    fetch_limit = limit or 2500
+    status_str = status if isinstance(status, str) else None
+    prov_phone_str = provider_phone if isinstance(provider_phone, str) else None
+    farmer_phone_str = farmer_phone if isinstance(farmer_phone, str) else None
+    lang_str = language if isinstance(language, str) else None
+    fetch_limit = limit if isinstance(limit, int) else 2500
     
     # 1. Try MongoDB if active
     if db_instance.db is not None:
         try:
             query = {}
-            if status:
-                query["status"] = status
+            if status_str:
+                query["status"] = status_str
             cursor = db_instance.db["equipment_bookings"].find(query).sort("createdAt", -1)
             docs = await cursor.to_list(length=fetch_limit)
             for doc in docs:
@@ -149,14 +154,29 @@ async def get_all_bookings(
 
     # Apply in-memory filters if needed
     result = bookings
-    if status:
-        result = [b for b in result if str(b.get("status", "")).lower() == status.lower()]
-    if provider_phone:
-        clean_p = "".join(filter(str.isdigit, provider_phone))
+    if status_str:
+        result = [b for b in result if str(b.get("status", "")).lower() == status_str.lower()]
+    if prov_phone_str:
+        clean_p = "".join(filter(str.isdigit, prov_phone_str))
         result = [b for b in result if clean_p in "".join(filter(str.isdigit, str(b.get("providerPhone") or b.get("provider_phone") or b.get("contactPhone") or "")))]
-    if farmer_phone:
-        clean_f = "".join(filter(str.isdigit, farmer_phone))
+    if farmer_phone_str:
+        clean_f = "".join(filter(str.isdigit, farmer_phone_str))
         result = [b for b in result if clean_f in "".join(filter(str.isdigit, str(b.get("farmerPhone") or b.get("phone") or "")))]
+
+    if lang_str and lang_str != "en":
+        norm_lang = lang_str.strip().lower().split("-")[0]
+        from backend.app.services.translation_service import COMMON_GLOSSARY
+        for b in result:
+            raw_status = str(b.get("status", "")).lower()
+            b["original_status"] = b.get("original_status") or b.get("status")
+            if raw_status in COMMON_GLOSSARY and norm_lang in COMMON_GLOSSARY[raw_status]:
+                b["status_label"] = COMMON_GLOSSARY[raw_status][norm_lang]
+            raw_notes = b.get("notes") or b.get("custom_notes") or b.get("specialInstructions")
+            if raw_notes:
+                b["original_notes"] = b.get("original_notes") or raw_notes
+                b_translations = b.get("translations", {})
+                if norm_lang in b_translations:
+                    b["notes"] = b_translations[norm_lang]
 
     return {
         "success": True,
@@ -183,6 +203,12 @@ async def create_booking(booking_data: Dict[str, Any] = Body(...)):
     if not booking_data.get("createdAt"):
         booking_data["createdAt"] = datetime.now().isoformat()
     booking_data["updatedAt"] = datetime.now().isoformat()
+
+    raw_notes = booking_data.get("custom_notes") or booking_data.get("notes") or booking_data.get("specialInstructions") or ""
+    if raw_notes:
+        booking_data["original_notes"] = booking_data.get("original_notes") or raw_notes
+        if "translations" not in booking_data:
+            booking_data["translations"] = {}
 
     # 1. Update in-memory / disk
     _load_disk_bookings()
@@ -451,6 +477,14 @@ async def update_booking_status(
                 farmer_email = updated_booking.get("farmerEmail") or updated_booking.get("farmer_email") or ""
                 if farmer_email:
                     farmer_user = await db_instance.db["users"].find_one({"email": farmer_email.lower().strip()})
+            if not farmer_user:
+                # Fallback: look up by userId / user_id stored in booking document
+                b_uid = updated_booking.get("userId") or updated_booking.get("user_id") or ""
+                if b_uid and db_instance.db is not None:
+                    try:
+                        farmer_user = await db_instance.db["users"].find_one({"$or": [{"_id": ObjectId(b_uid)}, {"id": str(b_uid)}]})
+                    except Exception:
+                        farmer_user = await db_instance.db["users"].find_one({"id": str(b_uid)})
             # Final fallback: use userId stored in booking document
             booking_user_id = updated_booking.get("userId") or updated_booking.get("user_id") or ""
             target_uid = str(farmer_user["_id"]) if farmer_user else booking_user_id
@@ -471,6 +505,23 @@ async def update_booking_status(
                         action_url="/equipment-booking"
                     )
                 )
+                try:
+                    from backend.app.routers.common.notifications import ws_manager
+                    from backend.app.services.translation_service import TranslationService
+                    farmer_lang = (farmer_user.get("preferred_language") or "en").lower().strip() if farmer_user else "en"
+                    loc_status = status_label
+                    if farmer_lang != "en":
+                        loc_status = await TranslationService.translate_text(status_label, farmer_lang, source_lang="en", db=db_instance.db)
+                    await ws_manager.broadcast_to_user(target_uid, {
+                        "type": "booking_status_updated",
+                        "booking_id": booking_id,
+                        "status": new_status,
+                        "status_label": loc_status,
+                        "original_status_label": status_label,
+                        "booking": updated_booking
+                    })
+                except Exception:
+                    pass
         except Exception as n_err:
             print(f"⚠️ [EquipmentBookings] Notification dispatch notice: {n_err}")
 
@@ -573,19 +624,26 @@ async def get_equipment_catalog(
     category: Optional[str] = Query(None, description="Filter by machinery category: tractor, drone, harvester, pump"),
     village: Optional[str] = Query(None, description="Filter by village"),
     district: Optional[str] = Query(None, description="Filter by district"),
-    provider_phone: Optional[str] = Query(None, description="Filter by provider phone")
+    provider_phone: Optional[str] = Query(None, description="Filter by provider phone"),
+    language: Optional[str] = Query(None, description="Active language code for localized description")
 ):
     """
     Fetch all registered farm machinery listings across all providers and devices.
     """
     catalog = []
+    cat_str = category if isinstance(category, str) else None
+    vill_str = village if isinstance(village, str) else None
+    dist_str = district if isinstance(district, str) else None
+    prov_str = provider_phone if isinstance(provider_phone, str) else None
+    lang_str = language if isinstance(language, str) else None
+
     if db_instance.db is not None:
         try:
             query = {}
-            if category and category.lower() != "all":
-                query["category"] = {"$regex": f"^{category}$", "$options": "i"}
-            if district:
-                query["district"] = {"$regex": district, "$options": "i"}
+            if cat_str and cat_str.lower() != "all":
+                query["category"] = {"$regex": f"^{cat_str}$", "$options": "i"}
+            if dist_str:
+                query["district"] = {"$regex": dist_str, "$options": "i"}
             cursor = db_instance.db["equipment_catalog"].find(query).sort("createdAt", -1)
             docs = await cursor.to_list(length=200)
             for doc in docs:
@@ -603,17 +661,27 @@ async def get_equipment_catalog(
 
     # Strictly filter out any deleted machinery tombstones across the system
     result = SyncService.filter_out_deleted("equipment", catalog, ["id", "equipment_id"])
-    if category and category.lower() != "all":
-        result = [c for c in result if str(c.get("category", "")).lower() == category.lower()]
-    if village:
-        v_clean = village.lower().strip()
+    if cat_str and cat_str.lower() != "all":
+        result = [c for c in result if str(c.get("category", "")).lower() == cat_str.lower()]
+    if vill_str:
+        v_clean = vill_str.lower().strip()
         result = [c for c in result if v_clean in str(c.get("village", "")).lower()]
-    if district:
-        d_clean = district.lower().strip()
+    if dist_str:
+        d_clean = dist_str.lower().strip()
         result = [c for c in result if d_clean in str(c.get("district", "")).lower()]
-    if provider_phone:
-        p_clean = "".join(filter(str.isdigit, provider_phone))
+    if prov_str:
+        p_clean = "".join(filter(str.isdigit, prov_str))
         result = [c for c in result if p_clean in "".join(filter(str.isdigit, str(c.get("phone") or c.get("contactPhone") or "")))]
+
+    for item in result:
+        orig_d = item.get("original_description") or item.get("description", "")
+        item["original_description"] = orig_d
+        item["description"] = orig_d
+        if lang_str and lang_str != "en":
+            norm_lang = lang_str.strip().lower().split("-")[0]
+            item_tr = item.get("translations", {})
+            if norm_lang in item_tr:
+                item["description"] = item_tr[norm_lang]
 
     return {
         "success": True,
@@ -744,7 +812,10 @@ async def delete_equipment_item(equipment_id: str):
 # ═══════════════════════════════════════════════════════════════════
 
 @router.get("/bookings/{booking_id}/messages")
-async def get_booking_chat_messages(booking_id: str):
+async def get_booking_chat_messages(
+    booking_id: str,
+    target_lang: Optional[str] = Query(None, description="Active user language for message translation")
+):
     """
     Retrieve all real-time chat messages for an equipment booking thread.
     Synchronizes cross-browser, cross-device communications between Farmer and Provider.
@@ -771,6 +842,29 @@ async def get_booking_chat_messages(booking_id: str):
     if not messages:
         threads = _load_disk_chat_messages()
         messages = threads.get(canonical_id) or threads.get(booking_id) or []
+
+    # Format multilingual fields safely
+    for m in messages:
+        orig = m.get("original_text") or m.get("text", "")
+        m["original_text"] = orig
+        translations = m.get("translations") or {}
+        msg_src = m.get("source_language", "en")
+        if target_lang and target_lang != msg_src:
+            if target_lang in translations:
+                m["translated_text"] = translations[target_lang]
+                m["text"] = translations[target_lang]
+            elif orig:
+                try:
+                    from backend.app.services.translation_service import TranslationService
+                    tr = await TranslationService.translate_text(orig, target_lang, source_lang=msg_src, db=db_instance.db)
+                    if tr and tr != orig:
+                        translations[target_lang] = tr
+                        m["translated_text"] = tr
+                        m["text"] = tr
+                except Exception:
+                    pass
+        else:
+            m["text"] = orig
 
     return {
         "success": True,
@@ -800,12 +894,70 @@ async def send_booking_chat_message(
     time_str = payload.get("time") or datetime.now().strftime("%I:%M %p")
     timestamp = payload.get("timestamp") or datetime.now().isoformat()
 
+    # Dynamic Multilingual Free-Form Translation (Phase 2E)
+    recipient_role = "equipment_provider" if sender == "farmer" else "farmer"
+    source_lang = payload.get("source_language") or payload.get("language") or "auto"
+    translations = {}
+    translated_text = None
+
+    recipient_lang = "en"
+    target_uid = "provider_hub" if recipient_role == "equipment_provider" else "farmer_hub"
+    if db_instance.db is not None:
+        user_doc = None
+        if canonical_id and canonical_id != "BK-GENERAL":
+            b_doc = await db_instance.db["equipment_bookings"].find_one({"$or": [{"id": canonical_id}, {"bookingId": canonical_id}]})
+            if b_doc:
+                if recipient_role == "equipment_provider":
+                    p_id = b_doc.get("providerId") or b_doc.get("provider_id")
+                    if p_id:
+                        try:
+                            user_doc = await db_instance.db["users"].find_one({"$or": [{"_id": ObjectId(p_id)}, {"id": p_id}]})
+                        except Exception:
+                            user_doc = await db_instance.db["users"].find_one({"id": p_id})
+                    if not user_doc:
+                        p_phone = b_doc.get("providerPhone") or b_doc.get("provider_phone") or ""
+                        clean_p = "".join(filter(str.isdigit, str(p_phone)))
+                        if clean_p:
+                            user_doc = await db_instance.db["users"].find_one({"$or": [{"phone": clean_p}, {"mobile": clean_p}]})
+                else:
+                    f_id = b_doc.get("userId") or b_doc.get("user_id")
+                    if f_id:
+                        try:
+                            user_doc = await db_instance.db["users"].find_one({"$or": [{"_id": ObjectId(f_id)}, {"id": f_id}]})
+                        except Exception:
+                            user_doc = await db_instance.db["users"].find_one({"id": f_id})
+                    if not user_doc:
+                        f_phone = b_doc.get("farmerPhone") or b_doc.get("phone") or ""
+                        clean_f = "".join(filter(str.isdigit, str(f_phone)))
+                        if clean_f:
+                            user_doc = await db_instance.db["users"].find_one({"$or": [{"phone": clean_f}, {"mobile": clean_f}]})
+        if not user_doc:
+            user_doc = await db_instance.db["users"].find_one({"role": recipient_role})
+        if user_doc:
+            target_uid = str(user_doc["_id"])
+            recipient_lang = user_doc.get("preferred_language", "en")
+
+    if text and recipient_lang != source_lang:
+        try:
+            from backend.app.services.translation_service import TranslationService
+            translated_text = await TranslationService.translate_text(
+                text, recipient_lang, source_lang=source_lang, db=db_instance.db
+            )
+            if translated_text and translated_text != text:
+                translations[recipient_lang] = translated_text
+        except Exception as tr_err:
+            print(f"Chat translation notice: {tr_err}")
+
     new_message = {
         "id": msg_id,
         "sender": sender,
         "senderName": sender_name,
         "type": msg_type,
         "text": text,
+        "original_text": text,
+        "source_language": source_lang if source_lang != "auto" else "en",
+        "translations": translations,
+        "translated_text": translated_text,
         "time": time_str,
         "timestamp": timestamp,
         "status": "sent"
@@ -844,21 +996,18 @@ async def send_booking_chat_message(
     try:
         from backend.app.services.notification_service import NotificationService
         from backend.app.models.notification import NotificationCreate
-        recipient_role = "equipment_provider" if sender == "farmer" else "farmer"
-        preview_text = text[:80] if text else "Sent a location attachment"
+        preview_text = (translated_text or text)[:80] if text else "Sent a location attachment"
 
-        target_uid = "provider_hub" if recipient_role == "equipment_provider" else "farmer_hub"
         if db_instance.db is not None:
-            user_doc = await db_instance.db["users"].find_one({"role": recipient_role})
-            if user_doc:
-                target_uid = str(user_doc["_id"])
-
             await NotificationService.create_notification(
                 db_instance.db,
                 NotificationCreate(
                     user_id=target_uid,
                     title=f"💬 New Message ({canonical_id})",
                     message=f"{sender_name}: \"{preview_text}\"",
+                    original_title=f"💬 New Message ({canonical_id})",
+                    original_message=f"{sender_name}: \"{preview_text}\"",
+                    source_language="en",
                     category="booking",
                     priority="Normal",
                     booking_id=canonical_id,
@@ -867,6 +1016,23 @@ async def send_booking_chat_message(
             )
     except Exception:
         pass
+
+    # Direct Real-Time WebSocket broadcast to counterparty
+    if target_uid:
+        try:
+            from backend.app.routers.common.notifications import ws_manager
+            await ws_manager.broadcast_to_user(target_uid, {
+                "type": "booking_chat_message",
+                "booking_id": canonical_id,
+                "message": {
+                    **new_message,
+                    "text": translated_text if translated_text else text,
+                    "original_text": text,
+                    "translated_text": translated_text
+                }
+            })
+        except Exception:
+            pass
 
     return {
         "success": True,

@@ -100,6 +100,10 @@ class NotificationBase(BaseModel):
     action_url: Optional[str] = None
     booking_id: Optional[str] = None
     confidence_score: Optional[float] = None
+    original_title: Optional[str] = None
+    original_message: Optional[str] = None
+    source_language: Optional[str] = "en"
+    translations: Optional[Dict[str, Dict[str, str]]] = Field(default_factory=dict)
 
 class NotificationCreate(NotificationBase):
     user_id: str

@@ -116,12 +116,33 @@ class NotificationService:
             user_doc = await db.users.find_one({"$or": [{"id": user_id}, {"username": user_id}]})
         preferred_lang = user_doc.get("preferred_language", "en") if user_doc else "en"
 
-        # 3. Localize alert message
+        # 3. Localize alert message & title
+        original_title = notification.title
+        original_message = notification.message
+        source_lang = getattr(notification, "source_language", "en") or "en"
+        translations = dict(getattr(notification, "translations", {}) or {})
+
+        final_title = original_title
         final_message = notification.message
         if template_key:
             ctx = template_context or {}
             ctx["message"] = notification.message
             final_message = render_template(template_key, preferred_lang, ctx)
+        elif preferred_lang != source_lang and preferred_lang != "en":
+            try:
+                from backend.app.services.translation_service import TranslationService
+                final_title = await TranslationService.translate_text(
+                    original_title, preferred_lang, source_lang=source_lang, db=db
+                )
+                final_message = await TranslationService.translate_text(
+                    notification.message, preferred_lang, source_lang=source_lang, db=db
+                )
+                translations[preferred_lang] = {
+                    "title": final_title,
+                    "message": final_message
+                }
+            except Exception as tr_err:
+                logger.debug(f"Notification translation notice: {tr_err}")
 
         # 4. Asynchronously query NVIDIA Llama 3.1 for recommendations if enabled and LLM key is ready
         if category in ["soil", "disease"] and template_context:
@@ -144,8 +165,12 @@ class NotificationService:
             "user_id": user_id,
             "farm_id": notification.farm_id,
             "device_id": notification.device_id,
-            "title": notification.title,
-            "message": final_message,
+            "title": original_title,
+            "message": original_message,
+            "original_title": original_title,
+            "original_message": original_message,
+            "source_language": source_lang,
+            "translations": translations,
             "category": category,
             "priority": priority,
             "status": "active",
@@ -184,15 +209,21 @@ class NotificationService:
         if active_websocket_manager:
             try:
                 # Derive recipient role from already-fetched user_doc for role-aware unread count (ISSUE-03)
-                # user_doc was fetched above for preferred_lang — no extra DB query needed.
-                # get_unread_count applies provider whitelist only when role=="equipment_provider";
-                # admin and farmer pass through unchanged.
                 recipient_role = user_doc.get("role") if user_doc else None
                 count = await NotificationService.get_unread_count(db, user_id, role=recipient_role)
+                ws_notification = dict(doc)
+                if preferred_lang in translations:
+                    ws_notification["translated_title"] = translations[preferred_lang].get("title", original_title)
+                    ws_notification["translated_message"] = translations[preferred_lang].get("message", original_message)
+                    ws_notification["title"] = ws_notification["translated_title"]
+                    ws_notification["message"] = ws_notification["translated_message"]
+                elif final_title != original_title or final_message != original_message:
+                    ws_notification["title"] = final_title
+                    ws_notification["message"] = final_message
                 await active_websocket_manager.broadcast_to_user(user_id, {
                     "type": "new_notification",
                     "unread_count": count,
-                    "notification": doc
+                    "notification": ws_notification
                 })
             except Exception as ws_err:
                 logger.error(f"WebSocket notification broadcast error: {ws_err}")
@@ -222,9 +253,10 @@ class NotificationService:
         category: Optional[str] = None, 
         priority: Optional[str] = None,
         unread_only: bool = False,
-        role: Optional[str] = None
+        role: Optional[str] = None,
+        active_language: Optional[str] = None
     ) -> Tuple[List[Dict[str, Any]], int]:
-        """Fetch paginated notification logs for user with strict role isolation."""
+        """Fetch paginated notification logs for user with strict role isolation and active language localization."""
         query = {"user_id": user_id}
         
         if role == "equipment_provider":
@@ -245,24 +277,66 @@ class NotificationService:
         records = await cursor.to_list(length=limit)
         
         for r in records:
-            r["notification_id"] = str(r["_id"])
+            r["notification_id"] = str(r.get("_id") or r.get("id") or r.get("notification_id", ""))
             if "_id" in r:
                 del r["_id"]
+            orig_t = r.get("original_title") or r.get("title", "")
+            orig_m = r.get("original_message") or r.get("message", "")
+            r["original_title"] = orig_t
+            r["original_message"] = orig_m
+            r["source_language"] = r.get("source_language", "en")
+            translations = r.get("translations") or {}
+            r["translations"] = translations
+
+            # Ensure canonical presentation by default
+            r["title"] = orig_t
+            r["message"] = orig_m
+
+            if active_language and active_language != "en":
+                if active_language in translations and isinstance(translations[active_language], dict):
+                    r["title"] = translations[active_language].get("title", orig_t)
+                    r["message"] = translations[active_language].get("message", orig_m)
                 
         return records, total
 
     @staticmethod
-    async def get_unread_notifications(db, user_id: str, limit: int = 10, role: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Fetch unread alerts list with role-based category filtering (mirrors get_notifications filter)."""
+    async def get_unread_notifications(
+        db,
+        user_id: str,
+        limit: int = 10,
+        role: Optional[str] = None,
+        active_language: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Fetch unread alerts list with role-based category filtering and active language localization."""
         query: Dict[str, Any] = {"user_id": user_id, "read": False}
         if role == "equipment_provider":
             query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat"]}
         cursor = db.notifications.find(query).sort("lifecycle.created_at", -1).limit(limit)
         records = await cursor.to_list(length=limit)
         for r in records:
-            r["notification_id"] = str(r["_id"])
+            r["notification_id"] = str(r.get("_id") or r.get("id") or "")
             if "_id" in r:
                 del r["_id"]
+            orig_t = r.get("original_title") or r.get("title", "")
+            orig_m = r.get("original_message") or r.get("message", "")
+            r["original_title"] = orig_t
+            r["original_message"] = orig_m
+            r["source_language"] = r.get("source_language", "en")
+            r["title"] = orig_t
+            r["message"] = orig_m
+            translations = r.get("translations") or {}
+            r["translations"] = translations
+            if active_language and active_language != "en":
+                if active_language in translations and isinstance(translations[active_language], dict):
+                    r["title"] = translations[active_language].get("title", orig_t)
+                    r["message"] = translations[active_language].get("message", orig_m)
+            translations = r.get("translations") or {}
+            r["translations"] = translations
+
+            if active_language and active_language != "en":
+                if active_language in translations and isinstance(translations[active_language], dict):
+                    r["title"] = translations[active_language].get("title", r.get("title", orig_t))
+                    r["message"] = translations[active_language].get("message", r.get("message", orig_m))
         return records
 
     @staticmethod

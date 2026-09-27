@@ -936,7 +936,9 @@ export default function GoogleMessageReader({
     const fetchRemoteChat = async () => {
       if (!canonicalBookingId) return;
       try {
-        const res = await API.get(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`);
+        const res = await API.get(`/api/v1/equipment/bookings/${canonicalBookingId}/messages`, {
+          params: { target_lang: currentLang }
+        });
         if (res.data?.messages && Array.isArray(res.data.messages) && isMounted) {
           const serverMsgs = res.data.messages.filter(m => m && m.id !== 'msg_f1' && m.id !== 'msg_p1');
           setChatMessages(prev => {
@@ -2088,7 +2090,8 @@ export default function GoogleMessageReader({
                 }
 
                 const isMyMessage = msg.sender === mySenderRole;
-                const translatedText = translateChatMessage(msg.text, currentLang);
+                const serverTranslation = msg.translated_text || (msg.translations && msg.translations[currentLang]);
+                const translatedText = serverTranslation || translateChatMessage(msg.text, currentLang);
                 const hasTranslation = Boolean(translatedText && translatedText !== msg.text);
                 const showOriginal = Boolean(originalViewMap[msg.id]);
                 const displayMsgText = (hasTranslation && !showOriginal) ? translatedText : msg.text;

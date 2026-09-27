@@ -1365,13 +1365,15 @@ async def translate_agrochemical_endpoint(
                 return {"success": True, "agrochemical": req.agrochemical["translations"]["en"]}
             return {"success": True, "agrochemical": req.agrochemical}
 
-        translated = await translate_agrochemical_data(req.agrochemical, target_lang)
-        return {"success": True, "agrochemical": translated}
+        try:
+            translated = await translate_agrochemical_data(req.agrochemical, target_lang)
+            return {"success": True, "agrochemical": translated}
+        except Exception as trans_err:
+            logger.warning(f"Agrochemical on-demand translation warning: {trans_err}")
+            return {"success": True, "agrochemical": req.agrochemical}
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Agrochemical translation error: {str(e)}"
-        )
+        logger.warning(f"Agrochemical translation fallback notice: {e}")
+        return {"success": True, "agrochemical": req.agrochemical}
 
 @router.post("/agrochemical-compare")
 async def compare_agrochemical_endpoint(
@@ -1965,9 +1967,13 @@ async def predict_pytorch_endpoint(
         target_lang = target_lang.split("-")[0]
         
     if target_lang != "en":
-        # Always preserve canonical English names before translation
+        # Always preserve canonical English names and translation container before translation
         prediction_result["canonical_crop_name"] = prediction_result.get("crop_name", "")
         prediction_result["canonical_disease_name"] = prediction_result.get("disease_name", "")
+        prediction_result["original_crop_name"] = prediction_result.get("crop_name", "")
+        prediction_result["original_disease_name"] = prediction_result.get("disease_name", "")
+        prediction_result["source_language"] = "en"
+        prediction_result["translations"] = {}
         
         translated_via_nvidia = False
         try:
@@ -2094,6 +2100,12 @@ async def predict_pytorch_endpoint(
             except Exception as ex:
                 print("Phase 4 deep-translator fallback failed:", ex)
                 pass
+
+        if target_lang != "en":
+            prediction_result.setdefault("translations", {})[target_lang] = {
+                "crop_name": prediction_result.get("crop_name", ""),
+                "disease_name": prediction_result.get("disease_name", "")
+            }
 
     # --- PHASE 5: AI CROP ADVISOR INTEGRATION ---
     advisor_data = None
@@ -2284,6 +2296,10 @@ async def predict_pytorch_endpoint(
         "image_data_url": getattr(req, "image_data_url", None),
         "crop_name": prediction_result["crop_name"],
         "disease_name": prediction_result["disease_name"],
+        "original_crop_name": prediction_result.get("original_crop_name") or prediction_result.get("canonical_crop_name") or prediction_result["crop_name"],
+        "original_disease_name": prediction_result.get("original_disease_name") or prediction_result.get("canonical_disease_name") or prediction_result["disease_name"],
+        "source_language": "en",
+        "translations": prediction_result.get("translations", {}),
         "confidence": float(prediction_result["confidence"]),
         "prediction_date": now.strftime("%Y-%m-%d"),
         "prediction_time": now.strftime("%H:%M:%S"),

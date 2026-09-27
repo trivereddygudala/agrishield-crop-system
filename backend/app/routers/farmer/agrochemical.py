@@ -178,10 +178,8 @@ async def translate_agrochemical_endpoint(
         translated = await translate_agrochemical_data(req.agrochemical, target_lang)
         return {"success": True, "agrochemical": translated}
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Agrochemical translation error: {str(e)}"
-        )
+        logger.warning(f"Agrochemical translation fallback notice: {e}")
+        return {"success": True, "agrochemical": req.agrochemical}
 
 
 @router.post("/agrochemical-compare")

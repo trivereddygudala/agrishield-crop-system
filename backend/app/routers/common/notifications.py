@@ -132,7 +132,8 @@ async def get_notifications(
         category=category, 
         priority=priority,
         unread_only=unread_only,
-        role=current_user.get("role")
+        role=current_user.get("role"),
+        active_language=current_user.get("preferred_language", "en")
     )
     pages = (total + limit - 1) // limit if total > 0 else 1
     return {
@@ -149,12 +150,13 @@ async def get_unread_notifications(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Fetch recent unread alerts list with role-based filtering."""
+    """Fetch recent unread alerts list with role-based filtering and active language localization."""
     return await NotificationService.get_unread_notifications(
         db, 
         user_id=str(current_user["id"]), 
         limit=limit,
-        role=current_user.get("role")
+        role=current_user.get("role"),
+        active_language=current_user.get("preferred_language", "en")
     )
 
 # --- Notification Updates (Read / Acknowledge / Delete) ---

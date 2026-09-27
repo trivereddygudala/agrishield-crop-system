@@ -68,6 +68,13 @@ class MockCollection:
             return new_rec
         return rec
 
+    async def find_one_and_update(self, query, update_dict, return_document=True, **kwargs):
+        rec = await self.find_one(query)
+        if rec and "$set" in update_dict:
+            for k, v in update_dict["$set"].items():
+                rec[k] = v
+        return rec
+
     async def delete_many(self, query):
         self.records = []
         return True
@@ -86,7 +93,8 @@ class MockCollection:
                 count += 1
         return count
 
-    def find(self, query):
+    def find(self, query=None, projection=None, *args, **kwargs):
+        query = query or {}
         filtered = [rec for rec in self.records if self._matches(rec, query)]
 
         class Cursor:
@@ -105,8 +113,8 @@ class MockCollection:
             def limit(self, num):
                 self.data = self.data[:num]
                 return self
-            async def to_list(self, length):
-                return self.data[:length]
+            async def to_list(self, length=None):
+                return self.data[:length] if length is not None else list(self.data)
                 
         return Cursor(filtered)
 

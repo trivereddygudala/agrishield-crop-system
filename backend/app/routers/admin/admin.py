@@ -270,6 +270,7 @@ class AdminBroadcastRequest(BaseModel):
     message: str
     priority: str = "High"
     audience: str = "all"  # 'farmers' | 'providers' | 'all'
+    action_url: Optional[str] = "/dashboard"
 
 @router.post("/broadcast", dependencies=[Depends(require_role("admin"))])
 async def broadcast_system_notification(
@@ -288,7 +289,7 @@ async def broadcast_system_notification(
         # Exclude admin accounts from "all" broadcasts — admins access broadcasts via admin panel
         query = {"role": {"$ne": "admin"}}
 
-    users_cursor = db.users.find(query, {"_id": 1})
+    users_cursor = db.users.find(query, {"_id": 1, "preferred_language": 1})
     users_list = await users_cursor.to_list(length=None)
 
     count = 0
@@ -300,9 +301,12 @@ async def broadcast_system_notification(
                 user_id=uid_str,
                 title=payload.title,
                 message=payload.message,
+                original_title=payload.title,
+                original_message=payload.message,
+                source_language="en",
                 category="broadcast",
                 priority=payload.priority,
-                action_url="/dashboard"
+                action_url=payload.action_url or "/dashboard"
             )
         )
         count += 1
@@ -311,6 +315,9 @@ async def broadcast_system_notification(
     broadcast_doc = {
         "title": payload.title,
         "message": payload.message,
+        "original_title": payload.title,
+        "original_message": payload.message,
+        "source_language": "en",
         "priority": payload.priority,
         "audience": audience,
         "recipient_count": count,

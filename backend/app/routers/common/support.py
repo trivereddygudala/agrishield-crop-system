@@ -41,9 +41,9 @@ class TicketUpdateRequest(BaseModel):
     resolution_notes: Optional[str] = None
 
 # ─────────────────────────────────────────────────────────────
-# Helper: Format Ticket Document
+# Helper: Format Ticket Document (Multilingual Phase 2C)
 # ─────────────────────────────────────────────────────────────
-def format_ticket_doc(doc: dict) -> dict:
+def format_ticket_doc(doc: dict, is_admin: bool = False) -> dict:
     phone_val = doc.get("phone") or doc.get("contact_phone") or ""
     email_val = doc.get("farmer_email") or doc.get("contact_email") or doc.get("email") or ""
     category_val = doc.get("category", "general")
@@ -51,6 +51,24 @@ def format_ticket_doc(doc: dict) -> dict:
 
     user_role_val = doc.get("user_role") or ("equipment_provider" if category_val in ["machinery_listing", "booking_disputes", "payouts_settlements", "coverage_gps_dispatch", "breakdown_operational_aid", "agency_profile_verification", "general_provider"] else "farmer")
     default_name = "Equipment Provider" if user_role_val == "equipment_provider" else "Farmer"
+
+    orig_sub = doc.get("original_subject") or doc.get("subject", "")
+    orig_desc = doc.get("original_description") or doc.get("description", "")
+    orig_res = doc.get("original_resolution_notes") or doc.get("resolution_notes", "")
+    source_lang = doc.get("source_language") or doc.get("language", "en")
+    translations = doc.get("translations", {})
+    translated_res = doc.get("translated_resolution_notes", "")
+
+    en_translation = translations.get("en", {}) if isinstance(translations, dict) else {}
+    en_sub = en_translation.get("subject")
+    en_desc = en_translation.get("description")
+
+    # If viewed by admin and submitted in regional language, show English translation while preserving original
+    display_sub = en_sub if (is_admin and en_sub and source_lang != "en") else orig_sub
+    display_desc = en_desc if (is_admin and en_desc and source_lang != "en") else orig_desc
+
+    # If viewed by farmer/provider and resolution notes were translated to their language
+    display_res = (translated_res if (not is_admin and translated_res and source_lang != "en") else orig_res) or orig_res
 
     return {
         "id": str(doc["_id"]),
@@ -63,19 +81,27 @@ def format_ticket_doc(doc: dict) -> dict:
         "contact_email": email_val,
         "phone": phone_val,
         "contact_phone": phone_val,
-        "language": doc.get("language", "en"),
+        "language": source_lang,
+        "source_language": source_lang,
         "location": doc.get("location", ""),
         "category": category_val,
         "priority": doc.get("priority", "medium"),
         "status": doc.get("status", "open"),
-        "subject": doc.get("subject", ""),
-        "description": doc.get("description", ""),
+        "subject": display_sub,
+        "description": display_desc,
+        "original_subject": orig_sub,
+        "original_description": orig_desc,
+        "translated_subject": en_sub,
+        "translated_description": en_desc,
+        "translations": translations,
         "device_id": doc.get("device_id"),
         "attachments": doc.get("attachments", []),
         "is_callback_request": is_callback,
         "preferred_time": doc.get("preferred_time"),
         "assigned_agent": doc.get("assigned_agent"),
-        "resolution_notes": doc.get("resolution_notes", ""),
+        "resolution_notes": display_res,
+        "original_resolution_notes": orig_res,
+        "translated_resolution_notes": translated_res,
         "resolved_at": doc.get("resolved_at", "").isoformat() if isinstance(doc.get("resolved_at"), datetime) else doc.get("resolved_at", ""),
         "created_at": doc.get("created_at", datetime.now(timezone.utc)).isoformat() if isinstance(doc.get("created_at"), datetime) else doc.get("created_at"),
         "updated_at": doc.get("updated_at", datetime.now(timezone.utc)).isoformat() if isinstance(doc.get("updated_at"), datetime) else doc.get("updated_at")
@@ -104,6 +130,19 @@ async def create_support_ticket(
     phone = payload.phone or current_user.get("phone") or ""
     location = current_user.get("farm_location") or current_user.get("location") or "Field Location"
     name = current_user.get("name") or current_user.get("full_name") or "Farmer"
+    source_lang = payload.language or current_user.get("preferred_language", "en")
+    orig_sub = payload.subject.strip()
+    orig_desc = payload.description.strip()
+
+    translations = {}
+    if source_lang != "en":
+        try:
+            from backend.app.services.translation_service import TranslationService
+            en_sub = await TranslationService.translate_text(orig_sub, "en", source_lang=source_lang, db=db)
+            en_desc = await TranslationService.translate_text(orig_desc, "en", source_lang=source_lang, db=db)
+            translations["en"] = {"subject": en_sub, "description": en_desc}
+        except Exception as tr_err:
+            print(f"Helpdesk ticket translation warning: {tr_err}")
 
     ticket_doc = {
         "ticket_number": ticket_num,
@@ -112,18 +151,24 @@ async def create_support_ticket(
         "farmer_name": name,
         "farmer_email": current_user.get("email", ""),
         "phone": phone,
-        "language": payload.language or current_user.get("preferred_language", "en"),
+        "language": source_lang,
+        "source_language": source_lang,
         "location": location,
         "category": payload.category,
         "priority": payload.priority,
         "status": "open",
-        "subject": payload.subject.strip(),
-        "description": payload.description.strip(),
+        "subject": orig_sub,
+        "description": orig_desc,
+        "original_subject": orig_sub,
+        "original_description": orig_desc,
+        "translations": translations,
         "device_id": payload.device_id,
         "attachments": payload.attachments or [],
         "is_callback_request": False,
         "assigned_agent": "Support Desk",
         "resolution_notes": "",
+        "original_resolution_notes": "",
+        "translated_resolution_notes": "",
         "created_at": now_utc,
         "updated_at": now_utc
     }
@@ -282,7 +327,7 @@ async def list_admin_tickets(
 
     return {
         "total": total,
-        "tickets": [format_ticket_doc(d) for d in docs]
+        "tickets": [format_ticket_doc(d, is_admin=True) for d in docs]
     }
 
 @router.get("/admin/stats", dependencies=[Depends(require_role("admin"))])
@@ -330,6 +375,18 @@ async def update_ticket_status(
         update_fields["assigned_agent"] = payload.assigned_agent
     if payload.resolution_notes is not None:
         update_fields["resolution_notes"] = payload.resolution_notes
+        update_fields["original_resolution_notes"] = payload.resolution_notes
+        try:
+            existing_tkt = await db.support_tickets.find_one({"$or": query_conditions}, {"language": 1, "source_language": 1})
+            tkt_lang = (existing_tkt.get("language") or existing_tkt.get("source_language") or "en") if existing_tkt else "en"
+            if tkt_lang != "en":
+                from backend.app.services.translation_service import TranslationService
+                translated_notes = await TranslationService.translate_text(
+                    payload.resolution_notes, tkt_lang, source_lang="en", db=db
+                )
+                update_fields["translated_resolution_notes"] = translated_notes
+        except Exception as tr_err:
+            print(f"Resolution notes translation notice: {tr_err}")
 
     res = await db.support_tickets.find_one_and_update(
         {"$or": query_conditions},
@@ -342,7 +399,7 @@ async def update_ticket_status(
     return {
         "success": True,
         "message": "Ticket updated successfully",
-        "ticket": format_ticket_doc(res)
+        "ticket": format_ticket_doc(res, is_admin=True)
     }
 
 # ─────────────────────────────────────────────────────────────
