@@ -146,21 +146,13 @@ class ProfileUpdate(BaseModel):
 
     @model_validator(mode='after')
     def sync_language_fields(self):
-        # Synchronization Rule:
-        # - preferred_languages is the authoritative multi-language preference source.
-        # - preferred_language is the legacy/current-primary field.
-        # - When preferred_languages is provided, preferred_language is synchronized
-        #   to preferred_languages[0] ("en") to eliminate conflicting states.
-        # - When only preferred_language is provided, preferred_languages is derived
-        #   with "en" strictly at index 0.
-        if self.preferred_languages is not None:
-            self.preferred_language = self.preferred_languages[0]
-        elif self.preferred_language is not None:
-            clean_pl = self.preferred_language.strip().lower()
-            if clean_pl == "en":
-                self.preferred_languages = ["en"]
-            else:
-                self.preferred_languages = ["en", clean_pl]
+        # Rule 3: When BOTH preferred_languages and preferred_language are supplied,
+        # validate that the active language belongs to the normalized language pool.
+        if self.preferred_languages is not None and self.preferred_language is not None:
+            if self.preferred_language not in self.preferred_languages:
+                raise ValueError(
+                    f"Active language '{self.preferred_language}' must belong to the selected language pool: {self.preferred_languages}"
+                )
         return self
 
 # Prediction schemas

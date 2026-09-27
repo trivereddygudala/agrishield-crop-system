@@ -92,16 +92,19 @@ export default function LanguagesPage() {
     try {
       setErrorNotice('');
 
-      // 1. Persist to localStorage for top navbar & scan centers
-      localStorage.setItem('agrishield_preferred_languages', JSON.stringify(selectedLangs));
+      // 1. Resolve safe active language: must belong to selectedLangs, fallback to 'en'
+      const resolvedActive = selectedLangs.includes(activeCode)
+        ? activeCode
+        : (selectedLangs.includes('en') ? 'en' : (selectedLangs[0] || 'en'));
 
-      // 2. If current active language is not among selected, switch to 1st chosen language
-      if (!selectedLangs.includes(activeCode)) {
-        const nextLang = selectedLangs[0] || 'te';
-        await i18n.changeLanguage(nextLang);
-        localStorage.setItem('i18nextLng', nextLang);
-        setActiveCode(nextLang);
+      if (resolvedActive !== activeCode) {
+        await i18n.changeLanguage(resolvedActive);
+        localStorage.setItem('i18nextLng', resolvedActive);
+        setActiveCode(resolvedActive);
       }
+
+      // 2. Persist to localStorage for top navbar & scan centers
+      localStorage.setItem('agrishield_preferred_languages', JSON.stringify(selectedLangs));
 
       // 3. Dispatch real-time event for top Navbar & Scan Centers
       window.dispatchEvent(
@@ -111,13 +114,16 @@ export default function LanguagesPage() {
       );
       window.dispatchEvent(
         new CustomEvent('agrishield-language-changed', {
-          detail: { language: activeCode }
+          detail: { language: resolvedActive }
         })
       );
 
-      // 4. Background profile sync if logged in (silently without leaving page)
+      // 4. Background profile sync if logged in: atomic dual-field submission
       if (user && updateProfile) {
-        updateProfile({ preferred_languages: selectedLangs }).catch((err) => {
+        updateProfile({
+          preferred_languages: selectedLangs,
+          preferred_language: resolvedActive
+        }).catch((err) => {
           console.warn("Background language profile sync skipped:", err);
         });
       }
@@ -135,32 +141,28 @@ export default function LanguagesPage() {
   const handleActivateLive = async (code) => {
     try {
       const clean = (code || '').toLowerCase();
-      setActiveCode(clean);
-      setJustSwitched(clean);
+      let targetPool = selectedLangs;
 
       // Ensure it is in selected languages so it appears in quick buttons
       if (!selectedLangs.includes(clean)) {
         if (selectedLangs.length < 3) {
-          const updated = [clean, ...selectedLangs];
-          setSelectedLangs(updated);
-          localStorage.setItem('agrishield_preferred_languages', JSON.stringify(updated));
-          window.dispatchEvent(
-            new CustomEvent('agrishield-preferred-languages-updated', {
-              detail: { languages: updated }
-            })
-          );
+          targetPool = [clean, ...selectedLangs];
         } else {
-          // Replace last one with the newly active language
-          const updated = [clean, selectedLangs[0], selectedLangs[1]];
-          setSelectedLangs(updated);
-          localStorage.setItem('agrishield_preferred_languages', JSON.stringify(updated));
-          window.dispatchEvent(
-            new CustomEvent('agrishield-preferred-languages-updated', {
-              detail: { languages: updated }
-            })
-          );
+          // Replace last one with the newly active language, keeping 'en'
+          const nonEn = selectedLangs.filter(c => c !== 'en');
+          targetPool = ['en', clean, nonEn[0] || selectedLangs[1]].filter((v, i, a) => a.indexOf(v) === i);
         }
+        setSelectedLangs(targetPool);
+        localStorage.setItem('agrishield_preferred_languages', JSON.stringify(targetPool));
+        window.dispatchEvent(
+          new CustomEvent('agrishield-preferred-languages-updated', {
+            detail: { languages: targetPool }
+          })
+        );
       }
+
+      setActiveCode(clean);
+      setJustSwitched(clean);
 
       await i18n.changeLanguage(clean);
       localStorage.setItem('i18nextLng', clean);
@@ -172,7 +174,10 @@ export default function LanguagesPage() {
       );
 
       if (user && updateProfile) {
-        updateProfile({ preferred_language: clean }).catch(() => {});
+        updateProfile({
+          preferred_languages: targetPool,
+          preferred_language: clean
+        }).catch(() => {});
       }
 
       setTimeout(() => setJustSwitched(null), 1200);

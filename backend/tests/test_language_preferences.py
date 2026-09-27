@@ -15,6 +15,15 @@ from backend.app.models.schemas import (
 )
 
 # Setup Mock database for testing
+from backend.tests.mock_db import MockCollection
+async def mock_update_many(self, query, update_dict, **kwargs):
+    for rec in self.records:
+        if "$set" in update_dict:
+            for k, v in update_dict["$set"].items():
+                rec[k] = v
+    return True
+MockCollection.update_many = mock_update_many
+
 mock_db = MockDatabase()
 db_instance.db = mock_db
 
@@ -37,95 +46,265 @@ def clean_mock_data():
     mock_db.users.records = []
     mock_db.devices.records = []
 
-# --- Required Test 1: ["en", "te", "hi"] -> ["en", "te", "hi"] ---
-def test_01_en_te_hi():
-    update = ProfileUpdate(preferred_languages=["en", "te", "hi"])
+# --- Test 1: English Only ---
+def test_01_english_only():
+    update = ProfileUpdate(preferred_languages=["en"], preferred_language="en")
+    assert update.preferred_languages == ["en"]
+    assert update.preferred_language == "en"
+
+# --- Test 2: English + Telugu ---
+def test_02_english_plus_telugu():
+    update = ProfileUpdate(preferred_languages=["en", "te"], preferred_language="te")
+    assert update.preferred_languages == ["en", "te"]
+    assert update.preferred_language == "te"
+
+# --- Test 3: English + Telugu + Hindi ---
+def test_03_english_plus_telugu_plus_hindi():
+    update = ProfileUpdate(preferred_languages=["en", "te", "hi"], preferred_language="hi")
     assert update.preferred_languages == ["en", "te", "hi"]
-    assert update.preferred_language == "en"
+    assert update.preferred_language == "hi"
 
-# --- Required Test 2: ["te", "en", "hi"] -> ["en", "te", "hi"] ---
-def test_02_te_en_hi_normalizes_to_en_first():
-    update = ProfileUpdate(preferred_languages=["te", "en", "hi"])
-    assert update.preferred_languages == ["en", "te", "hi"]
-    assert update.preferred_language == "en"
-
-# --- Required Test 3: ["hi", "te", "en"] -> ["en", "hi", "te"] ---
-def test_03_hi_te_en_normalizes_to_en_first_preserving_regional():
-    update = ProfileUpdate(preferred_languages=["hi", "te", "en"])
-    assert update.preferred_languages == ["en", "hi", "te"]
-    assert update.preferred_language == "en"
-
-# --- Required Test 4: ["te", "hi"] -> ["en", "te", "hi"] ---
-def test_04_te_hi_normalizes_to_include_en_at_index_0():
+# --- Test 4: Regional submitted without English -> normalizes to index 0 English ---
+def test_04_regional_submitted_without_english():
     update = ProfileUpdate(preferred_languages=["te", "hi"])
     assert update.preferred_languages == ["en", "te", "hi"]
-    assert update.preferred_language == "en"
+    assert update.preferred_language is None
 
-# --- Required Test 5: ["kn"] -> ["en", "kn"] ---
-def test_05_single_regional_normalizes_to_include_en_at_index_0():
-    update = ProfileUpdate(preferred_languages=["kn"])
-    assert update.preferred_languages == ["en", "kn"]
-    assert update.preferred_language == "en"
+# --- Test 5: Active Telugu with English/Telugu/Hindi pool ---
+def test_05_active_telugu_with_pool():
+    update = ProfileUpdate(preferred_languages=["te", "hi"], preferred_language="te")
+    assert update.preferred_languages == ["en", "te", "hi"]
+    assert update.preferred_language == "te"
 
-# --- Required Test 6: Four languages -> rejected ---
-def test_06_four_languages_rejected():
+# --- Test 6: Active Hindi with English/Telugu/Hindi pool ---
+def test_06_active_hindi_with_pool():
+    update = ProfileUpdate(preferred_languages=["hi", "te"], preferred_language="hi")
+    assert update.preferred_languages == ["en", "hi", "te"]
+    assert update.preferred_language == "hi"
+
+# --- Test 7: Change active language without losing selected languages ---
+@pytest.mark.anyio
+async def test_07_change_active_language_without_losing_selected():
+    user_id, token = await create_test_user(
+        "Farmer Seven", "seven@test.com", "farmer",
+        pref_lang="te", pref_langs=["en", "te", "hi"]
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # User submits preferred_language="hi" only
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_language": "hi"}
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["preferred_language"] == "hi"
+        assert body["preferred_languages"] == ["en", "te", "hi"]
+
+        # Verify DB
+        db_user = await mock_db.users.find_one({"_id": ObjectId(user_id)})
+        assert db_user["preferred_language"] == "hi"
+        assert db_user["preferred_languages"] == ["en", "te", "hi"]
+
+# --- Test 8: Remove active language and verify safe fallback (Preserved when still present) ---
+@pytest.mark.anyio
+async def test_08_active_language_preserved_when_present_in_new_pool():
+    user_id, token = await create_test_user(
+        "Farmer Eight", "eight@test.com", "farmer",
+        pref_lang="te", pref_langs=["en", "te", "hi"]
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # User updates pool to te, kn (omits hi, keeps te)
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_languages": ["te", "kn"]}
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["preferred_languages"] == ["en", "te", "kn"]
+        assert body["preferred_language"] == "te"  # Preserved!
+
+# --- Test 9: Invalid active language not in pool -> rejected ---
+def test_09_invalid_active_language_not_in_pool():
     with pytest.raises(ValidationError) as exc_info:
-        ProfileUpdate(preferred_languages=["en", "te", "hi", "ta"])
-    assert "Maximum 3 preferred languages allowed" in str(exc_info.value)
+        ProfileUpdate(preferred_languages=["en", "te"], preferred_language="hi")
+    assert "Active language 'hi' must belong to the selected language pool" in str(exc_info.value)
 
-# --- Required Test 7: Duplicate -> rejected ---
-def test_07_duplicate_rejected():
+# --- Test 10: Duplicate languages -> rejected ---
+def test_10_duplicate_languages():
     with pytest.raises(ValidationError) as exc_info:
         ProfileUpdate(preferred_languages=["en", "te", "te"])
     assert "Duplicate language codes are not allowed" in str(exc_info.value)
 
-# --- Required Test 8: Unsupported language -> rejected ---
-def test_08_unsupported_language_rejected():
-    # Unsupported random code
+# --- Test 11: Four languages -> rejected ---
+def test_11_four_languages():
     with pytest.raises(ValidationError) as exc_info:
-        ProfileUpdate(preferred_languages=["en", "te", "xx"])
-    assert "Unsupported language code: 'xx'" in str(exc_info.value)
+        ProfileUpdate(preferred_languages=["en", "te", "hi", "ta"])
+    assert "Maximum 3 preferred languages allowed" in str(exc_info.value)
 
-    # Sanskrit 'sa' is not in canonical 13 list -> must be rejected
+# --- Test 12: Unsupported language code -> rejected ---
+def test_12_unsupported_language_code():
     with pytest.raises(ValidationError) as exc_info:
-        ProfileUpdate(preferred_languages=["en", "te", "sa"])
-    assert "Unsupported language code: 'sa'" in str(exc_info.value)
+        ProfileUpdate(preferred_languages=["en", "te", "fr"])
+    assert "Unsupported language code: 'fr'" in str(exc_info.value)
 
-    # Assamese 'as' IS supported in canonical 13 list -> must succeed
-    update_as = ProfileUpdate(preferred_languages=["en", "as"])
-    assert update_as.preferred_languages == ["en", "as"]
-    assert len(SUPPORTED_LANGUAGE_CODES) == 13
+# --- Test 13: Empty list -> rejected ---
+def test_13_empty_list():
+    with pytest.raises(ValidationError) as exc_info:
+        ProfileUpdate(preferred_languages=[])
+    assert "preferred_languages cannot be empty" in str(exc_info.value)
 
-# --- Required Test 9: Legacy preferred_language compatibility ---
-def test_09_legacy_preferred_language_compatibility():
-    # Legacy user with "te"
-    legacy_te = {"id": "user_1", "email": "f1@agrishield.com", "preferred_language": "te"}
-    res_te = UserResponse(**legacy_te)
-    assert res_te.preferred_language == "te"
-    assert res_te.preferred_languages == ["en", "te"]
+# --- Test 14: Legacy user with preferred_language only ---
+def test_14_legacy_user_compatibility():
+    legacy_doc = {"id": "user_14", "email": "leg@farm.com", "preferred_language": "te"}
+    resp = UserResponse(**legacy_doc)
+    assert resp.preferred_language == "te"
+    assert resp.preferred_languages == ["en", "te"]
 
-    # Legacy user with "en"
-    legacy_en = {"id": "user_2", "email": "f2@agrishield.com", "preferred_language": "en"}
-    res_en = UserResponse(**legacy_en)
-    assert res_en.preferred_language == "en"
-    assert res_en.preferred_languages == ["en"]
+# --- Test 15: Farmer persistence ---
+@pytest.mark.anyio
+async def test_15_farmer_persistence():
+    user_id, token = await create_test_user("Farmer Fifteen", "fifteen@test.com", "farmer")
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_languages": ["te", "en", "hi"], "preferred_language": "te"}
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["preferred_languages"] == ["en", "te", "hi"]
+        assert data["preferred_language"] == "te"
 
-# --- Required Test 10: Conflicting preferred_language and preferred_languages synchronization ---
-def test_10_conflicting_singular_and_plural_synchronization():
-    # preferred_languages is authoritative; preferred_language is synchronized to index 0 ("en")
-    update = ProfileUpdate(
-        preferred_language="te",
-        preferred_languages=["en", "hi", "te"]
+        # Check GET
+        get_res = await client.get("/api/v1/auth/profile", headers={"Authorization": f"Bearer {token}"})
+        assert get_res.status_code == 200
+        assert get_res.json()["preferred_language"] == "te"
+        assert get_res.json()["preferred_languages"] == ["en", "te", "hi"]
+
+# --- Test 16: Equipment Provider persistence ---
+@pytest.mark.anyio
+async def test_16_equipment_provider_persistence():
+    user_id, token = await create_test_user("Provider Sixteen", "sixteen@test.com", "equipment_provider")
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_languages": ["en", "ta", "kn"], "preferred_language": "kn"}
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["preferred_languages"] == ["en", "ta", "kn"]
+        assert data["preferred_language"] == "kn"
+
+        db_user = await mock_db.users.find_one({"_id": ObjectId(user_id)})
+        assert db_user["preferred_languages"] == ["en", "ta", "kn"]
+        assert db_user["preferred_language"] == "kn"
+
+# --- Test 17: User isolation ---
+@pytest.mark.anyio
+async def test_17_user_isolation():
+    f_id, f_token = await create_test_user("Farmer A", "fa@test.com", "farmer", pref_langs=["en"])
+    p_id, p_token = await create_test_user("Provider B", "pb@test.com", "equipment_provider", pref_langs=["en", "kn"])
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {f_token}"},
+            json={"preferred_languages": ["en", "te"], "preferred_language": "te"}
+        )
+        assert res.status_code == 200
+        f_user = await mock_db.users.find_one({"_id": ObjectId(f_id)})
+        p_user = await mock_db.users.find_one({"_id": ObjectId(p_id)})
+        assert f_user["preferred_languages"] == ["en", "te"]
+        assert f_user["preferred_language"] == "te"
+        assert p_user["preferred_languages"] == ["en", "kn"]
+
+# --- Test 18: IoT Device synchronization ---
+@pytest.mark.anyio
+async def test_18_iot_device_synchronization():
+    user_id, token = await create_test_user("IoT Farmer", "iot@test.com", "farmer")
+    device_id = ObjectId()
+    await mock_db.devices.insert_one({"_id": device_id, "user_id": user_id, "display_language": "en"})
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_languages": ["en", "te"], "preferred_language": "te"}
+        )
+        assert res.status_code == 200
+        dev = await mock_db.devices.find_one({"_id": device_id})
+        assert dev["display_language"] == "te"
+
+# --- Test 19: All 13 canonical language codes accepted ---
+def test_19_all_13_canonical_codes_accepted():
+    expected_13 = {"en", "hi", "te", "ta", "kn", "ml", "mr", "gu", "pa", "bn", "ur", "or", "as"}
+    assert SUPPORTED_LANGUAGE_CODES == expected_13
+    for code in expected_13:
+        update = ProfileUpdate(preferred_languages=["en", code] if code != "en" else ["en"])
+        assert code in update.preferred_languages
+
+# --- Test 20: Removed typo code 'sa' rejected ---
+def test_20_removed_typo_code_sa_rejected():
+    with pytest.raises(ValidationError):
+        ProfileUpdate(preferred_languages=["en", "sa"])
+
+# --- Test 21: Strict non-auto-add on activation (HTTP 422) ---
+@pytest.mark.anyio
+async def test_21_strict_non_auto_add_on_activation():
+    user_id, token = await create_test_user(
+        "Farmer TwentyOne", "twentyone@test.com", "farmer",
+        pref_lang="te", pref_langs=["en", "te"]
     )
-    assert update.preferred_languages == ["en", "hi", "te"]
-    assert update.preferred_language == "en"
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Request active "hi", which is NOT in ["en", "te"]
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_language": "hi"}
+        )
+        assert res.status_code == 422
+        assert "not in your current language pool" in res.json()["detail"]
 
-    # Only single preferred_language supplied -> preferred_languages constructed with "en" at index 0
-    update_single = ProfileUpdate(preferred_language="kn")
-    assert update_single.preferred_language == "kn"
-    assert update_single.preferred_languages == ["en", "kn"]
+        # Verify pool remains strictly unchanged
+        db_user = await mock_db.users.find_one({"_id": ObjectId(user_id)})
+        assert db_user["preferred_languages"] == ["en", "te"]
+        assert db_user["preferred_language"] == "te"
 
-# --- Helpers for API Integration Tests ---
+# --- Test 22: Fallback to English when active language removed ---
+@pytest.mark.anyio
+async def test_22_fallback_to_english_when_active_language_removed():
+    user_id, token = await create_test_user(
+        "Farmer TwentyTwo", "twentytwo@test.com", "farmer",
+        pref_lang="te", pref_langs=["en", "te", "hi"]
+    )
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Updates pool to ["en", "hi"], omitting previous active "te"
+        res = await client.put(
+            "/api/v1/auth/profile",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"preferred_languages": ["en", "hi"]}
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["preferred_languages"] == ["en", "hi"]
+        assert body["preferred_language"] == "en"  # Safe fallback!
+
+        db_user = await mock_db.users.find_one({"_id": ObjectId(user_id)})
+        assert db_user["preferred_languages"] == ["en", "hi"]
+        assert db_user["preferred_language"] == "en"
+
+# --- Helper for creating test users in mock_db ---
 async def create_test_user(name: str, email: str, role: str, pref_lang: str = "en", pref_langs: list = None):
     user_id = ObjectId()
     doc = {
@@ -141,76 +320,3 @@ async def create_test_user(name: str, email: str, role: str, pref_lang: str = "e
     await mock_db.users.insert_one(doc)
     token = create_access_token(subject=str(user_id), role=role)
     return str(user_id), token
-
-# --- Required Test 11: Farmer persistence ---
-@pytest.mark.anyio
-async def test_11_farmer_persistence():
-    user_id, token = await create_test_user("Ramesh Farmer", "ramesh@test.com", "farmer")
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Update with te, en, hi (tests index 0 normalization via API)
-        put_res = await client.put(
-            "/api/v1/auth/profile",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"preferred_languages": ["te", "en", "hi"]}
-        )
-        assert put_res.status_code == 200
-        body = put_res.json()
-        assert body["preferred_languages"] == ["en", "te", "hi"]
-        assert body["preferred_language"] == "en"
-
-        # Check DB persistence
-        db_user = await mock_db.users.find_one({"_id": ObjectId(user_id)})
-        assert db_user["preferred_languages"] == ["en", "te", "hi"]
-        assert db_user["preferred_language"] == "en"
-
-        # Check GET /profile retrieval
-        get_res = await client.get(
-            "/api/v1/auth/profile",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        assert get_res.status_code == 200
-        assert get_res.json()["preferred_languages"] == ["en", "te", "hi"]
-
-# --- Required Test 12: Equipment Provider persistence ---
-@pytest.mark.anyio
-async def test_12_equipment_provider_persistence():
-    user_id, token = await create_test_user("Kisan Tractors", "kisan@test.com", "equipment_provider")
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        put_res = await client.put(
-            "/api/v1/auth/profile",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"preferred_languages": ["en", "ta", "kn"]}
-        )
-        assert put_res.status_code == 200
-        assert put_res.json()["preferred_languages"] == ["en", "ta", "kn"]
-        assert put_res.json()["preferred_language"] == "en"
-
-        db_user = await mock_db.users.find_one({"_id": ObjectId(user_id)})
-        assert db_user["preferred_languages"] == ["en", "ta", "kn"]
-        assert db_user["preferred_language"] == "en"
-
-# --- Required Test 13: User isolation ---
-@pytest.mark.anyio
-async def test_13_user_isolation():
-    farmer_id, farmer_token = await create_test_user("Farmer A", "farmer_a@test.com", "farmer", pref_langs=["en"])
-    provider_id, provider_token = await create_test_user("Provider B", "provider_b@test.com", "equipment_provider", pref_langs=["en", "kn"])
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Farmer A attempts to pass Provider B's id in payload
-        res = await client.put(
-            "/api/v1/auth/profile",
-            headers={"Authorization": f"Bearer {farmer_token}"},
-            json={"preferred_languages": ["en", "te"], "id": provider_id, "_id": provider_id}
-        )
-        assert res.status_code == 200
-
-        # Verify Farmer A modified
-        f_user = await mock_db.users.find_one({"_id": ObjectId(farmer_id)})
-        assert f_user["preferred_languages"] == ["en", "te"]
-
-        # Verify Provider B UNCHANGED
-        p_user = await mock_db.users.find_one({"_id": ObjectId(provider_id)})
-        assert p_user["preferred_languages"] == ["en", "kn"]

@@ -80,10 +80,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
     user.setdefault("farming_practices", "Conventional")
     user.setdefault("farm_profile_completed", False)
     user.setdefault("notification_settings", {})
-    
+
     active_fid = user.get("active_farm_id")
     user["active_farm_id"] = str(active_fid) if active_fid else None
-    
+
     return user
 
 async def get_optional_current_user(token: Optional[str] = Depends(oauth2_scheme), db = Depends(get_database)) -> Optional[dict]:
@@ -254,7 +254,7 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
     user.setdefault("navbar_theme", "farmer-dynamic")
     active_fid = user.get("active_farm_id")
     user["active_farm_id"] = str(active_fid) if active_fid else None
-    
+
     created_at_val = user.get("created_at")
     if isinstance(created_at_val, str):
         try:
@@ -290,7 +290,7 @@ async def refresh_access_token(refresh_token: str, db = Depends(get_database)):
 
     new_access_token = create_access_token(subject=str(user["_id"]), role=user.get("role", "farmer"))
     new_refresh_token = create_refresh_token(subject=str(user["_id"]))
-    
+
     # Rotate refresh token
     await revoke_token(refresh_token)
 
@@ -324,15 +324,15 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
 
 @router.put("/profile", response_model=UserResponse)
 async def update_profile(
-    update_data: ProfileUpdate, 
-    current_user: dict = Depends(get_current_user), 
+    update_data: ProfileUpdate,
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Update profile information with password history enforcement."""
     update_dict = {}
     if update_data.name is not None and update_data.name.strip():
         update_dict["name"] = update_data.name.strip()
-    
+
     if update_data.password is not None and update_data.password != "":
         # Enforce password policy
         is_valid, msg = validate_password_strength(update_data.password)
@@ -344,7 +344,7 @@ async def update_profile(
         user_query = {"$or": [{"_id": ObjectId(user_id_raw) if ObjectId.is_valid(user_id_raw) else user_id_raw}, {"email": current_user.get("email")}]}
         user_doc = await db.users.find_one(user_query)
         history = user_doc.get("password_history", []) if user_doc else []
-        
+
         for old_hash in history[-5:]:
             if verify_password(update_data.password, old_hash):
                 raise HTTPException(
@@ -359,10 +359,36 @@ async def update_profile(
 
     if update_data.farm_location is not None:
         update_dict["farm_location"] = update_data.farm_location
-    if update_data.preferred_language is not None:
-        update_dict["preferred_language"] = update_data.preferred_language
-    if update_data.preferred_languages is not None:
+
+    # Active language & Language Pool Synchronization (Rules 1, 2, 3, 4)
+    has_pl = update_data.preferred_language is not None
+    has_pls = update_data.preferred_languages is not None
+
+    if has_pl and has_pls:
+        # Rule 3: Both provided (membership already validated in ProfileUpdate)
         update_dict["preferred_languages"] = update_data.preferred_languages
+        update_dict["preferred_language"] = update_data.preferred_language
+    elif has_pls:
+        # Rule 1: Pool only -> preserve current active if still present; otherwise active = "en"
+        new_pool = update_data.preferred_languages
+        current_active = current_user.get("preferred_language") or "en"
+        resolved_active = current_active if current_active in new_pool else "en"
+        update_dict["preferred_languages"] = new_pool
+        update_dict["preferred_language"] = resolved_active
+    elif has_pl:
+        # Rule 2: Active only -> update active only if it already exists in the pool; otherwise 422
+        current_pool = current_user.get("preferred_languages")
+        if not current_pool or not isinstance(current_pool, list) or len(current_pool) == 0:
+            uplang = current_user.get("preferred_language") or "en"
+            current_pool = ["en"] if uplang == "en" else ["en", uplang]
+
+        target_active = update_data.preferred_language
+        if target_active not in current_pool:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Requested active language '{target_active}' is not in your current language pool: {current_pool}. Please update your language pool first."
+            )
+        update_dict["preferred_language"] = target_active
     if update_data.farmer_mode is not None:
         update_dict["farmer_mode"] = update_data.farmer_mode
     if update_data.crop_history is not None:
@@ -426,7 +452,7 @@ async def update_profile(
     updated_user = await db.users.find_one(user_query)
     if not updated_user:
         updated_user = current_user
-    
+
     updated_user["id"] = str(updated_user.get("_id") or user_id_raw)
     updated_user.setdefault("role", "farmer")
     updated_user.setdefault("farm_location", None)
@@ -441,7 +467,7 @@ async def update_profile(
     updated_user.setdefault("farming_practices", "Conventional")
     updated_user.setdefault("farm_profile_completed", False)
     updated_user.setdefault("notification_settings", {})
-    
+
     active_fid = updated_user.get("active_farm_id")
     updated_user["active_farm_id"] = str(active_fid) if active_fid else None
 
@@ -465,7 +491,7 @@ async def update_profile(
         except Exception as e:
             # Silently ignore WS broadcast failures on closed channels
             pass
-    
+
     return updated_user
 
 
@@ -521,7 +547,7 @@ async def get_biometric_status(current_user: dict = Depends(get_current_user), d
     user_doc = await db.users.find_one({"_id": ObjectId(current_user["id"])})
     if not user_doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
+
     credentials = user_doc.get("biometric_credentials", [])
     clean_creds = []
     for c in credentials:
@@ -546,7 +572,7 @@ async def register_biometric_credential(
     """Enroll a new hardware biometric credential (Fingerprint / Face ID) for the logged-in farmer."""
     if not payload.credential_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Credential ID is required")
-    
+
     clean_cid = payload.credential_id.strip()
     bio_hash = hashlib.sha256(clean_cid.encode('utf-8')).hexdigest()
     digital_key = f"BIO-SHA256-{bio_hash[:12].upper()}"
@@ -740,7 +766,7 @@ async def biometric_login(
     user.setdefault("farming_practices", "Conventional")
     user.setdefault("farm_profile_completed", False)
     user.setdefault("notification_settings", {})
-    
+
     active_fid = user.get("active_farm_id")
     user["active_farm_id"] = str(active_fid) if active_fid else None
 

@@ -237,9 +237,16 @@ const ProfilePage = () => {
     setLanguagesError('');
     setLanguagesToast('');
     try {
+      const safeActive = preferredLanguages.includes(user?.preferred_language)
+        ? user.preferred_language
+        : (preferredLanguages.includes('en') ? 'en' : (preferredLanguages[0] || 'en'));
+
       localStorage.setItem('agrishield_preferred_languages', JSON.stringify(preferredLanguages));
       if (user && updateProfile) {
-        await updateProfile({ preferred_languages: preferredLanguages });
+        await updateProfile({
+          preferred_languages: preferredLanguages,
+          preferred_language: safeActive
+        });
       }
       window.dispatchEvent(new CustomEvent('agrishield-preferred-languages-updated', {
         detail: { languages: preferredLanguages }
