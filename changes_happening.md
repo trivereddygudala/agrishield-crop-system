@@ -2,6 +2,21 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-27 (v321) - AI Worker Routing Consolidation & Authentication Resilience in api.js
+- **Summary:**
+  1. 🛡️ **401 Interceptor AI Worker Isolation:**
+     - Updated Axios 401 response interceptor in `frontend/src/services/api.js` to inspect `error.config.baseURL` and `error.config.url`.
+     - Completely prevents secondary AI worker 401s from purging `localStorage` or forcibly redirecting the user to `/login?expired=true`.
+     - Preserves full token refresh and session expiration flow for genuine Main backend authentication failures.
+  2. 🔄 **FastAPI Query Parameter Refresh Alignment:**
+     - Explicitly targeted `MAIN_RENDER_BACKEND` on `/api/auth/refresh`.
+     - Passed `refresh_token` as a URL query parameter (`params: { refresh_token: rt }`) complying with FastAPI's endpoint contract in `backend/app/routers/common/auth.py`.
+  3. 🌾 **AI Inference Routing Consolidation:**
+     - Consolidated crop scan uploads (`/api/upload`) alongside AI inference endpoints (`/predict`, `/identify-plant`, `/agrochemical-scan`, `/crop-advisor`, `/translate`) to Worker 3 (`TERTIARY_RENDER_BACKEND`).
+     - Resolved the cross-worker container file boundary so image uploads and subsequent diagnoses occur on the same local container disk.
+     - Protected Admin IoT firmware uploads (`/api/v1/firmware/upload`) by explicitly routing them to `MAIN_RENDER_BACKEND`.
+- **Files modified**: `frontend/src/services/api.js`, `changes_happening.md`.
+
 ## 2026-09-27 (v320) - Comprehensive Verification Pass: Multilingual Phases 2A through 2G Audited & Proven
 - **Summary:**
   1. ⚡ **Phase 2F (WebSocket / Realtime Verification):**

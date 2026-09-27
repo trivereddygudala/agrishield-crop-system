@@ -4,43 +4,48 @@ export const PRIMARY_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.c
 export const SECONDARY_RENDER_BACKEND = 'https://agrishield-ai-worker-2.onrender.com';
 export const TERTIARY_RENDER_BACKEND = 'https://agrishield-ai-worker-3.onrender.com';
 export const LEGACY_RENDER_BACKEND = 'https://agrishield-crop-system.onrender.com';
+export const MAIN_RENDER_BACKEND = LEGACY_RENDER_BACKEND;
 
 /**
  * Intelligent Cluster Router:
  * Dynamically partitions workloads across the Render worker cluster:
  *
- * 1. Worker 1 (agrishield-ai-worker-1): Deep Learning PyTorch AI inference (/api/predict, /api/upload)
- * 2. Worker 3 (agrishield-ai-worker-3): Species ID, OCR vision, translations & AI load-balancer (/api/identify-plant, /api/agrochemical-scan)
- * 3. Main Node (agrishield-crop-system): Auth, Equipment Rental, Real-Time Notifications, History, DB Transactions
+ * 1. Worker 3 (agrishield-ai-worker-3): Dedicated AI node for PyTorch disease diagnosis,
+ *    species plant ID, OCR agrochemical scan, translations, and leaf image uploads (/api/upload).
+ * 2. Main Node (agrishield-crop-system): Auth, Equipment Rental, Real-Time Notifications, History, DB Transactions, Admin Firmware.
+ * 3. Worker 1 & Worker 2: Standby secondary cluster nodes.
  */
 export const getTargetClusterNode = (url) => {
-  if (!url) return PRIMARY_RENDER_BACKEND;
+  if (!url) return TERTIARY_RENDER_BACKEND;
   const path = url.toLowerCase();
 
-  // Worker 1: Heavy PyTorch Leaf Disease Inference & Image Uploads
-  if (path.includes('/predict') || path.includes('/upload')) {
-    return PRIMARY_RENDER_BACKEND;
-  }
+  // AI Crop Scan Upload: Route /api/upload and query-param variants to Worker 3
+  // Keep /api/v1/firmware/upload and all other upload paths on Main backend
+  const isCropScanUpload = path === '/api/upload' || path.startsWith('/api/upload?');
 
-  // Worker 3: Species Identification, OCR Agrochemical Scan & Botanical Translations (fresh active worker)
-  if (
+  // AI Inference & Specialized Services: Route to Worker 3
+  const isAiInference =
+    path.includes('/predict') ||
     path.includes('/identify-plant') ||
     path.includes('/agrochemical') ||
-    path.includes('/translate') ||
-    path.includes('/crop-advisor')
-  ) {
+    path.includes('/crop-advisor') ||
+    path.includes('/translate');
+
+  if (isCropScanUpload || isAiInference) {
     return TERTIARY_RENDER_BACKEND;
   }
 
-  // Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, IoT
-  return LEGACY_RENDER_BACKEND;
+  // Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, IoT, Admin Firmware
+  return MAIN_RENDER_BACKEND;
 };
 
 export const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  if (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  }
   // When running on production domains (e.g., Vercel), route directly to healthy primary worker
   if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return PRIMARY_RENDER_BACKEND;
+    return TERTIARY_RENDER_BACKEND;
   }
   return ''; // Always use local Vite proxy for localhost setup
 };
@@ -65,7 +70,7 @@ API.interceptors.request.use(
 
     // In production, dynamically route request to the designated cluster node
     if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-      if (!config.baseURL || config.baseURL === PRIMARY_RENDER_BACKEND || config.baseURL === SECONDARY_RENDER_BACKEND || config.baseURL === LEGACY_RENDER_BACKEND) {
+      if (!config.baseURL || config.baseURL === PRIMARY_RENDER_BACKEND || config.baseURL === SECONDARY_RENDER_BACKEND || config.baseURL === TERTIARY_RENDER_BACKEND || config.baseURL === LEGACY_RENDER_BACKEND) {
         config.baseURL = getTargetClusterNode(config.url);
       }
     }
@@ -139,10 +144,39 @@ API.interceptors.response.use(
     // Session expired or invalid token
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
+      // 1. Isolate AI Worker 401s: An authentication or processing failure on a secondary AI worker
+      // must NEVER destroy the user's valid primary Main-session login.
+      const requestUrl = (originalRequest.url || '').toLowerCase();
+      const requestBase = (originalRequest.baseURL || '').toLowerCase();
+      const isAiWorkerRequest =
+        requestBase.includes('agrishield-ai-worker') ||
+        requestUrl === '/api/upload' ||
+        requestUrl.startsWith('/api/upload?') ||
+        requestUrl.includes('/predict') ||
+        requestUrl.includes('/identify-plant') ||
+        requestUrl.includes('/agrochemical') ||
+        requestUrl.includes('/crop-advisor') ||
+        requestUrl.includes('/translate');
+
+      if (isAiWorkerRequest) {
+        // Return rejection directly to the calling component without evicting the session or redirecting to /login
+        return Promise.reject(error);
+      }
+
+      // 2. Genuine Main Backend 401: Handle token refresh and session expiration
       const rt = localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
       if (rt) {
         try {
-          const res = await axios.post('/api/auth/refresh', { refresh_token: rt }, { baseURL: getApiBaseUrl() });
+          // Send refresh_token as FastAPI query parameter to MAIN_RENDER_BACKEND
+          const res = await axios.post(
+            '/api/auth/refresh',
+            null,
+            {
+              params: { refresh_token: rt },
+              baseURL: MAIN_RENDER_BACKEND
+            }
+          );
           const { access_token, refresh_token } = res.data;
           
           const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
