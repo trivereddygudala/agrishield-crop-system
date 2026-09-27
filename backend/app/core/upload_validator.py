@@ -3,6 +3,7 @@ import os
 import re
 import uuid
 import io
+from typing import Optional
 from fastapi import UploadFile, HTTPException, status
 from PIL import Image
 import cv2
@@ -53,20 +54,21 @@ def sanitize_filename(original_filename: str) -> str:
     # Return secure UUID based filename
     return f"{uuid.uuid4().hex}{ext}"
 
-def verify_magic_bytes(content: bytes, extension: str) -> bool:
-    """Verify magic bytes match the stated image format."""
+def detect_image_format(content: bytes) -> Optional[str]:
+    """Detects genuine image extension from magic bytes signature."""
     if not content or len(content) < 12:
-        return False
+        return None
+    if content.startswith(MAGIC_BYTES["jpeg"]):
+        return ".jpg"
+    elif content.startswith(MAGIC_BYTES["png"]):
+        return ".png"
+    elif content.startswith(MAGIC_BYTES["webp_prefix"]) and content[8:12] == MAGIC_BYTES["webp_sub"]:
+        return ".webp"
+    return None
 
-    ext = extension.lower()
-    if ext in [".jpg", ".jpeg"]:
-        return content.startswith(MAGIC_BYTES["jpeg"])
-    elif ext == ".png":
-        return content.startswith(MAGIC_BYTES["png"])
-    elif ext == ".webp":
-        return content.startswith(MAGIC_BYTES["webp_prefix"]) and content[8:12] == MAGIC_BYTES["webp_sub"]
-
-    return False
+def verify_magic_bytes(content: bytes, extension: str = "") -> bool:
+    """Verify magic bytes match a genuine supported image format (JPEG, PNG, or WebP)."""
+    return detect_image_format(content) is not None
 
 def scan_file_for_viruses(content_bytes: bytes) -> bool:
     """Placeholder hook for virus scanning integration. Returns True if clean."""
@@ -82,7 +84,7 @@ async def validate_image_upload(file: UploadFile) -> tuple[bytes, str]:
     1. Size verification (<= 15MB)
     2. MIME type check
     3. Extension check & sanitization
-    4. Magic Bytes check
+    4. Magic Bytes check & Format Normalization
     5. PIL decode verification
     6. OpenCV decode verification
     7. Antivirus scan check
@@ -117,12 +119,17 @@ async def validate_image_upload(file: UploadFile) -> tuple[bytes, str]:
             detail="Invalid image file: file size is too small."
         )
 
-    # 4. Magic Bytes Verification
-    if not verify_magic_bytes(content, ext):
+    # 4. Magic Bytes Verification & Genuine Format Normalization
+    detected_ext = detect_image_format(content)
+    if not detected_ext:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File content does not match genuine image magic byte signature."
         )
+
+    # Harmonize safe_filename extension with genuine image format
+    base_uuid = os.path.splitext(safe_filename)[0]
+    safe_filename = f"{base_uuid}{detected_ext}"
 
     # 5. Antivirus / Malicious Script Scan
     if not scan_file_for_viruses(content):

@@ -2,6 +2,25 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-27 (v322) - Background AI Deep Audit: Multimodal Image Magic Byte Normalization
+- **Summary:**
+  1. 🔬 **Automated Deep Audit Execution:**
+     - Executed background functional audit across all three core AI features: Disease Diagnosis (15 crops, 60 tests), Plant Identification (35 species tests), and Agrochemical Scanner (25 product label tests).
+     - Validated concurrency & out-of-order response association: concurrent requests correctly map Image A -> Result A without race conditions or result crossovers.
+     - Validated multilingual integrity across 13 canonical languages: preserved canonical English fields, translations, and technical values.
+     - Validated error handling: non-image files, corrupted bodies, empty uploads, and tampered tokens rejected with proper HTTP 400/401/422 status.
+  2. 🛠️ **Confirmed Bug Fix (`backend/app/core/upload_validator.py`):**
+     - Identified that `verify_magic_bytes` strictly checked the declared file extension string (e.g. `.jpg`) rather than checking whether file bytes matched any genuine supported format (JPEG, PNG, WebP).
+     - Fixed false rejection of valid PNG or WebP images saved or downloaded with `.jpg` extensions (common on Android, WhatsApp, and camera exports, e.g. Mango test images and product packaging).
+     - Implemented `detect_image_format` and harmonized `safe_filename` with genuine detected format so downstream OpenCV/PIL decoders decode seamlessly.
+  3. 🧪 **Regression & Integrity:**
+     - Python compilation clean (`python -m py_compile`, 0 errors).
+     - Unit tests verified: valid PNG/WebP with `.jpg` extension accepted and normalized; text files and corrupt images strictly rejected (HTTP 400).
+     - 29/29 multilingual regression tests passed (`backend/tests/test_multilingual_system.py`).
+     - PyTorch neural inference test passed (`backend/tests/test_pytorch_prediction.py`).
+     - Frontend production build succeeded (`npm --prefix frontend run build`, 0 errors, 1m 17s).
+- **Files modified**: `backend/app/core/upload_validator.py`, `changes_happening.md`.
+
 ## 2026-09-27 (v321) - AI Worker Routing Consolidation & Authentication Resilience in api.js
 - **Summary:**
   1. 🛡️ **401 Interceptor AI Worker Isolation:**
