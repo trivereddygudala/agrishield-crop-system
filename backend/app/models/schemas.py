@@ -1,6 +1,11 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+
+# Canonical supported Indian regional languages + English (13 total)
+SUPPORTED_LANGUAGE_CODES = {
+    "en", "hi", "te", "ta", "kn", "ml", "mr", "gu", "pa", "bn", "ur", "or", "as"
+}
 
 class UserBase(BaseModel):
     name: str = Field(default="User", max_length=100)
@@ -9,6 +14,7 @@ class UserBase(BaseModel):
     role: str = Field(default="farmer")
     farm_location: Optional[str] = Field(default=None)
     preferred_language: Optional[str] = Field(default="en")
+    preferred_languages: Optional[List[str]] = Field(default_factory=lambda: ["en"])
     farmer_mode: Optional[bool] = Field(default=False)
     crop_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
     selected_crops: Optional[List[str]] = Field(default_factory=list)
@@ -32,6 +38,13 @@ class UserBase(BaseModel):
             data["name"] = resolved_name
             if not data.get("full_name"):
                 data["full_name"] = resolved_name
+            # Backward compatibility: populate preferred_languages if missing or empty
+            raw_plangs = data.get("preferred_languages")
+            raw_plang = data.get("preferred_language") or "en"
+            if not raw_plangs or not isinstance(raw_plangs, list) or len(raw_plangs) == 0:
+                data["preferred_languages"] = ["en"] if raw_plang == "en" else ["en", raw_plang]
+            elif not data.get("preferred_language"):
+                data["preferred_language"] = raw_plangs[0]
         return data
 
 class UserRegister(UserBase):
@@ -62,6 +75,7 @@ class ProfileUpdate(BaseModel):
     password: Optional[str] = None
     farm_location: Optional[str] = None
     preferred_language: Optional[str] = None
+    preferred_languages: Optional[List[str]] = None
     farmer_mode: Optional[bool] = None
     crop_history: Optional[List[Dict[str, Any]]] = None
     selected_crops: Optional[List[str]] = None
@@ -77,6 +91,77 @@ class ProfileUpdate(BaseModel):
     farmer_profile: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(extra="ignore")
+
+    @field_validator("preferred_language")
+    @classmethod
+    def validate_preferred_language(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        clean = v.strip().lower()
+        if clean not in SUPPORTED_LANGUAGE_CODES:
+            sorted_codes = ", ".join(sorted(SUPPORTED_LANGUAGE_CODES))
+            raise ValueError(f"Unsupported language code: '{v}'. Supported languages are: {sorted_codes}")
+        return clean
+
+    @field_validator("preferred_languages")
+    @classmethod
+    def validate_preferred_languages(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if not isinstance(v, list):
+            raise ValueError("preferred_languages must be a list of language codes.")
+        if len(v) == 0:
+            raise ValueError("preferred_languages cannot be empty. At least one language is required.")
+
+        cleaned = []
+        for item in v:
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError("Each language code must be a non-empty string.")
+            code = item.strip().lower()
+            cleaned.append(code)
+
+        # Check for duplicates
+        if len(cleaned) != len(set(cleaned)):
+            raise ValueError("Duplicate language codes are not allowed.")
+
+        # Check maximum 3 entries
+        if len(cleaned) > 3:
+            raise ValueError("Maximum 3 preferred languages allowed.")
+
+        # Supported languages check
+        for code in cleaned:
+            if code not in SUPPORTED_LANGUAGE_CODES:
+                sorted_codes = ", ".join(sorted(SUPPORTED_LANGUAGE_CODES))
+                raise ValueError(f"Unsupported language code: '{code}'. Supported languages are: {sorted_codes}")
+
+        # English-first normalization rule:
+        # English ('en') must always occupy index 0 as primary/default baseline.
+        # Preserve user's regional selections in their relative order.
+        regional_codes = [c for c in cleaned if c != "en"]
+        if len(regional_codes) > 2:
+            raise ValueError("English ('en') is required as the primary language and at most 2 regional languages can be selected.")
+
+        normalized = ["en"] + regional_codes
+        return normalized
+
+    @model_validator(mode='after')
+    def sync_language_fields(self):
+        # Synchronization Rule:
+        # - preferred_languages is the authoritative multi-language preference source.
+        # - preferred_language is the legacy/current-primary field.
+        # - When preferred_languages is provided, preferred_language is synchronized
+        #   to preferred_languages[0] ("en") to eliminate conflicting states.
+        # - When only preferred_language is provided, preferred_languages is derived
+        #   with "en" strictly at index 0.
+        if self.preferred_languages is not None:
+            self.preferred_language = self.preferred_languages[0]
+        elif self.preferred_language is not None:
+            clean_pl = self.preferred_language.strip().lower()
+            if clean_pl == "en":
+                self.preferred_languages = ["en"]
+            else:
+                self.preferred_languages = ["en", clean_pl]
+        return self
 
 # Prediction schemas
 class PredictionBase(BaseModel):

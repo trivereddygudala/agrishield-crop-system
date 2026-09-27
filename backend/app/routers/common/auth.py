@@ -71,6 +71,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
     user.setdefault("role", "farmer")
     user.setdefault("farm_location", None)
     user.setdefault("preferred_language", "en")
+    if not user.get("preferred_languages"):
+        uplang = user.get("preferred_language") or "en"
+        user["preferred_languages"] = ["en"] if uplang == "en" else ["en", uplang]
     user.setdefault("color_theme", "agrishield-default")
     user.setdefault("navbar_theme", "farmer-dynamic")
     user.setdefault("crop_history", [])
@@ -143,6 +146,7 @@ async def register(request: Request, user_data: UserRegister, db = Depends(get_d
         "role": user_data.role or "farmer",
         "farm_location": user_data.farm_location,
         "preferred_language": user_data.preferred_language or "en",
+        "preferred_languages": user_data.preferred_languages or (["en"] if not user_data.preferred_language or user_data.preferred_language == "en" else ["en", user_data.preferred_language]),
         "crop_history": user_data.crop_history or [],
         "selected_crops": user_data.selected_crops or [],
         "equipment_types": user_data.equipment_types or [],
@@ -242,6 +246,10 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
     user["_id"] = user_id_str
     user["name"] = str(user.get("name") or user.get("full_name") or "User")
     user.setdefault("role", user_role)
+    user.setdefault("preferred_language", "en")
+    if not user.get("preferred_languages"):
+        uplang = user.get("preferred_language") or "en"
+        user["preferred_languages"] = ["en"] if uplang == "en" else ["en", uplang]
     user.setdefault("color_theme", "agrishield-default")
     user.setdefault("navbar_theme", "farmer-dynamic")
     active_fid = user.get("active_farm_id")
@@ -353,6 +361,8 @@ async def update_profile(
         update_dict["farm_location"] = update_data.farm_location
     if update_data.preferred_language is not None:
         update_dict["preferred_language"] = update_data.preferred_language
+    if update_data.preferred_languages is not None:
+        update_dict["preferred_languages"] = update_data.preferred_languages
     if update_data.farmer_mode is not None:
         update_dict["farmer_mode"] = update_data.farmer_mode
     if update_data.crop_history is not None:
@@ -421,6 +431,9 @@ async def update_profile(
     updated_user.setdefault("role", "farmer")
     updated_user.setdefault("farm_location", None)
     updated_user.setdefault("preferred_language", "en")
+    if not updated_user.get("preferred_languages"):
+        uplang = updated_user.get("preferred_language") or "en"
+        updated_user["preferred_languages"] = ["en"] if uplang == "en" else ["en", uplang]
     updated_user.setdefault("farmer_mode", False)
     updated_user.setdefault("color_theme", "agrishield-default")
     updated_user.setdefault("navbar_theme", "farmer-dynamic")
@@ -717,6 +730,9 @@ async def biometric_login(
     user.setdefault("role", user_role)
     user.setdefault("farm_location", None)
     user.setdefault("preferred_language", "en")
+    if not user.get("preferred_languages"):
+        uplang = user.get("preferred_language") or "en"
+        user["preferred_languages"] = ["en"] if uplang == "en" else ["en", uplang]
     user.setdefault("farmer_mode", False)
     user.setdefault("color_theme", "agrishield-default")
     user.setdefault("navbar_theme", "farmer-dynamic")

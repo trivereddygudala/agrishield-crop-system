@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-27 (v318) - Phase 1 Multilingual Language Preference Foundation: 13 Canonical Languages, English-Primary Normalization & Singular/Plural Field Synchronization
+- **Summary:**
+  1. 🌐 **Canonical Supported Language Source of Truth & Set Alignment (FINDING-LANG-01):**
+     - Audited canonical frontend language configuration (`frontend/src/data/languages.js`, `frontend/src/i18n/translations.js`, and backend `backend/app/core/templates.py`).
+     - Confirmed exactly 13 canonical languages: English (`en`), Telugu (`te`), Hindi (`hi`), Tamil (`ta`), Kannada (`kn`), Malayalam (`ml`), Marathi (`mr`), Gujarati (`gu`), Punjabi (`pa`), Bengali (`bn`), Urdu (`ur`), Odia (`or`), and Assamese (`as`).
+     - Clarified that Assamese (`as`) is genuinely supported in frontend UI, translation dictionaries (12,411 lines), and backend SMS templates. Sanskrit (`sa`) was a typographical transposition (`as` -> `sa`) and was removed from validation.
+  2. 🔤 **English-First / Primary Normalization:**
+     - Enforced that `"en"` strictly occupies index 0 in `preferred_languages` while preserving the user's regional selection order for up to 2 additional regional languages (total <= 3).
+     - Handled permutations cleanly: `["te", "en", "hi"]` -> `["en", "te", "hi"]`, `["hi", "te", "en"]` -> `["en", "hi", "te"]`, `["te", "hi"]` -> `["en", "te", "hi"]`, `["kn"]` -> `["en", "kn"]`.
+  3. 🔄 **Singular/Plural Field Synchronization Rule (`preferred_language` vs `preferred_languages`):**
+     - Established clear rule: `preferred_languages` is authoritative multi-language preference list; `preferred_language` remains the legacy/current-primary field synchronized to `preferred_languages[0]` (`"en"`).
+     - If both fields are supplied with conflicting values, `preferred_languages` takes precedence, and `preferred_language` is synchronized to the normalized primary language (`"en"`).
+     - If only `preferred_language` is supplied, `preferred_languages` is derived with `"en"` at index 0 and the legacy selection as secondary.
+  4. 🔙 **Admin Scope Minimization:**
+     - Reverted changes to `backend/app/routers/admin/admin.py` to keep Phase 1 scope strictly focused on core user models (`schemas.py`) and authentication/profile persistence (`auth.py`).
+  5. 🧪 **Comprehensive Automated Verification Suite (`backend/tests/test_language_preferences.py`):**
+     - Added 13 automated test cases covering normalization permutations, duplicate/unsupported rejections, conflict synchronization, legacy compatibility, role persistence (Farmer & Equipment Provider), and cross-user isolation.
+     - All 13/13 tests passed cleanly; 27/27 security regression tests passed cleanly.
+- **Files modified:** `backend/app/models/schemas.py`, `backend/app/routers/common/auth.py`, `backend/tests/test_language_preferences.py`, `changes_happening.md`.
+
 ## 2026-09-27 (v317) - Phase 2A Security Remediation: Firmware RBAC, Download Protection, Filesystem Path Exposure Prevention & Legacy Compatibility
 - **Summary:**
   1. 🛡️ **Firmware RBAC Enforcement (FINDING-03):**
