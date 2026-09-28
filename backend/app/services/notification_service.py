@@ -369,7 +369,7 @@ class NotificationService:
         return base
 
     @staticmethod
-    async def mark_as_read(db, notification_id: str, user_id: str) -> bool:
+    async def mark_as_read(db, notification_id: str, user_id: str, role: Optional[str] = None) -> bool:
         """Mark notification as read and register action opened."""
         try:
             now_utc = datetime.now(timezone.utc)
@@ -392,9 +392,9 @@ class NotificationService:
                 }
             )
             
-            # Send live WebSocket update to update notification badges
+            # Send live WebSocket update to update notification badges (role-filtered)
             if result.modified_count > 0 and active_websocket_manager:
-                count = await NotificationService.get_unread_count(db, user_id)
+                count = await NotificationService.get_unread_count(db, user_id, role=role)
                 await active_websocket_manager.broadcast_to_user(user_id, {
                     "type": "unread_count_update",
                     "unread_count": count
@@ -436,7 +436,7 @@ class NotificationService:
         return result.modified_count
 
     @staticmethod
-    async def acknowledge_notification(db, notification_id: str, user_id: str, action_taken: str) -> bool:
+    async def acknowledge_notification(db, notification_id: str, user_id: str, action_taken: str, role: Optional[str] = None) -> bool:
         """Acknowledge an active notification alert."""
         try:
             now_utc = datetime.now(timezone.utc)
@@ -462,7 +462,7 @@ class NotificationService:
             )
             
             if result.modified_count > 0 and active_websocket_manager:
-                count = await NotificationService.get_unread_count(db, user_id)
+                count = await NotificationService.get_unread_count(db, user_id, role=role)
                 await active_websocket_manager.broadcast_to_user(user_id, {
                     "type": "unread_count_update",
                     "unread_count": count
@@ -474,13 +474,13 @@ class NotificationService:
             return False
 
     @staticmethod
-    async def delete_notification(db, notification_id: str, user_id: str) -> bool:
+    async def delete_notification(db, notification_id: str, user_id: str, role: Optional[str] = None) -> bool:
         """Delete notification log."""
         try:
             query = NotificationService._build_id_query(notification_id, user_id)
             result = await db.notifications.delete_one(query)
             if result.deleted_count > 0 and active_websocket_manager:
-                count = await NotificationService.get_unread_count(db, user_id)
+                count = await NotificationService.get_unread_count(db, user_id, role=role)
                 await active_websocket_manager.broadcast_to_user(user_id, {
                     "type": "unread_count_update",
                     "unread_count": count
@@ -491,13 +491,17 @@ class NotificationService:
             return False
 
     @staticmethod
-    async def clear_all_notifications(db, user_id: str) -> int:
-        """Delete all notifications of user."""
-        result = await db.notifications.delete_many({"user_id": user_id})
+    async def clear_all_notifications(db, user_id: str, preserve_booking: bool = True, role: Optional[str] = None) -> int:
+        """Delete alert notifications of user, preserving transactional booking notifications by default."""
+        query: Dict[str, Any] = {"user_id": user_id}
+        if preserve_booking:
+            query["category"] = {"$nin": ["booking"]}
+        result = await db.notifications.delete_many(query)
         if result.deleted_count > 0 and active_websocket_manager:
+            count = await NotificationService.get_unread_count(db, user_id, role=role)
             await active_websocket_manager.broadcast_to_user(user_id, {
                 "type": "unread_count_update",
-                "unread_count": 0
+                "unread_count": count
             })
         return result.deleted_count
 

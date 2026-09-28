@@ -172,7 +172,8 @@ async def mark_read(
     success = await NotificationService.mark_as_read(
         db, 
         notification_id=notification_id, 
-        user_id=str(current_user["id"])
+        user_id=str(current_user["id"]),
+        role=current_user.get("role")
     )
     if not success:
         raise HTTPException(status_code=404, detail="Notification not found or access denied")
@@ -201,7 +202,8 @@ async def acknowledge_alert(
         db,
         notification_id=notification_id,
         user_id=str(current_user["id"]),
-        action_taken=payload.acknowledged_action
+        action_taken=payload.acknowledged_action,
+        role=current_user.get("role")
     )
     if not success:
         raise HTTPException(status_code=404, detail="Notification not found or access denied")
@@ -215,8 +217,13 @@ async def clear_notifications(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Delete all notification records of current user with cross-device tombstone sync."""
-    deleted = await NotificationService.clear_all_notifications(db, user_id=str(current_user["id"]))
+    """Delete all notification records of current user with cross-device tombstone sync (preserves booking history)."""
+    deleted = await NotificationService.clear_all_notifications(
+        db, 
+        user_id=str(current_user["id"]),
+        preserve_booking=True,
+        role=current_user.get("role")
+    )
     await SyncService.record_deletion("notification", f"all_user_{current_user['id']}")
     return {"status": "success", "deleted_count": deleted}
 
@@ -232,7 +239,8 @@ async def delete_notification(
     success = await NotificationService.delete_notification(
         db, 
         notification_id=notification_id, 
-        user_id=str(current_user["id"])
+        user_id=str(current_user["id"]),
+        role=current_user.get("role")
     )
     if not success:
         raise HTTPException(status_code=404, detail="Notification not found or access denied")

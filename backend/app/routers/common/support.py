@@ -236,6 +236,18 @@ async def request_callback(
 
     location = current_user.get("farm_location") or current_user.get("location") or "Field Location"
     name = payload.farmer_name or current_user.get("name") or current_user.get("full_name") or "Farmer"
+    source_lang = payload.language or current_user.get("preferred_language", "te")
+    orig_sub = f"⚡ Urgent Phone Callback ({payload.preferred_time or '15 Mins'})"
+    orig_desc = payload.issue_summary or "User requested urgent 15-minute phone callback."
+
+    translations = {}
+    if source_lang != "en" and payload.issue_summary:
+        try:
+            from backend.app.services.translation_service import TranslationService
+            en_desc = await TranslationService.translate_text(orig_desc, "en", source_lang=source_lang, db=db)
+            translations["en"] = {"subject": orig_sub, "description": en_desc}
+        except Exception as tr_err:
+            print(f"Helpdesk callback translation warning: {tr_err}")
 
     ticket_doc = {
         "ticket_number": ticket_num,
@@ -244,13 +256,17 @@ async def request_callback(
         "farmer_name": name,
         "farmer_email": current_user.get("email", ""),
         "phone": payload.phone,
-        "language": payload.language or current_user.get("preferred_language", "te"),
+        "language": source_lang,
+        "source_language": source_lang,
         "location": location,
         "category": "urgent_callback",
         "priority": "critical",
         "status": "open",
-        "subject": f"⚡ Urgent Phone Callback ({payload.preferred_time or '15 Mins'})",
-        "description": payload.issue_summary or "User requested urgent 15-minute phone callback.",
+        "subject": orig_sub,
+        "description": orig_desc,
+        "original_subject": orig_sub,
+        "original_description": orig_desc,
+        "translations": translations,
         "device_id": None,
         "attachments": [],
         "is_callback_request": True,

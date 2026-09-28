@@ -272,20 +272,74 @@ class AlertEngine:
             if telemetry.get("sd_card_status") == "error": offline_metrics += 1
 
             if len(active_alerts) >= 2 or offline_metrics >= 2:
+                # Atomic MongoDB cooldown claim (safe across concurrent requests & multiple Render workers)
+                cooldown_key = f"{device_id}_device_power_failure_correlation"
+                now = datetime.now(timezone.utc)
+                cutoff = now - timedelta(minutes=60)
+                from pymongo.errors import DuplicateKeyError
+
+                # 1. Attempt to claim an expired cooldown slot atomically
+                claimed_doc = await db.notification_cooldowns.find_one_and_update(
+                    {"_id": cooldown_key, "last_notification_time": {"$lt": cutoff}},
+                    {"$set": {"last_notification_time": now}},
+                    return_document=False
+                )
+
+                is_claimed = False
+                was_inserted = False
+                old_notification_time = None
+
+                if claimed_doc:
+                    is_claimed = True
+                    old_notification_time = claimed_doc.get("last_notification_time")
+                else:
+                    # 2. If no expired doc matched, either:
+                    #    a) Record does not exist yet -> insert atomically using unique _id constraint
+                    #    b) Cooldown is still active (<60m) -> insert will fail with DuplicateKeyError
+                    try:
+                        await db.notification_cooldowns.insert_one({
+                            "_id": cooldown_key,
+                            "last_notification_time": now
+                        })
+                        is_claimed = True
+                        was_inserted = True
+                    except DuplicateKeyError:
+                        is_claimed = False
+
+                if not is_claimed:
+                    logger.info(f"Correlated power failure alert for device {device_id} suppressed by active cooldown.")
+                    return
+
                 # Correlate alerts
                 correlated_ids = [str(a["_id"]) for a in active_alerts]
                 
                 # Create correlated Alert
                 from backend.app.services.notification_service import NotificationService
-                await NotificationService.create_notification(db, NotificationCreate(
-                    user_id=user_id,
-                    device_id=device_id,
-                    title="Possible Power Failure Detected",
-                    message=f"Possible Power Failure: Multiple offline or warning metrics detected for device {device_id}.",
-                    category="device",
-                    priority="Critical",
-                    action_url="/devices"
-                ), template_key="possible_power_failure", template_context={"device_id": device_id})
+                try:
+                    await NotificationService.create_notification(db, NotificationCreate(
+                        user_id=user_id,
+                        device_id=device_id,
+                        title="Possible Power Failure Detected",
+                        message=f"Possible Power Failure: Multiple offline or warning metrics detected for device {device_id}.",
+                        category="device",
+                        priority="Critical",
+                        action_url="/devices"
+                    ), template_key="possible_power_failure", template_context={"device_id": device_id})
+                except Exception as notify_err:
+                    # Roll back cooldown claim if notification creation fails
+                    try:
+                        if was_inserted:
+                            await db.notification_cooldowns.delete_one({"_id": cooldown_key})
+                        elif old_notification_time is not None:
+                            await db.notification_cooldowns.update_one(
+                                {"_id": cooldown_key},
+                                {"$set": {"last_notification_time": old_notification_time}}
+                            )
+                        else:
+                            await db.notification_cooldowns.delete_one({"_id": cooldown_key})
+                    except Exception as rb_err:
+                        logger.warning(f"Failed to rollback cooldown claim for {cooldown_key}: {rb_err}")
+                    raise notify_err
                 
                 # Mark child alerts as resolved (correlated)
                 for alert in active_alerts:

@@ -35,10 +35,24 @@ class MockCollection:
                     if rec_val not in v["$in"]:
                         return False
                 if "$lt" in v:
-                    if rec_val is None or not (rec_val < v["$lt"]):
+                    if rec_val is None:
+                        return False
+                    if isinstance(rec_val, datetime) and isinstance(v["$lt"], datetime):
+                        r_dt = rec_val.replace(tzinfo=timezone.utc) if rec_val.tzinfo is None else rec_val
+                        cmp_dt = v["$lt"].replace(tzinfo=timezone.utc) if v["$lt"].tzinfo is None else v["$lt"]
+                        if not (r_dt < cmp_dt):
+                            return False
+                    elif not (rec_val < v["$lt"]):
                         return False
                 if "$gt" in v:
-                    if rec_val is None or not (rec_val > v["$gt"]):
+                    if rec_val is None:
+                        return False
+                    if isinstance(rec_val, datetime) and isinstance(v["$gt"], datetime):
+                        r_dt = rec_val.replace(tzinfo=timezone.utc) if rec_val.tzinfo is None else rec_val
+                        cmp_dt = v["$gt"].replace(tzinfo=timezone.utc) if v["$gt"].tzinfo is None else v["$gt"]
+                        if not (r_dt > cmp_dt):
+                            return False
+                    elif not (rec_val > v["$gt"]):
                         return False
                 if "$lte" in v:
                     if rec_val is None or not (rec_val <= v["$lte"]):
@@ -70,6 +84,9 @@ class MockCollection:
             record["_id"] = inserted_id
         else:
             inserted_id = record_copy["_id"]
+            if any(str(r.get("_id")) == str(inserted_id) for r in self.records):
+                from pymongo.errors import DuplicateKeyError
+                raise DuplicateKeyError(f"E11000 duplicate key error on _id: {inserted_id}")
         self.records.append(record_copy)
         
         class InsertResult:
@@ -101,13 +118,15 @@ class MockCollection:
     async def find_one_and_update(self, query, update_dict, return_document=True, upsert=False, session=None, **kwargs):
         rec = await self.find_one(query)
         if rec:
+            import copy
+            old_rec = copy.deepcopy(rec)
             if "$set" in update_dict:
                 for k, v in update_dict["$set"].items():
                     rec[k] = v
             if "$inc" in update_dict:
                 for k, v in update_dict["$inc"].items():
                     rec[k] = rec.get(k, 0) + v
-            return rec
+            return rec if return_document else old_rec
         elif not rec and upsert:
             new_rec = dict(query)
             if "$set" in update_dict:

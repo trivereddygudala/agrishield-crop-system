@@ -2,6 +2,45 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-29 (v331) - B2 M-4 Concurrency Fix (Atomic MongoDB Cooldown Check-and-Set)
+- **Summary:**
+  1. ⚡ **M-4: Atomic MongoDB Cooldown Claim (`backend/app/services/alert_engine.py`):**
+     - Replaced non-atomic check-then-act (`find_one` then `update_one`) with atomic MongoDB cooldown claim.
+     - Performs atomic `find_one_and_update({"_id": cooldown_key, "last_notification_time": {"$lt": cutoff}}, {"$set": {"last_notification_time": now}}, return_document=False)` for expired cooldown slots.
+     - For uninitialized keys, attempts atomic `insert_one({"_id": cooldown_key, "last_notification_time": now})`, relying on MongoDB's unique `_id` primary key constraint. Catches `DuplicateKeyError` to cleanly suppress concurrent duplicate alerts.
+     - Fully safe across concurrent requests and multiple Render worker instances without requiring application-local locks.
+     - Includes automatic rollback of the claimed cooldown if notification creation fails, ensuring failed alerts do not permanently consume the cooldown.
+  2. 🧪 **Verification:**
+     - Created and executed concurrency test suite `scratch/test_m4_concurrency.py` launching 4 simultaneous correlation calls concurrently via `asyncio.gather`.
+     - Result verified: exactly 1 Critical notification created, exactly 1 active cooldown record written.
+     - Verified subsequent calls within 60m are suppressed, 2 concurrent calls after cooldown expiry generate exactly 1 new notification, and failed notifications roll back the cooldown claim.
+     - Multilingual test suite (`test_multilingual_system.py`) verified: 8/8 passed.
+- **Files modified**: `backend/app/services/alert_engine.py`, `backend/tests/mock_db.py`, `scratch/test_m4_concurrency.py`, `changes_happening.md`.
+
+---
+
+## 2026-09-29 (v330) - B2 Medium Fixes (M-1 Callback Translations, M-2 Role-Aware Badges, M-3 Booking History Preservation, M-4 Power Failure Cooldown)
+- **Summary:**
+  1. 🆘 **M-1: Callback Ticket Translation Consistency (`backend/app/routers/common/support.py`):**
+     - Updated `request_callback()` to translate non-English `issue_summary` to English using `TranslationService.translate_text()`.
+     - Stored `source_language`, `language`, `original_subject`, `original_description`, and `translations: {"en": ...}` consistently with standard helpdesk tickets.
+     - Enabled administrators to view English translations of regional callback requests in the admin support dashboard.
+  2. 🔔 **M-2: Role-Aware WebSocket Unread Badge Count (`backend/app/services/notification_service.py`, `backend/app/routers/common/notifications.py`):**
+     - Updated `mark_as_read`, `acknowledge_notification`, and `delete_notification` in `NotificationService` to accept `role: Optional[str] = None` and pass it to `get_unread_count(db, user_id, role=role)`.
+     - Updated endpoints in `notifications.py` to supply `role=current_user.get("role")`.
+     - Prevents phantom unread badge inflation for equipment providers when marking alerts as read, acknowledged, or deleted.
+  3. 📦 **M-3: Booking Notification Preservation in Clear-All (`backend/app/services/notification_service.py`, `backend/app/routers/common/notifications.py`):**
+     - Updated `clear_all_notifications()` to default to `preserve_booking=True` with query `{"user_id": user_id, "category": {"$nin": ["booking"]}}`.
+     - Preserves transactional booking notifications while deleting regular alerts.
+     - Recomputes role-aware remaining unread count for real-time WebSocket update instead of hardcoding 0.
+  4. ⚡ **M-4: Correlated Power-Failure Cooldown (`backend/app/services/alert_engine.py`):**
+     - Implemented 60-minute cooldown on `check_and_correlate_device_alerts()` using `cooldown_key = f"{device_id}_device_power_failure_correlation"` in `db.notification_cooldowns`.
+     - Prevents repeated telemetry packets from creating duplicate Critical notifications.
+  5. 🧪 **Verification:**
+     - Executed targeted unit and integration test suite in `scratch/test_m1_to_m4.py` verifying all 4 behaviors passed with 100% precision.
+     - Executed multilingual test suite for notification/helpdesk modules: 8/8 passed.
+- **Files modified**: `backend/app/routers/common/support.py`, `backend/app/services/notification_service.py`, `backend/app/routers/common/notifications.py`, `backend/app/services/alert_engine.py`, `changes_happening.md`.
+
 ## 2026-09-28 (v329) - B2 High Fixes (H-1 Duplicate Block, H-2 Canonical WS Imports, H-3 Multi-Language Offline Broadcasts, H-4 Canonical WS Re-Export)
 - **Summary:**
   1. 🧹 **H-1: Duplicate Translation Block Removal (`backend/app/services/notification_service.py`):**
