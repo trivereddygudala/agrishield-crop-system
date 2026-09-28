@@ -2,9 +2,9 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator, fi
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-# Canonical supported Indian regional languages + English (13 total)
+# 7 Whitelisted Supported Languages with English fallback
 SUPPORTED_LANGUAGE_CODES = {
-    "en", "hi", "te", "ta", "kn", "ml", "mr", "gu", "pa", "bn", "ur", "or", "as"
+    "en", "te", "ta", "kn", "hi", "ml", "or"
 }
 
 class UserBase(BaseModel):

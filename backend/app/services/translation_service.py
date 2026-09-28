@@ -27,9 +27,9 @@ from deep_translator import GoogleTranslator
 
 logger = logging.getLogger("translation_service")
 
-# 13 Canonical Supported Language Codes
+# 7 Canonical Supported Language Codes with English fallback
 SUPPORTED_LANGUAGES = [
-    "en", "hi", "te", "ta", "kn", "ml", "mr", "gu", "pa", "bn", "ur", "or", "as"
+    "en", "te", "ta", "kn", "hi", "ml", "or"
 ]
 
 # Fast in-memory glossary for common recurring agricultural, booking, and system terms

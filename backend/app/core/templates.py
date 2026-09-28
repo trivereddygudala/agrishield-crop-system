@@ -149,7 +149,7 @@ NOTIFICATION_TEMPLATES: Dict[str, Dict[str, str]] = {
     }
 }
 
-SUPPORTED_LANGUAGES = ["en", "hi", "te", "ta", "kn", "ml", "mr", "gu", "pa", "ur", "or", "as"]
+SUPPORTED_LANGUAGES = ["en", "te", "ta", "kn", "hi", "ml", "or"]
 
 def render_template(template_key: str, lang: str, context: Dict[str, Any]) -> str:
     """

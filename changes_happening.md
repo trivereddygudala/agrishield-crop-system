@@ -2,6 +2,29 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-28 (v327) - AgriShield 7-Language Whitelist Limit (English Fallback)
+- **Summary:**
+  1. 🌐 **Frontend Language Configuration (`frontend/src/data/languages.js`):**
+     - Restricted `SUPPORTED_LANGUAGES` strictly to the 7 whitelisted languages: English (`en`), Telugu (`te`), Tamil (`ta`), Kannada (`kn`), Hindi (`hi`), Malayalam (`ml`), and Odia (`or`).
+     - Removed `mr`, `pa`, `bn`, `ur`, `as`, and `gu` from supported language configurations and selection dropdowns/modals.
+     - Confirmed `en` (English) remains canonical default fallback in `getLanguageByCode`.
+  2. 🎙️ **Voice Assistant Language Coverage (`frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`):**
+     - Updated `SUPPORTED_LANGUAGES` to include Malayalam (`ml`), providing full 7-language coverage (`en`, `te`, `ta`, `kn`, `hi`, `ml`, `or`).
+     - Added native Malayalam greeting and agricultural topic suggestion pills.
+  3. 🛠️ **Admin Portal Language Selects (`frontend/src/pages/admin/AdminPage.jsx`):**
+     - Aligned user creation and edit modal language dropdowns to include all 7 supported languages.
+  4. 🛡️ **Backend Schema Validation & Isolation (`backend/app/models/schemas.py`):**
+     - Restrict `SUPPORTED_LANGUAGE_CODES` to `{"en", "te", "ta", "kn", "hi", "ml", "or"}`.
+     - Enforces that any attempt to configure non-whitelisted language codes (`mr`, `pa`, `bn`, `ur`, `as`, etc.) raises a Pydantic `ValidationError`.
+  5. 🔄 **Backend Services & Template Gating (`backend/app/services/translation_service.py` & `backend/app/core/templates.py`):**
+     - Whitelisted exactly 7 languages in `SUPPORTED_LANGUAGES`.
+     - Non-whitelisted languages automatically fall back to `"en"`.
+  6. 🧪 **Automated Test Suite Verification:**
+     - Updated `backend/tests/test_language_preferences.py`: all 22 tests passed (validating all 7 codes accepted and removed codes rejected).
+     - Updated `backend/tests/test_multilingual_system.py`: `test_2a` passed confirming 7 canonical languages supported and removed codes rejected.
+     - Ran `npm run build`: built 3164 modules cleanly in 25.29s with 0 errors.
+- **Files modified**: `frontend/src/data/languages.js`, `frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`, `frontend/src/pages/admin/AdminPage.jsx`, `backend/app/models/schemas.py`, `backend/app/services/translation_service.py`, `backend/app/core/templates.py`, `backend/tests/test_language_preferences.py`, `backend/tests/test_multilingual_system.py`, `changes_happening.md`.
+
 ## 2026-09-28 (v326) - B1-FIX-D: AI Worker Cluster Routing & Service Workload Separation
 - **Summary:**
   1. 🌐 **D-01: Vercel Edge Rewrites & Relative Fetches Partitioning (`frontend/vercel.json` & `DevicesPage.jsx`):**

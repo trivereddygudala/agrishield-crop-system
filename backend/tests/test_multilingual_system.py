@@ -97,12 +97,18 @@ async def clean_mock_db():
 # ─────────────────────────────────────────────────────────────────────────────
 
 @pytest.mark.anyio
-async def test_2a_all_13_canonical_languages_supported():
-    """Verify all 13 canonical languages are recognized and supported."""
-    canonical = ["en", "hi", "te", "ta", "kn", "ml", "mr", "gu", "pa", "bn", "ur", "or", "as"]
+async def test_2a_all_7_canonical_languages_supported():
+    """Verify all 7 canonical languages are recognized and supported."""
+    canonical = ["en", "te", "ta", "kn", "hi", "ml", "or"]
     for code in canonical:
         assert TranslationService.is_supported(code) is True
-    # Non-supported codes
+    # Non-supported / removed codes
+    assert TranslationService.is_supported("mr") is False
+    assert TranslationService.is_supported("pa") is False
+    assert TranslationService.is_supported("bn") is False
+    assert TranslationService.is_supported("ur") is False
+    assert TranslationService.is_supported("as") is False
+    assert TranslationService.is_supported("gu") is False
     assert TranslationService.is_supported("fr") is False
     assert TranslationService.is_supported("de") is False
     assert TranslationService.is_supported("sa") is False
@@ -570,7 +576,7 @@ async def test_2e_booking_custom_notes_and_status_localization():
             "te": "దయచేసి అదనపు పెట్రోల్ క్యాన్‌తో డెలివరీ చేయండి"
         }
     }
-    create_res = await create_booking(booking_payload)
+    create_res = await create_booking(booking_payload, current_user={"role": "farmer", "id": "farmer_1", "_id": "farmer_1"})
     assert create_res["success"] is True
     assert create_res["booking"]["original_notes"] == "Please deliver with extra petrol can"
 
@@ -599,7 +605,7 @@ async def test_2e_freeform_booking_chat_farmer_to_provider():
         "source_language": "te"
     }
 
-    send_res = await send_booking_chat_message(booking_id, payload_f2p)
+    send_res = await send_booking_chat_message(booking_id, payload_f2p, current_user={"role": "admin", "id": "admin_1", "_id": "admin_1"})
     assert send_res["success"] is True
     assert send_res["message"]["original_text"] == "నేను రేపు ఉదయం 8 గంటలకు వస్తాను"
 
@@ -626,7 +632,7 @@ async def test_2e_freeform_booking_chat_provider_to_farmer():
         "source_language": "hi"
     }
 
-    send_res = await send_booking_chat_message(booking_id, payload_p2f)
+    send_res = await send_booking_chat_message(booking_id, payload_p2f, current_user={"role": "admin", "id": "admin_1", "_id": "admin_1"})
     assert send_res["success"] is True
     assert send_res["message"]["original_text"] == "ट्रैक्टर तैयार है"
 
@@ -659,7 +665,7 @@ async def test_2e_booking_notification_dispatch():
         "equipmentName": "Harvester",
         "providerPhone": "9876543210",
         "status": "pending"
-    })
+    }, current_user={"role": "farmer", "id": "farmer_1", "_id": "farmer_1"})
     assert res["success"] is True
 
     # Check notification in DB
@@ -757,7 +763,7 @@ async def test_2f_b_realtime_booking_event_translation():
 
     try:
         TranslationService.set_cache_entry("en", "te", "Confirmed", "ధృవీకరించబడింది")
-        res = await update_booking_status("BK-9911", {"status": "confirmed"})
+        res = await update_booking_status("BK-9911", {"status": "confirmed"}, current_user={"role": "admin", "id": "admin_1", "_id": "admin_1"})
         assert res["success"] is True
 
         # Check booking status event in captured WebSocket events
@@ -809,7 +815,7 @@ async def test_2f_c_realtime_chat_translation():
             "text": "Please deliver the tractor by 7 AM",
             "source_language": "en"
         }
-        res = await send_booking_chat_message("BK-9922", chat_payload)
+        res = await send_booking_chat_message("BK-9922", chat_payload, current_user={"role": "admin", "id": "admin_1", "_id": "admin_1"})
         assert res["success"] is True
 
         chat_evts = [e for e in captured_chat_events if e.get("type") == "booking_chat_message"]

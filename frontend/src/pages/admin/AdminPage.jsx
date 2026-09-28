@@ -3639,8 +3639,10 @@ export default function AdminPage() {
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="en">English</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="te">Telugu</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="ta">Tamil</option>
-                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="hi">Hindi</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="kn">Kannada</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="hi">Hindi</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="ml">Malayalam</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="or">Odia</option>
                   </select>
                 </div>
               </div>
@@ -3852,8 +3854,10 @@ export default function AdminPage() {
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="en">English</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="te">Telugu</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="ta">Tamil</option>
-                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="hi">Hindi</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="kn">Kannada</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="hi">Hindi</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="ml">Malayalam</option>
+                    <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="or">Odia</option>
                   </select>
                 </div>
               </div>

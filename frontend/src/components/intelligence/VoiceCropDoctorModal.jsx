@@ -10,13 +10,14 @@ import { useFarm } from '../../context/FarmContext';
 import { sanitizeTextForSpeech, cleanChatBubbleText, processSpeechRecognitionEvent } from '../../utils/speechSanitizer';
 import API from '../../services/api';
 
-// 6 Official Supported Regional Languages for AgriShield Live
+// 7 Official Supported Regional Languages for AgriShield Live
 const SUPPORTED_LANGUAGES = [
-  { code: 'te', bcp: 'te-IN', label: 'తెలుగు' },
   { code: 'en', bcp: 'en-IN', label: 'English' },
-  { code: 'hi', bcp: 'hi-IN', label: 'हिन्दी' },
+  { code: 'te', bcp: 'te-IN', label: 'తెలుగు' },
   { code: 'ta', bcp: 'ta-IN', label: 'தமிழ்' },
   { code: 'kn', bcp: 'kn-IN', label: 'ಕನ್ನಡ' },
+  { code: 'hi', bcp: 'hi-IN', label: 'हिन्दी' },
+  { code: 'ml', bcp: 'ml-IN', label: 'മലയാളം' },
   { code: 'or', bcp: 'or-IN', label: 'ଓଡ଼ିଆ' }
 ];
 
@@ -33,7 +34,7 @@ export const VoiceCropDoctorModal = ({
   // Active language state
   const [selectedLang, setSelectedLang] = useState(() => {
     const l = (i18n.language || 'en').split('-')[0].toLowerCase();
-    return ['te', 'en', 'hi', 'ta', 'kn', 'or'].includes(l) ? l : 'en';
+    return ['en', 'te', 'ta', 'kn', 'hi', 'ml', 'or'].includes(l) ? l : 'en';
   });
 
   const [isListening, setIsListening] = useState(false);
@@ -90,6 +91,12 @@ export const VoiceCropDoctorModal = ({
       `🌦️ ${farmLocation} ରେ ଆଜିର ପାଗ ଓ ସ୍ପ୍ରେ ସମୟ`,
       `🏛️ ପିଏମ-କିଷାନ ଓ ସରକାରୀ ଯୋଜନା`,
       `💰 ଆଜିର ମଣ୍ଡି ଦର ଓ ରେଟ`
+    ],
+    ml: [
+      `🌾 ${currentCrop} വിള സംരക്ഷണവും പരിചരണവും`,
+      `🌦️ ${farmLocation} ഇന്നത്തെ കാലാവസ്ഥയും സ്പ്രേ സമയവും`,
+      `🏛️ പിഎം-കിസാൻ, സർക്കാർ പദ്ധതികൾ`,
+      `💰 ഇന്നത്തെ മാർക്കറ്റ് വില വിവരങ്ങൾ`
     ]
   };
 
@@ -100,6 +107,7 @@ export const VoiceCropDoctorModal = ({
     hi: `नमस्ते! मैं आपका एग्रीशील्ड लाइव कृषि AI सहायक हूँ। ${farmLocation} में आपकी ${currentCrop} फसल, आज का मौसम, सरकारी योजनाएं या मंडी भाव के बारे में सीधे पूछें।`,
     ta: `வணக்கம்! நான் உங்கள் அக்ரிஷீல்ட் லைவ் விவசாய AI உதவியாளர். ${farmLocation} பகுதியில் உங்கள் ${currentCrop} பயிர், இன்றைய வானிலை, அரசு திட்டங்கள் அல்லது சந்தை விலைகள் பற்றி என்னிடம் பேசுங்கள்.`,
     kn: `ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ಅಗ್ರಿಶೀಲ್ಡ್ ಲೈವ್ ಕೃಷಿ AI ಸಹಾಯಕ. ${farmLocation} ನಲ್ಲಿ ನಿಮ್ಮ ${currentCrop} ಬೆಳೆ, ಇಂದಿನ ಹವಾಮಾನ, ಸರ್ಕಾರಿ ಸಬ್ಸಿಡಿ ಅಥವಾ ಮಂಡಿ ದರಗಳ ಬಗ್ಗೆ ನೇರವಾಗಿ ಮಾತನಾಡಿ.`,
+    ml: `നമസ്കാരം! ഞാൻ നിങ്ങളുടെ അഗ്രിഷീൽഡ് ലൈവ് കാർഷിക AI സഹായിയാണ്. ${farmLocation} ലെ നിങ്ങളുടെ ${currentCrop} വിള, ഇന്നത്തെ കാലാവസ്ഥ, സർക്കാർ പദ്ധതികൾ അല്ലെങ്കിൽ മാർക്കറ്റ് വിലകളെക്കുറിച്ച് ചോദിക്കൂ.`,
     or: `ନମସ୍କାର! ମୁଁ ଆପଣଙ୍କ ଏଗ୍ରିଶିଲ୍ଡ ଲାଇଭ୍ କୃଷି AI ସହାୟକ। ${farmLocation} ରେ ଆପଣଙ୍କ ${currentCrop} ଫସଲ, ଆଜିର ପାଗ, ସରକାରୀ ଯୋଜନା ବା ମଣ୍ଡି ଦର ବିଷୟରେ ପଚାରନ୍ତୁ।`
   };
 

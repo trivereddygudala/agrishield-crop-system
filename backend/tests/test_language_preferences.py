@@ -244,18 +244,20 @@ async def test_18_iot_device_synchronization():
         dev = await mock_db.devices.find_one({"_id": device_id})
         assert dev["display_language"] == "te"
 
-# --- Test 19: All 13 canonical language codes accepted ---
-def test_19_all_13_canonical_codes_accepted():
-    expected_13 = {"en", "hi", "te", "ta", "kn", "ml", "mr", "gu", "pa", "bn", "ur", "or", "as"}
-    assert SUPPORTED_LANGUAGE_CODES == expected_13
-    for code in expected_13:
+# --- Test 19: All 7 canonical language codes accepted ---
+def test_19_all_7_canonical_codes_accepted():
+    expected_7 = {"en", "te", "ta", "kn", "hi", "ml", "or"}
+    assert SUPPORTED_LANGUAGE_CODES == expected_7
+    for code in expected_7:
         update = ProfileUpdate(preferred_languages=["en", code] if code != "en" else ["en"])
         assert code in update.preferred_languages
 
-# --- Test 20: Removed typo code 'sa' rejected ---
-def test_20_removed_typo_code_sa_rejected():
-    with pytest.raises(ValidationError):
-        ProfileUpdate(preferred_languages=["en", "sa"])
+# --- Test 20: Removed language codes (mr, pa, bn, ur, as, gu, sa) rejected ---
+def test_20_removed_codes_rejected():
+    removed_codes = ["mr", "pa", "bn", "ur", "as", "gu", "sa"]
+    for code in removed_codes:
+        with pytest.raises(ValidationError):
+            ProfileUpdate(preferred_languages=["en", code])
 
 # --- Test 21: Strict non-auto-add on activation (HTTP 422) ---
 @pytest.mark.anyio
