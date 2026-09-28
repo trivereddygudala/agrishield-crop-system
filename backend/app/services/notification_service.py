@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
+import zoneinfo
 from bson import ObjectId
 from typing import List, Dict, Any, Tuple, Optional
 import io
@@ -14,6 +15,9 @@ from backend.app.services.firebase_service import FirebaseService
 from backend.app.services.nvidia_service import NVIDIAService
 
 logger = logging.getLogger(__name__)
+
+# Application configured timezone for quiet hours evaluation
+APP_TIMEZONE = zoneinfo.ZoneInfo("Asia/Kolkata")
 
 # Lazy loading connection manager to prevent circular imports
 active_websocket_manager = None
@@ -74,7 +78,7 @@ class NotificationService:
 
         # Check category toggle (System broadcasts bypass this)
         cat_lower = str(category or "").lower()
-        if cat_lower not in ["system", "booking", "support", "machinery_listing", "equipment", "chat", "message", "fleet"]:
+        if cat_lower not in ["system", "booking", "support", "machinery_listing", "equipment", "chat", "message", "fleet", "broadcast"]:
             cat_map = {
                 "soil": "soil_alerts",
                 "weather": "weather_alerts",
@@ -91,18 +95,29 @@ class NotificationService:
         # 2. Check Quiet Hours (High/Critical bypasses quiet hours)
         quiet_hours = settings_doc.get("quiet_hours", {})
         if quiet_hours.get("enabled", False) and priority not in ["Critical", "High", "Emergency"]:
-            start_str = quiet_hours.get("start", "22:00")
-            end_str = quiet_hours.get("end", "06:00")
+            start_str = str(quiet_hours.get("start", "22:00") or "22:00").strip()
+            end_str = str(quiet_hours.get("end", "06:00") or "06:00").strip()
             
-            # Simple local time parsing check
-            now = datetime.now()  # Context time
-            current_time_str = now.strftime("%H:%M")
+            # Evaluate using application configured timezone (Asia/Kolkata)
+            now = datetime.now(APP_TIMEZONE)
+            current_time = now.time()
+
+            def _parse_time(t_str: str, default_h: int, default_m: int) -> time:
+                for fmt in ("%H:%M", "%H:%M:%S"):
+                    try:
+                        return datetime.strptime(t_str, fmt).time()
+                    except (ValueError, TypeError):
+                        pass
+                return time(default_h, default_m)
+
+            start_time = _parse_time(start_str, 22, 0)
+            end_time = _parse_time(end_str, 6, 0)
             
             is_in_quiet_hours = False
-            if start_str <= end_str:
-                is_in_quiet_hours = (start_str <= current_time_str <= end_str)
+            if start_time <= end_time:
+                is_in_quiet_hours = (start_time <= current_time <= end_time)
             else:  # Quiet hours cross midnight (e.g. 22:00 to 06:00)
-                is_in_quiet_hours = (current_time_str >= start_str or current_time_str <= end_str)
+                is_in_quiet_hours = (current_time >= start_time or current_time <= end_time)
                 
             if is_in_quiet_hours:
                 logger.info(f"Quiet hours active for user {user_id}. Non-critical alert '{notification.title}' suppressed.")
@@ -261,7 +276,7 @@ class NotificationService:
         
         if role == "equipment_provider":
             # Equipment providers should never receive agronomic soil moisture, crop disease, or field telemetry alerts
-            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat"]}
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast"]}
         elif category:
             query["category"] = category
             
@@ -310,7 +325,7 @@ class NotificationService:
         """Fetch unread alerts list with role-based category filtering and active language localization."""
         query: Dict[str, Any] = {"user_id": user_id, "read": False}
         if role == "equipment_provider":
-            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat"]}
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast"]}
         cursor = db.notifications.find(query).sort("lifecycle.created_at", -1).limit(limit)
         records = await cursor.to_list(length=limit)
         for r in records:
@@ -495,7 +510,7 @@ class NotificationService:
         """Return count of unread notifications filtered by role (mirrors get_notifications filter)."""
         query: Dict[str, Any] = {"user_id": user_id, "read": False}
         if role == "equipment_provider":
-            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat"]}
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast"]}
         return await db.notifications.count_documents(query)
 
     @staticmethod

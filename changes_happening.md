@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-28 (v328) - B2 Critical Fixes (C-1 Broadcast Delivery & C-2 Quiet Hours IST Evaluation)
+- **Summary:**
+  1. 📢 **C-1: Admin Broadcast Notification Delivery & Provider Allowlist (`backend/app/services/notification_service.py`):**
+     - Added `"broadcast"` to category toggle bypass list in `create_notification`: ensures admin broadcasts bypass user preference toggles and are not dropped when `disease_alerts=False`.
+     - Added `"broadcast"` to provider category query filters in `get_notifications`, `get_unread_notifications`, and `get_unread_count` for `role="equipment_provider"`, ensuring provider users reliably receive and count admin announcements.
+  2. 🌙 **C-2: Quiet Hours IST Timezone & Midnight Crossing Evaluation (`backend/app/services/notification_service.py`):**
+     - Configured `APP_TIMEZONE = zoneinfo.ZoneInfo("Asia/Kolkata")` to evaluate quiet hours against the application's canonical timezone rather than server local time.
+     - Replaced string-based time comparison with `time` objects (`datetime.strptime(..., "%H:%M").time()`).
+     - Hardened midnight boundary evaluation so intervals spanning midnight (e.g. 22:00 to 06:00 IST) correctly evaluate `(current_time >= start_time or current_time <= end_time)`.
+  3. 🧪 **Targeted Verification Tests:**
+     - Executed targeted multilingual notification suite: 24 tests passed.
+     - Executed dedicated C-1 & C-2 test suite verifying broadcast delivery with `disease_alerts=False`, provider category filters (`get_notifications`, `get_unread_notifications`, `get_unread_count`), quiet hours suppression across midnight boundaries (23:30, 02:00, 06:00 IST), critical priority bypass, and daytime quiet windows.
+  4. 🛡️ **Zero Scope Creep:**
+     - Zero modifications to WebSocket architecture, helpdesk, AI, booking, DB schema, or unrelated audit findings.
+     - Zero commits, pushes, or deployments.
+- **Files modified**: `backend/app/services/notification_service.py`, `changes_happening.md`.
+
 ## 2026-09-28 (v327) - AgriShield 7-Language Whitelist Limit (English Fallback)
 - **Summary:**
   1. 🌐 **Frontend Language Configuration (`frontend/src/data/languages.js`):**
@@ -6569,3 +6586,6 @@ Files Modified:
   - B12: New Features + Advanced Upgrades (NOT STARTED)
 - Includes 12 standardized sections per phase, dependency graph, execution matrix, and clear classification of Bugs, Security, Infrastructure, Configuration, and Enhancements.
 - ZERO changes made to application code, database schema, environment variables, or tests.
+
+---
+[2026-09-28 23:12:15] B2 AUDIT COMPLETE (read-only): b2_audit_report.md written. 2 Critical, 4 High, 5 Medium, 3 Low findings. No code/config changed.
