@@ -143,6 +143,9 @@ class NotificationService:
             ctx = template_context or {}
             ctx["message"] = notification.message
             final_message = render_template(template_key, preferred_lang, ctx)
+        elif preferred_lang in translations and isinstance(translations[preferred_lang], dict):
+            final_title = translations[preferred_lang].get("title", original_title)
+            final_message = translations[preferred_lang].get("message", original_message)
         elif preferred_lang != source_lang and preferred_lang != "en":
             try:
                 from backend.app.services.translation_service import TranslationService
@@ -345,13 +348,6 @@ class NotificationService:
                 if active_language in translations and isinstance(translations[active_language], dict):
                     r["title"] = translations[active_language].get("title", orig_t)
                     r["message"] = translations[active_language].get("message", orig_m)
-            translations = r.get("translations") or {}
-            r["translations"] = translations
-
-            if active_language and active_language != "en":
-                if active_language in translations and isinstance(translations[active_language], dict):
-                    r["title"] = translations[active_language].get("title", r.get("title", orig_t))
-                    r["message"] = translations[active_language].get("message", r.get("message", orig_m))
         return records
 
     @staticmethod

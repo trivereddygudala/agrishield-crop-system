@@ -10,7 +10,7 @@ from backend.app.routers.auth import get_current_user
 from backend.app.services.farm_profile_service import FarmProfileService
 from backend.app.services.notification_service import NotificationService
 from backend.app.services.alert_engine import AlertEngine
-from backend.app.routers.notifications import ws_manager
+from backend.app.routers.common.notifications import ws_manager
 from backend.app.models.notification import NotificationCreate
 
 from backend.app.core.iot_security import validate_sensor_payload, validate_iot_request

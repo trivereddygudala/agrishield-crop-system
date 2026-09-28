@@ -10,6 +10,10 @@ from backend.app.core.audit_logger import log_security_event
 from backend.app.models.schemas import UserResponse
 from backend.app.services.notification_service import NotificationService
 from backend.app.models.notification import NotificationCreate
+import logging
+from backend.app.services.translation_service import TranslationService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 
@@ -292,6 +296,23 @@ async def broadcast_system_notification(
     users_cursor = db.users.find(query, {"_id": 1, "preferred_language": 1})
     users_list = await users_cursor.to_list(length=None)
 
+    # Pre-translate broadcast into the 7 supported languages (en, te, ta, kn, hi, ml, or) once
+    translations_bundle: Dict[str, Dict[str, str]] = {}
+    for target_lang in ["te", "ta", "kn", "hi", "ml", "or"]:
+        try:
+            tr_title = await TranslationService.translate_text(
+                payload.title, target_lang, source_lang="en", db=db
+            )
+            tr_msg = await TranslationService.translate_text(
+                payload.message, target_lang, source_lang="en", db=db
+            )
+            translations_bundle[target_lang] = {
+                "title": tr_title,
+                "message": tr_msg
+            }
+        except Exception as tr_err:
+            logger.warning(f"Broadcast pre-translation warning for {target_lang}: {tr_err}")
+
     count = 0
     for u in users_list:
         uid_str = str(u["_id"])
@@ -304,6 +325,7 @@ async def broadcast_system_notification(
                 original_title=payload.title,
                 original_message=payload.message,
                 source_language="en",
+                translations=translations_bundle,
                 category="broadcast",
                 priority=payload.priority,
                 action_url=payload.action_url or "/dashboard"
@@ -318,6 +340,7 @@ async def broadcast_system_notification(
         "original_title": payload.title,
         "original_message": payload.message,
         "source_language": "en",
+        "translations": translations_bundle,
         "priority": payload.priority,
         "audience": audience,
         "recipient_count": count,

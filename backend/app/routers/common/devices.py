@@ -10,7 +10,7 @@ from bson import ObjectId
 
 from backend.app.db.mongodb import db_instance
 from backend.app.routers.auth import get_current_user
-from backend.app.routers.notifications import ws_manager
+from backend.app.routers.common.notifications import ws_manager
 from backend.app.services.firmware_service import is_hardware_compatible, compare_versions, log_ota_audit
 
 router = APIRouter(prefix="/api/v1/devices", tags=["Device Management"])

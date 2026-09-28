@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-28 (v329) - B2 High Fixes (H-1 Duplicate Block, H-2 Canonical WS Imports, H-3 Multi-Language Offline Broadcasts, H-4 Canonical WS Re-Export)
+- **Summary:**
+  1. 🧹 **H-1: Duplicate Translation Block Removal (`backend/app/services/notification_service.py`):**
+     - Removed redundant duplicate translation block (lines 348–354) inside `NotificationService.get_unread_notifications`.
+  2. 🔗 **H-2: Canonical `ws_manager` Imports (`backend/app/routers/common/devices.py`, `backend/app/routers/common/iot.py`):**
+     - Replaced legacy shim imports (`from backend.app.routers.notifications import ws_manager`) with the canonical import path (`from backend.app.routers.common.notifications import ws_manager`).
+  3. 🌐 **H-3: Offline Multi-Language Admin Broadcast Translation (`backend/app/routers/admin/admin.py`, `backend/app/services/notification_service.py`):**
+     - Pre-translates broadcast title and message once into all 6 non-English supported languages (`te`, `ta`, `kn`, `hi`, `ml`, `or`) using `TranslationService.translate_text` before the dispatch loop.
+     - Passes `translations=translations_bundle` into `NotificationCreate` for all recipient records and stores it in `broadcast_doc` for audit persistence.
+     - Updated `create_notification` to recognize and use pre-translated dictionary entries directly, avoiding redundant $O(N)$ translation provider calls. Offline users querying in any of the 7 supported languages receive the correct translation.
+  4. 🔌 **H-4: Duplicate `WebSocketManager` Elimination via Canonical Re-Export (`backend/app/services/websocket_manager.py`):**
+     - Verified absence of circular imports across the dependency graph.
+     - Replaced duplicate/unregistered class in `backend/app/services/websocket_manager.py` with a canonical re-export of `WebSocketManager` and `ws_manager` from `backend.app.routers.common.notifications`.
+  5. 🧪 **Targeted Verification Tests:**
+     - Verified H-4 singleton identity: `assert ws1 is ws2` (services vs common notifications).
+     - Verified H-2 canonical import identity: `assert d_ws is c_ws and i_ws is c_ws`.
+     - Verified H-1 unread notification localization without duplicate translation overhead.
+     - Verified H-3 broadcast pre-translation bundle generation across all supported languages and offline retrieval in regional languages (`te`, `hi`).
+     - Executed targeted multilingual test suite: 13 tests passed.
+  6. 🛡️ **Zero Scope Creep:**
+     - Zero modifications to booking, AI, IoT logic, database schema, or unrelated findings.
+     - Zero commits, pushes, or deployments.
+- **Files modified**: `backend/app/services/notification_service.py`, `backend/app/routers/common/devices.py`, `backend/app/routers/common/iot.py`, `backend/app/routers/admin/admin.py`, `backend/app/services/websocket_manager.py`, `changes_happening.md`.
+
 ## 2026-09-28 (v328) - B2 Critical Fixes (C-1 Broadcast Delivery & C-2 Quiet Hours IST Evaluation)
 - **Summary:**
   1. 📢 **C-1: Admin Broadcast Notification Delivery & Provider Allowlist (`backend/app/services/notification_service.py`):**
