@@ -58,6 +58,12 @@ class MockCollection:
     async def insert_one(self, record, session=None, **kwargs):
         import copy
         record_copy = copy.deepcopy(record)
+        if getattr(self, "unique_keys", None):
+            for u_keys in self.unique_keys:
+                u_query = {k: record_copy.get(k) for k in u_keys}
+                if any(self._matches(r, u_query) for r in self.records):
+                    from pymongo.errors import DuplicateKeyError
+                    raise DuplicateKeyError(f"E11000 duplicate key error on index: {u_keys}")
         if "_id" not in record_copy:
             inserted_id = ObjectId()
             record_copy["_id"] = inserted_id
@@ -141,6 +147,18 @@ class MockCollection:
         return "idx_created"
 
     async def bulk_write(self, ops, ordered=False, session=None, **kwargs):
+        for op in ops:
+            if hasattr(op, "_filter") and hasattr(op, "_doc"):
+                q = getattr(op, "_filter", {})
+                raw_u = getattr(op, "_doc", {})
+                upsert = getattr(op, "_upsert", False)
+                if "" in raw_u:
+                    u = {"$set": raw_u[""]}
+                else:
+                    u = raw_u
+                await self.update_one(q, u, upsert=upsert, session=session)
+            elif hasattr(op, "_doc"):
+                await self.insert_one(op._doc, session=session)
         return len(ops)
 
     def find(self, query=None, projection=None, session=None, *args, **kwargs):
@@ -168,8 +186,9 @@ class MockCollection:
         return Cursor(filtered)
 
 class MockSession:
-    def __init__(self):
+    def __init__(self, client=None):
         self.in_transaction = False
+        self.client = client
 
     async def __aenter__(self):
         return self
@@ -186,7 +205,12 @@ class MockSession:
         return TransactionContext()
 
     async def commit_transaction(self):
-        pass
+        if self.client and getattr(self.client, "fail_with_unknown_commit", False):
+            self.client.fail_with_unknown_commit = False
+            from pymongo.errors import OperationFailure
+            exc = OperationFailure("Mock commit network timeout / primary stepdown", code=112)
+            exc._error_labels = ["UnknownTransactionCommitResult"]
+            raise exc
 
     async def abort_transaction(self):
         pass
@@ -194,9 +218,10 @@ class MockSession:
 class MockClient:
     def __init__(self, db):
         self._db = db
+        self.fail_with_unknown_commit = False
 
     async def start_session(self):
-        return MockSession()
+        return MockSession(self)
 
     def __getitem__(self, name):
         return self._db
@@ -212,6 +237,7 @@ class MockDatabase:
         self.equipment_catalog = MockCollection()
         self.equipment_locks = MockCollection()
         self.idempotency_records = MockCollection()
+        self.idempotency_records.unique_keys = [("key", "user_id")]
         self._client = MockClient(self)
 
     @property

@@ -372,22 +372,36 @@ async def get_all_bookings(
 @router.post("/bookings")
 async def create_booking(
     booking_data: Dict[str, Any] = Body(...),
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Save or update a farm machinery booking with authenticated tenant identity.
+    Save or update a farm machinery booking with authenticated tenant identity and idempotency replay.
     Enforces that booking is securely tied to current_user.
     """
     global _in_memory_bookings
     if not booking_data:
         raise HTTPException(status_code=400, detail="Booking data is required")
 
+    auth_uid = str(current_user.get("id") or current_user.get("_id") or "")
     booking_id = booking_data.get("id") or booking_data.get("bookingId") or f"BK-{int(datetime.now().timestamp() * 1000) % 90000 + 10000}"
+
+    # F-04: Idempotency pre-check for creation
+    if idempotency_key and db_instance.db is not None:
+        try:
+            existing_idemp = await db_instance.db["idempotency_records"].find_one({
+                "key": idempotency_key,
+                "user_id": auth_uid
+            })
+            if existing_idemp and existing_idemp.get("status") == "completed":
+                return existing_idemp.get("response_body")
+        except Exception:
+            pass
+
     booking_data["id"] = booking_id
     booking_data["bookingId"] = booking_id
 
     # Stamp authenticated user credentials (tenant isolation & tamper prevention)
-    auth_uid = str(current_user.get("id") or current_user.get("_id") or "")
     booking_data["userId"] = auth_uid
     booking_data["user_id"] = auth_uid
     if not booking_data.get("farmerName"):
@@ -485,11 +499,37 @@ async def create_booking(
         except Exception as n_err:
             print(f"⚠️ [EquipmentBookings] Provider notification dispatch notice: {n_err}")
 
-    return {
+    res_payload = {
         "success": True,
         "message": "Booking recorded and synced successfully",
         "booking": booking_data
     }
+
+    # F-04: Persist completed idempotency record on successful creation
+    if idempotency_key and db_instance.db is not None:
+        try:
+            clean_res = {
+                "success": True,
+                "message": "Booking recorded and synced successfully",
+                "booking": {k: (str(v) if isinstance(v, ObjectId) else v) for k, v in booking_data.items() if k != "_id"}
+            }
+            await db_instance.db["idempotency_records"].update_one(
+                {"key": idempotency_key, "user_id": auth_uid},
+                {"$set": {
+                    "key": idempotency_key,
+                    "user_id": auth_uid,
+                    "status": "completed",
+                    "response_status_code": 200,
+                    "response_body": clean_res,
+                    "created_at": datetime.now(timezone.utc),
+                    "completed_at": datetime.now(timezone.utc)
+                }},
+                upsert=True
+            )
+        except Exception:
+            pass
+
+    return res_payload
 
 
 @router.post("/bookings/batch")
@@ -531,14 +571,42 @@ async def create_bookings_batch(
         if not b.get("farmerPhone") and default_phone:
             b["farmerPhone"] = default_phone
 
-        if not b.get("status"):
-            b["status"] = "pending"
+        # F-01: Batch endpoint is restricted strictly to pending booking submissions
+        req_status = str(b.get("status") or "pending").lower().strip()
+        if req_status not in ["pending", ""]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Batch booking submission only permits status='pending'. Status '{req_status}' is disallowed; use canonical status PATCH endpoint for state transitions."
+            )
+        b["status"] = "pending"
+
+        # Check existing record in memory or DB to prevent overwriting terminal or confirmed states
+        existing_doc = existing_map.get(b_id)
+        if existing_doc:
+            curr_s = str(existing_doc.get("status", "pending")).lower()
+            if curr_s in ["confirmed", "completed", "cancelled", "rejected"]:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Cannot overwrite booking #{b_id} with status '{curr_s}' via batch creation."
+                )
+
+        # Normalize UTC interval
+        start_utc, end_utc = _normalize_booking_interval(b)
+        b["start_time"] = start_utc
+        b["end_time"] = end_utc
+        b["start_time_iso"] = start_utc.isoformat()
+        b["end_time_iso"] = end_utc.isoformat()
+
         if not b.get("createdAt"):
             b["createdAt"] = now_iso
         b["updatedAt"] = now_iso
 
         processed_bookings.append(b)
-        existing_map[b_id] = b
+        # Store string ISO dates in disk map
+        b_disk = dict(b)
+        b_disk["start_time"] = start_utc.isoformat()
+        b_disk["end_time"] = end_utc.isoformat()
+        existing_map[b_id] = b_disk
 
         if db_instance.db is not None:
             clean_b = {k: v for k, v in b.items() if k != "_id"}
@@ -641,7 +709,7 @@ async def update_booking_status(
     user_id = str(current_user.get("id") or current_user.get("_id") or "")
     endpoint_sig = f"PATCH:/bookings/{booking_id}/status"
 
-    # 1. Idempotency Pre-Check
+    # 1. Idempotency Pre-Check & In-Progress Registration (F-03)
     req_payload_str = json.dumps({"status": new_status, "reason": cancel_reason}, sort_keys=True)
     req_hash = hashlib.sha256(req_payload_str.encode("utf-8")).hexdigest()
 
@@ -669,29 +737,43 @@ async def update_booking_status(
                                 status_code=status.HTTP_409_CONFLICT,
                                 detail="Concurrent request with this Idempotency-Key is currently in progress. Please retry shortly."
                             )
+            else:
+                try:
+                    await db_instance.db["idempotency_records"].insert_one({
+                        "key": idempotency_key,
+                        "user_id": user_id,
+                        "endpoint": endpoint_sig,
+                        "request_hash": req_hash,
+                        "booking_id": booking_id,
+                        "status": "in_progress",
+                        "created_at": datetime.now(timezone.utc)
+                    })
+                except DuplicateKeyError:
+                    raced = await db_instance.db["idempotency_records"].find_one({
+                        "key": idempotency_key,
+                        "user_id": user_id
+                    })
+                    if raced:
+                        if raced.get("booking_id") != booking_id or raced.get("request_hash") != req_hash:
+                            raise HTTPException(
+                                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="Idempotency-Key already used for a different request payload or booking."
+                            )
+                        if raced.get("status") == "completed":
+                            return raced.get("response_body")
+                        elif raced.get("status") == "in_progress":
+                            rec_dt = raced.get("created_at")
+                            if rec_dt and isinstance(rec_dt, datetime):
+                                age_sec = (datetime.now(timezone.utc) - rec_dt.replace(tzinfo=timezone.utc)).total_seconds()
+                                if age_sec < 60:
+                                    raise HTTPException(
+                                        status_code=status.HTTP_409_CONFLICT,
+                                        detail="Concurrent request with this Idempotency-Key is currently in progress. Please retry shortly."
+                                    )
         except HTTPException:
             raise
         except Exception as e:
             print(f"⚠️ [Idempotency] Pre-check notice: {e}")
-
-    # Mark idempotency in_progress
-    if idempotency_key and db_instance.db is not None:
-        try:
-            await db_instance.db["idempotency_records"].update_one(
-                {"key": idempotency_key, "user_id": user_id},
-                {"$set": {
-                    "key": idempotency_key,
-                    "user_id": user_id,
-                    "endpoint": endpoint_sig,
-                    "request_hash": req_hash,
-                    "booking_id": booking_id,
-                    "status": "in_progress",
-                    "created_at": datetime.now(timezone.utc)
-                }},
-                upsert=True
-            )
-        except Exception:
-            pass
 
     # 2. Locate existing booking and verify RBAC
     existing_booking = None
@@ -846,7 +928,47 @@ async def update_booking_status(
                             return_document=True,
                             session=session
                         )
-                        await session.commit_transaction()
+
+                        # F-03: Commit idempotency record atomically inside booking transaction to eliminate crash window
+                        if idempotency_key:
+                            response_payload_tx = {
+                                "success": True,
+                                "message": f"Status updated to {new_status}",
+                                "booking": {k: (str(v) if isinstance(v, ObjectId) else v) for k, v in updated_booking.items() if k != "_id"}
+                            }
+                            await db_instance.db["idempotency_records"].update_one(
+                                {"key": idempotency_key, "user_id": user_id},
+                                {"$set": {
+                                    "status": "completed",
+                                    "response_status_code": 200,
+                                    "response_body": response_payload_tx,
+                                    "completed_at": datetime.now(timezone.utc)
+                                }},
+                                upsert=True,
+                                session=session
+                            )
+
+                        # F-06: Robust commit handling distinguishing commit uncertainty
+                        while True:
+                            try:
+                                await session.commit_transaction()
+                                break
+                            except (OperationFailure, ConnectionFailure) as commit_exc:
+                                is_unknown = (
+                                    getattr(commit_exc, "has_error_label", lambda lbl: False)("UnknownTransactionCommitResult") or
+                                    "UnknownTransactionCommitResult" in str(commit_exc)
+                                )
+                                if is_unknown:
+                                    # Inspect whether the transaction actually succeeded on the server
+                                    check_doc = await db_instance.db["equipment_bookings"].find_one(
+                                        {"$or": [{"id": booking_id}, {"bookingId": booking_id}]}
+                                    )
+                                    if check_doc and check_doc.get("status") == new_status:
+                                        updated_booking = check_doc
+                                        break
+                                    # If not yet reflected, retry commit
+                                    continue
+                                raise
                         break
             else:
                 # Standalone / In-memory fallback mode
@@ -895,11 +1017,25 @@ async def update_booking_status(
         except HTTPException:
             raise
         except (OperationFailure, ConnectionFailure) as exc:
-            # Check for transient transaction errors or write conflicts (code 112)
+            # Check for UnknownTransactionCommitResult or transient transaction errors / write conflicts (code 112)
+            is_unknown = (
+                getattr(exc, "has_error_label", lambda lbl: False)("UnknownTransactionCommitResult") or
+                "UnknownTransactionCommitResult" in str(exc)
+            )
+            if is_unknown and db_instance.db is not None:
+                # F-06: Check if already committed before blindly retrying mutation body
+                check_b = await db_instance.db["equipment_bookings"].find_one(
+                    {"$or": [{"id": booking_id}, {"bookingId": booking_id}]}
+                )
+                if check_b and check_b.get("status") == new_status:
+                    updated_booking = check_b
+                    break
+
             is_transient = (
                 getattr(exc, "has_error_label", lambda lbl: False)("TransientTransactionError") or
                 getattr(exc, "code", None) == 112 or
-                "WriteConflict" in str(exc)
+                "WriteConflict" in str(exc) or
+                is_unknown
             )
             if is_transient:
                 if attempt == MAX_RETRIES:

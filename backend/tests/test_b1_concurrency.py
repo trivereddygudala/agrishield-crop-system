@@ -612,3 +612,155 @@ async def test_25_legacy_slot_parsing():
         del_res = await ac.delete("/api/v1/equipment/bookings/BK-NODELETE", headers={"Authorization": f"Bearer {p1_tok}"})
         assert del_res.status_code == 400
         assert "cannot be physically deleted" in del_res.json()["detail"].lower()
+
+@pytest.mark.anyio
+async def test_26_batch_endpoint_cannot_bypass_state_machine():
+    """F-01: Batch endpoint rejects arbitrary status injection and cannot overwrite confirmed/terminal records."""
+    f1_id, f1_tok = await create_user("Farmer 1", "f1@agri.com", "farmer", "9111111111")
+    p1_id, p1_tok = await create_user("Provider 1", "p1@agri.com", "equipment_provider", "9222222222")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # 1. Attempting to submit batch bookings directly as 'confirmed' must be rejected with 400
+        res_bypass = await ac.post("/api/v1/equipment/bookings/batch", json=[{
+            "id": "BK-BATCH-BYPASS-1",
+            "equipmentId": "EQ-BATCH-1",
+            "date": "2026-11-10",
+            "slot": "Early Morning (6:00 AM - 10:00 AM)",
+            "status": "confirmed"
+        }], headers={"Authorization": f"Bearer {f1_tok}"})
+        assert res_bypass.status_code == 400
+        assert "only permits status='pending'" in res_bypass.json()["detail"]
+
+        # 2. Legitimate batch pending creation works
+        res_valid = await ac.post("/api/v1/equipment/bookings/batch", json=[{
+            "id": "BK-BATCH-VALID-1",
+            "equipmentId": "EQ-BATCH-1",
+            "providerId": p1_id,
+            "date": "2026-11-10",
+            "slot": "Early Morning (6:00 AM - 10:00 AM)",
+            "status": "pending"
+        }], headers={"Authorization": f"Bearer {f1_tok}"})
+        assert res_valid.status_code == 200
+
+        # Provider confirms it legitimately via canonical status endpoint
+        res_conf = await ac.patch("/api/v1/equipment/bookings/BK-BATCH-VALID-1/status",
+                                 json={"status": "confirmed"},
+                                 headers={"Authorization": f"Bearer {p1_tok}"})
+        assert res_conf.status_code == 200
+
+        # 3. Attempting to overwrite existing confirmed booking via batch must be rejected with 409
+        res_overwrite = await ac.post("/api/v1/equipment/bookings/batch", json=[{
+            "id": "BK-BATCH-VALID-1",
+            "equipmentId": "EQ-BATCH-1",
+            "providerId": p1_id,
+            "date": "2026-11-10",
+            "slot": "Early Morning (6:00 AM - 10:00 AM)",
+            "status": "pending"
+        }], headers={"Authorization": f"Bearer {f1_tok}"})
+        assert res_overwrite.status_code == 409
+        assert "Cannot overwrite booking" in res_overwrite.json()["detail"]
+
+@pytest.mark.anyio
+async def test_27_create_booking_idempotency_double_click():
+    """F-04: Farmer booking creation with Idempotency-Key replays response on double click and avoids duplicate records."""
+    f1_id, f1_tok = await create_user("Farmer 1", "f1@agri.com", "farmer", "9111111111")
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        headers = {
+            "Authorization": f"Bearer {f1_tok}",
+            "Idempotency-Key": "idemp_farmer_click_1"
+        }
+        payload = {
+            "id": "BK-CLICK-1",
+            "equipmentId": "EQ-CLICK-1",
+            "date": "2026-11-15",
+            "slot": "Early Morning (6:00 AM - 10:00 AM)"
+        }
+        # First submission
+        r1 = await ac.post("/api/v1/equipment/bookings", json=payload, headers=headers)
+        assert r1.status_code == 200
+        assert r1.json()["booking"]["id"] == "BK-CLICK-1"
+
+        # Rapid second click with same Idempotency-Key
+        r2 = await ac.post("/api/v1/equipment/bookings", json=payload, headers=headers)
+        assert r2.status_code == 200
+        assert r2.json()["booking"]["id"] == "BK-CLICK-1"
+
+        # Verify idempotency record exists and is completed
+        idemp_rec = await mock_db.idempotency_records.find_one({"key": "idemp_farmer_click_1"})
+        assert idemp_rec is not None
+        assert idemp_rec["status"] == "completed"
+
+@pytest.mark.anyio
+async def test_28_idempotency_atomic_in_transaction():
+    """F-03: Status update idempotency is recorded atomically and catches payload mismatch / concurrent races."""
+    f1_id, f1_tok = await create_user("Farmer 1", "f1@agri.com", "farmer", "9111111111")
+    p1_id, p1_tok = await create_user("Provider 1", "p1@agri.com", "equipment_provider", "9222222222")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        await ac.post("/api/v1/equipment/bookings", json={
+            "id": "BK-IDEMP-TX-1",
+            "equipmentId": "EQ-IDEMP-TX-1",
+            "date": "2026-11-20",
+            "slot": "Early Morning (6:00 AM - 10:00 AM)",
+            "providerId": p1_id
+        }, headers={"Authorization": f"Bearer {f1_tok}"})
+
+        headers = {
+            "Authorization": f"Bearer {p1_tok}",
+            "Idempotency-Key": "idemp_tx_key_99"
+        }
+        # 1. First confirmation
+        r1 = await ac.patch("/api/v1/equipment/bookings/BK-IDEMP-TX-1/status",
+                            json={"status": "confirmed"},
+                            headers=headers)
+        assert r1.status_code == 200
+
+        # Verify idempotency record in DB is immediately completed (no crash window)
+        idemp_doc = await mock_db.idempotency_records.find_one({"key": "idemp_tx_key_99"})
+        assert idemp_doc is not None
+        assert idemp_doc["status"] == "completed"
+
+        # 2. Replay with same key & same payload -> returns cached 200
+        r_replay = await ac.patch("/api/v1/equipment/bookings/BK-IDEMP-TX-1/status",
+                                  json={"status": "confirmed"},
+                                  headers=headers)
+        assert r_replay.status_code == 200
+        assert r_replay.json()["booking"]["status"] == "confirmed"
+
+        # 3. Same key with different payload/booking -> 422
+        r_mismatch = await ac.patch("/api/v1/equipment/bookings/BK-IDEMP-TX-1/status",
+                                    json={"status": "cancelled", "reason": "different reason"},
+                                    headers=headers)
+        assert r_mismatch.status_code == 422
+
+@pytest.mark.anyio
+async def test_29_unknown_transaction_commit_result_handled():
+    """F-06: UnknownTransactionCommitResult is handled without duplicate execution or spurious collision errors."""
+    f1_id, f1_tok = await create_user("Farmer 1", "f1@agri.com", "farmer", "9111111111")
+    p1_id, p1_tok = await create_user("Provider 1", "p1@agri.com", "equipment_provider", "9222222222")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        await ac.post("/api/v1/equipment/bookings", json={
+            "id": "BK-COMMIT-UNCERTAIN",
+            "equipmentId": "EQ-UNCERTAIN-1",
+            "date": "2026-11-25",
+            "slot": "Early Morning (6:00 AM - 10:00 AM)",
+            "providerId": p1_id
+        }, headers={"Authorization": f"Bearer {f1_tok}"})
+
+        # Arm the mock client to simulate UnknownTransactionCommitResult on first commit
+        mock_db.client.fail_with_unknown_commit = True
+
+        r_conf = await ac.patch("/api/v1/equipment/bookings/BK-COMMIT-UNCERTAIN/status",
+                                json={"status": "confirmed"},
+                                headers={"Authorization": f"Bearer {p1_tok}"})
+        # Must gracefully resolve and succeed with 200
+        assert r_conf.status_code == 200
+        assert r_conf.json()["booking"]["status"] == "confirmed"
+
+        b_doc = await mock_db.equipment_bookings.find_one({"id": "BK-COMMIT-UNCERTAIN"})
+        assert b_doc["status"] == "confirmed"

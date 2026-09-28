@@ -378,32 +378,18 @@ export default function ProviderDashboardPage() {
 
     // 3. Dispatch DELETE to backend API & Render workers
     try {
-      let remoteDeleted = false;
-      try {
-        await API.delete(`/api/v1/equipment/bookings/${targetId}`);
-        remoteDeleted = true;
-      } catch (_) {}
-
-      if (!remoteDeleted) {
-        try {
-          await API.delete(`/api/equipment/bookings/${targetId}`);
-          remoteDeleted = true;
-        } catch (_) {}
-      }
-
-      if (!remoteDeleted) {
-        try {
-          await axios.delete(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${targetId}`, { timeout: 10000 });
-          remoteDeleted = true;
-        } catch (_) {}
-      }
-
-      if (!remoteDeleted) {
-        try {
-          await axios.delete(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${targetId}`, { timeout: 10000 });
-        } catch (_) {}
-      }
+      const idempotencyKey = `idemp_del_${targetId}_${Date.now()}`;
+      await API.delete(`/api/v1/equipment/bookings/${targetId}`, {
+        headers: { 'Idempotency-Key': idempotencyKey }
+      });
     } catch (err) {
+      const detail = err?.response?.data?.detail;
+      if (err?.response?.status === 400) {
+        toast.error(isTe ? 'సక్రియ బుకింగ్‌లను తొలగించలేరు. రద్దు చేయండి.' : (detail || 'Active bookings cannot be deleted. Please cancel instead.'));
+        setIsDeletingBooking(false);
+        setDeleteModalBooking(null);
+        return;
+      }
       console.warn('Backend DELETE booking warning:', err);
     } finally {
       setIsDeletingBooking(false);

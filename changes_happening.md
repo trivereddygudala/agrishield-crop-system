@@ -2,6 +2,37 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-28 (v325) - B1-FIX-B/C: Close Booking Mutation Bypasses and Harden Idempotency (Correction Pass)
+- **Summary:**
+  1. 🛡️ **F-01: Batch Endpoint State Machine & Resurrection Protection (`backend/app/routers/provider/equipment.py`):**
+     - Restricted `POST /api/v1/equipment/bookings/batch` strictly to submissions with `status="pending"` (non-pending returns `HTTP 400 Bad Request`).
+     - Added overwrite checks: prevents overwriting or resurrecting existing `confirmed`, `completed`, `cancelled`, or `rejected` bookings via batch (`HTTP 409 Conflict`).
+     - Enforced canonical $[S, E)$ half-open UTC interval normalization for all batch entries.
+  2. 💬 **F-02: GoogleMessageReader Canonical Status Mutation (`frontend/src/components/common/GoogleMessageReader.jsx`):**
+     - Eliminated direct booking mutation; routed status transitions to canonical backend `PATCH /api/v1/equipment/bookings/{id}/status`.
+     - Attached unique `Idempotency-Key` header per status transition.
+     - Handled `HTTP 409` (slot collision) and `HTTP 503` (transaction contention) with bilingual UI notices.
+     - Zero booking status mutations sent to AI workers.
+  3. 🔒 **F-03: Idempotency Atomicity & Crash Window Elimination (`backend/app/routers/provider/equipment.py`):**
+     - Pre-claim uses `insert_one` against `idempotency_records` with compound unique index `(key, user_id)` and handles `DuplicateKeyError` to prevent concurrent race conditions.
+     - Moved idempotency record completion (`status: "completed"`) **inside the MongoDB session transaction** (`session=session`), committing the booking status change and idempotency completion in a single atomic transaction and eliminating the post-commit crash window.
+  4. 🚜 **F-04: Farmer Booking Creation Fan-Out Removal (`frontend/src/pages/farmer/EquipmentBookingPage.jsx` & `equipment.py`):**
+     - Removed booking creation fan-out to AI Worker 1 and AI Worker 2.
+     - Generated stable client-side `Idempotency-Key` per logical booking attempt reused across retries.
+     - Postponed optimistic UI and localStorage persistence until canonical backend returns `HTTP 200`.
+     - Stored completed idempotency records upon successful creation in backend `create_booking`.
+  5. 🗑️ **F-05: Provider Deletion Fan-Out Removal & Soft-Cancellation (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
+     - Removed DELETE fan-out to AI Worker 1 and AI Worker 2.
+     - Dispatched delete requests solely to canonical backend with `Idempotency-Key`.
+     - Enforced audit trail rules: active/confirmed bookings cannot be physically deleted (`HTTP 400 Bad Request`).
+  6. 🔄 **F-06: UnknownTransactionCommitResult Handling (`backend/app/routers/provider/equipment.py`):**
+     - Enhanced transaction commit loop to catch `UnknownTransactionCommitResult`.
+     - Verified committed state against database before re-attempting mutations, preventing duplicate writes or false self-collisions.
+  7. 🧪 **Tests & Test Harness Support (`backend/tests/test_b1_concurrency.py` & `backend/tests/mock_db.py`):**
+     - Added tests 26–29 verifying batch bypass prevention, double-click creation idempotency, atomic in-transaction idempotency, and commit uncertainty handling.
+     - Enhanced `MockCollection.bulk_write` and unique index simulation in `MockDatabase`.
+- **Files modified**: `backend/app/routers/provider/equipment.py`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `backend/tests/test_b1_concurrency.py`, `backend/tests/mock_db.py`, `changes_happening.md`.
+
 ## 2026-09-28 (v324) - B1-FIX-B/C: Booking State Machine, Concurrency Protection & Calendar Slot Collision Prevention
 - **Summary:**
   1. 🛡️ **Formal Booking State Machine (`backend/app/routers/provider/equipment.py`):**

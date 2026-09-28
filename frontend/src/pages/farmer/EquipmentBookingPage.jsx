@@ -1686,38 +1686,29 @@ export default function EquipmentBookingPage() {
             isProviderOnline={isProviderOnline}
             isTe={isTe}
             onClose={() => setIsBookModalOpen(false)}
-            onConfirm={(newBooking) => {
-              setMyBookings((prev) => deduplicateBookings([newBooking, ...prev]));
+            onConfirm={async (newBooking) => {
+              // F-04: Stable Idempotency-Key per logical booking submission
+              const idempotencyKey = `idemp_create_${newBooking.id || newBooking.bookingId}`;
               try {
-                const existing = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
-                const clean = deduplicateBookings([newBooking, ...existing]);
-                localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(clean));
-                window.dispatchEvent(new Event('agrishield_bookings_updated'));
-              } catch (e) {}
-              // Dispatch to backend API for multi-device cross-browser persistence (with dual-endpoint & direct fallback)
-              const syncBookingToServer = async (payload) => {
+                const res = await API.post('/api/v1/equipment/bookings', newBooking, {
+                  headers: { 'Idempotency-Key': idempotencyKey }
+                });
+                const serverBooking = (res?.data && res?.data?.booking) ? res.data.booking : newBooking;
+                // Only persist optimistic/local booking state after successful canonical backend creation
+                setMyBookings((prev) => deduplicateBookings([serverBooking, ...prev]));
                 try {
-                  const res = await API.post('/api/v1/equipment/bookings', payload);
-                  if (res.data && typeof res.data === 'object' && res.data.id) return res.data;
-                } catch (_) {}
-                try {
-                  const res = await API.post('/api/equipment/bookings', payload);
-                  if (res.data && typeof res.data === 'object' && res.data.id) return res.data;
-                } catch (_) {}
-                try {
-                  const res = await axios.post('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings', payload, { timeout: 15000 });
-                  if (res.data) return res.data;
-                } catch (_) {}
-                try {
-                  const res = await axios.post('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings', payload, { timeout: 15000 });
-                  return res.data;
-                } catch (err) {
-                  console.warn('Backend booking sync notice:', err);
-                }
-              };
-              syncBookingToServer(newBooking);
-              setIsBookModalOpen(false);
-              setActiveTab('bookings');
+                  const existing = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]');
+                  const clean = deduplicateBookings([serverBooking, ...existing]);
+                  localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(clean));
+                  window.dispatchEvent(new Event('agrishield_bookings_updated'));
+                } catch (e) {}
+                setIsBookModalOpen(false);
+                setActiveTab('bookings');
+              } catch (err) {
+                console.warn('Backend booking sync notice:', err);
+                const detail = err?.response?.data?.detail;
+                alert(isTe ? `బుకింగ్ విఫలమైంది: ${detail || 'దయచేసి మళ్లీ ప్రయత్నించండి'}` : `Booking failed: ${detail || 'Please retry.'}`);
+              }
             }}
           />
         )}

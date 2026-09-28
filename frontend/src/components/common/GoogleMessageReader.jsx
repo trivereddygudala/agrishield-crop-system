@@ -1462,8 +1462,21 @@ export default function GoogleMessageReader({
     }
 
     try {
-      await API.patch(`/api/v1/equipment/bookings/${canonicalBookingId}/status`, { status: nextStatus });
-    } catch (_) {}
+      const idempotencyKey = `idemp_chat_${canonicalBookingId}_${nextStatus}_${Date.now()}`;
+      await API.patch(`/api/v1/equipment/bookings/${canonicalBookingId}/status`, { status: nextStatus }, {
+        headers: { 'Idempotency-Key': idempotencyKey }
+      });
+    } catch (err) {
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail;
+      if (status === 409) {
+        alert(isTelugu ? `స్లాట్ ఇప్పటికే బుక్ చేయబడింది: ${detail || ''}` : `Time Slot Collision: ${detail || 'This time slot is already confirmed.'}`);
+      } else if (status === 503) {
+        alert(isTelugu ? 'సిస్టమ్ బిజీగా ఉంది. దయచేసి కాసేపట్లో మళ్లీ ప్రయత్నించండి.' : 'Server contention. Please retry shortly.');
+      } else {
+        console.warn('Chat status update notice:', err);
+      }
+    }
   };
 
   return (
