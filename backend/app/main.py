@@ -22,7 +22,16 @@ async def init_background_services():
     try:
         await connect_to_mongo()
         if db_instance.db is not None:
-            start_scheduler(db_instance.db)
+            is_prediction_worker = (
+                getattr(settings, "IS_PREDICTION_WORKER", False) or 
+                os.environ.get("IS_PREDICTION_WORKER", "").lower() == "true" or
+                os.environ.get("DISABLE_SCHEDULER", "").lower() == "true"
+            )
+            if not is_prediction_worker:
+                start_scheduler(db_instance.db)
+                print("🚀 [Startup] Background Scheduler initialized on Main Backend node.")
+            else:
+                print("ℹ️ [Startup] Dedicated AI Worker node: Background Scheduler omitted.")
             try:
                 await db_instance.db["weather_cache"].delete_many({})
             except Exception:
@@ -32,7 +41,7 @@ async def init_background_services():
                 await sync_banned_ips_from_db()
             except Exception as e:
                 print(f"⚠️ [Startup] Security Walls sync notice: {e}")
-            print("🚀 [Startup] MongoDB, Security Walls & Background Scheduler initialized successfully.")
+            print("🚀 [Startup] MongoDB, Security Walls initialized successfully.")
     except Exception as e:
         print(f"⚠️ [Startup] MongoDB / Scheduler initialization notice: {e}")
 

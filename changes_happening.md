@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-28 (v326) - B1-FIX-D: AI Worker Cluster Routing & Service Workload Separation
+- **Summary:**
+  1. 🌐 **D-01: Vercel Edge Rewrites & Relative Fetches Partitioning (`frontend/vercel.json` & `DevicesPage.jsx`):**
+     - Partitioned Vercel edge rewrite rules sequentially: `/api/upload*`, `/api/predict*`, `/api/identify-plant*`, `/api/agrochemical*`, `/api/crop-advisor*`, `/api/translate*`, and `/uploads/*` proxy to `https://agrishield-ai-worker-3.onrender.com`.
+     - Rewrote catch-all `/api/:path*` strictly to the canonical Main Backend (`https://agrishield-crop-system.onrender.com`).
+     - Refactored relative `fetch` calls in [`frontend/src/pages/common/DevicesPage.jsx`](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/common/DevicesPage.jsx) to use the configured, authenticated `API` client.
+  2. 🚜 **D-02: Equipment Catalog Mutation Fan-Out Removal (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
+     - Removed chained `axios.post` and `axios.delete` calls to Worker 1 and Worker 2 during equipment additions and deletions.
+     - Routed catalog mutations solely to canonical Main Backend (`API.post` and `API.delete`).
+  3. 📦 **D-03: Elimination of Unauthenticated Worker Fallback Reads (`EquipmentBookingPage.jsx`, `ProviderDashboardPage.jsx`, `NotificationsPage.jsx`):**
+     - Removed secondary unauthenticated `axios.get` calls to Worker 1 and Worker 2 for `/equipment/bookings`, `/equipment/catalog`, and `/fleet/status`.
+     - Ensured all reads query the authoritative Main Backend with user JWT authentication.
+  4. 🔄 **D-04: Multi-Device Tombstone Routing Isolation (`frontend/src/services/crossDeviceSync.js`):**
+     - Removed tombstone fetch and recording fallback loops to `PRIMARY_RENDER_BACKEND` (Worker 1) and `SECONDARY_RENDER_BACKEND` (Worker 2).
+     - Bound tombstone synchronization exclusively to the canonical Main Backend via `API`.
+  5. 🧠 **D-05: Pinned Upload & Diagnosis Failover Exemption (`frontend/src/services/api.js`):**
+     - Exempted `/predict` and `/upload` from cross-host failover to prevent guaranteed 404 missing-image errors on unshared ephemeral container disks.
+     - Blocked Main Backend transactional endpoints (Auth, Equipment, Bookings, IoT, Sync) from failing over to AI worker nodes.
+  6. ⏰ **D-06: Background Scheduler Gating by Worker Role (`backend/app/main.py`):**
+     - Gated `start_scheduler` in `init_background_services`: omits scheduler execution if `IS_PREDICTION_WORKER=true`, preventing duplicate notification loops across worker instances.
+  7. 🏷️ **D-07: Canonical Backend & Cluster Constants Alignment (`frontend/src/services/api.js` & `App.jsx`):**
+     - Introduced explicit `CANONICAL_MAIN_BACKEND`, `AI_WORKER_1_URL`, `AI_WORKER_2_URL`, and `AI_WORKER_3_URL` constants.
+     - Re-aligned `PRIMARY_RENDER_BACKEND` to `CANONICAL_MAIN_BACKEND` while maintaining full backward-compatibility for existing imports.
+     - Updated App-level keep-alive warm-up pings to include Main Backend and Worker 3.
+- **Files modified**: `frontend/vercel.json`, `frontend/src/pages/common/DevicesPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/services/crossDeviceSync.js`, `frontend/src/services/api.js`, `backend/app/main.py`, `frontend/src/App.jsx`, `changes_happening.md`.
+
 ## 2026-09-28 (v325) - B1-FIX-B/C: Close Booking Mutation Bypasses and Harden Idempotency (Correction Pass)
 - **Summary:**
   1. 🛡️ **F-01: Batch Endpoint State Machine & Resurrection Protection (`backend/app/routers/provider/equipment.py`):**

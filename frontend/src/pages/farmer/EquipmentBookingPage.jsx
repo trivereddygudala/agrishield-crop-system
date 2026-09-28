@@ -251,12 +251,7 @@ export default function EquipmentBookingPage() {
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
           try { res = await API.get('/api/equipment/bookings?limit=2500'); } catch (_) {}
         }
-        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
-        }
-        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
-        }
+
         if (isMounted && res.data?.bookings && Array.isArray(res.data.bookings)) {
           const deletedIds = getDeletedBookingIds();
           const remoteBookings = res.data.bookings.filter(b => {
@@ -341,23 +336,7 @@ export default function EquipmentBookingPage() {
           } catch (_) {}
         }
 
-        if (serverItems === null) {
-          try {
-            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
-            if (res?.data && (Array.isArray(res.data.equipment) || Array.isArray(res.data.catalog))) {
-              serverItems = Array.isArray(res.data.equipment) ? res.data.equipment : res.data.catalog;
-            }
-          } catch (_) {}
-        }
 
-        if (serverItems === null) {
-          try {
-            res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog', { timeout: 10000 });
-            if (res?.data && (Array.isArray(res.data.equipment) || Array.isArray(res.data.catalog))) {
-              serverItems = Array.isArray(res.data.equipment) ? res.data.equipment : res.data.catalog;
-            }
-          } catch (_) {}
-        }
 
         if (isMounted && Array.isArray(serverItems)) {
           const deletedEquipIds = getDeletedEquipmentIds();
@@ -398,16 +377,7 @@ export default function EquipmentBookingPage() {
         try {
           res = await API.get('/api/v1/equipment/fleet/status');
         } catch (_) {}
-        if (!res?.data?.availability) {
-          try {
-            res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/fleet/status', { timeout: 10000 });
-          } catch (_) {}
-        }
-        if (!res?.data?.availability) {
-          try {
-            res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/fleet/status', { timeout: 10000 });
-          } catch (_) {}
-        }
+
         if (res?.data?.availability && typeof res.data.availability === 'object') {
           const availMap = res.data.availability;
           setEquipmentList(prev => prev.map(item => {

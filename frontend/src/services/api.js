@@ -1,10 +1,15 @@
 import axios from 'axios';
 
-export const PRIMARY_RENDER_BACKEND = 'https://agrishield-ai-worker-1.onrender.com';
-export const SECONDARY_RENDER_BACKEND = 'https://agrishield-ai-worker-2.onrender.com';
-export const TERTIARY_RENDER_BACKEND = 'https://agrishield-ai-worker-3.onrender.com';
-export const LEGACY_RENDER_BACKEND = 'https://agrishield-crop-system.onrender.com';
-export const MAIN_RENDER_BACKEND = LEGACY_RENDER_BACKEND;
+export const CANONICAL_MAIN_BACKEND = 'https://agrishield-crop-system.onrender.com';
+export const AI_WORKER_1_URL = 'https://agrishield-ai-worker-1.onrender.com';
+export const AI_WORKER_2_URL = 'https://agrishield-ai-worker-2.onrender.com';
+export const AI_WORKER_3_URL = 'https://agrishield-ai-worker-3.onrender.com';
+
+export const MAIN_RENDER_BACKEND = CANONICAL_MAIN_BACKEND;
+export const PRIMARY_RENDER_BACKEND = CANONICAL_MAIN_BACKEND;
+export const SECONDARY_RENDER_BACKEND = AI_WORKER_2_URL;
+export const TERTIARY_RENDER_BACKEND = AI_WORKER_3_URL;
+export const LEGACY_RENDER_BACKEND = CANONICAL_MAIN_BACKEND;
 
 /**
  * Intelligent Cluster Router:
@@ -108,7 +113,22 @@ API.interceptors.response.use(
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
 
-    // Automated Cluster Failover: If current worker returned 404, 502, 503, or network timeout, cycle across the cluster
+    // D-05: Never failover /predict or /upload to a different cluster node.
+    // The uploaded image is physically located on the local disk of the container that processed /api/upload.
+    // Failing over across nodes causes a guaranteed 404 missing-image error.
+    const reqUrl = (originalRequest.url || '').toLowerCase();
+    const isPredictOrUpload = reqUrl.includes('/predict') || reqUrl.includes('/upload');
+    if (isPredictOrUpload) {
+      return Promise.reject(error);
+    }
+
+    // Never failover transactional Main Backend routes (Auth, Bookings, Equipment, Sync, IoT) to AI workers
+    const isAiNodeTarget = (originalRequest.baseURL || '').includes('agrishield-ai-worker');
+    if (!isAiNodeTarget) {
+      return Promise.reject(error);
+    }
+
+    // Automated Cluster Failover for stateless AI inference across worker nodes:
     const shouldFailover = (
       (error.response && [404, 502, 503, 504].includes(error.response.status)) ||
       error.code === 'ERR_NETWORK' ||
@@ -120,14 +140,12 @@ API.interceptors.response.use(
       try {
         const fallbackConfig = { ...originalRequest };
         const currentBase = fallbackConfig.baseURL || '';
-        if (currentBase === PRIMARY_RENDER_BACKEND) {
-          fallbackConfig.baseURL = TERTIARY_RENDER_BACKEND;
-        } else if (currentBase === TERTIARY_RENDER_BACKEND) {
+        if (currentBase === TERTIARY_RENDER_BACKEND) {
           fallbackConfig.baseURL = SECONDARY_RENDER_BACKEND;
         } else if (currentBase === SECONDARY_RENDER_BACKEND) {
-          fallbackConfig.baseURL = LEGACY_RENDER_BACKEND;
+          fallbackConfig.baseURL = AI_WORKER_1_URL;
         } else {
-          fallbackConfig.baseURL = PRIMARY_RENDER_BACKEND;
+          fallbackConfig.baseURL = TERTIARY_RENDER_BACKEND;
         }
 
         const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
@@ -137,7 +155,7 @@ API.interceptors.response.use(
         }
         return await axios(fallbackConfig);
       } catch (workerErr) {
-        // Fall through to second fallback or regular error handling
+        // Fall through to regular error handling
       }
     }
 

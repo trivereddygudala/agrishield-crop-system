@@ -140,7 +140,9 @@ function ThemeInitializer({ children }) {
         fetch(mainHealth).catch(() => {});
         fetch(mainCluster).catch(() => {});
 
-        // Proactively wake up Worker 1 and Worker 2 in the background using no-cors
+        // Proactively wake up Main Backend and AI Workers in the background using no-cors
+        fetch('https://agrishield-crop-system.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
+        fetch('https://agrishield-ai-worker-3.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
         fetch('https://agrishield-ai-worker-1.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
         fetch('https://agrishield-ai-worker-2.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
       } catch (_) {}

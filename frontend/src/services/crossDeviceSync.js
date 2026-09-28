@@ -8,8 +8,7 @@
  * window focus, tab visibility change, or background sync.
  */
 
-import API, { PRIMARY_RENDER_BACKEND, SECONDARY_RENDER_BACKEND } from './api';
-import axios from 'axios';
+import API from './api';
 
 let _syncIntervalId = null;
 let _isSyncing = false;
@@ -148,17 +147,7 @@ export const syncDeletedIdsFromServer = async () => {
       } catch (_) {}
     }
 
-    if (!res?.data?.deleted_ids_by_type) {
-      try {
-        res = await axios.get(`${PRIMARY_RENDER_BACKEND}${endpoint}`, { timeout: 8000 });
-      } catch (_) {}
-    }
 
-    if (!res?.data?.deleted_ids_by_type) {
-      try {
-        res = await axios.get(`${SECONDARY_RENDER_BACKEND}${endpoint}`, { timeout: 8000 });
-      } catch (_) {}
-    }
 
     if (res?.data?.deleted_ids_by_type) {
       const byType = res.data.deleted_ids_by_type;
@@ -286,18 +275,7 @@ export const recordCrossDeviceDeletion = async (entityType, entityId, reason = '
       } catch (_) {}
     }
 
-    if (!saved) {
-      try {
-        await axios.post(`${PRIMARY_RENDER_BACKEND}/api/v1/sync/tombstones`, payload, { timeout: 8000 });
-        saved = true;
-      } catch (_) {}
-    }
 
-    if (!saved) {
-      try {
-        await axios.post(`${SECONDARY_RENDER_BACKEND}/api/v1/sync/tombstones`, payload, { timeout: 8000 });
-      } catch (_) {}
-    }
   } catch (err) {
     console.warn('⚠️ [CrossDeviceSync] Remote tombstone sync warning:', err);
   }

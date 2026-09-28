@@ -265,23 +265,7 @@ export default function ProviderDashboardPage() {
           catalogItems = Array.isArray(res.data.catalog) ? res.data.catalog : res.data.equipment;
         }
 
-        if (catalogItems === null) {
-          try {
-            res = await axios.get(`https://agrishield-ai-worker-1.onrender.com${endpoint}`, { timeout: 10000 });
-            if (res?.data && (Array.isArray(res.data.catalog) || Array.isArray(res.data.equipment))) {
-              catalogItems = Array.isArray(res.data.catalog) ? res.data.catalog : res.data.equipment;
-            }
-          } catch (_) {}
-        }
 
-        if (catalogItems === null) {
-          try {
-            res = await axios.get(`https://agrishield-ai-worker-2.onrender.com${endpoint}`, { timeout: 10000 });
-            if (res?.data && (Array.isArray(res.data.catalog) || Array.isArray(res.data.equipment))) {
-              catalogItems = Array.isArray(res.data.catalog) ? res.data.catalog : res.data.equipment;
-            }
-          } catch (_) {}
-        }
 
         if (Array.isArray(catalogItems)) {
           const deletedEquipIds = getDeletedEquipmentIds();
@@ -471,12 +455,7 @@ export default function ProviderDashboardPage() {
         if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
           try { res = await API.get('/api/equipment/bookings?limit=2500'); } catch (_) {}
         }
-        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
-        }
-        if (!res.data || typeof res.data !== 'object' || !Array.isArray(res.data.bookings)) {
-          try { res = await axios.get('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings?limit=2500', { timeout: 15000 }); } catch (_) {}
-        }
+
         if (res.data?.bookings && Array.isArray(res.data.bookings)) {
           const remote = res.data.bookings.filter(b => {
             if (!b) return false;
@@ -621,11 +600,9 @@ export default function ProviderDashboardPage() {
       localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCustom));
     } catch (e) {}
 
-    // Multi-device backend sync so machinery appears on all devices
-    API.post('/api/v1/equipment/catalog', newMachine).catch(() => {
-      axios.post('https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog', newMachine).catch(() => {
-        axios.post('https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog', newMachine).catch(() => {});
-      });
+    // Canonical Main Backend sync
+    API.post('/api/v1/equipment/catalog', newMachine).catch((err) => {
+      console.warn('Backend catalog sync warning:', err);
     });
 
     setIsAddModalOpen(false);
@@ -693,18 +670,7 @@ export default function ProviderDashboardPage() {
         remoteDeleted = true;
       } catch (_) {}
 
-      if (!remoteDeleted) {
-        try {
-          await axios.delete(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/catalog/${targetId}`, { timeout: 10000 });
-          remoteDeleted = true;
-        } catch (_) {}
-      }
 
-      if (!remoteDeleted) {
-        try {
-          await axios.delete(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/catalog/${targetId}`, { timeout: 10000 });
-        } catch (_) {}
-      }
     } catch (err) {
       console.warn('Backend DELETE machinery warning:', err);
     } finally {

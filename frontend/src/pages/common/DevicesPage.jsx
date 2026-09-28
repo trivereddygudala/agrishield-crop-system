@@ -8,6 +8,7 @@ import {
 import { Card, Button, Badge, Progress } from '../../components/ui/index';
 import { useWebSocket } from '../../context/WebSocketContext';
 import { useTranslation } from 'react-i18next';
+import API from '../../services/api';
 
 const DevicesPage = () => {
   const { t, i18n } = useTranslation();
@@ -104,33 +105,27 @@ const DevicesPage = () => {
 
   const fetchDeviceStatus = async () => {
     try {
-      const res = await fetch('/api/v1/devices/status');
-      if (res.ok) {
-        const devices = await res.json();
-        if (Array.isArray(devices) && devices.length > 0) {
-          const sorted = [...devices].sort((a, b) => {
-            if (a.status === 'online' && b.status !== 'online') return -1;
-            if (b.status === 'online' && a.status !== 'online') return 1;
-            return (a.seconds_since_seen ?? 999999) - (b.seconds_since_seen ?? 999999);
-          });
-          const dev = sorted[0];
-          let telem = (dev && dev.latest_telemetry) ? dev.latest_telemetry : {};
-          
-          if (dev && dev.ip && dev.status === 'online') {
-            try {
-              const proxyRes = await fetch('/api/v1/devices/proxy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  ip: dev.ip,
-                  endpoint: '/status',
-                  method: 'GET'
-                })
-              });
-              if (proxyRes.ok) {
-                const statusData = await proxyRes.json();
-                if (statusData && statusData.sd) {
-                  telem = {
+      const res = await API.get('/api/v1/devices/status');
+      const devices = res?.data;
+      if (Array.isArray(devices) && devices.length > 0) {
+        const sorted = [...devices].sort((a, b) => {
+          if (a.status === 'online' && b.status !== 'online') return -1;
+          if (b.status === 'online' && a.status !== 'online') return 1;
+          return (a.seconds_since_seen ?? 999999) - (b.seconds_since_seen ?? 999999);
+        });
+        const dev = sorted[0];
+        let telem = (dev && dev.latest_telemetry) ? dev.latest_telemetry : {};
+        
+        if (dev && dev.ip && dev.status === 'online') {
+          try {
+            const proxyRes = await API.post('/api/v1/devices/proxy', {
+              ip: dev.ip,
+              endpoint: '/status',
+              method: 'GET'
+            });
+            const statusData = proxyRes?.data;
+            if (statusData && statusData.sd) {
+              telem = {
                     ...telem,
                     temperature: statusData.t !== undefined ? statusData.t : telem.temperature,
                     humidity: statusData.h !== undefined ? statusData.h : telem.humidity,
@@ -145,14 +140,12 @@ const DevicesPage = () => {
                     sd_used_mb: statusData.su !== undefined ? statusData.su : telem.sd_used_mb
                   };
                 }
-              }
             } catch (proxyErr) {
               console.warn("Failed to fetch live status via proxy, using telemetry cache:", proxyErr);
             }
           }
           processDeviceTelemetry(dev, telem);
         }
-      }
     } catch (err) {
       console.warn("Device status fetch error:", err);
     }
