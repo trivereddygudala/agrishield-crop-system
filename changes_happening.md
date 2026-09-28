@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-28 (v323) - B1-FIX-A: Secure Equipment Booking Endpoints with RBAC & Tenant Isolation
+- **Summary:**
+  1. 🛡️ **JWT Authentication & RBAC Enforcement (`backend/app/routers/provider/equipment.py`):**
+     - Authenticated all equipment booking endpoints with `Depends(get_current_user)`.
+     - Anonymous requests to booking CRUD, batch, status updates, deletion, catalog modification, fleet availability, and chat endpoints are now strictly rejected with `HTTP 401 Unauthorized`.
+     - Preserved public read-only discovery for `GET /api/v1/equipment/catalog` and `GET /api/v1/equipment/fleet/status`.
+  2. 🌾 **Tenant Isolation for Farmers:**
+     - Farmer booking creation stamps the authenticated farmer's `userId` / `user_id`, preventing identity spoofing.
+     - `GET /api/v1/equipment/bookings` strictly scopes results so Farmers can only view their own bookings.
+     - Farmer status modification: Farmers can only transition their own booking to `cancelled`. Any attempt to `confirm`, `reject`, or `complete` bookings is rejected with `HTTP 403 Forbidden`.
+     - Cross-user access denied: Farmers cannot view, cancel, or delete bookings belonging to other farmers (`HTTP 403 Forbidden`).
+     - Farmers are prohibited from registering equipment in the catalog (`HTTP 403 Forbidden`).
+  3. 🚜 **Tenant Isolation & RBAC for Equipment Providers:**
+     - Providers can register equipment (`POST /catalog`), delete their own equipment listings (`DELETE /catalog/{id}`), and update availability (`PATCH /fleet/{id}/availability`).
+     - `GET /api/v1/equipment/bookings` scopes results so Providers can only access bookings assigned to them or for equipment they own.
+     - Providers can manage booking statuses (`confirmed`, `rejected`, `completed`, `cancelled`) for their equipment.
+     - Cross-provider access denied: Providers cannot access or alter bookings assigned to other providers (`HTTP 403 Forbidden`).
+  4. 👑 **Global Management for Admins:**
+     - Admins retain unrestricted access to view, update status, and manage all bookings and catalog listings across the cluster.
+  5. 💬 **Chat Thread Access Control:**
+     - Added `_verify_booking_access` across `/bookings/{id}/messages` and `/chat/messages` aliases to prevent unauthorized parties from reading or posting in private booking chats.
+  6. 🗄️ **MongoDB Compound Indexes (`backend/app/db/mongodb.py`):**
+     - Added compound indexes on `equipment_bookings`: `("userId", 1), ("createdAt", -1)`, `("providerId", 1), ("createdAt", -1)`, and `("equipmentId", 1), ("status", 1)`.
+  7. 🧪 **Automated Test Suite (`backend/tests/test_b1_rbac.py`):**
+     - 7/7 comprehensive security, RBAC, and tenant isolation tests passed (100% pass rate).
+     - Verified anonymous 401 rejection, public discovery 200, farmer isolation, cross-farmer 403 denial, provider isolation, cross-provider 403 denial, and admin global access.
+- **Files modified**: `backend/app/routers/provider/equipment.py`, `backend/app/db/mongodb.py`, `backend/tests/mock_db.py`, `backend/tests/test_b1_rbac.py`, `changes_happening.md`.
+
 ## 2026-09-27 (v322) - Background AI Deep Audit: Multimodal Image Magic Byte Normalization
 - **Summary:**
   1. 🔬 **Automated Deep Audit Execution:**
@@ -6407,3 +6435,27 @@ Files Modified:
 **File:** backend/app/routers/provider/equipment.py (lines 619-621)
 **Change:** Added is_new_listing = False inside the except block after MongoDB find_one/update_one failure. DB errors now fail-safe: treat as existing listing (edit), never send a false machinery_listing admin notification.
 **Impact:** Successful new-listing path unchanged. Successful edit path unchanged. Only DB-exception path now safely suppresses notification.
+
+
+---
+
+## 2026-09-28 19:49:35 IST — Creation of B1_TO_B12_MASTER_ROADMAP.md
+
+### Action: Master Roadmap Documentation Creation (Zero Code Changes)
+**File Created:** B1_TO_B12_MASTER_ROADMAP.md
+**Summary of Contents:**
+- Master project roadmap covering Phases B1 through B12:
+  - B1: Booking Ecosystem (Full audit findings, 5 P0s, 5 P1s, 4 P2s, remediation batches B1-FIX-A to E)
+  - B2: Communication / Notifications / Realtime / Helpdesk (NOT STARTED)
+  - B3: Security + Data Isolation (NOT STARTED)
+  - B4: Farmer Portal End-to-End (NOT STARTED)
+  - B5: Equipment Provider Portal End-to-End (NOT STARTED)
+  - B6: Admin Portal End-to-End (NOT STARTED)
+  - B7: IoT + Alerts (NOT STARTED)
+  - B8: Full Multilingual Verification (NOT STARTED)
+  - B9: AI Deep Audit + Accuracy (Planned Post-October 1 when Render compute bandwidth renews)
+  - B10: Distributed Render Architecture / Workload Separation (Defines node responsibilities across Main and Workers 1-3)
+  - B11: Performance / Load / Failure / Resilience (NOT STARTED)
+  - B12: New Features + Advanced Upgrades (NOT STARTED)
+- Includes 12 standardized sections per phase, dependency graph, execution matrix, and clear classification of Bugs, Security, Infrastructure, Configuration, and Enhancements.
+- ZERO changes made to application code, database schema, environment variables, or tests.

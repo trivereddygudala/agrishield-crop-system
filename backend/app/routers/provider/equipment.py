@@ -4,14 +4,16 @@ Provides multi-device persistence for farm machinery bookings between Farmers an
 Syncs across devices (PC, mobile browser, tablets) via MongoDB and persistent JSON store fallback.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body, Depends, status
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import json
 import os
 import asyncio
+from bson import ObjectId
 from backend.app.db.mongodb import db_instance
 from backend.app.services.sync_service import SyncService
+from backend.app.routers.common.auth import get_current_user
 
 router = APIRouter(tags=["Equipment & Farm Machinery Bookings"])
 
@@ -21,6 +23,66 @@ CATALOG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 # In-memory store fallback with initial seed if file doesn't exist
 _in_memory_bookings: List[Dict[str, Any]] = []
 _in_memory_catalog: List[Dict[str, Any]] = []
+
+def _is_admin(user: Dict[str, Any]) -> bool:
+    return str(user.get("role", "")).lower() == "admin"
+
+def _is_provider(user: Dict[str, Any]) -> bool:
+    return str(user.get("role", "")).lower() in ["equipment_provider", "provider"]
+
+def _is_farmer(user: Dict[str, Any]) -> bool:
+    role = str(user.get("role", "")).lower()
+    return role == "farmer" or role == ""
+
+async def _get_provider_equipment_ids(user: Dict[str, Any]) -> set:
+    uid = str(user.get("id") or user.get("_id") or "")
+    u_phone = "".join(filter(str.isdigit, str(user.get("phone") or user.get("mobile") or "")))
+    eq_ids = set()
+    if db_instance.db is not None:
+        try:
+            q = {"$or": [{"providerId": uid}, {"owner_id": uid}, {"userId": uid}]}
+            if u_phone:
+                q["$or"].extend([{"phone": u_phone}, {"contactPhone": u_phone}])
+            cursor = db_instance.db["equipment_catalog"].find(q, {"id": 1, "equipment_id": 1})
+            docs = await cursor.to_list(length=500)
+            for d in docs:
+                if d.get("id"): eq_ids.add(str(d["id"]))
+                if d.get("equipment_id"): eq_ids.add(str(d["equipment_id"]))
+        except Exception:
+            pass
+    for item in _load_disk_catalog():
+        i_pid = str(item.get("providerId") or item.get("owner_id") or "")
+        i_phone = "".join(filter(str.isdigit, str(item.get("phone") or item.get("contactPhone") or "")))
+        if (uid and i_pid == uid) or (u_phone and i_phone and (u_phone == i_phone or u_phone[-10:] == i_phone[-10:])):
+            if item.get("id"): eq_ids.add(str(item["id"]))
+            if item.get("equipment_id"): eq_ids.add(str(item["equipment_id"]))
+    return eq_ids
+
+def _user_matches_farmer(booking: Dict[str, Any], user: Dict[str, Any]) -> bool:
+    uid = str(user.get("id") or user.get("_id") or "")
+    b_uid = str(booking.get("userId") or booking.get("user_id") or "")
+    if uid and b_uid and uid == b_uid:
+        return True
+    u_phone = "".join(filter(str.isdigit, str(user.get("phone") or user.get("mobile") or "")))
+    b_phone = "".join(filter(str.isdigit, str(booking.get("farmerPhone") or booking.get("phone") or "")))
+    if u_phone and b_phone and (u_phone == b_phone or u_phone[-10:] == b_phone[-10:]):
+        return True
+    return False
+
+def _user_matches_provider(booking: Dict[str, Any], user: Dict[str, Any], provider_eq_ids: Optional[set] = None) -> bool:
+    uid = str(user.get("id") or user.get("_id") or "")
+    b_pid = str(booking.get("providerId") or booking.get("provider_id") or "")
+    if uid and b_pid and uid == b_pid:
+        return True
+    u_phone = "".join(filter(str.isdigit, str(user.get("phone") or user.get("mobile") or "")))
+    b_phone = "".join(filter(str.isdigit, str(booking.get("providerPhone") or booking.get("contactPhone") or "")))
+    if u_phone and b_phone and (u_phone == b_phone or u_phone[-10:] == b_phone[-10:]):
+        return True
+    if provider_eq_ids:
+        eq_id = str(booking.get("equipmentId") or booking.get("equipment_id") or "")
+        if eq_id and eq_id in provider_eq_ids:
+            return True
+    return False
 
 def _load_disk_bookings() -> List[Dict[str, Any]]:
     global _in_memory_bookings
@@ -112,12 +174,14 @@ async def get_all_bookings(
     farmer_phone: Optional[str] = Query(None, description="Filter by farmer phone"),
     status: Optional[str] = Query(None, description="Filter by status (pending, confirmed, completed, rejected)"),
     language: Optional[str] = Query(None, description="Active language code for localization"),
-    limit: Optional[int] = Query(2500, description="Max bookings to return (default 2500 for stress testing)")
+    limit: Optional[int] = Query(2500, description="Max bookings to return (default 2500 for stress testing)"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Fetch all machinery bookings across devices with optional phone/status filters.
-    Supports up to 2500+ records for large-scale farm fleet management and stress-testing.
-    Strictly filters out any deleted tombstones to guarantee zero resurrection across mobile devices.
+    Fetch machinery bookings with strict RBAC and tenant isolation.
+    - Farmer: Only their own bookings.
+    - Provider: Only bookings for their equipment / assigned to them.
+    - Admin: All bookings across the system.
     """
     bookings = []
     status_str = status if isinstance(status, str) else None
@@ -125,13 +189,44 @@ async def get_all_bookings(
     farmer_phone_str = farmer_phone if isinstance(farmer_phone, str) else None
     lang_str = language if isinstance(language, str) else None
     fetch_limit = limit if isinstance(limit, int) else 2500
-    
+
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+    clean_user_phone = "".join(filter(str.isdigit, str(current_user.get("phone") or current_user.get("mobile") or "")))
+    provider_eq_ids = set()
+    if _is_provider(current_user):
+        provider_eq_ids = await _get_provider_equipment_ids(current_user)
+
     # 1. Try MongoDB if active
     if db_instance.db is not None:
         try:
-            query = {}
+            query: Dict[str, Any] = {}
             if status_str:
                 query["status"] = status_str
+
+            # Apply DB-level tenant filtering
+            if _is_farmer(current_user):
+                f_or = [{"userId": user_id}, {"user_id": user_id}]
+                if clean_user_phone:
+                    f_or.extend([
+                        {"farmerPhone": clean_user_phone},
+                        {"phone": clean_user_phone},
+                        {"farmerPhone": {"$regex": clean_user_phone[-10:]}}
+                    ])
+                query["$or"] = f_or
+            elif _is_provider(current_user):
+                p_or = [{"providerId": user_id}, {"provider_id": user_id}]
+                if clean_user_phone:
+                    p_or.extend([
+                        {"providerPhone": clean_user_phone},
+                        {"contactPhone": clean_user_phone},
+                        {"providerPhone": {"$regex": clean_user_phone[-10:]}}
+                    ])
+                if provider_eq_ids:
+                    p_or.append({"equipmentId": {"$in": list(provider_eq_ids)}})
+                    p_or.append({"equipment_id": {"$in": list(provider_eq_ids)}})
+                query["$or"] = p_or
+            # Admins have no tenant constraint ($or not restricted)
+
             cursor = db_instance.db["equipment_bookings"].find(query).sort("createdAt", -1)
             docs = await cursor.to_list(length=fetch_limit)
             for doc in docs:
@@ -140,11 +235,9 @@ async def get_all_bookings(
         except Exception as e:
             print(f"⚠️ [EquipmentBookings] Mongo fetch notice: {e}")
 
-    # 2. If Mongo has items, update memory cache (WITHOUT resurrecting deleted items)
+    # 2. If Mongo had items, update memory cache
     if bookings:
-        global _in_memory_bookings
-        _in_memory_bookings = bookings[:fetch_limit]
-        _save_disk_bookings()
+        pass
     else:
         # Fallback to in-memory / disk cache
         bookings = _load_disk_bookings()
@@ -152,7 +245,14 @@ async def get_all_bookings(
     # 3. Strictly filter out any deleted tombstones across the entire cluster
     bookings = SyncService.filter_out_deleted("booking", bookings, ["id", "bookingId"])
 
-    # Apply in-memory filters if needed
+    # 4. Strict in-memory Tenant Isolation Enforcement
+    if _is_farmer(current_user):
+        bookings = [b for b in bookings if _user_matches_farmer(b, current_user)]
+    elif _is_provider(current_user):
+        bookings = [b for b in bookings if _user_matches_provider(b, current_user, provider_eq_ids)]
+    # Admins see all
+
+    # Apply in-memory query filters if needed
     result = bookings
     if status_str:
         result = [b for b in result if str(b.get("status", "")).lower() == status_str.lower()]
@@ -186,9 +286,13 @@ async def get_all_bookings(
 
 
 @router.post("/bookings")
-async def create_booking(booking_data: Dict[str, Any] = Body(...)):
+async def create_booking(
+    booking_data: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     """
-    Save or update a farm machinery booking so it immediately propagates to all devices.
+    Save or update a farm machinery booking with authenticated tenant identity.
+    Enforces that booking is securely tied to current_user.
     """
     global _in_memory_bookings
     if not booking_data:
@@ -197,6 +301,17 @@ async def create_booking(booking_data: Dict[str, Any] = Body(...)):
     booking_id = booking_data.get("id") or booking_data.get("bookingId") or f"BK-{int(datetime.now().timestamp() * 1000) % 90000 + 10000}"
     booking_data["id"] = booking_id
     booking_data["bookingId"] = booking_id
+
+    # Stamp authenticated user credentials (tenant isolation & tamper prevention)
+    auth_uid = str(current_user.get("id") or current_user.get("_id") or "")
+    booking_data["userId"] = auth_uid
+    booking_data["user_id"] = auth_uid
+    if not booking_data.get("farmerName"):
+        booking_data["farmerName"] = current_user.get("name") or current_user.get("full_name") or "Farmer"
+    if not booking_data.get("farmerEmail"):
+        booking_data["farmerEmail"] = current_user.get("email") or ""
+    if not booking_data.get("farmerPhone") and (current_user.get("phone") or current_user.get("mobile")):
+        booking_data["farmerPhone"] = current_user.get("phone") or current_user.get("mobile")
 
     if not booking_data.get("status"):
         booking_data["status"] = "pending"
@@ -283,14 +398,22 @@ async def create_booking(booking_data: Dict[str, Any] = Body(...)):
 
 
 @router.post("/bookings/batch")
-async def create_bookings_batch(bookings_data: List[Dict[str, Any]] = Body(...)):
+async def create_bookings_batch(
+    bookings_data: List[Dict[str, Any]] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     """
     High-throughput bulk booking endpoint to create or sync up to 1000+ bookings in one round-trip.
-    Ideal for large farm cooperatives, automated dispatch testing, and instant multi-order pipelines.
+    Enforces authenticated user identity across all batch reservations.
     """
     global _in_memory_bookings
     if not bookings_data or not isinstance(bookings_data, list):
         raise HTTPException(status_code=400, detail="A list of booking objects is required")
+
+    auth_uid = str(current_user.get("id") or current_user.get("_id") or "")
+    default_name = current_user.get("name") or current_user.get("full_name") or "Farmer"
+    default_email = current_user.get("email") or ""
+    default_phone = current_user.get("phone") or current_user.get("mobile") or ""
 
     now_iso = datetime.now().isoformat()
     processed_bookings = []
@@ -304,6 +427,15 @@ async def create_bookings_batch(bookings_data: List[Dict[str, Any]] = Body(...))
         b_id = b.get("id") or b.get("bookingId") or f"BK-{int(datetime.now().timestamp() * 1000) % 90000 + idx + 10000}"
         b["id"] = b_id
         b["bookingId"] = b_id
+        b["userId"] = auth_uid
+        b["user_id"] = auth_uid
+        if not b.get("farmerName"):
+            b["farmerName"] = default_name
+        if not b.get("farmerEmail") and default_email:
+            b["farmerEmail"] = default_email
+        if not b.get("farmerPhone") and default_phone:
+            b["farmerPhone"] = default_phone
+
         if not b.get("status"):
             b["status"] = "pending"
         if not b.get("createdAt"):
@@ -387,11 +519,15 @@ async def create_bookings_batch(bookings_data: List[Dict[str, Any]] = Body(...))
 @router.patch("/bookings/{booking_id}/status")
 async def update_booking_status(
     booking_id: str,
-    status_update: Dict[str, Any] = Body(...)
+    status_update: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Update the status of a booking (confirmed, rejected, completed).
-    Automatically dispatches status notifications to the farmer.
+    Update the status of a booking (confirmed, rejected, completed, cancelled).
+    Strictly enforces RBAC:
+    - Farmer: Can only set status to 'cancelled' on their own booking.
+    - Provider: Can set status to 'confirmed', 'rejected', 'completed', or 'cancelled' on their machinery bookings.
+    - Admin: Full status management authorization.
     """
     global _in_memory_bookings
     raw_status = status_update.get("status")
@@ -409,6 +545,54 @@ async def update_booking_status(
         new_status = "cancelled"
 
     cancel_reason = status_update.get("reason") or status_update.get("cancelReason")
+
+    # Locate existing booking
+    existing_booking = None
+    if db_instance.db is not None:
+        try:
+            existing_booking = await db_instance.db["equipment_bookings"].find_one(
+                {"$or": [{"id": booking_id}, {"bookingId": booking_id}]}
+            )
+        except Exception:
+            pass
+    if not existing_booking:
+        _load_disk_bookings()
+        for b in _in_memory_bookings:
+            if b.get("id") == booking_id or b.get("bookingId") == booking_id:
+                existing_booking = b
+                break
+
+    if not existing_booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    provider_eq_ids = await _get_provider_equipment_ids(current_user) if _is_provider(current_user) else set()
+    is_farmer_owner = _user_matches_farmer(existing_booking, current_user)
+    is_provider_owner = _user_matches_provider(existing_booking, current_user, provider_eq_ids)
+    is_admin = _is_admin(current_user)
+
+    if new_status == "cancelled":
+        if not (is_farmer_owner or is_provider_owner or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: You are not authorized to cancel this booking"
+            )
+    elif new_status in ["confirmed", "rejected", "completed"]:
+        if not (is_provider_owner or is_admin):
+            if is_farmer_owner:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Only equipment providers and admins can confirm, reject, or complete bookings"
+                )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: You are not authorized to manage this booking"
+            )
+    else:
+        if not (is_provider_owner or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: Unauthorized status transition"
+            )
 
     _load_disk_bookings()
     found = False
@@ -542,11 +726,41 @@ async def update_booking_status(
 
 
 @router.delete("/bookings/{booking_id}")
-async def delete_booking(booking_id: str):
+async def delete_booking(
+    booking_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     """
     Remove a booking permanently with cross-device tombstone registration.
+    Strict RBAC: Admin, farmer owner, or provider owner only.
     """
     global _in_memory_bookings
+
+    existing_booking = None
+    if db_instance.db is not None:
+        try:
+            existing_booking = await db_instance.db["equipment_bookings"].find_one(
+                {"$or": [{"id": booking_id}, {"bookingId": booking_id}]}
+            )
+        except Exception:
+            pass
+    if not existing_booking:
+        _load_disk_bookings()
+        for b in _in_memory_bookings:
+            if b.get("id") == booking_id or b.get("bookingId") == booking_id:
+                existing_booking = b
+                break
+
+    if existing_booking:
+        provider_eq_ids = await _get_provider_equipment_ids(current_user) if _is_provider(current_user) else set()
+        is_farmer_owner = _user_matches_farmer(existing_booking, current_user)
+        is_provider_owner = _user_matches_provider(existing_booking, current_user, provider_eq_ids)
+        is_admin = _is_admin(current_user)
+        if not (is_admin or is_farmer_owner or is_provider_owner):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: You are not authorized to delete this booking"
+            )
 
     # 1. Register permanent tombstone so no worker/device ever resurrects this booking
     await SyncService.record_deletion(
@@ -589,11 +803,30 @@ async def get_fleet_status():
 @router.patch("/fleet/{equipment_id}/availability")
 async def update_equipment_availability(
     equipment_id: str,
-    payload: Dict[str, Any] = Body(...)
+    payload: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     Update machine availability status (available: true/false).
+    Strict RBAC: Provider owner or Admin only.
     """
+    if not _is_admin(current_user):
+        provider_eq_ids = await _get_provider_equipment_ids(current_user)
+        if equipment_id not in provider_eq_ids:
+            owned = False
+            if db_instance.db is not None:
+                try:
+                    doc = await db_instance.db["equipment_catalog"].find_one({"id": equipment_id})
+                    if doc and (str(doc.get("providerId") or doc.get("owner_id")) == str(current_user.get("id"))):
+                        owned = True
+                except Exception:
+                    pass
+            if not owned:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Only the equipment provider or an admin can update machine availability"
+                )
+
     global _fleet_availability
     available = bool(payload.get("available", True))
     _fleet_availability[equipment_id] = available
@@ -629,6 +862,7 @@ async def get_equipment_catalog(
 ):
     """
     Fetch all registered farm machinery listings across all providers and devices.
+    Public read-only discovery endpoint.
     """
     catalog = []
     cat_str = category if isinstance(category, str) else None
@@ -691,16 +925,35 @@ async def get_equipment_catalog(
 
 
 @router.post("/catalog")
-async def register_equipment_item(equipment_data: Dict[str, Any] = Body(...)):
+async def register_equipment_item(
+    equipment_data: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     """
     Register or update machinery listing for rental so it instantly syncs to all devices.
+    Strict RBAC: Only Equipment Providers and Admins can register/list machinery.
     """
+    if not (_is_admin(current_user) or _is_provider(current_user)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Only equipment providers and admins can register equipment"
+        )
+
     global _in_memory_catalog
     if not equipment_data:
         raise HTTPException(status_code=400, detail="Equipment data is required")
 
     eq_id = equipment_data.get("id") or f"EQ-{int(datetime.now().timestamp() * 1000) % 90000 + 10000}"
     equipment_data["id"] = eq_id
+
+    # Stamp provider identity
+    auth_uid = str(current_user.get("id") or current_user.get("_id") or "")
+    equipment_data["providerId"] = auth_uid
+    equipment_data["owner_id"] = auth_uid
+    if not equipment_data.get("providerName"):
+        equipment_data["providerName"] = current_user.get("name") or current_user.get("full_name") or "Equipment Provider"
+    if not equipment_data.get("phone") and (current_user.get("phone") or current_user.get("mobile")):
+        equipment_data["phone"] = current_user.get("phone") or current_user.get("mobile")
 
     if "available" not in equipment_data:
         equipment_data["available"] = True
@@ -731,8 +984,6 @@ async def register_equipment_item(equipment_data: Dict[str, Any] = Body(...)):
             )
         except Exception as e:
             print(f"⚠️ [EquipmentCatalog] Mongo catalog update notice: {e}")
-            # ISSUE-08 fix: if DB verification failed we cannot confirm this is a new listing.
-            # Fail safe: treat as existing/edit so no false admin notification is sent.
             is_new_listing = False
 
         # Notify all admin users about the new machinery listing (new listings only, not edits)
@@ -779,10 +1030,31 @@ async def register_equipment_item(equipment_data: Dict[str, Any] = Body(...)):
 
 
 @router.delete("/catalog/{equipment_id}")
-async def delete_equipment_item(equipment_id: str):
+async def delete_equipment_item(
+    equipment_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     """
     Remove equipment listing from active catalog permanently with cross-device tombstone registration.
+    Strict RBAC: Provider owner or Admin only.
     """
+    if not _is_admin(current_user):
+        provider_eq_ids = await _get_provider_equipment_ids(current_user)
+        if equipment_id not in provider_eq_ids:
+            owned = False
+            if db_instance.db is not None:
+                try:
+                    doc = await db_instance.db["equipment_catalog"].find_one({"id": equipment_id})
+                    if doc and (str(doc.get("providerId") or doc.get("owner_id")) == str(current_user.get("id"))):
+                        owned = True
+                except Exception:
+                    pass
+            if not owned:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Only the equipment provider or an admin can delete equipment"
+                )
+
     global _in_memory_catalog
 
     # 1. Register permanent tombstone so no worker/device ever resurrects this equipment
@@ -811,15 +1083,46 @@ async def delete_equipment_item(equipment_id: str):
 # CROSS-DEVICE REAL-TIME EQUIPMENT CHAT MESSAGING ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════
 
+async def _verify_booking_access(booking_id: str, current_user: Dict[str, Any]):
+    """Strict authorization check to prevent cross-tenant chat snooping."""
+    if _is_admin(current_user):
+        return
+    canonical_id = _normalize_chat_booking_id(booking_id)
+    if canonical_id == "BK-GENERAL":
+        return
+    b_doc = None
+    if db_instance.db is not None:
+        try:
+            b_doc = await db_instance.db["equipment_bookings"].find_one({
+                "$or": [{"id": canonical_id}, {"bookingId": canonical_id}, {"id": booking_id}, {"bookingId": booking_id}]
+            })
+        except Exception:
+            pass
+    if not b_doc:
+        for b in _load_disk_bookings():
+            if b.get("id") in [canonical_id, booking_id] or b.get("bookingId") in [canonical_id, booking_id]:
+                b_doc = b
+                break
+    if b_doc:
+        provider_eq_ids = await _get_provider_equipment_ids(current_user) if _is_provider(current_user) else set()
+        if not (_user_matches_farmer(b_doc, current_user) or _user_matches_provider(b_doc, current_user, provider_eq_ids)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: You are not authorized to access messages for this booking"
+            )
+
+
 @router.get("/bookings/{booking_id}/messages")
 async def get_booking_chat_messages(
     booking_id: str,
-    target_lang: Optional[str] = Query(None, description="Active user language for message translation")
+    target_lang: Optional[str] = Query(None, description="Active user language for message translation"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     Retrieve all real-time chat messages for an equipment booking thread.
     Synchronizes cross-browser, cross-device communications between Farmer and Provider.
     """
+    await _verify_booking_access(booking_id, current_user)
     canonical_id = _normalize_chat_booking_id(booking_id)
     messages = []
 
@@ -877,14 +1180,20 @@ async def get_booking_chat_messages(
 @router.post("/bookings/{booking_id}/messages")
 async def send_booking_chat_message(
     booking_id: str,
-    payload: Dict[str, Any] = Body(...)
+    payload: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     Post a new chat message to a booking thread.
     Instantly saves and propagates to all active devices (web, mobile, cross-browser).
     """
+    await _verify_booking_access(booking_id, current_user)
     global _in_memory_chat_threads
     canonical_id = _normalize_chat_booking_id(booking_id)
+
+    # Stamp sender identity from authenticated user
+    sender = "provider" if _is_provider(current_user) else ("admin" if _is_admin(current_user) else "farmer")
+    sender_name = current_user.get("name") or current_user.get("full_name") or ("Equipment Provider" if sender == "provider" else "Farmer")
 
     msg_id = payload.get("id") or f"msg_{int(datetime.now().timestamp() * 1000)}"
     text = (payload.get("text") or "").strip()
@@ -1043,24 +1352,33 @@ async def send_booking_chat_message(
 
 
 @router.get("/chat/messages")
-async def get_chat_messages_query(booking_id: str = Query(..., description="Booking ID")):
-    return await get_booking_chat_messages(booking_id)
+async def get_chat_messages_query(
+    booking_id: str = Query(..., description="Booking ID"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    return await get_booking_chat_messages(booking_id, current_user=current_user)
 
 
 @router.post("/chat/messages")
-async def post_chat_messages_body(payload: Dict[str, Any] = Body(...)):
+async def post_chat_messages_body(
+    payload: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     b_id = payload.get("booking_id") or payload.get("bookingId") or "BK-GENERAL"
-    return await send_booking_chat_message(b_id, payload)
+    return await send_booking_chat_message(b_id, payload, current_user=current_user)
 
 
 @router.delete("/bookings/{booking_id}/messages/{message_id}")
 async def delete_booking_chat_message(
     booking_id: str,
-    message_id: str
+    message_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     Delete a single message from a booking chat thread across all devices.
+    Strict RBAC: Authorized booking participants or Admin only.
     """
+    await _verify_booking_access(booking_id, current_user)
     global _in_memory_chat_threads
     canonical_id = _normalize_chat_booking_id(booking_id)
 
@@ -1093,11 +1411,14 @@ async def delete_booking_chat_message(
 async def edit_booking_chat_message(
     booking_id: str,
     message_id: str,
-    payload: Dict[str, Any] = Body(...)
+    payload: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     Edit the text of an existing chat message.
+    Strict RBAC: Authorized booking participants or Admin only.
     """
+    await _verify_booking_access(booking_id, current_user)
     global _in_memory_chat_threads
     canonical_id = _normalize_chat_booking_id(booking_id)
     new_text = (payload.get("text") or "").strip()
@@ -1143,17 +1464,21 @@ async def edit_booking_chat_message(
 @router.delete("/chat/messages")
 async def delete_chat_messages_query(
     booking_id: str = Query(..., description="Booking ID"),
-    message_id: str = Query(..., description="Message ID")
+    message_id: str = Query(..., description="Message ID"),
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    return await delete_booking_chat_message(booking_id, message_id)
+    return await delete_booking_chat_message(booking_id, message_id, current_user=current_user)
 
 
 @router.patch("/chat/messages")
-async def patch_chat_messages_body(payload: Dict[str, Any] = Body(...)):
+async def patch_chat_messages_body(
+    payload: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     b_id = payload.get("booking_id") or payload.get("bookingId") or "BK-GENERAL"
     m_id = payload.get("message_id") or payload.get("id")
     if not m_id:
         raise HTTPException(status_code=400, detail="message_id is required")
-    return await edit_booking_chat_message(b_id, m_id, payload)
+    return await edit_booking_chat_message(b_id, m_id, payload, current_user=current_user)
 
 

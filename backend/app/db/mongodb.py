@@ -85,6 +85,11 @@ async def connect_to_mongo():
         await db_instance.db["notification_rules"].create_index([("category", 1), ("enabled", 1)])
         await db_instance.db["scheduled_notifications"].create_index([("next_run", 1), ("enabled", 1)])
         await db_instance.db["fcm_tokens"].create_index([("user_id", 1)])
+
+        # B1-FIX-A: Compound indexes for equipment bookings RBAC & tenant isolation
+        await db_instance.db["equipment_bookings"].create_index([("userId", 1), ("createdAt", -1)])
+        await db_instance.db["equipment_bookings"].create_index([("providerId", 1), ("createdAt", -1)])
+        await db_instance.db["equipment_bookings"].create_index([("equipmentId", 1), ("status", 1)])
         
         logger.info("MongoDB indexes verified.")
         await seed_default_notification_rules(db_instance.db)

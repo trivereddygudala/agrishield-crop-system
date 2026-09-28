@@ -93,6 +93,12 @@ class MockCollection:
                 count += 1
         return count
 
+    async def create_index(self, *args, **kwargs):
+        return "idx_created"
+
+    async def bulk_write(self, ops, ordered=False):
+        return len(ops)
+
     def find(self, query=None, projection=None, *args, **kwargs):
         query = query or {}
         filtered = [rec for rec in self.records if self._matches(rec, query)]
