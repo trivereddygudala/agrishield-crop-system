@@ -2,6 +2,36 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-28 (v324) - B1-FIX-B/C: Booking State Machine, Concurrency Protection & Calendar Slot Collision Prevention
+- **Summary:**
+  1. 🛡️ **Formal Booking State Machine (`backend/app/routers/provider/equipment.py`):**
+     - Implemented strict state transitions: `pending -> confirmed`, `pending -> rejected`, `pending -> cancelled`, `confirmed -> completed`, `confirmed -> cancelled`.
+     - Terminal states (`rejected`, `cancelled`, `completed`) cannot transition to any state; any resurrection attempt is rejected with `HTTP 409 Conflict`.
+     - Preserved soft-cancellation: active/confirmed bookings cannot be physically deleted via `DELETE` (returns `HTTP 400 Bad Request`).
+  2. ⏱️ **Canonical Timezone & Interval Model:**
+     - Enforced `Asia/Kolkata` (IST) as the canonical local booking timezone, mathematically converted to half-open $[S, E)$ UTC ISO-8601 datetimes.
+     - Preserved exact legacy slot meanings: Early Morning (`06:00–10:00 IST` / `00:30–04:30 UTC`), Afternoon (`14:00–18:00 IST` / `08:30–12:30 UTC`), and Full Day (`08:00–17:00 IST` / `02:30–11:30 UTC`).
+  3. 🔒 **Distributed Concurrency & Equipment Locks:**
+     - Transactions serialize confirmations through atomic `upsert=True` writes on the dedicated `equipment_locks` collection (`_id: canonical_equipment_id`, `lock_version`, `updated_at`).
+     - WiredTiger write-conflict and transient transaction error handling with truncated exponential backoff (25ms–250ms) and full jitter up to 5 attempts.
+     - Exhaustion cleanly returns `HTTP 503 Service Unavailable` with `Retry-After: 1` header.
+  4. 📅 **Calendar Slot Collision & Double-Booking Prevention:**
+     - Atomic collision evaluation inside the serialized transaction checks: `existing.start_time < requested.end_time AND existing.end_time > requested.start_time` for `status: "confirmed"`.
+     - Two concurrent confirmations for overlapping intervals strictly result in exactly 1 `confirmed` and 1 `pending` (returning `HTTP 409 Conflict`), mathematically preventing double-bookings.
+     - Back-to-back bookings (`10:00–12:00` and `12:00–14:00`) are explicitly allowed.
+  5. 🔁 **Idempotency Architecture (`idempotency_records`):**
+     - Added dedicated collection `idempotency_records` with a unique index on `(key, user_id)` and a 24-hour TTL expiration.
+     - Detects payload mismatch/key reuse across different bookings (`HTTP 422 Unprocessable Content`).
+     - Replays cached responses on lost network responses or rapid double-clicks without duplicate mutation.
+  6. 💻 **Frontend Routing & UI Error Handling:**
+     - In `ProviderDashboardPage.jsx`, removed shotgun worker dispatch on status mutations and routed status updates to the canonical backend with `Idempotency-Key`.
+     - Added toasts for `409` (Collision), `422` (Unprocessable), and `503` (Contention).
+     - In `EquipmentBookingPage.jsx`, updated cancellation and deletion handlers to pass `Idempotency-Key` and prevent invalid physical deletions.
+  7. 🧪 **Comprehensive Automated Concurrency Test Suite (`backend/tests/test_b1_concurrency.py`):**
+     - 15 comprehensive tests covering all 25 audit requirements passed (100% pass rate).
+     - 7/7 B1-FIX-A RBAC regression tests passed (100% pass rate). Total: 22/22 tests passing.
+- **Files modified**: `backend/app/routers/provider/equipment.py`, `backend/app/db/mongodb.py`, `backend/tests/mock_db.py`, `backend/tests/test_b1_rbac.py`, `backend/tests/test_b1_concurrency.py`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `changes_happening.md`.
+
 ## 2026-09-28 (v323) - B1-FIX-A: Secure Equipment Booking Endpoints with RBAC & Tenant Isolation
 - **Summary:**
   1. 🛡️ **JWT Authentication & RBAC Enforcement (`backend/app/routers/provider/equipment.py`):**

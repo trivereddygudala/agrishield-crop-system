@@ -690,35 +690,15 @@ export default function EquipmentBookingPage() {
       return updated;
     });
 
-    // 2. Send remote PATCH to backend cluster (await network completion before emitting cross-tab sync)
+    // 2. Send remote PATCH to canonical backend with Idempotency-Key
     try {
-      let patched = false;
-      try {
-        await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, {
-          status: 'cancelled',
-          cancelReason: finalReason
-        });
-        patched = true;
-      } catch (_) {}
-
-      if (!patched) {
-        try {
-          await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, {
-            status: 'cancelled',
-            cancelReason: finalReason
-          }, { timeout: 10000 });
-          patched = true;
-        } catch (_) {}
-      }
-
-      if (!patched) {
-        try {
-          await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, {
-            status: 'cancelled',
-            cancelReason: finalReason
-          }, { timeout: 10000 });
-        } catch (_) {}
-      }
+      const idempotencyKey = `idemp_cancel_${bookingId}_${Date.now()}`;
+      await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, {
+        status: 'cancelled',
+        cancelReason: finalReason
+      }, {
+        headers: { 'Idempotency-Key': idempotencyKey }
+      });
     } catch (err) {
       console.warn('Backend sync warning on cancellation:', err);
     } finally {
@@ -751,28 +731,16 @@ export default function EquipmentBookingPage() {
       return updated;
     });
 
-    // 3. Send remote DELETE to backend cluster
+    // 3. Send remote DELETE to canonical backend
     try {
-      let deleted = false;
-      try {
-        await API.delete(`/api/v1/equipment/bookings/${bookingId}`);
-        deleted = true;
-      } catch (_) {}
-
-      if (!deleted) {
-        try {
-          await axios.delete(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}`, { timeout: 10000 });
-          deleted = true;
-        } catch (_) {}
-      }
-
-      if (!deleted) {
-        try {
-          await axios.delete(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}`, { timeout: 10000 });
-        } catch (_) {}
-      }
+      await API.delete(`/api/v1/equipment/bookings/${bookingId}`);
     } catch (err) {
-      console.warn('Backend sync warning on deletion:', err);
+      const detail = err?.response?.data?.detail;
+      if (err?.response?.status === 400) {
+        showToast(detail || 'Active bookings cannot be deleted. Cancel first.', 'error');
+      } else {
+        console.warn('Backend sync warning on deletion:', err);
+      }
     } finally {
       setIsProcessingAction(false);
       setDeleteModalBooking(null);

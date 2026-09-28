@@ -315,10 +315,10 @@ async def test_admin_global_access_and_management():
     prov_id, prov_token = await create_user("Provider Krishna", "krishna@machinery.test", "equipment_provider", "9333333333")
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        # Create booking by farmer
+        # Create booking by farmer with equipmentId
         await ac.post(
             "/api/v1/equipment/bookings",
-            json={"id": "BK-ADMIN-TEST-1", "equipmentName": "Rotavator"},
+            json={"id": "BK-ADMIN-TEST-1", "equipmentId": "EQ-ADMIN-ROTA", "equipmentName": "Rotavator"},
             headers=auth_headers(farmer_token)
         )
 
@@ -328,18 +328,32 @@ async def test_admin_global_access_and_management():
         admin_b_ids = [b["id"] for b in r_admin_list.json()["bookings"]]
         assert "BK-ADMIN-TEST-1" in admin_b_ids
 
-        # Admin can update status of any booking
+        # Admin can update status of any booking following valid state machine (pending -> confirmed)
         r_admin_update = await ac.patch(
+            "/api/v1/equipment/bookings/BK-ADMIN-TEST-1/status",
+            json={"status": "confirmed"},
+            headers=auth_headers(admin_token)
+        )
+        assert r_admin_update.status_code == 200
+        assert r_admin_update.json()["booking"]["status"] == "confirmed"
+
+        # Admin can complete confirmed booking
+        r_admin_comp = await ac.patch(
             "/api/v1/equipment/bookings/BK-ADMIN-TEST-1/status",
             json={"status": "completed"},
             headers=auth_headers(admin_token)
         )
-        assert r_admin_update.status_code == 200
-        assert r_admin_update.json()["booking"]["status"] == "completed"
+        assert r_admin_comp.status_code == 200
+        assert r_admin_comp.json()["booking"]["status"] == "completed"
 
-        # Admin can delete any booking
+        # Create another pending booking to test admin delete
+        await ac.post(
+            "/api/v1/equipment/bookings",
+            json={"id": "BK-ADMIN-DEL-1", "equipmentName": "Harvester"},
+            headers=auth_headers(farmer_token)
+        )
         r_admin_del = await ac.delete(
-            "/api/v1/equipment/bookings/BK-ADMIN-TEST-1",
+            "/api/v1/equipment/bookings/BK-ADMIN-DEL-1",
             headers=auth_headers(admin_token)
         )
         assert r_admin_del.status_code == 200

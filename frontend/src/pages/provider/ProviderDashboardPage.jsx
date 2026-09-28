@@ -765,25 +765,27 @@ export default function ProviderDashboardPage() {
         : (isTe ? 'ఆర్డర్ ఆమోదించబడింది.' : 'Order confirmed.')
     );
 
-    // Dispatch status update to backend API for multi-device cross-browser persistence
+    // Dispatch status update to canonical backend API with Idempotency-Key
     const patchStatusToServer = async () => {
       const payload = { status: nextStatus, updatedAt: new Date().toISOString() };
+      const idempotencyKey = `idemp_status_${bookingId}_${nextStatus}_${Date.now()}`;
       try {
-        const r = await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, payload);
+        const r = await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, payload, {
+          headers: { 'Idempotency-Key': idempotencyKey }
+        });
         if (r.data && typeof r.data === 'object') return;
-      } catch (_) {}
-      try {
-        const r = await API.patch(`/api/equipment/bookings/${bookingId}/status`, payload);
-        if (r.data && typeof r.data === 'object') return;
-      } catch (_) {}
-      try {
-        await axios.patch(`https://agrishield-ai-worker-1.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, payload, { timeout: 15000 });
-        return;
-      } catch (_) {}
-      try {
-        await axios.patch(`https://agrishield-ai-worker-2.onrender.com/api/v1/equipment/bookings/${bookingId}/status`, payload, { timeout: 15000 });
       } catch (err) {
-        console.warn('Backend status patch notice:', err);
+        const status = err?.response?.status;
+        const detail = err?.response?.data?.detail;
+        if (status === 409) {
+          toast.error(isTe ? 'స్లాట్ ఇప్పటికే బుక్ చేయబడింది: ' + (detail || '') : 'Time Slot Collision: ' + (detail || 'This time slot is already confirmed.'));
+        } else if (status === 422) {
+          toast.error(isTe ? 'చెల్లని అభ్యర్థన: ' + (detail || '') : 'Invalid Request: ' + (detail || ''));
+        } else if (status === 503) {
+          toast.warning(isTe ? 'సిస్టమ్ బిజీగా ఉంది. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Server contention. Please retry your confirmation in a few moments.');
+        } else {
+          console.warn('Backend status patch notice:', err);
+        }
       }
     };
     patchStatusToServer();

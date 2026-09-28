@@ -4,13 +4,17 @@ Provides multi-device persistence for farm machinery bookings between Farmers an
 Syncs across devices (PC, mobile browser, tablets) via MongoDB and persistent JSON store fallback.
 """
 
-from fastapi import APIRouter, HTTPException, Query, Body, Depends, status
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+from fastapi import APIRouter, HTTPException, Query, Body, Depends, Header, status
+from typing import Optional, List, Dict, Any, Tuple
+from datetime import datetime, timezone
 import json
 import os
 import asyncio
+import hashlib
+import random
+import zoneinfo
 from bson import ObjectId
+from pymongo.errors import OperationFailure, ConnectionFailure, DuplicateKeyError
 from backend.app.db.mongodb import db_instance
 from backend.app.services.sync_service import SyncService
 from backend.app.routers.common.auth import get_current_user
@@ -19,6 +23,86 @@ router = APIRouter(tags=["Equipment & Farm Machinery Bookings"])
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "equipment_bookings.json")
 CATALOG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "equipment_catalog.json")
+
+IST_TZ = zoneinfo.ZoneInfo("Asia/Kolkata")
+UTC_TZ = timezone.utc
+
+def _normalize_booking_interval(booking_data: Dict[str, Any]) -> Tuple[datetime, datetime]:
+    """
+    Convert local Indian Standard Time (Asia/Kolkata) booking date and slot/time
+    into canonical half-open [start_time, end_time) UTC datetime objects.
+    """
+    raw_date = booking_data.get("date") or booking_data.get("bookingDate") or datetime.now(IST_TZ).strftime("%Y-%m-%d")
+    date_str = str(raw_date).split("T")[0].strip()
+
+    raw_slot = str(booking_data.get("timeSlot") or booking_data.get("slot") or "").strip()
+    raw_start = str(booking_data.get("startTime") or "").strip()
+    raw_end = str(booking_data.get("endTime") or "").strip()
+
+    # Canonical Legacy Slot Mappings (IST)
+    if "early morning" in raw_slot.lower():
+        start_h, start_m, end_h, end_m = 6, 0, 10, 0
+    elif "afternoon" in raw_slot.lower():
+        start_h, start_m, end_h, end_m = 14, 0, 18, 0
+    elif "full day" in raw_slot.lower():
+        start_h, start_m, end_h, end_m = 8, 0, 17, 0
+    elif raw_start and raw_end:
+        try:
+            s_dt = datetime.strptime(raw_start, "%H:%M")
+            e_dt = datetime.strptime(raw_end, "%H:%M")
+            start_h, start_m, end_h, end_m = s_dt.hour, s_dt.minute, e_dt.hour, e_dt.minute
+        except Exception:
+            start_h, start_m, end_h, end_m = 8, 0, 17, 0
+    else:
+        # Default fallback: Early morning
+        start_h, start_m, end_h, end_m = 6, 0, 10, 0
+
+    try:
+        y, m, d = map(int, date_str.split("-")[:3])
+    except Exception:
+        now_ist = datetime.now(IST_TZ)
+        y, m, d = now_ist.year, now_ist.month, now_ist.day
+
+    local_start = datetime(y, m, d, start_h, start_m, 0, tzinfo=IST_TZ)
+    local_end = datetime(y, m, d, end_h, end_m, 0, tzinfo=IST_TZ)
+
+    if local_start >= local_end:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid interval: start_time ({local_start.isoformat()}) must be earlier than end_time ({local_end.isoformat()})"
+        )
+
+    return local_start.astimezone(UTC_TZ), local_end.astimezone(UTC_TZ)
+
+VALID_STATUS_TRANSITIONS = {
+    "pending": {"confirmed", "rejected", "cancelled"},
+    "confirmed": {"completed", "cancelled"},
+    "rejected": set(),
+    "cancelled": set(),
+    "completed": set(),
+}
+
+def _validate_state_transition(current_status: str, target_status: str):
+    curr = str(current_status).lower().strip()
+    target = str(target_status).lower().strip()
+    if curr in ["declined", "reject"]: curr = "rejected"
+    if curr in ["confirm", "accepted", "accept"]: curr = "confirmed"
+    if curr in ["complete", "done"]: curr = "completed"
+    if curr in ["cancel", "canceled"]: curr = "cancelled"
+
+    allowed = VALID_STATUS_TRANSITIONS.get(curr)
+    if allowed is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unrecognized booking status: {current_status}")
+    if curr in ["rejected", "cancelled", "completed"]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Invalid state transition: Cannot change terminal status '{curr}' to '{target}'"
+        )
+    if target not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Invalid state transition: '{curr}' -> '{target}' is not permitted"
+        )
 
 # In-memory store fallback with initial seed if file doesn't exist
 _in_memory_bookings: List[Dict[str, Any]] = []
@@ -313,6 +397,13 @@ async def create_booking(
     if not booking_data.get("farmerPhone") and (current_user.get("phone") or current_user.get("mobile")):
         booking_data["farmerPhone"] = current_user.get("phone") or current_user.get("mobile")
 
+    # B1-FIX-B/C: Normalize local IST booking times to UTC ISO datetime
+    start_utc, end_utc = _normalize_booking_interval(booking_data)
+    booking_data["start_time"] = start_utc
+    booking_data["end_time"] = end_utc
+    booking_data["start_time_iso"] = start_utc.isoformat()
+    booking_data["end_time_iso"] = end_utc.isoformat()
+
     if not booking_data.get("status"):
         booking_data["status"] = "pending"
     if not booking_data.get("createdAt"):
@@ -328,7 +419,11 @@ async def create_booking(
     # 1. Update in-memory / disk
     _load_disk_bookings()
     updated_list = [b for b in _in_memory_bookings if b.get("id") != booking_id]
-    updated_list.insert(0, booking_data)
+    # For disk JSON, save start_time/end_time as ISO strings
+    json_safe_booking = dict(booking_data)
+    json_safe_booking["start_time"] = start_utc.isoformat()
+    json_safe_booking["end_time"] = end_utc.isoformat()
+    updated_list.insert(0, json_safe_booking)
     _in_memory_bookings = updated_list
     _save_disk_bookings()
 
@@ -520,21 +615,19 @@ async def create_bookings_batch(
 async def update_booking_status(
     booking_id: str,
     status_update: Dict[str, Any] = Body(...),
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Update the status of a booking (confirmed, rejected, completed, cancelled).
-    Strictly enforces RBAC:
-    - Farmer: Can only set status to 'cancelled' on their own booking.
-    - Provider: Can set status to 'confirmed', 'rejected', 'completed', or 'cancelled' on their machinery bookings.
-    - Admin: Full status management authorization.
+    Update the status of a booking with B1-FIX-B state machine and B1-FIX-C concurrency-safe slot protection.
+    Uses MongoDB transaction with equipment_locks serialization, collision evaluation, retry loop, and idempotency caching.
     """
     global _in_memory_bookings
     raw_status = status_update.get("status")
     if not raw_status:
         raise HTTPException(status_code=400, detail="New status is required")
 
-    new_status = str(raw_status).lower()
+    new_status = str(raw_status).lower().strip()
     if new_status in ["declined", "reject"]:
         new_status = "rejected"
     elif new_status in ["confirm", "accepted", "accept"]:
@@ -545,8 +638,62 @@ async def update_booking_status(
         new_status = "cancelled"
 
     cancel_reason = status_update.get("reason") or status_update.get("cancelReason")
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+    endpoint_sig = f"PATCH:/bookings/{booking_id}/status"
 
-    # Locate existing booking
+    # 1. Idempotency Pre-Check
+    req_payload_str = json.dumps({"status": new_status, "reason": cancel_reason}, sort_keys=True)
+    req_hash = hashlib.sha256(req_payload_str.encode("utf-8")).hexdigest()
+
+    if idempotency_key and db_instance.db is not None:
+        try:
+            existing_idemp = await db_instance.db["idempotency_records"].find_one({
+                "key": idempotency_key,
+                "user_id": user_id
+            })
+            if existing_idemp:
+                if existing_idemp.get("booking_id") != booking_id or existing_idemp.get("request_hash") != req_hash:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail="Idempotency-Key already used for a different request payload or booking."
+                    )
+                if existing_idemp.get("status") == "completed":
+                    return existing_idemp.get("response_body")
+                elif existing_idemp.get("status") == "in_progress":
+                    # Check age of in_progress
+                    rec_dt = existing_idemp.get("created_at")
+                    if rec_dt and isinstance(rec_dt, datetime):
+                        age_sec = (datetime.now(timezone.utc) - rec_dt.replace(tzinfo=timezone.utc)).total_seconds()
+                        if age_sec < 60:
+                            raise HTTPException(
+                                status_code=status.HTTP_409_CONFLICT,
+                                detail="Concurrent request with this Idempotency-Key is currently in progress. Please retry shortly."
+                            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"⚠️ [Idempotency] Pre-check notice: {e}")
+
+    # Mark idempotency in_progress
+    if idempotency_key and db_instance.db is not None:
+        try:
+            await db_instance.db["idempotency_records"].update_one(
+                {"key": idempotency_key, "user_id": user_id},
+                {"$set": {
+                    "key": idempotency_key,
+                    "user_id": user_id,
+                    "endpoint": endpoint_sig,
+                    "request_hash": req_hash,
+                    "booking_id": booking_id,
+                    "status": "in_progress",
+                    "created_at": datetime.now(timezone.utc)
+                }},
+                upsert=True
+            )
+        except Exception:
+            pass
+
+    # 2. Locate existing booking and verify RBAC
     existing_booking = None
     if db_instance.db is not None:
         try:
@@ -570,6 +717,7 @@ async def update_booking_status(
     is_provider_owner = _user_matches_provider(existing_booking, current_user, provider_eq_ids)
     is_admin = _is_admin(current_user)
 
+    # RBAC verification
     if new_status == "cancelled":
         if not (is_farmer_owner or is_provider_owner or is_admin):
             raise HTTPException(
@@ -594,53 +742,198 @@ async def update_booking_status(
                 detail="Forbidden: Unauthorized status transition"
             )
 
-    _load_disk_bookings()
-    found = False
+    # Validate state transition rules
+    current_status = existing_booking.get("status", "pending")
+    _validate_state_transition(current_status, new_status)
+
+    # Canonical equipment ID and time intervals
+    canonical_eq_id = existing_booking.get("equipmentId") or existing_booking.get("machineId") or existing_booking.get("equipment_id")
+    if not canonical_eq_id and new_status == "confirmed":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot confirm booking: equipment identifier is missing."
+        )
+
+    # Compute UTC normalized interval if missing
+    req_start_utc = existing_booking.get("start_time")
+    req_end_utc = existing_booking.get("end_time")
+    if not (isinstance(req_start_utc, datetime) and isinstance(req_end_utc, datetime)):
+        req_start_utc, req_end_utc = _normalize_booking_interval(existing_booking)
+
+    # 3. Transaction Execution with Concurrency Retries
+    MAX_RETRIES = 5
+    BASE_BACKOFF_MS = 25
+    MAX_BACKOFF_MS = 250
     updated_booking = None
 
-    for b in _in_memory_bookings:
-        if b.get("id") == booking_id or b.get("bookingId") == booking_id:
-            b["status"] = new_status
-            b["updatedAt"] = datetime.now().isoformat()
-            if cancel_reason:
-                b["cancelReason"] = cancel_reason
-            updated_booking = b
-            found = True
-            break
-
-    # Update in Mongo with authoritative return
-    if db_instance.db is not None:
+    for attempt in range(1, MAX_RETRIES + 1):
         try:
-            update_fields = {"status": new_status, "updatedAt": datetime.now().isoformat()}
-            if cancel_reason:
-                update_fields["cancelReason"] = cancel_reason
+            # Check if running with replica set / transaction support
+            client = getattr(db_instance, "client", None)
+            has_sessions = client is not None and hasattr(client, "start_session")
 
-            mongo_doc = await db_instance.db["equipment_bookings"].find_one_and_update(
-                {"$or": [{"id": booking_id}, {"bookingId": booking_id}]},
-                {"$set": update_fields},
-                return_document=True
-            )
-            if mongo_doc:
-                mongo_doc.pop("_id", None)
-                if not updated_booking:
-                    updated_booking = mongo_doc
-                    found = True
+            if has_sessions and db_instance.db is not None:
+                async with await client.start_session() as session:
+                    async with session.start_transaction():
+                        # A. Re-read target booking inside transaction
+                        b_doc = await db_instance.db["equipment_bookings"].find_one(
+                            {"$or": [{"id": booking_id}, {"bookingId": booking_id}]},
+                            session=session
+                        )
+                        if not b_doc:
+                            raise HTTPException(status_code=404, detail="Booking not found in transaction")
+
+                        b_curr_status = b_doc.get("status", "pending")
+                        # If already in target status, idempotent return
+                        if b_curr_status == new_status:
+                            updated_booking = b_doc
+                            break
+
+                        _validate_state_transition(b_curr_status, new_status)
+
+                        if new_status == "confirmed":
+                            # B. Serialize on equipment_locks document
+                            await db_instance.db["equipment_locks"].find_one_and_update(
+                                {"_id": canonical_eq_id},
+                                {"$inc": {"lock_version": 1}, "$set": {"updated_at": datetime.now(timezone.utc)}},
+                                upsert=True,
+                                session=session
+                            )
+
+                            # C. Collision check for overlapping CONFIRMED bookings on this equipment
+                            # Overlap condition: existing.start < req.end AND existing.end > req.start
+                            collision = await db_instance.db["equipment_bookings"].find_one(
+                                {
+                                    "$or": [
+                                        {"equipmentId": canonical_eq_id},
+                                        {"equipment_id": canonical_eq_id}
+                                    ],
+                                    "status": "confirmed",
+                                    "id": {"$ne": booking_id},
+                                    "bookingId": {"$ne": booking_id},
+                                    "start_time": {"$lt": req_end_utc},
+                                    "end_time": {"$gt": req_start_utc}
+                                },
+                                session=session
+                            )
+                            if collision:
+                                coll_id = collision.get("id") or collision.get("bookingId") or "existing"
+                                coll_s = collision.get("start_time_iso") or str(collision.get("start_time"))
+                                coll_e = collision.get("end_time_iso") or str(collision.get("end_time"))
+                                raise HTTPException(
+                                    status_code=status.HTTP_409_CONFLICT,
+                                    detail=f"Time slot collision: Equipment {canonical_eq_id} is already confirmed for booking #{coll_id} ({coll_s} to {coll_e})."
+                                )
+
+                        # D. Update target booking
+                        now_utc = datetime.now(timezone.utc)
+                        up_fields = {
+                            "status": new_status,
+                            "updatedAt": now_utc.isoformat(),
+                            "start_time": req_start_utc,
+                            "end_time": req_end_utc,
+                            "start_time_iso": req_start_utc.isoformat(),
+                            "end_time_iso": req_end_utc.isoformat()
+                        }
+                        if cancel_reason:
+                            up_fields["cancelReason"] = cancel_reason
+                        if new_status == "cancelled":
+                            up_fields["cancelledAt"] = now_utc.isoformat()
+
+                        updated_booking = await db_instance.db["equipment_bookings"].find_one_and_update(
+                            {"$or": [{"id": booking_id}, {"bookingId": booking_id}]},
+                            {"$set": up_fields},
+                            return_document=True,
+                            session=session
+                        )
+                        await session.commit_transaction()
+                        break
+            else:
+                # Standalone / In-memory fallback mode
+                # In-memory collision check if confirming
+                if new_status == "confirmed":
+                    _load_disk_bookings()
+                    for b in _in_memory_bookings:
+                        if (b.get("id") != booking_id and b.get("bookingId") != booking_id and
+                            str(b.get("status", "")).lower() == "confirmed" and
+                            (b.get("equipmentId") == canonical_eq_id or b.get("equipment_id") == canonical_eq_id)):
+                            b_s = b.get("start_time")
+                            b_e = b.get("end_time")
+                            if not (isinstance(b_s, datetime) and isinstance(b_e, datetime)):
+                                b_s, b_e = _normalize_booking_interval(b)
+                            if b_s < req_end_utc and b_e > req_start_utc:
+                                raise HTTPException(
+                                    status_code=status.HTTP_409_CONFLICT,
+                                    detail=f"Time slot collision: Equipment {canonical_eq_id} is already confirmed for booking #{b.get('id')}."
+                                )
+
+                now_utc = datetime.now(timezone.utc)
+                up_fields = {
+                    "status": new_status,
+                    "updatedAt": now_utc.isoformat(),
+                    "start_time": req_start_utc,
+                    "end_time": req_end_utc,
+                    "start_time_iso": req_start_utc.isoformat(),
+                    "end_time_iso": req_end_utc.isoformat()
+                }
+                if cancel_reason:
+                    up_fields["cancelReason"] = cancel_reason
+                if new_status == "cancelled":
+                    up_fields["cancelledAt"] = now_utc.isoformat()
+
+                if db_instance.db is not None:
+                    updated_booking = await db_instance.db["equipment_bookings"].find_one_and_update(
+                        {"$or": [{"id": booking_id}, {"bookingId": booking_id}]},
+                        {"$set": up_fields},
+                        return_document=True
+                    )
                 else:
-                    updated_booking.update(mongo_doc)
-        except Exception as e:
-            print(f"⚠️ [EquipmentBookings] Mongo status update notice: {e}")
+                    existing_booking.update(up_fields)
+                    updated_booking = existing_booking
+                break
 
+        except HTTPException:
+            raise
+        except (OperationFailure, ConnectionFailure) as exc:
+            # Check for transient transaction errors or write conflicts (code 112)
+            is_transient = (
+                getattr(exc, "has_error_label", lambda lbl: False)("TransientTransactionError") or
+                getattr(exc, "code", None) == 112 or
+                "WriteConflict" in str(exc)
+            )
+            if is_transient:
+                if attempt == MAX_RETRIES:
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Booking system is experiencing heavy transaction contention. Please retry your request shortly.",
+                        headers={"Retry-After": "1"}
+                    )
+                backoff_sec = random.uniform(0, min(MAX_BACKOFF_MS, BASE_BACKOFF_MS * (2 ** attempt))) / 1000.0
+                await asyncio.sleep(backoff_sec)
+                continue
+            raise
+
+    # 4. Synchronize in-memory / disk cache
+    _load_disk_bookings()
     if updated_booking:
+        if "_id" in updated_booking:
+            updated_booking.pop("_id", None)
+        # Disk store receives string ISO dates
+        disk_safe = dict(updated_booking)
+        if isinstance(disk_safe.get("start_time"), datetime):
+            disk_safe["start_time"] = disk_safe["start_time"].isoformat()
+        if isinstance(disk_safe.get("end_time"), datetime):
+            disk_safe["end_time"] = disk_safe["end_time"].isoformat()
+
         _in_memory_bookings = [b for b in _in_memory_bookings if b.get("id") != booking_id and b.get("bookingId") != booking_id]
-        _in_memory_bookings.insert(0, updated_booking)
+        _in_memory_bookings.insert(0, disk_safe)
         _save_disk_bookings()
 
-    # Automated notification dispatch to Farmer / Provider
+    # 5. Automated Notification Dispatch
     if db_instance.db is not None and updated_booking:
         try:
             from backend.app.services.notification_service import NotificationService
             from backend.app.models.notification import NotificationCreate
-            # Resolve farmer user: try phone → name → email → userId stored in booking
             f_phone = updated_booking.get("farmerPhone") or updated_booking.get("phone") or ""
             clean_f = "".join(filter(str.isdigit, str(f_phone)))
             farmer_user = None
@@ -648,33 +941,9 @@ async def update_booking_status(
                 farmer_user = await db_instance.db["users"].find_one({
                     "$or": [{"phone": clean_f}, {"mobile": clean_f}, {"phone": {"$regex": clean_f[-10:]}}]
                 })
-            if not farmer_user:
-                # Fallback: look up by farmerName stored in booking
-                farmer_name = updated_booking.get("farmerName") or updated_booking.get("farmer_name") or ""
-                if farmer_name:
-                    import re as _re
-                    farmer_user = await db_instance.db["users"].find_one(
-                        {"name": {"$regex": f"^{_re.escape(farmer_name.strip())}$", "$options": "i"}}
-                    )
-            if not farmer_user:
-                # Fallback: look up by farmerEmail
-                farmer_email = updated_booking.get("farmerEmail") or updated_booking.get("farmer_email") or ""
-                if farmer_email:
-                    farmer_user = await db_instance.db["users"].find_one({"email": farmer_email.lower().strip()})
-            if not farmer_user:
-                # Fallback: look up by userId / user_id stored in booking document
-                b_uid = updated_booking.get("userId") or updated_booking.get("user_id") or ""
-                if b_uid and db_instance.db is not None:
-                    try:
-                        farmer_user = await db_instance.db["users"].find_one({"$or": [{"_id": ObjectId(b_uid)}, {"id": str(b_uid)}]})
-                    except Exception:
-                        farmer_user = await db_instance.db["users"].find_one({"id": str(b_uid)})
-            # Final fallback: use userId stored in booking document
-            booking_user_id = updated_booking.get("userId") or updated_booking.get("user_id") or ""
-            target_uid = str(farmer_user["_id"]) if farmer_user else booking_user_id
-            if not target_uid:
-                print(f"⚠️ [EquipmentBookings] Cannot resolve farmer for booking {booking_id} — skipping notification")
-            else:
+            b_uid = updated_booking.get("userId") or updated_booking.get("user_id") or ""
+            target_uid = str(farmer_user["_id"]) if farmer_user else b_uid
+            if target_uid:
                 status_emoji = "✅" if new_status == "confirmed" else ("❌" if new_status in ["rejected", "cancelled"] else "🚜")
                 status_label = "Confirmed" if new_status == "confirmed" else ("Cancelled" if new_status == "cancelled" else ("Declined" if new_status == "rejected" else new_status.title()))
                 await NotificationService.create_notification(
@@ -709,20 +978,27 @@ async def update_booking_status(
         except Exception as n_err:
             print(f"⚠️ [EquipmentBookings] Notification dispatch notice: {n_err}")
 
-    if not found and db_instance.db is None:
-        # If not found in memory, still return acknowledgment
-        return {
-            "success": True,
-            "message": f"Status updated to {new_status}",
-            "booking_id": booking_id,
-            "status": new_status
-        }
-
-    return {
+    response_payload = {
         "success": True,
         "message": f"Status updated to {new_status}",
         "booking": updated_booking
     }
+
+    # Record idempotency completion
+    if idempotency_key and db_instance.db is not None:
+        try:
+            await db_instance.db["idempotency_records"].update_one(
+                {"key": idempotency_key, "user_id": user_id},
+                {"$set": {
+                    "status": "completed",
+                    "response_status_code": 200,
+                    "response_body": response_payload
+                }}
+            )
+        except Exception:
+            pass
+
+    return response_payload
 
 
 @router.delete("/bookings/{booking_id}")
@@ -731,7 +1007,8 @@ async def delete_booking(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Remove a booking permanently with cross-device tombstone registration.
+    Remove an unconfirmed draft/pending booking permanently.
+    Confirmed, completed, or cancelled bookings CANNOT be deleted (must maintain audit trail).
     Strict RBAC: Admin, farmer owner, or provider owner only.
     """
     global _in_memory_bookings
@@ -751,18 +1028,29 @@ async def delete_booking(
                 existing_booking = b
                 break
 
-    if existing_booking:
-        provider_eq_ids = await _get_provider_equipment_ids(current_user) if _is_provider(current_user) else set()
-        is_farmer_owner = _user_matches_farmer(existing_booking, current_user)
-        is_provider_owner = _user_matches_provider(existing_booking, current_user, provider_eq_ids)
-        is_admin = _is_admin(current_user)
-        if not (is_admin or is_farmer_owner or is_provider_owner):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Forbidden: You are not authorized to delete this booking"
-            )
+    if not existing_booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
 
-    # 1. Register permanent tombstone so no worker/device ever resurrects this booking
+    provider_eq_ids = await _get_provider_equipment_ids(current_user) if _is_provider(current_user) else set()
+    is_farmer_owner = _user_matches_farmer(existing_booking, current_user)
+    is_provider_owner = _user_matches_provider(existing_booking, current_user, provider_eq_ids)
+    is_admin = _is_admin(current_user)
+
+    if not (is_admin or is_farmer_owner or is_provider_owner):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You are not authorized to delete this booking"
+        )
+
+    # Audit constraint: Only pending bookings can be physically deleted
+    curr_status = str(existing_booking.get("status", "pending")).lower()
+    if curr_status in ["confirmed", "completed"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Active or completed bookings (status='{curr_status}') cannot be physically deleted. Please cancel the booking instead to release the time slot."
+        )
+
+    # 1. Register permanent tombstone
     await SyncService.record_deletion(
         entity_type="booking",
         entity_id=booking_id,

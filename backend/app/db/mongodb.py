@@ -91,6 +91,26 @@ async def connect_to_mongo():
         await db_instance.db["equipment_bookings"].create_index([("providerId", 1), ("createdAt", -1)])
         await db_instance.db["equipment_bookings"].create_index([("equipmentId", 1), ("status", 1)])
         
+        # B1-FIX-B/C: Compound index for sub-millisecond calendar slot collision checking
+        await db_instance.db["equipment_bookings"].create_index([
+            ("equipmentId", 1),
+            ("status", 1),
+            ("start_time", 1),
+            ("end_time", 1)
+        ], name="idx_equipment_collision_eval")
+        
+        # B1-FIX-B/C: Idempotency records unique key + 24-hour TTL expiration
+        await db_instance.db["idempotency_records"].create_index(
+            [("key", 1), ("user_id", 1)],
+            unique=True,
+            name="idx_idempotency_unique"
+        )
+        await db_instance.db["idempotency_records"].create_index(
+            [("created_at", 1)],
+            expireAfterSeconds=86400,
+            name="idx_idempotency_ttl"
+        )
+        
         logger.info("MongoDB indexes verified.")
         await seed_default_notification_rules(db_instance.db)
     except Exception as e:
