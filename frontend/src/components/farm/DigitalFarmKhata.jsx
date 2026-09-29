@@ -1,5 +1,6 @@
 import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useState, useEffect, useMemo } from 'react';
+import API from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wallet, TrendingUp, TrendingDown, Plus, Trash2, 
@@ -33,6 +34,7 @@ const INITIAL_INCOME = [
 ];
 
 export default function DigitalFarmKhata({ 
+  farmId,
   farmName = "My Farm", 
   acreage = 2.0, 
   cropName = "Tomato",
@@ -43,7 +45,7 @@ export default function DigitalFarmKhata({
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
   const isTe = currentLang === 'te';
 
-  const storageKey = useMemo(() => `agrishield_khata_${farmName.replace(/\s+/g, '_')}`, [farmName]);
+  const storageKey = useMemo(() => farmId ? `agrishield_khata_${farmId}` : `agrishield_khata_${farmName.replace(/\s+/g, '_')}`, [farmId, farmName]);
 
   // Load transactions from localStorage or initial defaults
   const [transactions, setTransactions] = useState(() => {
@@ -55,6 +57,32 @@ export default function DigitalFarmKhata({
     }
     return [...INITIAL_EXPENSES, ...INITIAL_INCOME];
   });
+
+  // Load transactions from backend on mount when authenticated
+  useEffect(() => {
+    let isMounted = true;
+    const fetchKhata = async () => {
+      if (!farmId) return;
+      try {
+        const res = await API.get(`/api/farms/${farmId}/khata`);
+        const serverTx = Array.isArray(res.data) ? res.data : (res.data?.transactions || []);
+        if (isMounted && serverTx.length > 0) {
+          const normalized = serverTx.map(t => ({
+            ...t,
+            id: t.id || t._id
+          }));
+          setTransactions(normalized);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(normalized));
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn("Could not fetch remote khata, using local cache:", err);
+      }
+    };
+    fetchKhata();
+    return () => { isMounted = false; };
+  }, [farmId, storageKey]);
 
   // Save to localStorage
   useEffect(() => {
@@ -105,13 +133,12 @@ export default function DigitalFarmKhata({
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [transactions, filterType]);
 
-  const handleAddTransaction = (e) => {
+  const handleAddTransaction = async (e) => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (!description.trim() || isNaN(numAmount) || numAmount <= 0) return;
 
-    const newTx = {
-      id: `tx-${Date.now()}`,
+    const txPayload = {
       type: txType,
       category: txType === 'income' ? 'harvest' : category,
       description: description.trim(),
@@ -119,14 +146,57 @@ export default function DigitalFarmKhata({
       date: date || new Date().toISOString().split('T')[0]
     };
 
-    setTransactions(prev => [newTx, ...prev]);
+    let finalTx = null;
+    if (farmId) {
+      try {
+        const res = await API.post(`/api/farms/${farmId}/khata`, txPayload);
+        if (res.data) {
+          finalTx = {
+            ...res.data,
+            id: res.data.id || res.data._id || `tx-${Date.now()}`
+          };
+        }
+      } catch (err) {
+        console.warn("Backend khata save failed, saving locally:", err);
+      }
+    }
+
+    if (!finalTx) {
+      finalTx = {
+        id: `tx-${Date.now()}`,
+        ...txPayload
+      };
+    }
+
+    setTransactions(prev => {
+      const filtered = prev.filter(tx => (tx.id || tx._id) !== finalTx.id);
+      const updated = [finalTx, ...filtered];
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+
     setDescription('');
     setAmount('');
     setShowAddModal(false);
   };
 
-  const handleDelete = (id) => {
-    setTransactions(prev => prev.filter(tx => tx.id !== id));
+  const handleDelete = async (id) => {
+    if (farmId) {
+      try {
+        await API.delete(`/api/farms/${farmId}/khata/${id}`);
+      } catch (err) {
+        console.warn("Backend khata delete failed, removing locally:", err);
+      }
+    }
+    setTransactions(prev => {
+      const updated = prev.filter(tx => tx.id !== id && tx._id !== id);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
   };
 
   const handleShareWhatsApp = () => {

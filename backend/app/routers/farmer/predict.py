@@ -2897,7 +2897,10 @@ async def delete_history_record(
             detail="History record not found."
         )
 
-    if record["user_id"] != str(current_user["id"]):
+    user_role = (current_user.get("role") or "farmer").lower()
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+
+    if user_role != "admin" and str(record.get("user_id") or "") != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access forbidden: You cannot delete another user's record."
@@ -2908,17 +2911,19 @@ async def delete_history_record(
 
     # Record permanent cross-device tombstone
     from backend.app.services.sync_service import SyncService
-    await SyncService.record_deletion("prediction", id, deleted_by=str(current_user["id"]))
+    await SyncService.record_deletion("prediction", id, deleted_by=user_id)
 
     # Remove file from local system if it exists
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    image_file_path = os.path.join(base_dir, record["image_path"].replace("/", os.sep))
-    
-    if os.path.exists(image_file_path):
-        try:
-            os.remove(image_file_path)
-        except Exception:
-            # Non-blocking, file could be locked or already deleted
-            pass
+    image_path = record.get("image_path")
+    if image_path:
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        image_file_path = os.path.join(base_dir, image_path.replace("/", os.sep))
+
+        if os.path.exists(image_file_path):
+            try:
+                os.remove(image_file_path)
+            except Exception:
+                # Non-blocking, file could be locked or already deleted
+                pass
 
     return {"message": "Record successfully deleted."}

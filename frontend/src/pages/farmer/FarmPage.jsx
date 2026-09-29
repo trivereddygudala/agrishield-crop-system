@@ -1106,6 +1106,7 @@ const FarmPage = () => {
       {activeTab === 'crop-lifecycle' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
           <CropGrowthTimeline
+            farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
             cropName={cropName || 'Tomato'}
             plantingDate={plantingDate || '2026-08-15'}
@@ -1186,6 +1187,7 @@ const FarmPage = () => {
       {activeTab === 'farm-khata' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
           <DigitalFarmKhata
+            farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
             acreage={parseFloat(farmSize) || 2.0}
             cropName={cropName || 'Tomato'}

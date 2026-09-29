@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 from datetime import datetime
 
 class FarmProfileBase(BaseModel):
@@ -22,6 +22,7 @@ class FarmProfileBase(BaseModel):
     longitude: Optional[float] = Field(default=None, ge=-180.0, le=180.0)
     device_id: Optional[str] = Field(default=None, max_length=100)
     boundary_coordinates: Optional[List[Any]] = Field(default=None, description="Array of [lat, lng] boundary pin coordinates")
+    timeline_tasks: Optional[Dict[str, bool]] = Field(default=None, description="Map of task IDs to completed boolean")
     is_archived: bool = Field(default=False, description="Soft delete flag")
 
 class FarmProfileCreate(FarmProfileBase):
@@ -47,6 +48,7 @@ class FarmProfileUpdate(BaseModel):
     longitude: Optional[float] = Field(None, ge=-180.0, le=180.0)
     boundary_coordinates: Optional[List[Any]] = Field(None, description="Array of [lat, lng] boundary pin coordinates")
     device_id: Optional[str] = Field(None, max_length=100)
+    timeline_tasks: Optional[Dict[str, bool]] = Field(None, description="Map of task IDs to completed boolean")
 
 class FarmProfileResponse(FarmProfileBase):
     id: str
@@ -55,3 +57,14 @@ class FarmProfileResponse(FarmProfileBase):
     updated_at: datetime
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+class KhataTransactionCreate(BaseModel):
+    type: str = Field(..., description="expense or income")
+    category: str = Field(..., min_length=1, max_length=100)
+    description: str = Field(..., min_length=1, max_length=500)
+    amount: float = Field(..., gt=0)
+    date: str = Field(..., description="YYYY-MM-DD")
+    booking_id: Optional[str] = Field(None, description="Optional booking reference to prevent duplicates")
+
+class TimelineTasksUpdate(BaseModel):
+    completed_tasks: Dict[str, bool] = Field(..., description="Map of task IDs to completed boolean")

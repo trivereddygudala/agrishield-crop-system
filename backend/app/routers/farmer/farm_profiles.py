@@ -1,10 +1,17 @@
 import math
-from datetime import timezone
+from datetime import datetime, timezone
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Any, Optional
 from backend.app.db.mongodb import get_database
 from backend.app.routers.auth import get_current_user
-from backend.app.models.farm_profile import FarmProfileCreate, FarmProfileUpdate, FarmProfileResponse
+from backend.app.models.farm_profile import (
+    FarmProfileCreate,
+    FarmProfileUpdate,
+    FarmProfileResponse,
+    KhataTransactionCreate,
+    TimelineTasksUpdate
+)
 from backend.app.services.farm_profile_service import FarmProfileService
 
 router = APIRouter(prefix="/api/farms", tags=["Farm Profiles"])
@@ -212,5 +219,223 @@ async def get_nearby_farm_radar(
             f"✅ All surveyed neighboring fields in your area report healthy crops. No active airborne spore threats detected within {radius_km} km."
         ),
         "nearby_farms": nearby
+    }
+
+
+async def _verify_farm_access(farm_id: str, current_user: dict, db) -> dict:
+    """
+    Verify farm existence and caller access permissions:
+    - 401 if unauthenticated (handled by Depends(get_current_user))
+    - 404 if farm does not exist in db["farm_profiles"]
+    - 403 if non-admin caller is not the owner of the farm
+    - Returns the farm document
+    """
+    if not farm_id or not str(farm_id).strip():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Farm profile not found."
+        )
+
+    query_cond = [{"id": farm_id}]
+    if ObjectId.is_valid(farm_id):
+        query_cond.append({"_id": ObjectId(farm_id)})
+    else:
+        query_cond.append({"_id": farm_id})
+
+    farm_doc = await db["farm_profiles"].find_one({"$or": query_cond})
+    if not farm_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Farm profile not found."
+        )
+
+    user_role = (current_user.get("role") or "farmer").lower()
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+
+    if user_role != "admin":
+        farm_owner = str(farm_doc.get("user_id") or "")
+        if farm_owner and farm_owner != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: You do not own this farm profile."
+            )
+
+    return farm_doc
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# M-1: DIGITAL FARM KHATA LEDGER ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/{farm_id}/khata")
+async def get_farm_khata(
+    farm_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve all financial ledger transactions for a farm."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cursor = db["farm_khata"].find({"farm_id": farm_id}).sort("date", -1)
+    transactions = []
+    async for doc in cursor:
+        doc["id"] = str(doc.get("_id") or doc.get("id"))
+        doc["_id"] = str(doc.get("_id"))
+        if "created_at" in doc and isinstance(doc["created_at"], datetime):
+            doc["created_at"] = doc["created_at"].isoformat()
+        if "updated_at" in doc and isinstance(doc["updated_at"], datetime):
+            doc["updated_at"] = doc["updated_at"].isoformat()
+        transactions.append(doc)
+
+    return {
+        "status": "success",
+        "farm_id": farm_id,
+        "transactions": transactions,
+        "count": len(transactions)
+    }
+
+
+@router.post("/{farm_id}/khata", status_code=status.HTTP_201_CREATED)
+async def add_farm_khata_transaction(
+    farm_id: str,
+    tx_data: KhataTransactionCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Create a new Khata income or expense transaction."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+    tx_type = tx_data.type.lower().strip()
+    if tx_type not in ["expense", "income"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transaction type must be 'expense' or 'income'."
+        )
+    if tx_data.amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Amount must be greater than 0."
+        )
+
+    # Duplicate booking-sync protection: if booking_id is provided, check if already recorded
+    if tx_data.booking_id:
+        existing = await db["farm_khata"].find_one({
+            "farm_id": farm_id,
+            "booking_id": str(tx_data.booking_id)
+        })
+        if existing:
+            existing["id"] = str(existing.get("_id") or existing.get("id"))
+            existing["_id"] = str(existing.get("_id"))
+            if "created_at" in existing and isinstance(existing["created_at"], datetime):
+                existing["created_at"] = existing["created_at"].isoformat()
+            if "updated_at" in existing and isinstance(existing["updated_at"], datetime):
+                existing["updated_at"] = existing["updated_at"].isoformat()
+            return existing
+
+    now = datetime.now(timezone.utc)
+    doc = {
+        "farm_id": farm_id,
+        "user_id": user_id,
+        "type": tx_type,
+        "category": tx_data.category.strip(),
+        "description": tx_data.description.strip(),
+        "amount": float(tx_data.amount),
+        "date": tx_data.date.strip(),
+        "created_at": now,
+        "updated_at": now
+    }
+    if tx_data.booking_id:
+        doc["booking_id"] = str(tx_data.booking_id)
+
+    res = await db["farm_khata"].insert_one(doc)
+    doc["id"] = str(res.inserted_id)
+    doc["_id"] = str(res.inserted_id)
+    doc["created_at"] = now.isoformat()
+    doc["updated_at"] = now.isoformat()
+    return doc
+
+
+@router.delete("/{farm_id}/khata/{tx_id}")
+async def delete_farm_khata_transaction(
+    farm_id: str,
+    tx_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Delete a Khata transaction."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cond = [{"id": tx_id}]
+    if ObjectId.is_valid(tx_id):
+        cond.append({"_id": ObjectId(tx_id)})
+
+    tx = await db["farm_khata"].find_one({"$and": [{"farm_id": farm_id}, {"$or": cond}]})
+    if not tx:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Khata transaction not found."
+        )
+
+    await db["farm_khata"].delete_one({"_id": tx["_id"]})
+    return {"message": "Transaction deleted successfully", "id": tx_id}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# M-2: CROP GROWTH TIMELINE PERSISTENCE ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/{farm_id}/timeline-tasks")
+async def get_timeline_tasks(
+    farm_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve crop growth timeline completed tasks for a farm."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    return {
+        "status": "success",
+        "farm_id": farm_id,
+        "completed_tasks": farm_doc.get("timeline_tasks") or {}
+    }
+
+
+@router.put("/{farm_id}/timeline-tasks")
+async def update_timeline_tasks(
+    farm_id: str,
+    payload: TimelineTasksUpdate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Update crop growth timeline completed tasks for a farm."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+
+    tasks = payload.completed_tasks
+    if not isinstance(tasks, dict) or len(tasks) > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid completed_tasks format or payload size exceeds 100 items."
+        )
+    for k, v in tasks.items():
+        if not isinstance(k, str) or len(k) > 100 or not isinstance(v, bool):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid task entry: key must be string <= 100 chars, value must be boolean."
+            )
+
+    now = datetime.now(timezone.utc)
+    await db["farm_profiles"].update_one(
+        {"_id": farm_doc["_id"]},
+        {
+            "$set": {
+                "timeline_tasks": tasks,
+                "updated_at": now
+            }
+        }
+    )
+    return {
+        "status": "success",
+        "farm_id": farm_id,
+        "completed_tasks": tasks
     }
 

@@ -514,37 +514,60 @@ export default function EquipmentBookingPage() {
   };
 
   // Sync completed booking to Farm Khata Ledger
-  const handleSyncToKhata = (booking) => {
+  const handleSyncToKhata = async (booking) => {
+    const canonicalFarmId = activeFarm?.id || activeFarm?._id;
+    const bookingId = booking.id || booking._id;
+
+    if (!canonicalFarmId) {
+      alert(isTe ? 'దయచేసి ముందుగా క్రియాశీల పొలాన్ని ఎంచుకోండి.' : 'Please select an active farm profile first.');
+      return;
+    }
+
+    // Prevent duplicate booking-expense insertion when the same booking is synced repeatedly
+    if (booking.syncedToKhata) {
+      alert(isTe ? 'ఈ బుకింగ్ ఇప్పటికే డిజిటల్ ఖాతాలో చేర్చబడింది!' : 'This booking is already synced to Farm Khata!');
+      return;
+    }
+
+    const txPayload = {
+      type: 'expense',
+      category: 'machinery',
+      description: `${booking.title || 'Equipment Rental'} (${booking.operation || 'Rental Service'}) - Booking #${bookingId}`,
+      amount: parseFloat(booking.totalCost) || 0,
+      date: booking.bookingDate || new Date().toISOString().split('T')[0],
+      booking_id: String(bookingId)
+    };
+
     try {
-      const farmId = activeFarm?.id || 'default_farm';
-      const khataKey = `agrishield_farm_khata_${farmId}`;
-      const savedLedger = localStorage.getItem(khataKey);
-      let ledger = { expenses: [], sales: [] };
-      if (savedLedger) {
-        ledger = JSON.parse(savedLedger);
-      }
+      // 1. Post to backend first - strictly require confirmed success
+      const res = await API.post(`/api/farms/${canonicalFarmId}/khata`, txPayload);
+      const createdTx = res.data;
 
-      const newExpense = {
-        id: `exp-bk-${Date.now()}`,
-        category: 'machinery',
-        title: `${booking.title} (${booking.operation || 'Rental Service'})`,
-        amount: booking.totalCost,
-        date: booking.bookingDate,
-        notes: `Auto-synced from Machinery Booking ID #${booking.id} (${booking.acres} acres)`
-      };
+      // 2. Update local cache for offline viewing only after confirmed server response
+      const khataKey = `agrishield_khata_${canonicalFarmId}`;
+      try {
+        const cached = JSON.parse(localStorage.getItem(khataKey) || '[]');
+        const targetId = createdTx?.id || createdTx?._id || `bk-${bookingId}`;
+        const exists = cached.some(tx => tx.booking_id === String(bookingId) || tx.id === targetId || tx._id === targetId);
+        if (!exists) {
+          cached.unshift(createdTx || {
+            id: targetId,
+            ...txPayload
+          });
+          localStorage.setItem(khataKey, JSON.stringify(cached));
+        }
+      } catch (_) {}
 
-      ledger.expenses.unshift(newExpense);
-      localStorage.setItem(khataKey, JSON.stringify(ledger));
-
-      // Mark this booking as synced
+      // 3. Mark this booking as synced ONLY after confirmed backend persistence
       setMyBookings((prev) =>
-        prev.map((b) => (b.id === booking.id ? { ...b, syncedToKhata: true } : b))
+        prev.map((b) => ((b.id === booking.id || b._id === booking._id) ? { ...b, syncedToKhata: true } : b))
       );
 
       alert(isTe ? 'డిజిటల్ పొలం ఖాతా పాస్‌బుక్‌కు ఖర్చు విజయవంతంగా జోడించబడింది!' : 'Rental cost successfully logged into Digital Farm Khata passbook!');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to sync with Farm Khata');
+    } catch (apiErr) {
+      console.error('Backend Khata sync error:', apiErr);
+      // DO NOT mark synced. Allow farmer to retry.
+      alert(isTe ? 'ఖాతా సమకాలీకరణ విఫలమైంది. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Failed to sync with Farm Khata. Please check your connection and try again.');
     }
   };
 

@@ -1,7 +1,42 @@
 # AgriShield Project Changelog (changes_happening.md)
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
-## 2026-09-29 (v338) - B4 H-2: Complete 7-Language Frontend Localization Migration (en, te, ta, kn, hi, ml, or)
+## 2026-09-29 (v339) - B4 Medium Fixes (M-1, M-2, M-3) & Digital Farm Khata / Timeline Persistence
+- **Summary:**
+  1. 💰 **M-1: Digital Farm Khata Backend Persistence & Duplicate Sync Protection (`backend/app/routers/farmer/farm_profiles.py`, `backend/app/models/farm_profile.py`, `frontend/src/components/farm/DigitalFarmKhata.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`):**
+     - Created persistent MongoDB ledger endpoints under `/api/farms/{farm_id}/khata`:
+       * `GET /api/farms/{farm_id}/khata`: Fetches ledger transactions for the specified farm. Enforces JWT authentication, owner tenancy, and global admin access. Returns 401 for unauthenticated, 404 for nonexistent farms, and 403 for cross-tenant access.
+       * `POST /api/farms/{farm_id}/khata`: Creates new income or expense transaction with strict validation (`type`, `category`, `description`, `amount` > 0, `date`). Includes built-in `booking_id` duplicate sync protection to ensure equipment bookings are never double-billed.
+       * `DELETE /api/farms/{farm_id}/khata/{tx_id}`: Removes financial transaction scoped to the verified farm profile.
+     - Updated `DigitalFarmKhata.jsx` to accept `farmId`, query backend data when authenticated, retain `localStorage` as offline fallback/cache, and sync add/delete operations with the backend first.
+     - Updated `FarmPage.jsx` to pass canonical active farm ID (`activeFarm?.id || activeFarm?._id || farms?.[0]?.id`) to `DigitalFarmKhata`.
+     - Updated `EquipmentBookingPage.jsx` `handleSyncToKhata` to use the canonical backend Khata API, canonical farm ID, prevent duplicate expense insertion when synced repeatedly, and stop writing to the orphaned `agrishield_farm_khata_*` key.
+  2. 📅 **M-2: Crop Growth Timeline Tasks Persistence (`backend/app/routers/farmer/farm_profiles.py`, `backend/app/models/farm_profile.py`, `frontend/src/components/farm/CropGrowthTimeline.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`):**
+     - Created farm-scoped timeline tasks endpoints under `/api/farms/{farm_id}/timeline-tasks`:
+       * `GET /api/farms/{farm_id}/timeline-tasks`: Retrieves task completion mapping from the farm profile document (`timeline_tasks`).
+       * `PUT /api/farms/{farm_id}/timeline-tasks`: Persists task completion map to `db["farm_profiles"]`. Bounded payload validation (max 100 items, string keys <= 100 chars, boolean values).
+     - Updated `CropGrowthTimeline.jsx` to accept `farmId`, initialize instantly from local storage cache, fetch authoritative MongoDB state on mount, use monotonic timestamp tracking to prevent stale network responses from overwriting newer local edits, and gracefully fall back to local state on network error.
+     - Updated `FarmPage.jsx` to pass canonical active farm ID to `CropGrowthTimeline`.
+  3. 🛡️ **M-3: Admin Prediction History Deletion & Safe Path Handling (`backend/app/routers/farmer/predict.py`):**
+     - Updated `DELETE /api/history/{id}` authorization logic:
+       * Platform administrators may delete any prediction history record across all users.
+       * Non-admin farmers may delete only their own prediction records.
+       * Cross-tenant deletion attempts by non-owners are rejected with `HTTP 403 Forbidden`.
+       * Unauthenticated calls return `HTTP 401 Unauthorized`; invalid IDs return `HTTP 400 Bad Request`; nonexistent records return `HTTP 404 Not Found`.
+       * Preserved permanent `SyncService.record_deletion` cross-device tombstones.
+       * Added safe null/missing guard for `image_path` to prevent crashes when deleting prediction records without images or where the image was already removed.
+  4. 🧪 **Automated Test Suites & Regression Verification:**
+     - Created `backend/tests/test_b4_m_fixes.py` with 100% test pass rate covering:
+       * `test_m3_delete_prediction_authorization_and_safety`: 401, 400, 404, 403 cross-tenant, owner deletion, admin deletion, tombstone recording, and null/missing image safety.
+       * `test_m1_khata_crud_and_tenant_isolation`: 401, 404, 403 cross-tenant, owner create/read/delete, admin global read, and duplicate booking-sync idempotency.
+       * `test_m2_timeline_tasks_persistence_and_validation`: 401, 404, 403 cross-tenant, owner read/write, admin read, and oversized payload validation.
+     - Ran full regression test suites:
+       * `test_b1_rbac.py` + `test_b1_concurrency.py`: 26/26 passed.
+       * `test_b3_critical_security.py` + `test_b3_high_security.py` + `test_b3_medium_security.py` + `test_b4_fixes.py`: 50/50 passed.
+     - Executed production frontend bundle build `npm run build`: 0 errors in 28.77s.
+- **Files modified:** `backend/app/models/farm_profile.py`, `backend/app/routers/farmer/farm_profiles.py`, `backend/app/routers/farmer/predict.py`, `frontend/src/components/farm/DigitalFarmKhata.jsx`, `frontend/src/components/farm/CropGrowthTimeline.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `backend/tests/test_b4_m_fixes.py`, `changes_happening.md`.
+
+## 2026-09-29 (v338) - B4 H-2: Complete 7-Language Frontend Localization Migration (en, te, ta, kn, hi, ml, or)
 - **Summary:**
   1. 🌐 **100% Binary Language Logic Elimination (`frontend/src`):**
      - Completely audited and eradicated all 1,305 `isTe` / `isTelugu` usages, 35 declarations, and 163 hardcoded language checks across all 41 affected components and pages.

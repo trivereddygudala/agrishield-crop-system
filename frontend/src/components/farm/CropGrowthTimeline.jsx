@@ -1,5 +1,6 @@
 import { getLocalizedField } from '../../utils/localizationHelper';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import API from '../../services/api';
 import { motion } from 'framer-motion';
 import { 
   Calendar, CheckCircle2, Clock, AlertTriangle, 
@@ -25,6 +26,7 @@ const CROP_STAGES_DATA = {
 };
 
 export default function CropGrowthTimeline({ 
+  farmId,
   farmName = "My Farm", 
   cropName = "Tomato", 
   plantingDate = "2026-08-15",
@@ -35,6 +37,8 @@ export default function CropGrowthTimeline({
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
   const isTe = currentLang === 'te';
+
+  const storageKey = useMemo(() => farmId ? `agrishield_timeline_${farmId}` : `agrishield_timeline_${farmName.replace(/\s+/g, '_')}`, [farmId, farmName]);
 
   // Calculate Days After Sowing (DAS)
   const das = useMemo(() => {
@@ -56,14 +60,60 @@ export default function CropGrowthTimeline({
     return found || stages[1] || stages[0];
   }, [stages, das]);
 
-  // Task checklist state
-  const [completedTasks, setCompletedTasks] = useState({});
+  // Task checklist state initialized quickly from localStorage
+  const [completedTasks, setCompletedTasks] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return {};
+  });
+
+  const lastLocalUpdateRef = useRef(0);
+
+  // Fetch remote MongoDB state after mount (authoritative if available)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTimelineTasks = async () => {
+      if (!farmId) return;
+      const fetchStartTime = Date.now();
+      try {
+        const res = await API.get(`/api/farms/${farmId}/timeline-tasks`);
+        const serverTasks = res.data?.completed_tasks || {};
+        // Only apply if user hasn't made a newer local change while request was in-flight
+        if (isMounted && fetchStartTime >= lastLocalUpdateRef.current) {
+          setCompletedTasks(serverTasks);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(serverTasks));
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn("Could not fetch remote timeline tasks, using local cache:", err);
+      }
+    };
+    fetchTimelineTasks();
+    return () => { isMounted = false; };
+  }, [farmId, storageKey]);
 
   const toggleTask = (taskId) => {
-    setCompletedTasks(prev => ({
-      ...prev,
-      [taskId]: !prev[taskId]
-    }));
+    lastLocalUpdateRef.current = Date.now();
+    setCompletedTasks(prev => {
+      const updated = {
+        ...prev,
+        [taskId]: !prev[taskId]
+      };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch (_) {}
+
+      if (farmId) {
+        API.put(`/api/farms/${farmId}/timeline-tasks`, { completed_tasks: updated })
+          .catch(err => {
+            console.warn("Background timeline tasks sync failed, kept in local cache:", err);
+          });
+      }
+      return updated;
+    });
   };
 
   const handleShareWhatsApp = () => {
