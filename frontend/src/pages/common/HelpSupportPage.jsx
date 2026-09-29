@@ -176,9 +176,10 @@ export const FARMER_CATEGORIES = [
 
 export default function HelpSupportPage() {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isTe = i18n?.language === 'te';
+  const currentLangCode = (i18n?.language || user?.preferred_language || 'en').split('-')[0].toLowerCase();
 
   // Role detection: Equipment Provider vs Farmer
   const isEquipmentProvider = user?.role === 'provider' || user?.role === 'equipment_provider' || user?.profile_type === 'provider' || user?.account_type === 'provider';
@@ -190,7 +191,11 @@ export default function HelpSupportPage() {
   // Callback Modal State
   const [isCallbackOpen, setIsCallbackOpen] = useState(false);
   const [callbackPhone, setCallbackPhone] = useState(user?.phone || user?.mobile || '');
-  const [callbackLang, setCallbackLang] = useState(isTe ? 'te' : 'en');
+  const [callbackLang, setCallbackLang] = useState(currentLangCode);
+
+  useEffect(() => {
+    setCallbackLang(currentLangCode);
+  }, [currentLangCode]);
   const [callbackIssue, setCallbackIssue] = useState('');
   const [callbackSubmitting, setCallbackSubmitting] = useState(false);
   const [callbackSuccess, setCallbackSuccess] = useState('');
@@ -393,7 +398,7 @@ export default function HelpSupportPage() {
         description: ticketDesc.trim(),
         device_id: ticketDeviceId.trim() || null,
         phone: ticketPhone.trim() || null,
-        language: isTe ? 'te' : 'en'
+        language: currentLangCode
       };
       if (botTrap) payload.bot_trap = botTrap;
 
@@ -1174,6 +1179,8 @@ export default function HelpSupportPage() {
                       <option value="hi">हिन्दी (Hindi)</option>
                       <option value="ta">தமிழ் (Tamil)</option>
                       <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                      <option value="ml">മലയാളം (Malayalam)</option>
+                      <option value="or">ଓଡ଼ିଆ (Odia)</option>
                     </select>
                   </div>
 

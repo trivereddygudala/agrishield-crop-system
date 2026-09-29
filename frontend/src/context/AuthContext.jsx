@@ -157,15 +157,26 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password, preferred_language = 'en', botTrap = '', role = 'farmer', extraData = {}) => {
     setLoading(true);
     try {
+      // Normalize extraData if passed as object or array
+      const normalizedExtra = Array.isArray(extraData)
+        ? { selected_crops: extraData }
+        : (typeof extraData === 'object' && extraData !== null ? extraData : {});
+
+      // Normalize farm_location to string if it's an object
+      let normalizedFarmLoc = normalizedExtra.farm_location || '';
+      if (typeof normalizedFarmLoc === 'object' && normalizedFarmLoc !== null) {
+        normalizedFarmLoc = [normalizedFarmLoc.village, normalizedFarmLoc.district, normalizedFarmLoc.state].filter(Boolean).join(', ');
+      }
+
       const payload = {
         name,
         email,
         password,
         role: role || 'farmer',
         preferred_language,
-        selected_crops: extraData.selected_crops || [],
-        equipment_types: extraData.equipment_types || [],
-        farm_location: extraData.farm_location || ''
+        selected_crops: Array.isArray(normalizedExtra.selected_crops) ? normalizedExtra.selected_crops : [],
+        equipment_types: Array.isArray(normalizedExtra.equipment_types) ? normalizedExtra.equipment_types : [],
+        farm_location: typeof normalizedFarmLoc === 'string' ? normalizedFarmLoc : ''
       };
       if (botTrap) payload.bot_trap = botTrap;
       const res = await API.post('/api/auth/register', payload);

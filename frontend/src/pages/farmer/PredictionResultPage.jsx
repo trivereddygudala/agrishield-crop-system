@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Leaf, 
   ShieldAlert, 
@@ -76,6 +77,9 @@ const PredictionResultPage = () => {
   const navigate = useNavigate();
   const { activeFarm, profileCompleted } = useFarm();
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
+  const [searchParams] = useSearchParams();
+  const paramRecordId = searchParams.get('id');
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
   const [nvidiaAdvice, setNvidiaAdvice] = useState(null);
@@ -126,6 +130,41 @@ const PredictionResultPage = () => {
   const backendBaseUrl = import.meta.env.VITE_API_URL || '';
 
   useEffect(() => {
+    // 1. Deep-link loading by record ID: /result?id=...
+    if (paramRecordId) {
+      if (authLoading) return; // Wait until authentication check resolves
+      if (!user) {
+        // Enforce: /result?id= must never expose a diagnosis publicly
+        navigate('/login', { state: { from: location }, replace: true });
+        return;
+      }
+
+      const fetchRecordById = async () => {
+        setLoading(true);
+        setErrorMsg('');
+        try {
+          const res = await API.get(`/api/history/${paramRecordId}`);
+          setResult(res.data);
+        } catch (err) {
+          console.error("Failed to load diagnosis record by ID:", err);
+          if (err.response?.status === 403) {
+            setErrorMsg(t('result_page.forbidden', "Access forbidden: You cannot access another farmer's diagnosis record."));
+          } else if (err.response?.status === 404) {
+            setErrorMsg(t('result_page.not_found', "Diagnosis record not found or has been deleted."));
+          } else if (err.response?.status === 401) {
+            navigate('/login', { state: { from: location }, replace: true });
+          } else {
+            setErrorMsg(t('result_page.load_error', "Unable to retrieve the requested diagnosis report."));
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchRecordById();
+      return;
+    }
+
     if (!imagePath && !passedPreviewUrl && !location.state?.offlineTriage) {
       navigate('/upload', { replace: true });
       return;
@@ -177,7 +216,7 @@ const PredictionResultPage = () => {
     };
 
     runAIPrediction();
-  }, [imagePath, passedPreviewUrl, navigate, activeFarm, location.state]);
+  }, [paramRecordId, authLoading, user, imagePath, passedPreviewUrl, navigate, activeFarm, location.state]);
 
   const handleCloudVerify = async () => {
     if (!imagePath || !navigator.onLine) return;
@@ -209,7 +248,7 @@ const PredictionResultPage = () => {
     return ADVICE_DB["generic disease"];
   };
 
-  if (loading) {
+  if (loading || (paramRecordId && authLoading)) {
     return (
       <div className="space-y-6 max-w-4xl mx-auto w-full">
         <Skeleton className="h-8 w-48 rounded-xl" />
@@ -222,12 +261,37 @@ const PredictionResultPage = () => {
     );
   }
 
+  if (errorMsg || !result) {
+    return (
+      <div className="space-y-6 max-w-xl mx-auto w-full py-12 text-center">
+        <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-black text-slate-900 dark:text-white">
+            {errorMsg || "Unable to display diagnosis result"}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Please return to Scan Center or verify that you have permission to view this diagnosis report.
+          </p>
+          <div className="pt-2">
+            <Link to="/upload">
+              <Button variant="solid" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
+                Back to Scan Center
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isHealthy = result?.prediction_status === 'healthy' || ((result?.canonical_disease_name || result?.disease_name || '').toLowerCase().includes('healthy') && result?.prediction_status !== 'diseased');
   const rawDis = result?.canonical_disease_name || result?.disease_name;
   const rawCrop = result?.canonical_crop_name || result?.crop_name;
   const fallbackAdvice = getAdviceForDisease(rawDis);
   const confidencePercent = result?.confidence ? (result.confidence * 100).toFixed(1) : '98.5';
-  const displayImgUrl = passedPreviewUrl || (imagePath ? `${backendBaseUrl}/${imagePath.replace(/\\/g, '/')}` : '');
+  const displayImgUrl = passedPreviewUrl || (result?.image_data_url || (result?.image_path ? `${backendBaseUrl}/${result.image_path.replace(/\\/g, '/')}` : (imagePath ? `${backendBaseUrl}/${imagePath.replace(/\\/g, '/')}` : '')));
 
   const diseaseKb = getDiseaseDetails(rawCrop, rawDis, activeLang);
   const localizedCrop = translateCrop(rawCrop, activeLang);

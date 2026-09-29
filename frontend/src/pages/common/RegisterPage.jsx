@@ -155,12 +155,7 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
-      const farmLocation = {
-        village,
-        district,
-        state: 'Andhra Pradesh',
-        radius_km: role === 'equipment_provider' ? providerRadiusKm : undefined
-      };
+      const farmLocationStr = [village, district, 'Andhra Pradesh'].filter(Boolean).join(', ');
 
       await register(
         trimmedName,
@@ -169,9 +164,17 @@ const RegisterPage = () => {
         preferredLanguage,
         botTrap,
         role,
-        role === 'farmer' ? selectedCrops : [],
-        role === 'equipment_provider' ? equipmentTypes : [],
-        farmLocation
+        {
+          selected_crops: role === 'farmer' ? selectedCrops : [],
+          equipment_types: role === 'equipment_provider' ? equipmentTypes : [],
+          farm_location: farmLocationStr,
+          location_details: {
+            village,
+            district,
+            state: 'Andhra Pradesh',
+            radius_km: role === 'equipment_provider' ? providerRadiusKm : undefined
+          }
+        }
       );
 
       localStorage.setItem('farmer_village', village);

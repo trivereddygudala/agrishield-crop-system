@@ -45,6 +45,11 @@ class UserBase(BaseModel):
                 data["preferred_languages"] = ["en"] if raw_plang == "en" else ["en", raw_plang]
             elif not data.get("preferred_language"):
                 data["preferred_language"] = raw_plangs[0]
+            # Backward compatibility: normalize farm_location if passed as dict
+            raw_loc = data.get("farm_location")
+            if isinstance(raw_loc, dict):
+                loc_parts = [raw_loc.get("village"), raw_loc.get("district"), raw_loc.get("state")]
+                data["farm_location"] = ", ".join([str(p) for p in loc_parts if p]) or None
         return data
 
 class UserRegister(UserBase):

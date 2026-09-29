@@ -588,7 +588,7 @@ const UploadImagePage = () => {
           created_at: new Date().toISOString(),
           timestamp: new Date().toISOString(),
           read: false,
-          action_url: '/result',
+          action_url: (resData.id || resData._id) ? `/result?id=${resData.id || resData._id}` : '/result',
           image_data_url: plantixThumbnail || null
         };
 

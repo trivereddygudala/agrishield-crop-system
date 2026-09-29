@@ -2,7 +2,7 @@ from datetime import timezone
 import logging
 from typing import Optional
 from fastapi import APIRouter, Query, Depends, HTTPException, status
-from backend.app.routers.auth import get_current_user
+from backend.app.routers.auth import get_current_user, get_optional_current_user
 from backend.app.db.mongodb import db_instance
 from backend.app.services.weather import WeatherIntelligenceService
 from backend.app.services.irrigation import SmartIrrigationService
@@ -30,13 +30,60 @@ crop_calendar_service = CropCalendarService()
 farm_health_service = FarmHealthService(weather_service=weather_service)
 farm_timeline_service = FarmTimelineService()
 
+
+async def _verify_farm_access(farm_id: Optional[str], current_user: Optional[dict]):
+    """
+    Strict C-2 Security Verification:
+    - If farm_id is provided:
+        * Caller must be authenticated (401 Unauthorized if missing).
+        * Farm profile must exist in DB (404 Not Found if missing).
+        * Non-admin caller must be the verified owner of the farm (403 Forbidden if not owner).
+    - If farm_id is omitted: caller is permitted public access via explicit lat/lon.
+    """
+    if not farm_id or not str(farm_id).strip() or farm_id == "default":
+        return
+
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required when querying by farm_id."
+        )
+
+    if hasattr(db_instance, "db") and db_instance.db is not None:
+        from bson import ObjectId
+        query_cond = [{"id": farm_id}]
+        if ObjectId.is_valid(farm_id):
+            query_cond.append({"_id": ObjectId(farm_id)})
+        else:
+            query_cond.append({"_id": farm_id})
+
+        farm_doc = await db_instance.db["farm_profiles"].find_one({"$or": query_cond})
+        if not farm_doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Farm profile not found."
+            )
+
+        user_role = (current_user.get("role") or "farmer").lower()
+        user_id = str(current_user.get("id") or current_user.get("_id") or "")
+        if user_role != "admin":
+            farm_owner = str(farm_doc.get("user_id") or "")
+            if farm_owner and farm_owner != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access forbidden: You do not own this farm profile."
+                )
+
+
 @router.get("/weather", summary="Get Weather Intelligence for Farm Location")
 async def get_weather(
     farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
     lat: Optional[float] = Query(None, description="Latitude"),
     lon: Optional[float] = Query(None, description="Longitude"),
-    bypass_cache: bool = Query(False, description="Bypass cache for live sync")
+    bypass_cache: bool = Query(False, description="Bypass cache for live sync"),
+    current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
+    await _verify_farm_access(farm_id, current_user)
     return await weather_service.get_weather_for_farm(
         farm_id=farm_id, lat=lat, lon=lon, bypass_cache=bypass_cache
     )
@@ -49,8 +96,10 @@ async def get_irrigation(
     farm_size: float = Query(1.0, description="Farm Size in Acres"),
     soil_moisture: Optional[float] = Query(None, description="Soil Moisture %"),
     lat: float = Query(16.5062, description="Latitude"),
-    lon: float = Query(80.6480, description="Longitude")
+    lon: float = Query(80.6480, description="Longitude"),
+    current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
+    await _verify_farm_access(farm_id, current_user)
     return await irrigation_service.calculate_irrigation_recommendation(
         farm_id=farm_id,
         crop_name=crop_name,
@@ -70,8 +119,10 @@ async def get_disease_risk(
     hardware_mode: bool = Query(False, description="Enable Dual-Stream Hardware Sensor Mode"),
     canopy_temp: Optional[float] = Query(None, description="ESP32 Canopy Temp (°C)"),
     canopy_humidity: Optional[float] = Query(None, description="ESP32 Canopy Humidity (%)"),
-    soil_moisture: Optional[float] = Query(None, description="ESP32 Soil Moisture (%)")
+    soil_moisture: Optional[float] = Query(None, description="ESP32 Soil Moisture (%)"),
+    current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
+    await _verify_farm_access(farm_id, current_user)
     safe_crop = (crop_name or "").strip() or "Tomato"
     safe_lat = float(lat) if lat is not None else 16.5062
     safe_lon = float(lon) if lon is not None else 80.6480
@@ -100,8 +151,10 @@ async def get_pathogen_radar(
     hardware_mode: bool = Query(False, description="Enable Dual-Stream Hardware Sensor Mode"),
     canopy_temp: Optional[float] = Query(None, description="ESP32 Canopy Temp (°C)"),
     canopy_humidity: Optional[float] = Query(None, description="ESP32 Canopy Humidity (%)"),
-    soil_moisture: Optional[float] = Query(None, description="ESP32 Soil Moisture (%)")
+    soil_moisture: Optional[float] = Query(None, description="ESP32 Soil Moisture (%)"),
+    current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
+    await _verify_farm_access(farm_id, current_user)
     hardware_telemetry = None
     if hardware_mode and (canopy_temp is not None or canopy_humidity is not None):
         hardware_telemetry = {
@@ -141,8 +194,10 @@ async def get_daily_recommendations(
     growth_stage: str = Query("Vegetative", description="Growth Stage"),
     farm_size: float = Query(1.0, description="Farm Size in Acres"),
     lat: float = Query(16.5062, description="Latitude"),
-    lon: float = Query(80.6480, description="Longitude")
+    lon: float = Query(80.6480, description="Longitude"),
+    current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
+    await _verify_farm_access(farm_id, current_user)
     return await recommendations_service.generate_daily_recommendations(
         farm_id=farm_id,
         crop_name=crop_name,
@@ -170,31 +225,7 @@ async def get_health_score(
     lon: float = Query(80.6480, description="Longitude"),
     current_user: dict = Depends(get_current_user)
 ):
-    user_role = (current_user.get("role") or "farmer").lower()
-    user_id = str(current_user.get("id") or current_user.get("_id") or "")
-
-    # If farm_id provided and user is not admin, verify ownership
-    if farm_id and user_role != "admin" and hasattr(db_instance, "db") and db_instance.db is not None:
-        try:
-            from bson import ObjectId
-            query_cond = [{"id": farm_id}]
-            if ObjectId.is_valid(farm_id):
-                query_cond.append({"_id": ObjectId(farm_id)})
-            else:
-                query_cond.append({"_id": farm_id})
-            farm_doc = await db_instance.db["farm_profiles"].find_one({"$or": query_cond})
-            if farm_doc:
-                farm_owner = str(farm_doc.get("user_id") or "")
-                if farm_owner and farm_owner != user_id:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Access forbidden: You do not own this farm profile."
-                    )
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.warning(f"Error checking farm ownership for health-score: {e}")
-
+    await _verify_farm_access(farm_id, current_user)
     return await farm_health_service.calculate_health_score_2(
         farm_id=farm_id, diseased_ratio=diseased_ratio, lat=lat, lon=lon
     )
@@ -206,31 +237,9 @@ async def get_timeline(
     limit: int = Query(20, description="Event Limit"),
     current_user: dict = Depends(get_current_user)
 ):
+    await _verify_farm_access(farm_id, current_user)
     user_role = (current_user.get("role") or "farmer").lower()
     user_id = str(current_user.get("id") or current_user.get("_id") or "")
-
-    # If farm_id provided and user is not admin, verify ownership
-    if farm_id and user_role != "admin" and hasattr(db_instance, "db") and db_instance.db is not None:
-        try:
-            from bson import ObjectId
-            query_cond = [{"id": farm_id}]
-            if ObjectId.is_valid(farm_id):
-                query_cond.append({"_id": ObjectId(farm_id)})
-            else:
-                query_cond.append({"_id": farm_id})
-            farm_doc = await db_instance.db["farm_profiles"].find_one({"$or": query_cond})
-            if farm_doc:
-                farm_owner = str(farm_doc.get("user_id") or "")
-                if farm_owner and farm_owner != user_id:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Access forbidden: You do not own this farm profile."
-                    )
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.warning(f"Error checking farm ownership for timeline: {e}")
-
     scoped_user_id = None if user_role == "admin" else user_id
     return await farm_timeline_service.get_farm_timeline(
         farm_id=farm_id, category=category, limit=limit, user_id=scoped_user_id

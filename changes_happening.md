@@ -2,6 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-29 (v336) - B4 Critical & High Fixes (C-1, C-2, H-1, H-3)
+- **Summary:**
+  1. 🌾 **C-1: Registration Signature Mismatch & Onboarding Data Loss (`frontend/src/pages/common/RegisterPage.jsx`, `frontend/src/context/AuthContext.jsx`, `backend/app/models/schemas.py`):**
+     - Updated `RegisterPage.jsx` to pass onboarding attributes inside the expected 7th parameter `extraData` object instead of positional arguments 7, 8, and 9.
+     - Normalized `farm_location` to string on the client (`[village, district, 'Andhra Pradesh'].filter(Boolean).join(', ')`).
+     - Hardened `AuthContext.jsx` to normalize `extraData` and convert dict/object `farm_location` into string.
+     - Added validator in `backend/app/models/schemas.py` to ensure `farm_location` is normalized if a dict is supplied.
+  2. 🔒 **C-2: Intelligence farm_id Authorization & Nonexistent Farm 404 (`backend/app/routers/common/intelligence.py`):**
+     - Introduced `_verify_farm_access(farm_id, current_user)` helper.
+     - Enforced across `/weather`, `/irrigation`, `/disease-risk`, `/pathogen-radar`, `/recommendations`, `/health-score`, and `/timeline`:
+       * Supplied `farm_id` requires authentication (`HTTP 401 Unauthorized` if unauthenticated).
+       * Nonexistent `farm_id` returns `HTTP 404 Not Found`.
+       * Non-admin caller attempting to query another farmer's farm profile is rejected with `HTTP 403 Forbidden`.
+       * Public weather inquiries omitting `farm_id` and passing explicit `lat`/`lon` remain unauthenticated.
+  3. 🩺 **H-1: Prediction Result Notification Deep-link & Single Prediction Fetch API (`backend/app/routers/farmer/predict.py`, `frontend/src/pages/farmer/UploadImagePage.jsx`, `frontend/src/pages/farmer/PredictionResultPage.jsx`):**
+     - Added `GET /api/history/{id}` endpoint in `predict.py` guarded by `get_current_user`, strictly authorizing owner and administrator access while rejecting unauthorized cross-farmer requests with `HTTP 403 Forbidden`.
+     - Updated notification `action_url` in both backend (`predict.py`) and frontend (`UploadImagePage.jsx`) to generate `/result?id={id}` deep-links.
+     - Updated `PredictionResultPage.jsx` to parse `?id=...`, require authenticated session, fetch the historical diagnosis record from `/api/history/{id}`, and display the report without bouncing to `/upload`.
+  4. 🌐 **H-3: Helpdesk Support Ticket Multi-Language Submission (`frontend/src/pages/common/HelpSupportPage.jsx`):**
+     - Replaced hardcoded `language: isTe ? 'te' : 'en'` with active language code `(i18n?.language || user?.preferred_language || 'en').split('-')[0].toLowerCase()`.
+     - Connected all 7 supported vernacular languages (`te`, `en`, `hi`, `ta`, `kn`, `ml`, `or`) into the 15-minute callback modal select menu.
+     - Allows regional tickets (Tamil, Hindi, Kannada, Malayalam, Odia, Telugu) to properly trigger backend translation pipeline in `backend/app/routers/common/support.py`.
+  5. 🧪 **Verification & Regressions:**
+     - Created `backend/tests/test_b4_fixes.py` covering C-1, C-2, H-1, and H-3: **6/6 passed (100%)**.
+     - Ran B1 & B3 regression suites: `test_b3_high_security.py` (19/19 passed), `test_b3_critical_security.py` (11/11 passed), `test_b3_medium_security.py` (14/14 passed), `test_b1_rbac.py` (7/7 passed), `test_b1_concurrency.py` (19/19 passed).
+     - Built frontend bundle via `npm run build`: **passed in 42.97s with zero errors**.
+     - Total: **76/76 automated security & regression tests passing**.
+- **Files modified**: `frontend/src/pages/common/RegisterPage.jsx`, `frontend/src/context/AuthContext.jsx`, `backend/app/models/schemas.py`, `backend/app/routers/common/intelligence.py`, `backend/app/routers/farmer/predict.py`, `frontend/src/pages/farmer/UploadImagePage.jsx`, `frontend/src/pages/farmer/PredictionResultPage.jsx`, `frontend/src/pages/common/HelpSupportPage.jsx`, `backend/tests/test_b4_fixes.py`, `changes_happening.md`.
+
 ## 2026-09-29 (v335) - B3 Medium Security Fixes (M-1, M-2, M-3, M-4)
 - **Summary:**
   1. 🧠 **M-1: Farm Timeline & Health Score JWT Authentication & User Scoping (`backend/app/routers/common/intelligence.py`, `backend/app/services/farm_timeline/service.py`):**

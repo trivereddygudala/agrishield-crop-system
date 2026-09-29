@@ -2439,6 +2439,7 @@ async def predict_pytorch_endpoint(
                     message = f"{disease} identified on {crop} with {confidence}% confidence. Immediate treatment recommended. Check your AI scan results for treatment details."
                     priority = "Critical"
 
+            notif_action_url = f"/result?id={prediction_record['id']}" if prediction_record.get("id") else "/result"
             await NotificationService.create_notification(
                 db,
                 NotificationCreate(
@@ -2447,7 +2448,7 @@ async def predict_pytorch_endpoint(
                     message=message,
                     category="disease",
                     priority=priority,
-                    action_url="/result"
+                    action_url=notif_action_url
                 )
             )
             logger.info(f"✅ Scan notification created and broadcast for user {user_id_str}: '{title}'")
@@ -2822,6 +2823,58 @@ async def get_history(
         "page": page,
         "pages": pages
     }
+
+@router.get("/history/{id}", status_code=status.HTTP_200_OK)
+async def get_history_record_by_id(
+    id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve an individual diagnosis record by ID with strict owner/admin authorization."""
+    if not ObjectId.is_valid(id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid history record ID format."
+        )
+
+    projection = {"gradcam_base64": 0, "heatmap_base64": 0, "comparison_base64": 0}
+    record = await db.predictions.find_one({"_id": ObjectId(id)}, projection)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Diagnosis record not found."
+        )
+
+    user_role = (current_user.get("role") or "farmer").lower()
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+    if user_role != "admin" and str(record.get("user_id") or "") != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: You cannot access another farmer's diagnosis record."
+        )
+
+    def _sanitize(doc):
+        if isinstance(doc, ObjectId):
+            return str(doc)
+        if isinstance(doc, dict):
+            clean = {}
+            for k, v in doc.items():
+                if k == "_id":
+                    clean["_id"] = str(v)
+                    clean["id"] = str(v)
+                else:
+                    clean[k] = _sanitize(v)
+            return clean
+        if isinstance(doc, list):
+            return [_sanitize(item) for item in doc]
+        return doc
+
+    clean_rec = _sanitize(record)
+    if "created_at" in clean_rec and isinstance(clean_rec["created_at"], datetime):
+        dt = clean_rec["created_at"]
+        clean_rec["created_at"] = dt.isoformat() + ("Z" if dt.tzinfo is None else "")
+
+    return clean_rec
 
 @router.delete("/history/{id}", status_code=status.HTTP_200_OK)
 async def delete_history_record(
