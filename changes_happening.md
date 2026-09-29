@@ -2,6 +2,31 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-29 (v332) - B3 Critical Security Fixes (C-1, C-2, C-3, C-4)
+- **Summary:**
+  1. 🛡️ **C-1: Public Self-Registration Privilege Escalation Guard (`backend/app/routers/common/auth.py`):**
+     - Hardcoded `"role": "farmer"` in `register()` (`auth.py:146`), ignoring any client-supplied `role` parameter.
+     - Prohibits anonymous users from creating `admin`, `equipment_provider`, or other privileged accounts during registration.
+  2. 🔒 **C-2: Tombstone Deletion Injection Guard & Ownership Scoping (`backend/app/routers/common/sync.py`):**
+     - Injected `current_user: Dict[str, Any] = Depends(get_current_user)` on `POST /sync/tombstones` and `POST /sync/deletions`.
+     - Enforced tenant ownership verification: non-admin users can only tombstone entities they own (`booking`, `equipment`, `prediction`, `notification`).
+     - Preserved legitimate cross-device sync and kept `GET /sync/tombstones` compatible with public equipment tombstone polling without requiring authentication.
+  3. 🚜 **C-3: Cross-Provider Equipment Listing Hijack Prevention (`backend/app/routers/provider/equipment.py`):**
+     - In `register_equipment_item()` (`POST /catalog`), added verification that existing equipment listings are owned by the authenticated provider (`providerId == auth_uid` or `owner_id == auth_uid`) or an administrator before upserting.
+     - Any attempt by another provider to overwrite an existing listing is rejected with `HTTP 403 Forbidden`.
+  4. 📅 **C-4: Booking ID Hijacking & Status Reversion Prevention (`backend/app/routers/provider/equipment.py`):**
+     - In `create_booking()` (`POST /bookings`) and `create_bookings_batch()` (`POST /bookings/batch`), verified existing booking identifiers in MongoDB before writing.
+     - If the existing booking belongs to another user, rejected with `HTTP 409 Conflict`.
+     - If the existing booking is in a confirmed, completed, cancelled, or rejected state, blocked overwriting through creation with `HTTP 409 Conflict`.
+     - Preserved all existing B1 state-machine transitions, concurrency locks, and idempotency mechanisms.
+  5. 🧪 **Verification:**
+     - Created targeted security test suite `backend/tests/test_b3_critical_security.py` with 11 automated security tests for C-1 through C-4: 11/11 passed.
+     - Executed full B1 regression suites: `test_b1_rbac.py` (7/7 passed), `test_b1_concurrency.py` (19/19 passed).
+     - Total 37/37 tests passed with zero regressions.
+- **Files modified**: `backend/app/routers/common/auth.py`, `backend/app/routers/common/sync.py`, `backend/app/routers/provider/equipment.py`, `backend/tests/test_b3_critical_security.py`, `changes_happening.md`.
+
+---
+
 ## 2026-09-29 (v331) - B2 M-4 Concurrency Fix (Atomic MongoDB Cooldown Check-and-Set)
 - **Summary:**
   1. ⚡ **M-4: Atomic MongoDB Cooldown Claim (`backend/app/services/alert_engine.py`):**

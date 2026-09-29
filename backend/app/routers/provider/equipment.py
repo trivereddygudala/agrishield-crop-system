@@ -430,6 +430,33 @@ async def create_booking(
         if "translations" not in booking_data:
             booking_data["translations"] = {}
 
+    # C-4: Prevent booking-ID hijacking and illegal overwrite of confirmed/terminal bookings
+    existing_b = None
+    if db_instance.db is not None:
+        try:
+            existing_b = await db_instance.db["equipment_bookings"].find_one(
+                {"$or": [{"id": booking_id}, {"bookingId": booking_id}]}
+            )
+        except Exception:
+            existing_b = None
+    else:
+        _load_disk_bookings()
+        existing_b = next((b for b in _in_memory_bookings if b.get("id") == booking_id or b.get("bookingId") == booking_id), None)
+
+    if existing_b:
+        existing_uid = str(existing_b.get("userId") or existing_b.get("user_id") or "")
+        if existing_uid and existing_uid != auth_uid and not _is_admin(current_user):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Booking identifier '{booking_id}' already exists and belongs to another user."
+            )
+        existing_status = str(existing_b.get("status", "pending")).lower()
+        if existing_status in ["confirmed", "completed", "cancelled", "rejected"]:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Cannot overwrite booking '{booking_id}' in state '{existing_status}' via creation endpoint."
+            )
+
     # 1. Update in-memory / disk
     _load_disk_bookings()
     updated_list = [b for b in _in_memory_bookings if b.get("id") != booking_id]
@@ -580,9 +607,25 @@ async def create_bookings_batch(
             )
         b["status"] = "pending"
 
-        # Check existing record in memory or DB to prevent overwriting terminal or confirmed states
-        existing_doc = existing_map.get(b_id)
+        # C-4: Prevent booking-ID hijacking and illegal overwrite of confirmed/terminal bookings in batch
+        existing_doc = None
+        if db_instance.db is not None:
+            try:
+                existing_doc = await db_instance.db["equipment_bookings"].find_one(
+                    {"$or": [{"id": b_id}, {"bookingId": b_id}]}
+                )
+            except Exception:
+                existing_doc = None
+        else:
+            existing_doc = existing_map.get(b_id)
+
         if existing_doc:
+            doc_uid = str(existing_doc.get("userId") or existing_doc.get("user_id") or "")
+            if doc_uid and doc_uid != auth_uid and not _is_admin(current_user):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Booking #{b_id} already exists and belongs to another user."
+                )
             curr_s = str(existing_doc.get("status", "pending")).lower()
             if curr_s in ["confirmed", "completed", "cancelled", "rejected"]:
                 raise HTTPException(
@@ -1385,6 +1428,25 @@ async def register_equipment_item(
         equipment_data["createdAt"] = datetime.now().isoformat()
     equipment_data["updatedAt"] = datetime.now().isoformat()
 
+    # C-3: Verify ownership of existing listing to prevent cross-provider hijacking
+    existing_catalog_item = None
+    if db_instance.db is not None:
+        try:
+            existing_catalog_item = await db_instance.db["equipment_catalog"].find_one({"id": eq_id})
+        except Exception:
+            existing_catalog_item = None
+    else:
+        _load_disk_catalog()
+        existing_catalog_item = next((c for c in _in_memory_catalog if c.get("id") == eq_id), None)
+
+    if existing_catalog_item and not _is_admin(current_user):
+        item_owner = str(existing_catalog_item.get("providerId") or existing_catalog_item.get("owner_id") or "")
+        if item_owner and item_owner != auth_uid:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: You do not own this equipment listing"
+            )
+
     # Update in-memory & disk
     _load_disk_catalog()
     updated_list = [c for c in _in_memory_catalog if c.get("id") != eq_id]
@@ -1398,9 +1460,7 @@ async def register_equipment_item(
     # Save to MongoDB
     if db_instance.db is not None:
         try:
-            # Check if it already existed before this upsert (to avoid duplicate admin notifications on edits)
-            existing_check = await db_instance.db["equipment_catalog"].find_one({"id": eq_id}, {"_id": 1, "createdAt": 1})
-            is_new_listing = existing_check is None  # truly new only if no prior record
+            is_new_listing = existing_catalog_item is None  # truly new only if no prior record
             await db_instance.db["equipment_catalog"].update_one(
                 {"id": eq_id},
                 {"$set": equipment_data},

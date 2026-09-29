@@ -143,7 +143,8 @@ async def register(request: Request, user_data: UserRegister, db = Depends(get_d
         "username": raw_email.split("@")[0] if "@" in raw_email else raw_email,
         "password_hash": hashed_pwd,
         "password_history": [hashed_pwd],
-        "role": user_data.role or "farmer",
+        # C-1: Public self-registration strictly enforces role="farmer" (ignore client-supplied role)
+        "role": "farmer",
         "farm_location": user_data.farm_location,
         "preferred_language": user_data.preferred_language or "en",
         "preferred_languages": user_data.preferred_languages or (["en"] if not user_data.preferred_language or user_data.preferred_language == "en" else ["en", user_data.preferred_language]),
