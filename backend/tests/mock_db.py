@@ -60,6 +60,23 @@ class MockCollection:
                 if "$gte" in v:
                     if rec_val is None or not (rec_val >= v["$gte"]):
                         return False
+            elif "." in k:
+                parts = k.split(".")
+                curr = rec
+                for p in parts:
+                    if isinstance(curr, dict) and p in curr:
+                        curr = curr[p]
+                    elif isinstance(curr, (list, tuple)) and p.isdigit() and int(p) < len(curr):
+                        curr = curr[int(p)]
+                    else:
+                        curr = None
+                        break
+                if isinstance(v, dict) and "$exists" in v:
+                    exists = (curr is not None)
+                    if exists != v["$exists"]:
+                        return False
+                elif curr != v:
+                    return False
             else:
                 if rec.get(k) != v:
                     return False
@@ -103,6 +120,11 @@ class MockCollection:
             if "$inc" in update_dict:
                 for k, v in update_dict["$inc"].items():
                     rec[k] = rec.get(k, 0) + v
+            if "$push" in update_dict:
+                for k, v in update_dict["$push"].items():
+                    if k not in rec or not isinstance(rec[k], list):
+                        rec[k] = []
+                    rec[k].append(v)
         elif not rec and upsert:
             new_rec = dict(query)
             if "$set" in update_dict:
@@ -111,11 +133,14 @@ class MockCollection:
             if "$inc" in update_dict:
                 for k, v in update_dict["$inc"].items():
                     new_rec[k] = v
+            if "$push" in update_dict:
+                for k, v in update_dict["$push"].items():
+                    new_rec[k] = [v]
             self.records.append(new_rec)
             return new_rec
         return rec
 
-    async def find_one_and_update(self, query, update_dict, return_document=True, upsert=False, session=None, **kwargs):
+    async def find_one_and_update(self, query, update_dict, return_document=False, upsert=False, session=None, **kwargs):
         rec = await self.find_one(query)
         if rec:
             import copy
@@ -126,6 +151,18 @@ class MockCollection:
             if "$inc" in update_dict:
                 for k, v in update_dict["$inc"].items():
                     rec[k] = rec.get(k, 0) + v
+            if "$push" in update_dict:
+                for k, v in update_dict["$push"].items():
+                    if k not in rec or not isinstance(rec[k], list):
+                        rec[k] = []
+                    rec[k].append(v)
+            if "$pop" in update_dict:
+                for k, v in update_dict["$pop"].items():
+                    if k in rec and isinstance(rec[k], list) and rec[k]:
+                        if v == -1:
+                            rec[k].pop(0)
+                        else:
+                            rec[k].pop()
             return rec if return_document else old_rec
         elif not rec and upsert:
             new_rec = dict(query)
@@ -135,6 +172,9 @@ class MockCollection:
             if "$inc" in update_dict:
                 for k, v in update_dict["$inc"].items():
                     new_rec[k] = v
+            if "$push" in update_dict:
+                for k, v in update_dict["$push"].items():
+                    new_rec[k] = [v]
             self.records.append(new_rec)
             return new_rec
         return None

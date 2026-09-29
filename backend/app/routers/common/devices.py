@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import List, Optional
@@ -6,8 +6,12 @@ from datetime import datetime, timezone
 import httpx
 import ipaddress
 import urllib.parse
+import hmac
+import os
 from bson import ObjectId
 
+
+from backend.app.core.config import settings
 from backend.app.db.mongodb import db_instance
 from backend.app.routers.auth import get_current_user
 from backend.app.routers.common.notifications import ws_manager
@@ -98,18 +102,110 @@ class CommandPayload(BaseModel):
     device_id: str
     command: str
 
-@router.post("/command")
-async def enqueue_device_command(payload: CommandPayload):
-    """Enqueue a command for a specific device to poll."""
-    try:
-        doc = await db_instance.db["devices"].find_one({"device_id": payload.device_id}, {"pending_commands": 1})
-        if doc and len(doc.get("pending_commands", [])) >= 10:
-            raise HTTPException(status_code=429, detail="Command queue full for this device")
+DEFAULT_IOT_INSECURE_KEY = "crop_iot_secure_key_2026"
 
+def _verify_device_poll_auth(request: Request, device_id: str, device_doc: Optional[dict] = None) -> bool:
+    """
+    Authenticate ESP32 / IoT device polling.
+    Accepts:
+      1. Valid device-specific token (device_doc.get("token") or device_doc.get("api_key") or device_doc.get("device_token"))
+      2. Valid configured settings.IOT_API_KEY.
+         In production (ENV='production', IOT_SECURITY_MODE='production', or RENDER detected),
+         the publicly known default key 'crop_iot_secure_key_2026' is strictly REJECTED.
+    Returns True if authenticated, False otherwise.
+    """
+    api_key = request.headers.get("X-IoT-API-Key") or request.headers.get("X-API-Key")
+    auth_header = request.headers.get("Authorization") or ""
+    bearer_token = auth_header.split(" ", 1)[1].strip() if auth_header.startswith("Bearer ") else None
+
+    candidate_key = api_key or bearer_token
+    if not candidate_key:
+        return False
+
+    is_prod = (
+        getattr(settings, "ENV", "").lower() == "production"
+        or getattr(settings, "IOT_SECURITY_MODE", "").lower() == "production"
+        or os.environ.get("RENDER") is not None
+        or os.environ.get("ENV", "").lower() == "production"
+    )
+
+    # 1. Device-specific token check
+    if device_doc:
+        dev_token = device_doc.get("token") or device_doc.get("api_key") or device_doc.get("device_token")
+        if dev_token:
+            if is_prod and dev_token == DEFAULT_IOT_INSECURE_KEY:
+                pass  # Disallow default insecure key in production even if stored as device token
+            elif hmac.compare_digest(candidate_key, dev_token):
+                return True
+
+    # 2. Configured settings.IOT_API_KEY check
+    configured_key = getattr(settings, "IOT_API_KEY", "") or ""
+
+    if is_prod:
+        # In production, the publicly known default key must NEVER be accepted
+        if candidate_key == DEFAULT_IOT_INSECURE_KEY or configured_key == DEFAULT_IOT_INSECURE_KEY:
+            return False
+        if configured_key and hmac.compare_digest(candidate_key, configured_key):
+            return True
+        return False
+    else:
+        # In development/testing, accept configured key (even if default)
+        if configured_key and hmac.compare_digest(candidate_key, configured_key):
+            return True
+        return False
+
+
+
+@router.post("/command")
+async def enqueue_device_command(
+    payload: CommandPayload,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Enqueue a command for a specific device to poll.
+    Strict RBAC: JWT authentication + device ownership / admin authorization.
+    """
+    user_role = (current_user.get("role") or "farmer").lower()
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+
+    if user_role not in ["admin", "farmer"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: Device command is restricted to farmers and administrators."
+        )
+
+    if not hasattr(db_instance, "db") or db_instance.db is None:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    device_doc = await db_instance.db["devices"].find_one({"device_id": payload.device_id})
+
+    # Device ownership check for non-admin
+    if user_role != "admin":
+        if not device_doc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Device '{payload.device_id}' not found."
+            )
+        dev_uid = str(device_doc.get("user_id") or "")
+        is_owner = (dev_uid == user_id)
+        if not is_owner and ObjectId.is_valid(user_id) and device_doc.get("user_id") == ObjectId(user_id):
+            is_owner = True
+
+        if not is_owner:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: this device belongs to another farmer or is unassigned."
+            )
+
+    # Command queue capacity check
+    if device_doc and len(device_doc.get("pending_commands", [])) >= 10:
+        raise HTTPException(status_code=429, detail="Command queue full for this device")
+
+    try:
         await db_instance.db["devices"].update_one(
             {"device_id": payload.device_id},
             {"$push": {"pending_commands": payload.command}},
-            upsert=True
+            upsert=True if user_role == "admin" else False
         )
         return {"status": "success", "message": "Command queued"}
     except HTTPException:
@@ -117,9 +213,26 @@ async def enqueue_device_command(payload: CommandPayload):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/poll-commands/{device_id}")
-async def poll_device_commands(device_id: str):
-    """ESP32 calls this endpoint every 3 seconds to get pending commands."""
+async def poll_device_commands(device_id: str, request: Request):
+    """
+    ESP32 calls this endpoint to retrieve pending commands.
+    Requires device authentication (X-IoT-API-Key, X-API-Key, or device Bearer token).
+    Unauthenticated requests are rejected with 401 without draining pending commands.
+    """
+    if not hasattr(db_instance, "db") or db_instance.db is None:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    device_doc = await db_instance.db["devices"].find_one({"device_id": device_id})
+
+    # Device authentication check
+    if not _verify_device_poll_auth(request, device_id, device_doc):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: Invalid or missing device credentials (X-IoT-API-Key)."
+        )
+
     try:
         doc = await db_instance.db["devices"].find_one_and_update(
             {"device_id": device_id, "pending_commands.0": {"$exists": True}},
@@ -419,3 +532,11 @@ async def device_proxy_download(
             )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+devices_alias_router = APIRouter(tags=["Device Management Aliases"])
+devices_alias_router.add_api_route("/devices/command", enqueue_device_command, methods=["POST"])
+devices_alias_router.add_api_route("/api/devices/command", enqueue_device_command, methods=["POST"])
+devices_alias_router.add_api_route("/devices/poll-commands/{device_id}", poll_device_commands, methods=["GET"])
+devices_alias_router.add_api_route("/api/devices/poll-commands/{device_id}", poll_device_commands, methods=["GET"])
+

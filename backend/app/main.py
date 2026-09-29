@@ -136,6 +136,8 @@ app.include_router(admin.router)
 # 2. Include Hardware Integration, Farm Profiles & Support routers
 app.include_router(iot.router)
 app.include_router(devices.router)
+if hasattr(devices, "devices_alias_router"):
+    app.include_router(devices.devices_alias_router)
 app.include_router(farm_profiles.router)
 app.include_router(notifications.router)
 app.include_router(analytics.router)

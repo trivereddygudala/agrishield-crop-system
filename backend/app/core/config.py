@@ -1,7 +1,11 @@
 import base64
 from datetime import timezone
+import hashlib
+import hmac
 import os
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     ENV: str = "development"
@@ -47,6 +51,7 @@ class Settings(BaseSettings):
     AI_WORKER_2_URL: str = "https://agrishield-ai-worker-2.onrender.com"
     AI_WORKER_3_URL: str = "https://agrishield-ai-worker-3.onrender.com"
     IS_PREDICTION_WORKER: bool = False
+    AI_WORKER_SECRET: Optional[str] = None
 
     @property
     def mongo_connection_url(self) -> str:
@@ -91,3 +96,20 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+def get_worker_internal_secret() -> str:
+    """
+    Get the internal secret key used for Worker 1/2/3 cluster authentication.
+    Prefers AI_WORKER_SECRET if explicitly configured in environment or settings.
+    If unset, derives a cryptographically distinct, one-way secret via HMAC-SHA256
+    from JWT_SECRET_KEY with domain separation so that possession of X-Worker-Key
+    can never be used to forge JWT user tokens.
+    """
+    configured = os.environ.get("AI_WORKER_SECRET") or getattr(settings, "AI_WORKER_SECRET", None)
+    if configured:
+        return configured
+    return hmac.new(
+        settings.JWT_SECRET_KEY.encode("utf-8"),
+        b"agrishield_ai_worker_internal_inference_v1",
+        hashlib.sha256
+    ).hexdigest()

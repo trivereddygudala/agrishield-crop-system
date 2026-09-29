@@ -2,6 +2,65 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-29 (v334) - B3 H-3 & H-4 Advanced Security Hardening
+- **Summary:**
+  1. 🤖 **H-3: Domain-Separated Worker Authentication & JWT Decoupling (`backend/app/core/config.py`, `backend/app/routers/farmer/predict.py`, `backend/app/services/ai_cluster.py`):**
+     - Completely decoupled `X-Worker-Key` from `JWT_SECRET_KEY`.
+     - Added optional `AI_WORKER_SECRET` configuration in `Settings` (`backend/app/core/config.py`).
+     - Added `get_worker_internal_secret()`: prefers explicitly configured `AI_WORKER_SECRET`; if unset, derives a cryptographically distinct, one-way secret via HMAC-SHA256 from `JWT_SECRET_KEY` with domain separation (`b"agrishield_ai_worker_internal_inference_v1"`).
+     - Updated `verify_worker_internal_auth` in `predict.py` to strictly reject raw `JWT_SECRET_KEY` directly as a worker key, preventing secret confusion or privilege escalation.
+     - Possession of `X-Worker-Key` mathematically cannot be used to forge JWT access tokens or escalate privileges.
+     - Updated `AIClusterDispatcher.offload_prediction` in `ai_cluster.py` to transmit the derived/configured worker secret, ensuring uninterrupted remote Worker 1/2/3 inference.
+  2. 📡 **H-4: Production Hardening for IoT Command Polling (`backend/app/routers/common/devices.py`):**
+     - In `_verify_device_poll_auth`: in production (`ENV='production'`, `IOT_SECURITY_MODE='production'`, or RENDER detected), the publicly known default key `"crop_iot_secure_key_2026"` is strictly REJECTED.
+     - Requires an explicitly configured `IOT_API_KEY` or device-specific token in production.
+     - Preserves legitimate ESP32 polling in development and production when a valid configured key or device token is supplied.
+     - Anonymous or invalid polling requests are rejected with `HTTP 401 Unauthorized` before accessing MongoDB, guaranteeing pending commands cannot be drained.
+     - Unrelated IoT telemetry behavior remains completely untouched.
+  3. 🧪 **Targeted Automated Tests (`backend/tests/test_b3_high_security.py`):**
+     - `test_h3_worker_key_cannot_be_used_to_forge_jwt_authentication`: PASSED
+     - `test_h3_anonymous_worker_predict_rejected_with_401`: PASSED
+     - `test_h3_legitimate_internal_worker_predict_accepted`: PASSED
+     - `test_h3_worker_predict_invalid_image_rejected`: PASSED
+     - `test_h4_production_default_iot_key_rejected`: PASSED
+     - `test_h4_valid_configured_iot_key_polling_succeeds`: PASSED
+     - `test_h4_anonymous_poll_commands_rejected_and_queue_not_drained`: PASSED
+     - `test_h4_invalid_key_poll_commands_rejected_and_queue_not_drained`: PASSED
+     - `test_h4_authenticated_poll_commands_success_and_drains_queue`: PASSED
+     - All 19 tests in `test_b3_high_security.py` PASSED (100%).
+     - All 44 regression tests in `test_b1_rbac.py`, `test_b1_concurrency.py`, `test_b3_critical_security.py`, and `test_devices_security.py` PASSED (100%).
+     - Total: **63/63 tests passing**.
+- **Files modified**: `backend/app/core/config.py`, `backend/app/routers/farmer/predict.py`, `backend/app/services/ai_cluster.py`, `backend/app/routers/common/devices.py`, `backend/tests/test_b3_high_security.py`, `changes_happening.md`.
+
+---
+
+## 2026-09-29 (v333) - B3 High Security Fixes (H-1, H-2, H-3, H-4)
+- **Summary:**
+  1. 💬 **H-1: Booking Chat Sender Identity Enforcement (`backend/app/routers/provider/equipment.py`):**
+     - Stamped `sender` ("farmer", "provider", or "admin"), `sender_name`, and `sender_id` exclusively from authenticated `current_user`.
+     - Completely removed payload overwriting (`payload.get("sender")` / `payload.get("senderName")`), preventing any participant from spoofing counterparty role or identity.
+     - Persisted `sender_id: current_user["id"]` inside message records for cryptographic provenance.
+  2. 🛡️ **H-2: Chat Edit/Delete Authorship Verification (`backend/app/routers/provider/equipment.py`):**
+     - In `delete_booking_chat_message()` and `edit_booking_chat_message()`, enforced that non-admin callers can only edit or delete messages where they are the verified author (`msg.sender_id == current_user.id` or `msg.sender == caller_role`).
+     - Counterparty attempts to edit or delete the other party's messages are blocked with `HTTP 403 Forbidden`. Administrators retain moderation authority.
+  3. 🤖 **H-3: Secure Internal Worker Inference Endpoint (`backend/app/routers/farmer/predict.py`, `backend/app/services/ai_cluster.py`):**
+     - Enforced `verify_worker_internal_auth` dependency on `@router.post("/worker/predict")`, requiring `X-Worker-Key` matching cluster secret (`settings.JWT_SECRET_KEY`) or an authorized user Bearer token.
+     - Anonymous external requests are rejected with `HTTP 401 Unauthorized`.
+     - Integrated `validate_image_upload()` (magic bytes, size check, format normalization, antivirus) and `rate_limit(PREDICT_LIMIT, 60)`.
+     - Updated `AIClusterDispatcher.offload_prediction` in `ai_cluster.py` to transmit `X-Worker-Key`, ensuring zero interruption to legitimate cluster inference across Render worker nodes.
+  4. 📡 **H-4: Secured Device Commands & Command Polling (`backend/app/routers/common/devices.py`, `backend/app/main.py`):**
+     - Secured `POST /devices/command` with JWT authentication (`get_current_user`). Restricts commanding to administrators and the specific farmer owning the target device. Rejecting unowned devices with `HTTP 403 Forbidden` and anonymous callers with `HTTP 401 Unauthorized`.
+     - Secured `GET /devices/poll-commands/{device_id}` with device credential verification (`X-IoT-API-Key`, `X-API-Key`, or device Bearer token matching `settings.IOT_API_KEY`).
+     - Unauthenticated poll queries are rejected with `HTTP 401 Unauthorized` before querying or popping from MongoDB, guaranteeing pending commands cannot be drained by attackers.
+     - Dual-mounted `/devices` and `/api/devices` routes in `main.py` for full backward compatibility across web and ESP32 hardware clients.
+  5. 🧪 **Verification:**
+     - Created `backend/tests/test_b3_high_security.py` with 16 automated security tests for H-1 through H-4: **16/16 passed**.
+     - Ran full regression suites: `test_b1_rbac.py` (7/7 passed), `test_b1_concurrency.py` (19/19 passed), `test_b3_critical_security.py` (11/11 passed), `test_devices_security.py` (7/7 passed).
+     - Total: **60/60 tests passing with zero failures and zero regressions**.
+- **Files modified**: `backend/app/routers/provider/equipment.py`, `backend/app/routers/farmer/predict.py`, `backend/app/services/ai_cluster.py`, `backend/app/routers/common/devices.py`, `backend/app/main.py`, `backend/tests/mock_db.py`, `backend/tests/test_b3_high_security.py`, `changes_happening.md`.
+
+---
+
 ## 2026-09-29 (v332) - B3 Critical Security Fixes (C-1, C-2, C-3, C-4)
 - **Summary:**
   1. 🛡️ **C-1: Public Self-Registration Privilege Escalation Guard (`backend/app/routers/common/auth.py`):**

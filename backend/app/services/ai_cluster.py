@@ -2,7 +2,8 @@ import os
 import logging
 import httpx
 from typing import Optional, Dict, Any, List
-from backend.app.core.config import settings
+from backend.app.core.config import settings, get_worker_internal_secret
+
 
 import time
 logger = logging.getLogger("ai_cluster")
@@ -72,6 +73,10 @@ class AIClusterDispatcher:
             candidates.append(workers[(self._index + 1) % len(workers)])
         self._index += 1
 
+        worker_secret = get_worker_internal_secret()
+        worker_headers = {"X-Worker-Key": worker_secret}
+
+
         for chosen_worker in candidates:
             target_endpoint = f"{chosen_worker}/api/worker/predict"
             try:
@@ -82,7 +87,7 @@ class AIClusterDispatcher:
                         "explainer_type": explainer_type,
                         "crop_filter": crop_filter or ""
                     }
-                    response = await client.post(target_endpoint, files=files, data=data)
+                    response = await client.post(target_endpoint, files=files, data=data, headers=worker_headers)
                     
                     if response.status_code == 200:
                         res_json = response.json()

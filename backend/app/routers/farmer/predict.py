@@ -6,10 +6,13 @@ import shutil
 import logging
 import asyncio
 import copy
+import hmac
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query, Form, Header, Request
+from backend.app.core.config import settings
+
 
 logger = logging.getLogger("predict")
 
@@ -1132,23 +1135,77 @@ async def get_ai_model_status():
 from backend.app.core.upload_validator import validate_image_upload
 from backend.app.core.rate_limiter import rate_limit, PREDICT_LIMIT
 
-@router.post("/worker/predict")
+async def verify_worker_internal_auth(
+    request: Request,
+    authorization: Optional[str] = Header(None),
+    x_worker_key: Optional[str] = Header(None, alias="X-Worker-Key"),
+    x_worker_secret: Optional[str] = Header(None, alias="X-Worker-Secret")
+):
+    """
+    Authenticate internal AI cluster worker requests.
+    Accepts:
+      1. X-Worker-Key or X-Worker-Secret matching get_worker_internal_secret().
+         NEVER accepts JWT_SECRET_KEY directly.
+      2. Authorization: Bearer token matching worker secret or a valid JWT user token.
+    Rejects anonymous external requests with 401.
+    """
+    from backend.app.core.config import get_worker_internal_secret
+    expected_secret = get_worker_internal_secret()
+
+    provided_key = (
+        x_worker_key
+        or x_worker_secret
+        or request.headers.get("X-Worker-Key")
+        or request.headers.get("X-Worker-Secret")
+    )
+    if provided_key:
+        # Never allow raw JWT_SECRET_KEY directly as worker key
+        if provided_key != settings.JWT_SECRET_KEY and hmac.compare_digest(provided_key, expected_secret):
+            return {"type": "worker_internal"}
+
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        # Accept worker secret passed as Bearer token if matching expected_secret (not raw JWT_SECRET_KEY)
+        if token != settings.JWT_SECRET_KEY and hmac.compare_digest(token, expected_secret):
+            return {"type": "worker_internal"}
+        try:
+            from backend.app.core.security import decode_access_token
+            payload = await decode_access_token(token)
+            if payload:
+                return {"type": "jwt_user", "payload": payload}
+        except Exception:
+            pass
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Unauthorized: Internal worker endpoint requires valid cluster credentials.",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+
+@router.post(
+    "/worker/predict",
+    dependencies=[Depends(rate_limit(PREDICT_LIMIT, 60)), Depends(verify_worker_internal_auth)]
+)
 async def worker_predict_endpoint(
+    request: Request,
     file: UploadFile = File(...),
     explainer_type: str = Form("gradcam++"),
     crop_filter: Optional[str] = Form(None)
 ):
     """Internal cluster endpoint executed on dedicated AI workers to run PyTorch/ONNX inference."""
+    # Validate image upload format, magic bytes, size limits, and antivirus signatures
+    content, safe_filename = await validate_image_upload(file)
+
     temp_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "uploads", "cluster_temp"
     )
     os.makedirs(temp_dir, exist_ok=True)
-    temp_filename = f"worker_{uuid.uuid4().hex[:8]}_{os.path.basename(file.filename or 'leaf.jpg')}"
+    temp_filename = f"worker_{uuid.uuid4().hex[:8]}_{safe_filename}"
     temp_path = os.path.join(temp_dir, temp_filename)
     
     try:
-        content = await file.read()
         with open(temp_path, "wb") as f:
             f.write(content)
 

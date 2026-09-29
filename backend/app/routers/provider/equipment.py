@@ -1675,14 +1675,14 @@ async def send_booking_chat_message(
     global _in_memory_chat_threads
     canonical_id = _normalize_chat_booking_id(booking_id)
 
-    # Stamp sender identity from authenticated user
+    # Stamp sender identity strictly from authenticated user (H-1 Fix)
     sender = "provider" if _is_provider(current_user) else ("admin" if _is_admin(current_user) else "farmer")
     sender_name = current_user.get("name") or current_user.get("full_name") or ("Equipment Provider" if sender == "provider" else "Farmer")
+    sender_id = str(current_user.get("id") or current_user.get("_id") or "")
 
     msg_id = payload.get("id") or f"msg_{int(datetime.now().timestamp() * 1000)}"
     text = (payload.get("text") or "").strip()
-    sender = payload.get("sender") or "farmer"
-    sender_name = payload.get("senderName") or ("Equipment Provider" if sender == "provider" else "Farmer")
+    # Client sender / senderName are ignored to prevent spoofing
     msg_type = payload.get("type") or "text"
     time_str = payload.get("time") or datetime.now().strftime("%I:%M %p")
     timestamp = payload.get("timestamp") or datetime.now().isoformat()
@@ -1744,6 +1744,7 @@ async def send_booking_chat_message(
     new_message = {
         "id": msg_id,
         "sender": sender,
+        "sender_id": sender_id,
         "senderName": sender_name,
         "type": msg_type,
         "text": text,
@@ -1861,6 +1862,7 @@ async def delete_booking_chat_message(
     """
     Delete a single message from a booking chat thread across all devices.
     Strict RBAC: Authorized booking participants or Admin only.
+    Authorship: Farmer/provider may delete ONLY their own message; Admin may delete any.
     """
     await _verify_booking_access(booking_id, current_user)
     global _in_memory_chat_threads
@@ -1869,6 +1871,42 @@ async def delete_booking_chat_message(
     # 1. Update in-memory & disk
     _load_disk_chat_messages()
     current_list = _in_memory_chat_threads.get(canonical_id, [])
+    target_msg = next((m for m in current_list if m.get("id") == message_id), None)
+
+    # If not found in-memory, query MongoDB
+    if not target_msg and db_instance.db is not None:
+        try:
+            doc = await db_instance.db["equipment_chat_messages"].find_one(
+                {"booking_id": canonical_id, "messages.id": message_id},
+                {"messages.$": 1}
+            )
+            if doc and doc.get("messages"):
+                target_msg = doc["messages"][0]
+        except Exception:
+            pass
+
+    if not target_msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    # Authorship check: Admin can delete any; participants can delete ONLY their own messages
+    if not _is_admin(current_user):
+        caller_id = str(current_user.get("id") or current_user.get("_id") or "")
+        caller_role = "provider" if _is_provider(current_user) else "farmer"
+        msg_sender_id = str(target_msg.get("sender_id") or "")
+        msg_sender_role = target_msg.get("sender")
+
+        is_author = False
+        if msg_sender_id and caller_id:
+            is_author = (msg_sender_id == caller_id)
+        elif msg_sender_role:
+            is_author = (msg_sender_role == caller_role)
+
+        if not is_author:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: You can only delete your own messages"
+            )
+
     updated_list = [m for m in current_list if m.get("id") != message_id]
     _in_memory_chat_threads[canonical_id] = updated_list
     _save_disk_chat_messages()
@@ -1901,6 +1939,7 @@ async def edit_booking_chat_message(
     """
     Edit the text of an existing chat message.
     Strict RBAC: Authorized booking participants or Admin only.
+    Authorship: Farmer/provider may edit ONLY their own message; Admin may edit any.
     """
     await _verify_booking_access(booking_id, current_user)
     global _in_memory_chat_threads
@@ -1911,6 +1950,41 @@ async def edit_booking_chat_message(
 
     _load_disk_chat_messages()
     current_list = _in_memory_chat_threads.get(canonical_id, [])
+    target_msg = next((m for m in current_list if m.get("id") == message_id), None)
+
+    if not target_msg and db_instance.db is not None:
+        try:
+            doc = await db_instance.db["equipment_chat_messages"].find_one(
+                {"booking_id": canonical_id, "messages.id": message_id},
+                {"messages.$": 1}
+            )
+            if doc and doc.get("messages"):
+                target_msg = doc["messages"][0]
+        except Exception:
+            pass
+
+    if not target_msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    # Authorship check: Admin can edit any; participants can edit ONLY their own messages
+    if not _is_admin(current_user):
+        caller_id = str(current_user.get("id") or current_user.get("_id") or "")
+        caller_role = "provider" if _is_provider(current_user) else "farmer"
+        msg_sender_id = str(target_msg.get("sender_id") or "")
+        msg_sender_role = target_msg.get("sender")
+
+        is_author = False
+        if msg_sender_id and caller_id:
+            is_author = (msg_sender_id == caller_id)
+        elif msg_sender_role:
+            is_author = (msg_sender_role == caller_role)
+
+        if not is_author:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access forbidden: You can only edit your own messages"
+            )
+
     updated_msg = None
     now_iso = datetime.now().isoformat()
 
