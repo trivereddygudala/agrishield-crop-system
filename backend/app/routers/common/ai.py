@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+import logging
 import re
 from fastapi import APIRouter, Depends, HTTPException, status
 from backend.app.models.schemas import FarmingAssistantRequest, FarmingAssistantResponse, ChatRequest, ChatResponse
@@ -6,6 +7,8 @@ from backend.app.services.nvidia_service import nvidia_service
 from backend.app.routers.auth import get_current_user
 from backend.app.db.mongodb import get_database
 from backend.app.services.farm_profile_service import FarmProfileService
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/ai", tags=["AI Farming Assistant"])
@@ -67,19 +70,73 @@ async def chat_with_farming_assistant(
     sanitized_message = validate_ai_prompt(req.message)
     
     try:
-        active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
-        
-        # Inject active farm details and user_role directly into chatbot context
+        # Inject user_role directly into chatbot context with authoritative role normalization
         chat_context = req.context or {}
-        chat_context["user_role"] = current_user.get("role", "farmer").lower()
+        raw_role = str(current_user.get("role", "farmer")).lower().strip()
+        if raw_role in ["equipment_provider", "provider"]:
+            canonical_role = "equipment_provider"
+        elif raw_role == "admin":
+            canonical_role = "admin"
+        elif raw_role == "tester":
+            canonical_role = "tester"
+        elif raw_role == "researcher":
+            canonical_role = "researcher"
+        else:
+            canonical_role = "farmer"
+
+        # Authoritative assignment: do not trust client-supplied user_role
+        chat_context["user_role"] = canonical_role
         chat_context["language"] = req.language or chat_context.get("language") or "en"
+
+        # Only inject active farm details for farmer / non-provider roles
+        active_farm = None
+        if canonical_role not in ["equipment_provider", "admin"]:
+            try:
+                active_farm = await FarmProfileService.get_active_farm(db, current_user["id"])
+            except Exception:
+                active_farm = None
+
         if active_farm:
             # Strip DB internals
             farm_info = {k: v for k, v in active_farm.items() if k not in ["id", "user_id", "created_at", "updated_at", "_id"]}
             chat_context["active_farm"] = farm_info
 
+        # Inject authenticated provider fleet context
+        if canonical_role == "equipment_provider":
+            fleet_summary = []
+            try:
+                from backend.app.routers.provider.equipment import get_provider_fleet
+                fleet_res = await get_provider_fleet(current_user=current_user)
+                raw_fleet = fleet_res.get("fleet") or []
+                for m in raw_fleet[:20]:  # Bounded size: maximum 20 units
+                    m_name = m.get("name") or m.get("title") or m.get("equipment_name") or "Machinery"
+                    m_cat = m.get("category") or m.get("type") or "General Equipment"
+                    m_hp = m.get("horsepower") or m.get("hp") or m.get("power")
+                    m_rate = m.get("rate") or m.get("price") or m.get("price_per_hour") or m.get("price_per_day") or m.get("rental_rate")
+                    m_avail = "Available" if m.get("available", True) else "Unavailable / Booked"
+                    m_implements = m.get("implements") or m.get("attachments") or m.get("specs")
+
+                    machine_entry = {
+                        "name": str(m_name),
+                        "category": str(m_cat),
+                        "availability": m_avail
+                    }
+                    if m_hp:
+                        machine_entry["horsepower"] = str(m_hp)
+                    if m_rate:
+                        machine_entry["rate"] = str(m_rate)
+                    if m_implements:
+                        machine_entry["implements"] = str(m_implements) if isinstance(m_implements, str) else ", ".join(str(x) for x in m_implements)
+
+                    fleet_summary.append(machine_entry)
+            except Exception as fe:
+                logger.warning(f"Error building provider fleet summary for AI copilot: {fe}")
+                fleet_summary = []
+
+            chat_context["fleet_summary"] = fleet_summary
+
         # Inject user profile information
-        chat_context["user_name"] = current_user.get("name", "Farmer")
+        chat_context["user_name"] = current_user.get("name", "Equipment Provider" if canonical_role == "equipment_provider" else "Farmer")
         chat_context["user_email"] = current_user.get("email", "")
 
         # Check if user explicitly asked about in-field hardware, sensors, ESP32, or IoT devices
@@ -168,8 +225,10 @@ async def chat_with_farming_assistant(
         ])
 
         # Fetch user's recent crop disease scan records ONLY if the query is related to disease/diagnosis
-        # or if it is a general agronomy query (never for pure weather or pure market queries)
-        should_include_scans = (is_disease_or_tx_query or (not is_weather_spray_query and not is_market_price_query))
+        # or if it is a general agronomy query (never for pure weather or pure market queries, and NEVER for equipment_provider/admin)
+        should_include_scans = (canonical_role not in ["equipment_provider", "admin"]) and (
+            is_disease_or_tx_query or (not is_weather_spray_query and not is_market_price_query)
+        )
 
         user_id_str = str(current_user.get("id") or current_user.get("_id", ""))
         recent_scans = []

@@ -1,6 +1,81 @@
 # AgriShield Project Changelog (changes_happening.md)
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
+## 2026-09-29 (v343) - B5 Phase 7 M-2 Fix: Provider Portal Loading States & Error Banners
+- **Summary:**
+  1. ⏳ **Fleet Loading State & Skeletons (frontend/src/pages/provider/ProviderDashboardPage.jsx):**
+     - Introduced isFleetLoading state and lightweight 3-card animated skeleton placeholders when no cached machinery exists.
+     - Prevented premature "No machinery listed yet" false empty state while GET /api/v1/equipment/fleet is in-flight.
+  2. ⚠️ **Fleet Error Banners & Canonical Retry:**
+     - Replaced silent catch (err) { return; } with explicit fleetError state capturing.
+     - Rendered visible error state with Retry Sync control when requests fail with no cache.
+     - Preserved cached machinery during background sync failures and rendered non-destructive warning chip (showing_cached_data) with manual retry.
+  3. 📦 **Orders Loading State & Skeletons:**
+     - Introduced isBookingsLoading state and lightweight 3-card animated skeleton placeholders.
+     - Prevented misleading "No Rental Bookings Yet" empty state while the initial bookings request is pending.
+  4. 🚨 **Orders Error Banners & Cached Preservation:**
+     - Replaced silent catch (err) {} with bookingsError state capturing.
+     - Preserved cached booking vouchers on network drop or backend error.
+     - Rendered dedicated error banner with Retry Sync when no cached bookings exist, and warning banner when cached bookings are displayed.
+  5. 🔒 **Per-Booking Action Mutex (updatingBookingId):**
+     - Enforced updatingBookingId mutex in handleUpdateBookingStatus.
+     - Disabled booking action buttons (Accept, Decline, Complete, Cancel) during in-flight status mutations to prevent duplicate PATCH requests from rapid clicks.
+     - Added inline spinner to active action button and guaranteed cleanup in finally.
+  6. 🛡️ **Machine Mutation Error Feedback & Rollback:**
+     - Handled handleToggleMachineAvailability failure by rolling back local fleet state to previous availability and displaying error toast.
+     - Handled confirmDeleteMachine failure by preserving the machinery in the provider's fleet and alerting user via error toast.
+  7. 🌐 **7-Language Localization Architecture (frontend/src/i18n/extendedTranslations.js):**
+     - Added 10 new translation keys across all 7 supported languages (en, te, ta, kn, hi, ml, or): loading_fleet, loading_orders, fleet_load_error, orders_load_error, retry_sync, showing_cached_data, no_machinery_listed, no_machinery_listed_desc, machine_update_failed, machine_delete_failed.
+     - 0 binary isTe UI translation ternaries introduced.
+  8. 🧪 **Validation & Test Automation:**
+     - Added 11-check test suite in frontend/tests/provider_loading_error.test.js (11/11 passed, 100%).
+     - Verified provider localization (6/6 passed), tenant isolation (6/6 passed), 7-language suite (12/12 passed), backend provider portal (13/13 passed).
+     - Frontend production build: npm run build completed cleanly in 28.71s with 0 errors.
+- **Files modified:** frontend/src/pages/provider/ProviderDashboardPage.jsx, frontend/src/i18n/extendedTranslations.js, frontend/tests/provider_loading_error.test.js, changes_happening.md.
+
+## 2026-09-29 (v342) - B5 Phase 5 M-1 Fix: Provider Tenant Isolation & Fleet Fallback Privacy
+- **Summary:**
+  1. 🚫 **Starter Fleet Leakage Eradication (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
+     - Removed `CANONICAL_STARTER_FLEET` fallback and import from `ProviderDashboardPage.jsx`.
+     - Brand-new providers with 0 registered equipment safely initialize with an empty fleet `[]` rather than demo machinery from other sample providers.
+  2. 🗄️ **Storage & Cache Separation (`frontend/src/pages/farmer/EquipmentBookingPage.jsx`):**
+     - Decoupled farmer marketplace caching from provider fleet storage. Changed global catalog cache key to `agrishield_farmer_catalog_cache`.
+     - `EquipmentBookingPage.jsx` no longer writes public marketplace catalog items into `agrishield_provider_fleet_inventory`.
+  3. 🔑 **Provider-Specific Storage Isolation (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
+     - Introduced `getProviderFleetStorageKey(userId)` producing isolated storage key `agrishield_provider_fleet_inventory_<userId>`.
+     - Implemented safe legacy migration: only migrates items where ownership matches the authenticated user ID.
+  4. 🔒 **Dedicated Authenticated Fleet Endpoint (`backend/app/routers/provider/equipment.py`):**
+     - Added `@router.get("/fleet")` requiring JWT authentication and provider/admin role.
+     - Enforces server-side tenant isolation: non-admin providers only receive their own registered machinery listings.
+     - Updated `ProviderDashboardPage.jsx` `fetchRemoteFleet()` to query `GET /api/v1/equipment/fleet` instead of public `/catalog`.
+  5. 🛡️ **Catalog Phone Filter Hardening (`backend/app/routers/provider/equipment.py`):**
+     - Fixed substring match flaw where empty or non-digit phone query (e.g. `+`, ` `, `++++`) matched all equipment via `"" in phone`.
+     - Requires minimum 6 valid digits for `provider_phone` searches; queries with insufficient digits safely return 0 results.
+     - Preserved legitimate global public farmer discovery via `GET /api/v1/equipment/catalog`.
+  6. 🧪 **Comprehensive Regression Test Suites:**
+     - Added 5 backend tests to `backend/tests/test_b5_provider_portal.py` (13/13 passed).
+     - Added 6 frontend tests to `frontend/tests/provider_tenant_isolation.test.js` (6/6 passed).
+     - Re-verified B1 RBAC & B3 critical security suites (18/18 passed), 7-language suite (12/12 passed), provider localization (6/6 passed).
+     - Production build `npm run build` verified cleanly in 26.97s with 0 errors.
+- **Files modified:** `backend/app/routers/provider/equipment.py`, `backend/tests/test_b5_provider_portal.py`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/tests/provider_tenant_isolation.test.js`, `changes_happening.md`.
+## 2026-09-29 (v341) - B5 Phase 3 H-2: Complete Equipment Provider 7-Language Localization
+- **Summary:**
+  1. 🌐 **Comprehensive 7-Language Provider Hub Migration (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
+     - Completely eliminated all 178 binary Telugu-vs-English ternaries (`isTe ? ... : ...`) across the Equipment Provider Workstation UI.
+     - Migrated every string, label, badge, tab, filter, modal header, action button, booking state card, settlement metric, notification toast, and input placeholder to `t('provider_hub.<key>', '<Fallback>')`.
+     - Preserved legitimate language code normalization (`currentLang`) and single backward-compatibility flag. UI binary checks reduced from 179 to 0.
+  2. 📚 **131 Provider Hub Translation Keys Across All 7 Languages (`frontend/src/i18n/extendedTranslations.js`):**
+     - Added 131 comprehensive domain translation keys under `provider_hub` for all 7 officially supported languages: English (`en`), Telugu (`te`), Tamil (`ta`), Kannada (`kn`), Hindi (`hi`), Malayalam (`ml`), and Odia (`or`).
+     - Total: 917 meticulously localized strings.
+     - Strictly maintained 0 keys in deprecated/forbidden languages (`mr, pa, bn, ur, as, gu`).
+  3. 🗣️ **Active Speech Reader Localization (`GoogleMessageReader`):**
+     - Updated `GoogleMessageReader` `lang` prop in `ProviderDashboardPage.jsx` from hardcoded binary `isTe ? 'te' : 'en'` to dynamic active language `lang={currentLang}`.
+     - Integrated with AgriShield voice synthesis mapping (`te-IN`, `ta-IN`, `kn-IN`, `hi-IN`, `ml-IN`, `or-IN`, `en-IN`).
+  4. 🧪 **Automated Test Suites & Frontend Production Build:**
+     - Created `frontend/tests/provider_localization.test.js` validating key completeness, non-empty translations across 7 languages, 0 deprecated keys, 0 remaining UI `isTe` ternaries, and dynamic voice reader bindings (6/6 passed, 100%).
+     - Re-verified existing `frontend/tests/localization_7language.test.js` (12/12 passed, 100%).
+     - Ran production build: `npm run build` completed cleanly in 32.37s with 0 errors.
+- **Files modified:** `frontend/src/i18n/extendedTranslations.js`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/tests/provider_localization.test.js`, `changes_happening.md`.
 ## 2026-09-29 (v340) - B5 Phase 2 Fixes (C-1, C-2 Verification, H-1 Verification, H-4, M-4)
 - **Summary:**
   1. 🚫 **C-1: Terminal Rejected Booking State & Rollback Protection (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
@@ -6888,3 +6963,73 @@ Files Modified:
 
 ---
 [2026-09-28 23:12:15] B2 AUDIT COMPLETE (read-only): b2_audit_report.md written. 2 Critical, 4 High, 5 Medium, 3 Low findings. No code/config changed.
+
+---
+
+## 2026-09-29 14:34:30 IST — B5 Phase 9 Fix L-1: Provider AI Copilot / Authenticated Fleet Context
+
+### Action: Targeted Backend Implementation & Verification (Zero Regressions)
+**Files Modified:**
+1. `backend/app/routers/common/ai.py`
+2. `backend/app/services/nvidia_service.py`
+3. `backend/tests/test_b5_provider_ai_copilot.py` (New test suite, 11 tests)
+4. `changes_happening.md`
+
+### Exact Fixes Implemented:
+1. **Authoritative Role Normalization (L1-B):**
+   - In `backend/app/routers/common/ai.py`, normalized authenticated user role: maps both `"provider"` and `"equipment_provider"` to canonical internal AI role `"equipment_provider"`. Client-supplied roles in the request body are strictly ignored.
+   - In `backend/app/services/nvidia_service.py`, normalized `user_role in ["equipment_provider", "provider"] -> "equipment_provider"` as defense-in-depth, preventing fallback to the farmer agronomist prompt.
+2. **Authenticated Provider Fleet Context Injection (L1-A):**
+   - In `backend/app/routers/common/ai.py`, when `canonical_role == "equipment_provider"`, invoked `get_provider_fleet(current_user=current_user)` to fetch the authenticated provider's owned equipment.
+   - Built bounded, sanitized `fleet_summary` (up to 20 units) extracting only: `name`, `category`, `horsepower`, `rate`, `implements`, and `availability`. Excluded internal IDs, secrets, and other providers' data.
+   - If provider owns 0 machines, `fleet_summary` evaluates strictly to `[]` without demo fleet fallbacks.
+3. **Farmer Context Isolation (L1-C):**
+   - For `equipment_provider` role, suppressed `active_farm` query and crop disease scan prediction queries (`db.predictions`), preventing farmer-specific agronomy clutter from polluting provider copilot context.
+4. **Machinery Copilot System Prompt Integration:**
+   - In `backend/app/services/nvidia_service.py`, formatted `fleet_summary` in `context_str` under `[Authenticated Provider Machinery & Fleet Inventory]`.
+   - Enhanced `"AgriShield Machinery & Fleet Copilot"` prompt with explicit fleet inventory awareness: distinguishes registered fleet from generic machinery knowledge, forbids hallucinating unlisted equipment, and guides providers if inventory is empty.
+5. **Quality Assurance & Verification:**
+   - Added `backend/tests/test_b5_provider_ai_copilot.py` (11/11 passed, 100%).
+   - Ran `backend/tests/test_b5_provider_portal.py` (13/13 passed, 100%).
+   - Ran `frontend/tests/provider_localization.test.js` (6/6 passed, 100%).
+   - Ran `frontend/tests/provider_tenant_isolation.test.js` (6/6 passed, 100%).
+   - Ran `frontend/tests/provider_loading_error.test.js` (11/11 passed, 100%).
+   - Ran `frontend/tests/localization_7language.test.js` (12/12 passed, 100%).
+   - Ran `backend/tests/test_b1_rbac.py` and `test_b3_critical_security.py` (18/18 passed, 100%).
+   - Ran `npm run build` in `frontend/` (built in 29.34s with 0 errors).
+   - Preserved all uncommitted work from H-2, M-1, and M-2.
+
+---
+
+## 2026-09-29 14:50:00 IST — B5 Phase 11 Fix L-2: Provider Earnings / Revenue Consistency
+
+### Action: Targeted Frontend Implementation & Verification (Zero Regressions)
+**Files Modified:**
+1. `frontend/src/pages/provider/ProviderDashboardPage.jsx`
+2. `frontend/tests/provider_earnings_consistency.test.js` (New test suite, 12 tests)
+3. `changes_happening.md`
+
+### Exact Fixes Implemented:
+1. **Canonical Booking Cost Helper (Fix 1):**
+   - Implemented and exported `getBookingCost(booking)` in `ProviderDashboardPage.jsx`.
+   - Prioritizes explicitly stored booking cost properties (`totalCost`, `total_cost`, `fare`, `amount`).
+   - Treats numeric `0` and `'0'` as legitimate financial values (never coerces 0 to a fallback).
+   - If total is missing, safely derives from canonical pricing (`ratePerAcre * acres` or `hourlyRate * hours`).
+   - Returns `0` if financial amount cannot be established (strict data honesty, zero fabricated revenue).
+2. **Aggregate Earnings Unification (Fix 2):**
+   - Replaced `.reduce((sum, b) => sum + (Number(b.totalCost) || 2500), 0)` with `.reduce((sum, b) => sum + getBookingCost(b), 0)`.
+   - Settled Earnings total is now mathematically identical to the sum of line items in the ledger.
+3. **Completed Operations Ledger Unification (Fix 3):**
+   - Replaced `Number(b.totalCost || 800)` with `getBookingCost(b)` in the ledger row item display.
+4. **Booking Order Cards & Direct Chat Unification (Fix 4 & Fix 5):**
+   - Replaced `booking.totalCost || '800'` with `getBookingCost(booking)` in order cards and direct chat opening handlers.
+   - Preserved all legitimate machine-rate defaults (e.g. `placeholder="e.g. 800"`, `newHourlyRate` 800, machine `ratePerAcre || machine.hourlyRate || 1200`).
+5. **Quality Assurance & Verification:**
+   - Added `frontend/tests/provider_earnings_consistency.test.js` (12/12 passed, 100%).
+   - Ran `frontend/tests/provider_localization.test.js` (6/6 passed, 100%).
+   - Ran `frontend/tests/provider_tenant_isolation.test.js` (6/6 passed, 100%).
+   - Ran `frontend/tests/provider_loading_error.test.js` (11/11 passed, 100%).
+   - Ran `frontend/tests/localization_7language.test.js` (12/12 passed, 100%).
+   - Ran `backend/tests/test_b5_provider_portal.py` and `test_b5_provider_ai_copilot.py` (24/24 passed, 100%).
+   - Ran `npm run build` in `frontend/` (built in 32.95s with 0 errors).
+   - Preserved all uncommitted work from H-2, M-1, M-2, and L-1.

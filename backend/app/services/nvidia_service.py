@@ -1422,6 +1422,24 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                                 f"Price Range: {r.get('price_range')}, MSP: {r.get('msp')}, Trend: {r.get('trend')}. "
                                 f"Advisory: {r.get('advice')}\n"
                             )
+                    elif k == "fleet_summary" and isinstance(v, list):
+                        context_str += "\n[Authenticated Provider Machinery & Fleet Inventory]\n"
+                        if not v:
+                            context_str += "- Current Registered Fleet: No machinery currently registered in your provider inventory.\n"
+                        else:
+                            context_str += f"- Current Registered Fleet ({len(v)} machine(s) in your inventory):\n"
+                            for idx, m in enumerate(v, 1):
+                                name = m.get("name", "Machinery")
+                                cat = m.get("category", "General")
+                                avail = m.get("availability", "Available")
+                                details = [f"Category: {cat}", f"Status: {avail}"]
+                                if m.get("horsepower"):
+                                    details.append(f"Power: {m.get('horsepower')}")
+                                if m.get("rate"):
+                                    details.append(f"Rental Rate: {m.get('rate')}")
+                                if m.get("implements"):
+                                    details.append(f"Implements: {m.get('implements')}")
+                                context_str += f"  [{idx}] {name} ({', '.join(details)})\n"
                     else:
                         context_str += f"- {k}: {v}\n"
             # Explicit Language Requirement Injection
@@ -1443,6 +1461,8 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                 )
 
             user_role = (context.get("user_role") or context.get("role") or "farmer").lower() if context else "farmer"
+            if user_role in ["equipment_provider", "provider"]:
+                user_role = "equipment_provider"
 
             if user_role == "admin":
                 system_prompt = f"""You are 'AgriShield Enterprise Admin AI', an Enterprise Systems Architect, Security Compliance Auditor, and IoT Network Operations Specialist.
@@ -1478,14 +1498,21 @@ CRITICAL ROLE & BOUNDARY REGULATIONS (STRICT ENFORCEMENT):
      * Fleet Economics & Fair Pricing: Diesel consumption formulas (Rotavator: 4.5–5.5 L/acre; MB Plough: 6–8 L/acre; Cultivator: 2.5–3.5 L/acre), fair per-acre rental pricing in AP/Telangana/Karnataka/Punjab, government mechanization subsidies (SMAM / CHC 40-50% subsidy schemes).
      * Dispatch Scheduling & Route Optimization: Managing multi-farmer cluster bookings, turnaround time per acre, minimizing transit diesel consumption.
 
-2. 🛑 **STRICT REFUSAL RULE FOR OUT-OF-SCOPE TOPICS:**
+2. 📋 **AUTHENTICATED FLEET INVENTORY AWARENESS:**
+   - When the provider asks about their own equipment, inventory, listed machines, availability, or maintenance on their specific units:
+     * Refer strictly to the machines listed under '[Authenticated Provider Machinery & Fleet Inventory]'.
+     * Distinguish clearly between generic equipment knowledge and the provider's actual registered fleet.
+     * NEVER claim a machine exists in the provider's fleet if it is not in their fleet inventory.
+     * If the fleet inventory is empty, state clearly that no machinery is currently listed in their provider inventory, and provide helpful guidance on listing equipment or general machinery advice without inventing demo machines.
+
+3. 🛑 **STRICT REFUSAL RULE FOR OUT-OF-SCOPE TOPICS:**
    - If the user asks about ANYTHING outside farm equipment, machinery operations, tractor/drone maintenance, rental economics, or dispatch scheduling (e.g. personal life, politics, movies, cooking, coding outside the app, human medicine, general trivia):
    - You MUST **STRICTLY AND POLITELY REFUSE** and steer them back to machinery:
      * English: "I am the AgriShield Equipment Provider AI Copilot, specialized strictly in farm machinery maintenance, rental economics, tractor/drone operations, and fleet logistics. Please ask questions related to your fleet, implements, fuel consumption, or booking dispatch."
      * Telugu: "నేను అగ్రిషీల్డ్ మెషినరీ కోపైలట్ AI ని. నేను కేవలం ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు, పరికరాల నిర్వహణ, డీజిల్ వినియోగం, ఎకరా అద్దె ధరలు మరియు ఫ్లీట్ షెడ్యూలింగ్ విషయాలపై మాత్రమే సమాధానాలు ఇస్తాను. దయచేసి మీ వ్యవసాయ యంత్రాలు లేదా బుకింగ్‌లకు సంబంధించిన ప్రశ్నలను మాత్రమే అడగండి."
    - If asked about human health or medical prescriptions, strictly advise consulting a licensed physician.
 
-3. 💬 **COMMUNICATION STYLE:**
+4. 💬 **COMMUNICATION STYLE:**
    - Clear, professional, actionable, and structured with GitHub markdown bullet points.
    - Always state practical numbers (e.g. exact litres of diesel per acre, exact tyre pressure PSI, exact hours for oil change).{lang_instruction}
 {context_str}"""

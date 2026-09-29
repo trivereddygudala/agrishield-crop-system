@@ -625,3 +625,153 @@ async def test_h1_provider_equipment_registration_and_chat_no_mock_pii():
         assert reg_item["providerName"] == "Auth Provider Real"
         assert "Ramesh" not in reg_item.get("providerName", "")
         assert "9848022338" != reg_item.get("phone")
+
+
+# ==============================================================================
+# M-1 TESTS: Provider Tenant Isolation & Fleet Fallback Privacy
+# ==============================================================================
+
+@pytest.mark.anyio
+async def test_m1_empty_provider_fleet_returns_empty_list():
+    """M-1 Test 1: New/empty provider fleet returns [] rather than starter fleet."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        p_id, p_token, _ = await create_test_user("New Provider", "newprov@agri.com", "equipment_provider", "9111111111")
+        res = await ac.get(
+            "/api/v1/equipment/fleet",
+            headers={"Authorization": f"Bearer {p_token}"}
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["success"] is True
+        assert data["count"] == 0
+        assert data["fleet"] == []
+        assert data["equipment"] == []
+
+
+@pytest.mark.anyio
+async def test_m1_provider_tenant_isolation_fleet_endpoint():
+    """M-1 Test 2 & 4: Provider A cannot receive Provider B's equipment through /fleet."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        p1_id, p1_token, _ = await create_test_user("Provider A", "pa@agri.com", "equipment_provider", "9111111112")
+        p2_id, p2_token, _ = await create_test_user("Provider B", "pb@agri.com", "equipment_provider", "9111111113")
+
+        # Provider A registers machine
+        res1 = await ac.post(
+            "/api/v1/equipment/catalog",
+            headers={"Authorization": f"Bearer {p1_token}"},
+            json={"title": "Provider A Tractor", "category": "tractor", "village": "Village A"}
+        )
+        assert res1.status_code == 200
+        p1_eq_id = res1.json()["equipment"]["id"]
+
+        # Provider B registers machine
+        res2 = await ac.post(
+            "/api/v1/equipment/catalog",
+            headers={"Authorization": f"Bearer {p2_token}"},
+            json={"title": "Provider B Drone", "category": "drone", "village": "Village B"}
+        )
+        assert res2.status_code == 200
+        p2_eq_id = res2.json()["equipment"]["id"]
+
+        # Provider A calls /fleet -> must only see p1_eq_id
+        res_fleet_a = await ac.get(
+            "/api/v1/equipment/fleet",
+            headers={"Authorization": f"Bearer {p1_token}"}
+        )
+        assert res_fleet_a.status_code == 200
+        fleet_a_ids = [m["id"] for m in res_fleet_a.json()["fleet"]]
+        assert p1_eq_id in fleet_a_ids
+        assert p2_eq_id not in fleet_a_ids
+
+        # Provider B calls /fleet -> must only see p2_eq_id
+        res_fleet_b = await ac.get(
+            "/api/v1/equipment/fleet",
+            headers={"Authorization": f"Bearer {p2_token}"}
+        )
+        assert res_fleet_b.status_code == 200
+        fleet_b_ids = [m["id"] for m in res_fleet_b.json()["fleet"]]
+        assert p2_eq_id in fleet_b_ids
+        assert p1_eq_id not in fleet_b_ids
+
+
+@pytest.mark.anyio
+async def test_m1_fleet_endpoint_requires_auth_and_provider_role():
+    """M-1 Test 3: Provider fleet endpoint requires authentication and rejects unauthorized roles."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # 1. Unauthenticated -> 401
+        res_anon = await ac.get("/api/v1/equipment/fleet")
+        assert res_anon.status_code == 401
+
+        # 2. Farmer role -> 403 Forbidden
+        f_id, f_token, _ = await create_test_user("Farmer Joe", "fj@agri.com", "farmer", "9111111114")
+        res_farmer = await ac.get(
+            "/api/v1/equipment/fleet",
+            headers={"Authorization": f"Bearer {f_token}"}
+        )
+        assert res_farmer.status_code == 403
+
+        # 3. Provider role -> 200 OK
+        p_id, p_token, _ = await create_test_user("Provider Joe", "pj@agri.com", "equipment_provider", "9111111115")
+        res_provider = await ac.get(
+            "/api/v1/equipment/fleet",
+            headers={"Authorization": f"Bearer {p_token}"}
+        )
+        assert res_provider.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_m1_harden_provider_phone_filter_invalid_inputs():
+    """M-1 Tests 5 & 6: provider_phone='+' or ' ' does NOT return the entire catalog."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        p_id, p_token, p_phone = await create_test_user("Real Provider", "rp@agri.com", "equipment_provider", "9876543210")
+        await ac.post(
+            "/api/v1/equipment/catalog",
+            headers={"Authorization": f"Bearer {p_token}"},
+            json={"title": "Heavy Harvester", "category": "harvester", "village": "Prakasam"}
+        )
+
+        # 1. Query with '+' must return 0 items, never all equipment
+        res_plus = await ac.get("/api/v1/equipment/catalog?provider_phone=%2B")
+        assert res_plus.status_code == 200
+        assert res_plus.json()["count"] == 0
+        assert res_plus.json()["equipment"] == []
+
+        # 2. Query with ' ' (space) must return 0 items
+        res_space = await ac.get("/api/v1/equipment/catalog?provider_phone=%20")
+        assert res_space.status_code == 200
+        assert res_space.json()["count"] == 0
+        assert res_space.json()["equipment"] == []
+
+        # 3. Query with non-digit '++++' must return 0 items
+        res_multi_plus = await ac.get("/api/v1/equipment/catalog?provider_phone=%2B%2B%2B%2B")
+        assert res_multi_plus.status_code == 200
+        assert res_multi_plus.json()["count"] == 0
+        assert res_multi_plus.json()["equipment"] == []
+
+        # 4. Query with legitimate phone returns the matching equipment
+        res_valid = await ac.get(f"/api/v1/equipment/catalog?provider_phone={p_phone}")
+        assert res_valid.status_code == 200
+        assert res_valid.json()["count"] >= 1
+
+
+@pytest.mark.anyio
+async def test_m1_farmer_global_catalog_remains_intact():
+    """M-1 Test 7: Public /catalog endpoint remains globally accessible for farmer discovery."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        p_id, p_token, _ = await create_test_user("Public Provider", "pub@agri.com", "equipment_provider", "9848011223")
+        await ac.post(
+            "/api/v1/equipment/catalog",
+            headers={"Authorization": f"Bearer {p_token}"},
+            json={"title": "Public Farmer Tractor", "category": "tractor", "village": "Prakasam"}
+        )
+
+        # Unauthenticated farmer read
+        res = await ac.get("/api/v1/equipment/catalog")
+        assert res.status_code == 200
+        assert res.json()["success"] is True
+        assert res.json()["count"] >= 1

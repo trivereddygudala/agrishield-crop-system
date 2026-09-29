@@ -122,14 +122,14 @@ export default function EquipmentBookingPage() {
     try {
       const deletedEquipIds = getDeletedEquipmentIds();
       const isSynced = localStorage.getItem('agrishield_equipment_catalog_synced') === 'true';
-      const rawSaved = localStorage.getItem('agrishield_provider_fleet_inventory');
+      const rawSaved = localStorage.getItem('agrishield_farmer_catalog_cache');
       const customRaw = localStorage.getItem('agrishield_custom_equipment_listings');
 
       if (rawSaved !== null) {
-        const providerSaved = JSON.parse(rawSaved);
-        if (Array.isArray(providerSaved)) {
-          if (providerSaved.length > 0 || isSynced) {
-            return deduplicateEquipment(providerSaved, deletedEquipIds);
+        const farmerSaved = JSON.parse(rawSaved);
+        if (Array.isArray(farmerSaved)) {
+          if (farmerSaved.length > 0 || isSynced) {
+            return deduplicateEquipment(farmerSaved, deletedEquipIds);
           }
         }
       }
@@ -337,7 +337,7 @@ export default function EquipmentBookingPage() {
           const cleanCatalog = deduplicateEquipment(serverItems, deletedEquipIds);
           setEquipmentList(cleanCatalog);
           try {
-            localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanCatalog));
+            localStorage.setItem('agrishield_farmer_catalog_cache', JSON.stringify(cleanCatalog));
             localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCatalog));
             localStorage.setItem('agrishield_equipment_catalog_synced', 'true');
           } catch (_) {}

@@ -9,6 +9,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   MapPin,
   Phone,
   MessageSquare,
@@ -47,8 +48,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/index';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
+import { normalizeLanguage } from '../../utils/localizationHelper';
 import {
-  CANONICAL_STARTER_FLEET,
   deduplicateEquipment,
   deduplicateBookings,
   getDeletedEquipmentIds,
@@ -117,9 +118,68 @@ const parseUserLocation = (user) => {
   return { village: '', district: '', mandal: '', state: '' };
 };
 
+// FIX 3: Isolated Provider Fleet Storage Key Helper
+export const getProviderFleetStorageKey = (userId) => {
+  return userId ? `agrishield_provider_fleet_inventory_${userId}` : 'agrishield_provider_fleet_inventory';
+};
+
+/**
+ * L-2 Canonical Booking Cost Helper:
+ * Extracts or safely derives legitimate booking cost without fabricating revenue.
+ * Treats 0 and '0' as valid financial numbers.
+ * Never defaults missing amounts to arbitrary numbers like 2500 or 800.
+ * Returns a finite non-negative number; returns 0 if indeterminate.
+ */
+export const getBookingCost = (booking) => {
+  if (!booking || typeof booking !== 'object') {
+    return 0;
+  }
+
+  // 1. Explicit canonical totalCost property
+  if (booking.totalCost !== undefined && booking.totalCost !== null && booking.totalCost !== '') {
+    const parsed = Number(booking.totalCost);
+    if (!isNaN(parsed) && isFinite(parsed)) {
+      return Math.max(0, parsed);
+    }
+  }
+
+  // 2. Explicit alternative total_cost property
+  if (booking.total_cost !== undefined && booking.total_cost !== null && booking.total_cost !== '') {
+    const parsed = Number(booking.total_cost);
+    if (!isNaN(parsed) && isFinite(parsed)) {
+      return Math.max(0, parsed);
+    }
+  }
+
+  // 3. Explicit amount or fare property if present
+  if (booking.fare !== undefined && booking.fare !== null && booking.fare !== '') {
+    const parsed = Number(booking.fare);
+    if (!isNaN(parsed) && isFinite(parsed)) {
+      return Math.max(0, parsed);
+    }
+  }
+  if (booking.amount !== undefined && booking.amount !== null && booking.amount !== '') {
+    const parsed = Number(booking.amount);
+    if (!isNaN(parsed) && isFinite(parsed)) {
+      return Math.max(0, parsed);
+    }
+  }
+
+  // 4. Safely derive from unit rate and quantity if both exist and are valid
+  const rate = Number(booking.ratePerAcre || booking.ratePerHour || booking.hourlyRate || booking.rate);
+  const units = Number(booking.acres || booking.acreage || booking.hours);
+  if (!isNaN(rate) && isFinite(rate) && rate > 0 && !isNaN(units) && isFinite(units) && units > 0) {
+    return Math.round(rate * units);
+  }
+
+  // 5. Data honesty: return 0 rather than inventing arbitrary amounts (e.g. 2500 or 800)
+  return 0;
+};
+
 export default function ProviderDashboardPage() {
   const { t, i18n } = useTranslation();
-  const isTe = i18n.language === 'te';
+  const currentLang = normalizeLanguage(i18n?.language || user?.preferred_language || 'en');
+  const isTe = currentLang === 'te';
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
@@ -154,9 +214,7 @@ export default function ProviderDashboardPage() {
       {
         id: 1,
         role: 'assistant',
-        content: isTe 
-          ? "నమస్కారం! నేను మీ అగ్రిషీల్డ్ మెషినరీ & ఫ్లీట్ AI కోపైలట్ ని. ట్రాక్టర్ ఇంజిన్ నిర్వహణ, డ్రోన్ లిపో బ్యాటరీలు, ఎకరాల వారీ డీజిల్ వినియోగం, న్యాయమైన అద్దె ధరలు మరియు ప్రభుత్వ SMAM సబ్సిడీల గురించి నన్ను అడగండి."
-          : "Hello! I am your AgriShield Machinery & Fleet AI Copilot. Ask me about tractor maintenance schedules, spray drone battery cycles, per-acre diesel consumption formulas, fair rental pricing, and government machinery subsidies."
+        content: t('provider_hub.copilot_greeting', 'Hello! I am your AgriShield Machinery & Fleet AI Copilot. Ask me about tractor maintenance schedules, spray drone battery cycles, per-acre diesel consumption formulas, fair rental pricing, and government machinery subsidies.')
       }
     ];
   });
@@ -169,11 +227,11 @@ export default function ProviderDashboardPage() {
   }, [copilotMessages]);
 
   const COPILOT_PRESETS = [
-    { label: isTe ? "⛽ 45HP ట్రాక్టర్ ఎకరాకి డీజిల్ లెక్క" : "⛽ 45HP Tractor diesel/acre", query: "What is the typical diesel consumption per acre for a 45HP tractor with Rotavator vs Cultivator?" },
-    { label: isTe ? "🔋 డ్రోన్ లిపో బ్యాటరీ భద్రత" : "🔋 Drone LiPo battery care", query: "What are the safe charging, discharging, and storage voltages for 16L agricultural spray drone LiPo batteries?" },
-    { label: isTe ? "💰 ఎకరా అద్దె ధరల ఫార్ములా" : "💰 Fair acre rental pricing", query: "How should I calculate my per-acre rental rate considering current diesel prices, operator daily wage, and implement wear-and-tear?" },
-    { label: isTe ? "⚙️ ట్రాక్టర్ ఇంజిన్ ఆయిల్ సర్వీస్" : "⚙️ Tractor service intervals", query: "When should I change engine oil, fuel filters, and hydraulic oil in a commercial farm tractor?" },
-    { label: isTe ? "🏛️ SMAM మెషినరీ సబ్సిడీ" : "🏛️ SMAM machinery subsidy", query: "What are the eligibility rules and documents required for Sub-Mission on Agricultural Mechanization (SMAM) Custom Hiring Center 40% subsidy?" }
+    { label: t('provider_hub.copilot_preset_diesel', '⛽ 45HP Tractor diesel/acre'), query: "What is the typical diesel consumption per acre for a 45HP tractor with Rotavator vs Cultivator?" },
+    { label: t('provider_hub.copilot_preset_drone', '🔋 Drone LiPo battery care'), query: "What are the safe charging, discharging, and storage voltages for 16L agricultural spray drone LiPo batteries?" },
+    { label: t('provider_hub.copilot_preset_pricing', '💰 Fair acre rental pricing'), query: "How should I calculate my per-acre rental rate considering current diesel prices, operator daily wage, and implement wear-and-tear?" },
+    { label: t('provider_hub.copilot_preset_service', '⚙️ Tractor service intervals'), query: "When should I change engine oil, fuel filters, and hydraulic oil in a commercial farm tractor?" },
+    { label: t('provider_hub.copilot_preset_subsidy', '🏛️ SMAM machinery subsidy'), query: "What are the eligibility rules and documents required for Sub-Mission on Agricultural Mechanization (SMAM) Custom Hiring Center 40% subsidy?" }
   ];
 
   const handleSendCopilot = async (overrideText) => {
@@ -209,9 +267,7 @@ export default function ProviderDashboardPage() {
       setCopilotMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
       console.error("Copilot error:", err);
-      const errMsg = isTe 
-        ? "AI సర్వర్ నుండి సమాధానం పొందడంలో సమస్య ఏర్పడింది. దయచేసి మళ్ళీ ప్రయత్నించండి."
-        : "Could not connect to Machinery AI service. Please check connection and try again.";
+      const errMsg = t('provider_hub.copilot_error', 'Could not connect to Machinery AI service. Please check connection and try again.');;
       setCopilotMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: errMsg }]);
     } finally {
       setCopilotLoading(false);
@@ -223,9 +279,7 @@ export default function ProviderDashboardPage() {
       {
         id: Date.now(),
         role: 'assistant',
-        content: isTe 
-          ? "చాట్ క్లియర్ చేయబడింది. మీ యంత్రాలు, డీజిల్ లెక్కలు లేదా ఫ్లీట్ షెడ్యూలింగ్ గురించి ఏదైనా అడగండి."
-          : "Chat history cleared. Ask me any question about your fleet machinery, fuel consumption, or maintenance."
+        content: t('provider_hub.copilot_cleared', 'Chat history cleared. Ask me any question about your fleet machinery, fuel consumption, or maintenance.')
       }
     ];
     setCopilotMessages(defaultMsg);
@@ -275,93 +329,158 @@ export default function ProviderDashboardPage() {
       } catch (e) {}
 
       toast.success(
-        confirmedVal ? (isTe ? 'ప్రొవైడర్ హబ్: ఆన్‌లైన్' : 'Provider Hub: Online Today') : (isTe ? 'ప్రొవైడర్ హబ్: ఆఫ్‌లైన్' : 'Provider Hub: Offline Today'),
+        confirmedVal ? t('provider_hub.hub_online_title', 'Provider Hub: Online Today') : t('provider_hub.hub_offline_title', 'Provider Hub: Offline Today'),
         confirmedVal
-          ? (isTe ? 'రైతులు ఇప్పుడు మీరు ఆన్‌లైన్‌లో ఉన్నట్లు చూస్తారు మరియు బుకింగ్‌లు పంపగలరు.' : 'Farmers can now see you Online and send rental booking requests.')
-          : (isTe ? 'కొత్త ఆర్డర్లు తాత్కాలికంగా నిలిపివేయబడ్డాయి. రైతులు మిమ్మల్ని ఆఫ్‌లైన్‌లో ఉన్నట్లు చూస్తారు.' : 'Incoming new rental orders paused. Farmers will see you as Offline Today.')
+          ? t('provider_hub.hub_online_desc', 'Farmers can now see you Online and send rental booking requests.')
+          : t('provider_hub.hub_offline_desc', 'Incoming new rental orders paused. Farmers will see you as Offline Today.')
       );
     } catch (err) {
       console.error('Failed to update provider status on server:', err);
       toast.error(
-        isTe ? 'స్థితి అప్‌డేట్ విఫలమైంది' : 'Status Update Failed',
-        isTe ? 'సర్వర్ కనెక్ట్ కాలేదు. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Could not reach server to update status. Please try again.'
+        t('provider_hub.status_update_failed', 'Status Update Failed'),
+        t('provider_hub.server_connect_error', 'Could not reach server to update status. Please try again.')
       );
     } finally {
       setIsStatusUpdating(false);
     }
   };
 
-  // ── Fleet Inventory State (Saved to localStorage with Zero Duplicates & Blacklist Protection) ──
-  const [fleetList, setFleetList] = useState(() => {
+  // ── Fleet Inventory State (Provider-Scoped, Zero Duplicates & Blacklist Protection) ──
+  // FIX 1 & FIX 3: Never default to demo/starter machinery. Isolated by provider ID.
+  const loadScopedFleet = useCallback(() => {
     try {
-      const isSynced = localStorage.getItem('agrishield_equipment_catalog_synced') === 'true';
-      const saved = localStorage.getItem('agrishield_provider_fleet_inventory');
-      if (saved !== null) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          if (parsed.length > 0 || isSynced) {
-            return deduplicateEquipment(parsed, getDeletedEquipmentIds());
+      const uid = String(user?.id || user?._id || '');
+      const uPhone = String(user?.phone || user?.mobile || '');
+      const cleanUPhone = uPhone.replace(/\D/g, '');
+      const deletedEquipIds = getDeletedEquipmentIds();
+      const storageKey = getProviderFleetStorageKey(uid);
+
+      if (uid) {
+        const scopedSaved = localStorage.getItem(storageKey);
+        if (scopedSaved !== null) {
+          const parsed = JSON.parse(scopedSaved);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter(m => {
+              if (!m) return false;
+              const mPid = String(m.providerId || m.owner_id || m.userId || '');
+              const mPhone = String(m.phone || m.contactPhone || '').replace(/\D/g, '');
+              return (mPid && mPid === uid) || (cleanUPhone && mPhone && cleanUPhone === mPhone);
+            });
+            return deduplicateEquipment(filtered, deletedEquipIds);
           }
         }
       }
-      if (!isSynced) {
-        return deduplicateEquipment(CANONICAL_STARTER_FLEET, getDeletedEquipmentIds());
+
+      // FIX 8: Legacy migration fallback with strict ownership verification
+      const legacySaved = localStorage.getItem('agrishield_provider_fleet_inventory');
+      if (legacySaved !== null && uid) {
+        const parsed = JSON.parse(legacySaved);
+        if (Array.isArray(parsed)) {
+          const verifiedOwned = parsed.filter(m => {
+            if (!m) return false;
+            const mPid = String(m.providerId || m.owner_id || m.userId || '');
+            const mPhone = String(m.phone || m.contactPhone || '').replace(/\D/g, '');
+            return (mPid && mPid === uid) || (cleanUPhone && mPhone && cleanUPhone === mPhone);
+          });
+          if (verifiedOwned.length > 0) {
+            const cleanLegacy = deduplicateEquipment(verifiedOwned, deletedEquipIds);
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(cleanLegacy));
+            } catch (_) {}
+            return cleanLegacy;
+          }
+        }
       }
+
+      // Empty fleet by default — never populate demo machinery for private provider
       return [];
-    } catch (e) {}
-    return [];
-  });
+    } catch (e) {
+      return [];
+    }
+  }, [user?.id, user?._id, user?.phone, user?.mobile, getDeletedEquipmentIds]);
+
+  const [fleetList, setFleetList] = useState(loadScopedFleet);
+  const [isFleetLoading, setIsFleetLoading] = useState(true);
+  const [fleetError, setFleetError] = useState(null);
+  const isFleetFetchingRef = React.useRef(false);
+
+  // Sync state if user identity finishes loading after initial render
+  useEffect(() => {
+    const uid = user?.id || user?._id;
+    if (uid) {
+      const loaded = loadScopedFleet();
+      if (loaded.length > 0) {
+        setFleetList(prev => (prev.length === 0 ? loaded : prev));
+      }
+    }
+  }, [user?.id, user?._id, loadScopedFleet]);
 
   useEffect(() => {
     const cleanFleet = deduplicateEquipment(fleetList, getDeletedEquipmentIds());
-    localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanFleet));
+    const uid = user?.id || user?._id;
+    const storageKey = getProviderFleetStorageKey(uid);
+    localStorage.setItem(storageKey, JSON.stringify(cleanFleet));
+    if (uid) {
+      localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanFleet));
+    }
     try {
       localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanFleet));
       window.dispatchEvent(new Event('agrishield_equipment_updated'));
     } catch (e) {}
-  }, [fleetList]);
+  }, [fleetList, user?.id, user?._id, getDeletedEquipmentIds]);
 
-  // Sync remote fleet catalog items from backend for cross-device support (With Zero Duplicates & Blacklist Exclusion)
-  useEffect(() => {
-    const fetchRemoteFleet = async () => {
-      try {
-        const phone = user?.phone || user?.mobile;
-        const pid = user?.id || user?._id;
-        if (!phone && !pid) return;
-        let endpoint = '/api/v1/equipment/catalog';
-        if (pid) {
-          endpoint += `?provider_id=${encodeURIComponent(pid)}`;
-        } else if (phone) {
-          endpoint += `?provider_phone=${encodeURIComponent(phone)}`;
-        }
-        let res = null;
+  // Sync remote fleet items from authenticated provider endpoint
+  // FIX 4 & FIX 5: Uses dedicated GET /api/v1/equipment/fleet. Never calls public /catalog.
+  // M-2: Robust loading state, error banners, retry, and cached data preservation
+  const fetchRemoteFleet = useCallback(async (isManualRetry = false) => {
+    if (isFleetFetchingRef.current) return;
+    const uid = user?.id || user?._id;
+    if (!uid) {
+      setIsFleetLoading(false);
+      return;
+    }
+
+    isFleetFetchingRef.current = true;
+    if (isManualRetry) {
+      setFleetError(null);
+      setIsFleetLoading(true);
+    }
+
+    try {
+      const res = await API.get('/api/v1/equipment/fleet');
+      let fleetItems = null;
+      if (res?.data && (Array.isArray(res.data.fleet) || Array.isArray(res.data.equipment))) {
+        fleetItems = Array.isArray(res.data.fleet) ? res.data.fleet : res.data.equipment;
+      }
+
+      if (Array.isArray(fleetItems)) {
+        const deletedEquipIds = getDeletedEquipmentIds();
+        const cleanCatalog = deduplicateEquipment(fleetItems, deletedEquipIds);
+        setFleetList(cleanCatalog);
+        setFleetError(null);
         try {
-          res = await API.get(endpoint);
+          const storageKey = getProviderFleetStorageKey(uid);
+          localStorage.setItem(storageKey, JSON.stringify(cleanCatalog));
+          localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanCatalog));
+          localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCatalog));
+          localStorage.setItem('agrishield_equipment_catalog_synced', 'true');
         } catch (_) {}
+      }
+    } catch (err) {
+      console.warn('Fleet fetch warning:', err);
+      // M-2: User-visible error, do not expose raw stack traces
+      setFleetError(t('provider_hub.fleet_load_error', 'Could not load machinery fleet. Please check your connection and retry.'));
+    } finally {
+      setIsFleetLoading(false);
+      isFleetFetchingRef.current = false;
+    }
+  }, [user?.id, user?._id, getDeletedEquipmentIds, t]);
 
-        let catalogItems = null;
-        if (res?.data && (Array.isArray(res.data.catalog) || Array.isArray(res.data.equipment))) {
-          catalogItems = Array.isArray(res.data.catalog) ? res.data.catalog : res.data.equipment;
-        }
-
-
-
-        if (Array.isArray(catalogItems)) {
-          const deletedEquipIds = getDeletedEquipmentIds();
-          const cleanCatalog = deduplicateEquipment(catalogItems, deletedEquipIds);
-          setFleetList(cleanCatalog);
-          try {
-            localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(cleanCatalog));
-            localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanCatalog));
-            localStorage.setItem('agrishield_equipment_catalog_synced', 'true');
-          } catch (_) {}
-        }
-      } catch (_) {}
-    };
+  useEffect(() => {
     fetchRemoteFleet();
-    const fleetInterval = setInterval(fetchRemoteFleet, 12000);
+    const fleetInterval = setInterval(() => fetchRemoteFleet(false), 12000);
     const handleFleetVisibility = () => {
-      if (document.visibilityState === 'visible') fetchRemoteFleet();
+      if (document.visibilityState === 'visible') fetchRemoteFleet(false);
     };
     window.addEventListener('agrishield_equipment_updated', fetchRemoteFleet);
     window.addEventListener('focus', fetchRemoteFleet);
@@ -373,7 +492,7 @@ export default function ProviderDashboardPage() {
       window.removeEventListener('focus', fetchRemoteFleet);
       document.removeEventListener('visibilitychange', handleFleetVisibility);
     };
-  }, [user?.phone]);
+  }, [fetchRemoteFleet]);
 
   // Persistent blacklist for deleted booking vouchers so they never resurrect across devices
   const getDeletedBookingIds = useCallback(() => {
@@ -414,6 +533,10 @@ export default function ProviderDashboardPage() {
     } catch (e) {}
     return [];
   });
+  const [isBookingsLoading, setIsBookingsLoading] = useState(true);
+  const [bookingsError, setBookingsError] = useState(null);
+  const [updatingBookingId, setUpdatingBookingId] = useState(null);
+  const isBookingsFetchingRef = React.useRef(false);
 
   // Delete Booking Confirmation State
   const [deleteModalBooking, setDeleteModalBooking] = useState(null);
@@ -434,8 +557,8 @@ export default function ProviderDashboardPage() {
     // Defensive guard: active or completed bookings cannot be deleted (H-4)
     if (['confirmed', 'completed'].includes(bStatus)) {
       toast.error(
-        isTe ? 'సక్రియ లేదా పూర్తయిన ఆర్డర్లను తొలగించలేరు' : 'Cannot Delete Active/Completed Order',
-        isTe ? 'దయచేసి అవసరమైతే బుకింగ్‌ను రద్దు చేయండి.' : 'Active or completed bookings cannot be deleted. Please cancel instead.'
+        t('provider_hub.cannot_delete_active_order', 'Cannot Delete Active/Completed Order'),
+        t('provider_hub.cannot_delete_active_desc', 'Active or completed bookings cannot be deleted. Please cancel instead.')
       );
       setDeleteModalBooking(null);
       return;
@@ -463,16 +586,14 @@ export default function ProviderDashboardPage() {
 
       window.dispatchEvent(new Event('agrishield_bookings_updated'));
       toast.success(
-        isTe ? 'ఆర్డర్ తొలగించబడింది' : 'Order Deleted',
-        isTe
-          ? `బుకింగ్ #${targetId} రికార్డుల నుండి శాశ్వతంగా తొలగించబడింది.`
-          : `Booking order #${targetId} permanently removed from your dashboard.`
+        t('provider_hub.order_deleted', 'Order Deleted'),
+        t('provider_hub.order_deleted_desc', 'Booking order #{{id}} permanently removed from your dashboard.', { id: targetId })
       );
     } catch (err) {
       const detail = err?.response?.data?.detail;
       toast.error(
-        isTe ? 'ఆర్డర్ తొలగింపు విఫలమైంది' : 'Deletion Failed',
-        detail || (err?.response?.status === 400 ? 'Active or completed bookings cannot be deleted.' : 'Could not delete booking from server.')
+        t('provider_hub.deletion_failed', 'Deletion Failed'),
+        detail || (err?.response?.status === 400 ? t('provider_hub.cannot_delete_active_desc', 'Active or completed bookings cannot be deleted.') : 'Could not delete booking from server.')
       );
     } finally {
       setIsDeletingBooking(false);
@@ -491,7 +612,7 @@ export default function ProviderDashboardPage() {
     const farmerName = booking.farmerName || t('common.farmer', 'Farmer');
     const equipmentTitle = booking.equipmentTitle || booking.title || 'Farm Machinery Rental';
     const village = booking.village || booking.location?.village || booking.location?.mandal || t('common.field_location', 'Field Location');
-    const totalCost = booking.totalCost || '800';
+    const totalCost = getBookingCost(booking);
 
     const chatMessageObj = {
       id: bKey,
@@ -502,7 +623,7 @@ export default function ProviderDashboardPage() {
       booking_id: bKey,
       equipmentTitle: equipmentTitle,
       title: equipmentTitle,
-      providerName: user?.name || user?.full_name || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
+      providerName: user?.name || user?.full_name || t('provider_hub.verified_provider', 'Verified Provider'),
       providerPhone: user?.phone || user?.mobile || '',
       provider_phone: user?.phone || user?.mobile || '',
       farmerName: farmerName,
@@ -516,14 +637,20 @@ export default function ProviderDashboardPage() {
       timeSlot: booking.timeSlot || booking.slot || 'Full Day',
       operation: booking.operation,
       fieldStatus: booking.fieldStatus || booking.crop,
-      message: isTe
-        ? `బుకింగ్ #${bKey} కోసం రైతుతో ప్రత్యక్ష సందేశం.`
-        : `Direct in-app messaging for booking #${bKey}.`
+      message: t('provider_hub.direct_chat_message', 'Direct in-app messaging for booking #{{id}}.', { id: bKey })
     };
     setActiveChatBooking(chatMessageObj);
   };
 
-  const fetchProviderBookings = useCallback(async () => {
+  // FIX 2, FIX 3, FIX 4, FIX 5: Loading state, error handling, manual retry, and cached data preservation
+  const fetchProviderBookings = useCallback(async (isManualRetry = false) => {
+    if (isBookingsFetchingRef.current) return;
+    isBookingsFetchingRef.current = true;
+    if (isManualRetry) {
+      setBookingsError(null);
+      setIsBookingsLoading(true);
+    }
+
     try {
       const deletedIds = getDeletedBookingIds();
       let local = [];
@@ -567,26 +694,35 @@ export default function ProviderDashboardPage() {
 
           const merged = deduplicateBookings([...inFlight, ...remote], deletedIds);
           setBookingsList(merged);
+          setBookingsError(null);
           try {
             localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(merged));
           } catch (e) {}
           return;
         }
-      } catch (err) {}
+      } catch (err) {
+        console.warn('Booking fetch warning:', err);
+        setBookingsError(t('provider_hub.orders_load_error', 'Could not load booking orders. Please check your connection and retry.'));
+      }
 
       if (local.length > 0) {
         const clean = deduplicateBookings(local, deletedIds);
         setBookingsList(clean);
       }
-    } catch (e) {}
-  }, [getDeletedBookingIds]);
+    } catch (e) {
+      console.warn('General booking processing notice:', e);
+    } finally {
+      setIsBookingsLoading(false);
+      isBookingsFetchingRef.current = false;
+    }
+  }, [getDeletedBookingIds, t]);
 
   // Poll backend & listen to window/storage/visibility updates
   useEffect(() => {
     fetchProviderBookings();
-    const interval = setInterval(fetchProviderBookings, 6000); // 6s fast multi-device sync
+    const interval = setInterval(() => fetchProviderBookings(false), 6000); // 6s fast multi-device sync
     const handleRevalidateBookings = () => {
-      if (document.visibilityState === 'visible') fetchProviderBookings();
+      if (document.visibilityState === 'visible') fetchProviderBookings(false);
     };
     window.addEventListener('agrishield_bookings_updated', fetchProviderBookings);
     window.addEventListener('storage', fetchProviderBookings);
@@ -703,6 +839,7 @@ export default function ProviderDashboardPage() {
   };
 
   const handleToggleMachineAvailability = async (id) => {
+    const priorFleet = [...fleetList];
     let nextAvailable = false;
     const updated = fleetList.map(m => {
       if (m.id === id) {
@@ -713,6 +850,8 @@ export default function ProviderDashboardPage() {
     });
     setFleetList(updated);
     try {
+      const uid = user?.id || user?._id;
+      localStorage.setItem(getProviderFleetStorageKey(uid), JSON.stringify(updated));
       localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
       localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
       window.dispatchEvent(new Event('agrishield_equipment_updated'));
@@ -721,16 +860,28 @@ export default function ProviderDashboardPage() {
     // Multi-device backend sync with authoritative confirmation
     try {
       await API.patch(`/api/v1/equipment/fleet/${id}/availability`, { available: nextAvailable });
+      toast.info(
+        t('provider_hub.availability_updated', 'Availability Updated'),
+        nextAvailable
+          ? t('provider_hub.machinery_marked_available', 'Machinery marked as Available.')
+          : t('provider_hub.machinery_marked_booked', 'Machinery marked as Booked (Farmers will see it as Booked).')
+      );
     } catch (err) {
-      console.warn('Backend availability sync notice:', err);
+      console.warn('Backend availability sync failed:', err);
+      // FIX 9: Roll back prior state on failure and show user-visible error
+      setFleetList(priorFleet);
+      try {
+        const uid = user?.id || user?._id;
+        localStorage.setItem(getProviderFleetStorageKey(uid), JSON.stringify(priorFleet));
+        localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(priorFleet));
+        localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(priorFleet));
+        window.dispatchEvent(new Event('agrishield_equipment_updated'));
+      } catch (_) {}
+      toast.error(
+        t('provider_hub.update_failed', 'Update Failed'),
+        t('provider_hub.machine_update_failed', 'Failed to update machine availability on server.')
+      );
     }
-
-    toast.info(
-      isTe ? 'లభ్యత నవీకరించబడింది' : 'Availability Updated',
-      nextAvailable
-        ? (isTe ? 'యంత్రం అందుబాటులో ఉన్నట్లుగా గుర్తించబడింది.' : 'Machinery marked as Available.')
-        : (isTe ? 'యంత్రం బుక్ చేయబడినట్లుగా మార్చబడింది (రైతుల స్క్రీన్‌లో బుక్ చేయబడింది అని కనిపిస్తుంది).' : 'Machinery marked as Booked (Farmers will see it as Booked).')
-    );
   };
 
   // Delete Machinery Confirmation State
@@ -745,39 +896,39 @@ export default function ProviderDashboardPage() {
 
     setIsDeletingMachine(true);
 
-    // 1. Permanently blacklist machinery ID & title in localStorage and backend tombstones
-    saveDeletedEquipmentId(targetId, targetTitle);
-    recordCrossDeviceDeletion('equipment', targetId, 'Provider deleted machinery');
-
-    // 2. Remove immediately from local state and localStorage
-    const updated = fleetList.filter(m => m.id !== targetId);
-    setFleetList(updated);
     try {
-      localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
-      localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
-      window.dispatchEvent(new Event('agrishield_equipment_updated'));
-    } catch (e) {}
+      // 1. Dispatch DELETE to backend API first
+      await API.delete(`/api/v1/equipment/catalog/${targetId}`);
 
-    // 3. Dispatch DELETE to backend API & Render workers
-    try {
-      let remoteDeleted = false;
+      // 2. Blacklist machinery ID & title only after server confirmation
+      saveDeletedEquipmentId(targetId, targetTitle);
+      recordCrossDeviceDeletion('equipment', targetId, 'Provider deleted machinery');
+
+      // 3. Remove from local state and storage
+      const updated = fleetList.filter(m => m.id !== targetId);
+      setFleetList(updated);
       try {
-        await API.delete(`/api/v1/equipment/catalog/${targetId}`);
-        remoteDeleted = true;
-      } catch (_) {}
+        const uid = user?.id || user?._id;
+        localStorage.setItem(getProviderFleetStorageKey(uid), JSON.stringify(updated));
+        localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
+        localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
+        window.dispatchEvent(new Event('agrishield_equipment_updated'));
+      } catch (e) {}
 
-
+      toast.success(
+        t('provider_hub.machinery_removed', 'Machinery Removed'),
+        t('provider_hub.machinery_removed_desc', '{{title}} was permanently deleted from your fleet.', { title: targetTitle })
+      );
     } catch (err) {
       console.warn('Backend DELETE machinery warning:', err);
+      // FIX 9: Preserve machinery on failure and show user-visible error
+      toast.error(
+        t('provider_hub.deletion_failed', 'Deletion Failed'),
+        t('provider_hub.machine_delete_failed', 'Failed to delete machinery from server.')
+      );
     } finally {
       setIsDeletingMachine(false);
       setDeleteModalMachine(null);
-      toast.success(
-        isTe ? 'యంత్రం తొలగించబడింది' : 'Machinery Removed',
-        isTe
-          ? `${targetTitle} మీ కేటలాగ్ నుండి శాశ్వతంగా తొలగించబడింది.`
-          : `${targetTitle} was permanently deleted from your fleet.`
-      );
     }
   };
 
@@ -791,17 +942,22 @@ export default function ProviderDashboardPage() {
   };
 
   const handleUpdateBookingStatus = async (bookingId, nextStatus, cancelReason = '') => {
+    // FIX 8 Action Mutex: Guard against rapid double-clicks on the same booking
+    if (updatingBookingId === bookingId) return;
+
     // C-1 Guard: Do not allow transitioning out of terminal status
     const targetBooking = bookingsList.find(b => (b && (b.id === bookingId || b.bookingId === bookingId)));
     if (!targetBooking) return;
     const currStatus = String(targetBooking.status || 'pending').toLowerCase();
     if (['rejected', 'cancelled', 'completed'].includes(currStatus)) {
       toast.error(
-        isTe ? 'ముగిసిన ఆర్డర్ స్థితిని మార్చలేరు' : 'Terminal Order',
-        isTe ? 'ఈ బుకింగ్ ఇప్పటికే ముగిసింది.' : `Cannot modify status of a ${currStatus} booking.`
+        t('provider_hub.terminal_order', 'Terminal Order'),
+        t('provider_hub.cannot_modify_terminal', 'Cannot modify status of a {{status}} booking.', { status: currStatus })
       );
       return;
     }
+
+    setUpdatingBookingId(bookingId);
 
     // Preserve snapshot of original state for rollback on API failure
     const originalBookings = [...bookingsList];
@@ -853,6 +1009,8 @@ export default function ProviderDashboardPage() {
             return m;
           });
           try {
+            const uid = user?.id || user?._id;
+            localStorage.setItem(getProviderFleetStorageKey(uid), JSON.stringify(synced));
             localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(synced));
             localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(synced));
             window.dispatchEvent(new Event('agrishield_equipment_updated'));
@@ -869,6 +1027,8 @@ export default function ProviderDashboardPage() {
             return m;
           });
           try {
+            const uid = user?.id || user?._id;
+            localStorage.setItem(getProviderFleetStorageKey(uid), JSON.stringify(synced));
             localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(synced));
             localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(synced));
             window.dispatchEvent(new Event('agrishield_equipment_updated'));
@@ -878,15 +1038,15 @@ export default function ProviderDashboardPage() {
       }
 
       // Success toast
-      let toastTitle = isTe ? 'బుకింగ్ స్థితి నవీకరించబడింది' : 'Status Updated';
-      let toastMsg = isTe ? 'ఆర్డర్ ఆమోదించబడింది.' : 'Order confirmed.';
+      let toastTitle = t('provider_hub.status_updated', 'Status Updated');
+      let toastMsg = t('provider_hub.order_confirmed', 'Order confirmed.');
       if (nextStatus === 'rejected') {
-        toastMsg = isTe ? 'ఆర్డర్ తిరస్కరించబడింది. రైతు స్క్రీన్‌లో ఇది వెంటనే కనిపిస్తుంది.' : 'Order declined. Farmer will immediately see this status on their screen.';
+        toastMsg = t('provider_hub.order_declined', 'Order declined. Farmer will immediately see this status on their screen.');
       } else if (nextStatus === 'completed') {
-        toastMsg = isTe ? 'పని పూర్తయింది & సెటిల్ చేయబడింది.' : 'Service marked completed and settled.';
+        toastMsg = t('provider_hub.job_completed', 'Service marked completed and settled.');
       } else if (nextStatus === 'cancelled') {
-        toastTitle = isTe ? 'బుకింగ్ రద్దు చేయబడింది' : 'Booking Cancelled';
-        toastMsg = isTe ? 'బుకింగ్ రద్దు చేయబడింది మరియు సమయ స్లాట్ విడుదల చేయబడింది.' : 'Booking cancelled and time slot released.';
+        toastTitle = t('provider_hub.cancelled_tag', 'Booking Cancelled');
+        toastMsg = t('provider_hub.booking_cancelled_toast', 'Booking cancelled and time slot released.');
       }
       toast.info(toastTitle, toastMsg);
 
@@ -898,25 +1058,17 @@ export default function ProviderDashboardPage() {
       let notifMsg = '';
 
       if (nextStatus === 'confirmed') {
-        notifTitle = isTe ? `✅ బుకింగ్ ధృవీకరించబడింది (#${bookingId})` : `✅ Machinery Booking Accepted (#${bookingId})`;
-        notifMsg = isTe
-          ? `ప్రొవైడర్ మీ ${equipTitle} బుకింగ్‌ను ఆమోదించారు! షెడ్యూల్ తేదీ: ${bookingDate}. పరికరం సమయానికి చేరుకుంటుంది.`
-          : `Great news! The equipment provider has ACCEPTED your booking for ${equipTitle}. Scheduled for ${bookingDate}.`;
+        notifTitle = `✅ ${t('provider_hub.notif_confirmed_title', 'Machinery Booking Accepted')} (#${bookingId})`;
+        notifMsg = `${t('provider_hub.notif_confirmed_msg', 'Great news! The equipment provider has ACCEPTED your booking.')} (${equipTitle}, ${bookingDate})`;
       } else if (nextStatus === 'rejected') {
-        notifTitle = isTe ? `❌ బుకింగ్ తిరస్కరించబడింది (#${bookingId})` : `❌ Machinery Booking Declined (#${bookingId})`;
-        notifMsg = isTe
-          ? `క్షమించండి, ప్రొవైడర్ వేరొక షెడ్యూల్‌లో ఉండటం వల్ల మీ బుకింగ్ (#${bookingId}) అంగీకరించలేకపోయారు. దయచేసి సమీపంలోని ఇతర యంత్రాలను చూడండి.`
-          : `The equipment provider is unable to accept booking #${bookingId} due to prior commitments. Please explore other available machinery.`;
+        notifTitle = `❌ ${t('provider_hub.notif_rejected_title', 'Machinery Booking Declined')} (#${bookingId})`;
+        notifMsg = t('provider_hub.notif_rejected_msg', 'The equipment provider is unable to accept booking due to prior commitments. Please explore other available machinery.');
       } else if (nextStatus === 'completed') {
-        notifTitle = isTe ? `🎉 పని పూర్తయింది (#${bookingId})` : `🎉 Machinery Service Completed (#${bookingId})`;
-        notifMsg = isTe
-          ? `మీ ${equipTitle} అద్దె సేవ విజయవంతంగా పూర్తయింది. ఖాతా రికార్డు నవీకరించబడింది.`
-          : `Rental service for ${equipTitle} (#${bookingId}) has been marked COMPLETED.`;
+        notifTitle = `🎉 ${t('provider_hub.notif_completed_title', 'Machinery Service Completed')} (#${bookingId})`;
+        notifMsg = `${t('provider_hub.notif_completed_msg', 'Rental service has been marked COMPLETED.')} (${equipTitle})`;
       } else if (nextStatus === 'cancelled') {
-        notifTitle = isTe ? `⚠️ బుకింగ్ రద్దు చేయబడింది (#${bookingId})` : `⚠️ Machinery Booking Cancelled (#${bookingId})`;
-        notifMsg = isTe
-          ? `ప్రొవైడర్ మీ ${equipTitle} బుకింగ్‌ను రద్దు చేశారు. కారణం: ${cancelReason || 'అనివార్య కారణాలు'}.`
-          : `The equipment provider has cancelled booking #${bookingId} for ${equipTitle}. Reason: ${cancelReason || 'Unforeseen circumstances'}.`;
+        notifTitle = `⚠️ ${t('provider_hub.notif_cancelled_title', 'Machinery Booking Cancelled')} (#${bookingId})`;
+        notifMsg = `${t('provider_hub.notif_cancelled_msg', 'The equipment provider has cancelled booking.')} (${equipTitle}) ${cancelReason ? '- ' + cancelReason : ''}`;
       }
 
       if (notifTitle) {
@@ -957,9 +1109,7 @@ export default function ProviderDashboardPage() {
             id: `msg_sys_${Date.now()}`,
             sender: 'system',
             type: 'system_notice',
-            text: isTe
-              ? `✅ పరికర ప్రొవైడర్ మీ బుకింగ్‌ను ఆమోదించారు (${bookingDate} కోసం షెడ్యూల్ చేయబడింది)`
-              : `✅ Booking Accepted by Provider (Scheduled for ${bookingDate})`,
+            text: `✅ ${t('provider_hub.notice_booking_accepted', 'Booking Accepted by Provider (Scheduled)')} (${bookingDate})`,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           };
           localStorage.setItem(canonicalKey, JSON.stringify([...thread, noticeMsg]));
@@ -986,14 +1136,16 @@ export default function ProviderDashboardPage() {
       const status = err?.response?.status;
       const detail = err?.response?.data?.detail;
       if (status === 409) {
-        toast.error(isTe ? 'స్లాట్ వివాదం: ' + (detail || '') : 'Conflict: ' + (detail || 'This time slot is already confirmed.'));
+        toast.error(t('provider_hub.slot_conflict', 'Conflict: This time slot is already confirmed.') + (detail ? ` (${detail})` : ''));
       } else if (status === 422) {
-        toast.error(isTe ? 'చెల్లని అభ్యర్థన: ' + (detail || '') : 'Invalid Request: ' + (detail || ''));
+        toast.error(t('provider_hub.invalid_request', 'Invalid Request') + (detail ? `: ${detail}` : ''));
       } else if (status === 503) {
-        toast.warning(isTe ? 'సిస్టమ్ బిజీగా ఉంది. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Server contention. Please retry your request in a few moments.');
+        toast.warning(t('provider_hub.server_busy', 'Server contention. Please retry your request in a few moments.'));
       } else {
-        toast.error(isTe ? 'స్థితి అప్‌డేట్ విఫలమైంది' : 'Update Failed', detail || err.message);
+        toast.error(t('provider_hub.update_failed', 'Update Failed'), detail || err.message);
       }
+    } finally {
+      setUpdatingBookingId(null);
     }
   };
 
@@ -1009,7 +1161,7 @@ export default function ProviderDashboardPage() {
   const completedOrdersCount = cleanBookingsList.filter(b => b.status === 'completed').length;
   const totalEarnings = cleanBookingsList
     .filter(b => b.status === 'completed')
-    .reduce((sum, b) => sum + (Number(b.totalCost) || 2500), 0);
+    .reduce((sum, b) => sum + getBookingCost(b), 0);
 
   // ── DEDICATED STANDALONE AI COPILOT VIEW (When bottom AI Copilot tab is tapped) ──
   if (activeTab === 'copilot') {
@@ -1024,7 +1176,7 @@ export default function ProviderDashboardPage() {
               className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{isTe ? 'ఫ్లీట్ హబ్‌కు తిరిగి' : 'Back to Fleet Hub'}</span>
+              <span>{t('provider_hub.back_to_fleet', 'Back to Fleet Hub')}</span>
             </button>
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-600/20 shrink-0">
               <Bot className="w-5 h-5" />
@@ -1032,14 +1184,14 @@ export default function ProviderDashboardPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  {isTe ? 'అగ్రిషీల్డ్ మెషినరీ AI కోపైలట్' : 'AgriShield Machinery & Fleet Copilot'}
+                  {t('provider_hub.copilot_title', 'AgriShield Machinery & Fleet Copilot')}
                 </h1>
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                  {isTe ? 'నిపుణుడు' : 'Strict Machinery Domain'}
+                  {t('provider_hub.copilot_tag', 'Strict Machinery Domain')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isTe ? 'ట్రాక్టర్, స్ప్రే డ్రోన్, డీజిల్ & అద్దె లెక్కల ప్రత్యేక AI సహాయకుడు' : 'Specialized expert for tractors, spray drones, diesel/acre formulas & rental economics'}
+                {t('provider_hub.copilot_subtitle', 'Specialized expert for tractors, spray drones, diesel/acre formulas & rental economics')}
               </p>
             </div>
           </div>
@@ -1051,7 +1203,7 @@ export default function ProviderDashboardPage() {
             title="Clear Chat History"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{isTe ? 'చాట్ క్లియర్ చేయండి' : 'Clear Chat'}</span>
+            <span className="hidden sm:inline">{t('provider_hub.copilot_clear_chat', 'Clear Chat')}</span>
           </button>
         </div>
 
@@ -1060,7 +1212,7 @@ export default function ProviderDashboardPage() {
           {/* Quick Prompt Presets */}
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              {isTe ? 'త్వరిత ప్రశ్నలు (Quick Questions)' : 'Quick Machinery Inquiries'}
+              {t('provider_hub.copilot_quick_questions', 'Quick Machinery Inquiries')}
             </p>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
               {COPILOT_PRESETS.map((p, idx) => (
@@ -1111,7 +1263,7 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-500 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
-                  <span>{isTe ? 'మెషినరీ నిపుణుడు సమాధానం సిద్ధం చేస్తున్నారు...' : 'Consulting machinery telemetry & calculating...'}</span>
+                  <span>{t('provider_hub.copilot_consulting', 'Consulting machinery telemetry & calculating...')}</span>
                 </div>
               </div>
             )}
@@ -1129,7 +1281,7 @@ export default function ProviderDashboardPage() {
               type="text"
               value={copilotInput}
               onChange={(e) => setCopilotInput(e.target.value)}
-              placeholder={isTe ? "ట్రాక్టర్ నిర్వహణ, డ్రోన్ బ్యాటరీ లేదా డీజిల్ వినియోగం గురించి అడగండి..." : "Ask about tractor maintenance, drone battery care, diesel formulas, or rental rates..."}
+              placeholder={t('provider_hub.copilot_input_placeholder', 'Ask about tractor maintenance, drone battery care, diesel formulas, or rental rates...')}
               className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
@@ -1138,7 +1290,7 @@ export default function ProviderDashboardPage() {
               className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer shrink-0"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{isTe ? 'పంపండి' : 'Ask Copilot'}</span>
+              <span>{t('provider_hub.copilot_send_btn', 'Ask Copilot')}</span>
             </button>
           </form>
         </div>
@@ -1161,15 +1313,13 @@ export default function ProviderDashboardPage() {
 
           <div className="space-y-2">
             <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-              {isTe ? 'రైతు ఖాతా గుర్తించబడింది' : 'Farmer Account Detected'}
+              {t('provider_hub.farmer_account_detected', 'Farmer Account Detected')}
             </span>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {isTe ? 'ఇది మెషినరీ ప్రొవైడర్ల కోసం మాత్రమే' : 'Machinery Provider Hub'}
+              {t('provider_hub.provider_hub_only', 'Machinery Provider Hub')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
-              {isTe
-                ? `మీరు ప్రస్తుతం రైతు (${user?.name || user?.username || 'Farmer'}) ఖాతాతో లాగిన్ అయి ఉన్నారు. ఈ ప్రొవైడర్ డ్యాష్‌బోర్డ్ కేవలం రిజిస్టర్ అయిన యంత్రాల సరఫరాదారుల కోసం మాత్రమే. మీ పొలానికి ట్రాక్టర్లు, డ్రోన్లు, హార్వెస్టర్లను బుక్ చేసుకోవడానికి లేదా బుకింగ్ స్థితిని చూడటానికి వ్యవసాయ యంత్రాల అద్దె విభాగానికి వెళ్ళండి.`
-                : `You are currently logged in as a Farmer (${user?.name || user?.username || 'Farmer'}). The Provider Dashboard is reserved exclusively for registered Machinery & Drone Providers. To book tractors, harvesters, spray drones or track your booking status, please visit Farm Machinery Rentals.`}
+              {t('provider_hub.farmer_logged_in_notice', 'You are currently logged in as a Farmer. The Provider Dashboard is reserved exclusively for registered Machinery & Drone Providers. To book tractors, harvesters, spray drones or track your booking status, please visit Farm Machinery Rentals.')}
             </p>
           </div>
 
@@ -1180,14 +1330,14 @@ export default function ProviderDashboardPage() {
               className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Truck className="w-4 h-4" />
-              <span>{isTe ? 'వ్యవసాయ యంత్రాల అద్దెకు వెళ్ళండి →' : 'Go to Farm Machinery Rentals →'}</span>
+              <span>{t('provider_hub.go_to_rentals', 'Go to Farm Machinery Rentals →')}</span>
             </button>
             <button
               type="button"
               onClick={() => navigate('/more')}
               className="w-full sm:w-auto px-6 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
             >
-              <span>{isTe ? 'వెనుకకు వెళ్లండి' : 'Back to Tools'}</span>
+              <span>{t('common.back', 'Back to Tools')}</span>
             </button>
           </div>
         </motion.div>
@@ -1214,7 +1364,7 @@ export default function ProviderDashboardPage() {
                   {providerDisplayName}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                  {isTe ? 'ధృవీకరించబడిన ప్రదాత' : 'Verified Provider'}
+                  {t('provider_hub.verified_provider', 'Verified Provider')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
@@ -1231,10 +1381,10 @@ export default function ProviderDashboardPage() {
               type="button"
               onClick={() => navigate('/support')}
               className="px-4 py-2.5 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-black flex items-center gap-2 transition-all shadow-xs cursor-pointer btn-spring"
-              title={isTe ? "మెషినరీ ప్రొవైడర్ హెల్ప్‌డెస్క్ & వివాద పరిష్కారం" : "Machinery Provider Helpdesk & Support"}
+              title={t('provider_hub.helpdesk_support', 'Machinery Provider Helpdesk & Support')}
             >
               <Headphones className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span>{isTe ? 'హెల్ప్‌డెస్క్ సహాయం' : 'Helpdesk & Support'}</span>
+              <span>{t('provider_hub.helpdesk_support', 'Helpdesk & Support')}</span>
             </button>
 
             {/* ── HIGH VISIBILITY ONLINE / OFFLINE TOGGLE BUTTON ── */}
@@ -1255,12 +1405,12 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div className="text-left">
                   <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold leading-none mb-0.5">
-                    {isTe ? 'నేటి లభ్యత' : "Today's Status"}
+                    {t('provider_hub.today_status', "Today's Status")}
                   </p>
                   <span className="text-xs font-black leading-none">
                     {isOnline
-                      ? (isTe ? 'ఆన్‌లైన్ (ఆర్డర్లు స్వీకరిస్తున్నారు)' : 'Online Today (Taking Bookings)')
-                      : (isTe ? 'ఆఫ్‌లైన్ (ఆర్డర్లు నిలిపివేయబడ్డాయి)' : 'Offline Today (Orders Paused)')}
+                      ? t('provider_hub.online_taking_orders', 'Online Today (Taking Bookings)')
+                      : t('provider_hub.offline_orders_paused', 'Offline Today (Orders Paused)')}
                   </span>
                 </div>
               </div>
@@ -1276,7 +1426,7 @@ export default function ProviderDashboardPage() {
               className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl px-4 py-2 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
             >
               <Plus className="w-4 h-4" />
-              <span>{isTe ? 'కొత్త యంత్రం జోడించండి' : 'Add Machinery'}</span>
+              <span>{t('provider_hub.add_machinery_btn', 'Add Machinery')}</span>
             </Button>
 
             <button
@@ -1286,7 +1436,7 @@ export default function ProviderDashboardPage() {
               title="Provider Support & Help Desk"
             >
               <Headphones className="w-4 h-4 text-sky-500" />
-              <span className="hidden sm:inline">{isTe ? 'హెల్ప్‌డెస్క్ సపోర్ట్' : 'Help Desk'}</span>
+              <span className="hidden sm:inline">{t('provider_hub.helpdesk_support', 'Help Desk')}</span>
             </button>
           </div>
         </div>
@@ -1319,31 +1469,29 @@ export default function ProviderDashboardPage() {
             {activeTab === 'fleet' ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-indigo-600 text-white shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>{isTe ? 'ప్రస్తుత పేజీ' : 'Active Page'}</span>
+                <span>{t('provider_hub.active_page', 'Active Page')}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                <span>{isTe ? 'పేజీ తెరవండి' : 'Open Page'}</span>
+                <span>{t('provider_hub.open_page', 'Open Page')}</span>
                 <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </span>
             )}
           </div>
 
           <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1 tracking-tight">
-            {isTe ? 'యంత్రాల కేటలాగ్' : 'Machinery Fleet'}
+            {t('provider_hub.machinery_fleet_tab', 'Machinery Fleet')}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
-            {isTe
-              ? 'ట్రాక్టర్లు, స్ప్రే డ్రోన్లు, హార్వెస్టర్లు & పరికరాల ప్రత్యక్ష లభ్యత'
-              : 'List and manage tractors, spray drones, harvesters & live equipment availability'}
+            {t('provider_hub.machinery_fleet_desc', 'List and manage tractors, spray drones, harvesters & live equipment availability')}
           </p>
 
           <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
             <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60">
-              {cleanFleetList.length} {cleanFleetList.length === 1 ? (isTe ? 'యంత్రం' : 'Machine') : (isTe ? 'యంత్రాలు' : 'Machines')}
+              {cleanFleetList.length} {cleanFleetList.length === 1 ? t('provider_hub.machine_single', 'Machine') : t('provider_hub.machine_plural', 'Machines')}
             </span>
             <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
-              {availableFleetCount} {isTe ? 'లభ్యం' : 'Ready for Hire'}
+              {availableFleetCount} {t('provider_hub.ready_for_hire', 'Ready for Hire')}
             </span>
           </div>
         </div>
@@ -1372,37 +1520,35 @@ export default function ProviderDashboardPage() {
             {activeTab === 'orders' ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-amber-500 text-white shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span>{isTe ? 'ప్రస్తుత పేజీ' : 'Active Page'}</span>
+                <span>{t('provider_hub.active_page', 'Active Page')}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                <span>{isTe ? 'పేజీ తెరవండి' : 'Open Page'}</span>
+                <span>{t('provider_hub.open_page', 'Open Page')}</span>
                 <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </span>
             )}
           </div>
 
           <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1 tracking-tight">
-            {isTe ? 'బుకింగ్ ఆర్డర్లు' : 'Booking Orders'}
+            {t('provider_hub.booking_orders_tab', 'Booking Orders')}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
-            {isTe
-              ? 'రైతుల నుండి అద్దె బుకింగ్‌లు, సమయాలు, నిర్ధారణ మరియు ఫీల్డ్ పనులు'
-              : 'Direct farmer hire requests, field schedules, dispatching & customer coordination'}
+            {t('provider_hub.booking_orders_desc', 'Direct farmer hire requests, field schedules, dispatching & customer coordination')}
           </p>
 
           <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
             {pendingOrdersCount > 0 ? (
               <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-amber-400 text-amber-950 border border-amber-300 animate-pulse">
-                ⚡ {pendingOrdersCount} {isTe ? 'కొత్త ఆర్డర్లు' : 'Action Required'}
+                ⚡ {pendingOrdersCount} {t('provider_hub.action_required', 'Action Required')}
               </span>
             ) : (
               <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                0 {isTe ? 'పెండింగ్' : 'Pending'}
+                0 {t('provider_hub.pending_status', 'Pending')}
               </span>
             )}
             <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              {completedOrdersCount} {isTe ? 'పూర్తయినవి' : 'Completed'}
+              {completedOrdersCount} {t('provider_hub.completed_status', 'Completed')}
             </span>
           </div>
         </div>
@@ -1431,28 +1577,26 @@ export default function ProviderDashboardPage() {
             {activeTab === 'earnings' ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-600 text-white shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span>{isTe ? 'ప్రస్తుత పేజీ' : 'Active Page'}</span>
+                <span>{t('provider_hub.active_page', 'Active Page')}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                <span>{isTe ? 'పేజీ తెరవండి' : 'Open Page'}</span>
+                <span>{t('provider_hub.open_page', 'Open Page')}</span>
                 <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </span>
             )}
           </div>
 
           <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1 tracking-tight">
-            {isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}
+            {t('provider_hub.earnings_ledger_tab', 'Earnings & Ledger')}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
-            {isTe
-              ? 'రైతుల నుండి సేకరించిన ప్రత్యక్ష అద్దె ఆదాయం, రసీదులు & బ్యాంక్ లెడ్జర్'
-              : 'Direct farmer rental collections, zero-commission payout records & statements'}
+            {t('provider_hub.earnings_ledger_desc', 'Direct farmer rental collections, zero-commission payout records & statements')}
           </p>
 
           <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
             <span className="px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
-              ₹{totalEarnings.toLocaleString('en-IN')} {isTe ? 'ఆదాయం' : 'Revenue'}
+              ₹{totalEarnings.toLocaleString('en-IN')} {t('provider_hub.revenue', 'Revenue')}
             </span>
             <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200/80 dark:border-teal-800/60">
               0% Fee
@@ -1474,158 +1618,234 @@ export default function ProviderDashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 shadow-sm">
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">
-                <span>{isTe ? 'ప్రొవైడర్ హబ్' : 'Provider Hub'}</span>
+                <span>{t('provider_hub.provider_badge', 'Provider Hub')}</span>
                 <span>/</span>
-                <span>{isTe ? 'యంత్రాల కేటలాగ్' : 'Machinery Fleet'}</span>
+                <span>{t('provider_hub.machinery_fleet_tab', 'Machinery Fleet')}</span>
               </div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>🚜</span>
-                <span>{isTe ? 'మీ యంత్రాల కేటలాగ్' : 'Active Machinery Inventory'}</span>
+                <span>{t('provider_hub.active_inventory_title', 'Active Machinery Inventory')}</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {isTe ? 'రైతులకు అందుబాటులో ఉన్న మీ ట్రాక్టర్లు, డ్రోన్లు మరియు పరికరాల నిర్వహణ' : 'Manage your listed tractors, spray drones, and harvest equipment for nearby farmers'}
+                {t('provider_hub.active_inventory_desc', 'Manage your listed tractors, spray drones, and harvest equipment for nearby farmers')}
               </p>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="px-3 py-1.5 rounded-2xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                {cleanFleetList.length} {cleanFleetList.length === 1 ? (isTe ? 'యంత్రం' : 'Machine') : (isTe ? 'యంత్రాలు' : 'Machines')}
+                {cleanFleetList.length} {cleanFleetList.length === 1 ? t('provider_hub.machine_single', 'Machine') : t('provider_hub.machine_plural', 'Machines')}
               </span>
               <Button
                 onClick={() => setIsAddModalOpen(true)}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl px-3.5 py-1.5 font-bold text-xs flex items-center gap-1.5 shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>{isTe ? 'కొత్త యంత్రం' : 'Add Machine'}</span>
+                <span>{t('provider_hub.add_equipment', 'Add Machine')}</span>
               </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {cleanFleetList.map((machine) => (
-              <motion.div
-                key={machine.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-[#070e17] rounded-3xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-300 flex flex-col justify-between group"
+          {/* M-2 FIX 5: Cached Data Warning Banner */}
+          {fleetError && cleanFleetList.length > 0 && (
+            <div className="p-3 sm:p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-200">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>{t('provider_hub.showing_cached_data', 'Showing cached data. Sync failed.')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchRemoteFleet(true)}
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
               >
-                <div>
-                  {/* High-res Studio Cutout Machinery Image Container */}
-                  <div className="relative h-44 sm:h-48 w-full overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800/50 mb-3.5 flex items-center justify-center p-2">
-                    <img
-                      src={machine.imageUrl || machine.image || getEquipmentFallbackImage(machine.category, machine.title)}
-                      alt={machine.title}
-                      className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = getEquipmentFallbackImage(machine.category, machine.title);
-                      }}
-                    />
+                <RefreshCw className={`w-3.5 h-3.5 ${isFleetLoading ? 'animate-spin' : ''}`} />
+                <span>{t('provider_hub.retry_sync', 'Retry Sync')}</span>
+              </button>
+            </div>
+          )}
 
-                    {/* Top Left Badge: Category & Power */}
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-600/95 text-white backdrop-blur-md shadow-sm flex items-center gap-1">
-                        <span>{machine.category === 'drone' ? '🛸' : machine.category === 'irrigation' ? '💧' : machine.category === 'harvester' ? '🌾' : '🚜'}</span>
-                        <span className="capitalize">{machine.category || 'Machinery'}</span>
+          {/* M-2 FIX 1 & FIX 6: Fleet Loading Skeletons, Error, Empty, and Success states */}
+          {isFleetLoading && cleanFleetList.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" data-testid="fleet-skeleton-loader">
+              {[1, 2, 3].map((sk) => (
+                <div key={sk} className="bg-white dark:bg-[#070e17] rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm animate-pulse space-y-4">
+                  <div className="h-44 w-full bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+                  <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
+                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
+                  <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/3" />
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between">
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : !isFleetLoading && fleetError && cleanFleetList.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20" data-testid="fleet-error-state">
+              <div className="w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-900/40 border border-rose-300 dark:border-rose-800 flex items-center justify-center mx-auto text-rose-600 dark:text-rose-400 mb-3">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-black text-rose-900 dark:text-rose-200">
+                {t('provider_hub.fleet_load_error', 'Could not load machinery fleet. Please check your connection and retry.')}
+              </h3>
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => fetchRemoteFleet(true)}
+                  className="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>{t('provider_hub.retry_sync', 'Retry Sync')}</span>
+                </button>
+              </div>
+            </div>
+          ) : cleanFleetList.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17]" data-testid="fleet-empty-state">
+              <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto text-indigo-600 dark:text-indigo-400 mb-3">
+                <Truck className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-black text-slate-800 dark:text-slate-200">
+                {t('provider_hub.no_machinery_listed', 'No machinery listed yet')}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                {t('provider_hub.no_machinery_listed_desc', 'Add your tractors, spray drones, or harvesting equipment to start receiving rental bookings from farmers.')}
+              </p>
+              <div className="mt-4 flex justify-center">
+                <Button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl px-4 py-2 font-bold text-xs flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t('provider_hub.add_equipment', 'Add Machine')}</span>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {cleanFleetList.map((machine) => (
+                <motion.div
+                  key={machine.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white dark:bg-[#070e17] rounded-3xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div>
+                    {/* High-res Studio Cutout Machinery Image Container */}
+                    <div className="relative h-44 sm:h-48 w-full overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-800/50 mb-3.5 flex items-center justify-center p-2">
+                      <img
+                        src={machine.imageUrl || machine.image || getEquipmentFallbackImage(machine.category, machine.title)}
+                        alt={machine.title}
+                        className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = getEquipmentFallbackImage(machine.category, machine.title);
+                        }}
+                      />
+
+                      {/* Top Left Badge: Category & Power */}
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-indigo-600/95 text-white backdrop-blur-md shadow-sm flex items-center gap-1">
+                          <span>{machine.category === 'drone' ? '🛸' : machine.category === 'irrigation' ? '💧' : machine.category === 'harvester' ? '🌾' : '🚜'}</span>
+                          <span className="capitalize">{machine.category || 'Machinery'}</span>
+                        </span>
+                        {machine.horsepower && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/80 text-white backdrop-blur-md">
+                            {machine.horsepower}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Top Right Badge: Interactive Quick Toggle Availability */}
+                      <div className="absolute top-2.5 right-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleMachineAvailability(machine.id)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 ${
+                            machine.available
+                              ? 'bg-emerald-500/90 text-white border-emerald-400 hover:bg-emerald-600'
+                              : 'bg-slate-900/85 text-slate-300 border-slate-700 hover:bg-slate-800'
+                          }`}
+                          title={t('provider_hub.update_status', 'Click to toggle availability')}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${machine.available ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+                          <span>{machine.available ? t('provider_hub.available_tag', 'Available') : t('provider_hub.booked_tag', 'Booked')}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Machine Title */}
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
+                      {machine.title}
+                    </h3>
+
+                    {/* Operator Specs & Fuel Status */}
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span>{machine.operatorIncluded ? t('provider_hub.driver_included', 'Driver Included') : t('provider_hub.self_drive', 'Self-Drive')}</span>
+                      <span>•</span>
+                      <span>{machine.fuelIncluded ? t('provider_hub.fuel_included', 'Fuel Included') : t('provider_hub.fuel_extra', 'Fuel Extra')}</span>
+                      {machine.dailyAvailableTime && (
+                        <>
+                          <span>•</span>
+                          <span>{machine.dailyAvailableTime}</span>
+                        </>
+                      )}
+                    </p>
+
+                    {/* Pricing Display */}
+                    <div className="flex items-baseline gap-1 mt-2.5">
+                      <span className="text-xl font-black text-slate-900 dark:text-white">
+                        ₹{machine.ratePerAcre || machine.hourlyRate || 1200}
                       </span>
-                      {machine.horsepower && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/80 text-white backdrop-blur-md">
-                          {machine.horsepower}
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        / {machine.ratePerAcre ? t('provider_hub.per_acre_unit', 'Acre') : t('provider_hub.per_hour_unit', 'hr')}
+                      </span>
+                      {machine.dailyRate && (
+                        <span className="text-[11px] text-slate-400 font-medium ml-1">
+                          (or ₹{machine.dailyRate}/day)
                         </span>
                       )}
                     </div>
 
-                    {/* Top Right Badge: Interactive Quick Toggle Availability */}
-                    <div className="absolute top-2.5 right-2.5">
+                    {/* Implements tag list */}
+                    {machine.implementsIncluded && machine.implementsIncluded.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {machine.implementsIncluded.map((imp, i) => (
+                          <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            ⚙️ {imp}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Meta & Controls */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span className="truncate max-w-[150px]">{machine.locationVillage || machine.village || 'Hub Base'}</span>
+                    </span>
+
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleToggleMachineAvailability(machine.id)}
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-sm border flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 ${
-                          machine.available
-                            ? 'bg-emerald-500/90 text-white border-emerald-400 hover:bg-emerald-600'
-                            : 'bg-slate-900/85 text-slate-300 border-slate-700 hover:bg-slate-800'
-                        }`}
-                        title={isTe ? 'లభ్యత మార్చడానికి క్లిక్ చేయండి' : 'Click to toggle availability'}
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                       >
-                        <span className={`w-2 h-2 rounded-full ${machine.available ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
-                        <span>{machine.available ? (isTe ? 'అందుబాటులో ఉంది' : 'Available') : (isTe ? 'బుక్ చేయబడింది' : 'Booked')}</span>
+                        {machine.available ? t('provider_hub.mark_busy', 'Mark Busy') : t('provider_hub.mark_free', 'Mark Free')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteModalMachine(machine)}
+                        className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                        title={t('provider_hub.delete_machinery_tooltip', 'Delete Machinery Listing')}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-
-                  {/* Machine Title */}
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
-                    {machine.title}
-                  </h3>
-
-                  {/* Operator Specs & Fuel Status */}
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
-                    <span>{machine.operatorIncluded ? (isTe ? 'ఆపరేటర్ ఉన్నారు' : 'Driver Included') : (isTe ? 'సెల్ఫ్-డ్రైవ్' : 'Self-Drive')}</span>
-                    <span>•</span>
-                    <span>{machine.fuelIncluded ? (isTe ? 'డీజిల్ చేర్చబడింది' : 'Fuel Included') : (isTe ? 'డీజిల్ అదనం' : 'Fuel Extra')}</span>
-                    {machine.dailyAvailableTime && (
-                      <>
-                        <span>•</span>
-                        <span>{machine.dailyAvailableTime}</span>
-                      </>
-                    )}
-                  </p>
-
-                  {/* Pricing Display */}
-                  <div className="flex items-baseline gap-1 mt-2.5">
-                    <span className="text-xl font-black text-slate-900 dark:text-white">
-                      ₹{machine.ratePerAcre || machine.hourlyRate || 1200}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                      / {machine.ratePerAcre ? (isTe ? 'ఎకరాకు' : 'Acre') : (isTe ? 'గంటకు' : 'hr')}
-                    </span>
-                    {machine.dailyRate && (
-                      <span className="text-[11px] text-slate-400 font-medium ml-1">
-                        (or ₹{machine.dailyRate}/day)
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Implements tag list */}
-                  {machine.implementsIncluded && machine.implementsIncluded.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {machine.implementsIncluded.map((imp, i) => (
-                        <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                          ⚙️ {imp}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom Meta & Controls */}
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                    <span className="truncate max-w-[150px]">{machine.locationVillage || machine.village || 'Hub Base'}</span>
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleMachineAvailability(machine.id)}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                    >
-                      {machine.available ? (isTe ? 'బిజీగా గుర్తించండి' : 'Mark Busy') : (isTe ? 'ఖాళీగా గుర్తించండి' : 'Mark Free')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteModalMachine(machine)}
-                      className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 dark:hover:border-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
-                      title={isTe ? 'యంత్రాన్ని తొలగించండి' : 'Delete Machinery Listing'}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -1642,42 +1862,93 @@ export default function ProviderDashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200/90 dark:border-slate-800 shadow-sm">
             <div>
               <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">
-                <span>{isTe ? 'ప్రొవైడర్ హబ్' : 'Provider Hub'}</span>
+                <span>{t('provider_hub.provider_badge', 'Provider Hub')}</span>
                 <span>/</span>
-                <span>{isTe ? 'బుకింగ్ ఆర్డర్లు' : 'Booking Orders'}</span>
+                <span>{t('provider_hub.booking_orders_tab', 'Booking Orders')}</span>
               </div>
               <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>📅</span>
-                <span>{isTe ? 'రైతుల నుండి వచ్చిన బుకింగ్ అభ్యర్థనలు' : 'Farmer Rental Booking Orders'}</span>
+                <span>{t('provider_hub.farmer_requests_title', 'Farmer Rental Booking Orders')}</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {isTe ? 'రైతుల నుండి వచ్చే అద్దె ఆర్డర్లను ఆమోదించండి, కాల్ చేయండి లేదా పూర్తి చేయండి' : 'Accept, decline, coordinate with farmers, and mark field jobs completed'}
+                {t('provider_hub.farmer_requests_desc', 'Accept, decline, coordinate with farmers, and mark field jobs completed')}
               </p>
             </div>
             <div className="flex items-center gap-2">
               {pendingOrdersCount > 0 && (
                 <span className="px-3 py-1.5 rounded-2xl text-xs font-black bg-amber-400 text-amber-950 border border-amber-300 animate-pulse">
-                  ⚡ {pendingOrdersCount} {isTe ? 'కొత్త అభ్యర్థనలు' : 'Action Required'}
+                  ⚡ {pendingOrdersCount} {t('provider_hub.action_required', 'Action Required')}
                 </span>
               )}
               <span className="px-3 py-1.5 rounded-2xl text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                {cleanBookingsList.length} {cleanBookingsList.length === 1 ? (isTe ? 'ఆర్డర్' : 'Order') : (isTe ? 'ఆర్డర్లు' : 'Orders')}
+                {cleanBookingsList.length} {cleanBookingsList.length === 1 ? t('provider_hub.order_single', 'Order') : t('provider_hub.order_plural', 'Orders')}
               </span>
             </div>
           </div>
 
-          {cleanBookingsList.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17]">
+          {/* M-2 FIX 5: Cached Data Warning Banner */}
+          {bookingsError && cleanBookingsList.length > 0 && (
+            <div className="p-3 sm:p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-200">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>{t('provider_hub.showing_cached_data', 'Showing cached data. Sync failed.')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => fetchProviderBookings(true)}
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isBookingsLoading ? 'animate-spin' : ''}`} />
+                <span>{t('provider_hub.retry_sync', 'Retry Sync')}</span>
+              </button>
+            </div>
+          )}
+
+          {/* M-2 FIX 2 & FIX 7: Bookings Loading Skeletons, Error, Empty, and Success states */}
+          {isBookingsLoading && cleanBookingsList.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" data-testid="orders-skeleton-loader">
+              {[1, 2, 3].map((sk) => (
+                <div key={sk} className="bg-white dark:bg-[#070e17] rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm animate-pulse space-y-4">
+                  <div className="h-40 w-full bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+                  <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
+                  <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-2xl w-full" />
+                  <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-1/2" />
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-2">
+                    <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                    <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : !isBookingsLoading && bookingsError && cleanBookingsList.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20" data-testid="orders-error-state">
+              <div className="w-16 h-16 rounded-full bg-rose-100 dark:bg-rose-900/40 border border-rose-300 dark:border-rose-800 flex items-center justify-center mx-auto text-rose-600 dark:text-rose-400 mb-3">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-black text-rose-900 dark:text-rose-200">
+                {t('provider_hub.orders_load_error', 'Could not load booking orders. Please check your connection and retry.')}
+              </h3>
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => fetchProviderBookings(true)}
+                  className="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>{t('provider_hub.retry_sync', 'Retry Sync')}</span>
+                </button>
+              </div>
+            </div>
+          ) : cleanBookingsList.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17]" data-testid="orders-empty-state">
               <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center mx-auto text-indigo-600 dark:text-indigo-400 mb-3">
                 <Calendar className="w-8 h-8" />
               </div>
               <h3 className="text-sm font-black text-slate-800 dark:text-slate-200">
-                {isTe ? 'ప్రస్తుతానికి పెండింగ్ బుకింగ్‌లు లేవు' : 'No Rental Bookings Yet'}
+                {t('provider_hub.no_bookings_title', 'No Rental Bookings Yet')}
               </h3>
               <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                {isTe
-                  ? 'మీ పరిసర గ్రామాల రైతులు యంత్రాలను బ్రౌజ్ చేసి అద్దెకు తీసుకున్నప్పుడు ఆర్డర్లు ఇక్కడ వెంటనే కనిపిస్తాయి.'
-                  : 'When farmers in your mandal browse and book machinery, their live rental orders will appear here immediately.'}
+                {t('provider_hub.no_bookings_desc', 'When farmers in your mandal browse and book machinery, their live rental orders will appear here immediately.')}
               </p>
             </div>
           ) : (
@@ -1685,14 +1956,14 @@ export default function ProviderDashboardPage() {
               {cleanBookingsList.map((booking) => {
                 const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '';
                 const cleanPhone = String(farmerPhone).replace(/[^0-9]/g, '');
-                const farmerName = booking.farmerName || (isTe ? 'రైతు' : 'Farmer');
-                const equipmentTitle = booking.equipmentTitle || booking.title || (isTe ? 'వ్యవసాయ యంత్రం' : 'Farm Machinery Rental');
-                const village = booking.village || booking.location?.village || booking.location?.mandal || (isTe ? 'పొలం స్థానం' : 'Field Location');
+                const farmerName = booking.farmerName || t('common.farmer', 'Farmer');
+                const equipmentTitle = booking.equipmentTitle || booking.title || t('equipment_hub.title', 'Farm Machinery Rental');
+                const village = booking.village || booking.location?.village || booking.location?.mandal || t('common.field_location', 'Field Location');
                 const date = booking.bookingDate || booking.date || 'Today';
                 const slot = booking.timeSlot || booking.slot || 'Full Day';
                 const acres = booking.acres || booking.acreage || '2';
                 const crop = booking.targetCrop || booking.crop || 'Field Crop';
-                const totalCost = booking.totalCost || '800';
+                const totalCost = getBookingCost(booking);
 
                 const isPending = !booking.status || booking.status === 'pending';
                 const isConfirmed = booking.status === 'confirmed';
@@ -1744,10 +2015,10 @@ export default function ProviderDashboardPage() {
                             {isDeclined && <X className="w-3 h-3" />}
                             {isPending && <Clock className="w-3 h-3" />}
                             <span>
-                              {isPending ? (isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Action') :
-                               isConfirmed ? (isTe ? 'ధృవీకరించబడింది' : 'Confirmed & Scheduled') :
-                               isCompleted ? (isTe ? 'పూర్తయింది' : 'Completed') :
-                               (isTe ? 'తిరస్కరించబడింది' : 'Declined')}
+                              {isPending ? t('provider_hub.pending_action', 'Pending Action') :
+                               isConfirmed ? t('provider_hub.confirmed_scheduled', 'Confirmed & Scheduled') :
+                               isCompleted ? t('provider_hub.completed_status', 'Completed') :
+                               t('provider_hub.declined_tag', 'Declined')}
                             </span>
                           </span>
                         </div>
@@ -1770,20 +2041,20 @@ export default function ProviderDashboardPage() {
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-slate-500 font-bold flex items-center gap-1.5">
                             <User className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>{isTe ? 'రైతు పేరు:' : 'Farmer:'}</span>
+                            <span>{t('provider_hub.farmer_label', 'Farmer:')}</span>
                           </span>
                           <strong className="text-slate-900 dark:text-white font-black">{farmerName}</strong>
                         </div>
 
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500 font-bold">{isTe ? 'విస్తీర్ణం & పని:' : 'Area & Work:'}</span>
+                          <span className="text-slate-500 font-bold">{t('provider_hub.area_work_label', 'Area & Work:')}</span>
                           <span className="text-slate-800 dark:text-slate-200 font-bold">
-                            {acres} {isTe ? 'ఎకరాలు' : 'Acres'} {booking.operation ? `• ${booking.operation}` : ''}
+                            {acres} {t('provider_hub.acres_unit', 'Acres')} {booking.operation ? `• ${booking.operation}` : ''}
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-500 font-bold">{isTe ? 'పంట దశ:' : 'Crop / Stage:'}</span>
+                          <span className="text-slate-500 font-bold">{t('provider_hub.crop_stage_label', 'Crop / Stage:')}</span>
                           <span className="text-emerald-700 dark:text-emerald-300 font-bold">
                             {booking.fieldStatus || crop}
                           </span>
@@ -1804,33 +2075,44 @@ export default function ProviderDashboardPage() {
                       {/* Total Rental Amount Display */}
                       <div className="flex items-center justify-between mt-3 px-1">
                         <div>
-                          <p className="text-[10px] uppercase font-bold text-slate-400">{isTe ? 'అద్దె మొత్తం' : 'Total Rental Fare'}</p>
+                          <p className="text-[10px] uppercase font-bold text-slate-400">{t('provider_hub.total_rental_fare', 'Total Rental Fare')}</p>
                           <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
                             ₹{Number(totalCost).toLocaleString('en-IN')}
                           </p>
                         </div>
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          {isTe ? 'డైరెక్ట్ చెల్లింపు (0% ఫీజు)' : 'Direct Pay (0% Fee)'}
+                          {t('provider_hub.direct_pay_badge', 'Direct Pay (0% Fee)')}
                         </span>
                       </div>
                     </div>
 
                     {/* Provider Action Buttons (Clean & High Contrast) */}
+                    {/* FIX 8: Per-booking action mutex disables button and shows spinner when updating */}
                     <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
                       {isPending && (
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             type="button"
+                            disabled={updatingBookingId === (booking.id || booking.bookingId)}
                             onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
-                            className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+                            className={`w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer ${
+                              updatingBookingId === (booking.id || booking.bookingId) ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           >
-                            <Check className="w-4 h-4 stroke-[2.5]" />
-                            <span>{isTe ? 'ఆర్డర్ ఆమోదించండి' : 'Accept Booking'}</span>
+                            {updatingBookingId === (booking.id || booking.bookingId) ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4 stroke-[2.5]" />
+                            )}
+                            <span>{t('provider_hub.accept_booking', 'Accept Booking')}</span>
                           </button>
                           <button
                             type="button"
+                            disabled={updatingBookingId === (booking.id || booking.bookingId)}
                             onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'rejected')}
-                            className="w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                            className={`w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer ${
+                              updatingBookingId === (booking.id || booking.bookingId) ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           >
                             <X className="w-4 h-4" />
                             <span>{t('provider_hub.decline', 'Decline')}</span>
@@ -1842,19 +2124,29 @@ export default function ProviderDashboardPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             type="button"
+                            disabled={updatingBookingId === (booking.id || booking.bookingId)}
                             onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'completed')}
-                            className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+                            className={`w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer ${
+                              updatingBookingId === (booking.id || booking.bookingId) ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           >
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>{isTe ? 'పూర్తయింది' : 'Complete'}</span>
+                            {updatingBookingId === (booking.id || booking.bookingId) ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4" />
+                            )}
+                            <span>{t('provider_hub.mark_completed', 'Complete')}</span>
                           </button>
                           <button
                             type="button"
+                            disabled={updatingBookingId === (booking.id || booking.bookingId)}
                             onClick={() => setCancelModalBooking(booking)}
-                            className="w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                            className={`w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer ${
+                              updatingBookingId === (booking.id || booking.bookingId) ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           >
                             <X className="w-4 h-4" />
-                            <span>{isTe ? 'రద్దు చేయండి' : 'Cancel'}</span>
+                            <span>{t('provider_hub.cancel_booking', 'Cancel')}</span>
                           </button>
                         </div>
                       )}
@@ -1863,7 +2155,7 @@ export default function ProviderDashboardPage() {
                         <div className="flex items-center justify-between">
                           <span className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black flex items-center gap-1.5">
                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            <span>{isTe ? 'పూర్తయింది & రికార్డ్ చేయబడింది' : 'Settled & Logged'}</span>
+                            <span>{t('provider_hub.settled_logged', 'Settled & Logged')}</span>
                           </span>
                         </div>
                       )}
@@ -1872,14 +2164,14 @@ export default function ProviderDashboardPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-bold">
-                              {booking.status === 'cancelled' ? (isTe ? 'రద్దు చేయబడింది' : 'Cancelled') : (isTe ? 'తిరస్కరించబడింది' : 'Declined')}
+                              {booking.status === 'cancelled' ? t('provider_hub.cancelled_tag', 'Cancelled') : t('provider_hub.declined_tag', 'Declined')}
                             </span>
                           </div>
                           <button
                             type="button"
                             onClick={() => setDeleteModalBooking(booking)}
                             className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                            title={isTe ? 'ఆర్డర్‌ను తొలగించండి' : 'Delete Order'}
+                            title={t('provider_hub.delete_order_tooltip', 'Delete Order')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1892,17 +2184,15 @@ export default function ProviderDashboardPage() {
                           type="button"
                           onClick={() => openChatForProviderBooking(booking)}
                           className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                          title={isTe ? 'రైతుతో యాప్‌లోనే చాట్ చేయండి' : 'In-App Direct Chat with Farmer'}
+                          title={t('provider_hub.in_app_chat_tooltip', 'In-App Direct Chat with Farmer')}
                         >
                           <MessageSquare className="w-3.5 h-3.5 fill-white shrink-0" />
-                          <span className="truncate">{isTe ? 'సందేశం' : 'Message'}</span>
+                          <span className="truncate">{t('provider_hub.message_btn', 'Message')}</span>
                         </button>
 
                         <a
                           href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                            isTe
-                              ? `నమస్తే ${farmerName}! మీ ${equipmentTitle} బుకింగ్ #${booking.id} గురించి అగ్రిషీల్డ్ ప్రొవైడర్ నుండి మాట్లాడుతున్నాను.`
-                              : `Hello ${farmerName}! Contacting you regarding your machinery booking #${booking.id} for ${equipmentTitle} on AgriShield.`
+                            `${t('provider_hub.whatsapp_greeting', 'Hello! Contacting you regarding your machinery booking on AgriShield.')} (${farmerName} - #${booking.id} - ${equipmentTitle})`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -1916,10 +2206,10 @@ export default function ProviderDashboardPage() {
                         <a
                           href={`tel:${cleanPhone}`}
                           className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors"
-                          title={isTe ? 'రైతుకు కాల్' : 'Call Farmer'}
+                          title={t('provider_hub.call_farmer_tooltip', 'Call Farmer')}
                         >
                           <Phone className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="truncate">{isTe ? 'కాల్' : 'Call'}</span>
+                          <span className="truncate">{t('provider_hub.call_btn', 'Call')}</span>
                         </a>
                       </div>
                     </div>
@@ -1944,16 +2234,16 @@ export default function ProviderDashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1">
-                  <span>{isTe ? 'ప్రొవైడర్ హబ్' : 'Provider Hub'}</span>
+                  <span>{t('provider_hub.provider_badge', 'Provider Hub')}</span>
                   <span>/</span>
-                  <span>{isTe ? 'ఆదాయం & లెడ్జర్' : 'Earnings & Ledger'}</span>
+                  <span>{t('provider_hub.earnings_ledger_tab', 'Earnings & Ledger')}</span>
                 </div>
                 <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <span>💰</span>
-                  <span>{isTe ? 'ఆదాయం వివరాలు & చెల్లింపు రసీదులు' : 'Direct Payout & Settled Ledger'}</span>
+                  <span>{t('provider_hub.earnings_title', 'Direct Payout & Settled Ledger')}</span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {isTe ? 'రైతుల నుండి సేకరించిన ప్రత్యక్ష చెల్లింపులు (0% ప్లాట్‌ఫారమ్ కమీషన్)' : 'Direct payments received from farmers for completed machinery rentals'}
+                  {t('provider_hub.earnings_desc', 'Direct payments received from farmers for completed machinery rentals')}
                 </p>
               </div>
               <span className="px-3.5 py-1.5 rounded-2xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 self-start sm:self-auto">
@@ -1966,38 +2256,36 @@ export default function ProviderDashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">{isTe ? 'సేకరించిన ఆదాయం' : 'Settled Earnings'}</p>
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">{t('provider_hub.settled_earnings', 'Settled Earnings')}</p>
                   <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <p className="text-2xl font-black text-emerald-800 dark:text-emerald-200 mt-1">₹{totalEarnings.toLocaleString('en-IN')}</p>
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">{isTe ? 'రైతుల నుండి నేరుగా చేరింది' : '100% retained by provider'}</p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-semibold">{t('provider_hub.retained_by_provider', '100% retained by provider')}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{isTe ? 'ప్లాట్‌ఫారమ్ ఫీజు' : 'Platform Fee'}</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('provider_hub.platform_fee', 'Platform Fee')}</p>
                   <ShieldCheck className="w-4 h-4 text-indigo-500" />
                 </div>
                 <p className="text-2xl font-black text-slate-800 dark:text-slate-200 mt-1">₹0</p>
-                <p className="text-[10px] text-emerald-600 font-bold mt-1">{isTe ? 'పూర్తిగా ఉచితం / జీరో కమీషన్' : '100% Free / Zero Commission'}</p>
+                <p className="text-[10px] text-emerald-600 font-bold mt-1">{t('provider_hub.zero_commission_notice', '100% Free / Zero Commission')}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">{isTe ? 'పూర్తయిన పనులు' : 'Completed Jobs'}</p>
+                  <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">{t('provider_hub.completed_jobs', 'Completed Jobs')}</p>
                   <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <p className="text-2xl font-black text-indigo-800 dark:text-indigo-200 mt-1">{completedOrdersCount}</p>
-                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 font-semibold">{isTe ? 'పొలం ఆపరేషన్లు పూర్తి చేయబడ్డాయి' : 'Field operations completed'}</p>
+                <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-1 font-semibold">{t('provider_hub.field_ops_completed', 'Field operations completed')}</p>
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
               <span>
-                {isTe
-                  ? 'అన్ని వ్యవసాయ యంత్రాల అద్దె చెల్లింపులు రైతు మరియు మీ మధ్య నేరుగా (పొలంలో నగదు, ఫోన్‌పే లేదా గూగుల్ పే) జరుగుతాయి. అగ్రిషీల్డ్ ఎటువంటి కమీషన్ వసూలు చేయదు.'
-                  : 'All equipment rental payments occur directly between you and the farmer (Cash on Field, PhonePe, or Google Pay). AgriShield AI takes 0% commission.'}
+                {t('provider_hub.direct_payments_explanation', 'All equipment rental payments occur directly between you and the farmer (Cash on Field, PhonePe, or Google Pay). AgriShield AI takes 0% commission.')}
               </span>
             </div>
           </div>
@@ -2006,14 +2294,12 @@ export default function ProviderDashboardPage() {
           <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#070e17] p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
               <FileText className="w-4 h-4 text-indigo-500" />
-              <span>{isTe ? 'ఇటీవల పూర్తయిన ఆర్డర్ల రికార్డు' : 'Completed Operations Ledger'}</span>
+              <span>{t('provider_hub.completed_ops_ledger', 'Completed Operations Ledger')}</span>
             </h3>
 
             {cleanBookingsList.filter(b => b.status === 'completed').length === 0 ? (
               <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 text-xs text-slate-400">
-                {isTe
-                  ? 'ఇంకా పూర్తయిన ఆర్డర్లు లేవు. రైతుల నుండి వచ్చే ఆర్డర్లను పూర్తి చేసినప్పుడు అవి ఇక్కడ రికార్డ్ చేయబడతాయి.'
-                  : 'No completed orders in the ledger yet. When incoming rental jobs are marked completed, their settled earnings will appear here.'}
+                {t('provider_hub.no_completed_orders', 'No completed orders in the ledger yet. When incoming rental jobs are marked completed, their settled earnings will appear here.')}
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -2047,7 +2333,7 @@ export default function ProviderDashboardPage() {
                           Settled Direct
                         </span>
                         <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                          ₹{Number(b.totalCost || 800).toLocaleString('en-IN')}
+                          ₹{getBookingCost(b).toLocaleString('en-IN')}
                         </span>
                       </div>
                     </div>
@@ -2067,10 +2353,10 @@ export default function ProviderDashboardPage() {
             <div className="flex items-center justify-between p-4 sm:p-5 pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <div>
                 <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  {isTe ? 'కొత్త యంత్రాన్ని నమోదు చేయండి' : 'List Machinery for Rent'}
+                  {t('provider_hub.list_machinery_modal_title', 'List Machinery for Rent')}
                 </h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {isTe ? 'మీ పరికరాలను రైతుల కోసం కేటలాగ్‌లో ప్రచురించండి' : 'Publish your equipment to live farmer rental catalog'}
+                  {t('provider_hub.list_machinery_modal_desc', 'Publish your equipment to live farmer rental catalog')}
                 </p>
               </div>
               <button
@@ -2266,14 +2552,14 @@ export default function ProviderDashboardPage() {
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
-                  {isTe ? 'రద్దు చేయి' : 'Cancel'}
+                  {t('provider_hub.cancel_modal_btn', 'Cancel')}
                 </button>
                 <Button
                   type="submit"
                   className="flex-1 sm:flex-initial bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl px-5 py-2.5 text-xs sm:text-sm font-black shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-98"
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
-                  <span>{isTe ? 'సేవ్ చేసి ప్రచురించండి' : 'Save & Publish to Catalog'}</span>
+                  <span>{t('provider_hub.save_and_publish_btn', 'Save & Publish to Catalog')}</span>
                 </Button>
               </div>
             </form>
@@ -2292,7 +2578,7 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    {isTe ? 'బుకింగ్‌ను రద్దు చేయాలా?' : 'Cancel Confirmed Booking?'}
+                    {t('provider_hub.cancel_confirmed_modal_title', 'Cancel Confirmed Booking?')}
                   </h3>
                   <p className="text-xs text-slate-400">
                     #{cancelModalBooking.id || cancelModalBooking.bookingId}
@@ -2310,13 +2596,13 @@ export default function ProviderDashboardPage() {
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs space-y-1.5">
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'యంత్రం:' : 'Equipment:'}</span>
+                <span className="text-slate-400">{t('provider_hub.equipment_name', 'Equipment:')}</span>
                 <span className="font-bold text-slate-900 dark:text-white">
                   {cancelModalBooking.equipmentTitle || cancelModalBooking.title || 'Machinery'}
                 </span>
               </div>
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'రైతు:' : 'Farmer:'}</span>
+                <span className="text-slate-400">{t('provider_hub.farmer_label', 'Farmer:')}</span>
                 <span className="font-bold text-slate-900 dark:text-white">
                   {cancelModalBooking.farmerName || 'Farmer'}
                 </span>
@@ -2325,21 +2611,21 @@ export default function ProviderDashboardPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                {isTe ? 'రద్దు చేయడానికి కారణం:' : 'Cancellation Reason:'}
+                {t('provider_hub.cancellation_reason_label', 'Cancellation Reason:')}
               </label>
               <select
                 value={cancelReasonCategory}
                 onChange={(e) => setCancelReasonCategory(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               >
-                <option value="equipment_breakdown">{isTe ? 'యంత్రం మరమ్మత్తు / సమస్య' : 'Equipment Breakdown / Maintenance'}</option>
-                <option value="operator_unavailable">{isTe ? 'ఆపరేటర్ అందుబాటులో లేరు' : 'Operator Unavailable'}</option>
-                <option value="weather_issues">{isTe ? 'ప్రతికూల వాతావరణం' : 'Adverse Weather Conditions'}</option>
-                <option value="other">{isTe ? 'ఇతర కారణాలు' : 'Other Reason'}</option>
+                <option value="equipment_breakdown">{t('provider_hub.reason_breakdown', 'Equipment Breakdown / Maintenance')}</option>
+                <option value="operator_unavailable">{t('provider_hub.reason_operator', 'Operator Unavailable')}</option>
+                <option value="weather_issues">{t('provider_hub.reason_weather', 'Adverse Weather Conditions')}</option>
+                <option value="other">{t('provider_hub.reason_other', 'Other Reason')}</option>
               </select>
               <input
                 type="text"
-                placeholder={isTe ? 'వివరాలు (ఐచ్ఛికం)...' : 'Additional details (optional)...'}
+                placeholder={t('provider_hub.reason_details_placeholder', 'Additional details (optional)...')}
                 value={cancelReasonText}
                 onChange={(e) => setCancelReasonText(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
@@ -2347,9 +2633,7 @@ export default function ProviderDashboardPage() {
             </div>
 
             <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
-              {isTe
-                ? 'బుకింగ్ రద్దు చేయబడితే సమయ స్లాట్ విడుదల చేయబడుతుంది మరియు రైతుకు నోటిఫికేషన్ పంపబడుతుంది.'
-                : 'Cancelling this booking will release the locked time slot and notify the farmer.'}
+              {t('provider_hub.cancellation_warning', 'Cancelling this booking will release the locked time slot and notify the farmer.')}
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -2358,19 +2642,22 @@ export default function ProviderDashboardPage() {
                 onClick={() => setCancelModalBooking(null)}
                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                {isTe ? 'వెనుకకు' : 'Keep Booking'}
+                {t('provider_hub.keep_booking_btn', 'Keep Booking')}
               </button>
               <button
                 type="button"
+                disabled={updatingBookingId === (cancelModalBooking.id || cancelModalBooking.bookingId)}
                 onClick={async () => {
                   const reason = cancelReasonText.trim() ? `${cancelReasonCategory}: ${cancelReasonText.trim()}` : cancelReasonCategory;
                   const bId = cancelModalBooking.id || cancelModalBooking.bookingId;
                   setCancelModalBooking(null);
                   await handleUpdateBookingStatus(bId, 'cancelled', reason);
                 }}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-rose-600/30 transition-all active:scale-95 cursor-pointer"
+                className={`px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-rose-600/30 transition-all active:scale-95 cursor-pointer ${
+                  updatingBookingId === (cancelModalBooking.id || cancelModalBooking.bookingId) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                <span>{isTe ? 'రద్దును నిర్ధారించండి' : 'Confirm Cancellation'}</span>
+                <span>{t('provider_hub.confirm_cancellation_btn', 'Confirm Cancellation')}</span>
               </button>
             </div>
           </div>
@@ -2388,7 +2675,7 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    {isTe ? 'ఆర్డర్‌ను తొలగించాలా?' : 'Delete Booking Order?'}
+                    {t('provider_hub.delete_booking_modal_title', 'Delete Booking Order?')}
                   </h3>
                   <p className="text-xs text-slate-400">
                     #{deleteModalBooking.id || deleteModalBooking.bookingId}
@@ -2406,19 +2693,19 @@ export default function ProviderDashboardPage() {
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs space-y-1.5">
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'యంత్రం:' : 'Equipment:'}</span>
+                <span className="text-slate-400">{t('provider_hub.equipment_name', 'Equipment:')}</span>
                 <span className="font-bold text-slate-900 dark:text-white">
                   {deleteModalBooking.equipmentTitle || deleteModalBooking.title || 'Machinery'}
                 </span>
               </div>
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'రైతు:' : 'Farmer:'}</span>
+                <span className="text-slate-400">{t('provider_hub.farmer_label', 'Farmer:')}</span>
                 <span className="font-bold text-slate-900 dark:text-white">
                   {deleteModalBooking.farmerName || 'Farmer'}
                 </span>
               </div>
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'స్థితి:' : 'Status:'}</span>
+                <span className="text-slate-400">{t('provider_hub.equipment_status', 'Status:')}</span>
                 <span className="font-bold uppercase text-rose-500">
                   {deleteModalBooking.status}
                 </span>
@@ -2426,9 +2713,7 @@ export default function ProviderDashboardPage() {
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {isTe
-                ? 'ఈ ఆర్డర్ మీ ప్రొవైడర్ డ్యాష్‌బోర్డ్ నుండి శాశ్వతంగా తొలగించబడుతుంది. ఇది తిరిగి పొందలేరు.'
-                : 'This order record will be permanently removed from your provider dashboard. This action cannot be undone.'}
+              {t('provider_hub.delete_booking_warning', 'This order record will be permanently removed from your provider dashboard. This action cannot be undone.')}
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -2438,7 +2723,7 @@ export default function ProviderDashboardPage() {
                 disabled={isDeletingBooking}
                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                {isTe ? 'రద్దు చేయండి' : 'Cancel'}
+                {t('provider_hub.cancel_modal_btn', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -2449,12 +2734,12 @@ export default function ProviderDashboardPage() {
                 {isDeletingBooking ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>{isTe ? 'తొలగిస్తోంది...' : 'Deleting...'}</span>
+                    <span>{t('provider_hub.deleting_btn', 'Deleting...')}</span>
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>{isTe ? 'శాశ్వతంగా తొలగించండి' : 'Delete Permanently'}</span>
+                    <span>{t('provider_hub.delete_permanently_btn', 'Delete Permanently')}</span>
                   </>
                 )}
               </button>
@@ -2474,7 +2759,7 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    {isTe ? 'యంత్రాన్ని తొలగించాలా?' : 'Delete Machinery Listing?'}
+                    {t('provider_hub.delete_machinery_modal_title', 'Delete Machinery Listing?')}
                   </h3>
                   <p className="text-xs text-slate-400">
                     ID: {deleteModalMachine.id}
@@ -2492,29 +2777,27 @@ export default function ProviderDashboardPage() {
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs space-y-1.5">
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'పేరు:' : 'Equipment:'}</span>
+                <span className="text-slate-400">{t('provider_hub.equipment_name', 'Equipment:')}</span>
                 <span className="font-bold text-slate-900 dark:text-white">
                   {deleteModalMachine.title}
                 </span>
               </div>
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'విభాగం:' : 'Category:'}</span>
+                <span className="text-slate-400">{t('provider_hub.equipment_category', 'Category:')}</span>
                 <span className="font-bold capitalize text-slate-900 dark:text-white">
                   {deleteModalMachine.category || 'Tractor'}
                 </span>
               </div>
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span className="text-slate-400">{isTe ? 'ధర:' : 'Rental Rate:'}</span>
+                <span className="text-slate-400">{t('provider_hub.rate_per_acre', 'Rental Rate:')}</span>
                 <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                  ₹{deleteModalMachine.ratePerAcre || deleteModalMachine.hourlyRate || 800} / {deleteModalMachine.ratePerAcre ? (isTe ? 'ఎకరాకు' : 'Acre') : 'hr'}
+                  ₹{deleteModalMachine.ratePerAcre || deleteModalMachine.hourlyRate || 800} / {deleteModalMachine.ratePerAcre ? t('provider_hub.per_acre_unit', 'Acre') : 'hr'}
                 </span>
               </div>
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {isTe
-                ? 'ఈ యంత్రం మీ ఫ్లీట్ మరియు మార్కెట్‌ప్లేస్ నుండి శాశ్వతంగా తొలగించబడుతుంది. రైతులు దీనిని ఇకపై బుక్ చేయలేరు.'
-                : 'This machinery will be permanently removed from your fleet and marketplace catalog. Farmers will no longer see or book this machine.'}
+              {t('provider_hub.delete_machinery_warning', 'This machinery will be permanently removed from your fleet and marketplace catalog. Farmers will no longer see or book this machine.')}
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -2524,7 +2807,7 @@ export default function ProviderDashboardPage() {
                 disabled={isDeletingMachine}
                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                {isTe ? 'రద్దు చేయండి' : 'Cancel'}
+                {t('provider_hub.cancel_modal_btn', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -2535,12 +2818,12 @@ export default function ProviderDashboardPage() {
                 {isDeletingMachine ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>{isTe ? 'తొలగిస్తోంది...' : 'Deleting...'}</span>
+                    <span>{t('provider_hub.deleting_btn', 'Deleting...')}</span>
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>{isTe ? 'శాశ్వతంగా తొలగించండి' : 'Delete Permanently'}</span>
+                    <span>{t('provider_hub.delete_permanently_btn', 'Delete Permanently')}</span>
                   </>
                 )}
               </button>
@@ -2556,7 +2839,7 @@ export default function ProviderDashboardPage() {
         <div className="fixed inset-0 z-[9999] bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
           <GoogleMessageReader
             message={activeChatBooking}
-            lang={isTe ? 'te' : 'en'}
+            lang={currentLang}
             onBack={() => setActiveChatBooking(null)}
             onDelete={() => setActiveChatBooking(null)}
           />

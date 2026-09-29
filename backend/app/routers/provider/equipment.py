@@ -1445,6 +1445,103 @@ async def get_fleet_status():
     }
 
 
+@router.get("/fleet")
+async def get_provider_fleet(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Fetch machinery owned by the authenticated equipment provider.
+    Strict tenant isolation:
+    - Provider: Only their own equipment listings.
+    - Admin: All equipment listings across the system.
+    """
+    if not (_is_admin(current_user) or _is_provider(current_user)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Only equipment providers and admins can access provider fleet"
+        )
+
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+    clean_user_phone = "".join(filter(str.isdigit, str(current_user.get("phone") or current_user.get("mobile") or "")))
+    provider_eq_ids = await _get_provider_equipment_ids(current_user)
+
+    fleet = []
+    if db_instance.db is not None:
+        try:
+            query: Dict[str, Any] = {}
+            if not _is_admin(current_user):
+                or_conditions = [
+                    {"providerId": user_id},
+                    {"owner_id": user_id},
+                    {"userId": user_id}
+                ]
+                if clean_user_phone and len(clean_user_phone) >= 6:
+                    or_conditions.extend([
+                        {"phone": clean_user_phone},
+                        {"contactPhone": clean_user_phone},
+                        {"phone": {"$regex": clean_user_phone[-10:]}},
+                        {"contactPhone": {"$regex": clean_user_phone[-10:]}}
+                    ])
+                if provider_eq_ids:
+                    or_conditions.append({"id": {"$in": list(provider_eq_ids)}})
+                    or_conditions.append({"equipment_id": {"$in": list(provider_eq_ids)}})
+                query["$or"] = or_conditions
+
+            cursor = db_instance.db["equipment_catalog"].find(query).sort("createdAt", -1)
+            docs = await cursor.to_list(length=500)
+            for doc in docs:
+                doc.pop("_id", None)
+                fleet.append(doc)
+        except Exception as e:
+            print(f"⚠️ [EquipmentFleet] Mongo fleet fetch notice: {e}")
+
+    # Supplement from disk catalog if mongo empty or offline
+    if not fleet:
+        disk_items = _load_disk_catalog()
+        if _is_admin(current_user):
+            fleet = disk_items
+        else:
+            for item in disk_items:
+                i_pid = str(item.get("providerId") or item.get("owner_id") or item.get("userId") or "")
+                i_phone = "".join(filter(str.isdigit, str(item.get("phone") or item.get("contactPhone") or "")))
+                i_id = str(item.get("id") or item.get("equipment_id") or "")
+                if (user_id and i_pid == user_id) or \
+                   (clean_user_phone and len(clean_user_phone) >= 6 and i_phone and (clean_user_phone == i_phone or clean_user_phone[-10:] == i_phone[-10:])) or \
+                   (i_id and i_id in provider_eq_ids):
+                    fleet.append(item)
+
+    # Strictly filter out any deleted machinery tombstones
+    fleet = SyncService.filter_out_deleted("equipment", fleet, ["id", "equipment_id"])
+
+    # Strict in-memory ownership enforcement for non-admin providers
+    if not _is_admin(current_user):
+        clean_fleet = []
+        for item in fleet:
+            i_pid = str(item.get("providerId") or item.get("owner_id") or item.get("userId") or "")
+            i_phone = "".join(filter(str.isdigit, str(item.get("phone") or item.get("contactPhone") or "")))
+            i_id = str(item.get("id") or item.get("equipment_id") or "")
+            if (user_id and i_pid == user_id) or \
+               (clean_user_phone and len(clean_user_phone) >= 6 and i_phone and (clean_user_phone == i_phone or clean_user_phone[-10:] == i_phone[-10:])) or \
+               (i_id and i_id in provider_eq_ids):
+                clean_fleet.append(item)
+        fleet = clean_fleet
+
+    # Sync live availability across items
+    for item in fleet:
+        eq_id = str(item.get("id") or item.get("equipment_id") or "")
+        if eq_id in _fleet_availability:
+            item["available"] = bool(_fleet_availability[eq_id])
+        elif "available" not in item:
+            item["available"] = True
+
+    return {
+        "success": True,
+        "count": len(fleet),
+        "fleet": fleet,
+        "equipment": fleet
+    }
+
+
 @router.patch("/fleet/{equipment_id}/availability")
 async def update_equipment_availability(
     equipment_id: str,
@@ -1800,6 +1897,15 @@ async def get_equipment_catalog(
                 query["district"] = {"$regex": dist_str, "$options": "i"}
             if prov_id_str:
                 query["$or"] = [{"providerId": prov_id_str}, {"owner_id": prov_id_str}, {"userId": prov_id_str}]
+            if prov_str is not None:
+                p_digits = "".join(filter(str.isdigit, prov_str))
+                if len(p_digits) < 6:
+                    query["phone"] = "INVALID_PHONE_SEARCH_NON_MATCHING"
+                else:
+                    query["$or"] = [
+                        {"phone": {"$regex": p_digits[-10:]}},
+                        {"contactPhone": {"$regex": p_digits[-10:]}}
+                    ]
             cursor = db_instance.db["equipment_catalog"].find(query).sort("createdAt", -1)
             docs = await cursor.to_list(length=200)
             for doc in docs:
@@ -1809,9 +1915,10 @@ async def get_equipment_catalog(
             print(f"⚠️ [EquipmentCatalog] Mongo catalog fetch notice: {e}")
 
     if catalog:
-        global _in_memory_catalog
-        _in_memory_catalog = catalog
-        _save_disk_catalog()
+        if not (cat_str or dist_str or prov_id_str or prov_str):
+            global _in_memory_catalog
+            _in_memory_catalog = catalog
+            _save_disk_catalog()
     else:
         catalog = _load_disk_catalog()
 
@@ -1825,9 +1932,14 @@ async def get_equipment_catalog(
     if dist_str:
         d_clean = dist_str.lower().strip()
         result = [c for c in result if d_clean in str(c.get("district", "")).lower()]
-    if prov_str:
+    if prov_str is not None:
         p_clean = "".join(filter(str.isdigit, prov_str))
-        result = [c for c in result if p_clean in "".join(filter(str.isdigit, str(c.get("phone") or c.get("contactPhone") or "")))]
+        if len(p_clean) < 6:
+            # Explicit M-1 protection: Empty or invalid phone query (e.g. "+", " ", "123")
+            # MUST NOT return the global catalog. Return empty list.
+            result = []
+        else:
+            result = [c for c in result if p_clean in "".join(filter(str.isdigit, str(c.get("phone") or c.get("contactPhone") or "")))]
     if prov_id_str:
         result = [c for c in result if str(c.get("providerId") or c.get("owner_id") or c.get("userId") or "") == prov_id_str]
 
