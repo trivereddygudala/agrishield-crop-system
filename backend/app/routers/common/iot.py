@@ -351,8 +351,9 @@ async def ingest_telemetry_bulk(request: Request):
         raise HTTPException(status_code=500, detail=f"Database bulk insertion failed: {str(e)}")
 
 @router.post("/heartbeat")
-async def device_heartbeat(data: IoTHeartbeat):
+async def device_heartbeat(request: Request, data: IoTHeartbeat):
     """Receive heartbeat from ESP32 to monitor uptime."""
+    validate_iot_request(request)
     try:
         await db_instance.db["devices"].update_one(
             {"device_id": data.device_id},

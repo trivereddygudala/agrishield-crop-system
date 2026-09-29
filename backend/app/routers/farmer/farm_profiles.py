@@ -174,17 +174,13 @@ async def get_nearby_farm_radar(
                 dist = calculate_haversine(c_lat, c_lng, f_lat, f_lng)
                 if dist <= radius_km:
                     bearing = calculate_bearing(c_lat, c_lng, f_lat, f_lng)
+                    idx = len(nearby) + 1
                     nearby.append({
-                        "id": str(doc.get("_id")),
-                        "farmer_name": doc.get("farmer_name", "Local Cultivator"),
-                        "farm_name": doc.get("farm_name", "Neighbor Plot"),
-                        "village": doc.get("village", doc.get("mandal", "Nearby Sector")),
-                        "crop": doc.get("crop_name", "Chilli"),
-                        "variety": doc.get("crop_variety", "Local"),
-                        "lat": f_lat,
-                        "lng": f_lng,
+                        "id": f"radar_plot_{idx}",
                         "distance_km": dist,
                         "bearing": bearing,
+                        "crop": doc.get("crop_name", "Crop"),
+                        "variety": doc.get("crop_variety", "Local"),
                         "disease": doc.get("active_disease", "Healthy"),
                         "status": "Infected" if doc.get("active_disease") and doc.get("active_disease") != "Healthy" else "Healthy",
                         "severity": doc.get("severity", "Moderate")

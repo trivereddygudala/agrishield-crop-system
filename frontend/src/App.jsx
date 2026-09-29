@@ -184,11 +184,11 @@ function App() {
                           <Route path="/farm" element={<FarmPage />} />
                           <Route path="/field-calculator" element={<FieldAreaCalculatorPage />} />
                           <Route path="/equipment-booking" element={<EquipmentBookingPage />} />
-                          <Route path="/provider/dashboard" element={<ProviderDashboardPage />} />
-                          <Route path="/provider/fleet" element={<Navigate to="/provider/dashboard?tab=fleet" replace />} />
-                          <Route path="/provider/orders" element={<Navigate to="/provider/dashboard?tab=orders" replace />} />
-                          <Route path="/provider/earnings" element={<Navigate to="/provider/dashboard?tab=earnings" replace />} />
-                          <Route path="/provider" element={<Navigate to="/provider/dashboard" replace />} />
+                          <Route path="/provider/dashboard" element={<ProtectedRoute allowedRoles={['equipment_provider', 'provider', 'admin']}><ProviderDashboardPage /></ProtectedRoute>} />
+                          <Route path="/provider/fleet" element={<ProtectedRoute allowedRoles={['equipment_provider', 'provider', 'admin']}><Navigate to="/provider/dashboard?tab=fleet" replace /></ProtectedRoute>} />
+                          <Route path="/provider/orders" element={<ProtectedRoute allowedRoles={['equipment_provider', 'provider', 'admin']}><Navigate to="/provider/dashboard?tab=orders" replace /></ProtectedRoute>} />
+                          <Route path="/provider/earnings" element={<ProtectedRoute allowedRoles={['equipment_provider', 'provider', 'admin']}><Navigate to="/provider/dashboard?tab=earnings" replace /></ProtectedRoute>} />
+                          <Route path="/provider" element={<ProtectedRoute allowedRoles={['equipment_provider', 'provider', 'admin']}><Navigate to="/provider/dashboard" replace /></ProtectedRoute>} />
                           <Route path="/tractor-booking" element={<Navigate to="/equipment-booking" replace />} />
                           <Route path="/drone-booking" element={<Navigate to="/equipment-booking" replace />} />
                           <Route path="/area-calculator" element={<Navigate to="/field-calculator" replace />} />
@@ -217,7 +217,7 @@ function App() {
                           <Route path="/support" element={<HelpSupportPage />} />
                           <Route path="/help" element={<Navigate to="/support" replace />} />
                           <Route path="/helpdesk" element={<Navigate to="/support" replace />} />
-                          <Route path="/admin" element={<AdminPage />} />
+                          <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminPage /></ProtectedRoute>} />
                           <Route path="/equipment" element={<Navigate to="/equipment-booking" replace />} />
                           <Route path="/equipment/*" element={<Navigate to="/equipment-booking" replace />} />
                           <Route path="/my-bookings" element={<Navigate to="/equipment-booking" replace />} />

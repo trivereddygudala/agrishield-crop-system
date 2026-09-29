@@ -1,7 +1,9 @@
 from datetime import timezone
 import logging
 from typing import Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends, HTTPException, status
+from backend.app.routers.auth import get_current_user
+from backend.app.db.mongodb import db_instance
 from backend.app.services.weather import WeatherIntelligenceService
 from backend.app.services.irrigation import SmartIrrigationService
 from backend.app.services.risk_forecast import DiseaseRiskForecastService
@@ -165,8 +167,34 @@ async def get_health_score(
     farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
     diseased_ratio: float = Query(0.15, description="Diseased Ratio"),
     lat: float = Query(16.5062, description="Latitude"),
-    lon: float = Query(80.6480, description="Longitude")
+    lon: float = Query(80.6480, description="Longitude"),
+    current_user: dict = Depends(get_current_user)
 ):
+    user_role = (current_user.get("role") or "farmer").lower()
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+
+    # If farm_id provided and user is not admin, verify ownership
+    if farm_id and user_role != "admin" and hasattr(db_instance, "db") and db_instance.db is not None:
+        try:
+            from bson import ObjectId
+            query_cond = [{"id": farm_id}]
+            if ObjectId.is_valid(farm_id):
+                query_cond.append({"_id": ObjectId(farm_id)})
+            else:
+                query_cond.append({"_id": farm_id})
+            farm_doc = await db_instance.db["farm_profiles"].find_one({"$or": query_cond})
+            if farm_doc:
+                farm_owner = str(farm_doc.get("user_id") or "")
+                if farm_owner and farm_owner != user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Access forbidden: You do not own this farm profile."
+                    )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning(f"Error checking farm ownership for health-score: {e}")
+
     return await farm_health_service.calculate_health_score_2(
         farm_id=farm_id, diseased_ratio=diseased_ratio, lat=lat, lon=lon
     )
@@ -175,10 +203,37 @@ async def get_health_score(
 async def get_timeline(
     farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
     category: str = Query("All", description="Filter Category"),
-    limit: int = Query(20, description="Event Limit")
+    limit: int = Query(20, description="Event Limit"),
+    current_user: dict = Depends(get_current_user)
 ):
+    user_role = (current_user.get("role") or "farmer").lower()
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+
+    # If farm_id provided and user is not admin, verify ownership
+    if farm_id and user_role != "admin" and hasattr(db_instance, "db") and db_instance.db is not None:
+        try:
+            from bson import ObjectId
+            query_cond = [{"id": farm_id}]
+            if ObjectId.is_valid(farm_id):
+                query_cond.append({"_id": ObjectId(farm_id)})
+            else:
+                query_cond.append({"_id": farm_id})
+            farm_doc = await db_instance.db["farm_profiles"].find_one({"$or": query_cond})
+            if farm_doc:
+                farm_owner = str(farm_doc.get("user_id") or "")
+                if farm_owner and farm_owner != user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Access forbidden: You do not own this farm profile."
+                    )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning(f"Error checking farm ownership for timeline: {e}")
+
+    scoped_user_id = None if user_role == "admin" else user_id
     return await farm_timeline_service.get_farm_timeline(
-        farm_id=farm_id, category=category, limit=limit
+        farm_id=farm_id, category=category, limit=limit, user_id=scoped_user_id
     )
 
 @router.get("/products", summary="Get Agrochemical Products from MongoDB")

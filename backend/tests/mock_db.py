@@ -22,8 +22,8 @@ class MockCollection:
                                     match_or = True
                     if not match_or:
                         return False
-            elif k == "_id":
-                if str(rec.get("_id")) != str(v):
+            elif k in ("_id", "user_id"):
+                if str(rec.get(k, "")) != str(v):
                     return False
             elif k == "email":
                 if str(rec.get("email", "")).lower() != str(v).lower():
@@ -33,6 +33,12 @@ class MockCollection:
                 rec_val = rec.get(k)
                 if "$in" in v:
                     if rec_val not in v["$in"]:
+                        return False
+                if "$ne" in v:
+                    if rec_val == v["$ne"]:
+                        return False
+                if "$nin" in v:
+                    if rec_val in v["$nin"]:
                         return False
                 if "$lt" in v:
                     if rec_val is None:
@@ -239,6 +245,14 @@ class MockCollection:
             def limit(self, num):
                 self.data = self.data[:num]
                 return self
+            def __aiter__(self):
+                self._iter = iter(self.data)
+                return self
+            async def __anext__(self):
+                try:
+                    return next(self._iter)
+                except StopIteration:
+                    raise StopAsyncIteration
             async def to_list(self, length=None):
                 return self.data[:length] if length is not None else list(self.data)
                 

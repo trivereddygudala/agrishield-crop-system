@@ -16,7 +16,8 @@ class FarmTimelineService:
         self,
         farm_id: Optional[str] = None,
         category: str = "All",
-        limit: int = 20
+        limit: int = 20,
+        user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         start_time = time.time()
         now = datetime.now(timezone.utc)
@@ -27,7 +28,20 @@ class FarmTimelineService:
         try:
             if db_instance.db is not None:
                 col = db_instance.db["predictions"]
-                cursor = col.find().sort("created_at", -1).limit(limit)
+                pred_query: Dict[str, Any] = {}
+                if user_id:
+                    id_conditions: List[Dict[str, Any]] = [{"user_id": user_id}, {"user_id": str(user_id)}]
+                    try:
+                        from bson import ObjectId
+                        if ObjectId.is_valid(user_id):
+                            id_conditions.append({"user_id": ObjectId(user_id)})
+                    except Exception:
+                        pass
+                    pred_query["$or"] = id_conditions
+                if farm_id:
+                    pred_query["farm_id"] = farm_id
+
+                cursor = col.find(pred_query).sort("created_at", -1).limit(limit)
                 async for doc in cursor:
                     status = doc.get("prediction_status", "disease")
                     c_name = doc.get("crop_name", "Crop")

@@ -297,10 +297,10 @@ export default function NearbyFieldsRadar({
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                      {farm.farmer_name}
+                      {farm.farmer_name || (isTe ? 'పొరుగు రైతు' : 'Neighbor Cultivator')}
                     </h5>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      {farm.farm_name} • {farm.village}
+                      {farm.farm_name ? `${farm.farm_name}${farm.village ? ` • ${farm.village}` : ''}` : (isTe ? 'సమీప పొలం' : 'Neighbor Plot')}
                     </p>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">

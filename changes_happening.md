@@ -2,6 +2,35 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-09-29 (v335) - B3 Medium Security Fixes (M-1, M-2, M-3, M-4)
+- **Summary:**
+  1. 🧠 **M-1: Farm Timeline & Health Score JWT Authentication & User Scoping (`backend/app/routers/common/intelligence.py`, `backend/app/services/farm_timeline/service.py`):**
+     - Enforced JWT authentication (`get_current_user`) on `GET /api/intelligence/timeline` and `GET /api/intelligence/health-score`, returning `HTTP 401 Unauthorized` for anonymous requests.
+     - Scoped `FarmTimelineService.get_farm_timeline` database queries to the authenticated user's ID (`{"user_id": user_id}`), preventing diagnostic cross-contamination.
+     - Added cross-farm ownership validation on `GET /api/intelligence/health-score?farm_id=...`: non-admin callers attempting to access another farmer's farm profile are rejected with `HTTP 403 Forbidden`. Administrators retain authorized global access.
+  2. 🚪 **M-2: Frontend ProtectedRoute Role Enforcement (`frontend/src/components/ProtectedRoute.jsx`, `frontend/src/App.jsx`):**
+     - Enhanced `ProtectedRoute` with role validation via `allowedRoles` prop.
+     - Protected `/admin` with `allowedRoles={['admin']}`.
+     - Protected `/provider/*` routes with `allowedRoles={['equipment_provider', 'provider', 'admin']}`.
+     - Unauthorized logged-in users are safely redirected to `/dashboard`.
+  3. 📍 **M-3: Neighboring Farmer PII & High-Precision GPS Obfuscation (`backend/app/routers/farmer/farm_profiles.py`, `frontend/src/components/intelligence/NearbyFieldsRadar.jsx`):**
+     - Stripped neighboring farmer names, farm names, internal MongoDB `_id`s, and raw GPS coordinates (`lat`/`lng`) from `GET /api/farms/{farm_id}/nearby-radar`.
+     - Replaced internal IDs with synthetic privacy-safe identifiers (`radar_plot_1`, `radar_plot_2`).
+     - Preserved only necessary aggregate operational radar data (`distance_km`, `bearing`, `crop`, `variety`, `status`, `disease`, `severity`).
+     - Updated `NearbyFieldsRadar.jsx` to render graceful anonymous fallbacks ("Neighbor Cultivator" / "Neighbor Plot").
+  4. 🔌 **M-4: IoT Authentication Fail-Closed in Production (`backend/app/core/iot_security.py`, `backend/app/routers/common/iot.py`):**
+     - In `validate_iot_request()`: in production (`ENV='production'`, `IOT_SECURITY_MODE='production'`, or RENDER detected), requests without credentials or using the known default key `"crop_iot_secure_key_2026"` are rejected with `HTTP 401 Unauthorized`.
+     - Requires an explicitly configured non-default `IOT_API_KEY` or valid device token in production.
+     - Added `validate_iot_request(request)` to `POST /api/v1/iot/heartbeat` to protect heartbeat with identical IoT authentication.
+     - Preserves permissive development simulation for local ESP32 testing.
+  5. 🧪 **Verification:**
+     - Created `backend/tests/test_b3_medium_security.py` with 14 automated tests: **14/14 passed (100%)**.
+     - Ran full regression suites: `test_b3_high_security.py` (19/19 passed), `test_b3_critical_security.py` (11/11 passed), `test_b1_rbac.py` (7/7 passed), `test_b1_concurrency.py` (19/19 passed).
+     - Total: **70/70 tests passing with zero failures and zero regressions**.
+- **Files modified**: `backend/app/routers/common/intelligence.py`, `backend/app/services/farm_timeline/service.py`, `frontend/src/components/ProtectedRoute.jsx`, `frontend/src/App.jsx`, `backend/app/routers/farmer/farm_profiles.py`, `frontend/src/components/intelligence/NearbyFieldsRadar.jsx`, `backend/app/core/iot_security.py`, `backend/app/routers/common/iot.py`, `backend/tests/mock_db.py`, `backend/tests/test_b3_medium_security.py`, `changes_happening.md`.
+
+---
+
 ## 2026-09-29 (v334) - B3 H-3 & H-4 Advanced Security Hardening
 - **Summary:**
   1. 🤖 **H-3: Domain-Separated Worker Authentication & JWT Decoupling (`backend/app/core/config.py`, `backend/app/routers/farmer/predict.py`, `backend/app/services/ai_cluster.py`):**

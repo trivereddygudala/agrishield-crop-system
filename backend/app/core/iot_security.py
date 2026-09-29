@@ -1,8 +1,20 @@
-from datetime import timezone
+import os
 import time
-from typing import Dict, Any, Tuple
+import hmac
+from datetime import timezone
+from typing import Dict, Any, Tuple, Optional
 from fastapi import Request, HTTPException, status
 from backend.app.core.config import settings
+
+DEFAULT_IOT_INSECURE_KEY = "crop_iot_secure_key_2026"
+
+def is_production_mode() -> bool:
+    return (
+        getattr(settings, "ENV", "").lower() == "production"
+        or getattr(settings, "IOT_SECURITY_MODE", "").lower() == "production"
+        or os.environ.get("RENDER") is not None
+        or os.environ.get("ENV", "").lower() == "production"
+    )
 
 # Sensor Physical Bounds Configuration
 SENSOR_BOUNDS = {
@@ -33,26 +45,83 @@ def validate_sensor_payload(payload: Dict[str, Any]) -> Tuple[bool, str]:
 
     return True, "Sensor payload valid."
 
-def validate_iot_request(request: Request, api_key: str = None, timestamp: float = None) -> bool:
+def validate_iot_request(
+    request: Request,
+    api_key: Optional[str] = None,
+    timestamp: Optional[float] = None,
+    device_doc: Optional[dict] = None
+) -> bool:
     """
     Validate IoT node request authentication and replay protection.
-    Permissive in development mode for seamless local ESP32 simulation.
+    Fails closed in production:
+      - Rejects missing credentials
+      - Rejects known default key 'crop_iot_secure_key_2026'
+      - Requires a genuinely configured non-default IOT_API_KEY or valid device token
+    In development mode:
+      - Permissive for local ESP32 simulation, but rejects invalid keys if provided.
     """
-    # 1. API Key Check
-    header_key = request.headers.get("X-IoT-API-Key") or api_key
-    if settings.IOT_SECURITY_MODE == "production":
-        if not header_key or header_key != settings.IOT_API_KEY:
+    header_key = (
+        request.headers.get("X-IoT-API-Key")
+        or request.headers.get("X-API-Key")
+        or api_key
+    )
+    auth_header = request.headers.get("Authorization") or ""
+    if not header_key and auth_header.startswith("Bearer "):
+        header_key = auth_header.split(" ", 1)[1].strip()
+
+    is_prod = is_production_mode()
+
+    if is_prod:
+        if not header_key:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or missing X-IoT-API-Key"
             )
+        if header_key == DEFAULT_IOT_INSECURE_KEY:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Default insecure IoT API key is prohibited in production"
+            )
+
+        # 1. Device-specific token check
+        device_authenticated = False
+        if device_doc:
+            dev_token = device_doc.get("token") or device_doc.get("api_key") or device_doc.get("device_token")
+            if dev_token and dev_token != DEFAULT_IOT_INSECURE_KEY and hmac.compare_digest(header_key, dev_token):
+                device_authenticated = True
+
+        if not device_authenticated:
+            # 2. Configured settings.IOT_API_KEY check
+            configured_key = getattr(settings, "IOT_API_KEY", "") or ""
+            if not configured_key or configured_key == DEFAULT_IOT_INSECURE_KEY:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="IoT service is not configured with a secure non-default API key"
+                )
+            if not hmac.compare_digest(header_key, configured_key):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or missing X-IoT-API-Key"
+                )
+    else:
+        # Development mode
+        configured_key = getattr(settings, "IOT_API_KEY", "") or ""
+        if header_key and configured_key:
+            device_token = (device_doc.get("token") or device_doc.get("api_key") or device_doc.get("device_token")) if device_doc else None
+            matches_device = bool(device_token and hmac.compare_digest(header_key, device_token))
+            matches_configured = bool(hmac.compare_digest(header_key, configured_key))
+            if not (matches_device or matches_configured):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid X-IoT-API-Key"
+                )
 
     # 2. Timestamp Replay Protection Check
     if timestamp:
         now = time.time()
         # Accept timestamps within a 5-minute window
         if abs(now - timestamp) > 300:
-            if settings.IOT_SECURITY_MODE == "production":
+            if is_prod:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="IoT request timestamp expired or invalid (Replay attack protection)."
