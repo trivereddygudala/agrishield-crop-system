@@ -1089,6 +1089,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       title: "Admin Dashboard & Operations",
       items: [
         { key: "nav.admin_users", path: "/admin?tab=users", icon: Users, label: "Registered Users" },
+        { key: "admin.nav_crop_scans", path: "/history", icon: History, label: "Crop Scan Audits" },
         { key: "nav.admin_broadcast", path: "/admin?tab=broadcast", icon: Radio, label: "Global Broadcasts" },
         { key: "nav.admin_geography", path: "/admin?tab=geography", icon: Globe, label: "Farmer Geography" },
         { key: "nav.admin_iot", path: "/admin?tab=iot", icon: Cpu, label: "IoT Hardware Fleet" },

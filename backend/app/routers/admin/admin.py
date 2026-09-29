@@ -11,29 +11,63 @@ from backend.app.models.schemas import UserResponse
 from backend.app.services.notification_service import NotificationService
 from backend.app.models.notification import NotificationCreate
 import logging
+import asyncio
+import json
+import hashlib
+from pymongo.errors import DuplicateKeyError
 from backend.app.services.translation_service import TranslationService
+from backend.app.routers.auth import get_current_user
 
 logger = logging.getLogger(__name__)
+
+_admin_mutation_lock = asyncio.Lock()
 
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 
 @router.get("/users", dependencies=[Depends(require_role("admin")), Depends(rate_limit(ADMIN_LIMIT, 60))])
 async def list_all_users(
-    skip: int = Query(0, ge=0),
+    skip: Optional[int] = Query(None, ge=0),
     limit: int = Query(50, ge=1, le=100),
+    page: Optional[int] = Query(None, ge=1),
     role_filter: Optional[str] = None,
+    search: Optional[str] = None,
     db = Depends(get_database)
 ):
     """
-    Strict Admin Endpoint: Retrieve list of all registered users from MongoDB.
+    Strict Admin Endpoint: Retrieve paginated list of registered users from MongoDB.
+    Supports skip/limit, page-based pagination, role filtering, and safe keyword search.
     Requires 'admin' role authentication.
     """
-    query = {}
-    if role_filter:
+    # Calculate skip from page if explicit page parameter provided
+    if skip is not None:
+        effective_skip = skip
+    elif page is not None:
+        effective_skip = (page - 1) * limit
+    else:
+        effective_skip = 0
+
+    query: Dict[str, Any] = {}
+    if role_filter and role_filter != "all":
         query["role"] = role_filter
 
+    if search:
+        search_clean = search.strip()
+        if search_clean:
+            search_clause = [
+                {"name": {"$regex": search_clean, "$options": "i"}},
+                {"email": {"$regex": search_clean, "$options": "i"}},
+                {"phone": {"$regex": search_clean, "$options": "i"}}
+            ]
+            if ObjectId.is_valid(search_clean):
+                search_clause.append({"_id": ObjectId(search_clean)})
+
+            if query:
+                query = {"$and": [query, {"$or": search_clause}]}
+            else:
+                query = {"$or": search_clause}
+
     total_users = await db.users.count_documents(query)
-    cursor = db.users.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    cursor = db.users.find(query).sort("created_at", -1).skip(effective_skip).limit(limit)
     users_list = await cursor.to_list(length=limit)
 
     sanitized_users = []
@@ -53,10 +87,17 @@ async def list_all_users(
         }
         sanitized_users.append(sanitized)
 
+    current_page = (effective_skip // limit) + 1
+    total_pages = (total_users + limit - 1) // limit if total_users > 0 else 1
+    has_more = (effective_skip + len(sanitized_users)) < total_users
+
     return {
         "total": total_users,
-        "skip": skip,
+        "skip": effective_skip,
         "limit": limit,
+        "page": current_page,
+        "total_pages": total_pages,
+        "has_more": has_more,
         "users": sanitized_users
     }
 
@@ -79,20 +120,54 @@ async def get_user_by_id(user_id: str, db = Depends(get_database)):
 
 
 @router.put("/users/{user_id}/role", dependencies=[Depends(require_role("admin"))])
-async def update_user_role(user_id: str, new_role: str = Query(..., pattern="^(admin|farmer|equipment_provider|researcher|tester|guest)$"), db = Depends(get_database)):
+async def update_user_role(
+    user_id: str,
+    new_role: str = Query(..., pattern="^(admin|farmer|equipment_provider|researcher|tester|guest)$"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Strict Admin Endpoint: Change role of any registered user."""
-    try:
-        result = await db.users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {"role": new_role}}
-        )
-    except Exception:
+    if not ObjectId.is_valid(user_id):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User ID format")
 
-    if result.matched_count == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    target_oid = ObjectId(user_id)
+    current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub", ""))
 
-    log_security_event("USER_ROLE_UPDATED", {"user_id": user_id, "new_role": new_role}, level="INFO")
+    async with _admin_mutation_lock:
+        target_user = await db.users.find_one({"_id": target_oid})
+        if not target_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # 1. Prevent self-demotion
+        is_self = (user_id == current_user_id) or (str(target_user.get("_id")) == current_user_id)
+        if is_self and new_role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot demote your own active administrator account"
+            )
+
+        # 2. Prevent demoting the last remaining admin
+        if target_user.get("role") == "admin" and new_role != "admin":
+            admin_count = await db.users.count_documents({"role": "admin"})
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot demote the sole remaining administrator account"
+                )
+
+        try:
+            result = await db.users.update_one(
+                {"_id": target_oid},
+                {"$set": {"role": new_role}}
+            )
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User ID format")
+
+        matched_count = getattr(result, "matched_count", 1 if result else 0)
+        if matched_count == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    log_security_event("USER_ROLE_UPDATED", {"user_id": user_id, "new_role": new_role, "actor_id": current_user_id}, level="INFO")
     return {"message": f"Successfully updated user {user_id} role to '{new_role}'."}
 
 
@@ -110,7 +185,12 @@ class AdminPasswordResetRequest(BaseModel):
     new_password: str
 
 @router.put("/users/{user_id}", dependencies=[Depends(require_role("admin"))])
-async def edit_user_details(user_id: str, edit_data: UserEditRequest, db = Depends(get_database)):
+async def edit_user_details(
+    user_id: str,
+    edit_data: UserEditRequest,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Admin Endpoint: Edit user profile details (Name, Email, Role, Language, Location, Phone, Provider Profile)."""
     try:
         update_fields = {}
@@ -119,44 +199,104 @@ async def edit_user_details(user_id: str, edit_data: UserEditRequest, db = Depen
         if edit_data.phone is not None:
             update_fields["phone"] = edit_data.phone.strip()
             update_fields["mobile"] = edit_data.phone.strip()
-        if edit_data.role is not None: update_fields["role"] = edit_data.role.lower()
         if edit_data.preferred_language is not None: update_fields["preferred_language"] = edit_data.preferred_language
         if edit_data.farming_practices is not None: update_fields["farming_practices"] = edit_data.farming_practices
         if edit_data.farm_location is not None: update_fields["farm_location"] = edit_data.farm_location
         if edit_data.provider_profile is not None: update_fields["provider_profile"] = edit_data.provider_profile
 
-        if not update_fields:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided to update")
+        if not ObjectId.is_valid(user_id):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid User ID format")
 
-        result = await db.users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": update_fields}
-        )
+        target_oid = ObjectId(user_id)
+        current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub", ""))
+
+        async with _admin_mutation_lock:
+            target_user = await db.users.find_one({"_id": target_oid})
+            if not target_user:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+            if edit_data.role is not None:
+                new_role = edit_data.role.lower().strip()
+                is_self = (user_id == current_user_id) or (str(target_user.get("_id")) == current_user_id)
+                if is_self and new_role != "admin":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Cannot demote your own active administrator account"
+                    )
+                if target_user.get("role") == "admin" and new_role != "admin":
+                    admin_count = await db.users.count_documents({"role": "admin"})
+                    if admin_count <= 1:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Cannot demote the sole remaining administrator account"
+                        )
+                update_fields["role"] = new_role
+
+            if not update_fields:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields provided to update")
+
+            result = await db.users.update_one(
+                {"_id": target_oid},
+                {"$set": update_fields}
+            )
+            matched_count = getattr(result, "matched_count", 1 if result else 0)
+            if matched_count == 0:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to update user: {str(e)}")
 
-    if result.matched_count == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    log_security_event("USER_PROFILE_EDITED", {"user_id": user_id, "updated_fields": list(update_fields.keys())}, level="INFO")
+    log_security_event("USER_PROFILE_EDITED", {"user_id": user_id, "updated_fields": list(update_fields.keys()), "actor_id": current_user_id}, level="INFO")
     return {"message": "User details updated successfully."}
 
 @router.delete("/users/{target_user_id}", dependencies=[Depends(require_role("admin"))])
-async def delete_user(target_user_id: str, db = Depends(get_database)):
+async def delete_user(
+    target_user_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Admin endpoint to permanently delete a user and their data."""
     if not ObjectId.is_valid(target_user_id):
         raise HTTPException(status_code=400, detail="Invalid target user ID")
-    
-    # Cascade delete (predictions, telemetry, etc.)
-    await db.predictions.delete_many({"user_id": target_user_id})
-    await db.iot_telemetry.delete_many({"user_id": target_user_id})
-    await db.notifications.delete_many({"user_id": target_user_id})
-    
-    res = await db.users.delete_one({"_id": ObjectId(target_user_id)})
-    if res.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    log_security_event("USER_ACCOUNT_DELETED", {"deleted_user_id": target_user_id}, level="WARNING")
+
+    target_oid = ObjectId(target_user_id)
+    current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub", ""))
+
+    async with _admin_mutation_lock:
+        target_user = await db.users.find_one({"_id": target_oid})
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # 1. Prevent self-deletion
+        is_self = (target_user_id == current_user_id) or (str(target_user.get("_id")) == current_user_id)
+        if is_self:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete your own active administrator account"
+            )
+
+        # 2. Prevent deleting the last remaining admin
+        if target_user.get("role") == "admin":
+            admin_count = await db.users.count_documents({"role": "admin"})
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot delete the sole remaining administrator account"
+                )
+
+        # Cascade delete (predictions, telemetry, etc.)
+        await db.predictions.delete_many({"user_id": target_user_id})
+        await db.iot_telemetry.delete_many({"user_id": target_user_id})
+        await db.notifications.delete_many({"user_id": target_user_id})
+
+        res = await db.users.delete_one({"_id": target_oid})
+        deleted_count = getattr(res, "deleted_count", 1 if res else 0)
+        if deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+
+    log_security_event("USER_ACCOUNT_DELETED", {"deleted_user_id": target_user_id, "actor_id": current_user_id}, level="WARNING")
     return {"status": "success", "message": f"User {target_user_id} and associated data deleted"}
 
 @router.get("/audit-logs", dependencies=[Depends(require_role("admin"))])
@@ -275,6 +415,7 @@ class AdminBroadcastRequest(BaseModel):
     priority: str = "High"
     audience: str = "all"  # 'farmers' | 'providers' | 'all'
     action_url: Optional[str] = "/dashboard"
+    idempotency_key: Optional[str] = None
 
 @router.post("/broadcast", dependencies=[Depends(require_role("admin"))])
 async def broadcast_system_notification(
@@ -282,21 +423,112 @@ async def broadcast_system_notification(
     current_user: dict = Depends(require_role("admin")),
     db = Depends(get_database)
 ):
-    """Admin Endpoint: Broadcast a targeted notification to all users, farmers only, or providers only."""
-    # Build query filter based on audience
+    """Admin Endpoint: Broadcast a targeted notification to all users, farmers only, or providers only (Optimized Fanout)."""
     audience = (payload.audience or "all").lower()
-    if audience == "farmers":
-        query = {"role": "farmer"}
-    elif audience == "providers":
-        query = {"role": "equipment_provider"}
-    else:
-        # Exclude admin accounts from "all" broadcasts — admins access broadcasts via admin panel
-        query = {"role": {"$ne": "admin"}}
 
-    users_cursor = db.users.find(query, {"_id": 1, "preferred_language": 1})
-    users_list = await users_cursor.to_list(length=None)
+    # 1. Compute stable request fingerprint / hash across payload attributes
+    req_payload_str = json.dumps({
+        "title": payload.title,
+        "message": payload.message,
+        "priority": payload.priority,
+        "audience": audience,
+        "action_url": payload.action_url or "/dashboard"
+    }, sort_keys=True)
+    req_hash = hashlib.sha256(req_payload_str.encode("utf-8")).hexdigest()
 
-    # Pre-translate broadcast into the 7 supported languages (en, te, ta, kn, hi, ml, or) once
+    broadcast_id_str = None
+    existing_bc = None
+
+    # 2. Idempotency Check & Pre-Fanout Reservation
+    if payload.idempotency_key:
+        existing_bc = await db.broadcasts.find_one({"idempotency_key": payload.idempotency_key})
+        if existing_bc:
+            # Validate request fingerprint identity
+            if existing_bc.get("request_hash") and existing_bc.get("request_hash") != req_hash:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Idempotency-Key already used for a different broadcast request payload."
+                )
+
+            current_status = existing_bc.get("status")
+            if current_status == "Delivered":
+                logger.info(f"Duplicate broadcast replay prevented via idempotency_key '{payload.idempotency_key}'")
+                bc_id = str(existing_bc.get("_id") or existing_bc.get("id"))
+                dispatched_at_val = existing_bc.get("dispatched_at")
+                dispatched_at_str = dispatched_at_val.isoformat() if hasattr(dispatched_at_val, "isoformat") else str(dispatched_at_val)
+                return {
+                    "status": "success",
+                    "message": f"Successfully broadcasted to {existing_bc.get('recipient_count', 0)} users ({existing_bc.get('audience', audience)}).",
+                    "broadcast": {
+                        "id": bc_id,
+                        "title": existing_bc.get("title", payload.title),
+                        "message": existing_bc.get("message", payload.message),
+                        "priority": existing_bc.get("priority", payload.priority),
+                        "audience": existing_bc.get("audience", audience),
+                        "recipient_count": existing_bc.get("recipient_count", 0),
+                        "dispatched_by": existing_bc.get("dispatched_by", current_user.get("email", "admin")),
+                        "status": "Delivered",
+                        "dispatched_at": dispatched_at_str
+                    }
+                }
+            elif current_status == "Processing":
+                # Durable lease / lock timeout check
+                created_dt = existing_bc.get("created_at") or existing_bc.get("dispatched_at")
+                if created_dt and isinstance(created_dt, datetime):
+                    if created_dt.tzinfo is None:
+                        created_dt = created_dt.replace(tzinfo=timezone.utc)
+                    age_sec = (datetime.now(timezone.utc) - created_dt).total_seconds()
+                    if age_sec < 60:
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail="A broadcast dispatch with this idempotency key is currently processing. Please retry shortly."
+                        )
+                # Stale Processing lease expired: allow resume using the same broadcast_id
+                logger.warning(f"Resuming stale Processing broadcast '{payload.idempotency_key}'")
+                broadcast_id_str = str(existing_bc.get("_id") or existing_bc.get("id"))
+            elif current_status == "Failed":
+                # Controlled retry of failed broadcast: transition back to Processing and resume
+                logger.info(f"Retrying Failed broadcast '{payload.idempotency_key}'")
+                broadcast_id_str = str(existing_bc.get("_id") or existing_bc.get("id"))
+                try:
+                    oid = ObjectId(broadcast_id_str)
+                    retry_filter = {"_id": oid, "status": "Failed"}
+                except Exception:
+                    retry_filter = {"_id": broadcast_id_str, "status": "Failed"}
+                await db.broadcasts.update_one(retry_filter, {"$set": {"status": "Processing", "updated_at": datetime.now(timezone.utc)}})
+
+        if not broadcast_id_str:
+            # Create durable reservation record BEFORE fanout begins
+            reservation_doc = {
+                "title": payload.title,
+                "message": payload.message,
+                "original_title": payload.title,
+                "original_message": payload.message,
+                "source_language": "en",
+                "priority": payload.priority,
+                "audience": audience,
+                "recipient_count": 0,
+                "persisted_count": 0,
+                "dispatched_by": current_user.get("email", "admin"),
+                "status": "Processing",
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+                "dispatched_at": datetime.now(timezone.utc),
+                "idempotency_key": payload.idempotency_key,
+                "request_hash": req_hash,
+                "action_url": payload.action_url or "/dashboard"
+            }
+            try:
+                res_insert = await db.broadcasts.insert_one(reservation_doc)
+                broadcast_id_str = str(res_insert.inserted_id)
+            except DuplicateKeyError:
+                # Concurrent race condition caught by MongoDB unique index
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A broadcast dispatch with this idempotency key was just initiated concurrently."
+                )
+
+    # Pre-translate broadcast into the 7 supported languages once
     translations_bundle: Dict[str, Dict[str, str]] = {}
     for target_lang in ["te", "ta", "kn", "hi", "ml", "or"]:
         try:
@@ -313,43 +545,131 @@ async def broadcast_system_notification(
         except Exception as tr_err:
             logger.warning(f"Broadcast pre-translation warning for {target_lang}: {tr_err}")
 
+    # Build query filter based on audience
+    if audience == "farmers":
+        query = {"role": "farmer"}
+    elif audience == "providers":
+        query = {"role": "equipment_provider"}
+    else:
+        # Exclude admin accounts from "all" broadcasts — admins access broadcasts via admin panel
+        query = {"role": {"$ne": "admin"}}
+
+    # Stream recipients in bounded batches, capturing user_id, preferred_language, and role
+    users_cursor = db.users.find(query, {"_id": 1, "preferred_language": 1, "role": 1})
+
+    # Bounded recipient batching (500 per batch)
+    BATCH_SIZE = 500
+    recipients_batch = []
     count = 0
-    for u in users_list:
-        uid_str = str(u["_id"])
-        await NotificationService.create_notification(
-            db,
-            NotificationCreate(
-                user_id=uid_str,
+
+    try:
+        async for u in users_cursor:
+            recipients_batch.append({
+                "user_id": str(u["_id"]),
+                "preferred_language": u.get("preferred_language") or "en",
+                "role": u.get("role") or "farmer"
+            })
+            if len(recipients_batch) >= BATCH_SIZE:
+                batch_res = await NotificationService.create_broadcast_notifications(
+                    db,
+                    recipients=recipients_batch,
+                    title=payload.title,
+                    message=payload.message,
+                    translations=translations_bundle,
+                    priority=payload.priority,
+                    action_url=payload.action_url or "/dashboard",
+                    batch_size=BATCH_SIZE,
+                    broadcast_id=broadcast_id_str,
+                    idempotency_key=payload.idempotency_key
+                )
+                count += batch_res.get("persisted_count", 0)
+                recipients_batch = []
+
+        # Final remaining batch
+        if recipients_batch:
+            batch_res = await NotificationService.create_broadcast_notifications(
+                db,
+                recipients=recipients_batch,
                 title=payload.title,
                 message=payload.message,
-                original_title=payload.title,
-                original_message=payload.message,
-                source_language="en",
                 translations=translations_bundle,
-                category="broadcast",
                 priority=payload.priority,
-                action_url=payload.action_url or "/dashboard"
+                action_url=payload.action_url or "/dashboard",
+                batch_size=BATCH_SIZE,
+                broadcast_id=broadcast_id_str,
+                idempotency_key=payload.idempotency_key
             )
-        )
-        count += 1
+            count += batch_res.get("persisted_count", 0)
 
-    # Persist broadcast record to DB for history
-    broadcast_doc = {
-        "title": payload.title,
-        "message": payload.message,
-        "original_title": payload.title,
-        "original_message": payload.message,
-        "source_language": "en",
-        "translations": translations_bundle,
-        "priority": payload.priority,
-        "audience": audience,
-        "recipient_count": count,
-        "dispatched_by": current_user.get("email", "admin"),
-        "status": "Delivered",
-        "dispatched_at": datetime.now(timezone.utc)
-    }
-    inserted = await db.broadcasts.insert_one(broadcast_doc)
-    broadcast_doc["id"] = str(inserted.inserted_id)
+        # Transition broadcast record to Delivered state in MongoDB conditionally from Processing
+        now_dt = datetime.now(timezone.utc)
+        if broadcast_id_str:
+            update_fields = {
+                "translations": translations_bundle,
+                "recipient_count": count,
+                "persisted_count": count,
+                "status": "Delivered",
+                "updated_at": now_dt,
+                "dispatched_at": now_dt
+            }
+            try:
+                oid = ObjectId(broadcast_id_str)
+                cond_filter = {"_id": oid, "status": "Processing"}
+            except Exception:
+                cond_filter = {"_id": broadcast_id_str, "status": "Processing"}
+
+            res_update = await db.broadcasts.update_one(cond_filter, {"$set": update_fields})
+            matched_count = getattr(res_update, "matched_count", 1 if res_update else 0)
+            if matched_count == 0:
+                logger.warning(
+                    f"Broadcast '{broadcast_id_str}' was not in 'Processing' state during Delivered transition "
+                    f"(matched_count=0). Stale worker update ignored."
+                )
+        else:
+            broadcast_doc = {
+                "title": payload.title,
+                "message": payload.message,
+                "original_title": payload.title,
+                "original_message": payload.message,
+                "source_language": "en",
+                "translations": translations_bundle,
+                "priority": payload.priority,
+                "audience": audience,
+                "recipient_count": count,
+                "persisted_count": count,
+                "dispatched_by": current_user.get("email", "admin"),
+                "status": "Delivered",
+                "dispatched_at": now_dt,
+                "updated_at": now_dt,
+                "created_at": now_dt,
+                "idempotency_key": payload.idempotency_key,
+                "request_hash": req_hash
+            }
+            inserted = await db.broadcasts.insert_one(broadcast_doc)
+            broadcast_id_str = str(inserted.inserted_id)
+
+    except Exception as dispatch_err:
+        logger.error(f"Broadcast fanout error: {dispatch_err}")
+        if broadcast_id_str:
+            err_update = {
+                "status": "Failed",
+                "error_detail": str(dispatch_err),
+                "updated_at": datetime.now(timezone.utc)
+            }
+            try:
+                oid = ObjectId(broadcast_id_str)
+                err_filter = {"_id": oid, "status": "Processing"}
+            except Exception:
+                err_filter = {"_id": broadcast_id_str, "status": "Processing"}
+
+            err_res = await db.broadcasts.update_one(err_filter, {"$set": err_update})
+            matched_err_count = getattr(err_res, "matched_count", 1 if err_res else 0)
+            if matched_err_count == 0:
+                logger.warning(
+                    f"Broadcast '{broadcast_id_str}' was not in 'Processing' state during Failed transition "
+                    f"(matched_count=0). Stale or already terminal broadcast state preserved."
+                )
+        raise dispatch_err
 
     log_security_event(
         "GLOBAL_BROADCAST_DISPATCHED",
@@ -360,15 +680,15 @@ async def broadcast_system_notification(
         "status": "success",
         "message": f"Successfully broadcasted to {count} users ({audience}).",
         "broadcast": {
-            "id": broadcast_doc["id"],
+            "id": broadcast_id_str,
             "title": payload.title,
             "message": payload.message,
             "priority": payload.priority,
             "audience": audience,
             "recipient_count": count,
-            "dispatched_by": broadcast_doc["dispatched_by"],
+            "dispatched_by": current_user.get("email", "admin"),
             "status": "Delivered",
-            "dispatched_at": broadcast_doc["dispatched_at"].isoformat()
+            "dispatched_at": now_dt.isoformat()
         }
     }
 

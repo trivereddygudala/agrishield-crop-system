@@ -96,7 +96,13 @@ class MockCollection:
         import copy
         record_copy = copy.deepcopy(record)
         if getattr(self, "unique_keys", None):
-            for u_keys in self.unique_keys:
+            for entry in self.unique_keys:
+                if isinstance(entry, tuple) and len(entry) == 2 and isinstance(entry[1], bool):
+                    u_keys, is_sparse = entry
+                else:
+                    u_keys, is_sparse = entry, False
+                if is_sparse and any(record_copy.get(k) is None for k in u_keys):
+                    continue
                 u_query = {k: record_copy.get(k) for k in u_keys}
                 if any(self._matches(r, u_query) for r in self.records):
                     from pymongo.errors import DuplicateKeyError
@@ -117,9 +123,25 @@ class MockCollection:
                 self.inserted_id = inserted_id
         return InsertResult(inserted_id)
 
+    async def insert_many(self, records, ordered=True, session=None, **kwargs):
+        inserted_ids = []
+        for record in records:
+            res = await self.insert_one(record, session=session, **kwargs)
+            inserted_ids.append(res.inserted_id)
+        class InsertManyResult:
+            def __init__(self, ids):
+                self.inserted_ids = ids
+                self.acknowledged = True
+        return InsertManyResult(inserted_ids)
+
     async def update_one(self, query, update_dict, upsert=False, session=None, **kwargs):
         rec = await self.find_one(query)
+        matched_count = 0
+        modified_count = 0
+        upserted_id = None
         if rec:
+            matched_count = 1
+            modified_count = 1
             if "$set" in update_dict:
                 for k, v in update_dict["$set"].items():
                     rec[k] = v
@@ -142,9 +164,35 @@ class MockCollection:
             if "$push" in update_dict:
                 for k, v in update_dict["$push"].items():
                     new_rec[k] = [v]
+            if "_id" not in new_rec:
+                new_rec["_id"] = ObjectId()
+            upserted_id = new_rec["_id"]
+            matched_count = 0
+            modified_count = 1
             self.records.append(new_rec)
-            return new_rec
-        return rec
+            rec = new_rec
+
+        class UpdateResult:
+            def __init__(self, matched, modified, upsert_id, record):
+                self.matched_count = matched
+                self.modified_count = modified
+                self.upserted_id = upsert_id
+                self._record = record
+
+            def __bool__(self):
+                return self.matched_count > 0 or self.modified_count > 0
+
+            def __getitem__(self, key):
+                if self._record is not None:
+                    return self._record[key]
+                raise KeyError(key)
+
+            def get(self, key, default=None):
+                if self._record is not None:
+                    return self._record.get(key, default)
+                return default
+
+        return UpdateResult(matched_count, modified_count, upserted_id, rec)
 
     async def find_one_and_update(self, query, update_dict, return_document=False, upsert=False, session=None, **kwargs):
         rec = await self.find_one(query)
@@ -196,10 +244,15 @@ class MockCollection:
 
     async def delete_one(self, query, session=None, **kwargs):
         rec = await self.find_one(query)
+        class DeleteResult:
+            def __init__(self, count):
+                self.deleted_count = count
+            def __bool__(self):
+                return self.deleted_count > 0
         if rec:
             self.records.remove(rec)
-            return True
-        return False
+            return DeleteResult(1)
+        return DeleteResult(0)
 
     async def count_documents(self, query, session=None, **kwargs):
         count = 0
@@ -209,6 +262,12 @@ class MockCollection:
         return count
 
     async def create_index(self, *args, **kwargs):
+        if kwargs.get("unique") and args:
+            keys = [k[0] if isinstance(k, tuple) else k for k in args[0]]
+            if not hasattr(self, "unique_keys"):
+                self.unique_keys = []
+            sparse = bool(kwargs.get("sparse", False))
+            self.unique_keys.append((tuple(keys), sparse))
         return "idx_created"
 
     async def bulk_write(self, ops, ordered=False, session=None, **kwargs):

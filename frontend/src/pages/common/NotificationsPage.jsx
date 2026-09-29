@@ -596,32 +596,7 @@ export default function NotificationsPage() {
             }
           } catch (_) {}
 
-          // 3. Add Broadcast History notices
-          try {
-            const bcHistory = JSON.parse(localStorage.getItem('agrishield_broadcast_history') || '[]');
-            if (Array.isArray(bcHistory)) {
-              bcHistory.forEach(bc => {
-                const bcKey = `admin-bc-${bc.id}`;
-                if (!deletedNotifIds.has(bcKey) && !localNotifs.some(n => n.id === bcKey || n.notification_id === bcKey)) {
-                  localNotifs.push({
-                    id: bcKey,
-                    notification_id: bcKey,
-                    category: 'broadcast',
-                    type: 'broadcast',
-                    priority: bc.priority || 'High',
-                    audience: bc.audience,
-                    title: isTe ? `📢 బ్రాడ్‌కాస్ట్ హెచ్చరిక: ${bc.title}` : `📢 Broadcast Dispatched: ${bc.title}`,
-                    message: isTe
-                      ? `ఛానల్: ${bc.audience === 'providers' ? 'పరికర ప్రొవైడర్లు' : (bc.audience === 'farmers' ? 'రైతులు' : 'అందరూ')} • చేరిన రైతులు: ${bc.recipientCount || 7} • కంటెంట్: ${bc.message}`
-                      : `Channel: ${(bc.audience || 'all').toUpperCase()} • Delivered to: ${bc.recipientCount || 7} accounts • Content: ${bc.message}`,
-                    created_at: bc.timestamp || new Date().toISOString(),
-                    timestamp: bc.timestamp || new Date().toISOString(),
-                    read: readIds.has(bcKey)
-                  });
-                }
-              });
-            }
-          } catch (_) {}
+          // Broadcast notices are now delivered authoritatively from MongoDB via /api/v1/notifications
         } catch (e) {}
       }
 

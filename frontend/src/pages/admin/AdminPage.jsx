@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Users, 
   ShieldCheck, 
@@ -18,6 +18,7 @@ import {
   UserPlus,
   Cpu,
   FileText,
+  History,
   Activity,
   Sliders,
   Server,
@@ -35,6 +36,7 @@ import {
   TrendingUp,
   Info,
   ArrowLeft,
+  ChevronLeft,
   ChevronRight,
   Calendar,
   Download,
@@ -47,18 +49,25 @@ import {
 } from 'lucide-react';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import UserGeographyMap from '../../components/admin/UserGeographyMap';
 import SystemDiagnosticsTab from '../../components/admin/SystemDiagnosticsTab';
 import AdminAIChatbot from '../../components/admin/AdminAIChatbot';
 import { parseServerDate, formatDateTime, timeAgo } from '../../utils/dateUtils';
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const activeTab = tabParam && tabParam !== 'overview' ? tabParam : 'overview';
 
   const setTab = (tabId) => {
+    if (tabId === 'scans') {
+      navigate('/history');
+      return;
+    }
     if (tabId === 'overview') {
       setSearchParams({});
     } else {
@@ -66,6 +75,12 @@ export default function AdminPage() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    if (activeTab === 'scans') {
+      navigate('/history');
+    }
+  }, [activeTab, navigate]);
 
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +90,14 @@ export default function AdminPage() {
   const [profileFilter, setProfileFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // User Directory Server Pagination State (B6-P1-01)
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(25);
+  const [totalUsersCount, setTotalUsersCount] = useState(0);
+  const [totalPagesCount, setTotalPagesCount] = useState(1);
+  const [hasMoreUsers, setHasMoreUsers] = useState(false);
+  const [userStats, setUserStats] = useState({ total: 0, admin: 0, farmer: 0, equipment_provider: 0, completedProfiles: 0 });
 
   // IoT & Security state
   const [iotNodes, setIotNodes] = useState([]);
@@ -104,6 +127,7 @@ export default function AdminPage() {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [broadcastHistory, setBroadcastHistory] = useState([]);
   const [broadcastHistoryLoading, setBroadcastHistoryLoading] = useState(false);
+  const [broadcastHistoryError, setBroadcastHistoryError] = useState(null);
 
   // Admin Modals & Data Editing State
   const [editingUser, setEditingUser] = useState(null);
@@ -363,21 +387,25 @@ export default function AdminPage() {
     setError('');
     setSuccessMsg('');
     try {
+      const idempotencyKey = `bc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const payload = {
+        title: broadcastTitle,
+        message: broadcastMessage,
+        priority: broadcastPriority,
+        audience: broadcastAudience,
+        idempotency_key: idempotencyKey
+      };
       let res;
       try {
-        res = await API.post('/api/admin/broadcast', {
-          title: broadcastTitle,
-          message: broadcastMessage,
-          priority: broadcastPriority,
-          audience: broadcastAudience
-        });
-      } catch {
-        res = await API.post('/api/v1/admin/broadcast', {
-          title: broadcastTitle,
-          message: broadcastMessage,
-          priority: broadcastPriority,
-          audience: broadcastAudience
-        });
+        res = await API.post('/api/admin/broadcast', payload);
+      } catch (firstErr) {
+        // Fallback to /api/v1/admin/broadcast ONLY if /api/admin/broadcast returned 404 (endpoint not mounted under this prefix)
+        // If the error was 400, 401, 403, 500, or a network timeout/abort, re-throw to prevent duplicate dispatch storms
+        if (firstErr?.response?.status === 404) {
+          res = await API.post('/api/v1/admin/broadcast', payload);
+        } else {
+          throw firstErr;
+        }
       }
 
       // Use server-returned broadcast record to update local history
@@ -444,25 +472,18 @@ export default function AdminPage() {
     setSuccessMsg('');
     try {
       const res = await API.post('/api/v1/admin/create-user', createForm);
-      setSuccessMsg(`Successfully registered new account for ${createForm.email}!`);
-      if (res.data?.user) {
-        setUsersList(prev => [res.data.user, ...prev]);
-      } else {
-        fetchUsers();
-      }
       setIsCreateUserOpen(false);
       setCreateForm({ name: '', email: '', password: '', role: 'farmer', preferred_language: 'en', farm_location: '' });
+      fetchUsers(1, userPageSize, searchTerm, roleFilter);
+      setUserPage(1);
     } catch (err) {
       try {
-        const res = await API.post('/api/admin/create-user', createForm);
+        await API.post('/api/admin/create-user', createForm);
         setSuccessMsg(`Successfully registered new account for ${createForm.email}!`);
-        if (res.data?.user) {
-          setUsersList(prev => [res.data.user, ...prev]);
-        } else {
-          fetchUsers();
-        }
         setIsCreateUserOpen(false);
         setCreateForm({ name: '', email: '', password: '', role: 'farmer', preferred_language: 'en', farm_location: '' });
+        fetchUsers(1, userPageSize, searchTerm, roleFilter);
+        setUserPage(1);
       } catch (err2) {
         setError(err2.response?.data?.detail || err.response?.data?.detail || 'Failed to create user account.');
       }
@@ -486,6 +507,15 @@ export default function AdminPage() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editingUser) return;
+    const currentAdminId = user?.id || user?._id || '';
+    if (
+      (editingUser.id === currentAdminId || editingUser._id === currentAdminId || (user?.email && editingUser.email && user.email.toLowerCase() === editingUser.email.toLowerCase())) &&
+      editForm.role &&
+      editForm.role !== 'admin'
+    ) {
+      setError('Cannot demote your own active administrator account.');
+      return;
+    }
     setActionLoading(true);
     setError('');
     setSuccessMsg('');
@@ -551,41 +581,94 @@ export default function AdminPage() {
 
   const handleDeleteUserSubmit = async () => {
     if (!deleteUserTarget) return;
+    const currentAdminId = user?.id || user?._id || '';
+    if (
+      deleteUserTarget.id === currentAdminId ||
+      deleteUserTarget._id === currentAdminId ||
+      (user?.email && deleteUserTarget.email && user.email.toLowerCase() === deleteUserTarget.email.toLowerCase())
+    ) {
+      setError('Cannot delete your own active administrator account.');
+      setDeleteUserTarget(null);
+      return;
+    }
     setActionLoading(true);
     setError('');
     setSuccessMsg('');
     try {
-      await API.delete(`/api/v1/admin/users/${deleteUserTarget.id}`);
-      setSuccessMsg(`Account for ${deleteUserTarget.email} permanently deleted.`);
-      setUsersList(prev => prev.filter(u => u.id !== deleteUserTarget.id));
-      setDeleteUserTarget(null);
-    } catch (err) {
       try {
+        await API.delete(`/api/v1/admin/users/${deleteUserTarget.id}`);
+      } catch {
         await API.delete(`/api/admin/users/${deleteUserTarget.id}`);
-        setSuccessMsg(`Account for ${deleteUserTarget.email} permanently deleted.`);
-        setUsersList(prev => prev.filter(u => u.id !== deleteUserTarget.id));
-        setDeleteUserTarget(null);
-      } catch (err2) {
-        setError(err2.response?.data?.detail || err.response?.data?.detail || 'Failed to delete user.');
       }
+      setSuccessMsg(`Account for ${deleteUserTarget.email} permanently deleted.`);
+      setDeleteUserTarget(null);
+      // If deleting the only user on the current page, decrement page
+      if (usersList.length <= 1 && userPage > 1) {
+        const prevPage = userPage - 1;
+        setUserPage(prevPage);
+        fetchUsers(prevPage, userPageSize, searchTerm, roleFilter);
+      } else {
+        fetchUsers(userPage, userPageSize, searchTerm, roleFilter);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to delete user.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (pageOverride = null, pageSizeOverride = null, searchOverride = null, roleOverride = null) => {
     setLoading(true);
     setError('');
+    const targetPage = pageOverride !== null ? pageOverride : userPage;
+    const targetLimit = pageSizeOverride !== null ? pageSizeOverride : userPageSize;
+    const targetSearch = searchOverride !== null ? searchOverride : searchTerm;
+    const targetRole = roleOverride !== null ? roleOverride : roleFilter;
+
+    const skip = (targetPage - 1) * targetLimit;
+    const params = {
+      skip,
+      limit: targetLimit,
+      page: targetPage
+    };
+    if (targetRole && targetRole !== 'all') {
+      params.role_filter = targetRole;
+    }
+    if (targetSearch && targetSearch.trim()) {
+      params.search = targetSearch.trim();
+    }
+
     try {
-      const res = await API.get('/api/v1/admin/users');
-      setUsersList(res.data?.users || []);
-    } catch (err) {
+      let res;
       try {
-        const fallbackRes = await API.get('/api/admin/users');
-        setUsersList(fallbackRes.data?.users || []);
-      } catch (err2) {
-        setError(err2.response?.data?.detail || err.response?.data?.detail || 'Failed to fetch registered users.');
+        res = await API.get('/api/v1/admin/users', { params });
+      } catch {
+        res = await API.get('/api/admin/users', { params });
       }
+
+      const returnedUsers = res.data?.users || [];
+      const total = typeof res.data?.total === 'number' ? res.data.total : returnedUsers.length;
+      const totalPages = typeof res.data?.total_pages === 'number' ? res.data.total_pages : (Math.ceil(total / targetLimit) || 1);
+      const hasMore = typeof res.data?.has_more === 'boolean' ? res.data.has_more : (targetPage < totalPages);
+
+      setUsersList(returnedUsers);
+      setTotalUsersCount(total);
+      setTotalPagesCount(totalPages);
+      setHasMoreUsers(hasMore);
+
+      // If unfiltered, update high-level stats summary
+      if ((!targetRole || targetRole === 'all') && (!targetSearch || !targetSearch.trim())) {
+        setUserStats(prev => ({
+          ...prev,
+          total: total,
+          admin: returnedUsers.filter(u => u.role === 'admin').length,
+          farmer: returnedUsers.filter(u => u.role === 'farmer').length,
+          equipment_provider: returnedUsers.filter(u => u.role === 'equipment_provider').length,
+          completedProfiles: returnedUsers.filter(u => u.farm_profile_completed).length
+        }));
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to fetch registered users.');
     } finally {
       setLoading(false);
     }
@@ -659,9 +742,10 @@ export default function AdminPage() {
     }
   };
 
-  // Fetch broadcast history from MongoDB (replaces localStorage seed)
+  // Fetch broadcast history from MongoDB (authoritative backend source)
   const fetchBroadcastHistory = async () => {
     setBroadcastHistoryLoading(true);
+    setBroadcastHistoryError(null);
     try {
       let res;
       try {
@@ -683,12 +767,11 @@ export default function AdminPage() {
         dispatchedBy: b.dispatched_by
       }));
       setBroadcastHistory(normalized);
+      setBroadcastHistoryError(null);
     } catch (e) {
-      // Graceful fallback: load any locally cached seed entries
-      try {
-        const saved = localStorage.getItem('agrishield_broadcast_history');
-        if (saved) setBroadcastHistory(JSON.parse(saved));
-      } catch (_) {}
+      // Preserve existing in-memory broadcast history on failure, record explicit error state
+      const errMsg = e.response?.data?.detail || e.message || 'Failed to fetch broadcast history from server.';
+      setBroadcastHistoryError(errMsg);
     } finally {
       setBroadcastHistoryLoading(false);
     }
@@ -717,9 +800,19 @@ export default function AdminPage() {
     };
   }, []);
 
+  // User Directory pagination & search effect (debounced search for snappy queries)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchUsers(userPage, userPageSize, searchTerm, roleFilter);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [userPage, userPageSize, searchTerm, roleFilter]);
+
   // Fetch data when activeTab changes
   useEffect(() => {
-    if (activeTab === 'support') {
+    if (activeTab === 'users') {
+      fetchUsers(userPage, userPageSize, searchTerm, roleFilter);
+    } else if (activeTab === 'support') {
       fetchSupportTickets();
     } else if (activeTab === 'firewall') {
       fetchFirewallStatus();
@@ -742,6 +835,11 @@ export default function AdminPage() {
   }, [error]);
 
   const handleRoleChange = async (userId, newRole) => {
+    const currentAdminId = user?.id || user?._id || '';
+    if ((userId === currentAdminId) && newRole !== 'admin') {
+      setError('Cannot demote your own active administrator account.');
+      return;
+    }
     setUpdatingId(userId);
     setSuccessMsg('');
     setError('');
@@ -755,7 +853,7 @@ export default function AdminPage() {
         setSuccessMsg(`User role updated successfully to '${newRole}'.`);
         setUsersList(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
       } catch (err2) {
-        setError('Failed to update user role.');
+        setError(err2.response?.data?.detail || err.response?.data?.detail || 'Failed to update user role.');
       }
     } finally {
       setUpdatingId(null);
@@ -763,13 +861,9 @@ export default function AdminPage() {
   };
 
   const filteredUsers = usersList.filter(u => {
-    const matchesSearch = 
-      (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (u.email && u.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (u.id && u.id.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    // Role & search are handled by the server query, profileFilter applies to loaded page
     const matchesProfile = profileFilter === 'all' || (profileFilter === 'completed' && u.farm_profile_completed);
-    return matchesSearch && matchesRole && matchesProfile;
+    return matchesProfile;
   });
 
   const filteredSupportTickets = supportTickets.filter(ticket => {
@@ -831,7 +925,16 @@ export default function AdminPage() {
       badge: `${totalUsers} Users`, 
       badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
-    { 
+    {
+      id: 'scans',
+      label: t('admin.module_scans_title', 'Crop Scan Audits'),
+      description: t('admin.module_scans_desc', 'Audit tenant crop diagnoses, verify AI confidence, inspect leaf scans, and manage prescription history.'),
+      icon: History,
+      badge: t('admin.scans_badge', 'Tenant Audits'),
+      badgeColor: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300',
+      path: '/history'
+    },
+    {
       id: 'broadcast', 
       label: 'Global Broadcasts', 
       description: 'Dispatch real-time emergency agricultural alerts with priority tags and expiry timestamps.',
@@ -912,15 +1015,15 @@ export default function AdminPage() {
         <div className="p-4 rounded-3xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
           <ShieldCheck className="w-12 h-12" />
         </div>
-        <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">403 Access Denied</h2>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100">{t('admin.access_denied_title', '403 Access Denied')}</h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          You are signed in as <code className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-rose-600 dark:text-rose-400 font-bold capitalize">{user.role}</code>. The System Administration Control Panel is strictly restricted to verified <strong>Admin</strong> accounts.
+          {t('admin.access_denied_desc', 'The System Administration Control Panel is strictly restricted to verified Admin accounts.')}
         </p>
         <button
           onClick={() => window.location.href = '/dashboard'}
           className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
         >
-          Return to Farm Dashboard
+          {t('admin.return_to_farm', 'Return to Farm Dashboard')}
         </button>
       </div>
     );
@@ -959,15 +1062,15 @@ export default function AdminPage() {
             <div className="space-y-2 relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Enterprise Admin Command Center</span>
+                <span>{t('admin.command_center_badge', 'Enterprise Admin Command Center')}</span>
               </div>
               
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Administrative Control Hub
+                {t('admin.hub_title', 'Administrative Control Hub')}
               </h1>
               
               <p className="text-sm text-slate-300 max-w-2xl mt-1">
-                Manage registered farmers, emergency broadcasts, IoT fleet telemetry, OTA firmware deployments, security logs, and infrastructure health.
+                {t('admin.hub_subtitle', 'Manage registered farmers, emergency broadcasts, IoT fleet telemetry, OTA firmware deployments, security logs, and infrastructure health.')}
               </p>
             </div>
 
@@ -977,7 +1080,7 @@ export default function AdminPage() {
               className="relative z-10 self-start md:self-center flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50 cursor-pointer btn-spring"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh Portal Data</span>
+              <span>{t('admin.refresh_portal', 'Refresh Portal Data')}</span>
             </button>
           </div>
 
@@ -988,7 +1091,7 @@ export default function AdminPage() {
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Registered Users</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">{t('admin.metric_registered_users', 'Registered Users')}</p>
                 <p className="text-lg font-black text-slate-900 dark:text-slate-100">{totalUsers} Total</p>
               </div>
             </div>
@@ -998,8 +1101,8 @@ export default function AdminPage() {
                 <Radio className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Global Broadcast</p>
-                <p className="text-lg font-black text-slate-900 dark:text-slate-100">Live Stream</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">{t('admin.metric_global_broadcast', 'Global Broadcast')}</p>
+                <p className="text-lg font-black text-slate-900 dark:text-slate-100">{t('admin.metric_live_stream', 'Live Stream')}</p>
               </div>
             </div>
 
@@ -1008,7 +1111,7 @@ export default function AdminPage() {
                 <Cpu className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">IoT Fleet</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">{t('admin.metric_iot_fleet', 'IoT Fleet')}</p>
                 <p className="text-lg font-black text-slate-900 dark:text-slate-100">{onlineIotCount} Online</p>
               </div>
             </div>
@@ -1018,8 +1121,8 @@ export default function AdminPage() {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">System Status</p>
-                <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">100% Operational</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">{t('admin.metric_system_status', 'System Status')}</p>
+                <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{t('admin.metric_operational', '100% Operational')}</p>
               </div>
             </div>
           </div>
@@ -1030,11 +1133,11 @@ export default function AdminPage() {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  10 Core Administrative Modules
+                  {t('admin.core_modules_title', '11 Core Administrative Modules')}
                 </h3>
               </div>
               <span className="text-[11px] font-bold text-slate-400 hidden sm:inline">
-                Click any module box to open dedicated page
+                {t('admin.click_module_hint', 'Click any module box to open dedicated page')}
               </span>
             </div>
 
@@ -1044,7 +1147,13 @@ export default function AdminPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setTab(tab.id)}
+                    onClick={() => {
+                      if (tab.path) {
+                        navigate(tab.path);
+                      } else {
+                        setTab(tab.id);
+                      }
+                    }}
                     className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 hover:shadow-lg transition-all duration-200 text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden"
                   >
                     <div>
@@ -1066,7 +1175,7 @@ export default function AdminPage() {
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      <span>Open Workspace</span>
+                      <span>{t('admin.open_workspace', 'Open Workspace')}</span>
                       <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </div>
                   </button>
@@ -1089,7 +1198,7 @@ export default function AdminPage() {
               className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 dark:bg-slate-800 dark:hover:bg-emerald-950/60 text-slate-800 hover:text-emerald-700 dark:text-slate-100 dark:hover:text-emerald-300 font-extrabold text-xs border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all cursor-pointer btn-spring shadow-xs"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Return to Admin Modules</span>
+              <span>{t('admin.return_to_modules', 'Return to Admin Modules')}</span>
             </button>
 
             <button
@@ -1162,7 +1271,7 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             {/* Card 1: Total Registered */}
             <button
-              onClick={() => { setRoleFilter('all'); setProfileFilter('all'); }}
+              onClick={() => { setRoleFilter('all'); setProfileFilter('all'); setUserPage(1); }}
               className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all duration-200 cursor-pointer flex items-center justify-between card-lift ${
                 roleFilter === 'all' && profileFilter === 'all'
                   ? 'border-emerald-500 shadow-md ring-2 ring-emerald-500/30 dark:bg-emerald-950/20'
@@ -1174,8 +1283,8 @@ export default function AdminPage() {
                   <Users className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Registered</p>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalUsers} Users</h3>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('admin.total_registered', 'Total Registered')}</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalUsersCount || totalUsers} Users</h3>
                 </div>
               </div>
               {roleFilter === 'all' && profileFilter === 'all' && (
@@ -1187,7 +1296,7 @@ export default function AdminPage() {
 
             {/* Card 2: Admins */}
             <button
-              onClick={() => { setRoleFilter('admin'); setProfileFilter('all'); }}
+              onClick={() => { setRoleFilter('admin'); setProfileFilter('all'); setUserPage(1); }}
               className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all duration-200 cursor-pointer flex items-center justify-between card-lift ${
                 roleFilter === 'admin' && profileFilter === 'all'
                   ? 'border-amber-500 shadow-md ring-2 ring-amber-500/30 dark:bg-amber-950/20'
@@ -1199,7 +1308,7 @@ export default function AdminPage() {
                   <Crown className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admins</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('admin.filter_admins', 'Admins')}</p>
                   <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalAdmins} Admins</h3>
                 </div>
               </div>
@@ -1212,7 +1321,7 @@ export default function AdminPage() {
 
             {/* Card 3: Farmers */}
             <button
-              onClick={() => { setRoleFilter('farmer'); setProfileFilter('all'); }}
+              onClick={() => { setRoleFilter('farmer'); setProfileFilter('all'); setUserPage(1); }}
               className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all duration-200 cursor-pointer flex items-center justify-between card-lift ${
                 roleFilter === 'farmer' && profileFilter === 'all'
                   ? 'border-sky-500 shadow-md ring-2 ring-sky-500/30 dark:bg-sky-950/20'
@@ -1224,7 +1333,7 @@ export default function AdminPage() {
                   <Sprout className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Farmers</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('admin.filter_farmers', 'Farmers')}</p>
                   <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalFarmers} Farmers</h3>
                 </div>
               </div>
@@ -1237,7 +1346,7 @@ export default function AdminPage() {
 
             {/* Card 4: Equipment Providers */}
             <button
-              onClick={() => { setRoleFilter('equipment_provider'); setProfileFilter('all'); }}
+              onClick={() => { setRoleFilter('equipment_provider'); setProfileFilter('all'); setUserPage(1); }}
               className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all duration-200 cursor-pointer flex items-center justify-between card-lift ${
                 roleFilter === 'equipment_provider' && profileFilter === 'all'
                   ? 'border-indigo-500 shadow-md ring-2 ring-indigo-500/30 dark:bg-indigo-950/20'
@@ -1249,7 +1358,7 @@ export default function AdminPage() {
                   <ActivitySquare className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Providers</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('admin.filter_providers', 'Providers')}</p>
                   <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{totalProviders} Providers</h3>
                 </div>
               </div>
@@ -1262,7 +1371,7 @@ export default function AdminPage() {
 
             {/* Card 5: Profiles Completed */}
             <button
-              onClick={() => { setRoleFilter('all'); setProfileFilter('completed'); }}
+              onClick={() => { setRoleFilter('all'); setProfileFilter('completed'); setUserPage(1); }}
               className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border text-left transition-all duration-200 cursor-pointer flex items-center justify-between card-lift ${
                 profileFilter === 'completed'
                   ? 'border-purple-500 shadow-md ring-2 ring-purple-500/30 dark:bg-purple-950/20'
@@ -1274,7 +1383,7 @@ export default function AdminPage() {
                   <UserCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Profiles Done</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('admin.profiles_completed', 'Profiles Done')}</p>
                   <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">{completedProfiles} Users</h3>
                 </div>
               </div>
@@ -1292,9 +1401,12 @@ export default function AdminPage() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="text"
-                placeholder="Search by name, email, or user ID..."
+                placeholder={t('admin.search_users_placeholder', 'Search by name, email, or user ID...')}
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={e => {
+                  setSearchTerm(e.target.value);
+                  setUserPage(1);
+                }}
                 className="w-full pl-10 pr-4 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-200"
               />
             </div>
@@ -1303,10 +1415,13 @@ export default function AdminPage() {
               <Filter className="w-4 h-4 text-slate-400 shrink-0" />
               <select
                 value={roleFilter}
-                onChange={e => setRoleFilter(e.target.value)}
+                onChange={e => {
+                  setRoleFilter(e.target.value);
+                  setUserPage(1);
+                }}
                 className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-200 font-semibold"
               >
-                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="all">All Roles ({totalUsers})</option>
+                <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="all">All Roles ({totalUsersCount || totalUsers})</option>
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="admin">Admins ({totalAdmins})</option>
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="farmer">Farmers ({totalFarmers})</option>
                 <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="equipment_provider">Equipment Providers ({totalProviders})</option>
@@ -1319,7 +1434,7 @@ export default function AdminPage() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer whitespace-nowrap btn-spring"
               >
                 <UserPlus className="w-4 h-4" />
-                <span>Register New Account</span>
+                <span>{t('admin.register_new_account', 'Register New Account')}</span>
               </button>
             </div>
           </div>
@@ -1331,26 +1446,39 @@ export default function AdminPage() {
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase tracking-wider font-extrabold text-[10px]">
                     <th className="py-4 px-4">#</th>
-                    <th className="py-4 px-4">User</th>
-                    <th className="py-4 px-4">Email</th>
-                    <th className="py-4 px-4">Role</th>
-                    <th className="py-4 px-4">Location</th>
-                    <th className="py-4 px-4">Lang</th>
-                    <th className="py-4 px-4">Profile</th>
-                    <th className="py-4 px-4">Registered Date</th>
-                    <th className="py-4 px-4 text-right">Role Actions</th>
+                    <th className="py-4 px-4">{t('admin.th_user', 'User')}</th>
+                    <th className="py-4 px-4">{t('admin.th_email', 'Email')}</th>
+                    <th className="py-4 px-4">{t('admin.th_role', 'Role')}</th>
+                    <th className="py-4 px-4">{t('admin.th_location', 'Location')}</th>
+                    <th className="py-4 px-4">{t('admin.th_lang', 'Lang')}</th>
+                    <th className="py-4 px-4">{t('admin.th_profile', 'Profile')}</th>
+                    <th className="py-4 px-4">{t('admin.th_registered_date', 'Registered Date')}</th>
+                    <th className="py-4 px-4 text-right">{t('admin.th_role_actions', 'Role Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                  {filteredUsers.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan="9" className="py-12 text-center text-slate-400">
+                        <RefreshCw className="w-8 h-8 mx-auto mb-2 text-emerald-500 animate-spin" />
+                        <p className="font-semibold text-xs text-slate-500 dark:text-slate-400">{t('admin.loading_users', 'Loading registered users...')}</p>
+                      </td>
+                    </tr>
+                  ) : filteredUsers.length === 0 ? (
                     <tr>
                       <td colSpan="9" className="py-12 text-center text-slate-400">
                         <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                        <p className="font-semibold">No registered users match your search criteria.</p>
+                        <p className="font-semibold">{t('admin.no_matching_users', 'No registered users match your search criteria.')}</p>
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((u, idx) => (
+                    filteredUsers.map((u, idx) => {
+                      const currentAdminId = user?.id || user?._id || '';
+                      const isSelf = Boolean(
+                        (currentAdminId && (u.id === currentAdminId || u._id === currentAdminId)) ||
+                        (user?.email && u.email && user.email.toLowerCase() === u.email.toLowerCase())
+                      );
+                      return (
                       <tr key={u.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="py-3.5 px-4 text-slate-400 font-mono">{idx + 1}</td>
 
@@ -1417,8 +1545,13 @@ export default function AdminPage() {
                             <select
                               value={u.role || 'farmer'}
                               onChange={e => handleRoleChange(u.id, e.target.value)}
-                              disabled={updatingId === u.id}
-                              className="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                              disabled={updatingId === u.id || isSelf}
+                              title={isSelf ? "Cannot demote your own active administrator account" : "Change User Role"}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                                isSelf
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-60'
+                                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer'
+                              }`}
                             >
                               <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="farmer">Farmer</option>
                               <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="equipment_provider">Equipment Provider</option>
@@ -1447,19 +1580,91 @@ export default function AdminPage() {
 
                             {/* Delete User Button */}
                             <button
-                              onClick={() => setDeleteUserTarget(u)}
-                              title="Delete User Account"
-                              className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 hover:bg-rose-100 border border-rose-200 dark:border-rose-800 transition-all cursor-pointer"
+                              onClick={() => !isSelf && setDeleteUserTarget(u)}
+                              disabled={isSelf}
+                              title={isSelf ? "Cannot delete your own active administrator account" : "Delete User Account"}
+                              className={`p-1.5 rounded-lg border transition-all ${
+                                isSelf
+                                  ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 cursor-not-allowed opacity-40"
+                                  : "bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 hover:bg-rose-100 border border-rose-200 dark:border-rose-800 transition-all cursor-pointer"
+                              }`}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Controls Bar (B6-P1-01) */}
+            <div className="p-4 bg-slate-50/80 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                <span>
+                  {t('admin.showing_range', {
+                    start: totalUsersCount === 0 ? 0 : (userPage - 1) * userPageSize + 1,
+                    end: Math.min(userPage * userPageSize, totalUsersCount),
+                    total: totalUsersCount,
+                    defaultValue: `Showing ${totalUsersCount === 0 ? 0 : (userPage - 1) * userPageSize + 1} to ${Math.min(userPage * userPageSize, totalUsersCount)} of ${totalUsersCount} registered users`
+                  })}
+                  {/* Showing <strong */}
+                </span>
+                <span className="hidden sm:inline">•</span>
+                <div className="flex items-center gap-1.5">
+                  <span>{t('admin.page_size', 'Page size:')}</span>
+                  <select
+                    value={userPageSize}
+                    onChange={(e) => {
+                      const nextSize = Number(e.target.value);
+                      setUserPageSize(nextSize);
+                      setUserPage(1);
+                      fetchUsers(1, nextSize, searchTerm, roleFilter);
+                    }}
+                    className="px-2 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                  >
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const prevPage = Math.max(1, userPage - 1);
+                    setUserPage(prevPage);
+                    fetchUsers(prevPage, userPageSize, searchTerm, roleFilter);
+                  }}
+                  disabled={userPage <= 1 || loading}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>{t('admin.btn_prev', 'Previous')}</span>
+                </button>
+
+                <div className="px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">
+                  {t('admin.page_x_of_y', { current: userPage, total: totalPagesCount || 1, defaultValue: `Page ${userPage} of ${totalPagesCount || 1}` })}
+                  {/* Page {userPage} of {totalPagesCount || 1} */}
+                </div>
+
+                <button
+                  onClick={() => {
+                    const nextPage = userPage + 1;
+                    setUserPage(nextPage);
+                    fetchUsers(nextPage, userPageSize, searchTerm, roleFilter);
+                  }}
+                  disabled={userPage >= totalPagesCount || loading || !hasMoreUsers}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
+                >
+                  <span>{t('admin.btn_next', 'Next')}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1483,7 +1688,7 @@ export default function AdminPage() {
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>Dispatch New Broadcast</span>
+                <span>{t('admin.dispatch_new_broadcast', 'Dispatch New Broadcast')}</span>
               </button>
 
               <button
@@ -1496,7 +1701,7 @@ export default function AdminPage() {
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>Broadcast History ({broadcastHistory.length})</span>
+                <span>{t('admin.broadcast_history', 'Broadcast History')} ({broadcastHistory.length})</span>
               </button>
             </div>
 
@@ -1511,7 +1716,7 @@ export default function AdminPage() {
               <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Radio className="w-6 h-6 text-rose-500 animate-pulse" />
-                  <span>Dispatch Targeted Broadcast Notification</span>
+                  <span>{t('admin.dispatch_new_broadcast', 'Dispatch Targeted Broadcast Notification')}</span>
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
                   Push mass announcements, emergency disease warnings, or equipment demand notices to selected user channels.
@@ -1521,7 +1726,7 @@ export default function AdminPage() {
               {/* Target Audience Selector Pills */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">
-                  Target Audience Channel
+                  {t('admin.target_audience_label', 'Target Audience Channel')}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button
@@ -1535,7 +1740,7 @@ export default function AdminPage() {
                   >
                     <span className="text-lg">🌾</span>
                     <div>
-                      <p className="text-xs font-black leading-tight">Farmers Channel</p>
+                      <p className="text-xs font-black leading-tight">{t('admin.audience_farmers', 'Farmers Channel')}</p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{totalFarmers} Registered Farmers</p>
                     </div>
                   </button>
@@ -1551,7 +1756,7 @@ export default function AdminPage() {
                   >
                     <span className="text-lg">🚜</span>
                     <div>
-                      <p className="text-xs font-black leading-tight">Providers Channel</p>
+                      <p className="text-xs font-black leading-tight">{t('admin.audience_providers', 'Providers Channel')}</p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{totalProviders} Equipment Providers</p>
                     </div>
                   </button>
@@ -1567,7 +1772,7 @@ export default function AdminPage() {
                   >
                     <span className="text-lg">🌐</span>
                     <div>
-                      <p className="text-xs font-black leading-tight">All Users Channel</p>
+                      <p className="text-xs font-black leading-tight">{t('admin.audience_all', 'All Users Channel')}</p>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{totalUsers} Total Accounts</p>
                     </div>
                   </button>
@@ -1576,7 +1781,7 @@ export default function AdminPage() {
 
               <form onSubmit={handleBroadcastSubmit} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">Alert Title</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">{t('admin.broadcast_title_label', 'Alert Title')}</label>
                   <input 
                     required 
                     value={broadcastTitle} 
@@ -1587,7 +1792,7 @@ export default function AdminPage() {
                 </div>
                 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">Priority Level</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">{t('admin.priority_level_label', 'Priority Level')}</label>
                   <select 
                     required 
                     value={broadcastPriority} 
@@ -1601,7 +1806,7 @@ export default function AdminPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">Message Content</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">{t('admin.broadcast_message_label', 'Message Content')}</label>
                   <textarea 
                     required 
                     value={broadcastMessage} 
@@ -1620,8 +1825,8 @@ export default function AdminPage() {
                   <Radio size={16} />
                   <span>
                     {isBroadcasting
-                      ? 'Dispatching...'
-                      : `Send to ${broadcastAudience === 'farmers' ? `All ${totalFarmers} Farmers` : (broadcastAudience === 'providers' ? `All ${totalProviders} Providers` : `All ${totalUsers} Users`)}`}
+                      ? t('admin.btn_dispatching', 'Dispatching...')
+                      : t('admin.btn_dispatch', 'Dispatch Broadcast Now')}
                   </span>
                 </button>
               </form>
@@ -1635,7 +1840,7 @@ export default function AdminPage() {
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-rose-500" />
-                    <span>Broadcast Dispatch History</span>
+                    <span>{t('admin.broadcast_history', 'Broadcast Dispatch History')}</span>
                   </h3>
                   <p className="text-xs text-slate-400">
                     Review and manage past broadcasts sent to farmers and equipment providers.
@@ -1651,12 +1856,44 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {broadcastHistory.length === 0 ? (
+              {/* Error and Stale/Offline Banner with Retry */}
+              {broadcastHistoryError && (
+                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold">
+                        {broadcastHistory.length > 0
+                          ? 'Failed to refresh broadcast history from server. Showing previously loaded records.'
+                          : 'Unable to load broadcast dispatch history from server.'}
+                      </p>
+                      <p className="text-[11px] opacity-80 mt-0.5">{broadcastHistoryError}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchBroadcastHistory}
+                    disabled={broadcastHistoryLoading}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${broadcastHistoryLoading ? 'animate-spin' : ''}`} />
+                    <span>Retry Sync</span>
+                  </button>
+                </div>
+              )}
+
+              {broadcastHistoryLoading && broadcastHistory.length === 0 ? (
+                <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                  <RefreshCw className="w-8 h-8 text-rose-500 animate-spin mx-auto" />
+                  <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{t('admin.loading_broadcasts', 'Loading Broadcast History...')}</h4>
+                  <p className="text-xs text-slate-400">Fetching authoritative dispatch records from server</p>
+                </div>
+              ) : broadcastHistory.length === 0 ? (
                 <div className="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                   <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-500 mx-auto flex items-center justify-center">
                     <Radio className="w-7 h-7" />
                   </div>
-                  <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">No Broadcasts Dispatched Yet</h4>
+                  <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{t('admin.no_broadcasts', 'No Broadcasts Dispatched Yet')}</h4>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
                     When you send outbreak notices or announcements, they will appear here with delivery receipts.
                   </p>
@@ -3619,7 +3856,9 @@ export default function AdminPage() {
                   <select
                     value={editForm.role}
                     onChange={e => setEditForm({ ...editForm, role: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold"
+                    disabled={Boolean(editingUser && ((editingUser.id === (user?.id || user?._id)) || (user?.email && editingUser.email && user.email.toLowerCase() === user.email.toLowerCase())))}
+                    title={Boolean(editingUser && ((editingUser.id === (user?.id || user?._id)) || (user?.email && editingUser.email && user.email.toLowerCase() === user.email.toLowerCase()))) ? "Cannot demote your own active administrator account" : "User Role"}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="farmer">Farmer</option>
                     <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" value="equipment_provider">Equipment Provider</option>
@@ -3678,14 +3917,14 @@ export default function AdminPage() {
                   onClick={() => setEditingUser(null)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  Cancel
+                  {t('admin.btn_cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
                   className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
                 >
-                  {actionLoading ? "Saving..." : "Save Changes"}
+                  {actionLoading ? "Saving..." : t('admin.btn_save', 'Save Changes')}
                 </button>
               </div>
             </form>
@@ -3729,14 +3968,14 @@ export default function AdminPage() {
                   onClick={() => setResetPwdUser(null)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  Cancel
+                  {t('admin.btn_cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading || !newPasswordInput}
                   className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md disabled:opacity-50"
                 >
-                  {actionLoading ? "Resetting..." : "Reset Password"}
+                  {actionLoading ? "Resetting..." : t('admin.btn_reset_pwd', 'Reset Password')}
                 </button>
               </div>
             </form>
@@ -3763,7 +4002,7 @@ export default function AdminPage() {
                 onClick={() => setDeleteUserTarget(null)}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                Cancel
+                {t('admin.btn_cancel', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -3771,7 +4010,7 @@ export default function AdminPage() {
                 disabled={actionLoading}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
               >
-                {actionLoading ? "Deleting..." : "Permanently Delete"}
+                {actionLoading ? "Deleting..." : t('admin.btn_delete', 'Permanently Delete')}
               </button>
             </div>
           </div>
@@ -3785,7 +4024,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-emerald-500" />
-                <span>Register New User Account</span>
+                <span>{t('admin.register_new_account', 'Register New User Account')}</span>
               </h3>
               <button onClick={() => setIsCreateUserOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
             </div>
@@ -3879,14 +4118,14 @@ export default function AdminPage() {
                   onClick={() => setIsCreateUserOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  Cancel
+                  {t('admin.btn_cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading || !createForm.email || !createForm.password}
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
                 >
-                  {actionLoading ? "Registering..." : "Create Account"}
+                  {actionLoading ? "Registering..." : t('admin.btn_create_account', 'Create Account')}
                 </button>
               </div>
             </form>

@@ -198,6 +198,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
+      localStorage.removeItem('agrishield_broadcast_history');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('refresh_token');
       sessionStorage.removeItem('user');

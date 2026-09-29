@@ -263,6 +263,177 @@ class NotificationService:
         return doc
 
     @staticmethod
+    async def create_broadcast_notifications(
+        db,
+        recipients: List[Dict[str, Any]],
+        title: str,
+        message: str,
+        translations: Optional[Dict[str, Dict[str, str]]] = None,
+        priority: str = "High",
+        action_url: str = "/dashboard",
+        batch_size: int = 500,
+        broadcast_id: Optional[str] = None,
+        idempotency_key: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        B6-P7-03 Optimized Fanout Helper:
+        Persists broadcast notifications to MongoDB in bounded batches using insert_many,
+        preserving translations, action URLs, and role-aware unread counts without
+        redundant per-recipient user/settings database queries.
+        Includes resume deduplication by checking existing broadcast_id records.
+        """
+        if not recipients:
+            return {"persisted_count": 0, "total_recipients": 0, "status": "success"}
+
+        translations_bundle = dict(translations or {})
+        now_utc = datetime.now(timezone.utc)
+
+        # Check already delivered users for this broadcast (handles safe resume after crash)
+        already_delivered_users = set()
+        if broadcast_id:
+            cursor = db.notifications.find({"broadcast_id": broadcast_id}, {"user_id": 1})
+            existing_docs = await cursor.to_list(length=10000)
+            already_delivered_users = {d["user_id"] for d in existing_docs if "user_id" in d}
+
+        docs = []
+        for r in recipients:
+            uid_str = str(r.get("user_id") or r.get("_id") or r.get("id"))
+            if uid_str in already_delivered_users:
+                continue
+
+            doc = {
+                "user_id": uid_str,
+                "broadcast_id": broadcast_id,
+                "idempotency_key": idempotency_key,
+                "farm_id": None,
+                "device_id": None,
+                "title": title,
+                "message": message,
+                "original_title": title,
+                "original_message": message,
+                "source_language": "en",
+                "translations": translations_bundle,
+                "category": "broadcast",
+                "priority": priority,
+                "status": "active",
+                "read": False,
+                "confidence_score": 0.9,
+                "action_url": action_url or "/dashboard",
+                "booking_id": None,
+                "correlated_alert_ids": [],
+                "correlation_root": False,
+                "lifecycle": {
+                    "created_at": now_utc,
+                    "delivered_at": now_utc,
+                    "opened_at": None,
+                    "clicked_at": None,
+                    "acknowledged_at": None,
+                    "resolved_at": None,
+                    "ignored_at": None
+                },
+                "timeline": [
+                    {
+                        "status": "created",
+                        "message": "Alert created in system.",
+                        "timestamp": now_utc
+                    }
+                ]
+            }
+            docs.append(doc)
+
+        persisted_count = len(already_delivered_users)
+        persisted_records = []
+
+        # Bounded batch persistence using insert_many
+        if docs:
+            for i in range(0, len(docs), batch_size):
+                batch = docs[i : i + batch_size]
+                try:
+                    result = await db.notifications.insert_many(batch, ordered=False)
+                    batch_inserted_ids = getattr(result, "inserted_ids", [])
+                except Exception as insert_err:
+                    from pymongo.errors import BulkWriteError
+                    if isinstance(insert_err, BulkWriteError):
+                        # With ordered=False, extract successful inserted IDs if any
+                        batch_inserted_ids = []
+                    else:
+                        raise insert_err
+
+                for idx, doc_item in enumerate(batch):
+                    doc_copy = dict(doc_item)
+                    if idx < len(batch_inserted_ids):
+                        doc_copy["notification_id"] = str(batch_inserted_ids[idx])
+                    if "_id" in doc_copy:
+                        del doc_copy["_id"]
+                    persisted_records.append(doc_copy)
+                persisted_count += len(batch_inserted_ids)
+
+        # Real-time WebSocket delivery for users with active connections
+        if active_websocket_manager and persisted_records:
+            active_conns = getattr(active_websocket_manager, "active_connections", None)
+            for prec in persisted_records:
+                prec_uid = prec["user_id"]
+                # Skip unread-count DB query and dispatch for offline recipients
+                if active_conns is not None and prec_uid not in active_conns:
+                    continue
+
+                try:
+                    rec_info = next((r for r in recipients if str(r.get("user_id") or r.get("_id") or r.get("id")) == prec_uid), {})
+                    recipient_role = rec_info.get("role")
+                    preferred_lang = rec_info.get("preferred_language", "en") or "en"
+
+                    count = await NotificationService.get_unread_count(db, prec_uid, role=recipient_role)
+                    ws_notification = dict(prec)
+                    if preferred_lang in translations_bundle and isinstance(translations_bundle[preferred_lang], dict):
+                        ws_notification["translated_title"] = translations_bundle[preferred_lang].get("title", title)
+                        ws_notification["translated_message"] = translations_bundle[preferred_lang].get("message", message)
+                        ws_notification["title"] = ws_notification["translated_title"]
+                        ws_notification["message"] = ws_notification["translated_message"]
+
+                    await active_websocket_manager.broadcast_to_user(prec_uid, {
+                        "type": "new_notification",
+                        "unread_count": count,
+                        "notification": ws_notification
+                    })
+                except Exception as ws_err:
+                    logger.error(f"WebSocket broadcast error for user {prec_uid}: {ws_err}")
+
+        # Batch FCM Token Lookup & Dispatch
+        try:
+            recipient_uids = [r["user_id"] for r in persisted_records]
+            if recipient_uids:
+                fcm_cursor = db.fcm_tokens.find({"user_id": {"$in": recipient_uids}})
+                fcm_docs = await fcm_cursor.to_list(length=max(100, len(recipient_uids) * 2))
+                uids_with_tokens = {d.get("user_id") for d in fcm_docs if d.get("token")}
+                for prec in persisted_records:
+                    if prec["user_id"] in uids_with_tokens:
+                        rec_info = next((r for r in recipients if str(r.get("user_id") or r.get("_id") or r.get("id")) == prec["user_id"]), {})
+                        preferred_lang = rec_info.get("preferred_language", "en") or "en"
+                        final_msg = message
+                        if preferred_lang in translations_bundle and isinstance(translations_bundle[preferred_lang], dict):
+                            final_msg = translations_bundle[preferred_lang].get("message", message)
+                        await FirebaseService.send_push_notification(
+                            db,
+                            user_id=prec["user_id"],
+                            title=title,
+                            body=final_msg,
+                            data={
+                                "notification_id": prec.get("notification_id", ""),
+                                "category": "broadcast",
+                                "priority": priority,
+                                "action_url": action_url or ""
+                            }
+                        )
+        except Exception as fcm_err:
+            logger.warning(f"Batch FCM dispatch warning: {fcm_err}")
+
+        return {
+            "persisted_count": persisted_count,
+            "total_recipients": len(recipients),
+            "status": "success" if persisted_count == len(recipients) else "partial"
+        }
+
+    @staticmethod
     async def get_notifications(
         db, 
         user_id: str, 

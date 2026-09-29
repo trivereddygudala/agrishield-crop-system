@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel
 import logging
 
+from backend.app.core.security import require_role
 from backend.app.services.system_diagnostics import (
     run_full_diagnostics,
     execute_auto_heal,
@@ -18,7 +19,11 @@ from backend.app.services.system_diagnostics import (
 )
 
 logger = logging.getLogger("agrishield.diagnostics.api")
-router = APIRouter(prefix="/system/diagnostics", tags=["System Diagnostics & RCA"])
+router = APIRouter(
+    prefix="/system/diagnostics",
+    tags=["System Diagnostics & RCA"],
+    dependencies=[Depends(require_role("admin"))]
+)
 
 class AutoHealRequest(BaseModel):
     issue_id: str

@@ -111,6 +111,20 @@ async def connect_to_mongo():
             name="idx_idempotency_ttl"
         )
         
+        # B6-P7-03: Durable Admin Broadcast Idempotency & Per-Recipient Uniqueness
+        await db_instance.db["broadcasts"].create_index(
+            [("idempotency_key", 1)],
+            unique=True,
+            sparse=True,
+            name="idx_broadcasts_idempotency_unique"
+        )
+        await db_instance.db["notifications"].create_index(
+            [("broadcast_id", 1), ("user_id", 1)],
+            unique=True,
+            sparse=True,
+            name="idx_notifications_broadcast_user_unique"
+        )
+
         logger.info("MongoDB indexes verified.")
         await seed_default_notification_rules(db_instance.db)
     except Exception as e:
