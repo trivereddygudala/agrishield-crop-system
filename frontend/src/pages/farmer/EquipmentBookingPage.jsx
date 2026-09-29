@@ -107,10 +107,10 @@ export default function EquipmentBookingPage() {
   const [sortBy, setSortBy] = useState('nearest'); // 'nearest' | 'price-low' | 'rating'
 
   // Service Location state (defaults to active farm or Prakasam/Mundlamuru/Pasupugallu)
-  const [locationState, setLocationState] = useState(() => activeFarm?.state || 'Andhra Pradesh');
-  const [locationDistrict, setLocationDistrict] = useState(() => activeFarm?.district || 'Prakasam');
-  const [locationMandal, setLocationMandal] = useState(() => activeFarm?.mandal || 'Mundlamuru');
-  const [locationVillage, setLocationVillage] = useState(() => activeFarm?.village || 'Pasupugallu');
+  const [locationState, setLocationState] = useState(() => activeFarm?.state || user?.farm_location?.state || 'Andhra Pradesh');
+  const [locationDistrict, setLocationDistrict] = useState(() => activeFarm?.district || user?.farm_location?.district || user?.district || '');
+  const [locationMandal, setLocationMandal] = useState(() => activeFarm?.mandal || user?.farm_location?.mandal || user?.mandal || '');
+  const [locationVillage, setLocationVillage] = useState(() => activeFarm?.village || user?.farm_location?.village || user?.village || '');
   const [showLocationModal, setShowLocationModal] = useState(false);
 
   // Booking Modal State
@@ -155,26 +155,18 @@ export default function EquipmentBookingPage() {
 
   const [equipmentList, setEquipmentList] = useState(loadMergedEquipment);
 
-  // Provider Online / Offline Status Sync
-  const [isProviderOnline, setIsProviderOnline] = useState(() => {
-    const saved = localStorage.getItem('agrishield_provider_online_status');
-    return saved !== null ? saved === 'true' : true;
-  });
+  // Provider Online / Offline Status Sync (H-3: never default unknown to true)
+  const [isProviderOnline, setIsProviderOnline] = useState(false);
 
   useEffect(() => {
     const handleStatusSync = (e) => {
       if (e?.detail?.isOnline !== undefined) {
-        setIsProviderOnline(e.detail.isOnline);
-      } else {
-        const saved = localStorage.getItem('agrishield_provider_online_status');
-        setIsProviderOnline(saved !== null ? saved === 'true' : true);
+        setIsProviderOnline(Boolean(e.detail.isOnline));
       }
     };
     window.addEventListener('agrishield_provider_status_changed', handleStatusSync);
-    window.addEventListener('storage', handleStatusSync);
     return () => {
       window.removeEventListener('agrishield_provider_status_changed', handleStatusSync);
-      window.removeEventListener('storage', handleStatusSync);
     };
   }, []);
 
@@ -454,14 +446,14 @@ export default function EquipmentBookingPage() {
       equipmentTitle: item.title,
       title: item.title,
       providerName: item.providerName || item.ownerName || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
-      providerPhone: item.phone || item.contactPhone || '9848012345',
-      provider_phone: item.phone || item.contactPhone || '9848012345',
-      farmerName: user?.name || 'Trivendra reddy',
-      farmerPhone: user?.phone || '9440182736',
-      phone: user?.phone || '9440182736',
-      village: locationVillage || item.village || item.locationVillage || 'Pasupugallu',
-      mandal: locationMandal || item.mandal || 'Mundlamuru',
-      district: locationDistrict || item.district || 'Prakasam',
+      providerPhone: item.phone || item.contactPhone || '',
+      provider_phone: item.phone || item.contactPhone || '',
+      farmerName: user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'),
+      farmerPhone: user?.phone || user?.mobile || '',
+      phone: user?.phone || user?.mobile || '',
+      village: locationVillage || item.village || item.locationVillage || (isTe ? 'పొలం స్థానం' : 'Field Location'),
+      mandal: locationMandal || item.mandal || '',
+      district: locationDistrict || item.district || '',
       acres: '2',
       totalCost: item.ratePerAcre || item.hourlyRate || '800',
       status: 'inquiry',
@@ -485,14 +477,14 @@ export default function EquipmentBookingPage() {
       equipmentTitle: b.equipmentTitle || b.title || 'Farm Machinery',
       title: b.title || b.equipmentTitle || 'Farm Machinery',
       providerName: b.providerName || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
-      providerPhone: b.providerPhone || b.phone || b.contactPhone || '9848012345',
-      provider_phone: b.providerPhone || b.phone || b.contactPhone || '9848012345',
-      farmerName: b.farmerName || user?.name || 'Trivendra reddy',
-      farmerPhone: b.farmerPhone || user?.phone || '9440182736',
-      phone: b.farmerPhone || user?.phone || '9440182736',
-      village: b.village || locationVillage || 'Pasupugallu',
-      mandal: b.mandal || locationMandal || 'Mundlamuru',
-      district: b.district || locationDistrict || 'Prakasam',
+      providerPhone: b.providerPhone || b.phone || b.contactPhone || '',
+      provider_phone: b.providerPhone || b.phone || b.contactPhone || '',
+      farmerName: b.farmerName || user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'),
+      farmerPhone: b.farmerPhone || user?.phone || user?.mobile || '',
+      phone: b.farmerPhone || user?.phone || user?.mobile || '',
+      village: b.village || locationVillage || (isTe ? 'పొలం స్థానం' : 'Field Location'),
+      mandal: b.mandal || locationMandal || '',
+      district: b.district || locationDistrict || '',
       acres: b.acres || '1.5',
       totalCost: b.totalCost || '800',
       status: b.status || 'pending',
@@ -2020,10 +2012,40 @@ export default function EquipmentBookingPage() {
 // SUB-COMPONENT: BOOKING MODAL WITH ALL REQUIRED FIELDS & LIVE MATH
 // ═══════════════════════════════════════════════════════════════════
 function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isProviderOnline, isTe, onClose, onConfirm }) {
-  const [farmerName, setFarmerName] = useState(user?.name || 'Farmer');
-  const [farmerPhone, setFarmerPhone] = useState(user?.phone || '9440182736');
+  const [farmerName, setFarmerName] = useState(user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'));
+  const [farmerPhone, setFarmerPhone] = useState(user?.phone || user?.mobile || '');
   const [farmSector, setFarmSector] = useState(activeFarm?.farm_name || 'My Farm Field 1');
   const [approachRoad, setApproachRoad] = useState('Tractor Accessible Road');
+
+  // Server-backed provider online status (H-3)
+  const [providerStatus, setProviderStatus] = useState('unknown');
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchStatus = async () => {
+      const pId = equipment?.providerId || equipment?.owner_id;
+      const pPhone = equipment?.phone || equipment?.contactPhone;
+      const q = [];
+      if (pId) q.push(`provider_id=${encodeURIComponent(pId)}`);
+      if (pPhone) q.push(`phone=${encodeURIComponent(pPhone)}`);
+      const url = q.length > 0 ? `/api/v1/equipment/provider/status?${q.join('&')}` : '/api/v1/equipment/provider/status';
+      try {
+        const res = await API.get(url);
+        if (isMounted && res?.data && res.data.is_online !== undefined) {
+          setProviderStatus(res.data.is_online ? 'online' : 'offline');
+        } else if (isMounted) {
+          setProviderStatus('unknown');
+        }
+      } catch (e) {
+        if (isMounted) {
+          // On network error or failure: NEVER default to online!
+          setProviderStatus('unknown');
+        }
+      }
+    };
+    fetchStatus();
+    return () => { isMounted = false; };
+  }, [equipment?.providerId, equipment?.owner_id, equipment?.phone, equipment?.contactPhone]);
 
   // ── Land Status & Field Condition Options (Replacing static Target Crop) ──
   const FIELD_STATUS_OPTIONS = useMemo(() => [
@@ -2160,30 +2182,50 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       ? customOperationNote.trim()
       : operationType;
 
-    const safeFarmerPhone = farmerPhone || user?.phone || '9440182736';
-    const safeProviderPhone = equipment.phone || equipment.contactPhone || '9440182736';
+    const safeFarmerPhone = farmerPhone || user?.phone || user?.mobile || '';
+    const safeProviderPhone = equipment.phone || equipment.contactPhone || '';
+
+    // M-4: Canonical provider resolution. NEVER use equipment.id as providerId.
+    const canonicalProviderId = (
+      equipment?.providerId ||
+      equipment?.owner_id ||
+      equipment?.userId ||
+      equipment?.provider_id ||
+      ''
+    );
+
+    if (!canonicalProviderId || String(canonicalProviderId) === String(equipment.id)) {
+      toast.error(
+        isTe ? 'ప్రొవైడర్ ID లేదు' : 'Provider Unavailable',
+        isTe
+          ? 'ఈ యంత్రానికి చెల్లుబాటు అయ్యే ప్రొవైడర్ ID లేదు. దయచేసి మరొక యంత్రాన్ని ఎంచుకోండి.'
+          : 'This machinery listing is missing a valid provider ID. Booking cannot proceed.'
+      );
+      return;
+    }
+
     const newBooking = {
       id: bookingId,
       equipmentId: equipment.id,
-      providerId: equipment.id,
+      providerId: String(canonicalProviderId),
       title: equipment.title,
       equipmentTitle: equipment.title,
       teluguTitle: equipment.teluguTitle,
       category: equipment.category,
-      providerName: equipment.providerName || equipment.ownerName || 'Agro Fleet Service (Pasupugallu)',
+      providerName: equipment.providerName || equipment.ownerName || (isTe ? 'వ్యవసాయ పరికరాల ప్రొవైడర్' : 'Agro Equipment Provider'),
       providerPhone: safeProviderPhone,
       provider_phone: safeProviderPhone,
       phone: safeFarmerPhone,
       farmerPhone: safeFarmerPhone,
       contactPhone: safeFarmerPhone,
-      farmerName: farmerName || user?.name || 'Local Farmer',
+      farmerName: farmerName || user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'),
       farmSector,
       fieldStatus,
       targetCrop: fieldStatus,
       crop: fieldStatus,
       approachRoad,
       location: serviceLocation,
-      village: serviceLocation?.village || 'Field Location',
+      village: serviceLocation?.village || locationVillage || (isTe ? 'పొలం స్థానం' : 'Field Location'),
       bookingDate: serviceDate,
       date: serviceDate,
       timeSlot,
@@ -2285,8 +2327,8 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
           </button>
         </div>
 
-        {/* ── Live Provider Online / Offline Status Announcement ── */}
-        {isProviderOnline ? (
+        {/* ── Live Provider Online / Offline Status Announcement (Server-backed H-3) ── */}
+        {providerStatus === 'online' ? (
           <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200">
             <div className="relative flex items-center justify-center shrink-0">
               <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping absolute" />
@@ -2301,7 +2343,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </p>
             </div>
           </div>
-        ) : (
+        ) : providerStatus === 'offline' ? (
           <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200">
             <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
             <div className="text-left">
@@ -2310,6 +2352,18 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </p>
               <p className="text-[10px] text-rose-700/80 dark:text-rose-300/80 font-medium leading-tight mt-0.5">
                 {isTe ? 'మీ బుకింగ్ క్యూ చేయబడుతుంది మరియు ప్రొవైడర్ లాగిన్ అయినప్పుడు పరిశీలిస్తారు.' : 'Your booking will be placed in their pending queue and reviewed once online.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200">
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+            <div className="text-left">
+              <p className="text-[11px] font-black leading-tight">
+                {isTe ? '⚪ ప్రొవైడర్ స్థితి: అస్పష్టం / తెలియదు' : '⚪ Provider Status: Unknown / Unconfirmed'}
+              </p>
+              <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium leading-tight mt-0.5">
+                {isTe ? 'ప్రొవైడర్ ప్రస్తుత స్థితి అందుబాటులో లేదు. మీ బుకింగ్ సాధారణ క్యూలో సమర్పించబడుతుంది.' : 'Provider live presence is unconfirmed. Booking request will be submitted to their queue.'}
               </p>
             </div>
           </div>

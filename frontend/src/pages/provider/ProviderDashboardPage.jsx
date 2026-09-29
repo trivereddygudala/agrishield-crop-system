@@ -82,12 +82,48 @@ const getEquipmentFallbackImage = (category, title = '') => {
   return photos.tractorJohnDeere || photos.tractorField || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80';
 };
 
+// Safely extract canonical location details from user/provider profile
+const parseUserLocation = (user) => {
+  const pLoc = user?.provider_profile?.hub_location;
+  if (pLoc && typeof pLoc === 'object') {
+    return {
+      village: pLoc.village || '',
+      district: pLoc.district || '',
+      mandal: pLoc.mandal || '',
+      state: pLoc.state || ''
+    };
+  }
+  const fLoc = user?.farm_location;
+  if (fLoc && typeof fLoc === 'object') {
+    return {
+      village: fLoc.village || '',
+      district: fLoc.district || '',
+      mandal: fLoc.mandal || '',
+      state: fLoc.state || ''
+    };
+  }
+  if (typeof fLoc === 'string' && fLoc.trim()) {
+    const parts = fLoc.split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length === 1) {
+      return { village: parts[0], district: parts[0], mandal: '', state: '' };
+    } else if (parts.length === 2) {
+      return { village: parts[0], district: parts[1], mandal: '', state: '' };
+    } else if (parts.length === 3) {
+      return { village: parts[0], district: parts[1], mandal: '', state: parts[2] };
+    } else if (parts.length >= 4) {
+      return { village: parts[0], mandal: parts[1], district: parts[2], state: parts[3] };
+    }
+  }
+  return { village: '', district: '', mandal: '', state: '' };
+};
+
 export default function ProviderDashboardPage() {
   const { t, i18n } = useTranslation();
   const isTe = i18n.language === 'te';
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
+  const userLocation = useMemo(() => parseUserLocation(user), [user]);
 
   // Active Provider View Tab & URL synchronization
   const [searchParams, setSearchParams] = useSearchParams();
@@ -197,27 +233,62 @@ export default function ProviderDashboardPage() {
     toast.success('Chat Cleared', 'Copilot conversation reset successfully.');
   };
 
-  // Availability Status
+  // Availability Status (Server-backed H-3)
   const [isOnline, setIsOnline] = useState(() => {
     const saved = localStorage.getItem('agrishield_provider_online_status');
-    return saved !== null ? saved === 'true' : true;
+    return saved !== null ? saved === 'true' : false; // Default false, never true
   });
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
 
-  const toggleOnlineStatus = () => {
+  useEffect(() => {
+    let isMounted = true;
+    const fetchServerStatus = async () => {
+      try {
+        const res = await API.get('/api/v1/equipment/provider/status');
+        if (isMounted && res?.data && res.data.is_online !== undefined) {
+          const serverVal = Boolean(res.data.is_online);
+          setIsOnline(serverVal);
+          try {
+            localStorage.setItem('agrishield_provider_online_status', String(serverVal));
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn('Could not sync provider status from server:', err);
+      }
+    };
+    fetchServerStatus();
+    return () => { isMounted = false; };
+  }, []);
+
+  const toggleOnlineStatus = async () => {
+    if (isStatusUpdating) return;
     const nextVal = !isOnline;
-    setIsOnline(nextVal);
+    setIsStatusUpdating(true);
     try {
-      localStorage.setItem('agrishield_provider_online_status', String(nextVal));
-      window.dispatchEvent(new CustomEvent('agrishield_provider_status_changed', { detail: { isOnline: nextVal } }));
-      window.dispatchEvent(new Event('agrishield_equipment_updated'));
-    } catch (e) {}
+      const res = await API.patch('/api/v1/equipment/provider/status', { is_online: nextVal });
+      const confirmedVal = res?.data && res.data.is_online !== undefined ? Boolean(res.data.is_online) : nextVal;
+      setIsOnline(confirmedVal);
+      try {
+        localStorage.setItem('agrishield_provider_online_status', String(confirmedVal));
+        window.dispatchEvent(new CustomEvent('agrishield_provider_status_changed', { detail: { isOnline: confirmedVal } }));
+        window.dispatchEvent(new Event('agrishield_equipment_updated'));
+      } catch (e) {}
 
-    toast.success(
-      nextVal ? (isTe ? 'ప్రొవైడర్ హబ్: ఆన్‌లైన్' : 'Provider Hub: Online Today') : (isTe ? 'ప్రొవైడర్ హబ్: ఆఫ్‌లైన్' : 'Provider Hub: Offline Today'),
-      nextVal 
-        ? (isTe ? 'రైతులు ఇప్పుడు మీరు ఆన్‌లైన్‌లో ఉన్నట్లు చూస్తారు మరియు బుకింగ్‌లు పంపగలరు.' : 'Farmers can now see you Online and send rental booking requests.') 
-        : (isTe ? 'కొత్త ఆర్డర్లు తాత్కాలికంగా నిలిపివేయబడ్డాయి. రైతులు మిమ్మల్ని ఆఫ్‌లైన్‌లో ఉన్నట్లు చూస్తారు.' : 'Incoming new rental orders paused. Farmers will see you as Offline Today.')
-    );
+      toast.success(
+        confirmedVal ? (isTe ? 'ప్రొవైడర్ హబ్: ఆన్‌లైన్' : 'Provider Hub: Online Today') : (isTe ? 'ప్రొవైడర్ హబ్: ఆఫ్‌లైన్' : 'Provider Hub: Offline Today'),
+        confirmedVal
+          ? (isTe ? 'రైతులు ఇప్పుడు మీరు ఆన్‌లైన్‌లో ఉన్నట్లు చూస్తారు మరియు బుకింగ్‌లు పంపగలరు.' : 'Farmers can now see you Online and send rental booking requests.')
+          : (isTe ? 'కొత్త ఆర్డర్లు తాత్కాలికంగా నిలిపివేయబడ్డాయి. రైతులు మిమ్మల్ని ఆఫ్‌లైన్‌లో ఉన్నట్లు చూస్తారు.' : 'Incoming new rental orders paused. Farmers will see you as Offline Today.')
+      );
+    } catch (err) {
+      console.error('Failed to update provider status on server:', err);
+      toast.error(
+        isTe ? 'స్థితి అప్‌డేట్ విఫలమైంది' : 'Status Update Failed',
+        isTe ? 'సర్వర్ కనెక్ట్ కాలేదు. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Could not reach server to update status. Please try again.'
+      );
+    } finally {
+      setIsStatusUpdating(false);
+    }
   };
 
   // ── Fleet Inventory State (Saved to localStorage with Zero Duplicates & Blacklist Protection) ──
@@ -254,8 +325,15 @@ export default function ProviderDashboardPage() {
   useEffect(() => {
     const fetchRemoteFleet = async () => {
       try {
-        const phone = user?.phone;
-        const endpoint = phone ? `/api/v1/equipment/catalog?provider_phone=${encodeURIComponent(phone)}` : '/api/v1/equipment/catalog';
+        const phone = user?.phone || user?.mobile;
+        const pid = user?.id || user?._id;
+        if (!phone && !pid) return;
+        let endpoint = '/api/v1/equipment/catalog';
+        if (pid) {
+          endpoint += `?provider_id=${encodeURIComponent(pid)}`;
+        } else if (phone) {
+          endpoint += `?provider_phone=${encodeURIComponent(phone)}`;
+        }
         let res = null;
         try {
           res = await API.get(endpoint);
@@ -341,44 +419,48 @@ export default function ProviderDashboardPage() {
   const [deleteModalBooking, setDeleteModalBooking] = useState(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
 
+  // Cancellation Reason Modal State (C-2)
+  const [cancelModalBooking, setCancelModalBooking] = useState(null);
+  const [cancelReasonCategory, setCancelReasonCategory] = useState('equipment_breakdown');
+  const [cancelReasonText, setCancelReasonText] = useState('');
+  const [isCancellingBooking, setIsCancellingBooking] = useState(false);
+
   const confirmDeleteBooking = async () => {
     if (!deleteModalBooking) return;
     const targetId = deleteModalBooking.id || deleteModalBooking.bookingId;
     if (!targetId) return;
 
+    const bStatus = String(deleteModalBooking.status || '').toLowerCase();
+    // Defensive guard: active or completed bookings cannot be deleted (H-4)
+    if (['confirmed', 'completed'].includes(bStatus)) {
+      toast.error(
+        isTe ? 'సక్రియ లేదా పూర్తయిన ఆర్డర్లను తొలగించలేరు' : 'Cannot Delete Active/Completed Order',
+        isTe ? 'దయచేసి అవసరమైతే బుకింగ్‌ను రద్దు చేయండి.' : 'Active or completed bookings cannot be deleted. Please cancel instead.'
+      );
+      setDeleteModalBooking(null);
+      return;
+    }
+
     setIsDeletingBooking(true);
-
-    // 1. Immediately blacklist the booking and sync tombstone so other mobile devices receive it
-    saveDeletedBookingId(targetId);
-    recordCrossDeviceDeletion('booking', targetId, 'Provider deleted booking');
-
-    // 2. Remove immediately from local state and localStorage
-    setBookingsList(prev => {
-      const updated = prev.filter(b => b && b.id !== targetId && b.bookingId !== targetId);
-      try {
-        localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
-
-    // 3. Dispatch DELETE to backend API & Render workers
     try {
       const idempotencyKey = `idemp_del_${targetId}_${Date.now()}`;
       await API.delete(`/api/v1/equipment/bookings/${targetId}`, {
         headers: { 'Idempotency-Key': idempotencyKey }
       });
-    } catch (err) {
-      const detail = err?.response?.data?.detail;
-      if (err?.response?.status === 400) {
-        toast.error(isTe ? 'సక్రియ బుకింగ్‌లను తొలగించలేరు. రద్దు చేయండి.' : (detail || 'Active bookings cannot be deleted. Please cancel instead.'));
-        setIsDeletingBooking(false);
-        setDeleteModalBooking(null);
-        return;
-      }
-      console.warn('Backend DELETE booking warning:', err);
-    } finally {
-      setIsDeletingBooking(false);
-      setDeleteModalBooking(null);
+
+      // 1. Only blacklist and sync tombstone on confirmed backend success
+      saveDeletedBookingId(targetId);
+      recordCrossDeviceDeletion('booking', targetId, 'Provider deleted booking');
+
+      // 2. Remove from local state and localStorage
+      setBookingsList(prev => {
+        const updated = prev.filter(b => b && b.id !== targetId && b.bookingId !== targetId);
+        try {
+          localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+
       window.dispatchEvent(new Event('agrishield_bookings_updated'));
       toast.success(
         isTe ? 'ఆర్డర్ తొలగించబడింది' : 'Order Deleted',
@@ -386,6 +468,15 @@ export default function ProviderDashboardPage() {
           ? `బుకింగ్ #${targetId} రికార్డుల నుండి శాశ్వతంగా తొలగించబడింది.`
           : `Booking order #${targetId} permanently removed from your dashboard.`
       );
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      toast.error(
+        isTe ? 'ఆర్డర్ తొలగింపు విఫలమైంది' : 'Deletion Failed',
+        detail || (err?.response?.status === 400 ? 'Active or completed bookings cannot be deleted.' : 'Could not delete booking from server.')
+      );
+    } finally {
+      setIsDeletingBooking(false);
+      setDeleteModalBooking(null);
     }
   };
 
@@ -396,10 +487,10 @@ export default function ProviderDashboardPage() {
     const rawKey = String(booking.id || booking.bookingId || 'BK-1').trim();
     const cleanId = rawKey.replace(/^notif-(?:stat-)?/, '').replace(/^notif-order-/, '').replace(/^BK-/, '');
     const bKey = `BK-${cleanId}`;
-    const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '9440182736';
-    const farmerName = booking.farmerName || 'Trivendra reddy';
+    const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '';
+    const farmerName = booking.farmerName || t('common.farmer', 'Farmer');
     const equipmentTitle = booking.equipmentTitle || booking.title || 'Farm Machinery Rental';
-    const village = booking.village || booking.location?.village || booking.location?.mandal || 'Field Location';
+    const village = booking.village || booking.location?.village || booking.location?.mandal || t('common.field_location', 'Field Location');
     const totalCost = booking.totalCost || '800';
 
     const chatMessageObj = {
@@ -411,9 +502,9 @@ export default function ProviderDashboardPage() {
       booking_id: bKey,
       equipmentTitle: equipmentTitle,
       title: equipmentTitle,
-      providerName: user?.name || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
-      providerPhone: user?.phone || '9848012345',
-      provider_phone: user?.phone || '9848012345',
+      providerName: user?.name || user?.full_name || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
+      providerPhone: user?.phone || user?.mobile || '',
+      provider_phone: user?.phone || user?.mobile || '',
       farmerName: farmerName,
       farmerPhone: farmerPhone,
       phone: farmerPhone,
@@ -574,14 +665,14 @@ export default function ProviderDashboardPage() {
       dailyAvailableTime: `${newAvailableFrom} - ${newAvailableTo}`,
       implements: selectedImplements.length > 0 ? selectedImplements : ['Standard Attachments'],
       implementsIncluded: selectedImplements.length > 0 ? selectedImplements : ['Standard Attachments'],
-      village: user?.farm_location?.village || 'Pasupugallu',
-      locationVillage: user?.farm_location?.village || 'Pasupugallu',
-      district: user?.farm_location?.district || 'Prakasam',
-      locationDistrict: user?.farm_location?.district || 'Prakasam',
-      mandal: user?.farm_location?.mandal || 'Mundlamuru',
-      state: user?.farm_location?.state || 'Andhra Pradesh',
-      phone: user?.phone || '9876543210',
-      contactPhone: user?.phone || '9876543210',
+      village: userLocation.village || t('common.not_specified', 'Not Specified'),
+      locationVillage: userLocation.village || t('common.not_specified', 'Not Specified'),
+      district: userLocation.district || t('common.not_specified', 'Not Specified'),
+      locationDistrict: userLocation.district || t('common.not_specified', 'Not Specified'),
+      mandal: userLocation.mandal || t('common.not_specified', 'Not Specified'),
+      state: userLocation.state || 'Andhra Pradesh',
+      phone: user?.phone || user?.mobile || '',
+      contactPhone: user?.phone || user?.mobile || '',
       providerName: user?.name || user?.username || 'Agro Equipment Provider',
       ownerName: user?.name || user?.username || 'Agro Equipment Provider',
       operatorIncluded: true,
@@ -611,7 +702,7 @@ export default function ProviderDashboardPage() {
     toast.success('Equipment Listed!', `${newMachine.title} has been added to your live rental catalog.`);
   };
 
-  const handleToggleMachineAvailability = (id) => {
+  const handleToggleMachineAvailability = async (id) => {
     let nextAvailable = false;
     const updated = fleetList.map(m => {
       if (m.id === id) {
@@ -627,8 +718,12 @@ export default function ProviderDashboardPage() {
       window.dispatchEvent(new Event('agrishield_equipment_updated'));
     } catch (e) {}
 
-    // Multi-device backend sync
-    API.patch(`/api/v1/equipment/fleet/${id}/availability`, { available: nextAvailable }).catch(() => {});
+    // Multi-device backend sync with authoritative confirmation
+    try {
+      await API.patch(`/api/v1/equipment/fleet/${id}/availability`, { available: nextAvailable });
+    } catch (err) {
+      console.warn('Backend availability sync notice:', err);
+    }
 
     toast.info(
       isTe ? 'లభ్యత నవీకరించబడింది' : 'Availability Updated',
@@ -695,56 +790,56 @@ export default function ProviderDashboardPage() {
     }
   };
 
-  const handleUpdateBookingStatus = (bookingId, nextStatus) => {
-    let targetBooking = null;
-    const updated = bookingsList.map(b => {
-      const bKey = b && (b.id || b.bookingId);
-      if (bKey === bookingId) {
-        targetBooking = { ...b, status: nextStatus, updatedAt: new Date().toISOString() };
-        return targetBooking;
-      }
-      return b;
-    });
-    setBookingsList(updated);
-    try {
-      localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated));
-      window.dispatchEvent(new Event('agrishield_bookings_updated'));
-    } catch (e) {}
+  const handleUpdateBookingStatus = async (bookingId, nextStatus, cancelReason = '') => {
+    // C-1 Guard: Do not allow transitioning out of terminal status
+    const targetBooking = bookingsList.find(b => (b && (b.id === bookingId || b.bookingId === bookingId)));
+    if (!targetBooking) return;
+    const currStatus = String(targetBooking.status || 'pending').toLowerCase();
+    if (['rejected', 'cancelled', 'completed'].includes(currStatus)) {
+      toast.error(
+        isTe ? 'ముగిసిన ఆర్డర్ స్థితిని మార్చలేరు' : 'Terminal Order',
+        isTe ? 'ఈ బుకింగ్ ఇప్పటికే ముగిసింది.' : `Cannot modify status of a ${currStatus} booking.`
+      );
+      return;
+    }
 
-    toast.info(
-      isTe ? 'బుకింగ్ స్థితి నవీకరించబడింది' : 'Status Updated',
-      nextStatus === 'rejected'
-        ? (isTe ? 'ఆర్డర్ తిరస్కరించబడింది. రైతు స్క్రీన్‌లో ఇది వెంటనే కనిపిస్తుంది.' : 'Order declined. Farmer will immediately see this status on their screen.')
-        : (isTe ? 'ఆర్డర్ ఆమోదించబడింది.' : 'Order confirmed.')
-    );
+    // Preserve snapshot of original state for rollback on API failure
+    const originalBookings = [...bookingsList];
+    const originalFleet = [...fleetList];
 
     // Dispatch status update to canonical backend API with Idempotency-Key
-    const patchStatusToServer = async () => {
-      const payload = { status: nextStatus, updatedAt: new Date().toISOString() };
-      const idempotencyKey = `idemp_status_${bookingId}_${nextStatus}_${Date.now()}`;
-      try {
-        const r = await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, payload, {
-          headers: { 'Idempotency-Key': idempotencyKey }
-        });
-        if (r.data && typeof r.data === 'object') return;
-      } catch (err) {
-        const status = err?.response?.status;
-        const detail = err?.response?.data?.detail;
-        if (status === 409) {
-          toast.error(isTe ? 'స్లాట్ ఇప్పటికే బుక్ చేయబడింది: ' + (detail || '') : 'Time Slot Collision: ' + (detail || 'This time slot is already confirmed.'));
-        } else if (status === 422) {
-          toast.error(isTe ? 'చెల్లని అభ్యర్థన: ' + (detail || '') : 'Invalid Request: ' + (detail || ''));
-        } else if (status === 503) {
-          toast.warning(isTe ? 'సిస్టమ్ బిజీగా ఉంది. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Server contention. Please retry your confirmation in a few moments.');
-        } else {
-          console.warn('Backend status patch notice:', err);
-        }
-      }
+    const payload = {
+      status: nextStatus,
+      updatedAt: new Date().toISOString()
     };
-    patchStatusToServer();
+    if (cancelReason && cancelReason.trim()) {
+      payload.reason = cancelReason.trim();
+      payload.cancelReason = cancelReason.trim();
+    }
+    const idempotencyKey = `idemp_status_${bookingId}_${nextStatus}_${Date.now()}`;
 
-    // Auto-sync machine availability when booking is confirmed or completed
-    if (targetBooking) {
+    try {
+      const r = await API.patch(`/api/v1/equipment/bookings/${bookingId}/status`, payload, {
+        headers: { 'Idempotency-Key': idempotencyKey }
+      });
+
+      // API Success: Now and only now update local booking state
+      const serverUpdated = (r?.data && typeof r.data === 'object' && r.data.booking) ? r.data.booking : null;
+      const updatedBookings = bookingsList.map(b => {
+        const bKey = b && (b.id || b.bookingId);
+        if (bKey === bookingId) {
+          return serverUpdated ? { ...b, ...serverUpdated, status: nextStatus } : { ...b, status: nextStatus, cancelReason: cancelReason || b.cancelReason, updatedAt: new Date().toISOString() };
+        }
+        return b;
+      });
+
+      setBookingsList(updatedBookings);
+      try {
+        localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updatedBookings));
+        window.dispatchEvent(new Event('agrishield_bookings_updated'));
+      } catch (e) {}
+
+      // Auto-sync machine availability when booking is confirmed, completed, or cancelled
       const targetEquipId = targetBooking.equipmentId || targetBooking.machineId;
       const targetEquipTitle = targetBooking.equipmentTitle || targetBooking.title;
 
@@ -764,7 +859,7 @@ export default function ProviderDashboardPage() {
           } catch (e) {}
           return synced;
         });
-      } else if (nextStatus === 'completed') {
+      } else if (nextStatus === 'completed' || nextStatus === 'cancelled') {
         // Machine is freed up
         setFleetList(prev => {
           const synced = prev.map(m => {
@@ -781,10 +876,21 @@ export default function ProviderDashboardPage() {
           return synced;
         });
       }
-    }
 
-    // Dispatch real-time farmer notification for Accept/Reject/Complete
-    if (targetBooking) {
+      // Success toast
+      let toastTitle = isTe ? 'బుకింగ్ స్థితి నవీకరించబడింది' : 'Status Updated';
+      let toastMsg = isTe ? 'ఆర్డర్ ఆమోదించబడింది.' : 'Order confirmed.';
+      if (nextStatus === 'rejected') {
+        toastMsg = isTe ? 'ఆర్డర్ తిరస్కరించబడింది. రైతు స్క్రీన్‌లో ఇది వెంటనే కనిపిస్తుంది.' : 'Order declined. Farmer will immediately see this status on their screen.';
+      } else if (nextStatus === 'completed') {
+        toastMsg = isTe ? 'పని పూర్తయింది & సెటిల్ చేయబడింది.' : 'Service marked completed and settled.';
+      } else if (nextStatus === 'cancelled') {
+        toastTitle = isTe ? 'బుకింగ్ రద్దు చేయబడింది' : 'Booking Cancelled';
+        toastMsg = isTe ? 'బుకింగ్ రద్దు చేయబడింది మరియు సమయ స్లాట్ విడుదల చేయబడింది.' : 'Booking cancelled and time slot released.';
+      }
+      toast.info(toastTitle, toastMsg);
+
+      // Dispatch real-time farmer notification ONLY after confirmed backend success
       const equipTitle = targetBooking.equipmentTitle || targetBooking.title || 'Machinery';
       const bookingDate = targetBooking.bookingDate || targetBooking.date || 'Scheduled Slot';
 
@@ -806,6 +912,11 @@ export default function ProviderDashboardPage() {
         notifMsg = isTe
           ? `మీ ${equipTitle} అద్దె సేవ విజయవంతంగా పూర్తయింది. ఖాతా రికార్డు నవీకరించబడింది.`
           : `Rental service for ${equipTitle} (#${bookingId}) has been marked COMPLETED.`;
+      } else if (nextStatus === 'cancelled') {
+        notifTitle = isTe ? `⚠️ బుకింగ్ రద్దు చేయబడింది (#${bookingId})` : `⚠️ Machinery Booking Cancelled (#${bookingId})`;
+        notifMsg = isTe
+          ? `ప్రొవైడర్ మీ ${equipTitle} బుకింగ్‌ను రద్దు చేశారు. కారణం: ${cancelReason || 'అనివార్య కారణాలు'}.`
+          : `The equipment provider has cancelled booking #${bookingId} for ${equipTitle}. Reason: ${cancelReason || 'Unforeseen circumstances'}.`;
       }
 
       if (notifTitle) {
@@ -833,7 +944,11 @@ export default function ProviderDashboardPage() {
           localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...userNotifs.filter(n => n.id !== notifObj.id)]));
         } catch (e) {}
 
-        // Write system confirmation milestone notice into the canonical shared booking thread
+        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
+      }
+
+      // Write system confirmation milestone notice into the canonical shared booking thread if confirmed
+      if (nextStatus === 'confirmed') {
         const cleanBId = String(bookingId).replace(/^notif-(?:stat-)?/, '').replace(/^BK-/, '');
         const canonicalKey = `agrishield_chat_thread_BK-${cleanBId}`;
         try {
@@ -860,27 +975,25 @@ export default function ProviderDashboardPage() {
           } catch (_) {}
           API.post(`/api/v1/equipment/bookings/BK-${cleanBId}/messages`, noticeMsg).catch(() => {});
         } catch (_) {}
-
-        window.dispatchEvent(new Event('agrishield_bookings_updated'));
-        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
       }
-    }
 
-    if (nextStatus === 'confirmed') {
-      toast.success(
-        isTe ? 'బుకింగ్ ఆమోదించబడింది!' : 'Booking Accepted!',
-        isTe ? 'రైతుకు ఆర్డర్ ధృవీకరణ నోటిఫికేషన్ పంపబడింది.' : 'Farmer has been notified that machinery is confirmed.'
-      );
-    } else if (nextStatus === 'rejected') {
-      toast.info(
-        isTe ? 'బుకింగ్ తిరస్కరించబడింది' : 'Booking Declined',
-        isTe ? 'ఆర్డర్ తిరస్కరించబడింది & రైతుకు సమాచారం అందించబడింది.' : 'Order declined and farmer was updated.'
-      );
-    } else if (nextStatus === 'completed') {
-      toast.success(
-        isTe ? 'పని పూర్తయింది!' : 'Job Completed!',
-        isTe ? 'ఆర్డర్ పూర్తయినట్లు నమోదు చేయబడింది.' : 'Service marked completed and earnings logged.'
-      );
+      window.dispatchEvent(new Event('agrishield_bookings_updated'));
+    } catch (err) {
+      // C-1 State Rollback: Restore original booking and fleet state
+      setBookingsList(originalBookings);
+      setFleetList(originalFleet);
+
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail;
+      if (status === 409) {
+        toast.error(isTe ? 'స్లాట్ వివాదం: ' + (detail || '') : 'Conflict: ' + (detail || 'This time slot is already confirmed.'));
+      } else if (status === 422) {
+        toast.error(isTe ? 'చెల్లని అభ్యర్థన: ' + (detail || '') : 'Invalid Request: ' + (detail || ''));
+      } else if (status === 503) {
+        toast.warning(isTe ? 'సిస్టమ్ బిజీగా ఉంది. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Server contention. Please retry your request in a few moments.');
+      } else {
+        toast.error(isTe ? 'స్థితి అప్‌డేట్ విఫలమైంది' : 'Update Failed', detail || err.message);
+      }
     }
   };
 
@@ -1083,8 +1196,8 @@ export default function ProviderDashboardPage() {
   }
 
   const providerDisplayName = user?.provider_profile?.hub_name || user?.provider_profile?.business_name || user?.name || user?.username || 'Agri Machinery Provider';
-  const hubVillage = user?.provider_profile?.hub_name || user?.farm_location?.village || 'Ramesh Farm Services';
-  const hubDistrict = user?.farm_location?.district || 'Prakasam';
+  const hubVillage = userLocation.village || user?.provider_profile?.hub_name || t('common.not_specified', 'Not Specified');
+  const hubDistrict = userLocation.district || user?.district || t('common.not_specified', 'Not Specified');
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 select-none">
@@ -1570,11 +1683,11 @@ export default function ProviderDashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {cleanBookingsList.map((booking) => {
-                const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '9440182736';
+                const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '';
                 const cleanPhone = String(farmerPhone).replace(/[^0-9]/g, '');
-                const farmerName = booking.farmerName || 'Trivendra reddy';
-                const equipmentTitle = booking.equipmentTitle || booking.title || 'Farm Machinery Rental';
-                const village = booking.village || booking.location?.village || booking.location?.mandal || 'Field Location';
+                const farmerName = booking.farmerName || (isTe ? 'రైతు' : 'Farmer');
+                const equipmentTitle = booking.equipmentTitle || booking.title || (isTe ? 'వ్యవసాయ యంత్రం' : 'Farm Machinery Rental');
+                const village = booking.village || booking.location?.village || booking.location?.mandal || (isTe ? 'పొలం స్థానం' : 'Field Location');
                 const date = booking.bookingDate || booking.date || 'Today';
                 const slot = booking.timeSlot || booking.slot || 'Full Day';
                 const acres = booking.acres || booking.acreage || '2';
@@ -1726,14 +1839,24 @@ export default function ProviderDashboardPage() {
                       )}
 
                       {isConfirmed && (
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'completed')}
-                          className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>{isTe ? 'పని పూర్తయింది & సెటిల్ చేయండి' : 'Mark Completed & Settle'}</span>
-                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'completed')}
+                            className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>{isTe ? 'పూర్తయింది' : 'Complete'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCancelModalBooking(booking)}
+                            className="w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>{isTe ? 'రద్దు చేయండి' : 'Cancel'}</span>
+                          </button>
+                        </div>
                       )}
 
                       {isCompleted && (
@@ -1742,14 +1865,6 @@ export default function ProviderDashboardPage() {
                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                             <span>{isTe ? 'పూర్తయింది & రికార్డ్ చేయబడింది' : 'Settled & Logged'}</span>
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteModalBooking(booking)}
-                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-rose-400 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                            title={isTe ? 'ఆర్డర్‌ను తొలగించండి' : 'Delete Order'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
                         </div>
                       )}
 
@@ -1759,15 +1874,6 @@ export default function ProviderDashboardPage() {
                             <span className="px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 text-xs font-bold">
                               {booking.status === 'cancelled' ? (isTe ? 'రద్దు చేయబడింది' : 'Cancelled') : (isTe ? 'తిరస్కరించబడింది' : 'Declined')}
                             </span>
-                            {booking.status !== 'cancelled' && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'confirmed')}
-                                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                              >
-                                {isTe ? 'మళ్లీ ఆమోదించండి' : 'Re-open'}
-                              </button>
-                            )}
                           </div>
                           <button
                             type="button"
@@ -2171,6 +2277,102 @@ export default function ProviderDashboardPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── CANCEL CONFIRMED BOOKING MODAL (C-2) ── */}
+      {cancelModalBooking && (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#0b131f] border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {isTe ? 'బుకింగ్‌ను రద్దు చేయాలా?' : 'Cancel Confirmed Booking?'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    #{cancelModalBooking.id || cancelModalBooking.bookingId}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCancelModalBooking(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs space-y-1.5">
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'యంత్రం:' : 'Equipment:'}</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {cancelModalBooking.equipmentTitle || cancelModalBooking.title || 'Machinery'}
+                </span>
+              </div>
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span className="text-slate-400">{isTe ? 'రైతు:' : 'Farmer:'}</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {cancelModalBooking.farmerName || 'Farmer'}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {isTe ? 'రద్దు చేయడానికి కారణం:' : 'Cancellation Reason:'}
+              </label>
+              <select
+                value={cancelReasonCategory}
+                onChange={(e) => setCancelReasonCategory(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+              >
+                <option value="equipment_breakdown">{isTe ? 'యంత్రం మరమ్మత్తు / సమస్య' : 'Equipment Breakdown / Maintenance'}</option>
+                <option value="operator_unavailable">{isTe ? 'ఆపరేటర్ అందుబాటులో లేరు' : 'Operator Unavailable'}</option>
+                <option value="weather_issues">{isTe ? 'ప్రతికూల వాతావరణం' : 'Adverse Weather Conditions'}</option>
+                <option value="other">{isTe ? 'ఇతర కారణాలు' : 'Other Reason'}</option>
+              </select>
+              <input
+                type="text"
+                placeholder={isTe ? 'వివరాలు (ఐచ్ఛికం)...' : 'Additional details (optional)...'}
+                value={cancelReasonText}
+                onChange={(e) => setCancelReasonText(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+              {isTe
+                ? 'బుకింగ్ రద్దు చేయబడితే సమయ స్లాట్ విడుదల చేయబడుతుంది మరియు రైతుకు నోటిఫికేషన్ పంపబడుతుంది.'
+                : 'Cancelling this booking will release the locked time slot and notify the farmer.'}
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setCancelModalBooking(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                {isTe ? 'వెనుకకు' : 'Keep Booking'}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const reason = cancelReasonText.trim() ? `${cancelReasonCategory}: ${cancelReasonText.trim()}` : cancelReasonCategory;
+                  const bId = cancelModalBooking.id || cancelModalBooking.bookingId;
+                  setCancelModalBooking(null);
+                  await handleUpdateBookingStatus(bId, 'cancelled', reason);
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-rose-600/30 transition-all active:scale-95 cursor-pointer"
+              >
+                <span>{isTe ? 'రద్దును నిర్ధారించండి' : 'Confirm Cancellation'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

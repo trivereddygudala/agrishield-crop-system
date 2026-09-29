@@ -1,7 +1,34 @@
 # AgriShield Project Changelog (changes_happening.md)
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
-## 2026-09-29 (v339) - B4 Medium Fixes (M-1, M-2, M-3) & Digital Farm Khata / Timeline Persistence
+## 2026-09-29 (v340) - B5 Phase 2 Fixes (C-1, C-2 Verification, H-1 Verification, H-4, M-4)
+- **Summary:**
+  1. 🚫 **C-1: Terminal Rejected Booking State & Rollback Protection (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
+     - Removed the "Re-open" action button on rejected booking cards.
+     - Preserved terminal state for rejected bookings (backend strictly rejects rejected->confirmed transitions with HTTP 409 Conflict).
+     - Preserved optimistic UI state rollback on server errors (409, 422, 503).
+  2. 🔄 **C-2: Provider Cancellation & Lock Release Verification (`frontend/src/pages/provider/ProviderDashboardPage.jsx`, `backend/tests/test_b5_provider_portal.py`):**
+     - Wired the provider cancellation flow in `ProviderDashboardPage.jsx` using the existing backend PATCH status endpoint (`status: 'cancelled'`).
+     - Verified provider can cancel confirmed bookings and that cancellation immediately releases interval locks in `equipment_locks` / overlapping interval collision checks without touching B1 concurrency logic.
+  3. 🧼 **H-1: Mock PII Eradication & Canonical Fallbacks (`frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`):**
+     - Verified and removed all hardcoded mock names (`"Mandavalli"`, `"Krishna"`, `"Ramesh Farm Services"`, `"9848022338"`, `"9440182736"`, `"Trivendra reddy"`) across Provider Portal and Booking flows.
+     - Replaced with authenticated user profile data (`user.name`, `user.phone`, `user.village`, `user.district`) or generic localized fallbacks without inventing personal data.
+  4. 🔒 **H-4: Trash/Delete UI Removal from Completed Bookings (`frontend/src/pages/provider/ProviderDashboardPage.jsx`):**
+     - Removed the `<Trash2>` delete action button from completed and settled bookings.
+     - Preserved backend 400 Bad Request protection guarding against deletion of non-terminal / confirmed / completed records.
+     - No local blacklisting or tombstoning of completed bookings.
+  5. 🆔 **M-4: Canonical Provider ID Resolution & Booking Safety (`frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `backend/app/routers/provider/equipment.py`):**
+     - In `EquipmentBookingPage.jsx`, resolved `providerId` strictly from `equipment.providerId || equipment.owner_id || equipment.userId`.
+     - Explicitly prevented using `equipment.id` as `providerId`. Aborts safely with user-facing validation if no canonical provider ID exists.
+     - In `equipment.py` (`create_booking` and `create_bookings_batch`), if incoming `providerId` is missing or matches the equipment ID, securely resolved canonical provider ID from `equipment_catalog` or fallback lookup, rejecting invalid bookings safely.
+  6. 🧪 **Focused Phase 2 Test Suite & Regressions:**
+     - Created focused test suite in `backend/tests/test_b5_provider_portal.py` (8/8 passed).
+     - Verified full regression test suites: B1 RBAC & concurrency (26/26 passed), B3 & B4 security suites (50/50 passed).
+     - Total: 84/84 tests passing.
+     - Frontend production build: `npm run build` completed successfully with zero errors.
+- **Files modified:** `backend/app/routers/provider/equipment.py`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `backend/tests/test_b5_provider_portal.py`, `changes_happening.md`.
+
+## 2026-09-29 (v339) - B4 Medium Fixes (M-1, M-2, M-3) & Digital Farm Khata / Timeline Persistence
 - **Summary:**
   1. 💰 **M-1: Digital Farm Khata Backend Persistence & Duplicate Sync Protection (`backend/app/routers/farmer/farm_profiles.py`, `backend/app/models/farm_profile.py`, `frontend/src/components/farm/DigitalFarmKhata.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`):**
      - Created persistent MongoDB ledger endpoints under `/api/farms/{farm_id}/khata`:

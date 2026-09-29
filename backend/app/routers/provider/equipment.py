@@ -5,7 +5,7 @@ Syncs across devices (PC, mobile browser, tablets) via MongoDB and persistent JS
 """
 
 from fastapi import APIRouter, HTTPException, Query, Body, Depends, Header, status
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Union
 from datetime import datetime, timezone
 import json
 import os
@@ -246,10 +246,38 @@ def _save_disk_chat_messages():
     except Exception as e:
         print(f"⚠️ [EquipmentChat] Failed saving to disk: {e}")
 
+# Provider Online / Offline Status Persistence (H-3)
+PROVIDER_STATUS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "equipment_provider_status.json")
+_provider_status_store: Dict[str, bool] = {}
+
+def _load_disk_provider_status() -> Dict[str, bool]:
+    global _provider_status_store
+    if os.path.exists(PROVIDER_STATUS_FILE):
+        try:
+            with open(PROVIDER_STATUS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    _provider_status_store = {str(k): bool(v) for k, v in data.items()}
+                    return _provider_status_store
+        except Exception as e:
+            print(f"⚠️ [EquipmentProviderStatus] Failed loading from disk: {e}")
+    return _provider_status_store
+
+def _save_disk_provider_status():
+    global _provider_status_store
+    try:
+        os.makedirs(os.path.dirname(PROVIDER_STATUS_FILE), exist_ok=True)
+        with open(PROVIDER_STATUS_FILE, "w", encoding="utf-8") as f:
+            json.dump(_provider_status_store, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"⚠️ [EquipmentProviderStatus] Failed saving to disk: {e}")
+
 # Initialize from disk on startup
 _load_disk_bookings()
 _load_disk_catalog()
 _load_disk_chat_messages()
+_load_disk_provider_status()
+
 
 
 @router.get("/bookings")
@@ -411,6 +439,35 @@ async def create_booking(
     if not booking_data.get("farmerPhone") and (current_user.get("phone") or current_user.get("mobile")):
         booking_data["farmerPhone"] = current_user.get("phone") or current_user.get("mobile")
 
+    # M-4: Canonical provider resolution. NEVER store equipment.id as providerId.
+    canonical_eq_id = booking_data.get("equipmentId") or booking_data.get("equipment_id") or booking_data.get("machineId")
+    b_pid = booking_data.get("providerId") or booking_data.get("provider_id")
+    if (not b_pid or (canonical_eq_id and str(b_pid) == str(canonical_eq_id))) and canonical_eq_id:
+        prov_found = None
+        if db_instance.db is not None:
+            try:
+                cat_doc = await db_instance.db["equipment_catalog"].find_one({
+                    "$or": [{"id": str(canonical_eq_id)}, {"equipment_id": str(canonical_eq_id)}]
+                })
+                if cat_doc:
+                    prov_found = str(cat_doc.get("providerId") or cat_doc.get("owner_id") or "")
+            except Exception:
+                pass
+        if not prov_found:
+            for item in _load_disk_catalog():
+                if str(item.get("id") or item.get("equipment_id")) == str(canonical_eq_id):
+                    prov_found = str(item.get("providerId") or item.get("owner_id") or "")
+                    break
+        if prov_found and prov_found != str(canonical_eq_id):
+            booking_data["providerId"] = prov_found
+            booking_data["provider_id"] = prov_found
+        else:
+            booking_data.pop("providerId", None)
+            booking_data.pop("provider_id", None)
+    elif b_pid and canonical_eq_id and str(b_pid) == str(canonical_eq_id):
+        booking_data.pop("providerId", None)
+        booking_data.pop("provider_id", None)
+
     # B1-FIX-B/C: Normalize local IST booking times to UTC ISO datetime
     start_utc, end_utc = _normalize_booking_interval(booking_data)
     booking_data["start_time"] = start_utc
@@ -561,14 +618,17 @@ async def create_booking(
 
 @router.post("/bookings/batch")
 async def create_bookings_batch(
-    bookings_data: List[Dict[str, Any]] = Body(...),
+    bookings_data: Union[List[Dict[str, Any]], Dict[str, Any]] = Body(...),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
     High-throughput bulk booking endpoint to create or sync up to 1000+ bookings in one round-trip.
     Enforces authenticated user identity across all batch reservations.
+    Accepts either a direct list of booking dicts or {"bookings": [...]}.
     """
     global _in_memory_bookings
+    if isinstance(bookings_data, dict):
+        bookings_data = bookings_data.get("bookings", [])
     if not bookings_data or not isinstance(bookings_data, list):
         raise HTTPException(status_code=400, detail="A list of booking objects is required")
 
@@ -597,6 +657,35 @@ async def create_bookings_batch(
             b["farmerEmail"] = default_email
         if not b.get("farmerPhone") and default_phone:
             b["farmerPhone"] = default_phone
+
+        # M-4: Canonical provider resolution. NEVER store equipment.id as providerId.
+        b_eq_id = b.get("equipmentId") or b.get("equipment_id") or b.get("machineId")
+        b_pid = b.get("providerId") or b.get("provider_id")
+        if (not b_pid or (b_eq_id and str(b_pid) == str(b_eq_id))) and b_eq_id:
+            prov_found = None
+            if db_instance.db is not None:
+                try:
+                    cat_doc = await db_instance.db["equipment_catalog"].find_one({
+                        "$or": [{"id": str(b_eq_id)}, {"equipment_id": str(b_eq_id)}]
+                    })
+                    if cat_doc:
+                        prov_found = str(cat_doc.get("providerId") or cat_doc.get("owner_id") or "")
+                except Exception:
+                    pass
+            if not prov_found:
+                for item in _load_disk_catalog():
+                    if str(item.get("id") or item.get("equipment_id")) == str(b_eq_id):
+                        prov_found = str(item.get("providerId") or item.get("owner_id") or "")
+                        break
+            if prov_found and prov_found != str(b_eq_id):
+                b["providerId"] = prov_found
+                b["provider_id"] = prov_found
+            else:
+                b.pop("providerId", None)
+                b.pop("provider_id", None)
+        elif b_pid and b_eq_id and str(b_pid) == str(b_eq_id):
+            b.pop("providerId", None)
+            b.pop("provider_id", None)
 
         # F-01: Batch endpoint is restricted strictly to pending booking submissions
         req_status = str(b.get("status") or "pending").lower().strip()
@@ -668,52 +757,104 @@ async def create_bookings_batch(
         except Exception as e:
             print(f"⚠️ [EquipmentBookings] Mongo bulk_write notice: {e}")
 
-    # 3. Dispatch high-level summary notification to Provider
+    # 3. Dispatch targeted summary notification to each distinct Provider (M-3)
     if db_instance.db is not None and processed_bookings:
         try:
             from backend.app.services.notification_service import NotificationService
             from backend.app.models.notification import NotificationCreate
-            first_b = processed_bookings[0]
-            p_phone = first_b.get("providerPhone") or first_b.get("provider_phone") or ""
-            clean_p = "".join(filter(str.isdigit, str(p_phone)))
-            prov_user = None
-            if clean_p:
-                prov_user = await db_instance.db["users"].find_one({
-                    "$or": [
-                        {"phone": clean_p},
-                        {"mobile": clean_p},
-                        {"phone": {"$regex": clean_p[-10:]}}
-                    ]
-                })
-            if not prov_user:
-                prov_name = first_b.get("providerName") or first_b.get("provider_name") or first_b.get("owner") or ""
-                if prov_name:
+
+            provider_groups: Dict[str, Dict[str, Any]] = {}
+            for b_item in processed_bookings:
+                p_uid = str(b_item.get("providerId") or b_item.get("provider_id") or b_item.get("owner_id") or "")
+                p_phone = "".join(filter(str.isdigit, str(b_item.get("providerPhone") or b_item.get("provider_phone") or "")))
+                p_email = str(b_item.get("providerEmail") or b_item.get("provider_email") or "").strip().lower()
+                p_name = str(b_item.get("providerName") or b_item.get("provider_name") or b_item.get("owner") or "").strip()
+
+                prov_user = None
+                if p_uid:
+                    from bson import ObjectId
+                    q_user = {"$or": [{"id": p_uid}]}
+                    if ObjectId.is_valid(p_uid):
+                        q_user["$or"].append({"_id": ObjectId(p_uid)})
+                    prov_user = await db_instance.db["users"].find_one(q_user)
+                if not prov_user and p_phone:
+                    prov_user = await db_instance.db["users"].find_one({
+                        "$or": [
+                            {"phone": p_phone},
+                            {"mobile": p_phone},
+                            {"phone": {"$regex": p_phone[-10:]}}
+                        ]
+                    })
+                if not prov_user and p_email:
+                    prov_user = await db_instance.db["users"].find_one({"email": p_email})
+                if not prov_user and p_name:
                     import re as _re
                     prov_user = await db_instance.db["users"].find_one({
-                        "name": {"$regex": f"^{_re.escape(prov_name.strip())}$", "$options": "i"},
-                        "role": "equipment_provider"
+                        "name": {"$regex": f"^{_re.escape(p_name)}$", "$options": "i"},
+                        "role": {"$in": ["equipment_provider", "provider"]}
                     })
-            if not prov_user:
-                prov_email = first_b.get("providerEmail") or first_b.get("provider_email") or ""
-                if prov_email:
-                    prov_user = await db_instance.db["users"].find_one({"email": prov_email.lower().strip()})
-            if not prov_user:
-                prov_user = await db_instance.db["users"].find_one({"role": "equipment_provider"})
 
-            target_uid = str(prov_user["_id"]) if prov_user else (first_b.get("providerId") or "provider_hub")
-            await NotificationService.create_notification(
-                db_instance.db,
-                NotificationCreate(
-                    user_id=target_uid,
-                    title=f"🚜 {len(processed_bookings)} New Machinery Bookings Received!",
-                    message=f"Farmer {first_b.get('farmerName', 'Farmer')} submitted a high-volume booking batch of {len(processed_bookings)} equipment reservations.",
-                    category="booking",
-                    priority="High",
-                    action_url="/provider/dashboard?tab=orders"
+                if prov_user:
+                    group_key = str(prov_user.get("_id") or prov_user.get("id"))
+                    target_uid = group_key
+                elif p_uid:
+                    group_key = p_uid
+                    target_uid = p_uid
+                elif p_phone:
+                    group_key = f"phone_{p_phone}"
+                    target_uid = f"provider_{p_phone}"
+                else:
+                    group_key = "provider_hub"
+                    target_uid = "provider_hub"
+
+                if group_key not in provider_groups:
+                    provider_groups[group_key] = {
+                        "target_uid": target_uid,
+                        "bookings": []
+                    }
+                provider_groups[group_key]["bookings"].append(b_item)
+
+            for g_key, g_data in provider_groups.items():
+                p_bookings = g_data["bookings"]
+                target_uid = g_data["target_uid"]
+                b_count = len(p_bookings)
+
+                farmer_names = list(dict.fromkeys(
+                    str(b.get("farmerName") or b.get("farmer_name") or "Farmer") for b in p_bookings
+                ))
+                farmer_str = ", ".join(farmer_names[:2])
+                if len(farmer_names) > 2:
+                    farmer_str += f" +{len(farmer_names) - 2} more"
+
+                eq_names = [
+                    str(b.get("equipmentName") or b.get("equipment_name") or b.get("title") or "Machinery")
+                    for b in p_bookings
+                ]
+
+                if b_count == 1:
+                    title = "🚜 New Machinery Booking Received!"
+                    msg = f"Farmer {farmer_str} booked {eq_names[0]}."
+                else:
+                    names_summary = ", ".join(eq_names[:3])
+                    if len(eq_names) > 3:
+                        names_summary += f" +{len(eq_names) - 3} more"
+                    title = f"🚜 {b_count} New Machinery Bookings Received!"
+                    msg = f"Farmer {farmer_str} submitted a batch of {b_count} equipment reservations ({names_summary})."
+
+                await NotificationService.create_notification(
+                    db_instance.db,
+                    NotificationCreate(
+                        user_id=target_uid,
+                        title=title,
+                        message=msg,
+                        category="booking",
+                        priority="High",
+                        action_url="/provider/dashboard?tab=orders"
+                    )
                 )
-            )
         except Exception as n_err:
             print(f"⚠️ [EquipmentBookings] Batch provider notification notice: {n_err}")
+
 
     return {
         "success": True,
@@ -1260,10 +1401,47 @@ _fleet_availability: Dict[str, bool] = {}
 async def get_fleet_status():
     """
     Get live availability status of all equipment across devices.
+    Authoritative backend persisted source (Mongo + disk catalog).
     """
+    availability: Dict[str, bool] = {}
+
+    # 1. Load from MongoDB equipment_catalog
+    if db_instance.db is not None:
+        try:
+            cursor = db_instance.db["equipment_catalog"].find({}, {"id": 1, "equipment_id": 1, "available": 1})
+            docs = await cursor.to_list(length=1000)
+            for doc in docs:
+                eq_id = str(doc.get("id") or doc.get("equipment_id") or "")
+                if eq_id:
+                    availability[eq_id] = bool(doc.get("available", True))
+        except Exception:
+            pass
+
+    # 2. Disk / in-memory catalog supplement
+    for item in _load_disk_catalog():
+        eq_id = str(item.get("id") or item.get("equipment_id") or "")
+        if eq_id and eq_id not in availability:
+            availability[eq_id] = bool(item.get("available", True))
+
+    # 3. Check legacy equipment_fleet_status for backwards compatibility
+    if db_instance.db is not None:
+        try:
+            fleet_cursor = db_instance.db["equipment_fleet_status"].find({}, {"equipment_id": 1, "available": 1})
+            fleet_docs = await fleet_cursor.to_list(length=1000)
+            for fdoc in fleet_docs:
+                feq_id = str(fdoc.get("equipment_id") or "")
+                if feq_id and feq_id not in availability:
+                    availability[feq_id] = bool(fdoc.get("available", True))
+        except Exception:
+            pass
+
+    # 4. Sync in-memory map
+    global _fleet_availability
+    _fleet_availability.update(availability)
+
     return {
         "success": True,
-        "availability": _fleet_availability
+        "availability": availability
     }
 
 
@@ -1276,44 +1454,317 @@ async def update_equipment_availability(
     """
     Update machine availability status (available: true/false).
     Strict RBAC: Provider owner or Admin only.
+    Updates authoritative persisted catalog, legacy fleet status, and memory.
     """
+    if not (_is_admin(current_user) or _is_provider(current_user)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Only equipment providers and admins can update machine availability"
+        )
+
+    # 1. Verify equipment exists in catalog (Mongo or disk)
+    exists = False
+    eq_doc = None
+    if db_instance.db is not None:
+        try:
+            eq_doc = await db_instance.db["equipment_catalog"].find_one(
+                {"$or": [{"id": equipment_id}, {"equipment_id": equipment_id}]}
+            )
+            if eq_doc:
+                exists = True
+        except Exception:
+            pass
+
+    if not exists:
+        for item in _load_disk_catalog():
+            if item.get("id") == equipment_id or item.get("equipment_id") == equipment_id:
+                eq_doc = item
+                exists = True
+                break
+
+    if not exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Equipment '{equipment_id}' not found in catalog"
+        )
+
+    # 2. Strict ownership verification for non-admin providers
     if not _is_admin(current_user):
         provider_eq_ids = await _get_provider_equipment_ids(current_user)
-        if equipment_id not in provider_eq_ids:
-            owned = False
-            if db_instance.db is not None:
-                try:
-                    doc = await db_instance.db["equipment_catalog"].find_one({"id": equipment_id})
-                    if doc and (str(doc.get("providerId") or doc.get("owner_id")) == str(current_user.get("id"))):
-                        owned = True
-                except Exception:
-                    pass
-            if not owned:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Forbidden: Only the equipment provider or an admin can update machine availability"
-                )
+        owned = equipment_id in provider_eq_ids
+        if not owned and eq_doc:
+            auth_uid = str(current_user.get("id") or current_user.get("_id") or "")
+            auth_phone = "".join(filter(str.isdigit, str(current_user.get("phone") or current_user.get("mobile") or "")))
+            doc_owner = str(eq_doc.get("providerId") or eq_doc.get("owner_id") or eq_doc.get("userId") or "")
+            doc_phone = "".join(filter(str.isdigit, str(eq_doc.get("phone") or eq_doc.get("contactPhone") or "")))
+            if (auth_uid and doc_owner == auth_uid) or (auth_phone and doc_phone and doc_phone == auth_phone):
+                owned = True
 
-    global _fleet_availability
+        if not owned:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden: Only the equipment provider owner or an admin can update machine availability"
+            )
+
     available = bool(payload.get("available", True))
-    _fleet_availability[equipment_id] = available
+    now_iso = datetime.now().isoformat()
 
-    # Also update in MongoDB if available
+    # 3. Update in MongoDB equipment_catalog (authoritative)
+    if db_instance.db is not None:
+        try:
+            await db_instance.db["equipment_catalog"].update_one(
+                {"$or": [{"id": equipment_id}, {"equipment_id": equipment_id}]},
+                {"$set": {"available": available, "updatedAt": now_iso}}
+            )
+        except Exception as err:
+            print(f"⚠️ [EquipmentAvailability] Mongo update notice: {err}")
+
+    # 4. Update legacy equipment_fleet_status for compatibility
     if db_instance.db is not None:
         try:
             await db_instance.db["equipment_fleet_status"].update_one(
                 {"equipment_id": equipment_id},
-                {"$set": {"available": available, "updatedAt": datetime.now().isoformat()}},
+                {"$set": {"available": available, "updatedAt": now_iso}},
                 upsert=True
             )
         except Exception:
             pass
+
+    # 5. Update in-memory & disk catalog
+    global _in_memory_catalog, _fleet_availability
+    _load_disk_catalog()
+    for item in _in_memory_catalog:
+        if item.get("id") == equipment_id or item.get("equipment_id") == equipment_id:
+            item["available"] = available
+            item["updatedAt"] = now_iso
+    _save_disk_catalog()
+
+    # 6. Update in-memory cache
+    _fleet_availability[equipment_id] = available
 
     return {
         "success": True,
         "equipment_id": equipment_id,
         "available": available
     }
+
+
+# ─────────────────────────────────────────────────────────────
+# Provider Online / Offline Status Endpoints (H-3)
+# ─────────────────────────────────────────────────────────────
+async def _extract_optional_user(authorization: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split("Bearer ", 1)[1].strip()
+    try:
+        from backend.app.core.security import decode_access_token
+        payload = await decode_access_token(token)
+        if not payload:
+            return None
+        user_id = payload.get("sub") if isinstance(payload, dict) else payload
+        if not user_id:
+            return None
+        if db_instance.db is not None:
+            user = await db_instance.db["users"].find_one({"_id": ObjectId(user_id)})
+            if user:
+                user["id"] = str(user["_id"])
+                return user
+        return {"id": str(user_id), "role": "equipment_provider"}
+    except Exception:
+        return None
+
+
+@router.get("/provider/status")
+async def get_provider_status(
+    provider_id: Optional[str] = Query(None, description="Target provider user ID"),
+    phone: Optional[str] = Query(None, description="Target provider phone number"),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Get server-backed online/offline status for a provider.
+    Accessible with provider_id / phone query or via authenticated session.
+    Never defaults unknown or missing status to True.
+    """
+    target_id = provider_id
+    clean_phone = "".join(filter(str.isdigit, str(phone or "")))
+
+    current_user = await _extract_optional_user(authorization)
+
+    # If no specific provider queried, require authenticated user
+    if not target_id and not clean_phone:
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required or provider query parameter ('provider_id' / 'phone') must be provided"
+            )
+        target_id = str(current_user.get("id") or current_user.get("_id") or "")
+        clean_phone = "".join(filter(str.isdigit, str(current_user.get("phone") or current_user.get("mobile") or "")))
+
+    is_online: Optional[bool] = None
+    found = False
+
+    # 1. Check MongoDB provider_status collection
+    if db_instance.db is not None:
+        try:
+            query = {}
+            if target_id and clean_phone:
+                query = {"$or": [{"provider_id": str(target_id)}, {"phone": clean_phone}]}
+            elif target_id:
+                query = {"provider_id": str(target_id)}
+            elif clean_phone:
+                query = {"phone": clean_phone}
+
+            p_doc = await db_instance.db["provider_status"].find_one(query)
+            if p_doc and "is_online" in p_doc:
+                is_online = bool(p_doc["is_online"])
+                found = True
+        except Exception:
+            pass
+
+    # 2. Check MongoDB users collection
+    if not found and db_instance.db is not None:
+        try:
+            user_q = {}
+            if target_id:
+                user_q = {"$or": [{"id": str(target_id)}]}
+                if ObjectId.is_valid(str(target_id)):
+                    user_q["$or"].append({"_id": ObjectId(str(target_id))})
+            if clean_phone:
+                if "$or" not in user_q:
+                    user_q = {"$or": []}
+                user_q["$or"].extend([{"phone": clean_phone}, {"mobile": clean_phone}])
+
+            if user_q:
+                u_doc = await db_instance.db["users"].find_one(user_q)
+                if u_doc:
+                    if "provider_profile" in u_doc and isinstance(u_doc["provider_profile"], dict) and "is_online" in u_doc["provider_profile"]:
+                        is_online = bool(u_doc["provider_profile"]["is_online"])
+                        found = True
+                    elif "is_online" in u_doc:
+                        is_online = bool(u_doc["is_online"])
+                        found = True
+        except Exception:
+            pass
+
+    # 3. Check disk / in-memory status store
+    if not found:
+        _load_disk_provider_status()
+        if target_id and str(target_id) in _provider_status_store:
+            is_online = bool(_provider_status_store[str(target_id)])
+            found = True
+        elif clean_phone and clean_phone in _provider_status_store:
+            is_online = bool(_provider_status_store[clean_phone])
+            found = True
+
+    # Critical requirement: NEVER default unknown to true
+    if not found or is_online is None:
+        return {
+            "success": True,
+            "provider_id": str(target_id or clean_phone or "unknown"),
+            "is_online": False,
+            "status": "unknown"
+        }
+
+    return {
+        "success": True,
+        "provider_id": str(target_id or clean_phone or ""),
+        "is_online": is_online,
+        "status": "online" if is_online else "offline"
+    }
+
+
+@router.patch("/provider/status")
+async def update_provider_status(
+    payload: Dict[str, Any] = Body(...),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Update server-backed online/offline status for a provider.
+    Requires provider or admin role.
+    Providers can only modify their own status.
+    """
+    if not (_is_admin(current_user) or _is_provider(current_user)):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Only equipment providers and admins can update provider status"
+        )
+
+    auth_uid = str(current_user.get("id") or current_user.get("_id") or "")
+    target_id = payload.get("provider_id") or payload.get("providerId") or auth_uid
+
+    if not _is_admin(current_user) and str(target_id) != auth_uid:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Cannot modify another provider's status"
+        )
+
+    if "is_online" in payload:
+        is_online = bool(payload["is_online"])
+    elif "online" in payload:
+        is_online = bool(payload["online"])
+    elif "isOnline" in payload:
+        is_online = bool(payload["isOnline"])
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing required boolean field 'is_online'"
+        )
+
+    now_iso = datetime.now().isoformat()
+    clean_phone = "".join(filter(str.isdigit, str(current_user.get("phone") or current_user.get("mobile") or "")))
+
+    # 1. Update in MongoDB provider_status collection
+    if db_instance.db is not None:
+        try:
+            update_data = {
+                "provider_id": str(target_id),
+                "is_online": is_online,
+                "updatedAt": now_iso
+            }
+            if clean_phone:
+                update_data["phone"] = clean_phone
+            await db_instance.db["provider_status"].update_one(
+                {"provider_id": str(target_id)},
+                {"$set": update_data},
+                upsert=True
+            )
+        except Exception as e:
+            print(f"⚠️ [ProviderStatus] Mongo status update notice: {e}")
+
+    # 2. Update in MongoDB users collection
+    if db_instance.db is not None:
+        try:
+            from bson import ObjectId
+            u_query = {"$or": [{"id": str(target_id)}]}
+            if ObjectId.is_valid(str(target_id)):
+                u_query["$or"].append({"_id": ObjectId(str(target_id))})
+            await db_instance.db["users"].update_one(
+                u_query,
+                {"$set": {
+                    "provider_profile.is_online": is_online,
+                    "is_online": is_online,
+                    "updatedAt": now_iso
+                }}
+            )
+        except Exception:
+            pass
+
+    # 3. Update in-memory & disk store
+    global _provider_status_store
+    _load_disk_provider_status()
+    _provider_status_store[str(target_id)] = is_online
+    if clean_phone:
+        _provider_status_store[clean_phone] = is_online
+    _save_disk_provider_status()
+
+    return {
+        "success": True,
+        "provider_id": str(target_id),
+        "is_online": is_online,
+        "status": "online" if is_online else "offline",
+        "updatedAt": now_iso
+    }
+
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1325,6 +1776,7 @@ async def get_equipment_catalog(
     village: Optional[str] = Query(None, description="Filter by village"),
     district: Optional[str] = Query(None, description="Filter by district"),
     provider_phone: Optional[str] = Query(None, description="Filter by provider phone"),
+    provider_id: Optional[str] = Query(None, description="Filter by provider ID"),
     language: Optional[str] = Query(None, description="Active language code for localized description")
 ):
     """
@@ -1336,6 +1788,7 @@ async def get_equipment_catalog(
     vill_str = village if isinstance(village, str) else None
     dist_str = district if isinstance(district, str) else None
     prov_str = provider_phone if isinstance(provider_phone, str) else None
+    prov_id_str = provider_id if isinstance(provider_id, str) else None
     lang_str = language if isinstance(language, str) else None
 
     if db_instance.db is not None:
@@ -1345,6 +1798,8 @@ async def get_equipment_catalog(
                 query["category"] = {"$regex": f"^{cat_str}$", "$options": "i"}
             if dist_str:
                 query["district"] = {"$regex": dist_str, "$options": "i"}
+            if prov_id_str:
+                query["$or"] = [{"providerId": prov_id_str}, {"owner_id": prov_id_str}, {"userId": prov_id_str}]
             cursor = db_instance.db["equipment_catalog"].find(query).sort("createdAt", -1)
             docs = await cursor.to_list(length=200)
             for doc in docs:
@@ -1373,8 +1828,17 @@ async def get_equipment_catalog(
     if prov_str:
         p_clean = "".join(filter(str.isdigit, prov_str))
         result = [c for c in result if p_clean in "".join(filter(str.isdigit, str(c.get("phone") or c.get("contactPhone") or "")))]
+    if prov_id_str:
+        result = [c for c in result if str(c.get("providerId") or c.get("owner_id") or c.get("userId") or "") == prov_id_str]
 
+    # Authoritative availability sync across all items
     for item in result:
+        eq_id = str(item.get("id") or item.get("equipment_id") or "")
+        if eq_id in _fleet_availability:
+            item["available"] = bool(_fleet_availability[eq_id])
+        elif "available" not in item:
+            item["available"] = True
+
         orig_d = item.get("original_description") or item.get("description", "")
         item["original_description"] = orig_d
         item["description"] = orig_d
