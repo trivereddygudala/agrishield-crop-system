@@ -154,7 +154,8 @@ const UploadImagePage = () => {
     compressionInfo
   } = currentTabState;
 
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const currentModule = SCAN_MODULES.find(m => m.id === activeTab);
   const currentModuleTitle = isTe ? currentModule?.teluguTitle : (currentModule?.titleKey ? t(currentModule.titleKey, currentModule.defaultTitle) : currentModule?.defaultTitle);
 

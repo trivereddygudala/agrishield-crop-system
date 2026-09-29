@@ -52,7 +52,7 @@ export default function LanguageSelectModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const isTe = activeCode === 'te';
+  // 7-language support using t()
 
   return (
     <AnimatePresence>
@@ -77,16 +77,14 @@ export default function LanguageSelectModal({ isOpen, onClose }) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                    {isTe ? 'భాషా ప్రాధాన్యతలు & సెట్టింగ్‌లు' : 'Language Preferences & Settings'}
+                    {t('languages_modal.preferences_title', 'Language Preferences & Settings')}
                   </h3>
                   <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 shadow-xs">
                     ⚡ 1-Tap Toggle
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-white/60 mt-0.5 truncate">
-                  {isTe 
-                    ? 'మీ ప్రాధాన్య ప్రాంతీయ భాషను ఎంచుకోండి. వెంటనే సిస్టమ్ అంతా మారుతుంది.'
-                    : 'Select your preferred language. The entire website updates instantly.'}
+                  {t('languages_modal.preferences_desc', 'Select your preferred language. The entire website updates instantly.')}
                 </p>
               </div>
             </div>
@@ -104,7 +102,7 @@ export default function LanguageSelectModal({ isOpen, onClose }) {
           <div className="px-5 py-3 bg-emerald-500/15 dark:bg-emerald-500/10 border-b border-emerald-500/25 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <span className="text-slate-600 dark:text-slate-300 font-bold">
-                {isTe ? 'ప్రస్తుత భాష:' : 'Active Language:'}
+                {t('languages_modal.active_language_label', 'Active Language:')}
               </span>
               <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500 text-slate-950 font-black flex items-center gap-1 shadow-2xs">
                 <span>{currentLang.flag}</span>
@@ -114,17 +112,17 @@ export default function LanguageSelectModal({ isOpen, onClose }) {
             </div>
             <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-extrabold hidden sm:inline flex items-center gap-1">
               <CheckCircle className="w-3.5 h-3.5" />
-              <span>{isTe ? 'లైవ్ మార్పులు తక్షణమే వర్తిస్తాయి' : 'Live updates apply immediately'}</span>
+              <span>{t('languages_modal.live_updates_note', 'Live updates apply immediately')}</span>
             </span>
           </div>
 
           {/* Grid Title */}
           <div className="px-5 pt-3 pb-1 flex items-center justify-between">
             <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-white/50">
-              {isTe ? 'అందుబాటులో ఉన్న భాషలు (13 ప్రాంతీయ భాషలు)' : 'Available Languages (13 Regional Locales)'}
+              {t('languages_modal.available_languages_title', 'Available Languages (Regional Locales)')}
             </h4>
             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-              {isTe ? 'కార్డుపై ట్యాప్ చేసి యాక్టివేట్ చేయండి' : 'Tap any card to activate'}
+              {t('languages_modal.tap_card_prompt', 'Tap any card to activate')}
             </span>
           </div>
 
@@ -218,12 +216,12 @@ export default function LanguageSelectModal({ isOpen, onClose }) {
                         {isCurrentlyActive ? (
                           <>
                             <Check className="w-4 h-4 stroke-[3]" />
-                            <span>{isTe ? '✓ సక్రియంగా ఉంది (Active)' : '✓ Active Language'}</span>
+                            <span>{t('languages_modal.active_badge', '✓ Active Language')}</span>
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>{isTe ? 'ఈ భాషను ఎంచుకోండి' : 'Activate Language'}</span>
+                            <span>{t('languages_modal.activate_btn', 'Activate Language')}</span>
                           </>
                         )}
                       </button>
@@ -237,7 +235,7 @@ export default function LanguageSelectModal({ isOpen, onClose }) {
                         className="absolute inset-0 bg-emerald-500/25 backdrop-blur-xs rounded-2xl flex items-center justify-center gap-2 text-emerald-900 dark:text-emerald-100 font-black text-sm z-20"
                       >
                         <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        <span>{isTe ? 'భాష మార్చబడింది!' : 'Language Switched!'}</span>
+                        <span>{t('languages_modal.switched_success', 'Language Switched!')}</span>
                       </motion.div>
                     )}
                   </motion.div>

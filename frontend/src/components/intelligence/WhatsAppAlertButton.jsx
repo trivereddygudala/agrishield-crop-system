@@ -13,7 +13,7 @@ export default function WhatsAppAlertButton({
   className = ""
 }) {
   const { i18n } = useTranslation();
-  const isTe = i18n.language === 'te';
+  // 7-language support using t()
   const isHi = i18n.language === 'hi';
   const [copied, setCopied] = useState(false);
 

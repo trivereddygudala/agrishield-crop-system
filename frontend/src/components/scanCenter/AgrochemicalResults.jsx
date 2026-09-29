@@ -351,7 +351,7 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     if (rawCategory === 'Fertilizer' || text.includes('fertiliz') || text.includes('urea') || text.includes('npk') || text.includes('nutrient') || text.includes('పోషక') || text.includes('ఎరువు')) {
       return {
         type: 'Fertilizer',
-        label: activeLang === 'te' ? 'ఎరువు & మొక్కల పోషణ' : activeLang === 'ta' ? 'உரம் & தாவர ஊட்டச்சத்து' : activeLang === 'hi' ? 'उर्वरक एवं पादप पोषण' : 'Fertilizer & Plant Nutrition',
+        label: ({ te: 'ఎరువు & మొక్కల పోషణ', ta: 'உரம் & தாவர ஊட்டச்சத்து', hi: 'उर्वरक एवं पादप पोषण', kn: 'ಗೊಬ್ಬರ ಮತ್ತು ಸಸ್ಯ ಪೋಷಣೆ', ml: 'വളവും സസ്യപോഷണവും', or: 'ଖତ ଏବଂ ଉଦ୍ଭିଦ ପୋଷଣ', en: 'Fertilizer & Plant Nutrition' })[activeLang] || 'Fertilizer & Plant Nutrition',
         icon: '🌱',
         badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-emerald-950/40',
         textColor: 'text-emerald-400'
@@ -360,7 +360,7 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     if (rawCategory === 'Fungicide' || text.includes('fungicid') || text.includes('blight') || text.includes('mancozeb') || text.includes('saaf') || text.includes('copper') || text.includes('mildew') || text.includes('శిలీంధ్ర') || text.includes('తెగులు')) {
       return {
         type: 'Fungicide',
-        label: activeLang === 'te' ? 'శిలీంద్ర సంహారిణి (తెగుళ్ల నివారణ)' : activeLang === 'ta' ? 'பூஞ்சைக்கொல்லி (பூஞ்சை நோய் தடுப்பு)' : activeLang === 'hi' ? 'कवकनाशी (फफूंद रोग नियंत्रण)' : 'Fungicide (Fungal Disease Control)',
+        label: ({ te: 'శిలీంద్ర సంహారిణి (తెగుళ్ల నివారణ)', ta: 'பூஞ்சைக்கொல்லி (பூஞ்சை நோய் தடுப்பு)', hi: 'कवकनाशी (फफूंद रोग नियंत्रण)', kn: 'ಶಿಲೀಂಧ್ರನಾಶಕ (ರೋಗ ನಿಯಂತ್ರಣ)', ml: 'കുമിൾനാശിനി (രോഗ നിയന്ത്രണം)', or: 'କବକନାଶକ (ରୋଗ ନିୟନ୍ତ୍ରଣ)', en: 'Fungicide (Fungal Disease Control)' })[activeLang] || 'Fungicide (Fungal Disease Control)',
         icon: '🍄',
         badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-rose-950/40',
         textColor: 'text-rose-400'

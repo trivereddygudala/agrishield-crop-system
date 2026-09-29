@@ -1,3 +1,4 @@
+import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1719,7 +1720,7 @@ export default function ProviderDashboardPage() {
                             className="w-full py-2.5 px-3 rounded-xl border border-rose-300 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-all cursor-pointer"
                           >
                             <X className="w-4 h-4" />
-                            <span>{isTe ? 'తిరస్కరించండి' : 'Decline'}</span>
+                            <span>{t('provider_hub.decline', 'Decline')}</span>
                           </button>
                         </div>
                       )}

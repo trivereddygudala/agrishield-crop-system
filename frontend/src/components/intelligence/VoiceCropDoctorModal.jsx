@@ -599,10 +599,10 @@ export const VoiceCropDoctorModal = ({
             <div className="mt-2 text-center">
               <span className="text-xs font-bold text-white/90 block">
                 {isListening 
-                  ? (selectedLang === 'te' ? '🎙️ వింటున్నాను... మాట్లాడండి' : selectedLang === 'hi' ? '🎙️ सुन रहा हूँ... बोलिए' : selectedLang === 'ta' ? '🎙️ கேட்கிறேன்... பேசுங்கள்' : selectedLang === 'kn' ? '🎙️ ಕೇಳುತ್ತಿದ್ದೇನೆ... ಮಾತನಾಡಿ' : selectedLang === 'or' ? '🎙️ ଶୁଣୁଛି... କୁହନ୍ତୁ' : '🎙️ Listening to you... Speak freely')
+                  ? (selectedLang === 'te' ? '🎙️ వింటున్నాను... మాట్లాడండి' : selectedLang === 'hi' ? '🎙️ सुन रहा हूँ... बोलिए' : selectedLang === 'ta' ? '🎙️ கேட்கிறேன்... பேசுங்கள்' : selectedLang === 'kn' ? '🎙️ ಕೇಳುತ್ತಿದ್ದೇನೆ... ಮಾತನಾಡಿ' : selectedLang === 'or' ? '🎙️ ଶୁଣୁଛି... କୁହନ୍ତୁ' : selectedLang === 'ml' ? '🎙️ കേൾക്കുന്നു... സംസാരിക്കൂ' : '🎙️ Listening to you... Speak freely')
                   : isSpeaking
-                  ? (selectedLang === 'te' ? '🔊 అగ్రిషీల్డ్ లైవ్ మాట్లాడుతున్నారు...' : selectedLang === 'hi' ? '🔊 एग्रीशील्ड लाइव बोल रहा है...' : selectedLang === 'ta' ? '🔊 அக்ரிஷீல்ட் லைவ் பேசுகிறது...' : selectedLang === 'kn' ? '🔊 ಅಗ್ರಿಶೀಲ್ಡ್ ಲೈವ್ ಮಾತನಾಡುತ್ತಿದೆ...' : selectedLang === 'or' ? '🔊 ଏଗ୍ରିଶିଲ୍ଡ ଲାଇଭ୍ ଉତ୍ତର ଦେଉଛି...' : '🔊 AgriShield Live speaking...')
-                  : (selectedLang === 'te' ? 'మైక్ నొక్కి మాట్లాడండి' : selectedLang === 'hi' ? 'माइक दबाकर बात करें' : selectedLang === 'ta' ? 'மைக் தொட்டு பேசவும்' : selectedLang === 'kn' ? 'ಮೈಕ್ ಒತ್ತಿ ಮಾತನಾಡಿ' : selectedLang === 'or' ? 'ମାଇକ୍ ଛୁଇଁ କଥାବାର୍ତ୍ତା କରନ୍ତୁ' : 'Tap orb to start talking')}
+                  ? (selectedLang === 'te' ? '🔊 అగ్రిషీల్డ్ లైవ్ మాట్లాడుతున్నారు...' : selectedLang === 'hi' ? '🔊 एग्रीशील्ड लाइव बोल रहा है...' : selectedLang === 'ta' ? '🔊 அக்ரிஷீல்ட் லைவ் பேசுகிறது...' : selectedLang === 'kn' ? '🔊 ಅಗ್ರಿಶೀಲ್ಡ್ ಲೈವ್ ಮಾತನಾಡುತ್ತಿದೆ...' : selectedLang === 'or' ? '🔊 ଏଗ୍ରିଶିଲ୍ଡ ଲାଇଭ୍ ଉତ୍ତର ଦେଉଛି...' : selectedLang === 'ml' ? '🔊 അഗ്രിഷീൽഡ് സംസാരിക്കുന്നു...' : '🔊 AgriShield Live speaking...')
+                  : (selectedLang === 'te' ? 'మైక్ నొక్కి మాట్లాడండి' : selectedLang === 'hi' ? 'माइक दबाकर बात करें' : selectedLang === 'ta' ? 'மைக் தொட்டு பேசவும்' : selectedLang === 'kn' ? 'ಮೈಕ್ ಒತ್ತಿ ಮಾತನಾಡಿ' : selectedLang === 'or' ? 'ମାଇକ୍ ଛୁଇଁ କଥାବାର୍ତ୍ତା କରନ୍ତୁ' : selectedLang === 'ml' ? 'മൈക്ക് തൊട്ട് സംസാരിക്കുക' : 'Tap orb to start talking')}
               </span>
               <span className="text-[10px] text-emerald-400/80 font-medium block mt-0.5">
                 Human-grade conversational voice · Natural regional pronunciation
@@ -646,7 +646,7 @@ export const VoiceCropDoctorModal = ({
                           title="Listen again"
                         >
                           <Volume2 className="w-3 h-3" />
-                          <span>{selectedLang === 'te' ? 'వినండి' : 'Listen'}</span>
+                          <span>{({ te: 'వినండి', hi: 'सुनें', ta: 'கேளுங்கள்', kn: 'ಕೇಳಿ', ml: 'കേൾക്കുക', or: 'ଶୁଣନ୍ତୁ', en: 'Listen' })[selectedLang] || 'Listen'}</span>
                         </button>
                       </div>
                     )}
@@ -659,7 +659,7 @@ export const VoiceCropDoctorModal = ({
               <div className="flex items-center gap-2 text-xs text-white/50 p-2">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
                 <span>
-                  {selectedLang === 'te' ? 'సమాధానం సిద్ధం చేస్తోంది...' : selectedLang === 'hi' ? 'उत्तर तैयार हो रहा है...' : 'Thinking...'}
+                  {({ te: 'సమాధానం సిద్ధం చేస్తోంది...', hi: 'उत्तर तैयार हो रहा है...', ta: 'பதில் தயாராகிறது...', kn: 'ಉತ್ತರ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...', ml: 'ഉത്തരം തയ്യാറാക്കുന്നു...', or: 'ଉତ୍ତର ପ୍ରସ୍ତୁତ ହେଉଛି...', en: 'Thinking...' })[selectedLang] || 'Thinking...'}
                 </span>
               </div>
             )}

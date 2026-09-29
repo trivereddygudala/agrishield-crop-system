@@ -64,7 +64,8 @@ const MenuCard = ({ icon: Icon, label, description, path, iconColor, iconBg, acc
 
 const MorePage = () => {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { hardwareMode, setHardwareMode } = useHardwareMode();
@@ -74,7 +75,7 @@ const MorePage = () => {
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
 
-  const currentLang = getLanguageByCode(i18n.language);
+  const currentLangObj = getLanguageByCode(i18n.language);
 
   const FARMING_TOOLS = [
     {
@@ -179,7 +180,7 @@ const MorePage = () => {
       iconColor: 'text-teal-600 dark:text-teal-400',
       iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
       accent: 'border-l-teal-500',
-      badge: currentLang.nativeName
+      badge: currentLangObj?.nativeName || 'English'
     },
     {
       icon: User,
@@ -296,7 +297,7 @@ const MorePage = () => {
       iconColor: 'text-teal-600 dark:text-teal-400',
       iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
       accent: 'border-l-teal-500',
-      badge: currentLang.nativeName
+      badge: currentLangObj?.nativeName || 'English'
     },
   ];
 
@@ -359,7 +360,7 @@ const MorePage = () => {
       iconColor: 'text-teal-600 dark:text-teal-400',
       iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
       accent: 'border-l-teal-500',
-      badge: currentLang.nativeName
+      badge: currentLangObj?.nativeName || 'English'
     },
     {
       icon: Bell,

@@ -1,3 +1,4 @@
+import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -109,7 +110,8 @@ export default function GovernmentSchemeNavigator({
   onClose 
 }) {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
 
   const [selectedFarmerCategory, setSelectedFarmerCategory] = useState('small_marginal'); // 'small_marginal', 'tenant', 'all'
   const [selectedScheme, setSelectedScheme] = useState(SCHEMES_DATABASE[2]); // Default to APMIP Drip 90% Subsidy

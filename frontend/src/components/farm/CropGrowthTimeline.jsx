@@ -1,3 +1,4 @@
+import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -32,7 +33,8 @@ export default function CropGrowthTimeline({
   onClose 
 }) {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
 
   // Calculate Days After Sowing (DAS)
   const das = useMemo(() => {

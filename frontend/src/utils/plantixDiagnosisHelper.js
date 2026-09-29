@@ -12,7 +12,7 @@ export const getDiseaseCategory = (cropName = '', diseaseName = '', lang = 'te')
     return {
       key: 'healthy',
       icon: '🌿',
-      label: lang === 'te' ? 'ఆరోగ్యకరమైన పంట' : lang === 'hi' ? 'स्वस्थ फसल' : lang === 'ta' ? 'ஆரோக்கியமான பயிர்' : 'Healthy Crop',
+      label: ({ te: 'ఆరోగ్యకరమైన పంట', hi: 'स्वस्थ फसल', ta: 'ஆரோக்கியமான பயிர்', kn: 'ಆರೋಗ್ಯಕರ ಬೆಳೆ', ml: 'ആരോഗ്യമുള്ള വിള', or: 'ସୁସ୍ଥ ଫସଲ', en: 'Healthy Crop' })[lang] || 'Healthy Crop',
       color: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800'
     };
   }
@@ -24,7 +24,7 @@ export const getDiseaseCategory = (cropName = '', diseaseName = '', lang = 'te')
     return {
       key: 'pest',
       icon: '🐛',
-      label: lang === 'te' ? 'కీటకం' : lang === 'hi' ? 'कीट' : lang === 'ta' ? 'பூச்சி' : 'Insect / Pest',
+      label: ({ te: 'కీటకం', hi: 'कीट', ta: 'பூச்சி', kn: 'ಕೀಟ', ml: 'കീടം', or: 'କୀଟ', en: 'Insect / Pest' })[lang] || 'Insect / Pest',
       color: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-800'
     };
   }
@@ -33,7 +33,7 @@ export const getDiseaseCategory = (cropName = '', diseaseName = '', lang = 'te')
     return {
       key: 'virus',
       icon: '🧬',
-      label: lang === 'te' ? 'వైరస్' : lang === 'hi' ? 'वायरस' : lang === 'ta' ? 'வைரஸ்' : 'Viral Infection',
+      label: ({ te: 'వైరస్', hi: 'वायरस', ta: 'வைரஸ்', kn: 'ವೈರಸ್', ml: 'വൈറസ്', or: 'ଭୂତାଣୁ', en: 'Viral Infection' })[lang] || 'Viral Infection',
       color: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/70 dark:text-purple-300 dark:border-purple-800'
     };
   }
@@ -42,7 +42,7 @@ export const getDiseaseCategory = (cropName = '', diseaseName = '', lang = 'te')
     return {
       key: 'bacteria',
       icon: '🧫',
-      label: lang === 'te' ? 'బ్యాక్టీరియా' : lang === 'hi' ? 'जीवाणु' : lang === 'ta' ? 'பாக்டீரியா' : 'Bacterial Pathogen',
+      label: ({ te: 'బ్యాక్టీరియా', hi: 'जीवाणु', ta: 'பாக்டீரியா', kn: 'ಬ್ಯಾಕ್ಟೀರಿಯಾ', ml: 'ബാക്ടീരിയ', or: 'ଜୀବାଣୁ', en: 'Bacterial Pathogen' })[lang] || 'Bacterial Pathogen',
       color: 'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-950/70 dark:text-cyan-300 dark:border-cyan-800'
     };
   }
@@ -51,7 +51,7 @@ export const getDiseaseCategory = (cropName = '', diseaseName = '', lang = 'te')
     return {
       key: 'deficiency',
       icon: '⚡',
-      label: lang === 'te' ? 'పోషక లోపం' : lang === 'hi' ? 'पोषक तत्व कमी' : lang === 'ta' ? 'ஊட்டச்சத்து குறைபாடு' : 'Nutrient Deficiency',
+      label: ({ te: 'పోషక లోపం', hi: 'पोषक तत्व कमी', ta: 'ஊட்டச்சத்து குறைபாடு', kn: 'ಪೋಷಕಾಂಶಗಳ ಕೊರತೆ', ml: 'പോഷകക്കുറവ്', or: 'ପୋଷକ ତତ୍ତ୍ୱ ଅଭାବ', en: 'Nutrient Deficiency' })[lang] || 'Nutrient Deficiency',
       color: 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/70 dark:text-yellow-300 dark:border-yellow-800'
     };
   }
@@ -60,7 +60,7 @@ export const getDiseaseCategory = (cropName = '', diseaseName = '', lang = 'te')
   return {
     key: 'fungus',
     icon: '🍄',
-    label: lang === 'te' ? 'శిలీంధ్రం' : lang === 'hi' ? 'फफूंद' : lang === 'ta' ? 'பூஞ்சை' : 'Fungal Disease',
+    label: ({ te: 'శిలీంధ్రం', hi: 'फफूंद', ta: 'பூஞ்சை', kn: 'ಶಿಲೀಂಧ್ರ', ml: 'ഫംഗസ്', or: 'କବକ', en: 'Fungal Disease' })[lang] || 'Fungal Disease',
     color: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800'
   };
 };

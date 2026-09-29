@@ -1,3 +1,4 @@
+import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -115,7 +116,8 @@ const ScanImageUploader = ({
   onOrganChange
 }) => {
   const { t, i18n } = useTranslation();
-  const isTelugu = (i18n.language || '').toLowerCase().startsWith('te');
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTelugu = currentLang === 'te';
 
   const ORGAN_OPTIONS = [
     { id: 'leaf', key: 'uploader.organ_leaf', labelEn: 'Leaf / Foliage', labelTe: 'ఆకు / పచ్చదనం', icon: '🍃' },
@@ -359,7 +361,8 @@ const ScanImageUploader = ({
     const computedRatio = Math.min(100, Math.round((greenVegPixels / totalCenterPixels) * 100));
     setLeafRatio(computedRatio);
 
-    const isTelugu = (i18n.language || '').toLowerCase().startsWith('te');
+    const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTelugu = currentLang === 'te';
 
     // 1. Lighting quality check
     if (luminance < 38) {
@@ -1377,7 +1380,7 @@ const ScanImageUploader = ({
                               : 'bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
                           }`}
                         >
-                          {isTelugu ? opt.labelTe : opt.labelEn}
+                          {getLocalizedField(opt, 'label', currentLang)}
                         </button>
                       ))}
                     </div>
@@ -1404,7 +1407,7 @@ const ScanImageUploader = ({
                               : 'bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
                           }`}
                         >
-                          {isTelugu ? opt.labelTe : opt.labelEn}
+                          {getLocalizedField(opt, 'label', currentLang)}
                         </button>
                       ))}
                     </div>
@@ -1431,7 +1434,7 @@ const ScanImageUploader = ({
                               : 'bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
                           }`}
                         >
-                          {isTelugu ? opt.labelTe : opt.labelEn}
+                          {getLocalizedField(opt, 'label', currentLang)}
                         </button>
                       ))}
                     </div>

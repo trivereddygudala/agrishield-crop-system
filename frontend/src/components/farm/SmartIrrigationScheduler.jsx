@@ -30,7 +30,8 @@ export default function SmartIrrigationScheduler({
   onClose
 }) {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
 
   const [telemetry, setTelemetry] = useState(null);
   const [isLoading, setIsLoading] = useState(false);

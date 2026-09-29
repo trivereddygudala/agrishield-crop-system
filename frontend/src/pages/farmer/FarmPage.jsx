@@ -28,7 +28,8 @@ const FarmPage = () => {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const { 
     activeFarm, farms, archivedFarms, createFarm, 
     updateFarm: saveFarmEdit, deleteFarm, unarchiveFarm,

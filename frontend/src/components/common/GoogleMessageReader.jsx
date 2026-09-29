@@ -1,3 +1,4 @@
+import { SPEECH_LANG_MAP } from '../../utils/localizationHelper';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -441,14 +442,16 @@ export default function GoogleMessageReader({
   // ── Enhanced Telugu Speech-to-Text Microphone State & Engine ──
   const [isListening, setIsListening] = useState(false);
   const [speechLanguage, setSpeechLanguage] = useState(() => {
-    return isTelugu ? 'te-IN' : 'en-IN';
+    const cleanCode = (currentLang || 'en').split('-')[0].toLowerCase();
+    return SPEECH_LANG_MAP[cleanCode] || 'en-IN';
   });
   const [liveSpeechTranscript, setLiveSpeechTranscript] = useState('');
   const recognitionRef = useRef(null);
 
   // Sync speech recognition language when reader language changes
   useEffect(() => {
-    setSpeechLanguage(isTelugu ? 'te-IN' : 'en-IN');
+    const cleanCode = (currentLang || 'en').split('-')[0].toLowerCase();
+    setSpeechLanguage(SPEECH_LANG_MAP[cleanCode] || 'en-IN');
   }, [isTelugu]);
 
   const toggleSpeechRecognition = () => {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, AlertCircle, Info } from 'lucide-react';
@@ -20,6 +21,9 @@ export const SUPPORTED_AI_CROPS = [
 ];
 
 export default function FarmerCropPicker({ selectedCrops = [], onChange, isTe = false, maxCrops = 8 }) {
+  const { t, i18n } = useTranslation();
+  const effectiveIsTe = isTe || i18n?.language === 'te';
+
   const toggleCrop = (cropId) => {
     if (selectedCrops.includes(cropId)) {
       onChange(selectedCrops.filter((id) => id !== cropId));
@@ -39,13 +43,11 @@ export default function FarmerCropPicker({ selectedCrops = [], onChange, isTe = 
       <div className="flex items-center justify-between">
         <div>
           <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <span>{isTe ? 'మీరు పండించే 8 ప్రధాన పంటలను ఎంచుకోండి' : 'Select Your 8 Primary Crops to Scan'}</span>
+            <span>{t('crop_picker.select_crops_title', 'Select Your 8 Primary Crops to Scan')}</span>
             <span className="text-rose-500">*</span>
           </label>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {isTe
-              ? 'ఈ ఎంపిక బ్యాకెండ్ మోడల్ వేగాన్ని పెంచి, మీ పంటల కోసం ఖచ్చితమైన AI నిర్ధారణ ఫలితాలను అందిస్తుంది.'
-              : 'Pre-configures AI disease pipelines for your crops, reduces server load, and speeds up scan results.'}
+            {t('crop_picker.select_crops_desc', 'Pre-configures AI disease pipelines for your crops, reduces server load, and speeds up scan results.')}
           </p>
         </div>
 
@@ -57,7 +59,7 @@ export default function FarmerCropPicker({ selectedCrops = [], onChange, isTe = 
                 : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
             }`}
           >
-            {selectedCrops.length} / {maxCrops} {isTe ? 'ఎంచుకున్నారు' : 'Selected'}
+            {selectedCrops.length} / {maxCrops} {t('crop_picker.selected_label', 'Selected')}
           </span>
         </div>
       </div>
@@ -88,10 +90,10 @@ export default function FarmerCropPicker({ selectedCrops = [], onChange, isTe = 
               </div>
               <div className="min-w-0 flex-1 pr-4">
                 <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">
-                  {isTe ? crop.teluguName : crop.name}
+                  {effectiveIsTe ? crop.teluguName : crop.name}
                 </p>
                 <p className="text-[10px] text-slate-400 font-semibold truncate">
-                  {isTe ? crop.name : crop.category}
+                  {effectiveIsTe ? crop.name : crop.category}
                 </p>
               </div>
 
@@ -108,7 +110,7 @@ export default function FarmerCropPicker({ selectedCrops = [], onChange, isTe = 
       {selectedCrops.length === 0 && (
         <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
           <AlertCircle className="w-3.5 h-3.5" />
-          <span>{isTe ? 'దయచేసి కనీసం 1 పంటను ఎంచుకోండి (గరిష్టంగా 8).' : 'Please select at least 1 crop (up to 8).'}</span>
+          <span>{t('crop_picker.validation_error', 'Please select at least 1 crop (up to 8).')}</span>
         </p>
       )}
     </div>

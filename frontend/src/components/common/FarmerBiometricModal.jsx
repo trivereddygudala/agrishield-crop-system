@@ -23,8 +23,9 @@ export default function FarmerBiometricModal({
   successData = null, // { digital_key, biometric_hash, device_name }
   onSuccessDone
 }) {
-  const { i18n } = useTranslation();
-  const isTe = i18n.language === 'te';
+  const { i18n, t } = useTranslation();
+  const lang = (i18n.language || 'en').split('-')[0].toLowerCase();
+  const isTe = lang === 'te';
 
   if (!isOpen) return null;
 
@@ -74,10 +75,10 @@ export default function FarmerBiometricModal({
 
               <div>
                 <h3 className="text-xl font-black text-white">
-                  {isTe ? "వేలిముద్ర నమోదు విజయవంతమైంది!" : "Biometric Registered Successfully!"}
+                  {t('biometric.success_title', 'Biometric Registered Successfully!')}
                 </h3>
                 <p className="text-xs text-emerald-300 font-bold mt-1">
-                  {isTe ? "డిజిటల్ హాష్ రూపంలో ఖాతాలో భద్రపరచబడింది" : "Digitally Hashed & Linked to Your Cloud Account"}
+                  {t('biometric.success_desc', 'Digitally Hashed & Linked to Your Cloud Account')}
                 </p>
               </div>
 

@@ -1,3 +1,4 @@
+import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -93,7 +94,8 @@ const getEquipmentFallbackImage = (category, title = '') => {
 
 export default function EquipmentBookingPage() {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const navigate = useNavigate();
   const { activeFarm } = useFarm();
   const { user } = useAuth();

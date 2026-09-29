@@ -712,6 +712,7 @@ const getPlantDetails = (liveResult) => {
       ta: translateCrop(cropTitle, 'ta'),
       kn: translateCrop(cropTitle, 'kn'),
       ml: translateCrop(cropTitle, 'ml'),
+      or: translateCrop(cropTitle, 'or'),
       mr: translateCrop(cropTitle, 'mr'),
       gu: translateCrop(cropTitle, 'gu'),
       pa: translateCrop(cropTitle, 'pa'),

@@ -12,7 +12,8 @@ import API from '../../services/api';
 
 const DevicesPage = () => {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const [deviceData, setDeviceData] = useState({
     name: "ESP32-NODE-ALPHA",
     status: "offline",

@@ -49,7 +49,8 @@ export default function WhatsAppDiagnosisHub({
   onClose 
 }) {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
 
   const [activeSimulation, setActiveSimulation] = useState(SAMPLE_SIMULATIONS[0]);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);

@@ -10,7 +10,8 @@ let _cachedWeather = null;
 
 const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
   const { t, i18n } = useTranslation();
-  const isTe = i18n.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const { activeFarm } = useFarm();
 
   const [data, setData] = useState(_cachedWeather);
@@ -168,7 +169,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             {/* Status Badge */}
             <Badge variant={useLiveGps ? "healthy" : "info"} size="sm">
               <span className={`w-1.5 h-1.5 rounded-full mr-1 ${useLiveGps ? 'bg-emerald-500 animate-ping' : 'bg-sky-500 animate-pulse'}`} />
-              {useLiveGps ? (isTe ? 'లైవ్ ఫోన్ GPS' : 'Phone GPS') : (isTe ? 'పొలం లొకేషన్' : 'Farm Field')}
+              {useLiveGps ? (t('dashboard.weather.live_gps', 'Phone GPS')) : (t('dashboard.weather.farm', 'Farm Field'))}
             </Badge>
 
             {/* Refresh Button */}
@@ -177,7 +178,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               onClick={() => fetchWeather(true)} 
               disabled={refreshing || gpsLoading}
               className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-sky-500 transition-colors cursor-pointer"
-              title={isTe ? 'వాతావరణం రిఫ్రెష్ చేయండి' : 'Refresh Weather'}
+              title={t('dashboard.weather.sync', 'Refresh Weather')}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -196,7 +197,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
                   {Math.round(current.temperature)}°C
                 </span>
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                  ({isTe ? 'అనిపిస్తుంది' : 'Feels like'} {Math.round(current.feels_like || current.temperature + 2)}°C)
+                  ({t('dashboard.weather.feels_like', 'Feels like')} {Math.round(current.feels_like || current.temperature + 2)}°C)
                 </span>
               </div>
               <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 block mt-0.5">
@@ -210,7 +211,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-center">
             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-              {isTe ? 'గాలిలో తేమ' : 'Moisture (Humidity)'}
+              {t('dashboard.weather.humidity', 'Moisture (Humidity)')}
             </span>
             <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5 block">
               💧 {current.humidity}%
@@ -222,7 +223,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-center">
             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-              {isTe ? 'వర్ష సూచన' : 'Rain Chance Today'}
+              {t('dashboard.weather.rain_prob', 'Rain Chance Today')}
             </span>
             <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5 block">
               🌧️ {current.rain_probability}%
@@ -234,7 +235,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-center">
             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-              {isTe ? 'గాలి వేగం' : 'Wind Speed'}
+              {t('dashboard.weather.wind_speed', 'Wind Speed')}
             </span>
             <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5 block">
               💨 {current.wind_speed} km/h
@@ -246,7 +247,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-center">
             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-              {isTe ? 'ఎండ తీవ్రత' : 'Sun / UV Index'}
+              {t('dashboard.weather.uv_index', 'Sun / UV Index')}
             </span>
             <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5 block">
               ☀️ 6 / 10

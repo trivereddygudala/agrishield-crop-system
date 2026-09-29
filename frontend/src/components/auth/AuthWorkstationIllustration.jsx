@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, ShieldCheck, Zap, Activity, CheckCircle2 } from 'lucide-react';
 import authIllustrationImg from '../../assets/agrishield_auth_showcase.jpg';
 
 export default function AuthWorkstationIllustration({ role = 'farmer', isTe = false }) {
+  const { t } = useTranslation();
   return (
     <div className="relative w-full h-full min-h-[460px] lg:min-h-[580px] rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-50/90 via-purple-50/60 to-emerald-50/70 dark:from-[#0b1329] dark:via-[#0e1726] dark:to-[#081b14] border border-slate-200/90 dark:border-slate-800 flex flex-col justify-between p-4 sm:p-6 lg:p-7 shadow-xl">
       {/* Background Ambient Glows */}
@@ -20,7 +22,7 @@ export default function AuthWorkstationIllustration({ role = 'farmer', isTe = fa
         >
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
           <span className="text-xs font-black text-slate-800 dark:text-slate-100 tracking-wide">
-            {isTe ? 'అగ్రిషీల్డ్ AI ఇంటెలిజెన్స్' : 'AgriShield Autonomous AI'}
+            {t('auth_illust.ai_intel', 'AgriShield Autonomous AI')}
           </span>
         </motion.div>
 
@@ -33,8 +35,8 @@ export default function AuthWorkstationIllustration({ role = 'farmer', isTe = fa
           <Sparkles className="w-3.5 h-3.5 text-purple-500" />
           <span>
             {role === 'equipment_provider'
-              ? (isTe ? 'యంత్రాల అద్దె హబ్' : 'CHC Rental Fleet Network')
-              : (isTe ? '99.4% AI నిర్ధారణ ఖచ్చితత్వం' : '99.4% Scan Precision')}
+              ? (t('auth_illust.chc_network', 'CHC Rental Fleet Network'))
+              : (t('auth_illust.scan_precision', '99.4% Scan Precision'))}
           </span>
         </motion.div>
       </div>
@@ -75,10 +77,10 @@ export default function AuthWorkstationIllustration({ role = 'farmer', isTe = fa
       <div className="relative z-10 mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
         <span className="flex items-center gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>{isTe ? 'రైతులకు ఉచితం & భద్రత' : 'Direct Connect & Zero Brokerage'}</span>
+          <span>{t('auth_illust.direct_brokerage', 'Direct Connect & Zero Brokerage')}</span>
         </span>
         <span className="font-bold text-slate-700 dark:text-slate-300">
-          {isTe ? 'వ్యవసాయ స్మార్ట్ వేదిక' : 'Precision Farming Ecosystem'}
+          {t('auth_illust.smart_platform', 'Precision Farming Ecosystem')}
         </span>
       </div>
     </div>

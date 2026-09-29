@@ -15,7 +15,8 @@ import FieldBoundaryMap, {
 
 export default function FieldAreaCalculatorPage() {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const navigate = useNavigate();
 
   // Mode: 'satellite' (GPS Map & Satellite Pins) vs 'dimensions' (Manual Tape & Chain Measurements)

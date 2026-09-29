@@ -118,7 +118,7 @@ const FarmerWelcomeModal = () => {
   if (!isOpen) return null;
 
   const currentLangObj = LANGUAGES.find(l => l.code === selectedLang) || LANGUAGES[0];
-  const isTe = selectedLang === 'te';
+  // 7-language support using t()
   const slide = TUTORIAL_SLIDES[slideIdx];
 
   return (

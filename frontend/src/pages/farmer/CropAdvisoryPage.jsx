@@ -16,7 +16,8 @@ import { Badge } from '../../components/ui/index';
 const CropAdvisoryPage = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const { activeFarm } = useFarm();
 
   const farmId = activeFarm?.id || 1;

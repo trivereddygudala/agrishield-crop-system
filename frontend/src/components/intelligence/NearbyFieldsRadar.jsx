@@ -21,7 +21,8 @@ export default function NearbyFieldsRadar({
   onExpandStudio
 }) {
   const { t, i18n } = useTranslation();
-  const isTe = i18n.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
 
   const [radiusKm, setRadiusKm] = useState(5.0);
   const [loading, setLoading] = useState(true);
@@ -237,7 +238,7 @@ export default function NearbyFieldsRadar({
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              {isTe ? 'అన్నీ' : 'All'}
+              {t('common.all', 'All')}
             </button>
             <button
               type="button"
@@ -248,7 +249,7 @@ export default function NearbyFieldsRadar({
                   : 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40'
               }`}
             >
-              ⚠️ {isTe ? 'వ్యాధి సోకినవి' : 'Infected'}
+              ⚠️ {t('common.diseased', 'Infected')}
             </button>
             <button
               type="button"
@@ -259,7 +260,7 @@ export default function NearbyFieldsRadar({
                   : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
               }`}
             >
-              🌱 {isTe ? 'ఆరోగ్యకరమైనవి' : 'Healthy'}
+              🌱 {t('common.healthy', 'Healthy')}
             </button>
           </div>
         </div>
@@ -335,7 +336,7 @@ export default function NearbyFieldsRadar({
                       </div>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                        🌱 {isTe ? 'ఆరోగ్యం' : 'Healthy'}
+                        🌱 {t('common.healthy', 'Healthy')}
                       </span>
                     )}
                   </div>

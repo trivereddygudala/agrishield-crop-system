@@ -2761,7 +2761,8 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   const kbKey = keyMap[key] || (DISEASE_KB[key] ? key : 'early blight');
   
   const kbEntry = DISEASE_KB[kbKey] || DISEASE_KB['early blight'];
-  const language = (lang === 'te' || lang === 'hi') ? lang : 'en';
+  const cleanLang = (lang || 'en').split('-')[0].toLowerCase();
+  const language = DISEASE_KB[kbKey]?.[cleanLang] ? cleanLang : 'en';
   const data = kbEntry[language] || kbEntry.en;
 
   return {

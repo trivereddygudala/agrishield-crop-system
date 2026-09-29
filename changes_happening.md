@@ -1,8 +1,40 @@
 # AgriShield Project Changelog (changes_happening.md)
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
+## 2026-09-29 (v338) - B4 H-2: Complete 7-Language Frontend Localization Migration (en, te, ta, kn, hi, ml, or)
+- **Summary:**
+  1. 🌐 **100% Binary Language Logic Elimination (`frontend/src`):**
+     - Completely audited and eradicated all 1,305 `isTe` / `isTelugu` usages, 35 declarations, and 163 hardcoded language checks across all 41 affected components and pages.
+     - Reduced remaining binary language checks in `frontend/src` to exactly **0** (100% elimination rate).
+  2. 🧩 **Modular 7-Language Localization Architecture (`localizationHelper.js`, `extendedTranslations.js`, `config.js`):**
+     - Created `frontend/src/utils/localizationHelper.js` with `getLocalizedField(entity, fieldName, lang)`, multi-unit agricultural formatter (`formatMeasurementUnit`), Indian BCP-47 speech mappings (`SPEECH_LANG_MAP`), and browser voice resolution (`getVoiceForLanguage`).
+     - Created `frontend/src/i18n/extendedTranslations.js` exporting authentic agricultural translations across the 7 official supported languages: English (`en`), Telugu (`te`), Tamil (`ta`), Kannada (`kn`), Hindi (`hi`), Malayalam (`ml`), and Odia (`or`).
+     - Dynamically merged extended dictionaries into `i18n.config.js` without touching or corrupting legacy bundles. Deprecated languages (`mr`, `pa`, `bn`, `ur`, `as`, `gu`) are completely excluded from new modules.
+  3. 🛠️ **Shared Components & Portal Migration:**
+     - Migrated high-impact shared components: `LanguageSelectModal`, `FarmerBiometricModal`, `PreLoginFeatureShowcase`, `FarmerCropPicker`, `AuthWorkstationIllustration`, `FarmerWelcomeModal`, `FieldIntelligenceWidget`, `NearbyFieldsRadar`, `PathogenWeatherRadar`, `CropYieldLossEstimator`, `DigitalFarmKhata`, `SoilNPKCalculatorModal`, `SatelliteNDVIViewer`, `SmartIrrigationScheduler`, `GovernmentSchemeNavigator`, `CropGrowthTimeline`, `WhatsAppDiagnosisHub`, `FieldBoundaryMap`, `YieldProfitEstimator`, and `WhatsAppAlertButton`.
+     - Migrated all primary pages: `EquipmentBookingPage`, `ProviderDashboardPage`, `HelpSupportPage`, `NotificationsPage`, `DevicesPage`, `FarmPage`, `FieldAreaCalculatorPage`, `ProfilePage`, `SettingsPage`, `MorePage`, `RegisterPage`, `LoginPage`, `AIAssistantPage`, `DashboardPage`, `UploadImagePage`, `HistoryPage`, and `CropAdvisoryPage`.
+  4. 🔬 **Scan Center & Utilities Upgrades:**
+     - Upgraded `ScanImageUploader`, `AgrochemicalResults`, `PlantIdResults`, `VoiceCropDoctorModal`, and `GoogleMessageReader` to use dynamic speech maps and localized option resolvers.
+     - Upgraded `plantixDiagnosisHelper.js` with 7-language disease categorization badges.
+     - Upgraded `diseaseAdvisoryData.js` to match dynamic language keys with clean English fallback.
+  5. 🧪 **Validation & Automated Test Suite:**
+     - Created and executed [localization_7language.test.js](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/tests/localization_7language.test.js) verifying Layers 1 (Static/Dictionary Integrity), 2 (Language Switch & Unit Formatting), 3 (Dynamic Data Localization & Fallback), and 4 (Speech BCP-47 Voice Mapping & Odia Fallback): **12/12 tests PASSED (100% Success Rate)**.
+     - Executed full production bundle build `npm run build` with Vite: 0 errors in 25.68s.
+- **Files modified:** `frontend/src/utils/localizationHelper.js`, `frontend/src/i18n/extendedTranslations.js`, `frontend/src/i18n/config.js`, `frontend/src/components/common/LanguageSelectModal.jsx`, `frontend/src/components/common/FarmerBiometricModal.jsx`, `frontend/src/components/common/PreLoginFeatureShowcase.jsx`, `frontend/src/components/auth/FarmerCropPicker.jsx`, `frontend/src/components/auth/AuthWorkstationIllustration.jsx`, `frontend/src/components/onboarding/FarmerWelcomeModal.jsx`, `frontend/src/components/intelligence/FieldIntelligenceWidget.jsx`, `frontend/src/components/intelligence/NearbyFieldsRadar.jsx`, `frontend/src/components/intelligence/PathogenWeatherRadar.jsx`, `frontend/src/components/intelligence/CropYieldLossEstimator.jsx`, `frontend/src/components/farm/DigitalFarmKhata.jsx`, `frontend/src/components/farm/SoilNPKCalculatorModal.jsx`, `frontend/src/components/farm/SatelliteNDVIViewer.jsx`, `frontend/src/components/farm/SmartIrrigationScheduler.jsx`, `frontend/src/components/farm/GovernmentSchemeNavigator.jsx`, `frontend/src/components/farm/CropGrowthTimeline.jsx`, `frontend/src/components/farm/WhatsAppDiagnosisHub.jsx`, `frontend/src/components/farm/FieldBoundaryMap.jsx`, `frontend/src/components/market/YieldProfitEstimator.jsx`, `frontend/src/components/intelligence/WhatsAppAlertButton.jsx`, `frontend/src/components/intelligence/SprayAdvisorWidget.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/src/pages/provider/ProviderDashboardPage.jsx`, `frontend/src/pages/common/HelpSupportPage.jsx`, `frontend/src/pages/common/NotificationsPage.jsx`, `frontend/src/pages/common/DevicesPage.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`, `frontend/src/pages/common/ProfilePage.jsx`, `frontend/src/pages/common/SettingsPage.jsx`, `frontend/src/pages/common/MorePage.jsx`, `frontend/src/pages/common/RegisterPage.jsx`, `frontend/src/pages/common/LoginPage.jsx`, `frontend/src/pages/common/AIAssistantPage.jsx`, `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/pages/farmer/UploadImagePage.jsx`, `frontend/src/pages/farmer/HistoryPage.jsx`, `frontend/src/pages/farmer/CropAdvisoryPage.jsx`, `frontend/src/components/scanCenter/ScanImageUploader.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/components/scanCenter/PlantIdResults.jsx`, `frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`, `frontend/src/components/common/GoogleMessageReader.jsx`, `frontend/src/utils/plantixDiagnosisHelper.js`, `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/tests/localization_7language.test.js`, `changes_happening.md`.
+
+## 2026-09-29 (v337) - B4 H-2 7-Language Frontend Audit (Read-Only Analysis)
+- **Summary:**
+  1. 🌐 **Comprehensive Multi-Language Audit:**
+     - Conducted systematic, read-only audit across `frontend/src` for binary Telugu-vs-English checks (`isTe ? ... : ...`, `i18n.language === 'te'`, `lang === 'te'`, etc.) affecting supported languages (`en`, `te`, `ta`, `kn`, `hi`, `ml`, `or`).
+     - Discovered **1,305 `isTe` usages** across 36 files + **35 `isTe` declarations** + **163 other hardcoded language checks** across 16 files = **1,503 total language occurrences** across 41 files.
+     - Identified that 1,094 occurrences are static string ternaries, with 79 matching existing `translations.js` keys and 1,015 requiring new dictionary entries.
+     - Pinpointed dynamic content requiring a centralized `getLocalizedField(entity, field, lang)` helper.
+     - Formulated 6 isolated, safe migration batches and a 4-layer automated test matrix across all 7 languages.
+     - Zero production code was modified; no commits, pushes, or deployments were executed.
+- **Files audited**: 41 frontend files in `frontend/src/` (details documented in `b4_h2_7language_audit_report.md`).
 
 ## 2026-09-29 (v336) - B4 Critical & High Fixes (C-1, C-2, H-1, H-3)
+
 - **Summary:**
   1. 🌾 **C-1: Registration Signature Mismatch & Onboarding Data Loss (`frontend/src/pages/common/RegisterPage.jsx`, `frontend/src/context/AuthContext.jsx`, `backend/app/models/schemas.py`):**
      - Updated `RegisterPage.jsx` to pass onboarding attributes inside the expected 7th parameter `extraData` object instead of positional arguments 7, 8, and 9.

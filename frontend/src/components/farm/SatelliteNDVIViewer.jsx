@@ -338,7 +338,8 @@ export default function SatelliteNDVIViewer({
   state = "Andhra Pradesh"
 }) {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
 
   // Scope: 'parcel' (18x Micro Farm Parcel) vs 'regional' (11x Macro District Heatmap)
   const [viewScope, setViewScope] = useState('parcel');

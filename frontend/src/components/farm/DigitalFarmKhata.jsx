@@ -1,3 +1,4 @@
+import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -39,7 +40,8 @@ export default function DigitalFarmKhata({
   onClose 
 }) {
   const { t, i18n } = useTranslation();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
 
   const storageKey = useMemo(() => `agrishield_khata_${farmName.replace(/\s+/g, '_')}`, [farmName]);
 
@@ -285,7 +287,7 @@ export default function DigitalFarmKhata({
                 className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2 text-xs"
               >
                 <span>{cat.icon}</span>
-                <span className="text-white/80 font-medium">{isTe ? cat.labelTe : cat.labelEn}</span>
+                <span className="text-white/80 font-medium">{getLocalizedField(cat, 'label', currentLang)}</span>
                 <span className="font-bold text-white">₹{spent.toLocaleString('en-IN')}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-white/60 font-mono">
                   {pct}%
@@ -315,7 +317,7 @@ export default function DigitalFarmKhata({
                 filterType === 'all' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'
               }`}
             >
-              {isTe ? 'అన్నీ' : 'All'}
+              {t('common.all', 'All')}
             </button>
             <button
               onClick={() => setFilterType('expense')}
@@ -451,7 +453,7 @@ export default function DigitalFarmKhata({
                     >
                       {EXPENSE_CATEGORIES.map(cat => (
                         <option key={cat.id} value={cat.id} className="bg-slate-900 text-white">
-                          {cat.icon} {isTe ? cat.labelTe : cat.labelEn}
+                          {cat.icon} {getLocalizedField(cat, 'label', currentLang)}
                         </option>
                       ))}
                     </select>
@@ -524,13 +526,13 @@ export default function DigitalFarmKhata({
                     onClick={() => setShowAddModal(false)}
                     className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold cursor-pointer"
                   >
-                    {isTe ? 'రద్దు' : 'Cancel'}
+                    {t('common.cancel', 'Cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black shadow-lg cursor-pointer"
                   >
-                    {isTe ? 'నమోదు చేయండి' : 'Save Entry'}
+                    {t('common.save', 'Save Entry')}
                   </button>
                 </div>
               </form>

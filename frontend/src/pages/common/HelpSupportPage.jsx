@@ -178,7 +178,8 @@ export default function HelpSupportPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isTe = i18n?.language === 'te';
+  const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const currentLangCode = (i18n?.language || user?.preferred_language || 'en').split('-')[0].toLowerCase();
 
   // Role detection: Equipment Provider vs Farmer
@@ -1006,7 +1007,7 @@ export default function HelpSupportPage() {
                             ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30'
                             : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
                         }`}>
-                          {tkt.status === 'resolved' ? (isTe ? 'పరిష్కరించబడింది' : 'Resolved') : (tkt.status === 'in_progress' ? (isTe ? 'పరిశీలనలో ఉంది' : 'In Progress') : (isTe ? 'ఓపెన్' : 'Open'))}
+                          {tkt.status === 'resolved' ? (t('support_center.resolved', 'Resolved')) : (tkt.status === 'in_progress' ? (isTe ? 'పరిశీలనలో ఉంది' : 'In Progress') : (isTe ? 'ఓపెన్' : 'Open'))}
                         </span>
                         {matchedCat && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">

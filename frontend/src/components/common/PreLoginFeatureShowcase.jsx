@@ -26,33 +26,34 @@ import { Badge } from '../ui/index';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
 const PreLoginFeatureShowcase = () => {
-  const { i18n } = useTranslation();
-  const isTe = (i18n.language || '').toLowerCase().startsWith('te');
+  const { i18n, t } = useTranslation();
+  const lang = (i18n.language || 'en').split('-')[0].toLowerCase();
+  const isTe = lang === 'te';
   const [activeTab, setActiveTab] = useState('iot'); // 'iot' | 'ai' | 'medicine' | 'voice'
 
   const tabs = [
     {
       id: 'iot',
-      label: isTe ? '📡 ESP32 సోలార్ ఐఓటీ' : '📡 ESP32 Solar IoT Node',
-      badge: isTe ? 'హార్డ్‌వేర్ ఆధిక్యత' : 'Hardware Advantage',
+      label: t('showcase.tab_iot_label', '📡 ESP32 Solar IoT Node'),
+      badge: t('showcase.tab_iot_badge', 'Hardware Advantage'),
       badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30'
     },
     {
       id: 'ai',
-      label: isTe ? '🔬 పైటార్చ్ న్యూరల్ విజన్' : '🔬 PyTorch Dual Neural AI',
-      badge: isTe ? '99.0% ఖచ్చితత్వం' : '99.00% Certified Acc',
+      label: t('showcase.tab_ai_label', '🔬 PyTorch Dual Neural AI'),
+      badge: t('showcase.tab_ai_badge', '99.00% Certified Acc'),
       badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
     },
     {
       id: 'medicine',
-      label: isTe ? '🛒 20L పంపు & CIBRC మందులు' : '🛒 20L Sprayer & CIBRC Brands',
-      badge: isTe ? 'భారతీయ బ్రాండ్లు' : '100% CIBRC Verified',
+      label: t('showcase.tab_med_label', '🛒 20L Sprayer & CIBRC Brands'),
+      badge: t('showcase.tab_med_badge', '100% CIBRC Verified'),
       badgeColor: 'bg-teal-500/20 text-teal-400 border-teal-500/30'
     },
     {
       id: 'voice',
-      label: isTe ? '🗣️ 13 భాషల వాయిస్ డాక్టర్' : '🗣️ 13-Language Voice Doctor',
-      badge: isTe ? 'మాట్లాడే అసిస్టెంట్' : 'Audio Readout & Slip',
+      label: t('showcase.tab_voice_label', '🗣️ 7-Language Voice Doctor'),
+      badge: t('showcase.tab_voice_badge', 'Audio Readout & Slip'),
       badgeColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30'
     }
   ];
