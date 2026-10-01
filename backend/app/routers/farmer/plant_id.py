@@ -31,13 +31,9 @@ async def identify_plant_endpoint(
     Performs image validation, local & online plant species identification across
     crops, fruits, vegetables, flowers, trees, weeds, and medicinal plants.
     """
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    clean_rel = req.image_path.replace("/", os.sep).lstrip(os.sep)
-    candidate_paths = [
-        os.path.join(base_dir, clean_rel),
-        os.path.abspath(req.image_path)
-    ]
-    full_image_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+    import asyncio
+    from backend.app.services.image_resolver import resolve_image_path
+    full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
 
     if not full_image_path:
         raise HTTPException(

@@ -85,6 +85,14 @@ class Settings(BaseSettings):
     # Static/Upload folders
     UPLOAD_DIR: str = "uploads"
 
+    @property
+    def canonical_upload_dir(self) -> str:
+        """Absolute path to the canonical backend/uploads directory."""
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        upload_path = os.path.join(backend_dir, "uploads")
+        os.makedirs(upload_path, exist_ok=True)
+        return upload_path
+
     model_config = SettingsConfigDict(
         env_file=(
             os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), ".env"),

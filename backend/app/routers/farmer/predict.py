@@ -21,6 +21,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from backend.app.db.mongodb import get_database
 from backend.app.routers.auth import get_current_user
+from backend.app.services.image_resolver import resolve_image_path
 from backend.app.models.schemas import (
     PredictionResponse, 
     PredictionHistoryResponse, 
@@ -1197,10 +1198,7 @@ async def worker_predict_endpoint(
     # Validate image upload format, magic bytes, size limits, and antivirus signatures
     content, safe_filename = await validate_image_upload(file)
 
-    temp_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-        "uploads", "cluster_temp"
-    )
+    temp_dir = os.path.join(settings.canonical_upload_dir, "cluster_temp")
     os.makedirs(temp_dir, exist_ok=True)
     temp_filename = f"worker_{uuid.uuid4().hex[:8]}_{safe_filename}"
     temp_path = os.path.join(temp_dir, temp_filename)
@@ -1234,6 +1232,45 @@ async def worker_predict_endpoint(
                 pass
 
 
+@router.get(
+    "/worker/image/{filename}",
+    dependencies=[Depends(verify_worker_internal_auth)]
+)
+@router.get(
+    "/api/worker/image/{filename}",
+    dependencies=[Depends(verify_worker_internal_auth)]
+)
+async def worker_get_image_endpoint(filename: str):
+    """
+    Internal cluster-only endpoint to securely stream uploaded images to peer workers.
+    Strictly authenticated via verify_worker_internal_auth (requires valid X-Worker-Key).
+    """
+    from fastapi.responses import FileResponse
+    clean_filename = os.path.basename(filename.replace("/", os.sep).lstrip(os.sep))
+    ext = os.path.splitext(clean_filename)[1].lower()
+    from backend.app.services.image_resolver import ALLOWED_IMAGE_EXTENSIONS
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid image extension: {ext}"
+        )
+
+    file_path = os.path.join(settings.canonical_upload_dir, clean_filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found on cluster worker."
+        )
+
+    media_type = "image/jpeg"
+    if ext == ".png":
+        media_type = "image/png"
+    elif ext == ".webp":
+        media_type = "image/webp"
+
+    return FileResponse(file_path, media_type=media_type)
+
+
 @router.post("/upload", status_code=status.HTTP_201_CREATED, dependencies=[Depends(rate_limit(PREDICT_LIMIT, 60))])
 async def upload_image(
     file: UploadFile = File(...),
@@ -1242,10 +1279,7 @@ async def upload_image(
     """Upload crop leaf image with enterprise magic-byte, PIL, and OpenCV validation."""
     content_bytes, safe_filename = await validate_image_upload(file)
 
-    upload_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
-        "uploads"
-    )
+    upload_dir = settings.canonical_upload_dir
     os.makedirs(upload_dir, exist_ok=True)
 
     file_path = os.path.join(upload_dir, safe_filename)
@@ -1287,17 +1321,14 @@ async def agrochemical_scan_endpoint(
     Extracts OCR text, matches botanical/chemical database, saves scan history to MongoDB,
     and returns structured product intelligence.
     """
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    full_image_path = os.path.join(base_dir, req.image_path.replace("/", os.sep))
-
-    if not os.path.exists(full_image_path):
+    full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
+    if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Specified image file does not exist on server."
         )
 
     try:
-        import asyncio
         from backend.app.services.agrochemical_detector import detect_agrochemical
         agro_res = await asyncio.to_thread(detect_agrochemical, full_image_path, True)
         info = agro_res.get("info", {})
@@ -1485,10 +1516,8 @@ async def identify_plant_endpoint(
     Performs image validation, local & online plant species identification across
     crops, fruits, vegetables, flowers, trees, weeds, and medicinal plants.
     """
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    full_image_path = os.path.join(base_dir, req.image_path.replace("/", os.sep))
-
-    if not os.path.exists(full_image_path):
+    full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
+    if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Specified image file does not exist on server."
@@ -1586,17 +1615,7 @@ async def predict_pytorch_endpoint(
     Uses the main predict_crop_disease pipeline with full diagnostics and optional translation.
     """
     _req_start_t = time.perf_counter()
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    repo_root = os.path.dirname(base_dir)
-
-    clean_rel = req.image_path.replace("/", os.sep).lstrip(os.sep)
-    candidate_paths = [
-        os.path.join(base_dir, clean_rel),
-        os.path.join(repo_root, clean_rel),
-        os.path.abspath(req.image_path)
-    ]
-    full_image_path = next((p for p in candidate_paths if os.path.exists(p)), None)
-
+    full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
     if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1606,19 +1625,11 @@ async def predict_pytorch_endpoint(
     # Resolve optional multi-part photos (Root / Collar and Cut Fruit / Split Stem)
     full_root_image_path = None
     if getattr(req, "image_root_path", None):
-        clean_root = req.image_root_path.replace("/", os.sep).lstrip(os.sep)
-        for p in [os.path.join(base_dir, clean_root), os.path.join(repo_root, clean_root), os.path.abspath(req.image_root_path)]:
-            if os.path.exists(p):
-                full_root_image_path = p
-                break
+        full_root_image_path = await asyncio.to_thread(resolve_image_path, req.image_root_path)
 
     full_stem_image_path = None
     if getattr(req, "image_stem_path", None):
-        clean_stem = req.image_stem_path.replace("/", os.sep).lstrip(os.sep)
-        for p in [os.path.join(base_dir, clean_stem), os.path.join(repo_root, clean_stem), os.path.abspath(req.image_stem_path)]:
-            if os.path.exists(p):
-                full_stem_image_path = p
-                break
+        full_stem_image_path = await asyncio.to_thread(resolve_image_path, req.image_stem_path)
 
     has_multipart_scan = bool(
         full_root_image_path or full_stem_image_path or 

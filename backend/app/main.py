@@ -14,7 +14,7 @@ from backend.app.core.config import settings
 # Define base directories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-uploads_path = os.path.join(BACKEND_DIR, "uploads")
+uploads_path = settings.canonical_upload_dir
 os.makedirs(uploads_path, exist_ok=True)
 
 async def init_background_services():

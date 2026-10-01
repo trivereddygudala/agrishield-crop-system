@@ -1,28 +1,36 @@
 {
   "rewrites": [
     {
-      "source": "/api/upload/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/upload/:path*"
-    },
-    {
       "source": "/api/upload",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/upload"
+      "destination": "https://agrishield-ai-worker-1.onrender.com/api/upload"
     },
     {
-      "source": "/api/predict/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/predict/:path*"
+      "source": "/api/upload/:path*",
+      "destination": "https://agrishield-ai-worker-1.onrender.com/api/upload/:path*"
     },
     {
       "source": "/api/predict",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/predict"
+      "destination": "https://agrishield-ai-worker-1.onrender.com/api/predict"
     },
     {
-      "source": "/api/identify-plant/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/identify-plant/:path*"
+      "source": "/api/predict/:path*",
+      "destination": "https://agrishield-ai-worker-1.onrender.com/api/predict/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://agrishield-ai-worker-1.onrender.com/uploads/:path*"
     },
     {
       "source": "/api/identify-plant",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/identify-plant"
+      "destination": "https://agrishield-ai-worker-2.onrender.com/api/identify-plant"
+    },
+    {
+      "source": "/api/identify-plant/:path*",
+      "destination": "https://agrishield-ai-worker-2.onrender.com/api/identify-plant/:path*"
+    },
+    {
+      "source": "/api/agrochemical-scan",
+      "destination": "https://agrishield-ai-worker-3.onrender.com/api/agrochemical-scan"
     },
     {
       "source": "/api/agrochemical/:path*",
@@ -33,20 +41,24 @@
       "destination": "https://agrishield-ai-worker-3.onrender.com/api/v1/agrochemical/:path*"
     },
     {
+      "source": "/api/crop-advisor",
+      "destination": "https://agrishield-ai-worker-3.onrender.com/api/crop-advisor"
+    },
+    {
       "source": "/api/crop-advisor/:path*",
       "destination": "https://agrishield-ai-worker-3.onrender.com/api/crop-advisor/:path*"
     },
     {
-      "source": "/api/translate/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/translate/:path*"
+      "source": "/api/translate-plant",
+      "destination": "https://agrishield-ai-worker-3.onrender.com/api/translate-plant"
     },
     {
       "source": "/api/translate",
       "destination": "https://agrishield-ai-worker-3.onrender.com/api/translate"
     },
     {
-      "source": "/uploads/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/uploads/:path*"
+      "source": "/api/translate/:path*",
+      "destination": "https://agrishield-ai-worker-3.onrender.com/api/translate/:path*"
     },
     {
       "source": "/api/:path*",

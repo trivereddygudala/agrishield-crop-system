@@ -13,31 +13,30 @@ export const LEGACY_RENDER_BACKEND = CANONICAL_MAIN_BACKEND;
 
 /**
  * Intelligent Cluster Router:
- * Dynamically partitions workloads across the Render worker cluster:
+ * Dynamically partitions workloads across the Render worker cluster for direct/standalone invocations:
  *
- * 1. Worker 3 (agrishield-ai-worker-3): Dedicated AI node for PyTorch disease diagnosis,
- *    species plant ID, OCR agrochemical scan, translations, and leaf image uploads (/api/upload).
- * 2. Main Node (agrishield-crop-system): Auth, Equipment Rental, Real-Time Notifications, History, DB Transactions, Admin Firmware.
- * 3. Worker 1 & Worker 2: Standby secondary cluster nodes.
+ * 1. Worker 1 (agrishield-ai-worker-1): Primary Disease Detection & Crop Leaf Uploads (/api/upload, /api/predict).
+ * 2. Worker 2 (agrishield-ai-worker-2): Botanical Species & Weed Identification (/api/identify-plant).
+ * 3. Worker 3 (agrishield-ai-worker-3): Agrochemical OCR, Crop Advisor, Multilingual Translations.
+ * 4. Main Node (agrishield-crop-system): Auth, Equipment Rental, Real-Time Notifications, History, DB Transactions, Admin Firmware.
  */
 export const getTargetClusterNode = (url) => {
-  if (!url) return TERTIARY_RENDER_BACKEND;
+  if (!url) return MAIN_RENDER_BACKEND;
   const path = url.toLowerCase();
 
-  // AI Crop Scan Upload: Route /api/upload and query-param variants to Worker 3
-  // Keep /api/v1/firmware/upload and all other upload paths on Main backend
-  const isCropScanUpload = path === '/api/upload' || path.startsWith('/api/upload?');
+  // AI Worker 1: Disease Diagnosis & Uploads
+  if (path === '/api/upload' || path.startsWith('/api/upload?') || path.includes('/predict')) {
+    return AI_WORKER_1_URL;
+  }
 
-  // AI Inference & Specialized Services: Route to Worker 3
-  const isAiInference =
-    path.includes('/predict') ||
-    path.includes('/identify-plant') ||
-    path.includes('/agrochemical') ||
-    path.includes('/crop-advisor') ||
-    path.includes('/translate');
+  // AI Worker 2: Botanical Plant & Weed Identification
+  if (path.includes('/identify-plant')) {
+    return AI_WORKER_2_URL;
+  }
 
-  if (isCropScanUpload || isAiInference) {
-    return TERTIARY_RENDER_BACKEND;
+  // AI Worker 3: Agrochemical OCR, Crop Advisor, Multilingual Plant Translation
+  if (path.includes('/agrochemical') || path.includes('/crop-advisor') || path.includes('/translate')) {
+    return AI_WORKER_3_URL;
   }
 
   // Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, IoT, Admin Firmware
@@ -48,11 +47,9 @@ export const getApiBaseUrl = () => {
   if (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_API_URL) {
     return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
   }
-  // When running on production domains (e.g., Vercel), route directly to healthy primary worker
-  if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return TERTIARY_RENDER_BACKEND;
-  }
-  return ''; // Always use local Vite proxy for localhost setup
+  // When running on production domains (e.g., Vercel) or development (Vite),
+  // return relative URL ('') so requests pass through Vercel rewrites or Vite proxies cleanly.
+  return '';
 };
 
 // Create configured Axios instance
@@ -73,11 +70,17 @@ API.interceptors.request.use(
       delete config.headers['Content-Type'];
     }
 
-    // In production, dynamically route request to the designated cluster node
-    if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-      if (!config.baseURL || config.baseURL === PRIMARY_RENDER_BACKEND || config.baseURL === SECONDARY_RENDER_BACKEND || config.baseURL === TERTIARY_RENDER_BACKEND || config.baseURL === LEGACY_RENDER_BACKEND) {
-        config.baseURL = getTargetClusterNode(config.url);
-      }
+    // When running in production on Vercel or localhost, requests use same-origin relative URLs ('')
+    // so Vercel rewrites or local Vite proxies cleanly dispatch each request.
+    // If the frontend is hosted standalone on an external domain without Vercel rewrites and without VITE_API_URL,
+    // getTargetClusterNode acts as direct Render fallback.
+    const isVercelOrLocal = typeof window !== 'undefined' && (
+      window.location.hostname.includes('vercel.app') ||
+      ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    );
+
+    if (!isVercelOrLocal && typeof window !== 'undefined' && !config.baseURL) {
+      config.baseURL = getTargetClusterNode(config.url);
     }
 
     const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
