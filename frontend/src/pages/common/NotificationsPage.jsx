@@ -776,12 +776,12 @@ export default function NotificationsPage() {
     // Initial fetch
     fetchNotifications(false);
 
-    // Active real-time background polling interval (2.5 seconds) ensuring notifications pop up without manual page refresh
+    // Active background polling interval (20 seconds, visibility-guarded) ensuring notifications stay synchronized
     const pollInterval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchNotifications(true);
       }
-    }, 2500);
+    }, 20000);
 
     // Silent background revalidations (Stale-While-Revalidate pattern: zero skeleton blinking)
     let revalidateTimer;

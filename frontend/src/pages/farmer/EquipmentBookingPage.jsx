@@ -284,8 +284,11 @@ export default function EquipmentBookingPage() {
     };
 
     fetchRemoteBookings();
-    // Fast 5-second polling interval so provider actions on laptop appear on farmer mobile immediately
-    const pollInterval = setInterval(fetchRemoteBookings, 5000);
+    // 20-second polling interval (visibility-guarded) with instant focus/storage/visibility revalidation
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchRemoteBookings();
+    }, 20000);
     const handleRevalidate = () => {
       if (document.visibilityState === 'visible') {
         fetchRemoteBookings();
@@ -346,7 +349,10 @@ export default function EquipmentBookingPage() {
     };
 
     fetchRemoteCatalog();
-    const catInterval = setInterval(fetchRemoteCatalog, 15000);
+    const catInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchRemoteCatalog();
+    }, 60000);
     const handleVisibilityCat = () => {
       if (document.visibilityState === 'visible') fetchRemoteCatalog();
     };
@@ -389,7 +395,10 @@ export default function EquipmentBookingPage() {
       } catch (err) {}
     };
     fetchFleetStatus();
-    const interval = setInterval(fetchFleetStatus, 6000);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchFleetStatus();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

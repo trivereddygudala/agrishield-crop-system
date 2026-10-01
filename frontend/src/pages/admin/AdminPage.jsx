@@ -788,10 +788,22 @@ export default function AdminPage() {
     fetchFirewallStatus();
     fetchBroadcastHistory();
     
-    const iotInterval = setInterval(fetchIotNodes, 10000);
-    const auditInterval = setInterval(fetchAuditLogs, 15000);
-    const supportInterval = setInterval(fetchSupportTickets, 20000);
-    const firewallInterval = setInterval(fetchFirewallStatus, 15000);
+    const iotInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchIotNodes();
+    }, 10000);
+    const auditInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchAuditLogs();
+    }, 15000);
+    const supportInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchSupportTickets();
+    }, 20000);
+    const firewallInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchFirewallStatus();
+    }, 15000);
     return () => {
       clearInterval(iotInterval);
       clearInterval(auditInterval);

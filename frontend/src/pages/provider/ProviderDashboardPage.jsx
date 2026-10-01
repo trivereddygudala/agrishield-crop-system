@@ -478,7 +478,10 @@ export default function ProviderDashboardPage() {
 
   useEffect(() => {
     fetchRemoteFleet();
-    const fleetInterval = setInterval(() => fetchRemoteFleet(false), 12000);
+    const fleetInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchRemoteFleet(false);
+    }, 30000);
     const handleFleetVisibility = () => {
       if (document.visibilityState === 'visible') fetchRemoteFleet(false);
     };
@@ -720,7 +723,10 @@ export default function ProviderDashboardPage() {
   // Poll backend & listen to window/storage/visibility updates
   useEffect(() => {
     fetchProviderBookings();
-    const interval = setInterval(() => fetchProviderBookings(false), 6000); // 6s fast multi-device sync
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchProviderBookings(false);
+    }, 20000); // 20s multi-device sync with instant focus/storage/visibility revalidation
     const handleRevalidateBookings = () => {
       if (document.visibilityState === 'visible') fetchProviderBookings(false);
     };

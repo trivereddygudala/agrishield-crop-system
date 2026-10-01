@@ -125,6 +125,7 @@ const DashboardPage = () => {
     const isBackground = !!cachedDashboardStats;
     fetchDashboardData(isBackground);
     const intervalId = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       fetchDashboardData(true);
     }, 30000);
     return () => clearInterval(intervalId);

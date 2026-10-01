@@ -79,7 +79,10 @@ const SDCardPage = () => {
 
   useEffect(() => {
     fetchSDData();
-    const interval = setInterval(fetchSDData, 30000);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchSDData();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

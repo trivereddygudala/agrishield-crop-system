@@ -120,13 +120,19 @@ const NodeControlPage = () => {
 
   useEffect(() => {
     discoverDevice();
-    const discoveryInterval = setInterval(discoverDevice, 30000);
+    const discoveryInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      discoverDevice();
+    }, 30000);
     return () => clearInterval(discoveryInterval);
   }, [discoverDevice]);
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchStatus();
+    }, 5000);
     return () => clearInterval(interval);
   }, [nodeIp, manualIp]);
 

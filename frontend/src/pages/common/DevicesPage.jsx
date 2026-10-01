@@ -169,7 +169,10 @@ const DevicesPage = () => {
   useEffect(() => {
     fetchDeviceStatus();
     if (connectionStatus !== 'connected') {
-      const interval = setInterval(fetchDeviceStatus, 3000);
+      const interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchDeviceStatus();
+      }, 3000);
       return () => clearInterval(interval);
     }
   }, [connectionStatus]);

@@ -317,6 +317,7 @@ export const initCrossDeviceAutoSync = (onSyncCallback) => {
   // 3. Heartbeat timer (every 25 seconds)
   if (!_syncIntervalId) {
     _syncIntervalId = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       syncDeletedIdsFromServer();
     }, 25000);
   }
@@ -328,6 +329,10 @@ export const initCrossDeviceAutoSync = (onSyncCallback) => {
     }
     document.removeEventListener('visibilitychange', handleVisibility);
     window.removeEventListener('focus', handleFocus);
+    if (_syncIntervalId && _listeners.size === 0) {
+      clearInterval(_syncIntervalId);
+      _syncIntervalId = null;
+    }
   };
 };
 

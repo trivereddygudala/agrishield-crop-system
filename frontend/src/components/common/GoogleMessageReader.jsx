@@ -815,10 +815,16 @@ export default function GoogleMessageReader({
     };
 
     fetchFreshBookingStatus();
-    const interval = setInterval(fetchFreshBookingStatus, 2500);
+    const handleRecheckStatus = () => {
+      if (document.visibilityState === 'visible') fetchFreshBookingStatus();
+    };
+    window.addEventListener('focus', handleRecheckStatus);
+    document.addEventListener('visibilitychange', handleRecheckStatus);
+
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      window.removeEventListener('focus', handleRecheckStatus);
+      document.removeEventListener('visibilitychange', handleRecheckStatus);
     };
   }, [isBooking, rawBookingId, canonicalBookingId]);
 
@@ -989,8 +995,11 @@ export default function GoogleMessageReader({
     // Initial fetch on mount
     fetchRemoteChat();
 
-    // Fast 2.5-second polling for multi-browser / multi-device instant sync
-    const pollInterval = setInterval(fetchRemoteChat, 2500);
+    // Fast 2.5-second polling for multi-browser / multi-device instant sync (visibility-guarded)
+    const pollInterval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchRemoteChat();
+    }, 2500);
 
     const handleStorageChange = (e) => {
       if (e.key === chatStorageKey && e.newValue) {

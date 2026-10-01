@@ -431,29 +431,48 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     } catch { /* silently ignore */ }
   }, [user]);
 
-  // STEP 5 - FALLBACK: Adaptive REST polling ONLY when WebSocket is offline (25s interval)
+  // STEP 5 - FALLBACK: Adaptive REST polling ONLY when WebSocket is offline (25s interval, visibility-guarded)
   useEffect(() => {
     fetchNodeStatus();
     if (connectionStatus !== 'connected') {
-      const timer = setInterval(fetchNodeStatus, 25000);
+      const timer = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchNodeStatus();
+      }, 25000);
       return () => clearInterval(timer);
     }
   }, [fetchNodeStatus, connectionStatus]);
 
-  // Active real-time background polling (3.5 seconds) ensuring popups & unread badges fire without manual refresh
+  // WebSocket-first notifications: initial hydration on mount + focus recheck + conservative 60s fallback ONLY when WebSocket is disconnected
   useEffect(() => {
     fetchUnreadCount();
     fetchRecentAlerts();
 
-    const notifPollTimer = setInterval(() => {
+    const handleRevalidateNotifs = () => {
       if (document.visibilityState === 'visible') {
         fetchUnreadCount();
         fetchRecentAlerts();
       }
-    }, 3500);
+    };
+    window.addEventListener('focus', handleRevalidateNotifs);
+    document.addEventListener('visibilitychange', handleRevalidateNotifs);
 
-    return () => clearInterval(notifPollTimer);
-  }, [fetchUnreadCount, fetchRecentAlerts]);
+    let notifPollTimer = null;
+    if (connectionStatus !== 'connected') {
+      notifPollTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          fetchUnreadCount();
+          fetchRecentAlerts();
+        }
+      }, 60000);
+    }
+
+    return () => {
+      if (notifPollTimer) clearInterval(notifPollTimer);
+      window.removeEventListener('focus', handleRevalidateNotifs);
+      document.removeEventListener('visibilitychange', handleRevalidateNotifs);
+    };
+  }, [fetchUnreadCount, fetchRecentAlerts, connectionStatus]);
 
   // Real-time custom event & cross-tab BroadcastChannel listener
   useEffect(() => {
