@@ -363,25 +363,12 @@ export default function NotificationsPage() {
         }
       } catch (e) {}
 
-      // If equipment provider, synthesize notifications from recorded machinery bookings (With Blacklist Protection)
+      // If equipment provider, synthesize notifications from cached machinery bookings (With Blacklist Protection)
+      // B8 Phase 2B: Use cached bookings from localStorage instead of redundant API.get('/api/v1/equipment/bookings') on every poll
       if (isEquipmentProvider) {
         try {
-          let bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]')
+          const bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]')
             .filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
-          try {
-            let bRes = await API.get('/api/v1/equipment/bookings');
-            if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
-              try { bRes = await API.get('/api/equipment/bookings'); } catch (_) {}
-            }
-            if (bRes.data?.bookings && Array.isArray(bRes.data.bookings)) {
-              const bMap = new Map();
-              bRes.data.bookings
-                .filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'))
-                .forEach(b => { if (b && b.id) bMap.set(b.id, b); });
-              bookings.forEach(b => { if (b && b.id && !bMap.has(b.id)) bMap.set(b.id, b); });
-              bookings = Array.from(bMap.values());
-            }
-          } catch (e) {}
 
           if (Array.isArray(bookings)) {
             bookings.forEach((b) => {
@@ -423,14 +410,13 @@ export default function NotificationsPage() {
       }
 
       // If farmer, synthesize notifications ONLY for provider Accept or Decline status decisions (With Blacklist Protection)
+      // B8 Phase 2B: Use cached bookings from localStorage instead of redundant API.get('/api/v1/equipment/bookings') on every poll
       if (!isEquipmentProvider && !isAdmin) {
         try {
-          let bRes = await API.get('/api/v1/equipment/bookings');
-          if (!bRes.data || typeof bRes.data !== 'object' || !Array.isArray(bRes.data.bookings)) {
-            try { bRes = await API.get('/api/equipment/bookings'); } catch (_) {}
-          }
-          if (bRes.data?.bookings && Array.isArray(bRes.data.bookings)) {
-            bRes.data.bookings.forEach((b) => {
+          const bookings = JSON.parse(localStorage.getItem('agrishield_equipment_bookings') || '[]')
+            .filter(b => b && !String(b.id || '').startsWith('BK-TEST-') && !String(b.bookingId || '').startsWith('BK-TEST-'));
+          if (Array.isArray(bookings)) {
+            bookings.forEach((b) => {
               if (b && (b.status === 'rejected' || b.status === 'declined' || b.status === 'confirmed')) {
                 const bId = b.id || b.bookingId;
                 const notifKey = `farmer-notif-${bId}-${b.status}`;
@@ -797,6 +783,7 @@ export default function NotificationsPage() {
     };
 
     window.addEventListener('agrishield_notifications_updated', debouncedSilentFetch);
+    window.addEventListener('agrishield_bookings_updated', debouncedSilentFetch);
     window.addEventListener('storage', debouncedSilentFetch);
     window.addEventListener('focus', debouncedSilentFetch);
     document.addEventListener('visibilitychange', handleRevalidateNotifs);
@@ -805,6 +792,7 @@ export default function NotificationsPage() {
       clearInterval(pollInterval);
       clearTimeout(revalidateTimer);
       window.removeEventListener('agrishield_notifications_updated', debouncedSilentFetch);
+      window.removeEventListener('agrishield_bookings_updated', debouncedSilentFetch);
       window.removeEventListener('storage', debouncedSilentFetch);
       window.removeEventListener('focus', debouncedSilentFetch);
       document.removeEventListener('visibilitychange', handleRevalidateNotifs);
