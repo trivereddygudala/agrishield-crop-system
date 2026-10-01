@@ -23,7 +23,12 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
-from deep_translator import GoogleTranslator
+try:
+    from deep_translator import GoogleTranslator
+    DEEP_TRANSLATOR_AVAILABLE = True
+except ImportError:
+    GoogleTranslator = None
+    DEEP_TRANSLATOR_AVAILABLE = False
 
 logger = logging.getLogger("translation_service")
 
@@ -83,6 +88,9 @@ class TranslationService:
     @staticmethod
     def _sync_translate(text: str, source_lang: str, target_lang: str) -> str:
         """Internal synchronous call to GoogleTranslator wrapped safely with retry."""
+        if not GoogleTranslator:
+            logger.warning(f"deep_translator is not installed; returning original text for ({source_lang}->{target_lang})")
+            return text
         try:
             src = source_lang if source_lang != "auto" else "auto"
             translator = GoogleTranslator(source=src, target=target_lang)

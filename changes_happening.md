@@ -7577,3 +7577,19 @@ Files Modified:
   8. Identified Critical Blocker 2: Filesystem isolation between Worker 1 (uploads) and Worker 2/3 (plant-ID & agrochemical require local file).
   9. Identified Critical Blocker 3: Upload mount mismatch in code (main.py backend/uploads vs predict.py backend/app/uploads).
   10. Confirmed 0 production changes made: Vercel routing untouched, disease traffic 100% on Worker 3, 0 commits, 0 pushes.
+
+---
+### [2026-10-01 19:28:30 IST] - Fix: deep-translator dependency & safe import handling for Render Main Backend
+- **Files Modified**:
+  - backend/requirements.txt
+  - backend/app/services/translation_service.py
+- **Root Cause**:
+  - Main Backend build and startup crashed with ModuleNotFoundError: No module named 'deep_translator' when backend.app.routers.admin.admin imported TranslationService.
+  - deep-translator was not specified in backend/requirements.txt which Render uses during pip install -r backend/requirements.txt.
+  - In backend/app/services/translation_service.py, from deep_translator import GoogleTranslator was an unconditional module-level import without fallback handling.
+- **Actions Taken**:
+  - Added deep-translator>=1.11.4 and requests>=2.31.0 to backend/requirements.txt.
+  - Wrapped GoogleTranslator import in translation_service.py with try...except ImportError fallback and safe check in _sync_translate() to guarantee the service never crashes at boot even if the library is missing.
+- **Verification**:
+  - Tested module loading with Python: backend.app.main imported successfully.
+  - Tested degraded simulation where deep_translator is absent: service loads cleanly with no crash.
