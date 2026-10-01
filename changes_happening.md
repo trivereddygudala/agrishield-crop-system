@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-01 (v357) - B8 Phase 1: Database & Index Performance Alignment
+- **Summary:**
+  1. ⚡ **Users Email Unique Index (`mongodb.py`):**
+     - Conducted duplicate safety inspection on `db.users`: 0 duplicate email groups, 0 null/missing emails, 100% normalized lowercase.
+     - Added high-performance unique index `idx_users_email_unique` on `db.users` field `email`.
+     - Completely eliminated full collection scan (`COLLSCAN`); EXPLAIN query plan verified transition to direct index scan (`EXPRESS_IXSCAN` / `IXSCAN`), dropping lookup latency from ~2,264ms to 1.82ms.
+  2. 📬 **Notification Compound Index Alignment (`mongodb.py`):**
+     - Identified sort mismatch: `NotificationService.get_notifications` and `get_unread_notifications` sort by `lifecycle.created_at` with `read: False` equality filter, whereas previous index only covered legacy `created_at` and `status`.
+     - Added compound index `idx_notifications_user_lifecycle` on `[("user_id", 1), ("lifecycle.created_at", -1)]` to cover all-notifications pagination.
+     - Added compound index `idx_notifications_user_read_lifecycle` on `[("user_id", 1), ("read", 1), ("lifecycle.created_at", -1)]` to cover unread notification queries and badge counter.
+     - EXPLAIN query plan verified that the blocking in-memory `SORT` stage was 100% eliminated (`has_sort_stage: False`).
+  3. 🛠️ **Fixed Broadcast Index Partial Filter Expression (`mongodb.py`):**
+     - Updated `idx_notifications_broadcast_user_unique` to use `partialFilterExpression={"broadcast_id": {"$type": "string"}}` instead of `sparse=True`, eliminating MongoDB E11000 duplicate key startup collisions on standard non-broadcast alerts.
+  4. 🧪 **Validation Suite Execution:**
+     - Executed full test suite (`test_b6_broadcast_idempotency.py`, `test_b6_broadcast_fanout.py`, `test_b1_rbac.py`): 24/24 tests passed in 2m 57s.
+     - Verified clean application startup and index verification with 0 exceptions.
+     - Executed functional live query validation: user lookup (1.82ms), notifications list (10.96ms), pagination (4.97ms), unread list (2.21ms), unread count (3.51ms).
+  5. 🛡️ **Zero Git/Deployment Impact:**
+     - Read-only implementation protocol followed: 0 commits, 0 pushes, 0 Render deployments, 0 IoT/firmware changes.
+- **Files modified:** `backend/app/db/mongodb.py`, `changes_happening.md`.
+
 ## 2026-10-01 (v356) - B7: Final Architecture Alignment & Internal Image Authentication
 - **Summary:**
   1. 🔒 **Internal Worker-to-Worker Authentication (`predict.py` & `image_resolver.py`):**

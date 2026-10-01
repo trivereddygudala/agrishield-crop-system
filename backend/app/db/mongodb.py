@@ -76,9 +76,25 @@ async def connect_to_mongo():
         await db_instance.db["predictions"].create_index([("user_id", 1), ("created_at", -1)])
         await db_instance.db["predictions"].create_index([("created_at", -1)])
         
+        # B8-FIX: High-performance unique index on users.email to eliminate login COLLSCAN
+        await db_instance.db["users"].create_index(
+            [("email", 1)],
+            unique=True,
+            name="idx_users_email_unique"
+        )
+
         # Ensure notifications indexes
         await db_instance.db["notifications"].create_index([("user_id", 1), ("status", 1), ("created_at", -1)])
         await db_instance.db["notifications"].create_index([("device_id", 1), ("category", 1), ("created_at", -1)])
+        # B8-FIX: Aligned compound indexes for notifications query lifecycle sort & read filtering
+        await db_instance.db["notifications"].create_index(
+            [("user_id", 1), ("lifecycle.created_at", -1)],
+            name="idx_notifications_user_lifecycle"
+        )
+        await db_instance.db["notifications"].create_index(
+            [("user_id", 1), ("read", 1), ("lifecycle.created_at", -1)],
+            name="idx_notifications_user_read_lifecycle"
+        )
         await db_instance.db["notification_cooldowns"].create_index([("device_id", 1), ("category", 1)])
         
         # Additional Indexes for rules, scheduler, and FCM tokens
@@ -121,7 +137,7 @@ async def connect_to_mongo():
         await db_instance.db["notifications"].create_index(
             [("broadcast_id", 1), ("user_id", 1)],
             unique=True,
-            sparse=True,
+            partialFilterExpression={"broadcast_id": {"$type": "string"}},
             name="idx_notifications_broadcast_user_unique"
         )
 
