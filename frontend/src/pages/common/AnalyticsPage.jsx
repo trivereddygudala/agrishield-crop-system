@@ -232,11 +232,24 @@ const AnalyticsPage = () => {
     fetchData();
     
     if (isOnline) {
-      interval = setInterval(fetchData, 60000);
+      interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchData();
+      }, 60000);
     }
     
+    const handleRevalidate = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleRevalidate);
+    window.addEventListener('focus', handleRevalidate);
+
     return () => {
       if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleRevalidate);
+      window.removeEventListener('focus', handleRevalidate);
     };
   }, [selectedDevice, timeframe, startDate, endDate, devices]);
 

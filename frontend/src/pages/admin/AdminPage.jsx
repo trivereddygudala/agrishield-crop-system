@@ -787,30 +787,40 @@ export default function AdminPage() {
     fetchSupportConfig();
     fetchFirewallStatus();
     fetchBroadcastHistory();
-    
-    const iotInterval = setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      fetchIotNodes();
-    }, 10000);
-    const auditInterval = setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      fetchAuditLogs();
-    }, 15000);
-    const supportInterval = setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      fetchSupportTickets();
-    }, 20000);
-    const firewallInterval = setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      fetchFirewallStatus();
-    }, 15000);
-    return () => {
-      clearInterval(iotInterval);
-      clearInterval(auditInterval);
-      clearInterval(supportInterval);
-      clearInterval(firewallInterval);
-    };
   }, []);
+
+  // Gated polling: only the currently active Admin tab subsystem polls periodically
+  useEffect(() => {
+    let interval = null;
+
+    if (activeTab === 'iot') {
+      fetchIotNodes();
+      interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchIotNodes();
+      }, 10000);
+    } else if (activeTab === 'logs') {
+      fetchAuditLogs();
+      interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchAuditLogs();
+      }, 15000);
+    } else if (activeTab === 'support') {
+      interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchSupportTickets();
+      }, 20000);
+    } else if (activeTab === 'firewall') {
+      interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchFirewallStatus();
+      }, 15000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeTab, supportStatusFilter, supportCategoryFilter, supportPriorityFilter]);
 
   // User Directory pagination & search effect (debounced search for snappy queries)
   useEffect(() => {

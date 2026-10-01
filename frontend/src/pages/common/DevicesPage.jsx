@@ -172,7 +172,7 @@ const DevicesPage = () => {
       const interval = setInterval(() => {
         if (document.visibilityState !== 'visible') return;
         fetchDeviceStatus();
-      }, 3000);
+      }, 12000);
       return () => clearInterval(interval);
     }
   }, [connectionStatus]);

@@ -66,19 +66,23 @@ const DashboardPage = () => {
     }
   }, [activeFarm]);
 
-  const fetchDashboardData = useCallback(async (isBackground = false) => {
+  const { lastTelemetry, deviceStatusMap, connectionStatus } = useWebSocket();
+
+  const fetchDashboardData = useCallback(async (isBackground = false, skipDeviceStatus = false) => {
     if (!isBackground && !cachedDashboardStats) setLoading(true);
     try {
-      const [statsRes, devicesRes] = await Promise.all([
-        API.get('/api/history?limit=10').catch(err => {
-          console.warn("Stats load failed:", err);
-          return { data: { predictions: [], total: 0 } };
-        }),
-        API.get('/api/v1/devices/status').catch(err => {
-          console.warn("Devices status load failed:", err);
-          return { data: [] };
-        })
-      ]);
+      const statsPromise = API.get('/api/history?limit=10').catch(err => {
+        console.warn("Stats load failed:", err);
+        return { data: { predictions: [], total: 0 } };
+      });
+      const devicesPromise = skipDeviceStatus
+        ? Promise.resolve({ data: null })
+        : API.get('/api/v1/devices/status').catch(err => {
+            console.warn("Devices status load failed:", err);
+            return { data: [] };
+          });
+
+      const [statsRes, devicesRes] = await Promise.all([statsPromise, devicesPromise]);
 
       const list = statsRes.data?.predictions || [];
       const total = statsRes.data?.total || 0;
@@ -94,24 +98,26 @@ const DashboardPage = () => {
       cachedDashboardStats = newStats;
       setStats(newStats);
 
-      const deviceList = devicesRes.data || [];
-      cachedDashboardDevices = deviceList;
-      setDevices(deviceList);
-      
-      if (deviceList.length > 0) {
-        const sorted = [...deviceList].sort((a, b) => {
-          if (a.status === 'online' && b.status !== 'online') return -1;
-          if (b.status === 'online' && a.status !== 'online') return 1;
-          return (a.seconds_since_seen ?? 999999) - (b.seconds_since_seen ?? 999999);
-        });
-        const onlineDev = sorted[0];
-        cachedActiveDevice = onlineDev;
-        setActiveDevice(prev => {
-          if (prev && prev.device_id === onlineDev.device_id) {
-            return { ...onlineDev, latest_telemetry: onlineDev.latest_telemetry || prev.latest_telemetry };
-          }
-          return onlineDev;
-        });
+      if (devicesRes.data) {
+        const deviceList = devicesRes.data || [];
+        cachedDashboardDevices = deviceList;
+        setDevices(deviceList);
+
+        if (deviceList.length > 0) {
+          const sorted = [...deviceList].sort((a, b) => {
+            if (a.status === 'online' && b.status !== 'online') return -1;
+            if (b.status === 'online' && a.status !== 'online') return 1;
+            return (a.seconds_since_seen ?? 999999) - (b.seconds_since_seen ?? 999999);
+          });
+          const onlineDev = sorted[0];
+          cachedActiveDevice = onlineDev;
+          setActiveDevice(prev => {
+            if (prev && prev.device_id === onlineDev.device_id) {
+              return { ...onlineDev, latest_telemetry: onlineDev.latest_telemetry || prev.latest_telemetry };
+            }
+            return onlineDev;
+          });
+        }
       }
     } catch (error) {
       console.error("Dashboard data load error:", error);
@@ -126,12 +132,12 @@ const DashboardPage = () => {
     fetchDashboardData(isBackground);
     const intervalId = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
-      fetchDashboardData(true);
+      // Skip redundant REST device-status polling when WebSocket is connected
+      const isWsActive = connectionStatus === 'connected';
+      fetchDashboardData(true, isWsActive);
     }, 30000);
     return () => clearInterval(intervalId);
-  }, [coordinates, fetchDashboardData]);
-
-  const { lastTelemetry, deviceStatusMap } = useWebSocket();
+  }, [coordinates, fetchDashboardData, connectionStatus]);
 
   useEffect(() => {
     if (lastTelemetry) {

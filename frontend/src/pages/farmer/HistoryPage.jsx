@@ -232,7 +232,10 @@ const HistoryPage = () => {
     fetchData();
     let interval;
     if (isOnline && hardwareMode) {
-      interval = setInterval(() => fetchData(), 60000);
+      interval = setInterval(() => {
+        if (document.visibilityState !== 'visible') return;
+        fetchData();
+      }, 60000);
     }
     const handleRevalidate = () => {
       if (document.visibilityState === 'visible') {
