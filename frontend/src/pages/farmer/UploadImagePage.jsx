@@ -637,8 +637,10 @@ const UploadImagePage = () => {
     } catch (err) {
       console.warn("Backend error during scan:", err);
 
-      // If connection was lost, server unreachable, or network timed out, seamlessly execute on-device offline diagnosis
-      const isNetworkUnreachable = !navigator.onLine || !err.response || err.message === 'Network Error' || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED' || (err.message && err.message.toLowerCase().includes('network'));
+      // If connection was lost, server unreachable (502/503/504), or network timed out, seamlessly execute on-device offline diagnosis
+      const status = err.response ? err.response.status : null;
+      const isTransientServerError = Boolean(status && [502, 503, 504].includes(status));
+      const isNetworkUnreachable = !navigator.onLine || !err.response || isTransientServerError || err.message === 'Network Error' || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED' || (err.message && err.message.toLowerCase().includes('network'));
 
       if (isNetworkUnreachable) {
         try {

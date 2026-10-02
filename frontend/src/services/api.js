@@ -20,12 +20,30 @@ export const LEGACY_RENDER_BACKEND = CANONICAL_MAIN_BACKEND;
  * 3. Worker 3 (agrishield-ai-worker-3): Agrochemical OCR, Crop Advisor, Multilingual Translations.
  * 4. Main Node (agrishield-crop-system): Auth, Equipment Rental, Real-Time Notifications, History, DB Transactions, Admin Firmware.
  */
+export const isAiWorkerRoute = (url, baseURL = '') => {
+  if (baseURL && baseURL.includes('agrishield-ai-worker')) {
+    return true;
+  }
+  if (!url) return false;
+  const path = url.toLowerCase();
+  return (
+    path === '/api/upload' ||
+    path.startsWith('/api/upload?') ||
+    path.includes('/predict') ||
+    path.startsWith('/uploads') ||
+    path.includes('/identify-plant') ||
+    path.includes('/agrochemical') ||
+    path.includes('/crop-advisor') ||
+    path.includes('/translate')
+  );
+};
+
 export const getTargetClusterNode = (url) => {
   if (!url) return MAIN_RENDER_BACKEND;
   const path = url.toLowerCase();
 
   // AI Worker 1: Disease Diagnosis & Uploads
-  if (path === '/api/upload' || path.startsWith('/api/upload?') || path.includes('/predict')) {
+  if (path === '/api/upload' || path.startsWith('/api/upload?') || path.includes('/predict') || path.startsWith('/uploads')) {
     return AI_WORKER_1_URL;
   }
 
@@ -41,6 +59,38 @@ export const getTargetClusterNode = (url) => {
 
   // Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, IoT, Admin Firmware
   return MAIN_RENDER_BACKEND;
+};
+
+export const getFailoverTarget = (url, currentTarget) => {
+  const path = (url || '').toLowerCase();
+
+  // Botanical species & weed identification:
+  // Primary: Worker 2 (agrishield-ai-worker-2).
+  // First fallback: Worker 1 (hosts uploaded image locally and has plant_id.router).
+  // Secondary fallback: Main Backend.
+  if (path.includes('/identify-plant')) {
+    if (currentTarget === AI_WORKER_2_URL) return AI_WORKER_1_URL;
+    if (currentTarget === AI_WORKER_1_URL) return MAIN_RENDER_BACKEND;
+    return MAIN_RENDER_BACKEND;
+  }
+
+  // Agrochemical scan OCR:
+  // Primary: Worker 3 (agrishield-ai-worker-3).
+  // Fallback: Worker 1 (hosts uploaded image locally and has agrochemical.router).
+  if (path.includes('/agrochemical')) {
+    if (currentTarget === AI_WORKER_3_URL) return AI_WORKER_1_URL;
+    return MAIN_RENDER_BACKEND;
+  }
+
+  // Stateless LLM Crop Advisor & Multilingual Plant Translations:
+  // Primary: Worker 3 (agrishield-ai-worker-3).
+  // Fallback: Main Backend (always warm, provides resilient fallback).
+  if (path.includes('/crop-advisor') || path.includes('/translate')) {
+    if (currentTarget === AI_WORKER_3_URL) return MAIN_RENDER_BACKEND;
+    return MAIN_RENDER_BACKEND;
+  }
+
+  return null;
 };
 
 export const getApiBaseUrl = () => {
@@ -126,37 +176,51 @@ API.interceptors.response.use(
     }
 
     // Never failover transactional Main Backend routes (Auth, Bookings, Equipment, Sync, IoT) to AI workers
-    const isAiNodeTarget = (originalRequest.baseURL || '').includes('agrishield-ai-worker');
+    // B9.3: Detect AI worker target via baseURL OR request path for Vercel relative URLs
+    const isAiNodeTarget = isAiWorkerRoute(originalRequest.url, originalRequest.baseURL);
     if (!isAiNodeTarget) {
       return Promise.reject(error);
     }
 
-    // Automated Cluster Failover for stateless AI inference across worker nodes:
-    const shouldFailover = (
-      (error.response && [404, 502, 503, 504].includes(error.response.status)) ||
+    // Automated Cluster Failover for eligible transient infrastructure failures (502, 503, 504, network errors)
+    const status = error.response ? error.response.status : null;
+    const isTransientStatus = Boolean(status && [502, 503, 504].includes(status));
+    const isNetworkError =
       error.code === 'ERR_NETWORK' ||
-      error.code === 'ECONNABORTED'
-    );
+      error.code === 'ECONNABORTED' ||
+      Boolean(error.message && error.message.toLowerCase().includes('timeout'));
+
+    const shouldFailover = isTransientStatus || isNetworkError;
 
     if (shouldFailover && !originalRequest._failoverRetry) {
       originalRequest._failoverRetry = true;
       try {
         const fallbackConfig = { ...originalRequest };
-        const currentBase = fallbackConfig.baseURL || '';
-        if (currentBase === TERTIARY_RENDER_BACKEND) {
-          fallbackConfig.baseURL = SECONDARY_RENDER_BACKEND;
-        } else if (currentBase === SECONDARY_RENDER_BACKEND) {
-          fallbackConfig.baseURL = AI_WORKER_1_URL;
-        } else {
-          fallbackConfig.baseURL = TERTIARY_RENDER_BACKEND;
-        }
+        const currentTarget = (originalRequest.baseURL && originalRequest.baseURL.includes('agrishield-ai-worker'))
+          ? originalRequest.baseURL
+          : getTargetClusterNode(originalRequest.url);
 
-        const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
-        const token = storage.getItem('token');
-        if (token && fallbackConfig.headers) {
-          fallbackConfig.headers.Authorization = `Bearer ${token}`;
+        const fallbackTarget = getFailoverTarget(originalRequest.url, currentTarget);
+        if (fallbackTarget && fallbackTarget !== currentTarget) {
+          fallbackConfig.baseURL = fallbackTarget;
+          fallbackConfig._failoverRetry = true;
+          // B9.3: Bounded failover timeout (15s) prevents long 90s multiplier delays during cold starts
+          fallbackConfig.timeout = 15000;
+
+          if (fallbackConfig.headers) {
+            fallbackConfig.headers = { ...fallbackConfig.headers };
+            const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
+            const token = storage.getItem('token');
+            if (token) {
+              fallbackConfig.headers.Authorization = `Bearer ${token}`;
+            }
+            if (fallbackConfig.data instanceof FormData) {
+              delete fallbackConfig.headers['Content-Type'];
+            }
+          }
+
+          return await axios(fallbackConfig);
         }
-        return await axios(fallbackConfig);
       } catch (workerErr) {
         // Fall through to regular error handling
       }
@@ -170,15 +234,7 @@ API.interceptors.response.use(
       // must NEVER destroy the user's valid primary Main-session login.
       const requestUrl = (originalRequest.url || '').toLowerCase();
       const requestBase = (originalRequest.baseURL || '').toLowerCase();
-      const isAiWorkerRequest =
-        requestBase.includes('agrishield-ai-worker') ||
-        requestUrl === '/api/upload' ||
-        requestUrl.startsWith('/api/upload?') ||
-        requestUrl.includes('/predict') ||
-        requestUrl.includes('/identify-plant') ||
-        requestUrl.includes('/agrochemical') ||
-        requestUrl.includes('/crop-advisor') ||
-        requestUrl.includes('/translate');
+      const isAiWorkerRequest = isAiWorkerRoute(requestUrl, requestBase);
 
       if (isAiWorkerRequest) {
         // Return rejection directly to the calling component without evicting the session or redirecting to /login
