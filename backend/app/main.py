@@ -1,15 +1,21 @@
 from datetime import timezone
 import os
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pymongo.errors import PyMongoError
 
+from backend.app.core.exceptions import DatabaseUnavailableException
 from backend.app.db.mongodb import connect_to_mongo, close_mongo_connection, db_instance
 from backend.app.services.scheduler import start_scheduler, stop_scheduler
 from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, support
 from backend.app.core.security_middleware import SecurityHeadersMiddleware
 from backend.app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Define base directories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -96,6 +102,36 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Global Database Availability Exception Handlers
+@app.exception_handler(DatabaseUnavailableException)
+async def database_unavailable_exception_handler(request: Request, exc: DatabaseUnavailableException):
+    logger.error(f"[DB UNAVAILABLE] {request.method} {request.url.path} - MongoDB error: {exc.__class__.__name__}")
+    return JSONResponse(
+        status_code=503,
+        headers={"Retry-After": "5"},
+        content={
+            "status": "error",
+            "code": "DATABASE_UNAVAILABLE",
+            "detail": "Database service is temporarily unavailable. Please retry in a few moments.",
+            "retry_after": 5
+        }
+    )
+
+@app.exception_handler(PyMongoError)
+async def pymongo_error_exception_handler(request: Request, exc: PyMongoError):
+    logger.error(f"[DB UNAVAILABLE] {request.method} {request.url.path} - MongoDB error: {exc.__class__.__name__}")
+    return JSONResponse(
+        status_code=503,
+        headers={"Retry-After": "5"},
+        content={
+            "status": "error",
+            "code": "DATABASE_UNAVAILABLE",
+            "detail": "Database service is temporarily unavailable. Please retry in a few moments.",
+            "retry_after": 5
+        }
+    )
+
 
 # CORS configurations
 env_mode = settings.ENV.lower()

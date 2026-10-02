@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
 from pydantic import BaseModel
+from pymongo.errors import PyMongoError
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from backend.app.db.mongodb import get_database
 from backend.app.core.security import (
@@ -56,12 +57,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get
         raise credentials_exception
 
     try:
-        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        obj_id = ObjectId(user_id)
+    except Exception:
+        raise credentials_exception
+
+    try:
+        user = await db.users.find_one({"_id": obj_id})
+    except PyMongoError:
+        raise
     except Exception:
         raise credentials_exception
 
     if user is None:
         raise credentials_exception
+
 
     user["id"] = str(user["_id"])
     resolved_name = user.get("name") or user.get("full_name") or user.get("username") or "User"

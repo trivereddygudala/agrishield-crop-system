@@ -2,6 +2,42 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-02 (v360) - B9.2: Backend Database Failure Recovery & Degradation
+- **Summary:**
+  1. 🛡️ **Database Availability Infrastructure Exception (`backend/app/core/exceptions.py`):**
+     - Defined `DatabaseUnavailableException` representing infrastructure database failure distinct from business validation errors.
+  2. 🔒 **Database Dependency Guard (`backend/app/db/mongodb.py`):**
+     - Enhanced `get_database()` dependency to verify database availability and raise `DatabaseUnavailableException` rather than allowing uninitialized states to masquerade as healthy.
+  3. 🌐 **Global FastAPI Exception Handlers (`backend/app/main.py`):**
+     - Registered global exception handlers for `DatabaseUnavailableException` and `pymongo.errors.PyMongoError`.
+     - Returns HTTP 503 Service Unavailable with `Retry-After: 5` header and structured JSON body `{"status": "error", "code": "DATABASE_UNAVAILABLE", ...}`.
+     - Logs failure context via `[DB UNAVAILABLE] METHOD /path - MongoDB error: ExceptionType` without exposing credentials or internal traces.
+  4. 🔑 **Authentication Session Fidelity (`backend/app/routers/common/auth.py`):**
+     - Updated `get_current_user` to preserve `PyMongoError` and let it bubble to the global 503 handler instead of falsely ejecting valid JWT sessions with HTTP 401.
+  5. 🌾 **Prediction Persistence Degradation Boundary (`backend/app/routers/farmer/predict.py`):**
+     - Wrapped `db.predictions.insert_one` in a narrow `PyMongoError` fallback boundary.
+     - On write failure, successful AI inference results and GradCAM visualizations are preserved and returned with a temporary identifier and `"history_saved": false`.
+  6. 🧪 **Validation:**
+     - Created and passed all 7 tests in `backend/tests/test_b9_2_db_degradation.py` (100% pass rate).
+     - Confirmed full regression suite: 24/24 passed across RBAC, broadcast idempotency, and fanout; 19/19 passed across booking concurrency.
+     - Confirmed booking transaction logic in `backend/app/routers/provider/equipment.py` remains completely untouched.
+- **Files modified:** `backend/app/core/exceptions.py`, `backend/app/db/mongodb.py`, `backend/app/main.py`, `backend/app/routers/common/auth.py`, `backend/app/routers/farmer/predict.py`, `backend/tests/test_b9_2_db_degradation.py`, `changes_happening.md`.
+
+## 2026-10-01 (v359) - B8 Phase 2B: Reduce Redundant Polling & Duplicate Data Fetches
+- **Summary:**
+  1. ⚡ **Eliminated Redundant Bookings Polling in NotificationsPage (NotificationsPage.jsx):**
+     - Removed redundant network calls API.get('/api/v1/equipment/bookings') and API.get('/api/equipment/bookings') from the 20-second notification polling loop for both Equipment Providers and Farmers.
+     - Replaced with cached readings from localStorage.getItem('agrishield_equipment_bookings'), completely eliminating duplicate network fetches.
+  2. 📡 **Event-Driven Booking Updates (NotificationsPage.jsx):**
+     - Added event listener for grishield_bookings_updated to NotificationsPage, ensuring any booking status decision (confirmed, declined, rejected, cancelled) or crossDeviceSync update triggers an immediate targeted re-synthesis without polling.
+  3. 🛡️ **Preserved All Phase 2A Guarantees:**
+     - NotificationsPage retains 20-second authoritative notification polling with visibility guard and focus/storage revalidation.
+     - Zero backend, database, AI worker, Render, Vercel, or IoT changes.
+  4. 🧪 **Validation:**
+     - Successfully built production bundle via `npm run build` with zero errors.
+     - Validated git diff --check cleanly.
+- **Files modified:** rontend/src/pages/common/NotificationsPage.jsx, changes_happening.md.
+
 ## 2026-10-01 (v357) - B8 Phase 1: Database & Index Performance Alignment
 - **Summary:**
   1. ⚡ **Users Email Unique Index (`mongodb.py`):**

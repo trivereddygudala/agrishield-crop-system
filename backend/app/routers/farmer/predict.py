@@ -10,6 +10,7 @@ import hmac
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
+from pymongo.errors import PyMongoError
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query, Form, Header, Request
 from backend.app.core.config import settings
 
@@ -2409,13 +2410,24 @@ async def predict_pytorch_endpoint(
         "ensemble_notes": prediction_result.get("ensemble_notes")
     }
 
+    prediction_record["history_saved"] = False
     if db is not None:
-        result = await db.predictions.insert_one(prediction_record)
-        prediction_record["id"] = str(result.inserted_id)
+        try:
+            result = await db.predictions.insert_one(prediction_record)
+            prediction_record["id"] = str(result.inserted_id)
+            prediction_record["history_saved"] = True
+        except PyMongoError as db_err:
+            logger.error(f"[PREDICT DB DEGRADATION] Database error saving prediction history: {db_err.__class__.__name__}: {db_err}")
+            prediction_record["id"] = f"temp-{uuid.uuid4()}"
+            prediction_record["history_saved"] = False
+            prediction_record["history_error"] = "Database service unavailable. Prediction generated successfully but not saved to history."
     else:
         prediction_record["id"] = str(uuid.uuid4())
+        prediction_record["history_saved"] = False
+
     if "_id" in prediction_record:
         del prediction_record["_id"]
+
 
     # --- Real-Time Crop Scan Notification (Delivered via DB & WebSocket) ---
     user_id_str = str(current_user.get("id") or current_user.get("_id") or "") if current_user else ""

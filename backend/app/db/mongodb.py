@@ -236,16 +236,24 @@ async def close_mongo_connection():
         db_instance.client.close()
         logger.info("MongoDB connection closed.")
 
+from backend.app.core.exceptions import DatabaseUnavailableException
+
 def get_database():
-    """Retrieve database instance, reconnecting synchronously if needed."""
+    """Retrieve database instance, reconnecting if uninitialized, raising DatabaseUnavailableException if unavailable."""
     if db_instance.db is None:
-        try:
-            logger.info("db_instance is None in get_database, initializing client...")
-            db_instance.client = AsyncIOMotorClient(
-                settings.mongo_connection_url,
-                **get_client_kwargs()
-            )
-            db_instance.db = db_instance.client[settings.DATABASE_NAME]
-        except Exception as e:
-            logger.error(f"Failed on-demand MongoDB connection: {e}")
+        if db_instance.client is None:
+            try:
+                logger.info("db_instance is None in get_database, initializing client...")
+                db_instance.client = AsyncIOMotorClient(
+                    settings.mongo_connection_url,
+                    **get_client_kwargs()
+                )
+                db_instance.db = db_instance.client[settings.DATABASE_NAME]
+            except Exception as e:
+                logger.error(f"Failed on-demand MongoDB connection: {e}")
+                db_instance.db = None
+
+    if db_instance.db is None:
+        raise DatabaseUnavailableException("Database service is temporarily unavailable. Please retry in a few moments.")
+
     return db_instance.db
