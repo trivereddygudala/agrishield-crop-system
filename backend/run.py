@@ -14,9 +14,21 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 import uvicorn
+from backend.app.core.logging_sanitizer import (
+    install_credential_redaction_filter,
+    get_redacted_uvicorn_log_config
+)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     host = "0.0.0.0"
     print(f"🚀 [AgriShield] Starting Uvicorn on {host}:{port} (Render Cloud Environment)...")
-    uvicorn.run("backend.app.main:app", host=host, port=port, log_level="info", access_log=True)
+    install_credential_redaction_filter()
+    uvicorn.run(
+        "backend.app.main:app",
+        host=host,
+        port=port,
+        log_level="info",
+        access_log=True,
+        log_config=get_redacted_uvicorn_log_config()
+    )

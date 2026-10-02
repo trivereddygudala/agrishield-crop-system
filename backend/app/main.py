@@ -14,9 +14,13 @@ from backend.app.services.scheduler import start_scheduler, stop_scheduler
 from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, support
 from backend.app.core.security_middleware import SecurityHeadersMiddleware
 from backend.app.core.request_id_middleware import RequestIdMiddleware, get_current_request_id
+from backend.app.core.logging_sanitizer import install_credential_redaction_filter
 from backend.app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Initialize credential redaction filters for zero-leak access logging
+install_credential_redaction_filter()
 
 # Define base directories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -54,6 +58,8 @@ async def init_background_services():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Re-verify credential redaction filters after Uvicorn logger setup
+    install_credential_redaction_filter()
     """Lifecycle events manager for FastAPI startup and shutdown."""
     import asyncio
     
