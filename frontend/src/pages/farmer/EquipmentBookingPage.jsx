@@ -46,6 +46,7 @@ import axios from 'axios';
 import { useFarm } from '../../context/FarmContext';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../services/api';
+import { getUserNotificationCache, setUserNotificationCache } from '../../utils/notificationStorage';
 import {
   INDIA_STATES,
   getDistricts,
@@ -2297,8 +2298,8 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
     bookingNotif.role = 'equipment_provider';
 
     try {
-      const existing = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-      localStorage.setItem('agrishield_user_notifications', JSON.stringify([bookingNotif, ...existing.filter(n => n.id !== bookingNotif.id)]));
+      const existing = getUserNotificationCache(user);
+      setUserNotificationCache(user, [bookingNotif, ...existing.filter(n => n.id !== bookingNotif.id)]);
     } catch (e) {}
 
     // Dispatch global event for multi-tab provider sync if listening

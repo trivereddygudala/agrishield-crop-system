@@ -494,7 +494,6 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
     const onCustomEvent = (e) => handleIncomingNotif(e.detail);
     window.addEventListener('agrishield_new_notification', onCustomEvent);
-    window.addEventListener('newBookingNotification', onCustomEvent);
 
     let bcNotif;
     try {
@@ -508,7 +507,6 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
     return () => {
       window.removeEventListener('agrishield_new_notification', onCustomEvent);
-      window.removeEventListener('newBookingNotification', onCustomEvent);
       bcNotif?.close();
     };
   }, [user, playNotificationChime]);

@@ -18,6 +18,14 @@ import { useTranslation } from 'react-i18next';
 import { translateNotification } from '../../utils/notificationTranslator';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
 import { getDeletedNotificationIds, saveDeletedNotificationId } from '../../utils/equipmentDeduplication';
+import {
+  getUserNotificationCache,
+  setUserNotificationCache,
+  getUserReadNotificationIds,
+  setUserReadNotificationIds,
+  getUserDeletedNotificationIds,
+  clearUserNotificationsStorage
+} from '../../utils/notificationStorage';
 import { recordCrossDeviceDeletion } from '../../services/crossDeviceSync';
 
 // ── Dynamic Crop Extraction & Localization Helper ──
@@ -174,6 +182,11 @@ function formatGoogleMessagesTime(dateInput) {
 export default function NotificationsPage() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { latestAlert, connectionStatus } = useWebSocket();
+  const connectionStatusRef = useRef(connectionStatus);
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
   const navigate = useNavigate();
   const currentLang = i18n.language || user?.preferred_language || localStorage.getItem('i18nextLng') || 'te';
   const isAdmin = user?.role?.toLowerCase() === 'admin';
@@ -235,19 +248,12 @@ export default function NotificationsPage() {
   };
 
   const getReadIds = useCallback(() => {
-    try {
-      const raw = localStorage.getItem('agrishield_read_notification_ids');
-      return new Set(raw ? JSON.parse(raw) : []);
-    } catch {
-      return new Set();
-    }
-  }, []);
+    return getUserReadNotificationIds(user);
+  }, [user]);
 
   const saveReadIds = useCallback((idsSet) => {
-    try {
-      localStorage.setItem('agrishield_read_notification_ids', JSON.stringify(Array.from(idsSet)));
-    } catch (_) {}
-  }, []);
+    setUserReadNotificationIds(user, idsSet);
+  }, [user]);
 
   // Fetch and hydrate notifications with strict role-based isolation & unified conversation grouping
   const fetchNotifications = useCallback(async (isSilent = false) => {
@@ -260,7 +266,7 @@ export default function NotificationsPage() {
       if (priority !== 'All') params.set('priority', priority);
 
       const readIds = getReadIds();
-      const deletedNotifIds = getDeletedNotificationIds();
+      const deletedNotifIds = getUserDeletedNotificationIds(user);
 
       let serverNotifs = [];
       try {
@@ -297,7 +303,7 @@ export default function NotificationsPage() {
       // Equipment providers must NEVER receive soil moisture drops, pest advisories, or weather forecasts.
       let localNotifs = [];
       try {
-        const savedUserNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const savedUserNotifs = getUserNotificationCache(user);
         if (Array.isArray(savedUserNotifs)) {
           if (!isEquipmentProvider && !isAdmin) {
             // Display only farmer-directed notifications without wiping out provider notifications in shared storage
@@ -324,7 +330,7 @@ export default function NotificationsPage() {
               return !isAgronomic;
             });
             if (cleaned.length !== savedUserNotifs.length) {
-              try { localStorage.setItem('agrishield_user_notifications', JSON.stringify(cleaned)); } catch (_) {}
+              try { setUserNotificationCache(user, cleaned); } catch (_) {}
             }
 
             // Display notifications intended for equipment providers (strictly exclude farmer soil, disease, and weather alerts)
@@ -588,7 +594,7 @@ export default function NotificationsPage() {
 
       // Persist read states back to storage without purging the other role's notifications
       try {
-        const rawExisting = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const rawExisting = getUserNotificationCache(user);
         if (Array.isArray(rawExisting)) {
           const updatedRaw = rawExisting.map(n => {
             const nId = n.notification_id || n.id || n.booking_id;
@@ -603,7 +609,7 @@ export default function NotificationsPage() {
               updatedRaw.push(ln);
             }
           });
-          localStorage.setItem('agrishield_user_notifications', JSON.stringify(updatedRaw));
+          setUserNotificationCache(user, updatedRaw);
         }
       } catch (_) {}
 
@@ -762,12 +768,13 @@ export default function NotificationsPage() {
     // Initial fetch
     fetchNotifications(false);
 
-    // Active background polling interval (20 seconds, visibility-guarded) ensuring notifications stay synchronized
+    // B9.5B (F03): Fallback background polling interval (30 seconds, visibility-guarded):
+    // Only operates when WebSocket is NOT connected (offline/reconnecting/error) to avoid redundant REST queries.
     const pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && connectionStatusRef.current !== 'connected') {
         fetchNotifications(true);
       }
-    }, 20000);
+    }, 30000);
 
     // Silent background revalidations (Stale-While-Revalidate pattern: zero skeleton blinking)
     let revalidateTimer;
@@ -813,7 +820,6 @@ export default function NotificationsPage() {
       }
     };
     window.addEventListener('agrishield_new_notification', handleNewNotif);
-    window.addEventListener('newBookingNotification', handleNewNotif);
 
     let bc;
     try {
@@ -829,12 +835,17 @@ export default function NotificationsPage() {
 
     return () => {
       window.removeEventListener('agrishield_new_notification', handleNewNotif);
-      window.removeEventListener('newBookingNotification', handleNewNotif);
       bc?.close();
     };
   }, []);
 
-  const { latestAlert } = useWebSocket();
+  // Revalidate notifications if connection drops
+  useEffect(() => {
+    if (connectionStatus && connectionStatus !== 'connected' && document.visibilityState === 'visible') {
+      fetchNotifications(true);
+    }
+  }, [connectionStatus, fetchNotifications]);
+
   useEffect(() => {
     if (latestAlert) {
       setNotifications(prev => {
@@ -864,12 +875,12 @@ export default function NotificationsPage() {
       }));
 
       try {
-        const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const stored = getUserNotificationCache(user);
         if (Array.isArray(stored)) {
-          localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.map(n => {
+          setUserNotificationCache(user, stored.map(n => {
             const match = idsToMark.includes(n.notification_id) || idsToMark.includes(n.id) || (n.booking_id && idsToMark.includes(n.booking_id));
             return match ? { ...n, read: true } : n;
-          })));
+          }));
         }
       } catch (e) {}
 
@@ -886,7 +897,7 @@ export default function NotificationsPage() {
       const idsToDelete = Array.isArray(threadItemIds) && threadItemIds.length > 0 ? threadItemIds : [id];
       idsToDelete.forEach(itemId => {
         // 1. Permanently blacklist this notification ID so background fetch & synthesis never resurrect it
-        saveDeletedNotificationId(itemId);
+        saveDeletedNotificationId(itemId, user);
         recordCrossDeviceDeletion('notification', itemId, 'User deleted notification');
         API.delete(`/api/v1/notifications/${itemId}`).catch(() => {});
       });
@@ -894,9 +905,9 @@ export default function NotificationsPage() {
       setNotifications(prev => prev.filter(n => !idsToDelete.includes(n.notification_id) && !idsToDelete.includes(n.id) && !idsToDelete.includes(n.booking_id)));
       setTotal(t => Math.max(0, t - idsToDelete.length));
       try {
-        const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const stored = getUserNotificationCache(user);
         if (Array.isArray(stored)) {
-          localStorage.setItem('agrishield_user_notifications', JSON.stringify(stored.filter(n => !idsToDelete.includes(n.notification_id) && !idsToDelete.includes(n.id) && !idsToDelete.includes(n.booking_id))));
+          setUserNotificationCache(user, stored.filter(n => !idsToDelete.includes(n.notification_id) && !idsToDelete.includes(n.id) && !idsToDelete.includes(n.booking_id)));
         }
       } catch (e) {}
       if (selectedMessage && (idsToDelete.includes(selectedMessage.notification_id) || idsToDelete.includes(selectedMessage.id) || idsToDelete.includes(selectedMessage.booking_id))) {
@@ -953,9 +964,9 @@ export default function NotificationsPage() {
       })));
 
       try {
-        const stored = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-        const updated = stored.map(n => ({ ...n, read: true }));
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify(updated));
+        const stored = getUserNotificationCache(user);
+        const updated = (Array.isArray(stored) ? stored : []).map(n => ({ ...n, read: true }));
+        setUserNotificationCache(user, updated);
       } catch (e) {}
 
       window.dispatchEvent(new CustomEvent('agrishield_notifications_all_read'));
@@ -990,7 +1001,7 @@ export default function NotificationsPage() {
       // 1. Permanently blacklist all current notification IDs so background synthesis never resurrects them
       notifications.forEach(n => {
         const nId = n.notification_id || n.id || n.booking_id;
-        if (nId) saveDeletedNotificationId(nId);
+        if (nId) saveDeletedNotificationId(nId, user);
       });
 
       await API.delete('/api/v1/notifications/clear').catch(() => {});
@@ -998,9 +1009,7 @@ export default function NotificationsPage() {
       setNotifications([]);
       setTotal(0);
       setSelectedMessage(null);
-      try {
-        localStorage.removeItem('agrishield_user_notifications');
-      } catch (e) {}
+      clearUserNotificationsStorage(user);
       setToastMsg(isTe ? 'ఇన్‌బాక్స్ క్లియర్ చేయబడింది.' : t('notifications_page.toast.inbox_cleared', 'Inbox cleared.'));
     } catch {
       setToastMsg(t('notifications_page.toast.clear_failed', 'Failed to clear notifications.'));

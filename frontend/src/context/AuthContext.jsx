@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import API from '../services/api';
+import { clearUserNotificationsStorage } from '../utils/notificationStorage';
 import i18n from '../i18n/config';
 
 const AuthContext = createContext(null);
@@ -8,6 +9,34 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // B9.5B (F04): Cross-tab session & logout synchronization
+  useEffect(() => {
+    const handleStorageEvent = (event) => {
+      // Only react to changes on the primary authentication token key
+      if (event.key === 'token') {
+        if (!event.newValue) {
+          // Token was cleared/removed in another tab (cross-tab logout)
+          setToken(null);
+          setUser(null);
+          document.body.classList.remove('farmer-mode');
+        } else if (event.newValue !== token) {
+          // Token changed to a different session in another tab
+          const rawUser = localStorage.getItem('user');
+          try {
+            const parsedUser = rawUser ? JSON.parse(rawUser) : null;
+            setToken(event.newValue);
+            setUser(parsedUser);
+          } catch (_) {
+            setToken(event.newValue);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
+    return () => window.removeEventListener('storage', handleStorageEvent);
+  }, [token]);
 
   // Initialize authentication state on load with permanent persistence
   useEffect(() => {
@@ -195,6 +224,7 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       console.warn("Backend logout failed or session already expired", e);
     } finally {
+      clearUserNotificationsStorage(user);
       localStorage.removeItem('token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');

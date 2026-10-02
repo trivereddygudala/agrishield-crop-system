@@ -44,6 +44,7 @@ import {
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API from '../../services/api';
+import { getUserNotificationCache, setUserNotificationCache } from '../../utils/notificationStorage';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/index';
@@ -1098,8 +1099,8 @@ export default function ProviderDashboardPage() {
         };
 
         try {
-          const userNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
-          localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...userNotifs.filter(n => n.id !== notifObj.id)]));
+          const userNotifs = getUserNotificationCache(user);
+          setUserNotificationCache(user, [notifObj, ...userNotifs.filter(n => n.id !== notifObj.id)]);
         } catch (e) {}
 
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));

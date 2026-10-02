@@ -25,6 +25,7 @@ import { translateNotification, translateChatMessage } from '../../utils/notific
 import { deduplicateSpeechTranscript } from '../../utils/speechSanitizer';
 
 import { useAuth } from '../../context/AuthContext';
+import { getUserNotificationCache, setUserNotificationCache } from '../../utils/notificationStorage';
 import API from '../../services/api';
 import { VILLAGE_COORDINATES } from '../../data/indiaLocations';
 
@@ -1265,11 +1266,11 @@ export default function GoogleMessageReader({
         read: false
       };
       try {
-        const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const existingNotifs = getUserNotificationCache(currentUser);
         const filteredExisting = Array.isArray(existingNotifs)
           ? existingNotifs.filter(n => n && n.booking_id !== canonicalBookingId && !String(n.id || '').startsWith(`notif-chat-${canonicalBookingId}`))
           : [];
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
+        setUserNotificationCache(currentUser, [notifObj, ...filteredExisting]);
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
         try {
           if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -1350,11 +1351,11 @@ export default function GoogleMessageReader({
         read: false
       };
       try {
-        const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const existingNotifs = getUserNotificationCache(currentUser);
         const filteredExisting = Array.isArray(existingNotifs)
           ? existingNotifs.filter(n => n && n.booking_id !== canonicalBookingId && !String(n.id || '').startsWith(`notif-chat-${canonicalBookingId}`))
           : [];
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
+        setUserNotificationCache(currentUser, [notifObj, ...filteredExisting]);
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
         if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
           const nbc = new BroadcastChannel('agrishield_notifications_channel');
@@ -1419,11 +1420,11 @@ export default function GoogleMessageReader({
         read: false
       };
       try {
-        const existingNotifs = JSON.parse(localStorage.getItem('agrishield_user_notifications') || '[]');
+        const existingNotifs = getUserNotificationCache(currentUser);
         const filteredExisting = Array.isArray(existingNotifs)
           ? existingNotifs.filter(n => n && n.booking_id !== canonicalBookingId && !String(n.id || '').startsWith(`notif-chat-${canonicalBookingId}`))
           : [];
-        localStorage.setItem('agrishield_user_notifications', JSON.stringify([notifObj, ...filteredExisting]));
+        setUserNotificationCache(currentUser, [notifObj, ...filteredExisting]);
         window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: notifObj }));
         try {
           if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {

@@ -5,6 +5,7 @@
  */
 
 import { CURATED_FARM_PHOTOS } from '../services/photoService';
+import { getNotificationStorageKeys } from './notificationStorage';
 
 export const getEquipmentFallbackImage = (category, title = '') => {
   const t = String(title || '').toLowerCase();
@@ -246,9 +247,11 @@ export const saveDeletedEquipmentId = (equipmentId, title = '') => {
 /**
  * Helper to fetch persistent set of user-deleted notification IDs
  */
-export const getDeletedNotificationIds = () => {
+export const getDeletedNotificationIds = (userOrId = null) => {
   try {
-    const raw = localStorage.getItem('agrishield_deleted_notification_ids');
+    const { deletedIdsKey, legacyDeletedIdsKey } = getNotificationStorageKeys(userOrId);
+    const key = deletedIdsKey || legacyDeletedIdsKey;
+    const raw = localStorage.getItem(key);
     return new Set(raw ? JSON.parse(raw) : []);
   } catch (e) {
     return new Set();
@@ -258,9 +261,11 @@ export const getDeletedNotificationIds = () => {
 /**
  * Save deleted notification ID so it never resurrects from booking synthesizers or server polling
  */
-export const saveDeletedNotificationId = (notificationId) => {
+export const saveDeletedNotificationId = (notificationId, userOrId = null) => {
   try {
-    const raw = localStorage.getItem('agrishield_deleted_notification_ids');
+    const { deletedIdsKey, legacyDeletedIdsKey } = getNotificationStorageKeys(userOrId);
+    const key = deletedIdsKey || legacyDeletedIdsKey;
+    const raw = localStorage.getItem(key);
     const list = raw ? JSON.parse(raw) : [];
     const notifStr = String(notificationId || '').trim();
     if (notifStr && !list.includes(notifStr)) {
@@ -275,7 +280,7 @@ export const saveDeletedNotificationId = (notificationId) => {
       if (!list.includes(`farmer-notif-${cleanId}-declined`)) list.push(`farmer-notif-${cleanId}-declined`);
       if (!list.includes(`farmer-notif-${cleanId}-cancelled`)) list.push(`farmer-notif-${cleanId}-cancelled`);
     }
-    localStorage.setItem('agrishield_deleted_notification_ids', JSON.stringify(list));
+    localStorage.setItem(key, JSON.stringify(list));
   } catch (e) {}
 };
 

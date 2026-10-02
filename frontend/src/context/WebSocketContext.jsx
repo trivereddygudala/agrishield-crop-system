@@ -359,6 +359,13 @@ export const WebSocketProvider = ({ children }) => {
       };
     } catch (err) {
       setConnectionStatus('error');
+      clearTimers();
+      wsRef.current = null;
+      if (reconnectAttemptRef.current >= 5) {
+        console.warn('Max WebSocket reconnect attempts reached (5). Switching to offline/REST fallback.');
+        setConnectionStatus('offline');
+        return;
+      }
       const attempt = reconnectAttemptRef.current++;
       const delay = Math.min(Math.pow(2, attempt) * 1000, 30000);
       reconnectTimeoutRef.current = setTimeout(() => {
