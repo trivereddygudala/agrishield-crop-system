@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import API from '../services/api';
 
 const WebSocketContext = createContext(null);
 
@@ -19,6 +20,42 @@ export const WebSocketProvider = ({ children }) => {
   const reconnectAttemptRef = useRef(0);
   const isUnmountedRef = useRef(false);
   const subscribersRef = useRef({});
+
+  // B9.5A (B9.5-F02): Authoritative unread count REST hydration
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) {
+      setUnreadCount(null);
+      return;
+    }
+    try {
+      const res = await API.get('/api/v1/notifications/count');
+      const count = Number(res?.data?.unread_count ?? 0);
+      if (!isUnmountedRef.current) {
+        setUnreadCount(Number.isFinite(count) ? Math.max(0, count) : 0);
+      }
+    } catch (_) {
+      try {
+        const fallbackRes = await API.get('/api/notifications/count');
+        const count = Number(fallbackRes?.data?.unread_count ?? 0);
+        if (!isUnmountedRef.current) {
+          setUnreadCount(Number.isFinite(count) ? Math.max(0, count) : 0);
+        }
+      } catch (_) {
+        if (!isUnmountedRef.current) {
+          setUnreadCount((prev) => (prev !== null ? prev : 0));
+        }
+      }
+    }
+  }, [user]);
+
+  // Initial unread count hydration whenever authenticated user state becomes available
+  useEffect(() => {
+    if (user) {
+      fetchUnreadCount();
+    } else {
+      setUnreadCount(null);
+    }
+  }, [user, fetchUnreadCount]);
 
   // Event subscription system for child components (e.g., DevicesPage, NotificationsPage)
   const subscribe = useCallback((eventType, callback) => {
@@ -144,6 +181,7 @@ export const WebSocketProvider = ({ children }) => {
         setConnectionStatus('connected');
         reconnectAttemptRef.current = 0;
         setLastMessageTime(new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }));
+        fetchUnreadCount();
 
         // Setup ping/heartbeat interval every 30 seconds
         pingIntervalRef.current = setInterval(() => {
@@ -329,7 +367,7 @@ export const WebSocketProvider = ({ children }) => {
         }
       }, delay);
     }
-  }, [user, token, clearTimers, disconnect, notifySubscribers]);
+  }, [user, token, clearTimers, disconnect, notifySubscribers, fetchUnreadCount]);
 
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -351,6 +389,8 @@ export const WebSocketProvider = ({ children }) => {
     lastTelemetry,
     deviceStatusMap,
     unreadCount,
+    setUnreadCount,
+    refreshUnreadCount: fetchUnreadCount,
     latestAlert,
     subscribe,
     reconnect: connect,

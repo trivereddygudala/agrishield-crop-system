@@ -291,7 +291,6 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   // Notification bell state
-  const [unreadCount, setUnreadCount] = useState(0);
   const [bellOpen, setBellOpen] = useState(false);
   const [recentAlerts, setRecentAlerts] = useState([]);
   const [liveAlert, setLiveAlert] = useState(null);
@@ -326,11 +325,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
-    try {
-      const res = await API.get('/api/notifications/count');
-      setUnreadCount(res.data.unread_count || 0);
-    } catch { /* silently ignore */ }
-  }, [user]);
+    if (refreshUnreadCount) {
+      await refreshUnreadCount();
+    }
+  }, [user, refreshUnreadCount]);
 
   const fetchRecentAlerts = useCallback(async () => {
     if (!user) return;
@@ -366,7 +364,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           const newest = freshAlerts[0];
           setLiveAlert(newest);
           playNotificationChime();
-          setUnreadCount(prev => prev + freshAlerts.length);
+          if (setUnreadCount) setUnreadCount(prev => (prev || 0) + freshAlerts.length);
           setTimeout(() => setLiveAlert(null), 6000);
         }
       } else {
@@ -383,7 +381,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   }, [user, playNotificationChime]);
 
   // Global WebSocket Context hook
-  const { connectionStatus, lastMessageTime, lastTelemetry, deviceStatusMap, unreadCount: wsUnreadCount, latestAlert } = useWebSocket();
+  // Global WebSocket Context hook - authoritative owner of real-time state and unread count
+  const { connectionStatus, lastMessageTime, lastTelemetry, deviceStatusMap, unreadCount, setUnreadCount, refreshUnreadCount, latestAlert } = useWebSocket();
 
   // ESP32 Live Hardware Status
   const [nodeStatus, setNodeStatus] = useState({ online: false, rssi: null, bluetoothConnected: false, batteryPercent: null, batteryCharging: false });
@@ -489,7 +488,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
       setLiveAlert(notif);
       setRecentAlerts(prev => [notif, ...prev.filter(n => (n.notification_id || n.id) !== notifId)].slice(0, 5));
-      setUnreadCount(prev => prev + 1);
+      if (setUnreadCount) setUnreadCount(prev => (prev || 0) + 1);
       playNotificationChime();
       setTimeout(() => setLiveAlert(null), 6000);
     };
@@ -515,17 +514,14 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     };
   }, [user, playNotificationChime]);
 
-  // Sync global WebSocket unread count
-  useEffect(() => {
-    if (wsUnreadCount !== null) {
-      setUnreadCount(wsUnreadCount);
-    }
-  }, [wsUnreadCount]);
+
 
   // Sync recent alerts and trigger banner on new live alert over WebSocket
   useEffect(() => {
     if (latestAlert) {
-      setRecentAlerts(prev => [latestAlert, ...prev].slice(0, 5));
+      const aId = latestAlert.notification_id || latestAlert.id || latestAlert._id;
+      if (aId) seenNotificationIdsRef.current.add(aId);
+      setRecentAlerts(prev => [latestAlert, ...prev.filter(n => (n.notification_id || n.id || n._id) !== aId)].slice(0, 5));
       setLiveAlert(latestAlert);
       playNotificationChime();
       const t = setTimeout(() => { setLiveAlert(null); }, 6000);
@@ -585,7 +581,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     try {
       await API.post(`/api/notifications/${id}/read`);
       setRecentAlerts(prev => prev.filter(n => n.notification_id !== id));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      if (setUnreadCount) setUnreadCount(prev => Math.max(0, (prev || 0) - 1));
     } catch { /* ignore */ }
   };
 
