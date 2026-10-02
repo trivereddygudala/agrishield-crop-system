@@ -29,7 +29,7 @@ const CropAdvisoryPage = () => {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6 w-full pb-12"
+      className="space-y-6 w-full pb-28 sm:pb-12"
     >
       {/* Back to Field Navigation Button */}
       <div className="flex items-center">

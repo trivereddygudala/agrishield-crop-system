@@ -21,7 +21,7 @@ export default function AnalyticsCharts({ timeSeries, topCrops, topDiseases, top
       {hasDaily && (
         <div className="bg-white dark:bg-slate-900/60 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm col-span-1 lg:col-span-2">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Daily Scan Trend</h3>
-          <div className="h-72 w-full">
+          <div className="h-72 w-full min-w-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={daily} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -41,7 +41,7 @@ export default function AnalyticsCharts({ timeSeries, topCrops, topDiseases, top
       {hasWeekly && !hasDaily && (
         <div className="bg-white dark:bg-slate-900/60 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm col-span-1 lg:col-span-2">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Weekly Scan Trend</h3>
-          <div className="h-72 w-full">
+          <div className="h-72 w-full min-w-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weekly} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -61,7 +61,7 @@ export default function AnalyticsCharts({ timeSeries, topCrops, topDiseases, top
       {hasMonthly && !hasDaily && !hasWeekly && (
         <div className="bg-white dark:bg-slate-900/60 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm col-span-1 lg:col-span-2">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Monthly Scan Trend</h3>
-          <div className="h-72 w-full">
+          <div className="h-72 w-full min-w-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={monthly} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                 <defs>
@@ -87,7 +87,7 @@ export default function AnalyticsCharts({ timeSeries, topCrops, topDiseases, top
       {topDiseases && topDiseases.length > 0 && (
         <div className="bg-white dark:bg-slate-900/60 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Top Diseases</h3>
-          <div className="h-64 w-full">
+          <div className="h-64 w-full min-w-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

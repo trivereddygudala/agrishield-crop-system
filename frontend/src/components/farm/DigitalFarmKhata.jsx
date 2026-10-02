@@ -464,7 +464,7 @@ export default function DigitalFarmKhata({
       {/* Add Entry Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -610,6 +610,19 @@ export default function DigitalFarmKhata({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Floating Action Button (FAB) - Clear of BottomNav */}
+      <div className="sm:hidden fixed bottom-24 right-4 z-30">
+        <button
+          type="button"
+          onClick={() => setShowAddModal(true)}
+          aria-label={isTe ? 'ఖర్చు నమోదు చేయండి' : 'Add Expense Entry'}
+          className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-full shadow-2xl shadow-black/80 active:scale-95 transition-all border border-emerald-400/40 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>{isTe ? '+ ఎంట్రీ' : '+ Add Entry'}</span>
+        </button>
+      </div>
     </div>
   );
 }

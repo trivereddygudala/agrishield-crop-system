@@ -359,7 +359,7 @@ const FarmPage = () => {
 
   if (contextLoading && farms.length === 0) {
     return (
-      <div className="space-y-6 max-w-5xl mx-auto w-full pb-16">
+      <div className="space-y-6 max-w-5xl mx-auto w-full pb-28 sm:pb-16">
         <div className="flex flex-col gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
           <Skeleton className="h-10 w-64 rounded-xl animate-pulse" />
           <Skeleton className="h-4.5 w-96 rounded-xl mt-2 animate-pulse" />
@@ -369,7 +369,7 @@ const FarmPage = () => {
   }
 
   return (
-    <div className="space-y-5 max-w-5xl mx-auto w-full pb-16">
+    <div className="space-y-5 max-w-5xl mx-auto w-full pb-28 sm:pb-16">
 
       {/* ═══════ P2: Horizontally Scrollable Mobile/Desktop Farm Tab Strip ═══════ */}
       <div className="relative w-full">
@@ -399,7 +399,7 @@ const FarmPage = () => {
                 role="tab"
               >
                 <span>{tab.icon}</span>
-                <span>{isTe ? tab.labelTe : tab.labelEn}</span>
+                <span className="whitespace-nowrap">{isTe ? tab.labelTe : tab.labelEn}</span>
               </button>
             );
           })}

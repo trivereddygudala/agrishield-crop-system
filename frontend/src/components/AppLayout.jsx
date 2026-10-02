@@ -125,7 +125,7 @@ export const Loader = ({ size = 'md', className = '' }) => (
 
 // 4. LoadingScreen
 export const LoadingScreen = ({ text = 'Verifying crop status...' }) => (
-  <div className="fixed inset-0 bg-slate-950/30 backdrop-blur-md flex flex-col items-center justify-center z-50">
+  <div className="fixed inset-0 bg-slate-950/30 backdrop-blur-md flex flex-col items-center justify-center z-[120]">
     <div className="bg-white/90 dark:bg-slate-900/90 p-8 rounded-3xl shadow-2xl border border-white/20 flex flex-col items-center max-w-sm text-center">
       <div className="relative flex items-center justify-center mb-4">
         <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-950/50 rounded-full animate-ping opacity-75 h-16 w-16" />
@@ -156,7 +156,7 @@ export const Modal = ({ isOpen, onClose, title, children, footerActions }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
       <div className="relative bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden z-10">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
@@ -193,7 +193,7 @@ export const Toast = ({ message, type = 'success', onClose, duration = 4000 }) =
   };
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center p-4 rounded-2xl border shadow-xl max-w-sm ${typeStyles[type]}`}>
+    <div className={`fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[110] flex items-center p-4 rounded-2xl border shadow-xl max-w-[calc(100vw-32px)] sm:max-w-sm ${typeStyles[type]}`}>
       <span className="text-sm font-medium mr-6">{message}</span>
       <button onClick={onClose} className="ml-auto text-slate-400 hover:text-slate-600 rounded-lg p-1">
         <X className="h-4 w-4" />
@@ -1033,10 +1033,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-22 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm z-[9999] bg-white/95 dark:bg-slate-900/95 border border-emerald-500/30 dark:border-emerald-500/30 rounded-2xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-xl"
+            className="fixed bottom-20 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm z-[110] bg-white/95 dark:bg-slate-900/95 border border-emerald-500/30 dark:border-emerald-500/30 rounded-2xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-xl"
           >
             <div className="flex-shrink-0 p-2.5 bg-emerald-100 dark:bg-emerald-950/80 rounded-xl text-emerald-600 dark:text-emerald-400">
-              <BellRing size={20} className="animate-bounce" />
+              <BellRing size={20} className="animate-pulse" />
             </div>
             <div className="flex-grow min-w-0 pr-1">
               <div className="flex items-center gap-1.5 mb-0.5">
@@ -1387,15 +1387,15 @@ export const BottomNav = () => {
       label: t('nav.field_short', 'Field'),
       path: '/farm',
       Icon: Activity,
-      matchPaths: ['/farm', '/crop-advisory', '/history', '/analytics', '/market', '/farm-analytics', '/reports'],
+      matchPaths: ['/farm', '/crop-advisory', '/history', '/analytics', '/farm-analytics', '/market', '/reports', '/equipment-booking', '/equipment', '/field-calculator'],
     },
     {
       key: 'scan',
       label: t('nav.scan_short', 'Scan'),
-      path: '/upload',
+      path: '/scan',
       Icon: Camera,
       isCenter: true,
-      matchPaths: ['/upload', '/result'],
+      matchPaths: ['/scan', '/upload', '/result'],
     },
     {
       key: 'alerts',
@@ -1410,7 +1410,7 @@ export const BottomNav = () => {
       label: t('nav.more_short', 'More'),
       path: '/more',
       Icon: SettingsIcon,
-      matchPaths: ['/more', '/settings', '/profile', '/admin', '/devices', '/node-control', '/sdcard', '/assistant'],
+      matchPaths: ['/more', '/settings', '/profile', '/admin', '/devices', '/node-control', '/sdcard', '/assistant', '/languages', '/support'],
     },
   ];
 
@@ -1454,7 +1454,7 @@ export const BottomNav = () => {
   return (
     <nav
       aria-label="Mobile bottom navigation"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 select-none bg-white/95 dark:bg-[#070d19]/95 backdrop-blur-xl border-t border-slate-200/90 dark:border-slate-800/80 shadow-[0_-4px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_30px_rgba(0,0,0,0.6)]"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 select-none bg-white/95 dark:bg-[#070d19]/95 backdrop-blur-xl border-t border-slate-200/90 dark:border-slate-800/80 shadow-[0_-4px_25px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_30px_rgba(0,0,0,0.6)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
@@ -1489,7 +1489,7 @@ export const BottomNav = () => {
                   w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm
                   ${isActive
                     ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-emerald-500/40 scale-105 ring-2 ring-emerald-400/40'
-                    : 'bg-emerald-600 dark:bg-emerald-500 text-white hover:bg-emerald-500'}
+                    : 'bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200/90 dark:border-slate-700/80 hover:bg-emerald-50 dark:hover:bg-slate-700/80'}
                 `}>
                   <Icon className="w-5 h-5 drop-shadow-xs" />
                 </div>

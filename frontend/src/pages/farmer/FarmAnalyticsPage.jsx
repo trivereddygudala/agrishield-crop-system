@@ -96,7 +96,7 @@ const FarmAnalyticsPage = () => {
   const perf = data?.performance || {};
 
   return (
-    <div className="max-w-7xl mx-auto w-full">
+    <div className="max-w-7xl mx-auto w-full pb-28 sm:pb-12">
       <DashboardHeader 
         metadata={data?.metadata} 
         onRefresh={handleRefresh} 

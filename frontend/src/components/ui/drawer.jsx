@@ -35,7 +35,7 @@ const Drawer = ({ isOpen, onClose, title, children, position = "right", classNam
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex">
+        <div className="fixed inset-0 z-[100] flex">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}

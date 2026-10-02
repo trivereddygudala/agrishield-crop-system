@@ -401,6 +401,18 @@ export const WebSocketProvider = ({ children }) => {
     return () => clearInterval(decayTimer);
   }, []);
 
+  // Synchronize unreadCount instantly with local notification read actions
+  useEffect(() => {
+    const handleAllRead = () => setUnreadCount(0);
+    const handleOneRead = () => setUnreadCount(prev => (prev > 0 ? prev - 1 : 0));
+    window.addEventListener('agrishield_notifications_all_read', handleAllRead);
+    window.addEventListener('agrishield_notification_read', handleOneRead);
+    return () => {
+      window.removeEventListener('agrishield_notifications_all_read', handleAllRead);
+      window.removeEventListener('agrishield_notification_read', handleOneRead);
+    };
+  }, []);
+
   useEffect(() => {
     isUnmountedRef.current = false;
     if (user) {

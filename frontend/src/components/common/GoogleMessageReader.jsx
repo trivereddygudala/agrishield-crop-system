@@ -2718,7 +2718,7 @@ export default function GoogleMessageReader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-50 bg-[#0d1117] flex flex-col overflow-y-auto"
+            className="fixed inset-0 z-[100] bg-[#0d1117] flex flex-col overflow-y-auto"
           >
             <div className="flex items-center justify-between p-4 bg-[#161b22] border-b border-slate-800 shrink-0 sticky top-0 z-10">
               <div className="flex items-center gap-2">

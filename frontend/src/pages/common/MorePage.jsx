@@ -580,7 +580,7 @@ const MorePage = () => {
         {/* ── About Modal ── */}
         <AnimatePresence>
           {aboutOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/85 backdrop-blur-xs">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/85 backdrop-blur-xs">
               <div className="fixed inset-0" onClick={() => setAboutOpen(false)} />
               <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}

@@ -250,7 +250,7 @@ const MarketPricesPage = () => {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="max-w-7xl mx-auto space-y-6 pb-12 w-full dark:text-slate-100"
+      className="max-w-7xl mx-auto space-y-6 pb-28 sm:pb-12 w-full dark:text-slate-100"
     >
       {/* 1. Header Bar with Live Agmarknet & e-NAM Sync Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/90 dark:border-slate-800">

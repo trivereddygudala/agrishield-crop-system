@@ -2,6 +2,63 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-02 (v368) - B12-G: Farmer Portal Mobile UI/UX Fixes + Complete Real-Browser Tab Validation
+- **Summary:**
+  1. 📱 **Fix #1: BottomNav Stacking Architecture & Modal Z-Index (`AppLayout.jsx`, `dialog.jsx`, `drawer.jsx`, `DigitalFarmKhata.jsx`, `MorePage.jsx`, etc.):**
+     - Shifted `BottomNav` from `z-50` to `z-40`, establishing a strict global layering hierarchy: ordinary content (<40) < BottomNav (z-40) < interactive modals/overlays (z-[100]) < toasts/alerts (z-[110]) < global loading overlay (z-[120]).
+     - Elevated all interactive modals (`BookEquipmentModal`, `LocationModal`, `DigitalFarmKhata`, `FarmerWelcomeModal`, `OfflineSyncDrawer`, `LanguageSelectModal`, `DiseaseDiagnosisResults`, `AgrochemicalResults`, `MorePage` About Modal, `ui/dialog.jsx`, `ui/drawer.jsx`, `GoogleMessageReader.jsx`) to `z-[100]`, completely eliminating BottomNav occlusion.
+  2. 🚜 **Fix #2, #7, #8: Equipment Booking Mobile Redesign & Touch Targets (`EquipmentBookingPage.jsx`):**
+     - Redesigned `BookEquipmentModal` with flex-column layout and sticky bottom action bar (`sticky bottom-0 z-10 bg-white/95 backdrop-blur-md`), guaranteeing `Cancel` and `Confirm Rental Booking` buttons are permanently visible, reachable, and never covered by BottomNav.
+     - Elevated touch targets to min 44px on checkboxes, date inputs, and select fields.
+     - Upgraded label contrast (`text-slate-700 dark:text-slate-200 font-bold`) for crisp outdoor readability.
+  3. 🧭 **Fix #3: BottomNav Route Mapping & Scan Button Neutrality (`AppLayout.jsx`):**
+     - Fixed `farmerTabs` route matching: mapped `/scan`, `/upload`, `/result` to `scan`; `/farm`, `/equipment-booking`, `/equipment`, `/field-calculator`, `/crop-advisory`, `/market` to `field`; `/notifications` to `alerts`; `/more`, `/languages`, `/support`, `/settings`, `/profile` to `more`; `/dashboard` to `home`.
+     - Styled inactive center Scan button with neutral slate styling and emerald accent, reserving full green fill only for active `/scan` and `/upload` routes.
+  4. 📍 **Fix #4: Field Village Data Display Robust Normalization (`EquipmentBookingPage.jsx`):**
+     - Authored `parseLocationParts()` and `formatLocationSummary()` supporting flat strings, nested objects, and missing fields.
+     - Eliminated malformed `", 0"` and `", ()"` artifacts with clean fallbacks ("Location not set" / localized equivalents).
+  5. 📐 **Fix #5: Site-Wide Mobile Bottom Clearance:**
+     - Applied uniform `pb-28 sm:pb-12` or `pb-28 sm:pb-16` clearance across all farmer pages (`DashboardPage`, `CropAdvisoryPage`, `MarketPricesPage`, `ReportsPage`, `UploadImagePage`, `FarmPage`, `DevicesPage`, `SettingsPage`, `AnalyticsPage`, `FarmAnalyticsPage`).
+  6. 🍞 **Fix #6: Global Toast & Alert Positioning (`AppLayout.jsx`):**
+     - Shifted global `Toast` and `LiveAlertToast` to `bottom-20 sm:bottom-6 z-[110]`, safely floating above BottomNav.
+  7. 🔔 **Fix #9: Notification Unread Count Synchronization (`WebSocketContext.jsx` & `NotificationsPage.jsx`):**
+     - Wired event listeners for `agrishield_notifications_all_read` and `agrishield_notification_read` into `WebSocketContext.jsx` to immediately synchronize unread badge counts across navigation items.
+  8. 🌾 **Fix #10, #11, #12, #13, #14: Farm Strip, Khata FAB, Scan Layout, Charts & More Page:**
+     - Added `whitespace-nowrap` to Farm tabs to prevent awkward multiline title wrapping on small screens.
+     - Added floating Add Expense FAB at `bottom-24 right-4 z-30` in `DigitalFarmKhata.jsx`.
+     - Restructured Scan Center action bar and modals for responsive wrapping.
+     - Added `min-w-0 overflow-hidden` to chart containers in `AnalyticsCharts.jsx`.
+     - Confirmed hardware tools in `MorePage.jsx` remain filtered behind `hardwareMode`.
+  9. 🧪 **Validation & Build Results:**
+     - Ran B12 frontend quality suite (`b12_frontend_quality.test.js`): 23/23 tests passed (100%).
+     - Ran 7-language localization suite (`localization_7language.test.js`): 12/12 tests passed (100%).
+     - Ran notification regression suites (`b9_5a`, `b9_5b`): 34/34 tests passed (100%).
+     - Ran provider earnings suite: 12/12 tests passed (100%).
+     - Ran `npm run build`: built in 27.13s with 0 errors.
+     - Ran `git diff --check`: 0 errors.
+     - Conducted real-browser validation across viewports (320x568, 360x780, 390x844, 430x932, 768x1024, 1024x768, 1280x800, 1440x900).
+  10. 🛡️ **Zero Backend / Zero Push / Zero Deployment:**
+     - HEAD remains `c3d41688027b241f6375e9ad1c422d3f4b11ede8`.
+     - All edits remain unstaged in the local working tree for final diff review.
+- **Files modified:** 25 frontend files, `changes_happening.md`.
+
+## 2026-10-02 (v367) - B12-E: Production Deployment & Real-World Validation
+- **Summary:**
+  1. 🚀 **Production Vercel Deployment:**
+     - Verified commit `c3d41688027b241f6375e9ad1c422d3f4b11ede8` pushed cleanly to `origin/main` without force push.
+     - Vercel automatically built and deployed the production release to `https://agrishield-crop-system-rust.vercel.app`.
+     - Production bundle hashes verified: `index-63509a90.js`, `FarmPage-9903e934.js`, `WhatsAppAlertButton-48527644.js`.
+  2. 🌐 **Production Real-World Browser Validation:**
+     - Verified Landing (`/`), Login (`/login`), Dashboard (`/dashboard`), Farm (`/farm`), Scan Center (`/scan`), Disease Diagnosis (`/scan/disease-diag`), Notifications (`/notifications`), Equipment (`/equipment`), Field Calculator (`/field-calculator`), More (`/more`).
+     - Verified viewports: 320px, 360px, 390px, 430px, 768px, 1024px, 1280px, 1440px.
+     - Scan Center runtime: Verified complete resolution of previous `isTe is not defined` `ReferenceError`. No React ErrorBoundary screen; smooth module switching.
+     - Farm tab query parameter preservation: Verified that `/farm?field_id=123&tab=soil-npk` retains `field_id=123` across all tab changes (`tab=my-fields`, `tab=field-setup`).
+     - Mobile drawer & bottom nav: Responds cleanly at 390x844; Escape closes drawer; body scrolling restored smoothly without lock.
+     - UI classification: Normal farmer & provider interfaces free from technical clutter (PyTorch badge & ESP32 simulation hidden from normal roles, preserved for Admin/Tester).
+  3. 🛡️ **Zero Backend / Infrastructure Interference:**
+     - Zero backend code modified; Render services and MongoDB untouched; AI worker routing untouched; Arduino/firmware untouched.
+- **Files modified:** `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
 ## 2026-10-02 (v366) - B12-B: Frontend UI/UX, Mobile, Visual & Runtime Quality Upgrade
 - **Summary:**
   1. 📱 **P0 Mobile Drawer Occlusion Resolved (`App.jsx` & `AppLayout.jsx`):**

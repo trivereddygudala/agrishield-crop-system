@@ -571,7 +571,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           className="space-y-4"
         >
           {/* Top Bar with Back to Symptoms Button */}
-          <div className="flex items-center justify-between px-1 py-1.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <button
               type="button"
               onClick={() => setDiagnosticStage('confirm')}
@@ -989,7 +989,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       {/* Commercial Product Detail Modal */}
       {previewProductModal && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setPreviewProductModal(null)}
         >
           <div 
@@ -1051,7 +1051,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       {/* Global Tap-to-Zoom Modal */}
       {zoomImageModal && (
         <div 
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setZoomImageModal(null)}
         >
           <div 

@@ -744,7 +744,7 @@ const UploadImagePage = () => {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="max-w-7xl mx-auto space-y-6 pb-16 w-full"
+      className="max-w-7xl mx-auto space-y-6 pb-28 sm:pb-16 w-full"
     >
       {/* ═══════ OVERVIEW HUB — Rendered when activeTab === 'overview' ═══════ */}
       {activeTab === 'overview' ? (

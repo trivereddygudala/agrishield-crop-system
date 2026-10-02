@@ -89,6 +89,68 @@ const getEquipmentFallbackImage = (category, title = '') => {
   return CURATED_FARM_PHOTOS.tractorJohnDeere || CURATED_FARM_PHOTOS.tractorField || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80';
 };
 
+// ── Robust Location Normalization (Fixes ', 0' and ', ()' bugs) ──
+export const parseLocationParts = (farmLoc, activeFarm, user) => {
+  let village = '';
+  let mandal = '';
+  let district = '';
+  let state = 'Andhra Pradesh';
+
+  if (activeFarm && typeof activeFarm === 'object') {
+    if (activeFarm.village && activeFarm.village !== '0') village = String(activeFarm.village).trim();
+    if (activeFarm.mandal && activeFarm.mandal !== '0') mandal = String(activeFarm.mandal).trim();
+    if (activeFarm.district && activeFarm.district !== '0') district = String(activeFarm.district).trim();
+    if (activeFarm.state && activeFarm.state !== '0') state = String(activeFarm.state).trim();
+  }
+
+  const rawLoc = farmLoc || user?.farm_location;
+  if (rawLoc && typeof rawLoc === 'object') {
+    if (!village && rawLoc.village && rawLoc.village !== '0') village = String(rawLoc.village).trim();
+    if (!mandal && rawLoc.mandal && rawLoc.mandal !== '0') mandal = String(rawLoc.mandal).trim();
+    if (!district && rawLoc.district && rawLoc.district !== '0') district = String(rawLoc.district).trim();
+    if ((!state || state === 'Andhra Pradesh') && rawLoc.state) state = String(rawLoc.state).trim();
+  } else if (typeof rawLoc === 'string' && rawLoc.trim()) {
+    const segments = rawLoc.split(',').map(s => s.trim()).filter(s => s && s !== '0' && s !== 'undefined');
+    if (segments.length === 1) {
+      if (!village) village = segments[0];
+    } else if (segments.length === 2) {
+      if (!village) village = segments[0];
+      if (!district) district = segments[1];
+    } else if (segments.length >= 3) {
+      if (!village) village = segments[0];
+      if (!mandal) mandal = segments[1];
+      if (!district) district = segments[2];
+      if (segments.length >= 4 && (!state || state === 'Andhra Pradesh')) state = segments[3];
+    }
+  }
+
+  if (!village && user?.village && user.village !== '0') village = String(user.village).trim();
+  if (!mandal && user?.mandal && user.mandal !== '0') mandal = String(user.mandal).trim();
+  if (!district && user?.district && user.district !== '0') district = String(user.district).trim();
+
+  return { village, mandal, district, state };
+};
+
+export const formatLocationSummary = (loc, isTe = false) => {
+  if (!loc || typeof loc !== 'object') {
+    return isTe ? 'లొకేషన్ నమోదు కాలేదు' : 'Location not set';
+  }
+  const cleanV = loc.village && loc.village !== '0' && loc.village !== 'undefined' ? String(loc.village).trim() : '';
+  const cleanM = loc.mandal && loc.mandal !== '0' && loc.mandal !== 'undefined' ? String(loc.mandal).trim() : '';
+  const cleanD = loc.district && loc.district !== '0' && loc.district !== 'undefined' ? String(loc.district).trim() : '';
+
+  const parts = [];
+  if (cleanV) parts.push(cleanV);
+  if (cleanM) parts.push(cleanM);
+
+  let main = parts.join(', ');
+  if (cleanD) {
+    main = main ? `${main} (${cleanD})` : cleanD;
+  }
+
+  return main || (isTe ? 'లొకేషన్ నమోదు కాలేదు' : 'Location not set');
+};
+
 // ═══════════════════════════════════════════════════════════════════
 // REAL USER EQUIPMENT & BOOKINGS REPOSITORY (No Mock Data)
 // ═══════════════════════════════════════════════════════════════════
@@ -107,11 +169,12 @@ export default function EquipmentBookingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('nearest'); // 'nearest' | 'price-low' | 'rating'
 
-  // Service Location state (defaults to active farm or Prakasam/Mundlamuru/Pasupugallu)
-  const [locationState, setLocationState] = useState(() => activeFarm?.state || user?.farm_location?.state || 'Andhra Pradesh');
-  const [locationDistrict, setLocationDistrict] = useState(() => activeFarm?.district || user?.farm_location?.district || user?.district || '');
-  const [locationMandal, setLocationMandal] = useState(() => activeFarm?.mandal || user?.farm_location?.mandal || user?.mandal || '');
-  const [locationVillage, setLocationVillage] = useState(() => activeFarm?.village || user?.farm_location?.village || user?.village || '');
+  // Service Location state with robust parsing
+  const initialLoc = useMemo(() => parseLocationParts(user?.farm_location, activeFarm, user), [user, activeFarm]);
+  const [locationState, setLocationState] = useState(() => initialLoc.state);
+  const [locationDistrict, setLocationDistrict] = useState(() => initialLoc.district);
+  const [locationMandal, setLocationMandal] = useState(() => initialLoc.mandal);
+  const [locationVillage, setLocationVillage] = useState(() => initialLoc.village);
   const [showLocationModal, setShowLocationModal] = useState(false);
 
   // Booking Modal State
@@ -818,7 +881,7 @@ export default function EquipmentBookingPage() {
               <div className="min-w-0 pr-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isTe ? 'సేవా ప్రాంతం' : 'Service Area'}</p>
                 <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                  {locationVillage ? `${locationVillage}, ` : ''}{locationMandal} ({locationDistrict})
+                  {formatLocationSummary({ village: locationVillage, mandal: locationMandal, district: locationDistrict }, isTe)}
                 </p>
               </div>
               <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0 ml-1">
@@ -1720,7 +1783,7 @@ export default function EquipmentBookingPage() {
       ═══════════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {showLocationModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1991,7 +2054,7 @@ export default function EquipmentBookingPage() {
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 sm:bottom-8 right-4 sm:right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 dark:bg-emerald-600/95 text-white shadow-2xl border border-slate-700 dark:border-emerald-500 font-bold text-xs max-w-sm backdrop-blur-md"
+            className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[110] flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 dark:bg-emerald-600/95 text-white shadow-2xl border border-slate-700 dark:border-emerald-500 font-bold text-xs max-w-[calc(100vw-32px)] sm:max-w-sm backdrop-blur-md"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-white shrink-0" />
             <span className="leading-snug">{bookingToast.message}</span>
@@ -2314,15 +2377,15 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/65 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/75 backdrop-blur-sm overflow-hidden">
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 my-8"
+        className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-6 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] my-auto"
       >
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        {/* Header - Fixed top */}
+        <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
           <div>
             <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">
               {isTe ? 'స్లాట్ రిజర్వేషన్ ఫారమ్' : 'Instant Slot Reservation'}
@@ -2343,51 +2406,52 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
           </button>
         </div>
 
-        {/* ── Live Provider Online / Offline Status Announcement (Server-backed H-3) ── */}
-        {providerStatus === 'online' ? (
-          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200">
-            <div className="relative flex items-center justify-center shrink-0">
-              <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping absolute" />
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 relative" />
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-3.5 pt-3">
+          {/* ── Live Provider Online / Offline Status Announcement (Server-backed H-3) ── */}
+          {providerStatus === 'online' ? (
+            <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200">
+              <div className="relative flex items-center justify-center shrink-0">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping absolute" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 relative" />
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] font-black leading-tight">
+                  {isTe ? '🟢 ప్రొవైడర్ ఈరోజు ఆన్‌లైన్‌లో ఉన్నారు' : '🟢 Equipment Provider is Online Today'}
+                </p>
+                <p className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 font-medium leading-tight mt-0.5">
+                  {isTe ? 'మీ బుకింగ్ అభ్యర్థన నేరుగా ప్రొవైడర్‌కు చేరుతుంది.' : 'Your booking request will be dispatched instantly to the provider.'}
+                </p>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="text-[11px] font-black leading-tight">
-                {isTe ? '🟢 ప్రొవైడర్ ఈరోజు ఆన్‌లైన్‌లో ఉన్నారు' : '🟢 Equipment Provider is Online Today'}
-              </p>
-              <p className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 font-medium leading-tight mt-0.5">
-                {isTe ? 'మీ బుకింగ్ అభ్యర్థన నేరుగా ప్రొవైడర్‌కు చేరుతుంది మరియు వెంటనే ఆమోదించబడుతుంది.' : 'Your booking request will be dispatched instantly to the provider for approval.'}
-              </p>
+          ) : providerStatus === 'offline' ? (
+            <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200">
+              <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+              <div className="text-left">
+                <p className="text-[11px] font-black leading-tight">
+                  {isTe ? '🔴 ప్రొవైడర్ ఈరోజు ఆఫ్‌లైన్‌లో ఉన్నారు' : '🔴 Equipment Provider is Offline Today'}
+                </p>
+                <p className="text-[10px] text-rose-700/80 dark:text-rose-300/80 font-medium leading-tight mt-0.5">
+                  {isTe ? 'మీ బుకింగ్ క్యూ చేయబడుతుంది మరియు పరిశీలిస్తారు.' : 'Booking queued and reviewed once online.'}
+                </p>
+              </div>
             </div>
-          </div>
-        ) : providerStatus === 'offline' ? (
-          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200">
-            <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
-            <div className="text-left">
-              <p className="text-[11px] font-black leading-tight">
-                {isTe ? '🔴 ప్రొవైడర్ ఈరోజు ఆఫ్‌లైన్‌లో ఉన్నారు' : '🔴 Equipment Provider is Offline Today'}
-              </p>
-              <p className="text-[10px] text-rose-700/80 dark:text-rose-300/80 font-medium leading-tight mt-0.5">
-                {isTe ? 'మీ బుకింగ్ క్యూ చేయబడుతుంది మరియు ప్రొవైడర్ లాగిన్ అయినప్పుడు పరిశీలిస్తారు.' : 'Your booking will be placed in their pending queue and reviewed once online.'}
-              </p>
+          ) : (
+            <div className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+              <div className="text-left">
+                <p className="text-[11px] font-black leading-tight">
+                  {isTe ? '⚪ ప్రొవైడర్ స్థితి: అస్పష్టం / క్యూలో సమర్పించబడుతుంది' : '⚪ Provider Status: In Queue'}
+                </p>
+                <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium leading-tight mt-0.5">
+                  {isTe ? 'బుకింగ్ అభ్యర్థన సాధారణ క్యూలో సమర్పించబడుతుంది.' : 'Booking request will be submitted to provider queue.'}
+                </p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200">
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-            <div className="text-left">
-              <p className="text-[11px] font-black leading-tight">
-                {isTe ? '⚪ ప్రొవైడర్ స్థితి: అస్పష్టం / తెలియదు' : '⚪ Provider Status: Unknown / Unconfirmed'}
-              </p>
-              <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium leading-tight mt-0.5">
-                {isTe ? 'ప్రొవైడర్ ప్రస్తుత స్థితి అందుబాటులో లేదు. మీ బుకింగ్ సాధారణ క్యూలో సమర్పించబడుతుంది.' : 'Provider live presence is unconfirmed. Booking request will be submitted to their queue.'}
-              </p>
-            </div>
-          </div>
-        )}
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Section 1: Farmer & Field Details */}
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl space-y-2.5">
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-3.5 rounded-2xl space-y-2.5">
             <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-emerald-600" />
               <span>{isTe ? '1. రైతు & పొలం సమాచారం' : '1. Farmer & Field Info'}</span>
@@ -2395,50 +2459,49 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label htmlFor="booking-farmer-name" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'రైతు పేరు' : 'Farmer Name'}</label>
+                <label htmlFor="booking-farmer-name" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'రైతు పేరు' : 'Farmer Name'}</label>
                 <input
                   id="booking-farmer-name"
                   type="text"
                   required
                   value={farmerName}
                   onChange={(e) => setFarmerName(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label htmlFor="booking-farmer-phone" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'వాట్సాప్ మొబైల్ నంబర్' : 'WhatsApp Phone'}</label>
+                <label htmlFor="booking-farmer-phone" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'వాట్సాప్ మొబైల్ నంబర్' : 'WhatsApp Phone'}</label>
                 <input
                   id="booking-farmer-phone"
                   type="tel"
                   required
                   value={farmerPhone}
                   onChange={(e) => setFarmerPhone(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label htmlFor="booking-service-location" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'లొకేషన్' : 'Field Village'}</label>
+                <label htmlFor="booking-service-location" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'లొకేషన్' : 'Field Village'}</label>
                 <input
                   id="booking-service-location"
                   type="text"
                   disabled
-                  value={`${serviceLocation.village}, ${serviceLocation.mandal} (${serviceLocation.district})`}
-                  className="w-full p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300"
+                  value={formatLocationSummary(serviceLocation, isTe)}
+                  className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-200"
                 />
               </div>
 
-              {/* ── Replaced Target Crop with Dynamic Field Condition / Land Status ── */}
               <div>
-                <label htmlFor="booking-field-status" className="font-bold text-slate-500 block mb-1 cursor-pointer">
+                <label htmlFor="booking-field-status" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">
                   {isTe ? 'పొలం స్థితి / దశ' : 'Field Condition / Land Stage'}
                 </label>
                 <select
                   id="booking-field-status"
                   value={fieldStatus}
                   onChange={(e) => setFieldStatus(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
+                  className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
                 >
                   {FIELD_STATUS_OPTIONS.map((opt, i) => (
                     <option key={i} value={opt.value}>
@@ -2451,7 +2514,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
           </div>
 
           {/* Section 2: Date & Time Slot */}
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl space-y-2.5">
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-3.5 rounded-2xl space-y-2.5">
             <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-sky-600" />
               <span>{isTe ? '2. సేవ తేదీ & సమయం' : '2. Date & Time Slot'}</span>
@@ -2459,24 +2522,24 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label htmlFor="booking-service-date" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'బుకింగ్ తేదీ' : 'Booking Date'}</label>
+                <label htmlFor="booking-service-date" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'బుకింగ్ తేదీ' : 'Booking Date'}</label>
                 <input
                   id="booking-service-date"
                   type="date"
                   required
                   value={serviceDate}
                   onChange={(e) => setServiceDate(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label htmlFor="booking-time-slot" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</label>
+                <label htmlFor="booking-time-slot" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</label>
                 <select
                   id="booking-time-slot"
                   value={timeSlot}
                   onChange={(e) => setTimeSlot(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
+                  className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
                 >
                   <option value="Early Morning (6:00 AM - 10:00 AM)">🌅 Early Morning (6:00 AM - 10:00 AM)</option>
                   <option value="Afternoon (2:00 PM - 6:00 PM)">☀️ Afternoon (2:00 PM - 6:00 PM)</option>
@@ -2487,7 +2550,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
           </div>
 
           {/* Section 3: Work Quantity & Specific Operation */}
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl space-y-2.5">
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-3.5 rounded-2xl space-y-2.5">
             <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5 text-amber-600" />
               <span>{isTe ? '3. పని పరిమాణం & ఎంపికలు' : '3. Work Scope & Options'}</span>
@@ -2495,7 +2558,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label htmlFor="booking-quantity" className="font-bold text-slate-500 block mb-1 cursor-pointer">
+                <label htmlFor="booking-quantity" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">
                   {unitMode === 'acres' ? (isTe ? 'ఎకరాల విస్తీర్ణం' : 'Total Acres') : (isTe ? 'పని గంటలు' : 'Operating Hours')}
                 </label>
                 <div className="flex items-center gap-2">
@@ -2508,20 +2571,20 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                     required
                     value={quantity}
                     onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
+                    className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
                   />
                   <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
                     <button
                       type="button"
                       onClick={() => setUnitMode('acres')}
-                      className={`px-2.5 py-1.5 font-black text-[10px] ${unitMode === 'acres' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600'}`}
+                      className={`px-3 py-2 font-black text-xs ${unitMode === 'acres' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
                     >
                       Acres
                     </button>
                     <button
                       type="button"
                       onClick={() => setUnitMode('hours')}
-                      className={`px-2.5 py-1.5 font-black text-[10px] ${unitMode === 'hours' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600'}`}
+                      className={`px-3 py-2 font-black text-xs ${unitMode === 'hours' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
                     >
                       Hours
                     </button>
@@ -2529,15 +2592,14 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                 </div>
               </div>
 
-              {/* ── Dynamic Specific Operation Dropdown (Provider Machinery Attachments) ── */}
               <div>
-                <label className="font-bold text-slate-500 block mb-1">
-                  {isTe ? 'నిర్దిష్ట పని రకం (యంత్రం పరికరాలు)' : 'Specific Operation (Equipment)'}
+                <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">
+                  {isTe ? 'నిర్దిష్ట పని రకం' : 'Specific Operation'}
                 </label>
                 <select
                   value={operationType}
                   onChange={(e) => setOperationType(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
+                  className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
                 >
                   {availableOperations.map((op, idx) => (
                     <option key={idx} value={op.value}>
@@ -2559,32 +2621,32 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
             </div>
 
-            {/* Toggles for Operator & Fuel */}
-            <div className="flex flex-wrap items-center gap-4 pt-1">
-              <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-300">
+            {/* Accessible Touch Checkboxes (>= 44px) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/90 cursor-pointer font-bold text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition-colors min-h-[44px]">
                 <input
                   type="checkbox"
                   checked={includeOperator}
                   onChange={(e) => setIncludeOperator(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 shrink-0"
                 />
-                <span>{isTe ? 'ఆపరేటర్ / డ్రైవర్ అవసరం (ఉచితం)' : 'Include Driver / Pilot (Included)'}</span>
+                <span className="text-xs leading-snug">{isTe ? 'ఆపరేటర్ / డ్రైవర్ అవసరం (ఉచితం)' : 'Include Driver / Pilot (Included)'}</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer font-bold text-slate-700 dark:text-slate-300">
+              <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/90 cursor-pointer font-bold text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition-colors min-h-[44px]">
                 <input
                   type="checkbox"
                   checked={includeDiesel}
                   onChange={(e) => setIncludeDiesel(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 shrink-0"
                 />
-                <span>{isTe ? 'డీజిల్ యజమానిదే' : 'Machine Owner provides Fuel'}</span>
+                <span className="text-xs leading-snug">{isTe ? 'డీజిల్ యజమానిదే' : 'Machine Owner provides Fuel'}</span>
               </label>
             </div>
           </div>
 
           {/* Section 4: Live Cost Calculation Card */}
-          <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-600 dark:text-slate-400 font-bold">
                 {baseRate} × {quantity} {unitMode}
@@ -2614,18 +2676,18 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
             </div>
           </div>
 
-          {/* Modal Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          {/* Sticky Modal Action Buttons - Always visible and clean on mobile */}
+          <div className="sticky bottom-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md pt-3 pb-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 mt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               {isTe ? 'రద్దు చేయండి' : 'Cancel'}
             </button>
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-md shadow-emerald-600/30 cursor-pointer"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-md shadow-emerald-600/30 cursor-pointer active:scale-95 transition-all"
             >
               <Zap className="w-4 h-4 fill-white" />
               <span>{isTe ? 'బుకింగ్‌ను నిర్ధారించండి' : 'Confirm Rental Booking'}</span>

@@ -225,7 +225,7 @@ const ReportsPage = () => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6 max-w-7xl mx-auto w-full pb-12"
+      className="space-y-6 max-w-7xl mx-auto w-full pb-28 sm:pb-12"
     >
       {/* Title Header */}
       <div className="flex flex-col gap-3">

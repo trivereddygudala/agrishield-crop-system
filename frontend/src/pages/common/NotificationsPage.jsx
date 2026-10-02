@@ -182,7 +182,7 @@ function formatGoogleMessagesTime(dateInput) {
 export default function NotificationsPage() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
-  const { latestAlert, connectionStatus } = useWebSocket();
+  const { latestAlert, connectionStatus, setUnreadCount, refreshUnreadCount } = useWebSocket();
   const connectionStatusRef = useRef(connectionStatus);
   useEffect(() => {
     connectionStatusRef.current = connectionStatus;
@@ -884,6 +884,9 @@ export default function NotificationsPage() {
         }
       } catch (e) {}
 
+      if (typeof setUnreadCount === 'function') {
+        setUnreadCount(prev => (prev > 0 ? prev - 1 : 0));
+      }
       window.dispatchEvent(new CustomEvent('agrishield_notification_read', { detail: { id } }));
       setToastMsg(isTe ? 'చదివినట్లు గుర్తించబడింది' : t('notifications_page.toast.marked_read', 'Marked as read.'));
     } catch {
@@ -969,6 +972,9 @@ export default function NotificationsPage() {
         setUserNotificationCache(user, updated);
       } catch (e) {}
 
+      if (typeof setUnreadCount === 'function') {
+        setUnreadCount(0);
+      }
       window.dispatchEvent(new CustomEvent('agrishield_notifications_all_read'));
       setToastMsg(isTe ? 'అన్ని సందేశాలు చదివినట్లు గుర్తించబడ్డాయి.' : t('notifications_page.toast.all_read', 'All messages marked as read.'));
     } catch {

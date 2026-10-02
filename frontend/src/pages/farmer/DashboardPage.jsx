@@ -272,7 +272,7 @@ const DashboardPage = () => {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-6 w-full pb-6 max-w-[1600px] mx-auto"
+      className="space-y-6 w-full pb-28 sm:pb-12 max-w-[1600px] mx-auto"
     >
       {/* ─── Top Header Card (Field Overview & Scan Leaf Action - Bounded & Professional) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">

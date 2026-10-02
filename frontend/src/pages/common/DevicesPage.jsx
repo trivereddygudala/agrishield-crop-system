@@ -203,7 +203,7 @@ const DevicesPage = () => {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-7xl mx-auto w-full pb-16"
+      className="space-y-6 max-w-7xl mx-auto w-full pb-28 sm:pb-16"
     >
       {/* Top Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-white/10">

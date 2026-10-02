@@ -406,7 +406,7 @@ const AnalyticsPage = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12 w-full dark:text-slate-100">
+    <div className="max-w-7xl mx-auto space-y-6 pb-28 sm:pb-12 w-full dark:text-slate-100">
       {/* Header and Control Bar */}
       <div className="flex flex-col gap-4">
         <div>
