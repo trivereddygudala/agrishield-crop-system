@@ -6,6 +6,7 @@ import shutil
 import logging
 import asyncio
 import copy
+import re
 import hmac
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
@@ -43,6 +44,96 @@ def predict_crop_disease(*args, **kwargs):
 
 # In-memory LRU/RAM cache for translation strings to eliminate 10s GoogleTranslator latency
 _TRANSLATION_CACHE: Dict[str, str] = {}
+
+TRANSLATION_DELIMITER = "\n---AGRI_TRANSLATION_ITEM---\n"
+TRANSLATION_SPLIT_REGEX = re.compile(r'\s*---\s*AGRI_TRANSLATION_ITEM\s*---\s*', re.IGNORECASE)
+_NON_TRANSLATABLE_STRINGS = {"", "none", "n/a", "not applicable."}
+
+
+def _is_translatable_string(val: Any) -> bool:
+    if not isinstance(val, str):
+        return False
+    stripped = val.strip()
+    if not stripped or stripped.lower() in _NON_TRANSLATABLE_STRINGS:
+        return False
+    return True
+
+
+def _sync_deep_translate_batch(text_chunk: str, target_lang: str) -> str:
+    """
+    Synchronous worker executing in a separate thread via asyncio.to_thread.
+    Instantiates an isolated GoogleTranslator instance per invocation to prevent
+    mutable state race conditions between concurrent requests.
+    """
+    from deep_translator import GoogleTranslator
+    translator = GoogleTranslator(source='auto', target=target_lang)
+    return translator.translate(text_chunk)
+
+
+async def _batch_translate_deep_fallback(fields: Dict[str, Any], lang_code: str) -> Dict[str, Any]:
+    """
+    Batches independent string values and list items into a single non-blocking
+    DeepTranslator request executed off the Uvicorn event loop via asyncio.to_thread.
+    Preserves dictionary structure, list order, empty strings, and non-string values.
+    Protects against delimiter corruption by verifying segment counts before mapping.
+    """
+    if not fields:
+        return {}
+
+    # 1. Collect unique, uncached strings that need translation
+    items_to_translate: List[str] = []
+    seen: set = set()
+
+    def _collect(val: Any):
+        if isinstance(val, str):
+            if _is_translatable_string(val):
+                cleaned = val.strip()
+                ck = f"{lang_code}:{cleaned}"
+                if ck not in _TRANSLATION_CACHE and cleaned not in seen:
+                    seen.add(cleaned)
+                    items_to_translate.append(cleaned)
+        elif isinstance(val, list):
+            for sub_val in val:
+                _collect(sub_val)
+
+    for v in fields.values():
+        _collect(v)
+
+    # 2. Perform batched translation off the event loop if any uncached items exist
+    if items_to_translate:
+        try:
+            joined_payload = TRANSLATION_DELIMITER.join(items_to_translate)
+            translated_blob = await asyncio.to_thread(_sync_deep_translate_batch, joined_payload, lang_code)
+
+            if translated_blob:
+                segments = TRANSLATION_SPLIT_REGEX.split(translated_blob)
+                segments = [s.strip() for s in segments]
+
+                # Verify segment count integrity
+                if len(segments) == len(items_to_translate):
+                    for orig, trans in zip(items_to_translate, segments):
+                        if trans:
+                            _TRANSLATION_CACHE[f"{lang_code}:{orig}"] = trans
+                else:
+                    logger.warning(
+                        "DeepTranslator delimiter mismatch for %s: expected %d segments, got %d. Preserving original text.",
+                        lang_code, len(items_to_translate), len(segments)
+                    )
+        except Exception as deep_err:
+            logger.warning("DeepTranslator batched translation failed for %s: %s", lang_code, deep_err)
+
+    # 3. Reconstruct output structure using cache or original fallback
+    def _resolve(val: Any) -> Any:
+        if isinstance(val, str):
+            if _is_translatable_string(val):
+                ck = f"{lang_code}:{val.strip()}"
+                return _TRANSLATION_CACHE.get(ck, val)
+            return val
+        elif isinstance(val, list):
+            return [_resolve(item) for item in val]
+        return val
+
+    return {k: _resolve(v) for k, v in fields.items()}
 
 def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
     if not crop_name:
@@ -440,36 +531,16 @@ Fields to translate:
         except Exception as e:
             print("NVIDIA translation fallback failed:", e)
 
-    # 3. Tertiary: Fast GoogleTranslator fallback with in-memory RAM cache
+    # 3. Tertiary: Fast GoogleTranslator fallback with batched non-blocking thread execution
     is_untranslated = (
         not translated_fields or len(translated_fields) == 0 or
         (fields_to_send.get("description") and translated_fields.get("description") == fields_to_send.get("description"))
     )
     if is_untranslated:
         try:
-            from deep_translator import GoogleTranslator
-            translator = GoogleTranslator(source='auto', target=lang_code)
-
-            def _translate_str(text):
-                if not text or str(text).strip() in ["", "None", "N/A", "Not applicable."]:
-                    return text
-                ck = f"{lang_code}:{str(text).strip()}"
-                if ck in _TRANSLATION_CACHE:
-                    return _TRANSLATION_CACHE[ck]
-                try:
-                    res = translator.translate(str(text))
-                    if res:
-                        _TRANSLATION_CACHE[ck] = res
-                        return res
-                    return text
-                except Exception:
-                    return text
-
-            for k, v in fields_to_send.items():
-                if isinstance(v, list):
-                    translated_fields[k] = [_translate_str(item) for item in v]
-                elif isinstance(v, str):
-                    translated_fields[k] = _translate_str(v)
+            deep_translated = await _batch_translate_deep_fallback(fields_to_send, lang_code)
+            if deep_translated:
+                translated_fields = deep_translated
         except Exception as deep_err:
             print("deep_translator fallback failed for plant:", deep_err)
 
@@ -677,36 +748,16 @@ Fields to translate:
         except Exception as e:
             print("NVIDIA translation fallback failed:", e)
 
-    # 3. Tertiary: Deep-Translator fallback
+    # 3. Tertiary: Deep-Translator fallback with batched non-blocking thread execution
     is_untranslated = (
         not translated_fields or
         (fields_to_send.get("detailed_description") and translated_fields.get("detailed_description") == fields_to_send.get("detailed_description"))
     )
     if is_untranslated:
         try:
-            from deep_translator import GoogleTranslator
-            translator = GoogleTranslator(source='auto', target=lang_code)
-
-            def _translate_str(text):
-                if not text or str(text).strip() in ["", "None", "N/A"]:
-                    return text
-                ck = f"{lang_code}:{str(text).strip()}"
-                if ck in _TRANSLATION_CACHE:
-                    return _TRANSLATION_CACHE[ck]
-                try:
-                    res = translator.translate(str(text))
-                    if res:
-                        _TRANSLATION_CACHE[ck] = res
-                        return res
-                    return text
-                except Exception:
-                    return text
-
-            for k, v in fields_to_send.items():
-                if isinstance(v, list):
-                    translated_fields[k] = [_translate_str(item) for item in v]
-                elif isinstance(v, str):
-                    translated_fields[k] = _translate_str(v)
+            deep_translated = await _batch_translate_deep_fallback(fields_to_send, lang_code)
+            if deep_translated:
+                translated_fields = deep_translated
         except Exception as deep_err:
             print("deep_translator fallback failed for agrochemical:", deep_err)
 
