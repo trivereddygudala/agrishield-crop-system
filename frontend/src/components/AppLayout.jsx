@@ -212,6 +212,9 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const { t, i18n } = useTranslation();
   const { activeFarm, farms, setActiveFarm, createFarm, profileCompleted } = useFarm();
   
+  // Global WebSocket Context hook - authoritative owner of real-time state and unread count
+  const { connectionStatus, lastMessageTime, lastTelemetry, deviceStatusMap, unreadCount, setUnreadCount, refreshUnreadCount, latestAlert } = useWebSocket();
+  
   // Local states
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -379,10 +382,6 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       setRecentAlerts(alertData);
     } catch { /* silently ignore */ }
   }, [user, playNotificationChime]);
-
-  // Global WebSocket Context hook
-  // Global WebSocket Context hook - authoritative owner of real-time state and unread count
-  const { connectionStatus, lastMessageTime, lastTelemetry, deviceStatusMap, unreadCount, setUnreadCount, refreshUnreadCount, latestAlert } = useWebSocket();
 
   // ESP32 Live Hardware Status
   const [nodeStatus, setNodeStatus] = useState({ online: false, rssi: null, bluetoothConnected: false, batteryPercent: null, batteryCharging: false });
