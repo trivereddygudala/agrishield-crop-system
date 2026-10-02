@@ -71,6 +71,13 @@ async def connect_to_mongo():
     try:
         # Ensure compound index on iot_telemetry for analytics querying
         await db_instance.db["iot_telemetry"].create_index([("device_id", 1), ("received_at", -1)])
+        # B10.1: Ensure TTL index on received_at to prune high-velocity telemetry documents
+        if getattr(settings, "IOT_TELEMETRY_RETENTION_SECONDS", 0) > 0:
+            await db_instance.db["iot_telemetry"].create_index(
+                [("received_at", 1)],
+                expireAfterSeconds=settings.IOT_TELEMETRY_RETENTION_SECONDS,
+                name="idx_iot_telemetry_ttl"
+            )
         
         # Ensure compound indexes on predictions for instant history queries
         await db_instance.db["predictions"].create_index([("user_id", 1), ("created_at", -1)])

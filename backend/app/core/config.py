@@ -28,14 +28,15 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ISSUER: str = "crop_disease_detection_api"
     JWT_AUDIENCE: str = "crop_disease_detection_app"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 525600  # 365 days — permanent login until explicit logout
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days (safer session lifetime while preserving farmer UX)
     REFRESH_TOKEN_EXPIRE_DAYS: int = 365     # 365 days — stays logged in for a full year
     MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_DURATION_MINUTES: int = 15
 
-    # IoT Security
+    # IoT Security & Retention (B10.1)
     IOT_API_KEY: str = "crop_iot_secure_key_2026"
     IOT_SECURITY_MODE: str = "development"  # "development" (permissive) or "production" (enforced)
+    IOT_TELEMETRY_RETENTION_SECONDS: int = 2592000  # 30 days retention (2,592,000s) for high-velocity IoT telemetry TTL
 
     # File Upload & API Limits
     MAX_UPLOAD_SIZE_MB: int = 15
