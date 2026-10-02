@@ -13,6 +13,7 @@ from backend.app.db.mongodb import connect_to_mongo, close_mongo_connection, db_
 from backend.app.services.scheduler import start_scheduler, stop_scheduler
 from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, support
 from backend.app.core.security_middleware import SecurityHeadersMiddleware
+from backend.app.core.request_id_middleware import RequestIdMiddleware, get_current_request_id
 from backend.app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -103,32 +104,60 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Global Database Availability Exception Handlers
+# Global Database Availability & Internal Exception Handlers with Correlation IDs (B9.7)
 @app.exception_handler(DatabaseUnavailableException)
 async def database_unavailable_exception_handler(request: Request, exc: DatabaseUnavailableException):
-    logger.error(f"[DB UNAVAILABLE] {request.method} {request.url.path} - MongoDB error: {exc.__class__.__name__}")
+    request_id = getattr(request.state, "request_id", "") or get_current_request_id()
+    logger.error(f"[DB UNAVAILABLE] [{request_id}] {request.method} {request.url.path} - MongoDB error: {exc.__class__.__name__}")
+    headers = {"Retry-After": "5"}
+    if request_id:
+        headers["X-Request-ID"] = request_id
     return JSONResponse(
         status_code=503,
-        headers={"Retry-After": "5"},
+        headers=headers,
         content={
             "status": "error",
             "code": "DATABASE_UNAVAILABLE",
             "detail": "Database service is temporarily unavailable. Please retry in a few moments.",
-            "retry_after": 5
+            "retry_after": 5,
+            "request_id": request_id
         }
     )
 
 @app.exception_handler(PyMongoError)
 async def pymongo_error_exception_handler(request: Request, exc: PyMongoError):
-    logger.error(f"[DB UNAVAILABLE] {request.method} {request.url.path} - MongoDB error: {exc.__class__.__name__}")
+    request_id = getattr(request.state, "request_id", "") or get_current_request_id()
+    logger.error(f"[DB UNAVAILABLE] [{request_id}] {request.method} {request.url.path} - MongoDB error: {exc.__class__.__name__}")
+    headers = {"Retry-After": "5"}
+    if request_id:
+        headers["X-Request-ID"] = request_id
     return JSONResponse(
         status_code=503,
-        headers={"Retry-After": "5"},
+        headers=headers,
         content={
             "status": "error",
             "code": "DATABASE_UNAVAILABLE",
             "detail": "Database service is temporarily unavailable. Please retry in a few moments.",
-            "retry_after": 5
+            "retry_after": 5,
+            "request_id": request_id
+        }
+    )
+
+@app.exception_handler(Exception)
+async def generic_500_exception_handler(request: Request, exc: Exception):
+    request_id = getattr(request.state, "request_id", "") or get_current_request_id()
+    logger.error(f"[INTERNAL ERROR] [{request_id}] {request.method} {request.url.path} - {exc.__class__.__name__}: {str(exc)}", exc_info=True)
+    headers = {}
+    if request_id:
+        headers["X-Request-ID"] = request_id
+    return JSONResponse(
+        status_code=500,
+        headers=headers,
+        content={
+            "status": "error",
+            "code": "INTERNAL_SERVER_ERROR",
+            "detail": "An unexpected internal server error occurred.",
+            "request_id": request_id
         }
     )
 
@@ -149,6 +178,7 @@ else:
         "http://127.0.0.1"
     ]
 
+app.add_middleware(RequestIdMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -237,13 +267,26 @@ app.include_router(v1_router)
 @app.api_route("/health", methods=["GET", "HEAD"])
 @app.api_route("/api/v1/health", methods=["GET", "HEAD"])
 async def root():
-    """Welcome and health test endpoint for API and hardware nodes."""
+    """Welcome and health test endpoint for API and hardware nodes with diagnostic liveness (B9.7)."""
+    from backend.app.services import scheduler
+    is_db_connected = db_instance.db is not None
+    sched_task = getattr(scheduler, "scheduler_task", None)
+    watchdog_task = getattr(scheduler, "device_watchdog_task", None)
+
+    scheduler_status = "running" if (sched_task is not None and not sched_task.done()) else "inactive"
+    watchdog_status = "running" if (watchdog_task is not None and not watchdog_task.done()) else "inactive"
+
     return {
-        "status": "healthy",
+        "status": "healthy" if is_db_connected else "degraded",
         "service": "AI Crop Disease Detection System API",
         "phase": 2,
         "docs": "/docs",
-        "versioned_api": "/api/v1"
+        "versioned_api": "/api/v1",
+        "diagnostics": {
+            "database": "connected" if is_db_connected else "disconnected",
+            "scheduler": scheduler_status,
+            "device_watchdog": watchdog_status
+        }
     }
 
 @app.get("/weather/current")

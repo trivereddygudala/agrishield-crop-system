@@ -115,6 +115,15 @@ const API = axios.create({
 // Request interceptor to add JWT authorization token dynamically & assign cluster worker
 API.interceptors.request.use(
   (config) => {
+    // B9.7: Generate compact client-side X-Request-ID if not already present
+    if (!config.headers) {
+      config.headers = {};
+    }
+    if (!config.headers['X-Request-ID']) {
+      const randPart = Math.random().toString(36).substring(2, 10);
+      config.headers['X-Request-ID'] = `req_${Date.now()}_${randPart}`;
+    }
+
     // When sending FormData (e.g. image uploads), delete Content-Type so browser sets multipart boundary automatically
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];

@@ -3,6 +3,7 @@ import logging
 import httpx
 from typing import Optional, Dict, Any, List
 from backend.app.core.config import settings, get_worker_internal_secret
+from backend.app.core.request_id_middleware import get_current_request_id, generate_request_id
 
 
 import time
@@ -74,13 +75,16 @@ class AIClusterDispatcher:
         self._index += 1
 
         worker_secret = get_worker_internal_secret()
-        worker_headers = {"X-Worker-Key": worker_secret}
-
+        request_id = get_current_request_id() or generate_request_id()
+        worker_headers = {
+            "X-Worker-Key": worker_secret,
+            "X-Request-ID": request_id
+        }
 
         for chosen_worker in candidates:
             target_endpoint = f"{chosen_worker}/api/worker/predict"
             try:
-                logger.info(f"⚡ [AI Cluster] Dispatching scan to worker: {chosen_worker}")
+                logger.info(f"⚡ [AI Cluster] [{request_id}] Dispatching scan to worker: {chosen_worker}")
                 async with httpx.AsyncClient(timeout=cluster_timeout) as client:
                     files = {"file": (filename, image_bytes, "image/jpeg")}
                     data = {
@@ -92,14 +96,14 @@ class AIClusterDispatcher:
                     if response.status_code == 200:
                         res_json = response.json()
                         if res_json.get("success"):
-                            logger.info(f"✅ [AI Cluster] Worker {chosen_worker} finished prediction successfully!")
+                            logger.info(f"✅ [AI Cluster] [{request_id}] Worker {chosen_worker} finished prediction successfully!")
                             return res_json.get("result")
                     else:
                         self._worker_cooldowns[chosen_worker] = time.time() + 600.0
-                        logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} returned HTTP {response.status_code}: {response.text[:120]}")
+                        logger.warning(f"⚠️ [AI Cluster] [{request_id}] Worker {chosen_worker} returned HTTP {response.status_code}: {response.text[:120]}")
             except Exception as e:
                 self._worker_cooldowns[chosen_worker] = time.time() + 600.0
-                logger.warning(f"⚠️ [AI Cluster] Worker {chosen_worker} unreachable or timed out ({e}). Next attempts cool down for 10m.")
+                logger.warning(f"⚠️ [AI Cluster] [{request_id}] Worker {chosen_worker} unreachable or timed out ({e}). Next attempts cool down for 10m.")
 
         logger.info("ℹ️ [AI Cluster] External worker nodes unavailable or sleeping. Executing local inference immediately.")
         return None
