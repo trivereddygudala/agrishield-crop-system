@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks, Query
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta, timezone
@@ -464,7 +464,7 @@ async def get_telemetry_history(
     timeframe: str = "7d",
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    limit: int = 5000
+    limit: int = Query(5000, ge=1, le=10000)
 ):
     """Retrieve historical sensor data points, automatically downsampled based on timeframe."""
     try:

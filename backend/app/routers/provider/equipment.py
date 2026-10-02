@@ -286,7 +286,7 @@ async def get_all_bookings(
     farmer_phone: Optional[str] = Query(None, description="Filter by farmer phone"),
     status: Optional[str] = Query(None, description="Filter by status (pending, confirmed, completed, rejected)"),
     language: Optional[str] = Query(None, description="Active language code for localization"),
-    limit: Optional[int] = Query(2500, description="Max bookings to return (default 2500 for stress testing)"),
+    limit: Optional[int] = Query(2500, ge=1, le=5000, description="Max bookings to return (default 2500 for stress testing)"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """

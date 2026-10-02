@@ -5,7 +5,7 @@ Exposes endpoints for running automated canary tests, retrieving
 execution traces, inspecting detected root causes, and executing auto-heal actions.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 import logging
@@ -54,7 +54,7 @@ async def run_diagnostics_probe() -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Diagnostic runner error: {str(e)}")
 
 @router.get("/traces")
-async def get_execution_traces(limit: int = 20) -> Dict[str, Any]:
+async def get_execution_traces(limit: int = Query(20, ge=1, le=100)) -> Dict[str, Any]:
     """Returns the last 20 execution traces captured by the Telemetry Tracer."""
     traces = DiagnosticTracer.get_recent_traces(limit=limit)
     return {

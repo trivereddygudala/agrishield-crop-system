@@ -234,7 +234,7 @@ async def get_health_score(
 async def get_timeline(
     farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
     category: str = Query("All", description="Filter Category"),
-    limit: int = Query(20, description="Event Limit"),
+    limit: int = Query(20, ge=1, le=200, description="Event Limit"),
     current_user: dict = Depends(get_current_user)
 ):
     await _verify_farm_access(farm_id, current_user)
@@ -250,7 +250,7 @@ async def get_agrochemical_products(
     category: Optional[str] = Query(None, description="Category: fungicide | pesticide | fertilizer"),
     disease: Optional[str] = Query(None, description="Filter by disease name"),
     crop: Optional[str] = Query(None, description="Filter by crop name"),
-    limit: int = Query(50, description="Max items to return")
+    limit: int = Query(50, ge=1, le=250, description="Max items to return")
 ):
     """Retrieve verified authentic agrochemical products with brand names, companies, and product images."""
     from backend.app.db.mongodb import get_database

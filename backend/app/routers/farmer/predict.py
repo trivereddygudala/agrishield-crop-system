@@ -2847,7 +2847,7 @@ async def predict_batch_endpoint(
 @router.get("/history", response_model=PredictionHistoryResponse)
 async def get_history(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=5000),
+    limit: int = Query(10, ge=1, le=500),
     search: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
     user_id: Optional[str] = None,
