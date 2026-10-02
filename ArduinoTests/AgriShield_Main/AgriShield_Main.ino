@@ -2988,7 +2988,6 @@ void loop() {
                 esp_sleep_enable_ext1_wakeup((1ULL << PIN_BUTTON_1), ESP_EXT1_WAKEUP_ALL_LOW);
                 // 2. Scheduled timer
                 esp_sleep_enable_timer_wakeup((uint64_t)sleepIntervalMin * 60000000ULL);
-                
                 esp_deep_sleep_start();
             }
         }

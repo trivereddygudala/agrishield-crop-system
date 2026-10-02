@@ -1,4 +1,4 @@
 #pragma once
 #define DEVICE_MODEL "ESP32-AGRI-NODE-V1"
 #define HARDWARE_VERSION "1.0.0"
-#define FIRMWARE_VERSION "2.5.0"
+#define FIRMWARE_VERSION "2.8.1"
