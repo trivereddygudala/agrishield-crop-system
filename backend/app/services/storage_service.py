@@ -556,7 +556,51 @@ class StorageService:
             logger.error(f"Failed to cache remote image {image_path} for inference: {e}")
             return None
 
-        return None
+def cleanup_local_inference_cache(max_age_seconds: int = 86400, target_dir: Optional[str] = None) -> int:
+    """
+    B11-F04: Prunes temporary and cached inference images older than max_age_seconds (default 24h = 86400s).
+    Targets:
+    1. settings.canonical_upload_dir/cluster_temp (infer_*, worker_* files)
+    Safety:
+    - Only deletes files whose modification time is older than cutoff.
+    - Never follows symlinks outside approved roots.
+    - Catches and ignores missing files / permission errors safely without throwing.
+    - Preserves persistent Supabase objects and general uploads.
+    - Logs summary count without exposing user data.
+    Returns:
+    Count of files successfully pruned.
+    """
+    import time
+    now = time.time()
+    cutoff = now - max_age_seconds
+    pruned_count = 0
+
+    if target_dir:
+        target_dirs = [target_dir]
+    else:
+        canonical_dir = settings.canonical_upload_dir
+        temp_dir = os.path.join(canonical_dir, "cluster_temp")
+        target_dirs = [temp_dir]
+
+    for d in target_dirs:
+        if not os.path.exists(d) or not os.path.isdir(d):
+            continue
+        try:
+            for entry in os.scandir(d):
+                try:
+                    if entry.is_file(follow_symlinks=False):
+                        mtime = entry.stat().st_mtime
+                        if mtime < cutoff:
+                            os.remove(entry.path)
+                            pruned_count += 1
+                except (FileNotFoundError, PermissionError, OSError) as e:
+                    logger.debug(f"[STORAGE PRUNE] Notice while pruning {entry.name}: {e}")
+        except Exception as e:
+            logger.warning(f"[STORAGE PRUNE] Error scanning directory {d}: {e}")
+
+    if pruned_count > 0:
+        logger.info(f"[STORAGE PRUNE] Pruned {pruned_count} local inference cache files older than {max_age_seconds}s.")
+    return pruned_count
 
 
 # Global singleton instance

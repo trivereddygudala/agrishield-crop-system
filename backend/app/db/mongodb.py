@@ -90,6 +90,21 @@ async def connect_to_mongo():
             name="idx_users_email_unique"
         )
 
+        # B11-F02: High-performance indexes on devices collection for IoT watchdog & device lookups
+        await db_instance.db["devices"].create_index(
+            [("device_id", 1)],
+            unique=True,
+            name="idx_devices_device_id_unique"
+        )
+        await db_instance.db["devices"].create_index(
+            [("status", 1), ("last_seen", -1)],
+            name="idx_devices_status_last_seen"
+        )
+        await db_instance.db["devices"].create_index(
+            [("user_id", 1)],
+            name="idx_devices_user_id"
+        )
+
         # Ensure notifications indexes
         await db_instance.db["notifications"].create_index([("user_id", 1), ("status", 1), ("created_at", -1)])
         await db_instance.db["notifications"].create_index([("device_id", 1), ("category", 1), ("created_at", -1)])

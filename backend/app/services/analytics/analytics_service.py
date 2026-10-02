@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
@@ -50,15 +51,22 @@ class AnalyticsService:
         # 3. Fetch Summary Stats
         stats = await calculate_summary_stats(db, match_stage)
         
-        # 4. Fetch Top 5s
-        top_crops = await db.predictions.aggregate(get_top_crops_pipeline(match_stage)).to_list(length=5)
-        top_diseases = await db.predictions.aggregate(get_top_diseases_pipeline(match_stage)).to_list(length=5)
-        top_agrochemicals = await db.predictions.aggregate(get_top_agrochemicals_pipeline(match_stage)).to_list(length=5)
-        
-        # 5. Fetch Time Series (Daily, Weekly, Monthly)
-        daily_scans = await db.predictions.aggregate(get_time_series_pipeline(match_stage, "daily")).to_list(length=100)
-        weekly_scans = await db.predictions.aggregate(get_time_series_pipeline(match_stage, "weekly")).to_list(length=52)
-        monthly_scans = await db.predictions.aggregate(get_time_series_pipeline(match_stage, "monthly")).to_list(length=12)
+        # 4. Fetch Top 5s and Time Series concurrently via asyncio.gather (B11-F05)
+        (
+            top_crops,
+            top_diseases,
+            top_agrochemicals,
+            daily_scans,
+            weekly_scans,
+            monthly_scans
+        ) = await asyncio.gather(
+            db.predictions.aggregate(get_top_crops_pipeline(match_stage)).to_list(length=5),
+            db.predictions.aggregate(get_top_diseases_pipeline(match_stage)).to_list(length=5),
+            db.predictions.aggregate(get_top_agrochemicals_pipeline(match_stage)).to_list(length=5),
+            db.predictions.aggregate(get_time_series_pipeline(match_stage, "daily")).to_list(length=100),
+            db.predictions.aggregate(get_time_series_pipeline(match_stage, "weekly")).to_list(length=52),
+            db.predictions.aggregate(get_time_series_pipeline(match_stage, "monthly")).to_list(length=12)
+        )
         
         # 6. Generate Structured Insights
         insights = []

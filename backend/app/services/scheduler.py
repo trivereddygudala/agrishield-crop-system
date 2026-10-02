@@ -15,9 +15,20 @@ keepalive_task = None
 async def scheduler_loop(db):
     """Async scheduler running background telemetry and alert tasks every minute."""
     logger.info("Notification scheduler background loop checking active schedules...")
+    last_cache_cleanup = 0.0
     while True:
         try:
             now = datetime.now(timezone.utc)
+            now_ts = now.timestamp()
+
+            # B11-F04: Periodic local inference cache cleanup (runs every 6 hours on Main Gateway)
+            if now_ts - last_cache_cleanup > 21600:
+                last_cache_cleanup = now_ts
+                try:
+                    from backend.app.services.storage_service import cleanup_local_inference_cache
+                    await asyncio.to_thread(cleanup_local_inference_cache, 86400)
+                except Exception as cleanup_err:
+                    logger.warning(f"[SCHEDULER] Inference cache cleanup notice: {cleanup_err}")
             
             # Query all enabled schedules whose next_run matches or is before the current time
             cursor = db.scheduled_notifications.find({

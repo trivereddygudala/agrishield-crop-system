@@ -28,16 +28,51 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 uploads_path = settings.canonical_upload_dir
 os.makedirs(uploads_path, exist_ok=True)
 
+def is_ai_worker_node() -> bool:
+    """
+    B11-F01: Architectural safeguard to identify if the current node is an AI worker.
+    Ensures Worker 1, Worker 2, Worker 3 (and any future AI cluster nodes) never start
+    the background scheduler or IoT device watchdog loops, preserving Main Gateway
+    as the authoritative master.
+    """
+    if getattr(settings, "IS_PREDICTION_WORKER", False) or os.environ.get("IS_PREDICTION_WORKER", "").lower() == "true":
+        return True
+    if os.environ.get("DISABLE_SCHEDULER", "").lower() == "true":
+        return True
+
+    # Check Render service metadata
+    service_name = (os.environ.get("RENDER_SERVICE_NAME", "") or os.environ.get("SERVICE_NAME", "")).lower()
+    if "ai-worker" in service_name or "worker" in service_name:
+        return True
+
+    # Check external URLs / hostnames configured in Render or settings
+    external_url = (
+        os.environ.get("RENDER_EXTERNAL_URL", "") or 
+        os.environ.get("RENDER_EXTERNAL_HOSTNAME", "") or 
+        os.environ.get("EXTERNAL_URL", "")
+    ).lower()
+    if "ai-worker" in external_url or "worker" in external_url:
+        return True
+
+    worker_urls = [
+        getattr(settings, "AI_WORKER_1_URL", ""),
+        getattr(settings, "AI_WORKER_2_URL", ""),
+        getattr(settings, "AI_WORKER_3_URL", "")
+    ]
+    for w_url in worker_urls:
+        if w_url:
+            clean = w_url.lower().replace("https://", "").replace("http://", "").rstrip("/")
+            if clean and clean in external_url:
+                return True
+
+    return False
+
 async def init_background_services():
     """Asynchronous background worker to initialize MongoDB and Scheduler without delaying port binding."""
     try:
         await connect_to_mongo()
         if db_instance.db is not None:
-            is_prediction_worker = (
-                getattr(settings, "IS_PREDICTION_WORKER", False) or 
-                os.environ.get("IS_PREDICTION_WORKER", "").lower() == "true" or
-                os.environ.get("DISABLE_SCHEDULER", "").lower() == "true"
-            )
+            is_prediction_worker = is_ai_worker_node()
             if not is_prediction_worker:
                 start_scheduler(db_instance.db)
                 print("🚀 [Startup] Background Scheduler initialized on Main Backend node.")
@@ -324,7 +359,7 @@ async def cluster_status_endpoint():
     """Returns status of the distributed multi-account AI prediction cluster."""
     from backend.app.services.ai_cluster import ai_cluster
     nodes = ai_cluster.get_worker_nodes()
-    is_worker = getattr(settings, "IS_PREDICTION_WORKER", False) or os.environ.get("IS_PREDICTION_WORKER", "").lower() == "true"
+    is_worker = is_ai_worker_node()
     return {
         "role": "worker" if is_worker else "primary_load_balancer",
         "worker_nodes": nodes,

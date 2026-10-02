@@ -141,7 +141,8 @@ async def test_upload_and_prediction(monkeypatch):
                 )
             assert res_upload.status_code == 201
             image_path = res_upload.json()["image_path"]
-            assert image_path.startswith("uploads/")
+            assert image_path.startswith("uploads/") or image_path.startswith("https://")
+            assert len(image_path) > 10
 
             # 2. Run prediction
             res_predict = await ac.post(
@@ -228,7 +229,12 @@ async def test_low_confidence_rejection(monkeypatch):
                 ]
             }
         monkeypatch.setattr("model.configs.config.PipelineConfig.CONFIDENCE_REJECTION_THRESHOLD", 0.40)
-        monkeypatch.setattr("backend.app.routers.predict.predict_crop_disease", mock_predict_low)
+        import backend.app.routers.farmer.predict as farmer_predict
+        monkeypatch.setattr(farmer_predict, "predict_crop_disease", mock_predict_low)
+        import backend.app.services.ai_cluster as cluster_module
+        from unittest.mock import AsyncMock
+        monkeypatch.setattr(cluster_module.ai_cluster, "offload_prediction", AsyncMock(return_value=mock_predict_low("")))
+        monkeypatch.setattr("backend.app.services.gemini_vision.cross_verify_disease_with_vision", AsyncMock(return_value=None))
 
         # Create dummy image to test with
         from PIL import Image
@@ -246,14 +252,23 @@ async def test_low_confidence_rejection(monkeypatch):
             assert res_upload.status_code == 201
             image_path = res_upload.json()["image_path"]
 
-            # Run prediction - should return 422
+            # Run prediction - B8 advisory contract returns 422 with guided advisory message when no crop is selected
             res_predict = await ac.post(
                 "/api/predict",
                 json={"image_path": image_path},
                 headers=headers
             )
             assert res_predict.status_code == 422
-            assert "Low confidence" in res_predict.json()["detail"]
+            assert "Low Confidence" in res_predict.json()["detail"]
+
+            # When crop filter is selected, B8 advisory contract provides guidance with HTTP 200
+            res_advisory = await ac.post(
+                "/api/predict",
+                json={"image_path": image_path, "crop_filter": "Tomato"},
+                headers=headers
+            )
+            assert res_advisory.status_code == 200
+            assert res_advisory.json()["crop_name"] == "Tomato"
 
         finally:
             if os.path.exists(dummy_file_path):

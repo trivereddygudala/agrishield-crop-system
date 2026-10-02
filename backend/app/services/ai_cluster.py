@@ -20,6 +20,7 @@ class AIClusterDispatcher:
     def __init__(self):
         self._index = 0
         self._worker_cooldowns: Dict[str, float] = {}
+        self._worker_failure_counts: Dict[str, int] = {}
 
     def get_worker_nodes(self) -> List[str]:
         # Only attempt remote cluster if explicitly enabled via environment, otherwise default to fast local PyTorch
@@ -45,6 +46,19 @@ class AIClusterDispatcher:
         self._index += 1
         return worker
 
+    def _record_worker_failure(self, worker_url: str):
+        """B11-F03: Bounded exponential cooldown starting at ~60s up to max 300s."""
+        consecutive = self._worker_failure_counts.get(worker_url, 0) + 1
+        self._worker_failure_counts[worker_url] = consecutive
+        cooldown_sec = min(60.0 * (1.5 ** min(consecutive - 1, 4)), 300.0)
+        self._worker_cooldowns[worker_url] = time.time() + cooldown_sec
+        return cooldown_sec, consecutive
+
+    def _record_worker_success(self, worker_url: str):
+        """Reset consecutive failure counter on successful inference."""
+        self._worker_failure_counts[worker_url] = 0
+        self._worker_cooldowns.pop(worker_url, None)
+
     async def offload_prediction(
         self,
         image_bytes: bytes,
@@ -64,9 +78,8 @@ class AIClusterDispatcher:
         if not workers:
             return None
 
-        # Fast connect & read timeout (2.5s) ensures that if a Render worker instance is spun down or cold,
-        # we fail fast (<2.5s) to local PyTorch inference rather than stalling the user for 28 seconds.
-        cluster_timeout = httpx.Timeout(connect=1.5, read=2.5, write=2.0, pool=1.5)
+        # B11-F03: Tuned timeout profile for neural inference & Grad-CAM++ calculation
+        cluster_timeout = httpx.Timeout(connect=2.0, read=6.0, write=3.0, pool=2.0)
 
         # Select candidate workers starting with round-robin index
         candidates = [workers[self._index % len(workers)]]
@@ -96,14 +109,21 @@ class AIClusterDispatcher:
                     if response.status_code == 200:
                         res_json = response.json()
                         if res_json.get("success"):
+                            self._record_worker_success(chosen_worker)
                             logger.info(f"✅ [AI Cluster] [{request_id}] Worker {chosen_worker} finished prediction successfully!")
                             return res_json.get("result")
-                    else:
-                        self._worker_cooldowns[chosen_worker] = time.time() + 600.0
-                        logger.warning(f"⚠️ [AI Cluster] [{request_id}] Worker {chosen_worker} returned HTTP {response.status_code}: {response.text[:120]}")
+                    
+                    cooldown_sec, fail_count = self._record_worker_failure(chosen_worker)
+                    logger.warning(
+                        f"⚠️ [AI Cluster] [{request_id}] Worker {chosen_worker} returned HTTP {response.status_code}: "
+                        f"{response.text[:120]}. Cool down for {int(cooldown_sec)}s (failure #{fail_count})."
+                    )
             except Exception as e:
-                self._worker_cooldowns[chosen_worker] = time.time() + 600.0
-                logger.warning(f"⚠️ [AI Cluster] [{request_id}] Worker {chosen_worker} unreachable or timed out ({e}). Next attempts cool down for 10m.")
+                cooldown_sec, fail_count = self._record_worker_failure(chosen_worker)
+                logger.warning(
+                    f"⚠️ [AI Cluster] [{request_id}] Worker {chosen_worker} unreachable or timed out ({e}). "
+                    f"Cool down for {int(cooldown_sec)}s (failure #{fail_count})."
+                )
 
         logger.info("ℹ️ [AI Cluster] External worker nodes unavailable or sleeping. Executing local inference immediately.")
         return None
