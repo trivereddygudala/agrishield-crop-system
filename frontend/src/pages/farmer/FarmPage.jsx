@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -42,24 +42,72 @@ const FarmPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
   
+  const VALID_FARM_TABS = [
+    'modules',
+    'my-fields',
+    'field-setup',
+    'soil-npk',
+    'crop-lifecycle',
+    'farm-khata',
+    'farm-intelligence',
+    'government-schemes',
+    'whatsapp-diagnosis'
+  ];
+
+  const FARM_NAV_TABS = [
+    { id: 'modules', labelEn: 'Overview', labelTe: 'అవలోకనం', icon: '📋' },
+    { id: 'my-fields', labelEn: 'My Fields', labelTe: 'నా పొలాలు', icon: '🌾' },
+    { id: 'field-setup', labelEn: 'Field Setup', labelTe: 'పొలం సెటప్', icon: '⚙️' },
+    { id: 'soil-npk', labelEn: 'Fertilizer & NPK', labelTe: 'NPK ఎరువులు', icon: '💊' },
+    { id: 'crop-lifecycle', labelEn: 'Crop Timeline', labelTe: 'పంట దశలు', icon: '🌱' },
+    { id: 'farm-khata', labelEn: 'Farm Khata', labelTe: 'డిజిటల్ ఖాతా', icon: '💰' },
+    { id: 'farm-intelligence', labelEn: 'Rain & Spray', labelTe: 'వర్షం & స్ప్రే', icon: '🌦️' },
+    { id: 'government-schemes', labelEn: 'Govt Schemes', labelTe: 'పథకాలు', icon: '🏛️' },
+    { id: 'whatsapp-diagnosis', labelEn: 'WhatsApp Bot', labelTe: 'వాట్సాప్ బాట్', icon: '📱' },
+  ];
+
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab') || 'modules';
-  const [activeTab, setActiveTabState] = useState(urlTab);
+  const initialValidTab = VALID_FARM_TABS.includes(urlTab) ? urlTab : 'modules';
+  const [activeTab, setActiveTabState] = useState(initialValidTab);
+  const tabRefs = useRef({});
 
+  // Auto-scroll the active tab into view in horizontal strip
+  useEffect(() => {
+    if (tabRefs.current[activeTab]) {
+      try {
+        tabRefs.current[activeTab].scrollIntoView({
+          behavior: 'smooth',
+          inline: 'center',
+          block: 'nearest'
+        });
+      } catch (_) {}
+    }
+  }, [activeTab]);
+
+  // Synchronize state on search parameter changes (back/forward, direct link, refresh)
   useEffect(() => {
     const currentTab = searchParams.get('tab') || 'modules';
-    setActiveTabState(currentTab);
+    const resolved = VALID_FARM_TABS.includes(currentTab) ? currentTab : 'modules';
+    if (resolved !== activeTab) {
+      setActiveTabState(resolved);
+    }
   }, [searchParams]);
 
-  const setActiveTab = (tab) => {
-    setActiveTabState(tab);
-    if (tab === 'modules') {
-      setSearchParams({});
-    } else {
-      setSearchParams({ tab });
-    }
+  const setActiveTab = useCallback((tab) => {
+    const resolved = VALID_FARM_TABS.includes(tab) ? tab : 'modules';
+    setActiveTabState(resolved);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (resolved === 'modules') {
+        next.delete('tab');
+      } else {
+        next.set('tab', resolved);
+      }
+      return next;
+    }, { replace: false });
     window.scrollTo({ top: 0, behavior: 'instant' });
-  };
+  }, [setSearchParams]);
 
   // Farm Info
   const [farmName, setFarmName] = useState('');
@@ -322,6 +370,41 @@ const FarmPage = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto w-full pb-16">
+
+      {/* ═══════ P2: Horizontally Scrollable Mobile/Desktop Farm Tab Strip ═══════ */}
+      <div className="relative w-full">
+        {/* Subtle scroll cues gradient shadows on narrow screens */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-slate-100/90 dark:from-slate-950 to-transparent z-10 sm:hidden" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-slate-100/90 dark:from-slate-950 to-transparent z-10 sm:hidden" />
+
+        <div
+          role="tablist"
+          aria-label="Farm Management Tabs"
+          className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-x-auto scrollbar-none overscroll-x-contain"
+        >
+          {FARM_NAV_TABS.map((tab) => {
+            const isTabActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                ref={(el) => (tabRefs.current[tab.id] = el)}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer select-none ${
+                  isTabActive
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                aria-selected={isTabActive}
+                role="tab"
+              >
+                <span>{tab.icon}</span>
+                <span>{isTe ? tab.labelTe : tab.labelEn}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Dedicated Fresh Page Header for Sub-Tabs */}
       {activeTab !== 'modules' && (

@@ -914,7 +914,11 @@ export default function EquipmentBookingPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-white dark:bg-slate-900 p-2.5 sm:p-3 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <label htmlFor="equipment-search-query" className="sr-only">
+                {isTe ? 'ట్రాక్టర్లు, డ్రోన్లు, సోలార్ పంపులను శోధించండి' : 'Search tractors, drones, solar pumps'}
+              </label>
               <input
+                id="equipment-search-query"
                 type="text"
                 placeholder={isTe ? 'ట్రాక్టర్లు, డ్రోన్లు, సోలార్ పంపులను శోధించండి...' : 'Search tractors, drones, solar pumps...'}
                 value={searchQuery}
@@ -1807,7 +1811,9 @@ export default function EquipmentBookingPage() {
                     </select>
                   ) : (
                     <input
+                      id="manual-village-input"
                       type="text"
+                      aria-label={isTe ? 'గ్రామం పేరు' : 'Village Name'}
                       placeholder={isTe ? 'గ్రామం పేరు టైప్ చేయండి' : 'Type Village Name'}
                       value={locationVillage}
                       onChange={(e) => setLocationVillage(e.target.value)}
@@ -2389,8 +2395,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="font-bold text-slate-500 block mb-1">{isTe ? 'రైతు పేరు' : 'Farmer Name'}</label>
+                <label htmlFor="booking-farmer-name" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'రైతు పేరు' : 'Farmer Name'}</label>
                 <input
+                  id="booking-farmer-name"
                   type="text"
                   required
                   value={farmerName}
@@ -2400,8 +2407,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
 
               <div>
-                <label className="font-bold text-slate-500 block mb-1">{isTe ? 'వాట్సాప్ మొబైల్ నంబర్' : 'WhatsApp Phone'}</label>
+                <label htmlFor="booking-farmer-phone" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'వాట్సాప్ మొబైల్ నంబర్' : 'WhatsApp Phone'}</label>
                 <input
+                  id="booking-farmer-phone"
                   type="tel"
                   required
                   value={farmerPhone}
@@ -2411,8 +2419,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
 
               <div>
-                <label className="font-bold text-slate-500 block mb-1">{isTe ? 'లొకేషన్' : 'Field Village'}</label>
+                <label htmlFor="booking-service-location" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'లొకేషన్' : 'Field Village'}</label>
                 <input
+                  id="booking-service-location"
                   type="text"
                   disabled
                   value={`${serviceLocation.village}, ${serviceLocation.mandal} (${serviceLocation.district})`}
@@ -2422,10 +2431,11 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
               {/* ── Replaced Target Crop with Dynamic Field Condition / Land Status ── */}
               <div>
-                <label className="font-bold text-slate-500 block mb-1">
+                <label htmlFor="booking-field-status" className="font-bold text-slate-500 block mb-1 cursor-pointer">
                   {isTe ? 'పొలం స్థితి / దశ' : 'Field Condition / Land Stage'}
                 </label>
                 <select
+                  id="booking-field-status"
                   value={fieldStatus}
                   onChange={(e) => setFieldStatus(e.target.value)}
                   className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
@@ -2449,8 +2459,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="font-bold text-slate-500 block mb-1">{isTe ? 'బుకింగ్ తేదీ' : 'Booking Date'}</label>
+                <label htmlFor="booking-service-date" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'బుకింగ్ తేదీ' : 'Booking Date'}</label>
                 <input
+                  id="booking-service-date"
                   type="date"
                   required
                   value={serviceDate}
@@ -2460,8 +2471,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
 
               <div>
-                <label className="font-bold text-slate-500 block mb-1">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</label>
+                <label htmlFor="booking-time-slot" className="font-bold text-slate-500 block mb-1 cursor-pointer">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</label>
                 <select
+                  id="booking-time-slot"
                   value={timeSlot}
                   onChange={(e) => setTimeSlot(e.target.value)}
                   className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold"
@@ -2483,11 +2495,12 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="font-bold text-slate-500 block mb-1">
+                <label htmlFor="booking-quantity" className="font-bold text-slate-500 block mb-1 cursor-pointer">
                   {unitMode === 'acres' ? (isTe ? 'ఎకరాల విస్తీర్ణం' : 'Total Acres') : (isTe ? 'పని గంటలు' : 'Operating Hours')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
+                    id="booking-quantity"
                     type="number"
                     step="0.5"
                     min="0.5"

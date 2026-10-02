@@ -2,6 +2,37 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-02 (v366) - B12-B: Frontend UI/UX, Mobile, Visual & Runtime Quality Upgrade
+- **Summary:**
+  1. 📱 **P0 Mobile Drawer Occlusion Resolved (`App.jsx` & `AppLayout.jsx`):**
+     - Updated mobile sidebar close triggers to observe both `location.pathname` and `location.search`.
+     - Query-tab navigations (`/admin?tab=broadcast`, `/provider/dashboard?tab=orders`, etc.) now immediately close the drawer and backdrop.
+     - Added global `Escape` key listener when drawer is open.
+  2. 🌾 **P1 Farm Tab State URL-Preservation (`FarmPage.jsx`):**
+     - Replaced purely local `useState` for tabs with URL search parameter `/farm?tab=<module>`.
+     - Supports all 9 modules (`my-fields`, `field-setup`, `soil-npk`, `crop-lifecycle`, `farm-khata`, `farm-intelligence`, `government-schemes`, `whatsapp-diagnosis`, `modules`) with fallback to `modules`.
+     - Supports browser forward/back buttons, direct bookmarking, and page refreshes without infinite loops.
+  3. 🔍 **P1 AI Scan Center State Preservation (`UploadImagePage.jsx`):**
+     - Unified `currentTab` in `scanStore.setTabState` across `disease-diag`, `plant-id`, and `agro-scan`.
+     - Prevents state loss (file, preview image, results, scanning status) when switching between tabs.
+     - Added 3-module direct switcher bar for seamless farmer switching without re-running inference.
+     - Sanitized farmer-facing error messages to friendly, actionable guidance.
+  4. 📐 **P2 Mobile Tab Navigation & Viewport Responsiveness (`FarmPage.jsx` & `AppLayout.jsx`):**
+     - Designed mobile-first horizontally scrollable tab strip with smooth touch scrolling, active tab auto-centering, and subtle gradient boundary cues.
+     - Added responsive navbar title truncation (`truncate max-w-[110px] xs:max-w-[150px]`) and adaptive dropdown bounding (`w-[calc(100vw-24px)]`) to eliminate 320px–430px horizontal overflow.
+     - Integrated `env(safe-area-inset-bottom, 0px)` safe-area padding in `BottomNav` and main layout.
+  5. ♿ **Accessibility & Visual Quality (`FieldAreaCalculatorPage.jsx`, `EquipmentBookingPage.jsx`, `NavbarSceneRenderer.jsx`):**
+     - Connected all labels with input `id` attributes in field calculator and equipment booking forms.
+     - Enhanced `NavbarSceneRenderer` with desktop-only checks (`>= 1024px`), `prefers-reduced-motion: reduce` respect, and visibility listener to pause canvas render loops when tab is hidden.
+     - Restricted static PyTorch AI footer badge strictly to Admin and Tester roles.
+     - Eliminated `ErrorBoundary` remount flicker on route changes in `App.jsx`.
+  6. 🧪 **Validation & Build:**
+     - 19/19 tests passed in `tests/b12_frontend_quality.test.js`.
+     - 100% pass across all existing frontend test suites.
+     - Full production build (`npm run build`) succeeded in 38.93s with preserved B11 Vite chunking.
+     - Clean `git diff --check` with 0 whitespace errors.
+- **Files modified:** `frontend/src/App.jsx`, `frontend/src/components/AppLayout.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `frontend/src/pages/farmer/UploadImagePage.jsx`, `frontend/src/components/animations/NavbarSceneRenderer.jsx`, `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`, `frontend/src/pages/farmer/EquipmentBookingPage.jsx`, `frontend/tests/b12_frontend_quality.test.js`, `changes_happening.md`.
+
 ## 2026-10-02 (v365) - B11.5: Render Free-Tier Warm-Up & Cold-Start Mitigation
 - **Summary:**
   1. ⚡ **Lightweight Application-Side Warm-Up Endpoint (`/health/warmup` & `/api/v1/health/warmup`):**

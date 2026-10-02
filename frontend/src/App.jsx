@@ -74,7 +74,7 @@ const DashboardLayout = () => {
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   return (
     <div className="min-h-screen pt-16 bg-slate-100/90 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200">
@@ -93,16 +93,16 @@ const DashboardLayout = () => {
           className={`flex-1 w-full min-w-0 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'} transition-all duration-300 ${isAssistant ? 'h-[calc(100dvh-8rem)] lg:h-[calc(100dvh-4rem)] max-h-[calc(100dvh-8rem)] lg:max-h-[calc(100dvh-4rem)] overflow-hidden flex flex-col' : 'min-h-[calc(100vh-4rem)] flex flex-col justify-between overflow-x-hidden'}`}
           role="main"
         >
-          <div className={isAssistant ? 'p-0 h-full max-h-full flex flex-col flex-1 min-h-0 overflow-hidden' : 'p-3 sm:p-6 lg:p-8 pb-28 lg:pb-8 w-full flex-1'}>
-            <ErrorBoundary key={location.pathname} locationKey={location.pathname}>
+          <div className={isAssistant ? 'p-0 h-full max-h-full flex flex-col flex-1 min-h-0 overflow-hidden' : 'p-3 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8 w-full flex-1'}>
+            <ErrorBoundary locationKey={location.pathname}>
               <Suspense fallback={<PageSkeleton />}>
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
                     key={location.pathname}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
                     className={`w-full ${isAssistant ? 'h-full max-h-full flex-1 flex flex-col min-h-0 overflow-hidden' : ''}`}
                   >
                     <Outlet />
@@ -160,17 +160,11 @@ function ThemeInitializer({ children }) {
   return <>{children}</>;
 }
 
-function App() {
+function AppRoutesWithBoundary() {
+  const location = useLocation();
   return (
-    <AuthProvider>
-      <ThemeInitializer>
-        <FarmProvider>
-          <WebSocketProvider>
-            <ToastProvider>
-              <BrowserRouter>
-                <FarmerWelcomeModal />
-                  <ErrorBoundary>
-                      <Routes>
+    <ErrorBoundary locationKey={location.pathname}>
+      <Routes>
                         {/* Public Views */}
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/login" element={<LoginPage />} />
@@ -237,6 +231,19 @@ function App() {
                         <Route path="*" element={<NotFoundPage />} />
                       </Routes>
                     </ErrorBoundary>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeInitializer>
+        <FarmProvider>
+          <WebSocketProvider>
+            <ToastProvider>
+              <BrowserRouter>
+                <FarmerWelcomeModal />
+                <AppRoutesWithBoundary />
               </BrowserRouter>
             </ToastProvider>
           </WebSocketProvider>

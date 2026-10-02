@@ -599,10 +599,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 w-full h-16 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-[#050911]/95 backdrop-blur-xl transition-colors">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 w-full gap-4">
+      <div className="flex h-16 items-center justify-between px-2.5 sm:px-6 lg:px-8 w-full gap-2 sm:gap-4">
         
         {/* Left Section: Menu, Brand, Breadcrumb — Hamburger hidden on mobile layout */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
           <button 
             type="button" 
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -613,16 +613,16 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             <Menu className="h-5 w-5" />
           </button>
           
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
-            <div className="bg-emerald-600 text-white p-2 rounded-xl shadow-sm shadow-emerald-600/20 group-hover:scale-105 transition-transform">
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2 group min-w-0">
+            <div className="bg-emerald-600 text-white p-2 rounded-xl shadow-sm shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
               <Leaf className="h-5 w-5" />
             </div>
             {/* Desktop Brand Title */}
-            <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight hidden sm:inline text-lg">
+            <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight hidden sm:inline text-lg shrink-0">
               AgriShield <span className="text-emerald-600 dark:text-emerald-400 font-normal">AI</span>
             </span>
-            {/* Mobile Dynamic Animated Title */}
-            <span className="sm:hidden overflow-hidden h-7 relative flex items-center">
+            {/* Mobile Dynamic Animated Title - Responsive Truncation */}
+            <span className="sm:hidden overflow-hidden h-7 relative flex items-center min-w-0 max-w-[110px] xs:max-w-[150px]">
               <AnimatePresence mode="wait">
                 <motion.span
                   key={location.pathname}
@@ -630,12 +630,12 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 15, opacity: 0 }}
                   transition={{ duration: 0.22, ease: "easeOut" }}
-                  className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-base block"
+                  className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-xs xs:text-sm block truncate"
                 >
                   {(() => {
                     const path = location.pathname;
                     if (path === '/dashboard') return t('nav.dashboard', 'Home');
-                    if (path === '/upload' || path === '/result') return t('nav.scan_crop', 'AI Crop Doctor');
+                    if (path === '/upload' || path === '/result' || path.startsWith('/scan')) return t('nav.scan_crop', 'AI Crop Doctor');
                     if (path === '/history') return t('nav.scan_history', 'Scan History');
                     if (path === '/analytics') return t('nav.analytics', 'Sensor Analytics');
                     if (path === '/market') return t('nav.market', 'Market');
@@ -865,7 +865,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
               <button
                 type="button"
                 onClick={toggleDarkMode}
-                className="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
                 title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
                 aria-label="Toggle Theme"
               >
@@ -876,7 +876,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
               <div className="relative" ref={bellRef}>
                 <button
                   onClick={handleBellClick}
-                  className="relative p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  className="relative p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
                   title="Notifications"
                   aria-label="Notifications"
                 >
@@ -892,7 +892,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 </button>
 
                 {bellOpen && (
-                  <div className="absolute right-0 mt-2 z-50 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+                  <div className="absolute right-0 mt-2 z-50 w-[calc(100vw-24px)] max-w-sm sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{t('nav.notifications', 'Notifications')}</span>
                       <Link to="/notifications" onClick={() => setBellOpen(false)} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
@@ -920,8 +920,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5 line-clamp-2">{alert.message}</p>
                                   <p className="text-[10px] text-slate-400 mt-1">{timeAgo(alert.created_at)}</p>
                                 </div>
-                                <button onClick={() => handleMarkRead(alert.notification_id)} className="flex-shrink-0 text-slate-300 hover:text-emerald-600 p-1 rounded" title="Mark read">
-                                  <CheckCheck size={13} />
+                                <button onClick={() => handleMarkRead(alert.notification_id)} className="flex-shrink-0 text-slate-300 hover:text-emerald-600 p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg" title="Mark read">
+                                  <CheckCheck size={14} />
                                 </button>
                               </div>
                             </div>
@@ -937,16 +937,17 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 group p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-1.5 group p-1 min-w-[40px] min-h-[40px] justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  aria-label="User Profile Menu"
                 >
-                  <div className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs border border-emerald-200 dark:border-emerald-800">
+                  <div className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs border border-emerald-200 dark:border-emerald-800 shrink-0">
                     {user.name ? user.name.charAt(0).toUpperCase() : 'F'}
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 z-50 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
+                  <div className="absolute right-0 mt-2 z-50 w-56 max-w-[calc(100vw-24px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
                     <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
                       <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
                       <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
@@ -1080,17 +1081,39 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user } = useAuth();
   const { hardwareMode } = useHardwareMode();
 
-  // Keyboard shortcut Ctrl+B / Cmd+B to toggle sidebar
+  // Keyboard shortcut Ctrl+B / Cmd+B to toggle sidebar, and Escape to close on mobile
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         setSidebarOpen(prev => !prev);
+      } else if (e.key === 'Escape' && sidebarOpen && window.innerWidth < 1024) {
+        setSidebarOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setSidebarOpen]);
+  }, [sidebarOpen, setSidebarOpen]);
+
+  // Ensure mobile drawer closes on navigation change (pathname or search params like ?tab=...)
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, location.search, setSidebarOpen]);
+
+  // Lock document body scrolling while mobile drawer is open; restore on close or unmount
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const isMobile = window.innerWidth < 1024;
+    if (sidebarOpen && isMobile) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [sidebarOpen]);
 
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const isTester = user?.role?.toLowerCase() === 'tester';
@@ -1288,18 +1311,20 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           ))}
         </nav>
 
-        {/* Sidebar Footer System Health Badge */}
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/60">
-          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px]">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span className="font-semibold text-slate-700 dark:text-slate-300">PyTorch AI</span>
+        {/* Sidebar Footer System Health Badge — Only for Admin & QA Testers */}
+        {(isAdmin || isTester) && (
+          <div className="p-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/60">
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px]">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-semibold text-slate-700 dark:text-slate-300">PyTorch AI</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
+                v2.0
+              </span>
             </div>
-            <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
-              v2.0
-            </span>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );

@@ -414,10 +414,11 @@ export default function FieldAreaCalculatorPage() {
         {/* Plot Name */}
         <div className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
           <Compass className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0">
+          <label htmlFor="plot-name-input" className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 cursor-pointer">
             {t('field_calculator.plot_survey_label', isTe ? 'సర్వే పేరు:' : 'Plot / Survey:')}
-          </span>
+          </label>
           <input
+            id="plot-name-input"
             type="text"
             value={plotName}
             onChange={(e) => setPlotName(e.target.value)}
@@ -430,7 +431,11 @@ export default function FieldAreaCalculatorPage() {
         {surveyTool === 'satellite' ? (
           <form onSubmit={handleLocationSearch} className="flex items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
             <Search className="w-4 h-4 text-emerald-600 shrink-0" />
+            <label htmlFor="satellite-search-input" className="sr-only">
+              {t('field_calculator.search_village_placeholder', isTe ? 'గ్రామం పేరు లేదా GPS (15.5057, 80.0499)' : 'Village, Town, or GPS coordinates')}
+            </label>
             <input
+              id="satellite-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -623,10 +628,11 @@ export default function FieldAreaCalculatorPage() {
           {dimensionShape === 'rectangle' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                <label htmlFor="rect-length-input" className="text-xs font-extrabold text-slate-700 dark:text-slate-300 cursor-pointer">
                   {isTe ? `పొడవు (Length in ${dimensionUnit}):` : `Length (${dimensionUnit}):`}
                 </label>
                 <input
+                  id="rect-length-input"
                   type="number"
                   step="any"
                   value={rectLength}
@@ -637,10 +643,11 @@ export default function FieldAreaCalculatorPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">
+                <label htmlFor="rect-width-input" className="text-xs font-extrabold text-slate-700 dark:text-slate-300 cursor-pointer">
                   {isTe ? `వెడల్పు (Width in ${dimensionUnit}):` : `Width (${dimensionUnit}):`}
                 </label>
                 <input
+                  id="rect-width-input"
                   type="number"
                   step="any"
                   value={rectWidth}
@@ -662,10 +669,11 @@ export default function FieldAreaCalculatorPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-700 dark:text-slate-300">
+                  <label htmlFor="quad-side-a" className="text-[11px] font-black text-slate-700 dark:text-slate-300 cursor-pointer">
                     Side A ({dimensionUnit})
                   </label>
                   <input
+                    id="quad-side-a"
                     type="number"
                     step="any"
                     value={quadSideA}
@@ -676,10 +684,11 @@ export default function FieldAreaCalculatorPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-700 dark:text-slate-300">
+                  <label htmlFor="quad-side-b" className="text-[11px] font-black text-slate-700 dark:text-slate-300 cursor-pointer">
                     Side B ({dimensionUnit})
                   </label>
                   <input
+                    id="quad-side-b"
                     type="number"
                     step="any"
                     value={quadSideB}
@@ -690,10 +699,11 @@ export default function FieldAreaCalculatorPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-700 dark:text-slate-300">
+                  <label htmlFor="quad-side-c" className="text-[11px] font-black text-slate-700 dark:text-slate-300 cursor-pointer">
                     Side C ({dimensionUnit})
                   </label>
                   <input
+                    id="quad-side-c"
                     type="number"
                     step="any"
                     value={quadSideC}
@@ -704,10 +714,11 @@ export default function FieldAreaCalculatorPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-700 dark:text-slate-300">
+                  <label htmlFor="quad-side-d" className="text-[11px] font-black text-slate-700 dark:text-slate-300 cursor-pointer">
                     Side D ({dimensionUnit})
                   </label>
                   <input
+                    id="quad-side-d"
                     type="number"
                     step="any"
                     value={quadSideD}
@@ -720,7 +731,7 @@ export default function FieldAreaCalculatorPage() {
 
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <label className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+                  <label htmlFor="quad-diagonal" className="text-xs font-black text-emerald-800 dark:text-emerald-300 cursor-pointer">
                     {isTe ? `వికర్ణం / కర్ణం పొడవు (Diagonal in ${dimensionUnit}) [సిఫార్సు]:` : `Center Diagonal (${dimensionUnit}) [Recommended]:`}
                   </label>
                   <p className="text-[10px] text-slate-500">
@@ -728,6 +739,7 @@ export default function FieldAreaCalculatorPage() {
                   </p>
                 </div>
                 <input
+                  id="quad-diagonal"
                   type="number"
                   step="any"
                   value={quadDiagonal}
@@ -742,10 +754,11 @@ export default function FieldAreaCalculatorPage() {
           {dimensionShape === 'triangle' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                <label htmlFor="tri-side-a" className="text-xs font-black text-slate-700 dark:text-slate-300 cursor-pointer">
                   Side A ({dimensionUnit})
                 </label>
                 <input
+                  id="tri-side-a"
                   type="number"
                   step="any"
                   value={triSideA}
@@ -756,10 +769,11 @@ export default function FieldAreaCalculatorPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                <label htmlFor="tri-side-b" className="text-xs font-black text-slate-700 dark:text-slate-300 cursor-pointer">
                   Side B ({dimensionUnit})
                 </label>
                 <input
+                  id="tri-side-b"
                   type="number"
                   step="any"
                   value={triSideB}
@@ -770,10 +784,11 @@ export default function FieldAreaCalculatorPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                <label htmlFor="tri-side-c" className="text-xs font-black text-slate-700 dark:text-slate-300 cursor-pointer">
                   Side C ({dimensionUnit})
                 </label>
                 <input
+                  id="tri-side-c"
                   type="number"
                   step="any"
                   value={triSideC}

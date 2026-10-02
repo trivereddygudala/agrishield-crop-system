@@ -146,6 +146,61 @@ const SCENE_MAP = {
 };
 
 const NavbarSceneRenderer = ({ theme, noWrapper = false, isCompact = false }) => {
+  const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  });
+
+  const [isVisible, setIsVisible] = React.useState(() => {
+    if (typeof document === 'undefined') return true;
+    return !document.hidden;
+  });
+
+  const [isDesktop, setIsDesktop] = React.useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth >= 1024;
+  });
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Listen to prefers-reduced-motion media query
+    const mql = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    const handleMotionChange = (e) => setPrefersReducedMotion(e.matches);
+    if (mql?.addEventListener) {
+      mql.addEventListener('change', handleMotionChange);
+    } else if (mql?.addListener) {
+      mql.addListener(handleMotionChange);
+    }
+
+    // Pause animation work when document is hidden (background tab)
+    const handleVisibility = () => {
+      setIsVisible(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // Disable decorative canvas on mobile screens to preserve battery & CPU
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      if (mql?.removeEventListener) {
+        mql.removeEventListener('change', handleMotionChange);
+      } else if (mql?.removeListener) {
+        mql.removeListener(handleMotionChange);
+      }
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // Zero animation overhead on mobile, when backgrounded, or when user prefers reduced motion
+  if (!isDesktop || !isVisible || prefersReducedMotion) {
+    return null;
+  }
+
   const Scene = SCENE_MAP[theme] || AuroraBorealis;
   if (noWrapper) return <Scene isCompact={isCompact} />;
   return <SceneWrapper isCompact={isCompact}><Scene isCompact={isCompact} /></SceneWrapper>;

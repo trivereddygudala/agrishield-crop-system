@@ -106,19 +106,31 @@ const scanStore = {
     scanStore.listeners.forEach((l) => l());
   },
   setTabState(tabId, updates) {
+    const validTabs = ['disease-diag', 'plant-id', 'agro-scan'];
+    const targetKey = validTabs.includes(tabId)
+      ? tabId
+      : (validTabs.includes(scanStore.state.activeTab) ? scanStore.state.activeTab : 'disease-diag');
     const currentTabs = scanStore.state.tabs || {};
-    const targetTab = currentTabs[tabId] || defaultTabState();
+    const targetTab = currentTabs[targetKey] || defaultTabState();
     scanStore.state = {
       ...scanStore.state,
       tabs: {
         ...currentTabs,
-        [tabId]: {
+        [targetKey]: {
           ...targetTab,
           ...updates
         }
       }
     };
     scanStore.listeners.forEach((l) => l());
+  }
+};
+
+const safelyRevokeBlobUrl = (url) => {
+  if (typeof url === 'string' && url.startsWith('blob:')) {
+    try {
+      URL.revokeObjectURL(url);
+    } catch (_) {}
   }
 };
 
@@ -228,13 +240,13 @@ const UploadImagePage = () => {
     if (!file) return false;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      scanStore.setTabState(activeTab, { errorMsg: 'Invalid file format. Please select a JPG, JPEG, PNG, or WEBP image.' });
+      scanStore.setTabState(currentTab, { errorMsg: 'Invalid file format. Please select a JPG, JPEG, PNG, or WEBP image.' });
       return false;
 
     }
     // Allow up to 30MB phone photos because in-browser compression downsamples it instantly
     if (file.size > 30 * 1024 * 1024) {
-      scanStore.setTabState(activeTab, { errorMsg: 'File size exceeds 30MB. Please select a smaller photo.' });
+      scanStore.setTabState(currentTab, { errorMsg: 'File size exceeds 30MB. Please select a smaller photo.' });
       return false;
     }
     return true;
@@ -243,11 +255,16 @@ const UploadImagePage = () => {
   const handleFileSelect = async (file) => {
     if (!validateFile(file)) return;
 
+    // Revoke previous blob preview for this tab to prevent memory accumulation
+    if (currentTabState.previewUrl) {
+      safelyRevokeBlobUrl(currentTabState.previewUrl);
+    }
+
     try {
       const compressResult = await compressImageForUpload(file);
       const effectiveFile = compressResult.file;
 
-      scanStore.setTabState(activeTab, {
+      scanStore.setTabState(currentTab, {
         selectedFile: effectiveFile,
         previewUrl: URL.createObjectURL(effectiveFile),
         compressionInfo: compressResult,
@@ -257,7 +274,7 @@ const UploadImagePage = () => {
       });
     } catch (err) {
       console.warn("Auto-compression fallback to original:", err);
-      scanStore.setTabState(activeTab, {
+      scanStore.setTabState(currentTab, {
         selectedFile: file,
         previewUrl: URL.createObjectURL(file),
         compressionInfo: null,
@@ -269,7 +286,10 @@ const UploadImagePage = () => {
   };
 
   const clearSelection = () => {
-    scanStore.setTabState(activeTab, {
+    if (currentTabState.previewUrl) {
+      safelyRevokeBlobUrl(currentTabState.previewUrl);
+    }
+    scanStore.setTabState(currentTab, {
       selectedFile: null,
       previewUrl: null,
       compressionInfo: null,
@@ -280,14 +300,17 @@ const UploadImagePage = () => {
   };
 
   const loadSampleImage = async (samplePath = '/samples/chilli_leaf_spot.jpg', crop = 'Chilli') => {
-    scanStore.setTabState(activeTab, { errorMsg: '' });
+    scanStore.setTabState(currentTab, { errorMsg: '' });
+    if (currentTabState.previewUrl) {
+      safelyRevokeBlobUrl(currentTabState.previewUrl);
+    }
     try {
       const response = await fetch(samplePath);
       if (!response.ok) throw new Error();
       const blob = await response.blob();
       const fileName = samplePath.split('/').pop() || 'sample_crop_leaf.jpg';
       const file = new File([blob], fileName, { type: 'image/jpeg' });
-      scanStore.setTabState(activeTab, {
+      scanStore.setTabState(currentTab, {
         selectedFile: file,
         previewUrl: URL.createObjectURL(file),
         compressionInfo: null,
@@ -298,7 +321,7 @@ const UploadImagePage = () => {
         scanStore.setState({ selectedCropFilter: crop });
       }
     } catch {
-      scanStore.setTabState(activeTab, { errorMsg: 'Failed to load sample image.' });
+      scanStore.setTabState(currentTab, { errorMsg: 'Failed to load sample image.' });
     }
   };
 
@@ -399,7 +422,7 @@ const UploadImagePage = () => {
 
   const handleStartScan = async (multipartData = {}) => {
     if (!selectedFile) {
-      scanStore.setTabState(activeTab, { hasScanned: true });
+      scanStore.setTabState(currentTab, { hasScanned: true });
       return;
     }
 
@@ -407,16 +430,16 @@ const UploadImagePage = () => {
 
     // Check if offline before initiating network requests
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      scanStore.setTabState(activeTab, { loading: true, errorMsg: '' });
+      scanStore.setTabState(currentTab, { loading: true, errorMsg: '' });
       try {
         let offlineResult = null;
-        if (activeTab === 'disease-diag' && previewUrl) {
+        if (currentTab === 'disease-diag' && previewUrl) {
           offlineResult = await diagnoseOfflineLeaf({
             imageSrc: previewUrl,
             cropFilter: selectedCropFilter,
             language: activeLang
           });
-        } else if (activeTab === 'plant-id' && previewUrl) {
+        } else if (currentTab === 'plant-id' && previewUrl) {
           offlineResult = await identifyOfflinePlant({
             imageSrc: previewUrl,
             language: activeLang
@@ -425,14 +448,14 @@ const UploadImagePage = () => {
 
         await queueOfflineScan({
           file: selectedFile,
-          tabId: activeTab,
+          tabId: currentTab,
           cropFilter: selectedCropFilter,
           language: activeLang,
           offlineTriage: offlineResult
         });
 
         if (offlineResult) {
-          scanStore.setTabState(activeTab, {
+          scanStore.setTabState(currentTab, {
             liveResult: offlineResult,
             hasScanned: true,
             loading: false,
@@ -440,7 +463,7 @@ const UploadImagePage = () => {
           });
           return;
         } else {
-          scanStore.setTabState(activeTab, {
+          scanStore.setTabState(currentTab, {
             errorMsg: '📡 Offline Field Mode: Photo saved to offline queue. It will automatically upload and analyze when internet connection is restored!',
             loading: false
           });
@@ -448,11 +471,11 @@ const UploadImagePage = () => {
         }
       } catch (queueErr) {
         console.error("Failed to run offline diagnosis or queue scan:", queueErr);
-        scanStore.setTabState(activeTab, { loading: false });
+        scanStore.setTabState(currentTab, { loading: false });
       }
     }
 
-    scanStore.setTabState(activeTab, { loading: true, errorMsg: '' });
+    scanStore.setTabState(currentTab, { loading: true, errorMsg: '' });
 
     let fileToUpload = selectedFile;
     try {
@@ -555,7 +578,7 @@ const UploadImagePage = () => {
       }
 
       const predictRes = await API.post(endpoint, payload);
-      scanStore.setTabState(activeTab, {
+      scanStore.setTabState(currentTab, {
         liveResult: predictRes.data,
         hasScanned: true,
         loading: false
@@ -575,13 +598,13 @@ const UploadImagePage = () => {
       if (isNetworkUnreachable) {
         try {
           let offlineResult = null;
-          if (activeTab === 'disease-diag' && previewUrl) {
+          if (currentTab === 'disease-diag' && previewUrl) {
             offlineResult = await diagnoseOfflineLeaf({
               imageSrc: previewUrl,
               cropFilter: selectedCropFilter,
               language: activeLang
             });
-          } else if (activeTab === 'plant-id' && previewUrl) {
+          } else if (currentTab === 'plant-id' && previewUrl) {
             offlineResult = await identifyOfflinePlant({
               imageSrc: previewUrl,
               language: activeLang
@@ -590,14 +613,14 @@ const UploadImagePage = () => {
 
           await queueOfflineScan({
             file: selectedFile,
-            tabId: activeTab,
+            tabId: currentTab,
             cropFilter: selectedCropFilter,
             language: activeLang,
             offlineTriage: offlineResult
           });
 
           if (offlineResult) {
-            scanStore.setTabState(activeTab, {
+            scanStore.setTabState(currentTab, {
               liveResult: offlineResult,
               hasScanned: true,
               loading: false,
@@ -605,7 +628,7 @@ const UploadImagePage = () => {
             });
             return;
           } else {
-            scanStore.setTabState(activeTab, {
+            scanStore.setTabState(currentTab, {
               errorMsg: '📡 Field Offline Mode: Photo saved to offline queue. It will auto-sync when connection returns!',
               hasScanned: false,
               liveResult: null,
@@ -618,25 +641,25 @@ const UploadImagePage = () => {
         }
       }
 
-      let newError = "Failed to connect to AI scanner or image rejected.";
+      let newError = isTe
+        ? "AI స్కానర్‌కి కనెక్ట్ చేయడం విఫలమైంది. దయచేసి మళ్లీ ప్రయత్నించండి."
+        : "Unable to analyze the photo right now. Please ensure your connection is active and try again.";
       if (err.response && err.response.data) {
         const detail = err.response.data.detail || err.response.data.message;
-        if (typeof detail === 'string') {
+        if (typeof detail === 'string' && !detail.includes('Traceback') && !detail.includes('Exception') && !detail.includes('Error:')) {
           newError = detail;
         } else if (Array.isArray(detail)) {
           newError = detail.map(d => d.msg || JSON.stringify(d)).join(', ');
         }
-      } else if (err.message) {
-        newError = err.message;
       }
-      scanStore.setTabState(activeTab, {
+      scanStore.setTabState(currentTab, {
         errorMsg: newError,
         hasScanned: false,
         liveResult: null,
         loading: false
       });
     } finally {
-      scanStore.setTabState(activeTab, { loading: false });
+      scanStore.setTabState(currentTab, { loading: false });
     }
   };
 
@@ -805,20 +828,60 @@ const UploadImagePage = () => {
       ) : (
         /* ═══════ DEDICATED SUB-PAGE — Disease Diagnosis, Plant ID, or Agrochemical Scanner ═══════ */
         <div className="space-y-4">
-          {/* Clean Top Navigation Bar with Back Button */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/5">
+          {/* Clean Top Navigation Bar with Back Button & 3-Tab Switcher */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200/60 dark:border-white/5">
             <button
               type="button"
               onClick={() => handleTabChange('overview')}
-              className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 cursor-pointer group"
+              className="self-start flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 cursor-pointer group"
             >
               <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               <span>{isTe ? '← స్కాన్ సెంటర్‌కు తిరిగి' : '← Back to AI Scan Center'}</span>
             </button>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[11px] font-bold">
-                {currentModuleTitle || 'Scanner'}
-              </Badge>
+
+            {/* Direct Switcher across all 3 AI scanners */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100/90 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 w-full sm:w-auto overflow-x-auto scrollbar-none">
+              <button
+                type="button"
+                onClick={() => handleTabChange('disease-diag')}
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap min-h-[38px] ${
+                  currentTab === 'disease-diag'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>🌿</span>
+                <span>{isTe ? 'పంట వ్యాధి' : 'Disease'}</span>
+                {tabs['disease-diag']?.hasScanned && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabChange('plant-id')}
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap min-h-[38px] ${
+                  currentTab === 'plant-id'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>🌱</span>
+                <span>{isTe ? 'మొక్క గుర్తింపు' : 'Plant ID'}</span>
+                {tabs['plant-id']?.hasScanned && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabChange('agro-scan')}
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap min-h-[38px] ${
+                  currentTab === 'agro-scan'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>🧪</span>
+                <span>{isTe ? 'పురుగుమందు' : 'Agrochemical'}</span>
+                {tabs['agro-scan']?.hasScanned && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>}
+              </button>
             </div>
           </div>
 
