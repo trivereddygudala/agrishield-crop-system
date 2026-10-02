@@ -86,6 +86,21 @@ class Settings(BaseSettings):
     # Static/Upload folders
     UPLOAD_DIR: str = "uploads"
 
+    # B10.2 Long-Term Cloud Object Storage Settings (S3 / Cloudflare R2 / Local)
+    STORAGE_PROVIDER: str = "local"  # "local", "r2", "s3"
+    STORAGE_BUCKET_NAME: Optional[str] = None
+    STORAGE_ENDPOINT_URL: Optional[str] = None
+    STORAGE_ACCESS_KEY_ID: Optional[str] = None
+    STORAGE_SECRET_ACCESS_KEY: Optional[str] = None
+    STORAGE_PUBLIC_BASE_URL: Optional[str] = None
+    STORAGE_CONNECT_TIMEOUT_SECONDS: int = 5
+    STORAGE_READ_TIMEOUT_SECONDS: int = 10
+
+    # Optional Supabase / S3 compatibility mapping
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_KEY: Optional[str] = None
+    SUPABASE_BUCKET: Optional[str] = None
+
     @property
     def canonical_upload_dir(self) -> str:
         """Absolute path to the canonical backend/uploads directory."""

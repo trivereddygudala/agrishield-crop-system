@@ -1328,36 +1328,54 @@ async def upload_image(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user)
 ):
-    """Upload crop leaf image with enterprise magic-byte, PIL, and OpenCV validation."""
+    """Upload crop leaf image with enterprise validation and persistent storage (B10.2)."""
     content_bytes, safe_filename = await validate_image_upload(file)
 
-    upload_dir = settings.canonical_upload_dir
-    os.makedirs(upload_dir, exist_ok=True)
+    # Persistent Storage Adapter with Automatic Local Fallback (B10.2)
+    from backend.app.services.storage_service import storage_service
+    content_type = file.content_type or "image/jpeg"
+    storage_res = await storage_service.upload_image(
+        content_bytes=content_bytes,
+        original_filename=safe_filename,
+        content_type=content_type
+    )
 
-    file_path = os.path.join(upload_dir, safe_filename)
-    with open(file_path, "wb") as buffer:
-        buffer.write(content_bytes)
+    persisted_path = storage_res.image_path
 
-    relative_path = f"uploads/{safe_filename}"
-    
-    # Ultra-Fast ONNX Neural Crop Pre-Detection (<30ms)
+    # Fast ONNX Neural Crop Pre-Detection (<30ms)
     detected_crop = ""
     conf = 0.95
+    temp_infer_file = None
     try:
+        inference_path = storage_res.local_path
+        if not inference_path or not os.path.exists(inference_path):
+            temp_dir = os.path.join(settings.canonical_upload_dir, "cluster_temp")
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_infer_file = os.path.join(temp_dir, f"infer_{storage_res.filename}")
+            with open(temp_infer_file, "wb") as f:
+                f.write(content_bytes)
+            inference_path = temp_infer_file
+
         from model.predict_pytorch import load_resources, parse_class_label
         loader, classes = load_resources()
-        py_res = loader.predict_image(file_path, top_k=1, use_tta=False)
+        py_res = loader.predict_image(inference_path, top_k=1, use_tta=False)
         if py_res and py_res.get("top_predictions"):
             top_cls = py_res["top_predictions"][0]["class_name"]
             detected_crop, _, _ = parse_class_label(top_cls)
             conf = float(py_res["top_predictions"][0]["confidence"])
     except Exception as e:
         print(f"[PRE-CLASSIFY WARNING] Fast neural pre-detection bypassed: {e}")
+    finally:
+        if temp_infer_file and os.path.exists(temp_infer_file):
+            try:
+                os.remove(temp_infer_file)
+            except Exception:
+                pass
 
     return {
-        "image_path": relative_path,
-        "filepath": relative_path,
-        "file_path": relative_path,
+        "image_path": persisted_path,
+        "filepath": persisted_path,
+        "file_path": persisted_path,
         "detected_crop": detected_crop,
         "confidence": round(conf * 100 if conf <= 1.0 else conf, 1)
     }
@@ -1380,9 +1398,16 @@ async def agrochemical_scan_endpoint(
             detail="Specified image file does not exist on server."
         )
 
+    effective_scan_path = full_image_path
+    if full_image_path.startswith("http://") or full_image_path.startswith("https://"):
+        from backend.app.services.storage_service import StorageService
+        local_cached = await asyncio.to_thread(StorageService.ensure_local_cache_for_inference, full_image_path)
+        if local_cached:
+            effective_scan_path = local_cached
+
     try:
         from backend.app.services.agrochemical_detector import detect_agrochemical
-        agro_res = await asyncio.to_thread(detect_agrochemical, full_image_path, True)
+        agro_res = await asyncio.to_thread(detect_agrochemical, effective_scan_path, True)
         info = agro_res.get("info", {})
         extracted_text = agro_res.get("extracted_text", "")
 
@@ -1700,12 +1725,29 @@ async def predict_pytorch_endpoint(
 
     # OpenCV Preprocessing: Glare/Shadow Neutralization + Leaf Contour Auto-Crop
     effective_image_path = full_image_path
+    if full_image_path.startswith("http://") or full_image_path.startswith("https://"):
+        from backend.app.services.storage_service import StorageService
+        cached_local = await asyncio.to_thread(StorageService.ensure_local_cache_for_inference, full_image_path)
+        if cached_local:
+            effective_image_path = cached_local
+
+    if full_root_image_path and (full_root_image_path.startswith("http://") or full_root_image_path.startswith("https://")):
+        from backend.app.services.storage_service import StorageService
+        cached_root = await asyncio.to_thread(StorageService.ensure_local_cache_for_inference, full_root_image_path)
+        if cached_root:
+            full_root_image_path = cached_root
+
+    if full_stem_image_path and (full_stem_image_path.startswith("http://") or full_stem_image_path.startswith("https://")):
+        from backend.app.services.storage_service import StorageService
+        cached_stem = await asyncio.to_thread(StorageService.ensure_local_cache_for_inference, full_stem_image_path)
+        if cached_stem:
+            full_stem_image_path = cached_stem
+
     try:
         from backend.app.services.image_preprocessor import preprocess_leaf_image
-        effective_image_path = await asyncio.to_thread(preprocess_leaf_image, full_image_path)
+        effective_image_path = await asyncio.to_thread(preprocess_leaf_image, effective_image_path)
     except Exception as prep_ex:
         logger.warning(f"Leaf image preprocessing fallback: {prep_ex}")
-        effective_image_path = full_image_path
 
     # Perform prediction using the real PyTorch/ONNX pipeline inside a separate worker thread
     try:
@@ -2617,8 +2659,16 @@ async def predict_batch_endpoint(
     target_lang = (req.language or "en").strip().lower()
 
     async def evaluate_single_sample(idx: int, rel_path: str, label: str):
-        full_path = os.path.join(base_dir, rel_path.replace("/", os.sep))
-        if not os.path.exists(full_path):
+        full_path = resolve_image_path(rel_path)
+        if full_path and (full_path.startswith("http://") or full_path.startswith("https://")):
+            from backend.app.services.storage_service import StorageService
+            full_path = await asyncio.to_thread(StorageService.ensure_local_cache_for_inference, full_path)
+        elif not full_path or not os.path.exists(full_path):
+            legacy_fallback = os.path.join(base_dir, rel_path.replace("/", os.sep))
+            if os.path.exists(legacy_fallback):
+                full_path = legacy_fallback
+
+        if not full_path or not os.path.exists(full_path):
             return {
                 "sample_index": idx + 1,
                 "label": label or f"Sample #{idx + 1}",
@@ -2987,17 +3037,13 @@ async def delete_history_record(
     from backend.app.services.sync_service import SyncService
     await SyncService.record_deletion("prediction", id, deleted_by=user_id)
 
-    # Remove file from local system if it exists
+    # Remove file from storage (Cloud object or local fallback) (B10.2)
     image_path = record.get("image_path")
     if image_path:
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        image_file_path = os.path.join(base_dir, image_path.replace("/", os.sep))
-
-        if os.path.exists(image_file_path):
-            try:
-                os.remove(image_file_path)
-            except Exception:
-                # Non-blocking, file could be locked or already deleted
-                pass
+        from backend.app.services.storage_service import storage_service
+        try:
+            await asyncio.to_thread(storage_service.delete_image, image_path)
+        except Exception as del_err:
+            logger.warning(f"[STORAGE DELETE WARNING] Notice during image cleanup for {image_path}: {del_err}")
 
     return {"message": "Record successfully deleted."}

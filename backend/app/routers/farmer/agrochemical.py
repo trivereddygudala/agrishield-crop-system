@@ -45,6 +45,12 @@ async def agrochemical_scan_endpoint(
             detail="Specified image file does not exist on server."
         )
 
+    if full_image_path.startswith("http://") or full_image_path.startswith("https://"):
+        from backend.app.services.storage_service import StorageService
+        cached_img = await asyncio.to_thread(StorageService.ensure_local_cache_for_inference, full_image_path)
+        if cached_img:
+            full_image_path = cached_img
+
     try:
         from backend.app.services.agrochemical_detector import detect_agrochemical
         agro_res = await asyncio.to_thread(detect_agrochemical, full_image_path, True)

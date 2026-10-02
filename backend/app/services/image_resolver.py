@@ -25,8 +25,26 @@ def resolve_image_path(image_path: str) -> Optional[str]:
        safely streams the image from Worker 1, Worker 3, or Main Backend
        and caches it in the canonical upload directory.
     """
-    if not image_path:
+    if not image_path or not isinstance(image_path, str):
         return None
+
+    path_lower = image_path.lower().strip()
+
+    # Reject dangerous / unsupported URL schemes (B10.2 Security)
+    unsupported_schemes = ("file:", "ftp:", "javascript:", "data:", "http:")
+    for scheme in unsupported_schemes:
+        if path_lower.startswith(scheme):
+            logger.warning(f"[IMAGE RESOLVER SECURITY] Rejected unsupported scheme: {image_path}")
+            return None
+
+    # Handle Trusted Remote Cloud Storage URLs (B10.2)
+    if path_lower.startswith("https://"):
+        from backend.app.services.storage_service import StorageService
+        if not StorageService.is_trusted_remote_url(image_path):
+            logger.warning(f"[IMAGE RESOLVER SECURITY] Rejected untrusted remote image URL: {image_path}")
+            return None
+        # Return valid remote URL directly without downloading
+        return image_path
 
     clean_rel = image_path.replace("/", os.sep).lstrip(os.sep)
     filename = os.path.basename(clean_rel)

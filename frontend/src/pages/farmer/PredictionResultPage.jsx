@@ -291,7 +291,13 @@ const PredictionResultPage = () => {
   const rawCrop = result?.canonical_crop_name || result?.crop_name;
   const fallbackAdvice = getAdviceForDisease(rawDis);
   const confidencePercent = result?.confidence ? (result.confidence * 100).toFixed(1) : '98.5';
-  const displayImgUrl = passedPreviewUrl || (result?.image_data_url || (result?.image_path ? `${backendBaseUrl}/${result.image_path.replace(/\\/g, '/')}` : (imagePath ? `${backendBaseUrl}/${imagePath.replace(/\\/g, '/')}` : '')));
+  const resolveImg = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+    const clean = path.replace(/\\/g, '/').replace(/^\/+/, '');
+    return backendBaseUrl ? `${backendBaseUrl.replace(/\/+$/, '')}/${clean}` : `/${clean}`;
+  };
+  const displayImgUrl = passedPreviewUrl || (result?.image_data_url || resolveImg(result?.image_path || imagePath));
 
   const diseaseKb = getDiseaseDetails(rawCrop, rawDis, activeLang);
   const localizedCrop = translateCrop(rawCrop, activeLang);

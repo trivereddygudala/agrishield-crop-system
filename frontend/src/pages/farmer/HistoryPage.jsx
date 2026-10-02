@@ -41,6 +41,14 @@ const HistoryPage = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const backendBaseUrl = import.meta.env.VITE_API_URL || '';
+  const resolveImageUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+      return path;
+    }
+    const clean = path.replace(/\\/g, '/').replace(/^\/+/, '');
+    return backendBaseUrl ? `${backendBaseUrl.replace(/\/+$/, '')}/${clean}` : `/${clean}`;
+  };
 
   const [predictionData, setPredictionData] = useState(() => window._cachedPredictionHistory || []);
   const [sensorData, setSensorData] = useState(() => window._cachedSensorHistory || []);
@@ -715,7 +723,7 @@ const HistoryPage = () => {
                       <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
                         {item.image_data_url || item.image_path ? (
                           <img
-                            src={item.image_data_url || `${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
+                            src={item.image_data_url || resolveImageUrl(item.image_path)}
                             alt="Scan"
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -856,7 +864,7 @@ const HistoryPage = () => {
                           <div className="h-40 w-full bg-slate-100 dark:bg-slate-950 relative overflow-hidden border-b border-slate-200 dark:border-slate-800">
                             {item.image_data_url || item.image_path ? (
                               <img
-                                src={item.image_data_url || `${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
+                                src={item.image_data_url || resolveImageUrl(item.image_path)}
                                 alt="Leaf Scan"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
@@ -1033,7 +1041,7 @@ const HistoryPage = () => {
                               <div className="w-10 h-10 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-800">
                                 {item.image_data_url || item.image_path ? (
                                   <img
-                                    src={item.image_data_url || `${backendBaseUrl}/${item.image_path.replace(/\\/g, '/')}`}
+                                    src={item.image_data_url || resolveImageUrl(item.image_path)}
                                     alt="Scan"
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
@@ -1192,7 +1200,7 @@ const HistoryPage = () => {
                 <div className="w-16 h-16 rounded-xl bg-slate-900 overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
                   {inspectRecord.image_data_url || inspectRecord.image_path ? (
                     <img
-                      src={inspectRecord.image_data_url || `${backendBaseUrl}/${inspectRecord.image_path.replace(/\\/g, '/')}`}
+                      src={inspectRecord.image_data_url || resolveImageUrl(inspectRecord.image_path)}
                       alt="Crop Scan"
                       className="w-full h-full object-cover"
                       onError={(e) => {
