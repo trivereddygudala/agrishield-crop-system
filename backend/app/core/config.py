@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     IOT_SECURITY_MODE: str = "development"  # "development" (permissive) or "production" (enforced)
     IOT_TELEMETRY_RETENTION_SECONDS: int = 2592000  # 30 days retention (2,592,000s) for high-velocity IoT telemetry TTL
 
+    # Render Cold-Start & Warm-Up Mitigation (B11.5)
+    ENABLE_WARMUP_ENDPOINT: bool = True
+
     # File Upload & API Limits
     MAX_UPLOAD_SIZE_MB: int = 15
     ALLOWED_ORIGINS: str = "*"

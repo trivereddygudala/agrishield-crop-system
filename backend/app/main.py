@@ -1,7 +1,10 @@
+import time
 from datetime import timezone
 import os
 import logging
 from contextlib import asynccontextmanager
+
+APP_START_TIME = time.time()
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -308,7 +311,7 @@ app.include_router(v1_router)
 @app.api_route("/health", methods=["GET", "HEAD"])
 @app.api_route("/api/v1/health", methods=["GET", "HEAD"])
 async def root():
-    """Welcome and health test endpoint for API and hardware nodes with diagnostic liveness (B9.7)."""
+    """Welcome and health test endpoint for API and hardware nodes with diagnostic liveness (B9.7 & B11.5)."""
     from backend.app.services import scheduler
     is_db_connected = db_instance.db is not None
     sched_task = getattr(scheduler, "scheduler_task", None)
@@ -316,6 +319,7 @@ async def root():
 
     scheduler_status = "running" if (sched_task is not None and not sched_task.done()) else "inactive"
     watchdog_status = "running" if (watchdog_task is not None and not watchdog_task.done()) else "inactive"
+    service_role = "worker" if is_ai_worker_node() else "gateway"
 
     return {
         "status": "healthy" if is_db_connected else "degraded",
@@ -326,8 +330,41 @@ async def root():
         "diagnostics": {
             "database": "connected" if is_db_connected else "disconnected",
             "scheduler": scheduler_status,
-            "device_watchdog": watchdog_status
+            "device_watchdog": watchdog_status,
+            "service_role": service_role,
+            "warmup_enabled": getattr(settings, "ENABLE_WARMUP_ENDPOINT", True),
+            "process_uptime_seconds": round(time.time() - APP_START_TIME, 2)
         }
+    }
+
+@app.api_route("/health/warmup", methods=["GET", "HEAD"])
+@app.api_route("/api/v1/health/warmup", methods=["GET", "HEAD"])
+async def warmup_endpoint():
+    """
+    B11.5: Safe Render Free-tier warm-up / cold-start mitigation endpoint.
+    Designed for lightweight inbound polling by external monitors/schedulers (e.g. cron-job.org).
+    Does NOT execute AI inference, analytics, DB writes, or trigger background tasks.
+    """
+    if not getattr(settings, "ENABLE_WARMUP_ENDPOINT", True):
+        return JSONResponse(
+            status_code=404,
+            content={
+                "status": "disabled",
+                "warmup": False,
+                "detail": "Warmup endpoint is disabled in configuration."
+            }
+        )
+
+    service_role = "worker" if is_ai_worker_node() else "gateway"
+    is_db_connected = db_instance.db is not None
+    uptime = round(time.time() - APP_START_TIME, 2)
+
+    return {
+        "status": "ok",
+        "service": service_role,
+        "warmup": True,
+        "database": "connected" if is_db_connected else "disconnected",
+        "process_uptime_seconds": uptime
     }
 
 @app.get("/weather/current")

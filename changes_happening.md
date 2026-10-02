@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-02 (v365) - B11.5: Render Free-Tier Warm-Up & Cold-Start Mitigation
+- **Summary:**
+  1. ⚡ **Lightweight Application-Side Warm-Up Endpoint (`/health/warmup` & `/api/v1/health/warmup`):**
+     - Added dedicated lightweight warm-up route in `backend/app/main.py` supporting `GET` and `HEAD` methods.
+     - Performs fast container process responsiveness verification without heavy database writes, AI inference, analytics calculations, or background scheduler triggers.
+     - Exposes non-sensitive diagnostics: `service_role` (`gateway` or `worker`), `status: "ok"`, `warmup: true`, and `process_uptime_seconds`.
+  2. ⚙️ **Warm-Up Configuration Toggle (`ENABLE_WARMUP_ENDPOINT`):**
+     - Added `ENABLE_WARMUP_ENDPOINT: bool = True` in `backend/app/core/config.py`.
+     - When disabled, returns HTTP 404 with `{"status": "disabled", "warmup": false}` without side-effects.
+  3. 🛡️ **Render Free-Tier Architecture Contract & Traffic Safety:**
+     - Zero internal 2-minute self-ping loops created; zero service-to-service ping meshes.
+     - Application-side warm-up cannot prevent Render Free service suspension by itself. An external inbound request (e.g. from an external cron or uptime monitor) is required to wake a sleeping service.
+     - Continuous always-on 24/7 availability requires an appropriate paid Render compute plan rather than relying on a Free-tier keep-alive workaround.
+  4. 🧪 **Validation Suite (`test_b11_5_warmup.py`):**
+     - Added 10-check test suite verifying 200 responses, schema stability, zero DB writes, zero AI inference calls, zero background task launches, zero secret leakage, and role awareness. 10/10 passed (41/41 full regression passed).
+- **Files modified:** `backend/app/core/config.py`, `backend/app/main.py`, `backend/tests/test_b11_5_warmup.py`, `changes_happening.md`.
+
 ## 2026-10-02 (v360) - B9.2: Backend Database Failure Recovery & Degradation
 - **Summary:**
   1. 🛡️ **Database Availability Infrastructure Exception (`backend/app/core/exceptions.py`):**
@@ -7650,3 +7667,24 @@ Files Modified:
 - **Verification**:
   - Tested module loading with Python: backend.app.main imported successfully.
   - Tested degraded simulation where deep_translator is absent: service loads cleanly with no crash.
+
+---
+### B9.7 Production Security Hotfix — Credential Redaction from Access Logs (2026-10-02 13:09:00 IST)
+- **Scope**: Targeted production security hotfix to eliminate credential leaks (JWTs, tokens, Authorization headers, X-Worker-Key, passwords, secrets, base64 image data) from Uvicorn / ASGI access and error logs.
+- **Root Cause**: Uvicorn HTTP protocol handlers (h11_impl, httptools_impl) and WebSocket handshake handlers log the complete request line using get_path_with_query_string(self.scope). When clients connect to WebSocket routes (e.g. /api/v1/notifications/ws/<user_id>?token=<JWT>&client=react_spa), the raw JWT in the query parameter is passed un-sanitized to uvicorn.access and uvicorn.error formatters, outputting credentials to stdout/stderr.
+- **Actions Taken**:
+  1. Created backend/app/core/logging_sanitizer.py:
+     - Built redact_credentials with comprehensive regex patterns targeting query parameters (token=, access_token=, refresh_token=, auth_token=, auth=, jwt=, password=, secret=, api_key=, x-worker-key=), headers (Authorization: Bearer, Bearer), worker keys, passwords, base64 raw image strings, and raw JWT token structures (eyJ...).
+     - Implemented CredentialRedactionFilter filtering record.args, record.msg, record.message, record.color_message, record.exc_text, and record.stack_info.
+     - Implemented RedactedAccessFormatter upgrading Uvicorn\'s AccessFormatter to sanitize request line arguments prior to output formatting.
+     - Implemented get_redacted_uvicorn_log_config injecting the filter into both access and default handlers in Uvicorn\'s logging dictionary config.
+     - Implemented install_credential_redaction_filter attaching the filter and upgrading formatters across uvicorn.access, uvicorn, uvicorn.error, backend, and root loggers idempotently.
+  2. Integrated in backend/app/main.py at module import and in FastAPI lifespan(app) to ensure all active worker threads and loggers apply redaction.
+  3. Integrated in backend/run.py passing log_config=get_redacted_uvicorn_log_config().
+  4. Added regression test suite backend/tests/test_b9_7_credential_redaction.py (7 tests).
+- **Verification**:
+  - test_b9_7_credential_redaction.py: 7/7 PASSED.
+  - test_b9_7_monitoring_correlation.py: 10/10 PASSED.
+  - test_b9_2_db_degradation.py: 7/7 PASSED.
+  - test_b9_6_device_offline_watchdog.py: 11/11 PASSED.
+  - Total: 35/35 PASSED (100% clean).
