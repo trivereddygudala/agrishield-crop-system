@@ -86,8 +86,8 @@ class Settings(BaseSettings):
     # Static/Upload folders
     UPLOAD_DIR: str = "uploads"
 
-    # B10.2 Long-Term Cloud Object Storage Settings (S3 / Cloudflare R2 / Local)
-    STORAGE_PROVIDER: str = "local"  # "local", "r2", "s3"
+    # B10.2 Long-Term Cloud Object Storage Settings (S3 / Cloudflare R2 / Local / Supabase)
+    STORAGE_PROVIDER: str = "auto"  # "auto", "supabase", "r2", "s3", "local"
     STORAGE_BUCKET_NAME: Optional[str] = None
     STORAGE_ENDPOINT_URL: Optional[str] = None
     STORAGE_ACCESS_KEY_ID: Optional[str] = None
@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     STORAGE_CONNECT_TIMEOUT_SECONDS: int = 5
     STORAGE_READ_TIMEOUT_SECONDS: int = 10
 
-    # Optional Supabase / S3 compatibility mapping
+    # Supabase Storage configuration
     SUPABASE_URL: Optional[str] = None
     SUPABASE_KEY: Optional[str] = None
     SUPABASE_BUCKET: Optional[str] = None

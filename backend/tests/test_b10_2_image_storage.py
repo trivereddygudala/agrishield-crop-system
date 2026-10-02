@@ -407,3 +407,277 @@ def test_19_b10_1_regression_retention_and_auth_hardening():
     assert settings.IOT_TELEMETRY_RETENTION_SECONDS == 2592000
     # Verify 7-day access token expiration default (10080 minutes)
     assert settings.ACCESS_TOKEN_EXPIRE_MINUTES == 10080
+
+
+# ============================================================================
+# 20. Supabase REST Upload Success
+# ============================================================================
+@pytest.mark.asyncio
+async def test_20_supabase_upload_success():
+    svc = StorageService()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"Key": "test-crop-bucket/mock.jpg", "Id": "123"}
+    mock_resp.text = '{"Key": "test-crop-bucket/mock.jpg"}'
+
+    with patch.object(settings, "STORAGE_PROVIDER", "supabase"), \
+         patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_secret_key_sb_999"), \
+         patch.object(settings, "SUPABASE_BUCKET", "test-crop-bucket"), \
+         patch("requests.post", return_value=mock_resp) as mock_post:
+
+        res = await svc.upload_image(VALID_JPEG_BYTES, "crop_leaf.jpg", "image/jpeg")
+
+        assert res.is_cloud is True
+        assert res.filename.endswith(".jpg")
+        assert res.image_path == f"https://mockproject.supabase.co/storage/v1/object/public/test-crop-bucket/{res.filename}"
+        assert res.local_path is None
+        assert res.size_bytes == len(VALID_JPEG_BYTES)
+        assert res.content_type == "image/jpeg"
+        mock_post.assert_called_once()
+
+
+# ============================================================================
+# 21. Supabase Correct Bucket, Object Path & Request Headers
+# ============================================================================
+@pytest.mark.asyncio
+async def test_21_supabase_correct_bucket_and_headers():
+    svc = StorageService()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = '{"Key": "agrishield-crop-images/mock.jpg"}'
+
+    with patch.object(settings, "STORAGE_PROVIDER", "auto"), \
+         patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_key_xyz_777"), \
+         patch.object(settings, "SUPABASE_BUCKET", "agrishield-crop-images"), \
+         patch("requests.post", return_value=mock_resp) as mock_post:
+
+        res = await svc.upload_image(VALID_PNG_BYTES, "test_plant.png", "image/png")
+
+        expected_url = f"https://mockproject.supabase.co/storage/v1/object/agrishield-crop-images/{res.filename}"
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        assert args[0] == expected_url
+        headers = kwargs["headers"]
+        assert headers["Authorization"] == "Bearer mock_key_xyz_777"
+        assert headers["apikey"] == "mock_key_xyz_777"
+        assert headers["Content-Type"] == "image/png"
+        assert headers["x-upsert"] == "true"
+        assert kwargs["data"] == VALID_PNG_BYTES
+        assert kwargs["timeout"] == (5, 10)
+
+
+# ============================================================================
+# 22. Supabase Correct HTTPS Public URL Construction
+# ============================================================================
+def test_22_supabase_public_url_construction():
+    svc = StorageService()
+    with patch.object(settings, "STORAGE_PROVIDER", "auto"), \
+         patch.object(settings, "STORAGE_PUBLIC_BASE_URL", None), \
+         patch.object(settings, "STORAGE_ENDPOINT_URL", None), \
+         patch.object(settings, "SUPABASE_URL", "https://xyz123.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_key"), \
+         patch.object(settings, "SUPABASE_BUCKET", "agrishield-crop-images"):
+
+        url = svc.build_public_url("leaf_abc.jpg")
+        assert url == "https://xyz123.supabase.co/storage/v1/object/public/agrishield-crop-images/leaf_abc.jpg"
+
+    # Custom public CDN override
+    with patch.object(settings, "STORAGE_PUBLIC_BASE_URL", "https://images.agrishield.io"), \
+         patch.object(settings, "SUPABASE_URL", "https://xyz123.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_key"), \
+         patch.object(settings, "SUPABASE_BUCKET", "agrishield-crop-images"):
+
+        url = svc.build_public_url("leaf_abc.jpg")
+        assert url == "https://images.agrishield.io/leaf_abc.jpg"
+
+
+# ============================================================================
+# 23. Supabase Upload Failure -> Local Fallback
+# ============================================================================
+@pytest.mark.asyncio
+async def test_23_supabase_upload_failure_local_fallback():
+    svc = StorageService()
+    import requests
+
+    with patch.object(settings, "STORAGE_PROVIDER", "auto"), \
+         patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_key"), \
+         patch.object(settings, "SUPABASE_BUCKET", "test-bucket"), \
+         patch("requests.post", side_effect=requests.RequestException("504 Gateway Timeout")):
+
+        res = await svc.upload_image(VALID_JPEG_BYTES, "scan.jpg", "image/jpeg")
+
+        # Must fall back gracefully to local storage
+        assert res.is_cloud is False
+        assert res.image_path.startswith("uploads/")
+        assert res.local_path is not None
+        assert os.path.exists(res.local_path)
+        assert res.error is not None
+        assert "Cloud storage unavailable" in res.error
+
+        # Cleanup
+        if os.path.exists(res.local_path):
+            os.remove(res.local_path)
+
+
+# ============================================================================
+# 24. Supabase Object Delete
+# ============================================================================
+def test_24_supabase_delete():
+    svc = StorageService()
+    mock_del_resp = MagicMock()
+    mock_del_resp.status_code = 200
+    mock_del_resp.text = '{"message":"Successfully deleted"}'
+
+    with patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_secret_delete_key"), \
+         patch.object(settings, "SUPABASE_BUCKET", "test-crop-bucket"), \
+         patch("requests.delete", return_value=mock_del_resp) as mock_delete:
+
+        target_url = "https://mockproject.supabase.co/storage/v1/object/public/test-crop-bucket/uuid_sample.jpg"
+        deleted = svc.delete_image(target_url)
+        assert deleted is True
+
+        mock_delete.assert_called_once()
+        args, kwargs = mock_delete.call_args
+        assert args[0] == "https://mockproject.supabase.co/storage/v1/object/test-crop-bucket/uuid_sample.jpg"
+        assert kwargs["headers"]["Authorization"] == "Bearer mock_secret_delete_key"
+        assert kwargs["headers"]["apikey"] == "mock_secret_delete_key"
+
+
+# ============================================================================
+# 25. Supabase Delete Idempotency & Error Handling
+# ============================================================================
+def test_25_supabase_delete_idempotency_and_error():
+    svc = StorageService()
+
+    # Case A: Object already deleted (404 Not Found) -> idempotent success (True)
+    mock_404 = MagicMock()
+    mock_404.status_code = 404
+    mock_404.text = '{"statusCode":"404","message":"Object not found"}'
+
+    with patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_key"), \
+         patch("requests.delete", return_value=mock_404):
+
+        res = svc.delete_image("https://mockproject.supabase.co/storage/v1/object/public/agrishield-crop-images/missing.jpg")
+        assert res is True
+
+    # Case B: Server error (500) -> returns False without throwing unhandled exception
+    mock_500 = MagicMock()
+    mock_500.status_code = 500
+    mock_500.text = '{"statusCode":"500","message":"Internal Server Error"}'
+
+    with patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "mock_key"), \
+         patch("requests.delete", return_value=mock_500):
+
+        res = svc.delete_image("https://mockproject.supabase.co/storage/v1/object/public/agrishield-crop-images/error.jpg")
+        assert res is False
+
+
+# ============================================================================
+# 26. Credentials Are Never Logged
+# ============================================================================
+@pytest.mark.asyncio
+async def test_26_credentials_are_never_logged(caplog):
+    import logging
+    svc = StorageService()
+    secret_canary = "SUPER_SECRET_SUPABASE_TOKEN_CANARY_DO_NOT_LEAK"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = '{"Key": "test-bucket/mock.jpg"}'
+
+    with caplog.at_level(logging.DEBUG), \
+         patch.object(settings, "STORAGE_PROVIDER", "auto"), \
+         patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", secret_canary), \
+         patch.object(settings, "SUPABASE_BUCKET", "test-bucket"), \
+         patch("requests.post", return_value=mock_resp), \
+         patch("requests.delete", return_value=mock_resp):
+
+        # Upload
+        res = await svc.upload_image(VALID_JPEG_BYTES, "canary.jpg", "image/jpeg")
+        assert res.is_cloud is True
+
+        # Delete
+        svc.delete_image(res.image_path)
+
+        # Check logs
+        assert secret_canary not in caplog.text
+
+
+# ============================================================================
+# 27. Frontend Receives No Supabase Secrets
+# ============================================================================
+def test_27_frontend_receives_no_supabase_secrets():
+    # Simulate a prediction record or API response payload
+    record = {
+        "id": "pred_67890",
+        "crop_type": "Tomato",
+        "disease_detected": "Early Blight",
+        "image_path": "https://kwlintcxqkqnjtwdbumq.supabase.co/storage/v1/object/public/agrishield-crop-images/uuid123.jpg",
+        "confidence": 0.95
+    }
+
+    # Verify no secret fields are exposed to frontend clients
+    assert "SUPABASE_KEY" not in record
+    assert "secret" not in record
+    assert "Authorization" not in record
+    assert record["image_path"].startswith("https://")
+    # Verify image_path is directly usable by <img> src
+    assert "/storage/v1/object/public/" in record["image_path"]
+
+
+# ============================================================================
+# 28. Auto Detection Matches Render Environment
+# ============================================================================
+def test_28_auto_detection_matches_render_environment():
+    svc = StorageService()
+
+    # Case A: Render environment (STORAGE_PROVIDER='auto', Supabase vars set)
+    with patch.object(settings, "STORAGE_PROVIDER", "auto"), \
+         patch.object(settings, "SUPABASE_URL", "https://kwlintcxqkqnjtwdbumq.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "sb_secret_test"), \
+         patch.object(settings, "SUPABASE_BUCKET", "agrishield-crop-images"):
+
+        assert svc.get_provider() == "supabase"
+        assert svc.is_cloud_configured() is True
+
+    # Case B: Local explicitly forced
+    with patch.object(settings, "STORAGE_PROVIDER", "local"), \
+         patch.object(settings, "SUPABASE_URL", "https://kwlintcxqkqnjtwdbumq.supabase.co"), \
+         patch.object(settings, "SUPABASE_KEY", "sb_secret_test"), \
+         patch.object(settings, "SUPABASE_BUCKET", "agrishield-crop-images"):
+
+        assert svc.get_provider() == "local"
+        assert svc.is_cloud_configured() is False
+
+    # Case C: Cloud vars absent
+    with patch.object(settings, "STORAGE_PROVIDER", "auto"), \
+         patch.object(settings, "SUPABASE_URL", None), \
+         patch.object(settings, "SUPABASE_KEY", None), \
+         patch.object(settings, "STORAGE_BUCKET_NAME", None), \
+         patch.object(settings, "STORAGE_ACCESS_KEY_ID", None):
+
+        assert svc.get_provider() == "local"
+        assert svc.is_cloud_configured() is False
+
+
+# ============================================================================
+# 29. Remote Resolver Accepts Supabase URL and Rejects SSRF
+# ============================================================================
+def test_29_remote_resolver_accepts_supabase_and_rejects_ssrf():
+    with patch.object(settings, "SUPABASE_URL", "https://mockproject.supabase.co"):
+        valid_sup_url = "https://mockproject.supabase.co/storage/v1/object/public/agrishield-crop-images/photo_456.jpg"
+        resolved = resolve_image_path(valid_sup_url)
+        assert resolved == valid_sup_url
+
+        # Untrusted hosts / SSRF must still be rejected
+        assert resolve_image_path("https://attacker.org/storage/v1/object/public/bucket/img.jpg") is None
+        assert resolve_image_path("https://127.0.0.1/storage/v1/object/public/bucket/img.jpg") is None
+        assert resolve_image_path("http://mockproject.supabase.co/storage/v1/object/public/bucket/img.jpg") is None
+

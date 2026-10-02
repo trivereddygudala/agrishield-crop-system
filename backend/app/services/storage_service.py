@@ -63,21 +63,54 @@ class StorageService:
     Unified Object Storage Adapter.
     Supports:
     - Provider 'local': Standard local container storage (canonical_upload_dir)
+    - Provider 'supabase': Supabase Storage REST API (using SUPABASE_URL, SUPABASE_KEY, SUPABASE_BUCKET)
     - Provider 'r2' / 's3': S3-compatible cloud object storage via boto3
+    - Provider 'auto': Automatic detection of Supabase / S3 credentials from environment
     """
 
     def __init__(self):
         self._s3_client = None
 
+    def get_provider(self) -> str:
+        """
+        Determines the active storage provider.
+        Priority:
+        1. Explicitly configured STORAGE_PROVIDER if set to 'local', 'supabase', 'r2', or 's3'.
+        2. Automatic detection ('auto'):
+           - Supabase REST if SUPABASE_URL, SUPABASE_KEY, and SUPABASE_BUCKET/STORAGE_BUCKET_NAME are set.
+           - S3/R2 if STORAGE_ACCESS_KEY_ID, STORAGE_SECRET_ACCESS_KEY, and STORAGE_BUCKET_NAME are set.
+           - Local filesystem fallback if neither cloud configuration is present.
+        """
+        provider = (settings.STORAGE_PROVIDER or "auto").lower().strip()
+        if provider == "local":
+            return "local"
+        if provider == "supabase":
+            return "supabase"
+        if provider in ("r2", "s3"):
+            return provider
+
+        # Automatic detection ('auto' or unset)
+        if settings.SUPABASE_URL and settings.SUPABASE_KEY and (settings.SUPABASE_BUCKET or settings.STORAGE_BUCKET_NAME):
+            return "supabase"
+
+        has_s3_bucket = bool(settings.STORAGE_BUCKET_NAME)
+        has_s3_keys = bool(settings.STORAGE_ACCESS_KEY_ID and settings.STORAGE_SECRET_ACCESS_KEY)
+        if has_s3_bucket and has_s3_keys:
+            return "s3"
+
+        return "local"
+
     def is_cloud_configured(self) -> bool:
         """Determines if valid cloud storage credentials are configured."""
-        provider = (settings.STORAGE_PROVIDER or "local").lower().strip()
-        if provider not in ("r2", "s3"):
-            return False
-
-        has_bucket = bool(settings.STORAGE_BUCKET_NAME)
-        has_keys = bool(settings.STORAGE_ACCESS_KEY_ID and settings.STORAGE_SECRET_ACCESS_KEY)
-        return has_bucket and has_keys
+        provider = self.get_provider()
+        if provider == "supabase":
+            bucket = settings.SUPABASE_BUCKET or settings.STORAGE_BUCKET_NAME
+            return bool(settings.SUPABASE_URL and settings.SUPABASE_KEY and bucket)
+        elif provider in ("r2", "s3"):
+            has_bucket = bool(settings.STORAGE_BUCKET_NAME)
+            has_keys = bool(settings.STORAGE_ACCESS_KEY_ID and settings.STORAGE_SECRET_ACCESS_KEY)
+            return has_bucket and has_keys
+        return False
 
     def _get_s3_client(self):
         """Lazy initialization of boto3 S3 client with strict bounded timeouts."""
@@ -151,6 +184,9 @@ class StorageService:
             endpoint = settings.STORAGE_ENDPOINT_URL.rstrip('/')
             bucket = settings.STORAGE_BUCKET_NAME
             return f"{endpoint}/{bucket}/{object_name}"
+        elif (self.get_provider() == "supabase" or (settings.STORAGE_PROVIDER or "").lower() == "supabase") and settings.SUPABASE_URL:
+            bucket = settings.SUPABASE_BUCKET or settings.STORAGE_BUCKET_NAME or "agrishield-crop-images"
+            return f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{bucket}/{object_name}"
         else:
             bucket = settings.STORAGE_BUCKET_NAME or "agrishield"
             return f"https://{bucket}.s3.amazonaws.com/{object_name}"
@@ -164,6 +200,47 @@ class StorageService:
             f.write(content_bytes)
         relative_path = f"uploads/{object_name}"
         return relative_path, local_path
+
+    async def _upload_supabase(self, object_name: str, content_bytes: bytes, content_type: str) -> str:
+        """
+        Uploads image bytes to Supabase Storage via REST API.
+        Enforces bounded timeout, secure headers, server-side key usage, and zero secret logging.
+        """
+        import asyncio
+        import requests
+
+        url = (settings.SUPABASE_URL or "").rstrip('/')
+        bucket = settings.SUPABASE_BUCKET or settings.STORAGE_BUCKET_NAME or "agrishield-crop-images"
+        key = settings.SUPABASE_KEY
+        if not url or not key:
+            raise ValueError("Supabase URL and API key must be configured for upload.")
+
+        connect_timeout = getattr(settings, "STORAGE_CONNECT_TIMEOUT_SECONDS", 5)
+        read_timeout = getattr(settings, "STORAGE_READ_TIMEOUT_SECONDS", 10)
+        timeout = (connect_timeout, read_timeout)
+
+        upload_url = f"{url}/storage/v1/object/{bucket}/{object_name}"
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "apikey": key,
+            "Content-Type": content_type,
+            "x-upsert": "true"
+        }
+
+        def _do_post():
+            resp = requests.post(
+                upload_url,
+                headers=headers,
+                data=content_bytes,
+                timeout=timeout
+            )
+            if resp.status_code not in (200, 201):
+                # Never log credentials or binary payload; only status and truncated error message
+                raise RuntimeError(f"Supabase upload returned HTTP {resp.status_code}: {resp.text[:120]}")
+            return resp
+
+        await asyncio.to_thread(_do_post)
+        return self.build_public_url(object_name)
 
     async def upload_image(
         self,
@@ -192,20 +269,15 @@ class StorageService:
 
         # Path 1: Cloud Storage Configured
         if self.is_cloud_configured():
-            client = self._get_s3_client()
-            if client is not None:
+            provider = self.get_provider()
+            if provider == "supabase":
                 try:
-                    import asyncio
-                    # Run blocking boto3 upload in threadpool with bounded timeout
-                    await asyncio.to_thread(
-                        client.put_object,
-                        Bucket=settings.STORAGE_BUCKET_NAME,
-                        Key=object_name,
-                        Body=content_bytes,
-                        ContentType=normalized_content_type
+                    public_url = await self._upload_supabase(
+                        object_name=object_name,
+                        content_bytes=content_bytes,
+                        content_type=normalized_content_type
                     )
-                    public_url = self.build_public_url(object_name)
-                    logger.info(f"[STORAGE UPLOAD] [{req_id}] Successfully uploaded {object_name} to cloud storage ({size_bytes} bytes)")
+                    logger.info(f"[STORAGE UPLOAD] [{req_id}] Successfully uploaded {object_name} to Supabase cloud storage ({size_bytes} bytes)")
                     return StorageUploadResult(
                         image_path=public_url,
                         is_cloud=True,
@@ -216,10 +288,39 @@ class StorageService:
                     )
                 except Exception as cloud_err:
                     logger.error(
-                        f"[STORAGE FALLBACK] [{req_id}] Cloud storage upload failed: "
+                        f"[STORAGE FALLBACK] [{req_id}] Supabase cloud storage upload failed: "
                         f"{cloud_err.__class__.__name__}: {str(cloud_err)}. Falling back to local storage."
                     )
                     # Proceed to local fallback
+            elif provider in ("r2", "s3"):
+                client = self._get_s3_client()
+                if client is not None:
+                    try:
+                        import asyncio
+                        # Run blocking boto3 upload in threadpool with bounded timeout
+                        await asyncio.to_thread(
+                            client.put_object,
+                            Bucket=settings.STORAGE_BUCKET_NAME,
+                            Key=object_name,
+                            Body=content_bytes,
+                            ContentType=normalized_content_type
+                        )
+                        public_url = self.build_public_url(object_name)
+                        logger.info(f"[STORAGE UPLOAD] [{req_id}] Successfully uploaded {object_name} to cloud storage ({size_bytes} bytes)")
+                        return StorageUploadResult(
+                            image_path=public_url,
+                            is_cloud=True,
+                            filename=object_name,
+                            content_type=normalized_content_type,
+                            size_bytes=size_bytes,
+                            local_path=None
+                        )
+                    except Exception as cloud_err:
+                        logger.error(
+                            f"[STORAGE FALLBACK] [{req_id}] Cloud storage upload failed: "
+                            f"{cloud_err.__class__.__name__}: {str(cloud_err)}. Falling back to local storage."
+                        )
+                        # Proceed to local fallback
 
         # Path 2: Local Storage (Default or Fallback)
         try:
@@ -241,6 +342,37 @@ class StorageService:
             )
             raise StorageException(f"Failed to persist image to storage: {local_err}")
 
+    def _delete_supabase(self, bucket: str, object_name: str) -> bool:
+        """Deletes an object from Supabase Storage via REST API."""
+        import requests
+        req_id = get_current_request_id()
+        url = (settings.SUPABASE_URL or "").rstrip('/')
+        api_key = settings.SUPABASE_KEY
+        if not url or not api_key:
+            return False
+
+        timeout = getattr(settings, "STORAGE_CONNECT_TIMEOUT_SECONDS", 5)
+        del_url = f"{url}/storage/v1/object/{bucket}/{object_name}"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "apikey": api_key
+        }
+
+        try:
+            resp = requests.delete(del_url, headers=headers, timeout=timeout)
+            if resp.status_code in (200, 204):
+                logger.info(f"[STORAGE DELETE] [{req_id}] Deleted Supabase object {object_name} from {bucket}")
+                return True
+            elif resp.status_code in (400, 404):
+                logger.info(f"[STORAGE DELETE IDEMPOTENT] [{req_id}] Supabase object {object_name} already removed ({resp.status_code})")
+                return True
+            else:
+                logger.warning(f"[STORAGE DELETE WARNING] [{req_id}] Supabase delete returned {resp.status_code}: {resp.text[:120]}")
+                return False
+        except Exception as e:
+            logger.warning(f"[STORAGE DELETE WARNING] [{req_id}] Supabase delete error for {object_name}: {e}")
+            return False
+
     def delete_image(self, image_path: str) -> bool:
         """
         Deletes an image by path (Cloud URL or legacy relative path).
@@ -255,6 +387,25 @@ class StorageService:
         if image_path.startswith("http://") or image_path.startswith("https://"):
             try:
                 parsed = urllib.parse.urlparse(image_path)
+                # Check for Supabase Storage URL
+                if "/storage/v1/object/" in parsed.path:
+                    path_parts = parsed.path.strip("/").split("/")
+                    # Path formats:
+                    # /storage/v1/object/public/{bucket}/{object_name...}
+                    # /storage/v1/object/{bucket}/{object_name...}
+                    if len(path_parts) >= 5 and path_parts[3] == "public":
+                        bucket = path_parts[4]
+                        key = "/".join(path_parts[5:])
+                    elif len(path_parts) >= 4:
+                        bucket = path_parts[3]
+                        key = "/".join(path_parts[4:])
+                    else:
+                        bucket = settings.SUPABASE_BUCKET or settings.STORAGE_BUCKET_NAME or "agrishield-crop-images"
+                        key = os.path.basename(parsed.path)
+
+                    return self._delete_supabase(bucket=bucket, object_name=key)
+
+                # S3 / R2 Delete
                 key = os.path.basename(parsed.path)
                 client = self._get_s3_client()
                 if client is not None and key and settings.STORAGE_BUCKET_NAME:
@@ -372,9 +523,16 @@ class StorageService:
 
         # Stream and cache locally
         try:
+            headers = {"User-Agent": "AgriShield-Storage-Inference/1.0"}
+            if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+                p_sup = urllib.parse.urlparse(settings.SUPABASE_URL)
+                if parsed.hostname == p_sup.hostname:
+                    headers["Authorization"] = f"Bearer {settings.SUPABASE_KEY}"
+                    headers["apikey"] = settings.SUPABASE_KEY
+
             req = urllib.request.Request(
                 image_path,
-                headers={"User-Agent": "AgriShield-Storage-Inference/1.0"}
+                headers=headers
             )
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
