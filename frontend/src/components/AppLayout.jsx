@@ -531,12 +531,14 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     if (lastTelemetry || Object.keys(deviceStatusMap).length > 0) {
       const devIds = Object.keys(deviceStatusMap);
       if (devIds.length > 0) {
-        const dev = deviceStatusMap[devIds[0]];
-        const telem = lastTelemetry && lastTelemetry.device_id === devIds[0] ? (lastTelemetry.telemetry || {}) : (dev.latest_telemetry || {});
-        const isOnline = dev.status === "online";
+        // B9.6 (B9.6-F05): Evaluate all devices in deviceStatusMap - online if any device is online
+        const devices = Object.values(deviceStatusMap);
+        const activeDev = devices.find(d => d.status === "online") || devices[0];
+        const telem = lastTelemetry && lastTelemetry.device_id === activeDev?.device_id ? (lastTelemetry.telemetry || {}) : (activeDev?.latest_telemetry || {});
+        const isOnline = devices.some(d => d.status === "online");
         const rssi = telem.wifi_rssi !== undefined ? telem.wifi_rssi : (telem.rssi !== undefined ? telem.rssi : null);
         const btConnected = telem.bluetooth_connected === true || telem.bt_connected === true;
-        const battPct = telem.battery_percentage !== undefined ? telem.battery_percentage : (dev.battery !== undefined ? dev.battery : null);
+        const battPct = telem.battery_percentage !== undefined ? telem.battery_percentage : (activeDev?.battery !== undefined ? activeDev?.battery : null);
         const battCharging = telem.battery_charging === true;
         setNodeStatus({
           online: isOnline,
@@ -547,9 +549,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         });
       } else if (lastTelemetry) {
         const telem = lastTelemetry.telemetry || lastTelemetry;
+        const isOnline = lastTelemetry.status !== "offline";
         setNodeStatus(prev => ({
           ...prev,
-          online: true,
+          online: isOnline,
           rssi: telem.wifi_rssi !== undefined ? telem.wifi_rssi : prev.rssi,
           bluetoothConnected: telem.bluetooth_connected !== undefined ? telem.bluetooth_connected : prev.bluetoothConnected,
           batteryPercent: telem.battery_percentage !== undefined ? telem.battery_percentage : prev.batteryPercent,

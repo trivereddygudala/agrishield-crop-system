@@ -153,29 +153,31 @@ const DevicesPage = () => {
   };
 
   useEffect(() => {
-    if (lastTelemetry || Object.keys(deviceStatusMap).length > 0) {
-      const devIds = Object.keys(deviceStatusMap);
-      if (devIds.length > 0) {
-        const dev = deviceStatusMap[devIds[0]];
-        const telem = lastTelemetry && lastTelemetry.device_id === devIds[0] ? (lastTelemetry.telemetry || {}) : (dev.latest_telemetry || {});
-        processDeviceTelemetry(dev, telem);
-      } else if (lastTelemetry) {
-        const telem = lastTelemetry.telemetry || lastTelemetry;
-        processDeviceTelemetry({ status: "online", device_id: lastTelemetry.device_id }, telem);
-      }
+    // B9.6 (B9.6-F05): Map status per device ID rather than hardcoding devIds[0]
+    const currentId = deviceData.id;
+    if (currentId && deviceStatusMap[currentId]) {
+      const mapped = deviceStatusMap[currentId];
+      const telem = lastTelemetry && lastTelemetry.device_id === currentId ? (lastTelemetry.telemetry || {}) : (mapped.latest_telemetry || {});
+      processDeviceTelemetry({ ...mapped, device_id: currentId }, telem);
+    } else if (lastTelemetry && (!currentId || lastTelemetry.device_id === currentId)) {
+      const telem = lastTelemetry.telemetry || lastTelemetry;
+      processDeviceTelemetry({ status: lastTelemetry.status || "online", device_id: lastTelemetry.device_id }, telem);
+    } else if (Object.keys(deviceStatusMap).length > 0 && !currentId) {
+      const firstId = Object.keys(deviceStatusMap)[0];
+      const dev = deviceStatusMap[firstId];
+      processDeviceTelemetry(dev, dev.latest_telemetry || {});
     }
-  }, [lastTelemetry, deviceStatusMap]);
+  }, [lastTelemetry, deviceStatusMap, deviceData.id]);
 
   useEffect(() => {
     fetchDeviceStatus();
-    if (connectionStatus !== 'connected') {
-      const interval = setInterval(() => {
-        if (document.visibilityState !== 'visible') return;
-        fetchDeviceStatus();
-      }, 12000);
-      return () => clearInterval(interval);
-    }
-  }, [connectionStatus]);
+    // B9.6: Visibility-guarded periodic revalidation (30s) keeping state fresh
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchDeviceStatus();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const isOnline = deviceData.status === "online";
 

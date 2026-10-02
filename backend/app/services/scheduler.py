@@ -200,22 +200,116 @@ async def render_keepalive_loop():
         await asyncio.sleep(240)
 
 
+# B9.6 IoT Device Offline Watchdog Constants
+DEVICE_OFFLINE_THRESHOLD_SECONDS = 90  # 90s threshold (50% safety margin over default 60s ESP32 telemetry interval)
+DEVICE_WATCHDOG_INTERVAL_SECONDS = 15  # Runs every 15s for prompt offline UX transitions
+device_watchdog_task = None
+
+async def device_watchdog_loop(db):
+    """
+    B9.6 (B9.6-F01): Authoritative IoT Device Offline Watchdog.
+    Periodically checks registered IoT nodes marked 'online'.
+    If now - last_seen > 90 seconds, atomically transitions MongoDB status to 'offline'
+    and dispatches a single real-time WebSocket transition event to the device owner.
+    """
+    await asyncio.sleep(5)  # Initial startup grace period
+    while True:
+        try:
+            if db is not None:
+                now_utc = datetime.now(timezone.utc)
+                now_naive = now_utc.replace(tzinfo=None)
+
+                # Query devices currently marked 'online'
+                cursor = db["devices"].find({"status": "online"})
+                online_devices = await cursor.to_list(length=200)
+
+                for dev in online_devices:
+                    device_id = dev.get("device_id")
+                    if not device_id:
+                        continue
+
+                    last_seen = dev.get("last_seen")
+                    if not last_seen and "latest_telemetry" in dev and "received_at" in dev["latest_telemetry"]:
+                        last_seen = dev["latest_telemetry"]["received_at"]
+
+                    parsed_dt = None
+                    if isinstance(last_seen, datetime):
+                        parsed_dt = last_seen
+                        if parsed_dt.tzinfo is not None:
+                            parsed_dt = parsed_dt.astimezone(timezone.utc).replace(tzinfo=None)
+                    elif isinstance(last_seen, str):
+                        try:
+                            parsed_dt = datetime.fromisoformat(last_seen.replace('Z', '+00:00')).replace(tzinfo=None)
+                        except Exception:
+                            pass
+
+                    is_offline = False
+                    seconds_since_seen = 999999
+
+                    if parsed_dt:
+                        seconds_since_seen = int((now_naive - parsed_dt).total_seconds())
+                        if seconds_since_seen > DEVICE_OFFLINE_THRESHOLD_SECONDS:
+                            is_offline = True
+                    else:
+                        is_offline = True
+
+                    if is_offline:
+                        # Atomically update to offline ONLY if current status is still online
+                        # (modified_count == 1 guarantees exactly ONE transition event per offline episode)
+                        res = await db["devices"].update_one(
+                            {"device_id": device_id, "status": "online"},
+                            {"$set": {"status": "offline"}}
+                        )
+                        if res.modified_count > 0:
+                            logger.info(
+                                f"[B9.6 WATCHDOG] Node '{device_id}' offline (last seen {seconds_since_seen}s ago > {DEVICE_OFFLINE_THRESHOLD_SECONDS}s). Broadcasted offline."
+                            )
+                            user_id = dev.get("user_id")
+                            offline_payload = {
+                                "type": "device_status_update",
+                                "device_id": device_id,
+                                "status": "offline",
+                                "timestamp": now_utc.isoformat(),
+                                "last_seen": last_seen.isoformat() if isinstance(last_seen, datetime) else str(last_seen or ""),
+                                "seconds_since_seen": seconds_since_seen
+                            }
+                            try:
+                                from backend.app.services.websocket_manager import ws_manager
+                                if user_id:
+                                    await ws_manager.broadcast_to_user(str(user_id), offline_payload)
+                                else:
+                                    await ws_manager.broadcast_all(offline_payload)
+                            except Exception as ws_err:
+                                logger.debug(f"[B9.6 WATCHDOG] WebSocket broadcast notice for {device_id}: {ws_err}")
+        except asyncio.CancelledError:
+            break
+        except Exception as loop_err:
+            logger.error(f"[B9.6 WATCHDOG ERROR] Watchdog cycle notice: {loop_err}")
+
+        await asyncio.sleep(DEVICE_WATCHDOG_INTERVAL_SECONDS)
+
 def start_scheduler(db):
     """Initialize and run the background scheduler task thread."""
-    global scheduler_task, keepalive_task
+    global scheduler_task, keepalive_task, device_watchdog_task
     if scheduler_task is None or scheduler_task.done():
         scheduler_task = asyncio.create_task(scheduler_loop(db))
         logger.info("Notification scheduler background task registered and running.")
     if keepalive_task is None or keepalive_task.done():
         keepalive_task = asyncio.create_task(render_keepalive_loop())
         logger.info("Render keep-alive background task registered and running.")
+    if device_watchdog_task is None or device_watchdog_task.done():
+        device_watchdog_task = asyncio.create_task(device_watchdog_loop(db))
+        logger.info("Device offline watchdog background task registered and running.")
 
 def stop_scheduler():
     """Clean up and cancel the background scheduler thread."""
-    global scheduler_task, keepalive_task
+    global scheduler_task, keepalive_task, device_watchdog_task
     if scheduler_task and not scheduler_task.done():
         scheduler_task.cancel()
         logger.info("Notification scheduler background task canceled.")
     if keepalive_task and not keepalive_task.done():
         keepalive_task.cancel()
         logger.info("Render keep-alive background task canceled.")
+    if device_watchdog_task and not device_watchdog_task.done():
+        device_watchdog_task.cancel()
+        logger.info("Device offline watchdog background task canceled.")

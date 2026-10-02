@@ -290,15 +290,15 @@ export const WebSocketProvider = ({ children }) => {
             notifySubscribers('telemetry', data);
           }
 
-          // Handle Live Device Status / Heartbeats
+          // Handle Live Device Status / Heartbeats (B9.6: explicitly honor offline transitions)
           else if (data.type === 'device_status_update') {
             if (data.device_id) {
               setDeviceStatusMap((prev) => ({
                 ...prev,
                 [data.device_id]: {
                   ...prev[data.device_id],
-                  status: data.status || 'online',
-                  last_seen: data.timestamp || new Date().toISOString(),
+                  status: data.status || 'offline',
+                  last_seen: data.last_seen || data.timestamp || new Date().toISOString(),
                   uptime_ms: data.uptime_ms !== undefined ? data.uptime_ms : prev[data.device_id]?.uptime_ms,
                   battery: data.battery !== undefined ? data.battery : prev[data.device_id]?.battery
                 }
@@ -375,6 +375,31 @@ export const WebSocketProvider = ({ children }) => {
       }, delay);
     }
   }, [user, token, clearTimers, disconnect, notifySubscribers, fetchUnreadCount]);
+
+  // B9.6 (B9.6-F03): Client-side device status time decay (90s offline threshold)
+  useEffect(() => {
+    const OFFLINE_THRESHOLD_MS = 90000;
+    const decayTimer = setInterval(() => {
+      setDeviceStatusMap(prev => {
+        let changed = false;
+        const next = { ...prev };
+        const now = Date.now();
+        for (const devId in next) {
+          const dev = next[devId];
+          if (dev && dev.status === 'online' && dev.last_seen) {
+            const seenTime = new Date(dev.last_seen).getTime();
+            if (!isNaN(seenTime) && now - seenTime > OFFLINE_THRESHOLD_MS) {
+              next[devId] = { ...dev, status: 'offline' };
+              changed = true;
+            }
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 10000);
+
+    return () => clearInterval(decayTimer);
+  }, []);
 
   useEffect(() => {
     isUnmountedRef.current = false;

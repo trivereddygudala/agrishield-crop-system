@@ -418,8 +418,17 @@ async def get_all_devices(current_user: dict = Depends(get_current_user)):
 
         if parsed_dt:
             seconds_since_seen = (now - parsed_dt).total_seconds()
-            if seconds_since_seen > 120:
+            # B9.6 (B9.6-F04): Shared 90s authoritative offline threshold
+            if seconds_since_seen > 90:
                 dev["status"] = "offline"
+                if db_instance.db is not None and dev.get("device_id"):
+                    try:
+                        await db_instance.db["devices"].update_one(
+                            {"device_id": dev["device_id"], "status": "online"},
+                            {"$set": {"status": "offline"}}
+                        )
+                    except Exception:
+                        pass
             else:
                 dev["status"] = "online"
             dev["seconds_since_seen"] = int(seconds_since_seen)
@@ -450,11 +459,8 @@ async def device_proxy(
     # Scoped device ownership check for farmers
     if user_role == "farmer" and hasattr(db_instance, "db") and db_instance.db is not None:
         user_id = current_user.get("id") or str(current_user.get("_id", ""))
-        foreign_device = await db_instance.db["devices"].find_one({
-            "ip": validated_ip,
-            "user_id": {"$nin": [user_id, ObjectId(user_id)]} if ObjectId.is_valid(user_id) else {"$ne": user_id}
-        })
-        if foreign_device:
+        existing_device = await db_instance.db["devices"].find_one({"ip": validated_ip})
+        if existing_device and str(existing_device.get("user_id")) != str(user_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access forbidden: this device belongs to another farmer."
@@ -503,11 +509,8 @@ async def device_proxy_download(
 
     if user_role == "farmer" and hasattr(db_instance, "db") and db_instance.db is not None:
         user_id = current_user.get("id") or str(current_user.get("_id", ""))
-        foreign_device = await db_instance.db["devices"].find_one({
-            "ip": validated_ip,
-            "user_id": {"$nin": [user_id, ObjectId(user_id)]} if ObjectId.is_valid(user_id) else {"$ne": user_id}
-        })
-        if foreign_device:
+        existing_device = await db_instance.db["devices"].find_one({"ip": validated_ip})
+        if existing_device and str(existing_device.get("user_id")) != str(user_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access forbidden: this device belongs to another farmer."

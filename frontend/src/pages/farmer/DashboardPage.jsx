@@ -132,39 +132,52 @@ const DashboardPage = () => {
     fetchDashboardData(isBackground);
     const intervalId = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
-      // Skip redundant REST device-status polling when WebSocket is connected
-      const isWsActive = connectionStatus === 'connected';
-      fetchDashboardData(true, isWsActive);
+      // B9.6: Periodically revalidate device status without spamming (every 30s)
+      fetchDashboardData(true, false);
     }, 30000);
     return () => clearInterval(intervalId);
   }, [coordinates, fetchDashboardData, connectionStatus]);
 
   useEffect(() => {
-    if (lastTelemetry) {
+    // B9.6 (B9.6-F05): Deterministic device matching by active farm / device ID
+    const targetDevId = activeFarm?.device_id || activeDevice?.device_id || (devices && devices[0]?.device_id);
+
+    if (lastTelemetry && (!targetDevId || lastTelemetry.device_id === targetDevId)) {
       const telem = lastTelemetry.telemetry || lastTelemetry;
       setActiveDevice(prev => ({
         ...(prev || {}),
-        device_id: lastTelemetry.device_id || prev?.device_id || "ESP32-NODE-ALPHA",
+        device_id: lastTelemetry.device_id || targetDevId || "ESP32-NODE-ALPHA",
         status: lastTelemetry.status || 'online',
         latest_telemetry: {
           ...(prev?.latest_telemetry || {}),
           ...telem
         }
       }));
-    } else if (Object.keys(deviceStatusMap).length > 0) {
-      const devIds = Object.keys(deviceStatusMap);
-      const dev = deviceStatusMap[devIds[0]];
+    } else if (targetDevId && deviceStatusMap[targetDevId]) {
+      const dev = deviceStatusMap[targetDevId];
       setActiveDevice(prev => ({
         ...(prev || {}),
-        device_id: devIds[0],
-        status: dev.status || 'online',
+        device_id: targetDevId,
+        status: dev.status || 'offline',
+        latest_telemetry: {
+          ...(prev?.latest_telemetry || {}),
+          ...(dev.latest_telemetry || {})
+        }
+      }));
+    } else if (Object.keys(deviceStatusMap).length > 0 && !targetDevId) {
+      const firstId = Object.keys(deviceStatusMap)[0];
+      const dev = deviceStatusMap[firstId];
+      setActiveDevice(prev => ({
+        ...(prev || {}),
+        device_id: firstId,
+        status: dev.status || 'offline',
         latest_telemetry: {
           ...(prev?.latest_telemetry || {}),
           ...(dev.latest_telemetry || {})
         }
       }));
     }
-  }, [lastTelemetry, deviceStatusMap]);
+  }, [lastTelemetry, deviceStatusMap, activeFarm, devices]);
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
