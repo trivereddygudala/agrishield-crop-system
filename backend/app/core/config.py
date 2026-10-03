@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import os
 from typing import Optional
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +14,6 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = True
 
-    from pydantic import Field
     # Security
     JWT_SECRET_KEY: str = Field(
         default="agrishield_super_secure_jwt_secret_key_2026_production_safe_token",
@@ -60,10 +60,17 @@ class Settings(BaseSettings):
     @property
     def mongo_connection_url(self) -> str:
         env_uri = os.environ.get("MONGODB_URI") or os.environ.get("MONGO_URI") or self.MONGODB_URI or self.MONGO_URI
+        if self.is_production:
+            if not env_uri or "localhost" in env_uri or "127.0.0.1" in env_uri:
+                raise ValueError(
+                    "Production configuration error: MONGODB_URI must be provided via environment "
+                    "and cannot be empty or localhost in production."
+                )
+            return env_uri
         if env_uri and "mongodb" in env_uri and "localhost" not in env_uri:
             return env_uri
         # If in cloud environment or localhost unreachable, connect directly to configured Atlas cluster
-        if os.environ.get("RENDER") or os.environ.get("PORT") or self.ENV == "production":
+        if os.environ.get("RENDER") or os.environ.get("PORT"):
             return env_uri or "mongodb+srv://trivereddygudala_db_user:65lzhEkdcOgMITc5@agrishield-db.cn2tf7s.mongodb.net/?appName=agrishield-db"
         return env_uri or "mongodb://localhost:27017"
 
@@ -111,6 +118,60 @@ class Settings(BaseSettings):
         upload_path = os.path.join(backend_dir, "uploads")
         os.makedirs(upload_path, exist_ok=True)
         return upload_path
+
+    @property
+    def is_production(self) -> bool:
+        env_val = (os.environ.get("ENV") or os.environ.get("ENVIRONMENT") or self.ENV).lower().strip()
+        return env_val in ("production", "prod")
+
+    def validate_production_credentials(self) -> None:
+        """
+        Validates that production environment does not use insecure or default credentials.
+        Raises ValueError with clear error message if insecure defaults or missing secrets are detected.
+        Never exposes the credential values themselves in logs or exceptions.
+        """
+        if not self.is_production:
+            return
+
+        insecure_jwt_default = "agrishield_super_secure_jwt_secret_key_2026_production_safe_token"
+        insecure_refresh_default = "agrishield_super_secure_refresh_token_secret_key_2026_safe"
+        insecure_iot_default = "crop_iot_secure_key_2026"
+
+        if not self.JWT_SECRET_KEY or self.JWT_SECRET_KEY == insecure_jwt_default:
+            raise ValueError(
+                "Production configuration error: JWT_SECRET_KEY must be provided via environment "
+                "and cannot use the default insecure key."
+            )
+
+        if not self.REFRESH_TOKEN_SECRET_KEY or self.REFRESH_TOKEN_SECRET_KEY == insecure_refresh_default:
+            raise ValueError(
+                "Production configuration error: REFRESH_TOKEN_SECRET_KEY must be provided via environment "
+                "and cannot use the default insecure key."
+            )
+
+        if not self.IOT_API_KEY or self.IOT_API_KEY == insecure_iot_default:
+            raise ValueError(
+                "Production configuration error: IOT_API_KEY must be provided via environment "
+                "and cannot use the default insecure key."
+            )
+
+        if not self.NVIDIA_API_KEY:
+            raise ValueError(
+                "Production configuration error: NVIDIA_API_KEY must be provided via environment "
+                "and cannot be empty in production."
+            )
+
+        db_uri = os.environ.get("MONGODB_URI") or os.environ.get("MONGO_URI") or self.MONGODB_URI or self.MONGO_URI
+        if not db_uri or "localhost" in db_uri or "127.0.0.1" in db_uri:
+            raise ValueError(
+                "Production configuration error: MONGODB_URI must be provided via environment "
+                "and cannot be empty or localhost in production."
+            )
+
+    @model_validator(mode="after")
+    def check_production_safety(self) -> "Settings":
+        self.validate_production_credentials()
+        return self
 
     model_config = SettingsConfigDict(
         env_file=(

@@ -7802,3 +7802,13 @@ Files Modified:
   - test_b9_2_db_degradation.py: 7/7 PASSED.
   - test_b9_6_device_offline_watchdog.py: 11/11 PASSED.
   - Total: 35/35 PASSED (100% clean).
+
+## [2026-10-03T10:28:00] B13 Implementation Finalization & Verification
+- **frontend/src/context/WebSocketContext.jsx**: Derived canonical WebSocket connection host and base URL. Added production fallback to wss://agrishield-crop-system.onrender.com/ws when VITE_API_URL is absent on Vercel while preserving localhost dev behavior.
+- **vercel.json**: Updated /api/:path* rewrite destination strictly to https://agrishield-crop-system.onrender.com/api/:path*.
+- **backend/app/routers/farmer/predict.py**: Narrowed agrochemical history persistence exception handling strictly to pymongo.errors.PyMongoError around db.predictions.insert_one. Implemented history_saved boolean flag in response.
+- **backend/app/core/config.py**: Added strict production credential validation via check_production_safety model validator ensuring JWT_SECRET_KEY, REFRESH_TOKEN_SECRET_KEY, IOT_API_KEY, MONGODB_URI, and NVIDIA_API_KEY are configured and reject default fallbacks. Hardened mongo_connection_url against Atlas fallback in production.
+- **backend/tests/test_b5_provider_ai_copilot.py**: Hardened test isolation by monkeypatching disk catalog save/load routines and clearing in-memory collections (catalog, availability, devices, telemetry).
+- **backend/tests/test_multilingual_system.py**: Updated test fixtures to conform with current booking schema (equipmentId, providerId, idempotency_key) and added in-memory booking/catalog cleanup and ws_manager registration.
+- **backend/tests/test_ws_validation.py**: Seeded iot_telemetry_ingestion in test database, added concurrent.futures timeout protection (10s) to WebSocketTestSession.receive_json, and registered ws_manager in clean_db.
+- **pytest.ini**: Established root pytest configuration with pythonpath = ., asyncio_mode = auto, testpaths = backend/tests.

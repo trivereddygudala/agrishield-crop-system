@@ -1,6 +1,44 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import API from '../services/api';
+import { CANONICAL_MAIN_BACKEND } from '../services/api';
+
+export const getWsUrl = (rawApiUrl, currentWindow = typeof window !== 'undefined' ? window : null) => {
+  const trimmedApiUrl = (rawApiUrl || '').trim();
+  if (trimmedApiUrl) {
+    try {
+      const urlObj = new URL(trimmedApiUrl);
+      const wsProtocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${wsProtocol}//${urlObj.host}/ws`;
+    } catch (e) {
+      console.warn('Could not parse VITE_API_URL host, using default Local host');
+    }
+  }
+
+  if (currentWindow && currentWindow.location) {
+    const hostname = currentWindow.location.hostname || '';
+    const isLocal = hostname === 'localhost' ||
+                    hostname === '127.0.0.1' ||
+                    hostname === '[::1]' ||
+                    hostname.endsWith('.local');
+    if (isLocal) {
+      const wsProtocol = currentWindow.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${wsProtocol}//${currentWindow.location.host}/ws`;
+    }
+  }
+
+  try {
+    const canonical = new URL(CANONICAL_MAIN_BACKEND);
+    const wsProtocol = canonical.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${wsProtocol}//${canonical.host}/ws`;
+  } catch (e) {
+    return 'wss://agrishield-crop-system.onrender.com/ws';
+  }
+};
+
+export const getWsBaseUrl = (rawApiUrl, currentWindow = typeof window !== 'undefined' ? window : null) => {
+  return getWsUrl(rawApiUrl, currentWindow).replace(/\/ws\/?$/, '');
+};
 
 const WebSocketContext = createContext(null);
 
@@ -146,22 +184,10 @@ export const WebSocketProvider = ({ children }) => {
       setConnectionStatus('connecting');
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    
-    // Default to Local backend if VITE_API_URL is missing
-    let host = '127.0.0.1:8000';
-    
-    if (import.meta.env.VITE_API_URL) {
-      try {
-        const urlObj = new URL(import.meta.env.VITE_API_URL);
-        host = urlObj.host;
-      } catch (e) {
-        console.warn('Could not parse VITE_API_URL host, using default Local host');
-      }
-    } else if (typeof window !== 'undefined') {
-      // Local development fallback (routes through Vite proxy or LocalTunnel)
-      host = window.location.host;
-    }
+    const wsBaseUrl = getWsBaseUrl(
+      import.meta.env?.VITE_API_URL,
+      typeof window !== 'undefined' ? window : null
+    );
 
     const storage = sessionStorage.getItem('token') ? sessionStorage : localStorage;
     const authToken = storage.getItem('token') || token || '';
@@ -170,7 +196,7 @@ export const WebSocketProvider = ({ children }) => {
       return;
     }
 
-    const wsUrl = `${protocol}//${host}/api/v1/notifications/ws/${userId}?token=${encodeURIComponent(authToken)}&client=react_spa`;
+    const wsUrl = `${wsBaseUrl}/api/v1/notifications/ws/${userId}?token=${encodeURIComponent(authToken)}&client=react_spa`;
 
     try {
       const socket = new WebSocket(wsUrl);

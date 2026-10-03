@@ -24,7 +24,7 @@ def anyio_backend():
     return 'asyncio'
 
 @pytest.fixture(autouse=True)
-def reset_db_state():
+def reset_db_state(monkeypatch):
     db_instance.db = mock_db
     db_instance.client = mock_db.client
     app.dependency_overrides[get_database] = override_get_database
@@ -32,13 +32,19 @@ def reset_db_state():
     mock_db.equipment_catalog.records = []
     mock_db.farms.records = []
     mock_db.predictions.records = []
+    mock_db.devices.records = []
+    mock_db.iot_telemetry.records = []
     eq_module._in_memory_catalog = []
     eq_module._fleet_availability.clear()
+    monkeypatch.setattr(eq_module, "_load_disk_catalog", lambda: list(eq_module._in_memory_catalog))
+    monkeypatch.setattr(eq_module, "_save_disk_catalog", lambda: None)
     yield
     mock_db.users.records = []
     mock_db.equipment_catalog.records = []
     mock_db.farms.records = []
     mock_db.predictions.records = []
+    mock_db.devices.records = []
+    mock_db.iot_telemetry.records = []
     eq_module._in_memory_catalog = []
     eq_module._fleet_availability.clear()
 
@@ -84,6 +90,7 @@ async def create_test_equipment(user_id: str, title: str, category: str = "tract
         "internal_id": "SYS_INTERNAL_12345"
     }
     mock_db.equipment_catalog.records.append(eq_doc)
+    eq_module._in_memory_catalog.append(eq_doc)
     return eq_doc
 
 

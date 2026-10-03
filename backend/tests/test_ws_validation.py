@@ -16,6 +16,18 @@ from backend.tests.mock_db import MockDatabase
 from backend.app.models.notification import NotificationCreate
 from backend.app.services.notification_service import NotificationService
 
+import concurrent.futures
+from starlette.testclient import WebSocketTestSession
+
+_orig_receive_json = WebSocketTestSession.receive_json
+def _safe_receive_json(self, *args, **kwargs):
+    timeout = kwargs.pop("timeout", 10.0)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_orig_receive_json, self, *args, **kwargs)
+        return future.result(timeout=timeout)
+
+WebSocketTestSession.receive_json = _safe_receive_json
+
 # Setup Mock database configuration
 database_for_testing = MockDatabase()
 db_instance.db = database_for_testing
@@ -29,16 +41,23 @@ app.dependency_overrides[get_database] = override_get_database
 def clean_db():
     app.dependency_overrides[get_database] = override_get_database
     db_instance.db = database_for_testing
+    NotificationService.register_websocket_manager(ws_manager)
     asyncio.run(database_for_testing.users.delete_many({}))
     asyncio.run(database_for_testing.devices.delete_many({}))
     asyncio.run(database_for_testing.telemetry.delete_many({}))
     asyncio.run(database_for_testing.notifications.delete_many({}))
     ws_manager.active_connections.clear()
+    asyncio.run(database_for_testing.system_settings.update_one(
+        {"key": "iot_telemetry_ingestion"},
+        {"$set": {"key": "iot_telemetry_ingestion", "enabled": True}},
+        upsert=True
+    ))
     yield
     asyncio.run(database_for_testing.users.delete_many({}))
     asyncio.run(database_for_testing.devices.delete_many({}))
     asyncio.run(database_for_testing.telemetry.delete_many({}))
     asyncio.run(database_for_testing.notifications.delete_many({}))
+    asyncio.run(database_for_testing.system_settings.delete_many({}))
     ws_manager.active_connections.clear()
 
 def generate_valid_jwt(user_id: str, email: str = "test@farm.com", role: str = "farmer"):

@@ -73,23 +73,41 @@ if not hasattr(database_for_testing.devices, "update_many"):
     MockCollection.update_many = mock_update_many
 
 @pytest.fixture(autouse=True)
-async def clean_mock_db():
+def clean_mock_db(monkeypatch):
+    import backend.app.routers.provider.equipment as eq_mod
+    monkeypatch.setattr(eq_mod, "_load_disk_bookings", lambda: list(eq_mod._in_memory_bookings))
+    monkeypatch.setattr(eq_mod, "_save_disk_bookings", lambda: None)
+    monkeypatch.setattr(eq_mod, "_load_disk_catalog", lambda: list(eq_mod._in_memory_catalog))
+    monkeypatch.setattr(eq_mod, "_save_disk_catalog", lambda: None)
     app.dependency_overrides[get_database] = override_get_database
     db_instance.db = database_for_testing
-    await database_for_testing.users.delete_many({})
-    await database_for_testing.notifications.delete_many({})
-    await database_for_testing.support_tickets.delete_many({})
-    await database_for_testing.equipment_bookings.delete_many({})
-    await database_for_testing.equipment_catalog.delete_many({})
+    from backend.app.routers.common.notifications import ws_manager
+    NotificationService.register_websocket_manager(ws_manager)
+    database_for_testing.users.records.clear()
+    database_for_testing.notifications.records.clear()
+    database_for_testing.support_tickets.records.clear()
+    database_for_testing.equipment_bookings.records.clear()
+    database_for_testing.equipment_catalog.records.clear()
+    database_for_testing.idempotency_records.records.clear()
+    eq_mod._in_memory_bookings.clear()
+    eq_mod._in_memory_catalog.clear()
+    eq_mod._in_memory_chat_threads.clear()
     if hasattr(database_for_testing, "translations_cache"):
-        await database_for_testing.translations_cache.delete_many({})
+        database_for_testing.translations_cache.records.clear()
     TranslationService.clear_cache()
     yield
-    await database_for_testing.users.delete_many({})
-    await database_for_testing.notifications.delete_many({})
-    await database_for_testing.support_tickets.delete_many({})
-    await database_for_testing.equipment_bookings.delete_many({})
-    await database_for_testing.equipment_catalog.delete_many({})
+    database_for_testing.users.records.clear()
+    database_for_testing.notifications.records.clear()
+    database_for_testing.support_tickets.records.clear()
+    database_for_testing.equipment_bookings.records.clear()
+    database_for_testing.equipment_catalog.records.clear()
+    database_for_testing.idempotency_records.records.clear()
+    eq_mod._in_memory_bookings.clear()
+    eq_mod._in_memory_catalog.clear()
+    eq_mod._in_memory_chat_threads.clear()
+    if hasattr(database_for_testing, "translations_cache"):
+        database_for_testing.translations_cache.records.clear()
+    TranslationService.clear_cache()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -570,6 +588,7 @@ async def test_2e_booking_custom_notes_and_status_localization():
         "id": "BK-NOTES-01",
         "farmerName": "Raju Farmer",
         "equipmentName": "Power Weeder",
+        "equipmentId": "EQ-WEEDER-01",
         "status": "pending",
         "custom_notes": "Please deliver with extra petrol can",
         "translations": {
@@ -581,7 +600,7 @@ async def test_2e_booking_custom_notes_and_status_localization():
     assert create_res["booking"]["original_notes"] == "Please deliver with extra petrol can"
 
     # Query in Telugu
-    bookings_te = await get_all_bookings(language="te")
+    bookings_te = await get_all_bookings(language="te", current_user={"role": "farmer", "id": "farmer_1", "_id": "farmer_1"})
     assert bookings_te["success"] is True
     found = next(b for b in bookings_te["bookings"] if b.get("id") == "BK-NOTES-01")
     assert found["status"] == "pending"  # Canonical unchanged
@@ -610,7 +629,7 @@ async def test_2e_freeform_booking_chat_farmer_to_provider():
     assert send_res["message"]["original_text"] == "నేను రేపు ఉదయం 8 గంటలకు వస్తాను"
 
     # Provider fetches in English
-    fetch_res = await get_booking_chat_messages(booking_id, target_lang="en")
+    fetch_res = await get_booking_chat_messages(booking_id, target_lang="en", current_user={"role": "admin", "id": "admin_1", "_id": "admin_1"})
     assert fetch_res["success"] is True
     found_msg = next(m for m in fetch_res["messages"] if m["id"] == "msg_f2p_1")
     assert found_msg["original_text"] == "నేను రేపు ఉదయం 8 గంటలకు వస్తాను"
@@ -637,7 +656,7 @@ async def test_2e_freeform_booking_chat_provider_to_farmer():
     assert send_res["message"]["original_text"] == "ट्रैक्टर तैयार है"
 
     # Farmer fetches in Telugu
-    fetch_res = await get_booking_chat_messages(booking_id, target_lang="te")
+    fetch_res = await get_booking_chat_messages(booking_id, target_lang="te", current_user={"role": "admin", "id": "admin_1", "_id": "admin_1"})
     assert fetch_res["success"] is True
     found_msg = next(m for m in fetch_res["messages"] if m["id"] == "msg_p2f_1")
     assert found_msg["original_text"] == "ट्रैक्टर तैयार है"
@@ -663,9 +682,11 @@ async def test_2e_booking_notification_dispatch():
         "id": "BK-NOTIF-01",
         "farmerName": "Suresh",
         "equipmentName": "Harvester",
+        "equipmentId": "EQ-HARVESTER-01",
         "providerPhone": "9876543210",
+        "providerId": prov_id,
         "status": "pending"
-    }, current_user={"role": "farmer", "id": "farmer_1", "_id": "farmer_1"})
+    }, idempotency_key=None, current_user={"role": "farmer", "id": "farmer_1", "_id": "farmer_1"})
     assert res["success"] is True
 
     # Check notification in DB
@@ -743,13 +764,16 @@ async def test_2f_b_realtime_booking_event_translation():
         "_id": ObjectId(farmer_id),
         "id": farmer_id,
         "name": "Sita Farmer",
+        "phone": "9876543222",
         "preferred_language": "te"
     })
     await database_for_testing.equipment_bookings.insert_one({
         "id": "BK-9911",
         "bookingId": "BK-9911",
         "userId": farmer_id,
+        "farmerPhone": "9876543222",
         "equipmentName": "Harvester 300",
+        "equipmentId": "EQ-HARVESTER-300",
         "status": "pending"
     })
 
@@ -794,6 +818,7 @@ async def test_2f_c_realtime_chat_translation():
         "id": "BK-9922",
         "bookingId": "BK-9922",
         "userId": "farmer_1",
+        "equipmentId": "EQ-TRACTOR-99",
         "providerId": counterparty_id,
         "status": "confirmed"
     })
@@ -815,7 +840,7 @@ async def test_2f_c_realtime_chat_translation():
             "text": "Please deliver the tractor by 7 AM",
             "source_language": "en"
         }
-        res = await send_booking_chat_message("BK-9922", chat_payload, current_user={"role": "admin", "id": "admin_1", "_id": "admin_1"})
+        res = await send_booking_chat_message("BK-9922", chat_payload, current_user={"role": "farmer", "id": "farmer_1", "_id": "farmer_1"})
         assert res["success"] is True
 
         chat_evts = [e for e in captured_chat_events if e.get("type") == "booking_chat_message"]

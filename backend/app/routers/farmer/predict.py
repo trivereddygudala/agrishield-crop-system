@@ -1436,7 +1436,17 @@ async def agrochemical_scan_endpoint(
             "organic_treatment": f"Usage Protocol:\n{info.get('recommended_dosage', 'Apply as directed.')}",
             "chemical_treatment": f"Active Formulation: {info.get('active_ingredients', 'N/A')}"
         }
-        await db.predictions.insert_one(scan_record)
+
+        history_saved = False
+        if db is not None:
+            try:
+                await db.predictions.insert_one(scan_record)
+                history_saved = True
+            except PyMongoError as db_err:
+                logger.error("[AGROCHEMICAL DB DEGRADATION] Database error saving scan history: %s: %s", db_err.__class__.__name__, db_err)
+                history_saved = False
+        else:
+            history_saved = False
 
         # Backwards compatible & structured frontend fields
         target_crops = info.get("target_crops", ["All Crops"])
@@ -1446,6 +1456,7 @@ async def agrochemical_scan_endpoint(
         scan_result = {
             "success": True,
             "is_agrochemical": True,
+            "history_saved": history_saved,
             "confidence": agro_res.get("confidence", 95.0),
             "productName": info.get("product_name", "Agricultural Product"),
             "category": info.get("product_type", "Agrochemical"),
