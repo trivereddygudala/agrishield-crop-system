@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-03 (v369) - B12-H: Exhaustive Farmer Portal Visual Polish, Animation & Every-Tab Browser QA
+- **Summary:**
+  1. 🌐 **Exhaustive Multi-Viewport Browser Validation:**
+     - Verified every single Farmer Portal route and state across 8 standard viewports: 320x568 (narrow phone), 360x780 (Android standard), 390x844 (iPhone 12/13/14), 430x932 (Pro Max), 768x1024 (iPad portrait), 1024x768 (iPad landscape), 1280x800 (Laptop), 1440x900 (Desktop large).
+     - Confirmed ZERO horizontal scrollbars, ZERO occlusion of action buttons by BottomNav, and smooth responsive grid adaptation.
+  2. 🌾 **All 9 Farm Tabs Verified:**
+     - Modules, My Fields, Field Setup, Soil/NPK, Crop Lifecycle, Farm Khata, Farm Intelligence, Government Schemes, WhatsApp Diagnosis.
+     - Confirmed Farm Khata mobile Add Expense FAB at `bottom-24` and transaction modal at `z-[100]`.
+     - Confirmed `whitespace-nowrap` on tab strips preventing Indic text height blowouts.
+  3. 🔍 **Scan Center 3-Module Quick Switcher:**
+     - Tested Disease Diagnosis (`/scan/disease-diag`), Plant ID (`/scan/plant-id`), and Agrochemical Scanner (`/scan/agro-scan`).
+     - Verified active emerald center Scan button and clean layout fitting 320px viewport without truncation.
+  4. 🚜 **Equipment Booking Deep Audit:**
+     - Verified Browse Equipment, My Bookings, and CHC Info tabs.
+     - Confirmed BookEquipmentModal with sticky bottom dock (`Cancel` & `Confirm Rental Booking` permanently accessible above BottomNav).
+     - Confirmed clean location display (eliminated `, 0` and `, ()`).
+  5. 🔔 **Notifications & More Hub:**
+     - Verified all 6 notification filter chips (All, Unread, Providers & Orders, Crop Alerts, Weather Alerts, Support) and unread count synchronization.
+     - Verified More hub: software-only view for ordinary farmers, Smart IoT toggle for hardware users.
+  6. ✨ **Purposeful Sliding Animations & Polish:**
+     - Enhanced page transition motion in `App.jsx` with subtle, smooth y-axis elevation (`y: 6` to `y: 0`, 180ms easeOut) for a native app feel.
+     - Polished dark mode typography and button styling in `FarmAnalyticsPage.jsx`.
+  7. 🛡️ **Safety & Zero-Disruption Protocol:**
+     - Zero backend code modified. Zero commits, pushes, or deployments. Working tree unstaged for final diff review.
+- **Files modified:** `frontend/src/App.jsx`, `frontend/src/pages/farmer/FarmAnalyticsPage.jsx`, `changes_happening.md`.
+
 ## 2026-10-02 (v368) - B12-G: Farmer Portal Mobile UI/UX Fixes + Complete Real-Browser Tab Validation
 - **Summary:**
   1. 📱 **Fix #1: BottomNav Stacking Architecture & Modal Z-Index (`AppLayout.jsx`, `dialog.jsx`, `drawer.jsx`, `DigitalFarmKhata.jsx`, `MorePage.jsx`, etc.):**
