@@ -1,25 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Droplets, Sun, Wind, Thermometer, Clock, 
-  Calendar, CheckCircle2, AlertTriangle, ShieldCheck, 
-  ArrowRight, Share2, RefreshCw, Zap, Gauge, Sparkles
+import {
+  Droplets, Sun, Wind, Thermometer, Clock,
+  Calendar, CheckCircle2, AlertTriangle, ShieldCheck,
+  ArrowRight, Share2, RefreshCw, Zap, Gauge, Sparkles,
+  Wifi, WifiOff, CloudRain, Info
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import API from '../../services/api';
+import { useWebSocket } from '../../context/WebSocketContext';
+import { translateCrop, translateStage } from '../../utils/diseaseAdvisoryData';
 
-const CROP_COEFFICIENTS = {
-  Tomato: { vegetative: 0.75, flowering: 1.10, fruiting: 0.85, baseET: 4.8 },
-  Chilli: { vegetative: 0.70, flowering: 1.05, fruiting: 0.80, baseET: 4.5 },
-  Cotton: { vegetative: 0.65, flowering: 1.15, fruiting: 0.75, baseET: 5.2 },
-  Paddy: { vegetative: 1.10, flowering: 1.25, fruiting: 1.00, baseET: 6.5 },
-  Corn: { vegetative: 0.70, flowering: 1.15, fruiting: 0.80, baseET: 5.0 },
-  Banana: { vegetative: 1.00, flowering: 1.20, fruiting: 1.10, baseET: 5.8 }
-};
-
-export default function SmartIrrigationScheduler({ 
-  farmName = "My Farm", 
-  acreage = 2.0, 
+export default function SmartIrrigationScheduler({
+  farmId,
+  farmName = "My Farm",
+  acreage = 2.0,
   cropName = "Tomato",
   growthStage = "Vegetative",
   latitude = 15.8020,
@@ -33,143 +28,110 @@ export default function SmartIrrigationScheduler({
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
   const isTe = currentLang === 'te';
 
-  const [telemetry, setTelemetry] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [advisorData, setAdvisorData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [irrigationMethod, setIrrigationMethod] = useState('drip'); // 'drip', 'sprinkler', 'flood'
 
   const safeLat = !isNaN(parseFloat(latitude)) && parseFloat(latitude) !== 0 ? parseFloat(latitude) : 15.8020;
   const safeLng = !isNaN(parseFloat(longitude)) && parseFloat(longitude) !== 0 ? parseFloat(longitude) : 79.8050;
 
-  // Fetch live satellite telemetry
-  const fetchTelemetry = useCallback(async () => {
+  // 1. Fetch authoritative recommendation from unified backend
+  const fetchAdvisory = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await API.get('/api/intelligence/satellite-telemetry', {
-        params: { lat: safeLat, lon: safeLng, district, mandal }
+      const res = await API.get('/api/intelligence/irrigation', {
+        params: {
+          farm_id: farmId,
+          ...(cropName ? { crop_name: cropName } : {}),
+          ...(growthStage ? { growth_stage: growthStage } : {}),
+          farm_size: acreage,
+          lat: safeLat,
+          lon: safeLng
+        }
       });
-      if (res.data?.status === 'success' && res.data?.telemetry) {
-        setTelemetry(res.data.telemetry);
+      if (res.data) {
+        setAdvisorData(res.data);
       }
     } catch (e) {
-      console.warn("AgroMonitoring fetch fallback in scheduler:", e);
-      setTelemetry({
-        surface_temperature_c: "27.5°C",
-        atmospheric_humidity: "78.0%",
-        wind_speed_kmh: "18.0 km/h",
-        soil_moisture_percent: "37.6%",
-        soil_temperature_c: "26.8°C",
-        cloud_free_area_percent: "85.0%"
+      console.warn("Backend irrigation fetch fallback:", e);
+      // Safe offline Software AI fallback with NO fake sensor values
+      setAdvisorData({
+        mode: "software_ai",
+        sensor_status: "not_connected",
+        irrigation_required: null,
+        recommendation: isTe
+          ? "వాతావరణం మరియు పంట దశ ఆధారంగా సలహా. మోటార్ వేసే ముందు నేల తేమను పరిశీలించండి."
+          : "Advisory based on weather and crop stage. Check topsoil moisture before running irrigation.",
+        reasoning: [
+          isTe ? "లైవ్ సాయిల్ సెన్సార్ కనెక్ట్ చేయబడలేదు." : "Live soil moisture sensor is not connected.",
+          isTe ? "ప్రాంతీయ వాతావరణం మరియు పంట నీటి అవసరం ఆధారంగా విశ్లేషించబడింది." : "Calculated using regional weather forecast and active crop growth stage."
+        ],
+        water_quantity_liters_per_acre: null,
+        water_quantity_total: null,
+        best_irrigation_time: "06:00 AM - 08:30 AM",
+        next_irrigation_date: new Date().toISOString().split('T')[0],
+        confidence_score: 80,
+        current_soil_moisture: null,
+        target_soil_moisture: 65,
+        moisture_deficit: null,
+        crop_type: cropName,
+        growth_stage: growthStage
       });
     } finally {
       setIsLoading(false);
     }
-  }, [safeLat, safeLng, district, mandal]);
+  }, [farmId, cropName, growthStage, acreage, safeLat, safeLng, isTe]);
 
   useEffect(() => {
-    fetchTelemetry();
-  }, [fetchTelemetry]);
+    fetchAdvisory();
+  }, [fetchAdvisory]);
 
-  // Scientific Evapotranspiration ET0 Math
-  const irrigationMath = useMemo(() => {
-    const tempNum = telemetry ? parseFloat(telemetry.surface_temperature_c) || 27.5 : 27.5;
-    const humidityNum = telemetry ? parseFloat(telemetry.atmospheric_humidity) || 78 : 78;
-    const windNum = telemetry ? parseFloat(telemetry.wind_speed_kmh) || 18 : 18;
-    const moistureNum = telemetry ? parseFloat(telemetry.soil_moisture_percent) || 37.6 : 37.6;
-
-    // FAO-56 Reference Evapotranspiration ET0 estimation
-    const radiationFactor = 0.0023 * (tempNum + 17.8) * Math.sqrt(Math.max(4, 34 - tempNum));
-    const windCorrection = 1 + (windNum / 100);
-    const humidityCorrection = 1 - (humidityNum / 200);
-    const et0 = Math.max(2.8, +(4.2 * radiationFactor * windCorrection * humidityCorrection).toFixed(2));
-
-    // Crop Coefficient Kc
-    const cropKey = CROP_COEFFICIENTS[cropName] ? cropName : 'Tomato';
-    const stageKey = (growthStage || 'Vegetative').toLowerCase().includes('flowering') 
-      ? 'flowering' 
-      : (growthStage || 'Vegetative').toLowerCase().includes('fruit') ? 'fruiting' : 'vegetative';
-    const kc = CROP_COEFFICIENTS[cropKey][stageKey] || 0.85;
-
-    // Crop Water Requirement ETc in mm/day
-    const etc = +(et0 * kc).toFixed(2);
-
-    // Water Deficit in mm (considering soil moisture: 40% is field capacity, 18% is wilting point)
-    // Available Water Capacity fraction (0 to 1)
-    const availableMoisturePct = Math.max(0, Math.min(100, ((moistureNum - 18) / (40 - 18)) * 100));
-    
-    // Status decision
-    let status = 'optimal'; // 'optimal', 'mild_deficit', 'severe_deficit'
-    let recommendedAction = '';
-    let dripMinutes = 0;
-    let sprinklerMinutes = 0;
-    let floodHours = 0;
-    let waterVolumeLiters = 0;
-
-    if (moistureNum >= 34) {
-      status = 'optimal';
-      recommendedAction = isTe
-        ? 'నేలలో తగినంత తేమ (37.6%) ఉంది. నేడు మోటార్ ఆన్ చేయవలసిన అవసరం లేదు. నీరు & కరెంట్ ఆదా చేయండి.'
-        : 'Soil moisture is optimal (37.6%). No irrigation needed today. Skip pump run to prevent root asphyxia and save electricity.';
-      dripMinutes = 0;
-      sprinklerMinutes = 0;
-      floodHours = 0;
-      waterVolumeLiters = 0;
-    } else if (moistureNum >= 26) {
-      status = 'mild_deficit';
-      const deficitMm = +(etc * 0.6).toFixed(1);
-      waterVolumeLiters = Math.round(deficitMm * 4046.86 * acreage);
-      dripMinutes = Math.round((deficitMm / 3.2) * 60); // 3.2 mm/hr drip discharge
-      sprinklerMinutes = Math.round((deficitMm / 12) * 60);
-      floodHours = +(deficitMm / 25).toFixed(1);
-      recommendedAction = isTe
-        ? `తేలికపాటి తేమ లోటు (${moistureNum}%). సాయంత్రం 5:00 PM తర్వాత డ్రిప్ సిస్టమ్ రన్ చేయండి.`
-        : `Mild moisture deficit (${moistureNum}%). Schedule light drip irrigation in the evening after 5:00 PM.`;
-    } else {
-      status = 'severe_deficit';
-      const deficitMm = +(etc * 1.1).toFixed(1);
-      waterVolumeLiters = Math.round(deficitMm * 4046.86 * acreage);
-      dripMinutes = Math.round((deficitMm / 3.2) * 60);
-      sprinklerMinutes = Math.round((deficitMm / 12) * 60);
-      floodHours = +(deficitMm / 25).toFixed(1);
-      recommendedAction = isTe
-        ? `తీవ్రమైన నీటి ఎద్దడి (${moistureNum}%). తక్షణమే డ్రిప్ ఇరిగేషన్ ప్రారంభించండి.`
-        : `High water stress (${moistureNum}%). Immediate irrigation recommended to protect flower/fruit set.`;
+  // Reactive updates on incoming WebSocket telemetry
+  const { lastTelemetry } = useWebSocket();
+  useEffect(() => {
+    if (lastTelemetry) {
+      const telem = lastTelemetry.telemetry || lastTelemetry;
+      if (telem.soil_moisture !== undefined || telem.soil_percentage !== undefined || telem.rain_detected !== undefined || telem.rain_sensor !== undefined) {
+        fetchAdvisory();
+      }
     }
+  }, [lastTelemetry, fetchAdvisory]);
 
-    return {
-      et0,
-      kc,
-      etc,
-      moistureNum,
-      availableMoisturePct,
-      status,
-      recommendedAction,
-      dripMinutes,
-      sprinklerMinutes,
-      floodHours,
-      waterVolumeLiters
-    };
-  }, [telemetry, cropName, growthStage, acreage, isTe]);
+  // Derived state
+  const isSmartIoT = advisorData?.mode === 'smart_iot' && advisorData?.current_soil_moisture !== null;
+  const isSensorOffline = advisorData?.sensor_status === 'offline';
+  const soilMoistureVal = advisorData?.current_soil_moisture;
+  const hasSoilMoisture = soilMoistureVal !== null && soilMoistureVal !== undefined;
+
+  // Pump minutes calculation per method
+  const baseMinutes = advisorData?.recommended_pump_minutes || 0;
+  const dripMinutes = baseMinutes;
+  const sprinklerMinutes = Math.round(baseMinutes * (3.2 / 12.0) * 1.25);
+  const floodHours = Number(((baseMinutes * (3.2 / 25.0) * 1.8) / 60).toFixed(1));
+
+  const localizedCrop = translateCrop(cropName, i18n.language) || cropName;
+  const localizedStage = translateStage(growthStage, i18n.language) || growthStage;
 
   const handleShareWhatsApp = () => {
+    const sensorText = hasSoilMoisture
+      ? `📊 *నేల తేమ (లైవ్ సెన్సార్):* ${soilMoistureVal}%\n`
+      : `🌱 *మోడ్:* సాఫ్ట్‌వేర్ AI మోడ్ (సెన్సార్ కనెక్ట్ కాలేదు)\n`;
+
     const text = isTe
-      ? `💧 *AgriShield స్మార్ట్ నీటి పారుదల షెడ్యూల్ (ET₀)*\n\n` +
-        `📍 *పొలం:* ${farmName} (${village})\n🌱 *పంట:* ${cropName} (${acreage} ఎకరాలు) · దశ: ${growthStage}\n\n` +
-        `🌡️ *ఉష్ణోగ్రత:* ${telemetry?.surface_temperature_c || '27.5°C'} | 💧 *తేమ:* ${telemetry?.atmospheric_humidity || '78%'}\n` +
-        `📊 *ప్రస్తుత నేల తేమ:* ${irrigationMath.moistureNum}%\n` +
-        `☀️ *బాష్పోత్సేకం (ET₀):* ${irrigationMath.et0} mm/రోజు\n` +
-        `🌾 *పంట నీటి అవసరం (ETc):* ${irrigationMath.etc} mm/రోజు\n\n` +
-        `⚡ *రైతుకు సిఫార్సు:* ${irrigationMath.recommendedAction}\n` +
-        (irrigationMath.dripMinutes > 0 ? `⏱️ *డ్రిప్ మోటార్ సమయం:* ${Math.floor(irrigationMath.dripMinutes / 60)} గం. ${irrigationMath.dripMinutes % 60} నిమిషాలు\n` : '') +
+      ? `💧 *AgriShield స్మార్ట్ నీటి పారుదల షెడ్యూల్*\n\n` +
+        `📍 *పొలం:* ${farmName} (${village})\n🌱 *పంట:* ${localizedCrop} (${acreage} ఎకరాలు) · దశ: ${localizedStage}\n\n` +
+        sensorText +
+        `☀️ *వాతావరణం:* ${advisorData?.weather_summary || 'అందుబాటులో ఉంది'}\n\n` +
+        `⚡ *రైతుకు సలహా:* ${advisorData?.recommendation || ''}\n` +
+        (baseMinutes > 0 ? `⏱️ *సిఫార్సు మోటార్ సమయం:* ${Math.floor(baseMinutes / 60)} గం. ${baseMinutes % 60} నిమిషాలు\n` : '') +
         `\n_AgriShield AI స్మార్ట్ అగ్రికల్చర్ ప్లాట్‌ఫారమ్._`
-      : `💧 *AgriShield Smart Irrigation & ET₀ Scheduler*\n\n` +
-        `📍 *Farm:* ${farmName} (${village})\n🌱 *Crop:* ${cropName} (${acreage} Acres) · Stage: ${growthStage}\n\n` +
-        `🌡️ *Surface Temp:* ${telemetry?.surface_temperature_c || '27.5°C'} | 💧 *Air Humidity:* ${telemetry?.atmospheric_humidity || '78%'}\n` +
-        `📊 *Soil Moisture:* ${irrigationMath.moistureNum}%\n` +
-        `☀️ *Reference ET₀:* ${irrigationMath.et0} mm/day\n` +
-        `🌾 *Crop ETc:* ${irrigationMath.etc} mm/day\n\n` +
-        `⚡ *Recommendation:* ${irrigationMath.recommendedAction}\n` +
-        (irrigationMath.dripMinutes > 0 ? `⏱️ *Drip Run Time:* ${Math.floor(irrigationMath.dripMinutes / 60)}h ${irrigationMath.dripMinutes % 60}m\n` : '') +
-        `\n_Generated via AgriShield AI Precision Irrigation Engine._`;
+      : `💧 *AgriShield Smart Irrigation Advisor*\n\n` +
+        `📍 *Farm:* ${farmName} (${village})\n🌱 *Crop:* ${localizedCrop} (${acreage} Acres) · Stage: ${localizedStage}\n\n` +
+        (hasSoilMoisture ? `📊 *Live Soil Moisture:* ${soilMoistureVal}%\n` : `🌱 *Mode:* Software AI Mode (No Hardware Sensor)\n`) +
+        `☀️ *Weather Summary:* ${advisorData?.weather_summary || 'Normal conditions'}\n\n` +
+        `⚡ *Recommendation:* ${advisorData?.recommendation || ''}\n` +
+        (baseMinutes > 0 ? `⏱️ *Suggested Run Time:* ${Math.floor(baseMinutes / 60)}h ${baseMinutes % 60}m\n` : '') +
+        `\n_Generated via AgriShield Smart Irrigation Engine._`;
 
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -186,30 +148,43 @@ export default function SmartIrrigationScheduler({
             <Droplets className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                AgroMonitoring ET₀ Engine
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border flex items-center gap-1.5 ${
+                isSmartIoT
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                  : isSensorOffline
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isSmartIoT ? 'bg-cyan-400 animate-pulse' : isSensorOffline ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                {isSmartIoT
+                  ? '📡 Smart IoT Hardware Mode'
+                  : isSensorOffline
+                  ? '⚠️ Sensor Offline · Software Mode'
+                  : '🌱 Software AI Mode'}
               </span>
               <span className="text-[10px] text-white/50 font-mono">
-                FAO-56 Penman-Monteith
+                {isSmartIoT ? 'Live Field Sensor Telemetry' : 'Regional Weather & Crop Stage'}
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-white mt-0.5">
-              {isTe ? 'స్మార్ట్ నీటి పారుదల & మోటార్ షెడ్యూలర్' : 'Smart Irrigation & ET₀ Water Scheduler'}
+              {isTe ? 'స్మార్ట్ నీటి పారుదల & మోటార్ సలహాదారు' : 'Smart Irrigation Advisor & Water Scheduler'}
             </h2>
+            <p className="text-xs text-white/60">
+              {localizedCrop} ({localizedStage} {isTe ? 'దశ' : 'Stage'}) · {acreage} {isTe ? 'ఎకరాలు' : 'Acres'}
+            </p>
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <button
-            onClick={fetchTelemetry}
+            onClick={fetchAdvisory}
             disabled={isLoading}
             className="px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-white/80 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{isLoading ? 'Syncing...' : 'Sync Weather'}</span>
+            <span className="hidden sm:inline">{isLoading ? (isTe ? 'సమకాలీకరిస్తోంది...' : 'Syncing...') : (isTe ? 'రిఫ్రెష్' : 'Sync')}</span>
           </button>
 
           <button
@@ -217,110 +192,160 @@ export default function SmartIrrigationScheduler({
             className="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Share2 className="w-4 h-4 text-emerald-400" />
-            <span>{isTe ? 'వాట్సాప్ షెడ్యూల్' : 'Share WhatsApp'}</span>
+            <span>{isTe ? 'వాట్సాప్ షేర్' : 'Share WhatsApp'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Mode Explanation Notice Banner */}
+      <div className={`p-3.5 rounded-2xl border text-xs flex items-start gap-2.5 ${
+        isSmartIoT
+          ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-200'
+          : isSensorOffline
+          ? 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+          : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+      }`}>
+        <Info className="w-4 h-4 shrink-0 mt-0.5" />
+        <div>
+          <strong className="font-bold">
+            {isSmartIoT
+              ? (isTe ? 'లైవ్ ఫీల్డ్ హార్డ్‌వేర్ యాక్టివ్:' : 'Live Field Sensor Connected:')
+              : isSensorOffline
+              ? (isTe ? 'ఫీల్డ్ సెన్సార్ ఆఫ్‌లైన్:' : 'Field Sensor Offline:')
+              : (isTe ? 'సాఫ్ట్‌వేర్ AI మోడ్:' : 'Software AI Mode:')}
+          </strong>{' '}
+          <span>
+            {isSmartIoT
+              ? (isTe ? 'మీ పొలంలోని ESP32 సెన్సార్ నుండి రియల్-టైమ్ నేల తేమ రీడింగ్స్ ఆధారంగా విశ్లేషణ చేయబడుతోంది.' : 'Precision advice computed from real-time field soil sensors and weather forecasts.')
+              : isSensorOffline
+              ? (isTe ? 'పొలంలోని సెన్సార్ ఆఫ్‌లైన్‌లో ఉంది. వాతావరణ అంచనా మరియు పంట దశ ఆధారంగా సలహా అందించబడుతోంది.' : 'IoT field node is offline. Automatic fallback to weather and crop growth stage advisory.')
+              : (isTe ? 'లైవ్ హార్డ్‌వేర్ సెన్సార్ కనెక్ట్ కాలేదు. ఉపగ్రహ వాతావరణ సూచన మరియు పంట నీటి అవసరాల ఆధారంగా సలహా ఇవ్వబడింది.' : 'No IoT hardware connected. Advisory is calculated using weather forecasts and crop growth requirements.')}
+          </span>
         </div>
       </div>
 
       {/* Main Intelligent Verdict Banner */}
       <div className={`p-4 sm:p-5 rounded-2xl border ${
-        irrigationMath.status === 'optimal'
+        advisorData?.irrigation_required === false
           ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200'
-          : irrigationMath.status === 'mild_deficit'
-          ? 'bg-cyan-950/30 border-cyan-500/30 text-cyan-200'
-          : 'bg-amber-950/30 border-amber-500/30 text-amber-200'
+          : advisorData?.irrigation_required === true
+          ? 'bg-amber-950/30 border-amber-500/30 text-amber-200'
+          : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-200'
       } space-y-2`}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className={`w-3 h-3 rounded-full ${
-              irrigationMath.status === 'optimal' ? 'bg-emerald-400' : irrigationMath.status === 'mild_deficit' ? 'bg-cyan-400' : 'bg-amber-400'
+              advisorData?.irrigation_required === false
+                ? 'bg-emerald-400'
+                : advisorData?.irrigation_required === true
+                ? 'bg-amber-400'
+                : 'bg-cyan-400'
             } animate-ping`} />
             <span className="text-xs font-black uppercase tracking-wider">
-              {irrigationMath.status === 'optimal' 
-                ? (isTe ? 'అనుకూల తేమ · మోటార్ అవసరం లేదు' : 'Optimal Soil Moisture · Skip Pump Run Today')
-                : (isTe ? 'షెడ్యూల్డ్ నీటి పారుదల అవసరం' : 'Scheduled Irrigation Recommended')}
+              {advisorData?.irrigation_required === false
+                ? (isTe ? 'మోటార్ అవసరం లేదు · నీటిని ఆదా చేయండి' : 'Skip Pump Run · Soil Sufficient')
+                : advisorData?.irrigation_required === true
+                ? (isTe ? 'నీటి పారుదల సిఫార్సు చేయబడింది' : 'Irrigation Recommended Today')
+                : (isTe ? 'పొలం పరిశీలన సలహా' : 'Field Inspection Advised')}
             </span>
           </div>
           <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-black/40">
-            Soil: {irrigationMath.moistureNum}%
+            {hasSoilMoisture
+              ? `Soil: ${soilMoistureVal}%`
+              : isSensorOffline
+              ? (isTe ? 'సెన్సార్: ఆఫ్‌లైన్' : 'Soil: Offline')
+              : (isTe ? 'సెన్సార్: లేదు' : 'Soil: Not Connected')}
           </span>
         </div>
 
-        <p className="text-sm font-semibold text-white/90">
-          {irrigationMath.recommendedAction}
+        <p className="text-sm font-semibold text-white/95 leading-relaxed">
+          {advisorData?.recommendation}
         </p>
 
-        {irrigationMath.status === 'optimal' && (
-          <div className="text-xs text-emerald-400/90 font-medium flex items-center gap-2 pt-1">
-            <Sparkles className="w-4 h-4" />
-            <span>{isTe ? 'ఈ రోజు మోటార్ ఆపడం వల్ల సుమారు 3,400 లీటర్ల భూగర్భ జలాలు & ₹110 కరెంట్ ఆదా అవుతాయి.' : 'Skipping today saves approx 3,400 L groundwater and ₹110 in power/diesel costs.'}</span>
+        {/* Reasoning list */}
+        {advisorData?.reasoning && advisorData.reasoning.length > 0 && (
+          <div className="pt-2 border-t border-white/10 space-y-1">
+            {advisorData.reasoning.map((r, idx) => (
+              <p key={idx} className="text-xs text-white/70 flex items-start gap-1.5">
+                <span className="text-cyan-400 font-bold">•</span>
+                <span>{r}</span>
+              </p>
+            ))}
           </div>
         )}
       </div>
 
       {/* 4 Precision Agro-Hydrology Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Card 1: ET0 */}
-        <div className="p-4 rounded-2xl bg-white/[0.03] border border-amber-500/25 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
-              {isTe ? 'సూర్యరశ్మి బాష్పోత్సేకం (ET₀)' : 'Reference Evaporation (ET₀)'}
-            </span>
-            <Sun className="w-4 h-4 text-amber-400" />
-          </div>
-          <p className="text-2xl font-black text-amber-300">
-            {irrigationMath.et0} <span className="text-sm font-normal text-white/60">mm/day</span>
-          </p>
-          <p className="text-[11px] text-white/60">
-            {isTe ? 'వాతావరణ సహజ ఆవిరి రేటు' : 'Atmospheric water demand rate'}
-          </p>
-        </div>
-
-        {/* Card 2: Crop ETc */}
+        {/* Card 1: Soil Moisture Status */}
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-cyan-500/25 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
-              {isTe ? 'పంట నీటి అవసరం (ETc)' : 'Crop Water Demand (ETc)'}
+              {isTe ? 'నేల తేమ స్థితి' : 'Soil Moisture Reading'}
             </span>
-            <Droplets className="w-4 h-4 text-cyan-400" />
+            <Gauge className="w-4 h-4 text-cyan-400" />
           </div>
           <p className="text-2xl font-black text-cyan-300">
-            {irrigationMath.etc} <span className="text-sm font-normal text-white/60">mm/day</span>
+            {hasSoilMoisture ? `${soilMoistureVal}%` : (isTe ? 'కనెక్ట్ కాలేదు' : 'Unavailable')}
           </p>
           <p className="text-[11px] text-white/60">
-            Kc {irrigationMath.kc} ({growthStage} stage)
+            {hasSoilMoisture
+              ? (isTe ? `లక్ష్యం: ${advisorData?.target_soil_moisture || 65}%` : `Target: ${advisorData?.target_soil_moisture || 65}%`)
+              : (isTe ? 'సాఫ్ట్‌వేర్ AI మోడ్' : 'Software AI Mode')}
           </p>
         </div>
 
-        {/* Card 3: Soil Moisture Availability */}
+        {/* Card 2: Rain Risk */}
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-blue-500/25 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
+              {isTe ? 'వర్ష సూచన సంభావ్యత' : 'Rain Probability'}
+            </span>
+            <CloudRain className="w-4 h-4 text-blue-400" />
+          </div>
+          <p className="text-2xl font-black text-blue-300">
+            {advisorData?.rain_probability != null ? `${advisorData.rain_probability}%` : '--'}
+          </p>
+          <p className="text-[11px] text-white/60">
+            {advisorData?.rain_probability > 50
+              ? (isTe ? 'వర్షం వల్ల మోటార్ ఆపవచ్చు' : 'Rain bypass active')
+              : (isTe ? 'వర్షం తక్కువ సంభావ్యత' : 'Low precipitation risk')}
+          </p>
+        </div>
+
+        {/* Card 3: Water Demand */}
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-emerald-500/25 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
-              {isTe ? 'లభ్యమయ్యే నేల తేమ నిల్వ' : 'Available Water Capacity'}
+              {isTe ? 'నీటి పరిమాణ అవసరం' : 'Water Demand'}
             </span>
-            <Gauge className="w-4 h-4 text-emerald-400" />
+            <Droplets className="w-4 h-4 text-emerald-400" />
           </div>
           <p className="text-2xl font-black text-emerald-400">
-            {Math.round(irrigationMath.availableMoisturePct)}%
+            {advisorData?.water_quantity_liters_per_acre != null
+              ? `${Number(advisorData.water_quantity_liters_per_acre).toLocaleString('en-IN')}`
+              : '--'} <span className="text-xs font-normal text-white/60">L/acre</span>
           </p>
           <p className="text-[11px] text-white/60">
-            {isTe ? 'ఫీల్డ్ కెపాసిటీ: 40% | వాడిపోవడం: 18%' : 'Field cap: 40% | Wilting: 18%'}
+            {advisorData?.water_quantity_total != null
+              ? `${Number(advisorData.water_quantity_total).toLocaleString('en-IN')} L total`
+              : (isTe ? 'క్షేత్ర తనిఖీ తర్వాత నిర్ణయించండి' : 'Verify in field')}
           </p>
         </div>
 
-        {/* Card 4: Daily Water Volume */}
+        {/* Card 4: Best Time Window */}
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-purple-500/25 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
-              {isTe ? 'అవసరమైన నీటి పరిమాణం' : 'Total Field Requirement'}
+              {isTe ? 'అనుకూల సమయం' : 'Optimal Window'}
             </span>
-            <Zap className="w-4 h-4 text-purple-400" />
+            <Clock className="w-4 h-4 text-purple-400" />
           </div>
-          <p className="text-2xl font-black text-purple-300">
-            {irrigationMath.waterVolumeLiters.toLocaleString('en-IN')} <span className="text-sm font-normal text-white/60">Liters</span>
+          <p className="text-sm font-black text-purple-300 mt-2 truncate">
+            {advisorData?.best_irrigation_time || 'Early Morning'}
           </p>
           <p className="text-[11px] text-white/60">
-            {acreage} Acres total parcel volume
+            {isTe ? 'బాష్పీభవన నష్టాన్ని తగ్గిస్తుంది' : 'Reduces evaporation loss'}
           </p>
         </div>
       </div>
@@ -346,7 +371,7 @@ export default function SmartIrrigationScheduler({
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-400/20 text-cyan-300 font-mono">92% Eff.</span>
             </div>
             <p className="text-2xl font-black text-white mt-2">
-              {irrigationMath.dripMinutes === 0 ? '0h 0m' : `${Math.floor(irrigationMath.dripMinutes / 60)}h ${irrigationMath.dripMinutes % 60}m`}
+              {dripMinutes === 0 ? '0h 0m' : `${Math.floor(dripMinutes / 60)}h ${dripMinutes % 60}m`}
             </p>
             <p className="text-xs text-white/60 mt-1">
               {isTe ? 'వేర్ల వద్ద సూక్ష్మ నీటి సరఫరా (ఉత్తమ పద్ధతి)' : 'Direct root zone micro-emission (Recommended)'}
@@ -366,7 +391,7 @@ export default function SmartIrrigationScheduler({
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/20 text-blue-300 font-mono">75% Eff.</span>
             </div>
             <p className="text-2xl font-black text-white mt-2">
-              {irrigationMath.sprinklerMinutes === 0 ? '0h 0m' : `${Math.floor(irrigationMath.sprinklerMinutes / 60)}h ${irrigationMath.sprinklerMinutes % 60}m`}
+              {sprinklerMinutes === 0 ? '0h 0m' : `${Math.floor(sprinklerMinutes / 60)}h ${sprinklerMinutes % 60}m`}
             </p>
             <p className="text-xs text-white/60 mt-1">
               {isTe ? 'తేలికపాటి పిచికారీ, ఆకుల చల్లదనం' : 'Overhead canopy micro-droplets'}
@@ -386,7 +411,7 @@ export default function SmartIrrigationScheduler({
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-400/20 text-slate-300 font-mono">50% Eff.</span>
             </div>
             <p className="text-2xl font-black text-white mt-2">
-              {irrigationMath.floodHours === 0 ? '0 Hours' : `${irrigationMath.floodHours} Hours`}
+              {floodHours === 0 ? '0 Hours' : `${floodHours} Hours`}
             </p>
             <p className="text-xs text-white/60 mt-1">
               {isTe ? 'కాలువల ద్వారా నేరుగా పారించడం' : 'Traditional furrow flooding (High loss)'}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Sprout, MapPin, Droplets, Cpu, Bell, Save, Navigation, 
+import {
+  Sprout, MapPin, Droplets, Cpu, Bell, Save, Navigation,
   Check, AlertCircle, RefreshCw, ShieldCheck, Thermometer, Radio, Archive, Layers,
   Calendar, Leaf, ScanLine, Clock, ChevronRight, ChevronLeft, Sun, CloudRain, TrendingUp, Eye, Maximize2,
   Plus, Trash2, Settings
@@ -23,6 +23,7 @@ import DigitalFarmKhata from '../../components/farm/DigitalFarmKhata';
 import GovernmentSchemeNavigator from '../../components/farm/GovernmentSchemeNavigator';
 import WhatsAppDiagnosisHub from '../../components/farm/WhatsAppDiagnosisHub';
 import CropGrowthTimeline from '../../components/farm/CropGrowthTimeline';
+import SmartIrrigationScheduler from '../../components/farm/SmartIrrigationScheduler';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -30,18 +31,18 @@ const FarmPage = () => {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
   const isTe = currentLang === 'te';
-  const { 
-    activeFarm, farms, archivedFarms, createFarm, 
+  const {
+    activeFarm, farms, archivedFarms, createFarm,
     updateFarm: saveFarmEdit, deleteFarm, unarchiveFarm,
     setActiveFarm: selectActiveFarm,
-    loading: contextLoading 
+    loading: contextLoading
   } = useFarm();
-  
+
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
-  
+
   const VALID_FARM_TABS = [
     'modules',
     'my-fields',
@@ -297,60 +298,60 @@ const FarmPage = () => {
   };
 
   const FIELD_MODULES = [
-    { 
-      id: 'my-fields', 
-      title: isTe ? 'నా పొలాలు & రంగాలు' : 'My Fields & Sectors', 
-      subtitle: isTe 
-        ? `${farms.length} రిజిస్టర్డ్ పొలాల జాబితా, క్రియాశీల మార్పిడి & కొత్త పొలం జోడించండి` 
+    {
+      id: 'my-fields',
+      title: isTe ? 'నా పొలాలు & రంగాలు' : 'My Fields & Sectors',
+      subtitle: isTe
+        ? `${farms.length} రిజిస్టర్డ్ పొలాల జాబితా, క్రియాశీల మార్పిడి & కొత్త పొలం జోడించండి`
         : `Switch between & manage all ${farms.length} registered field sectors or add a new field`,
       icon: '🌾',
       bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     },
-    { 
-      id: 'field-setup', 
-      title: isTe ? 'పొలం సెటప్ & సమాచారం' : 'Field Setup & Crops', 
+    {
+      id: 'field-setup',
+      title: isTe ? 'పొలం సెటప్ & సమాచారం' : 'Field Setup & Crops',
       subtitle: isTe ? 'పంట పేరు, రకం, నాట్లు తేదీ, ఎకరాలు, నేల రకం & నీటి వనరు' : 'Crop variety, planting date, acreage, soil classification & irrigation source',
       icon: '⚙️',
       bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
     },
-    { 
-      id: 'farm-khata', 
-      title: isTe ? 'డిజిటల్ పొలం ఖాతా & పాస్‌బుక్' : 'Digital Farm Khata', 
+    {
+      id: 'farm-khata',
+      title: isTe ? 'డిజిటల్ పొలం ఖాతా & పాస్‌బుక్' : 'Digital Farm Khata',
       subtitle: isTe ? 'సాగు ఖర్చులు, దిగుబడి అమ్మకాలు, ఎకరాకు నికర లాభం & వాట్సాప్ లెడ్జర్' : 'Track cultivation expenses, harvest sales & net profit per acre with WhatsApp ledger',
       icon: '💰',
       bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
     },
-    { 
-      id: 'soil-npk', 
-      title: isTe ? 'NPK ఎరువుల కాలిక్యులేటర్' : 'Fertilizer & NPK Calculator', 
+    {
+      id: 'soil-npk',
+      title: isTe ? 'NPK ఎరువుల కాలిక్యులేటర్' : 'Fertilizer & NPK Calculator',
       subtitle: isTe ? 'యూరియా, DAP, పొటాష్ బస్తాల ఖచ్చితమైన లెక్క & స్ప్రే మోతాదు' : 'Exact Urea, DAP & Potash bag recommendations tailored for your acres',
       icon: '💊',
       bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
     },
-    { 
-      id: 'crop-lifecycle', 
-      title: isTe ? 'పంట దశలు & పనుల క్యాలెండర్' : 'Crop Timeline & Tasks', 
+    {
+      id: 'crop-lifecycle',
+      title: isTe ? 'పంట దశలు & పనుల క్యాలెండర్' : 'Crop Timeline & Tasks',
       subtitle: isTe ? 'విత్తిన తర్వాత రోజులు (DAS), దశల ప్రగతి & వారపు పనుల చెక్‌లిస్ట్' : 'Days after sowing (DAS), stage milestones & weekly actionable tasks',
       icon: '🌱',
       bg: 'bg-lime-500/10 text-lime-600 dark:text-lime-400'
     },
-    { 
-      id: 'farm-intelligence', 
-      title: isTe ? 'స్ప్రే సలహాదారు & వాతావరణం' : 'Rain & Spray Advisor', 
-      subtitle: isTe ? 'మందులు పిచికారీ చేయడానికి ముందు లైవ్ వర్షం హెచ్చరిక & సురక్షిత విండో' : 'Live weather forecasts, rain risk window & safe chemical spraying advisor',
-      icon: '🌦️',
-      bg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
+    {
+      id: 'farm-intelligence',
+      title: isTe ? 'స్మార్ట్ నీటిపారుదల & వాతావరణం' : 'Smart Irrigation & Weather',
+      subtitle: isTe ? 'నేల తేమ, వర్ష సూచన & డ్రిప్ మోటార్ షెడ్యూల్ సలహాదారు' : 'Live soil moisture, rain forecast & precision motor run duration scheduler',
+      icon: '💧',
+      bg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
     },
-    { 
-      id: 'government-schemes', 
-      title: isTe ? 'ప్రభుత్వ పథకాలు & సబ్సిడీలు' : 'Govt Schemes & Subsidies', 
+    {
+      id: 'government-schemes',
+      title: isTe ? 'ప్రభుత్వ పథకాలు & సబ్సిడీలు' : 'Govt Schemes & Subsidies',
       subtitle: isTe ? 'పీఎం కిసాన్, రైతు భరోసా, 90% డ్రిప్ సబ్సిడీ & పంట బీమా' : 'Direct links, PM-Kisan status, 90% drip subsidy eligibility & crop insurance',
       icon: '🏛️',
       bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
     },
-    { 
-      id: 'whatsapp-diagnosis', 
-      title: isTe ? 'వాట్సాప్ పంట డాక్టర్ బాట్' : 'WhatsApp Crop Doctor', 
+    {
+      id: 'whatsapp-diagnosis',
+      title: isTe ? 'వాట్సాప్ పంట డాక్టర్ బాట్' : 'WhatsApp Crop Doctor',
       subtitle: isTe ? 'వాట్సాప్‌లో ఆకు ఫోటో పంపి తక్షణమే తెలుగు వాయిస్ సలహా పొందండి' : 'Send crop leaf photo on WhatsApp for instant AI diagnosis and voice note',
       icon: '📱',
       bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
@@ -719,8 +720,8 @@ const FarmPage = () => {
                 {isTe ? 'నా రిజిస్టర్డ్ పొలాలు' : 'My Registered Fields & Sectors'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {isTe 
-                  ? `మీ వద్ద మొత్తం ${farms.length} రిజిస్టర్డ్ పొలాలు ఉన్నాయి. కావలసిన పొలంపై క్లిక్ చేసి మార్చండి.` 
+                {isTe
+                  ? `మీ వద్ద మొత్తం ${farms.length} రిజిస్టర్డ్ పొలాలు ఉన్నాయి. కావలసిన పొలంపై క్లిక్ చేసి మార్చండి.`
                   : `You have ${farms.length} registered field sectors. Tap any field to switch active profile.`}
               </p>
             </div>
@@ -763,8 +764,8 @@ const FarmPage = () => {
                   key={farm.id}
                   glass
                   className={`p-4 sm:p-5 relative transition-all duration-200 ${
-                    isActive 
-                      ? 'border-2 border-emerald-500 dark:border-emerald-400 ring-4 ring-emerald-500/10 shadow-md shadow-emerald-500/10' 
+                    isActive
+                      ? 'border-2 border-emerald-500 dark:border-emerald-400 ring-4 ring-emerald-500/10 shadow-md shadow-emerald-500/10'
                       : 'border border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
@@ -1314,6 +1315,25 @@ const FarmPage = () => {
             onClose={() => setActiveTab('modules')}
             initialCrop={cropName || 'Tomato'}
             initialAcres={parseFloat(farmSize) || 2.0}
+          />
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Smart Irrigation & Weather Intelligence ═══════ */}
+      {activeTab === 'farm-intelligence' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <SmartIrrigationScheduler
+            farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            acreage={parseFloat(farmSize) || 2.0}
+            cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+            growthStage={growthStage || activeFarm?.growth_stage || 'Vegetative'}
+            latitude={latitude || activeFarm?.latitude || 15.8020}
+            longitude={longitude || activeFarm?.longitude || 79.8050}
+            district={district || activeFarm?.district || 'Prakasam'}
+            mandal={mandal || activeFarm?.mandal || 'Mundlamuru'}
+            village={village || activeFarm?.village || 'Pasupugallu'}
+            onClose={() => setActiveTab('modules')}
           />
         </motion.div>
       )}

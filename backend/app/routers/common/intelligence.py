@@ -91,12 +91,13 @@ async def get_weather(
 @router.get("/irrigation", summary="Get Smart Irrigation Recommendation")
 async def get_irrigation(
     farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
-    crop_name: str = Query("Tomato", description="Crop Name"),
-    growth_stage: str = Query("Vegetative", description="Growth Stage"),
+    crop_name: Optional[str] = Query(None, description="Crop Name"),
+    growth_stage: Optional[str] = Query(None, description="Growth Stage"),
     farm_size: float = Query(1.0, description="Farm Size in Acres"),
     soil_moisture: Optional[float] = Query(None, description="Soil Moisture %"),
-    lat: float = Query(16.5062, description="Latitude"),
-    lon: float = Query(80.6480, description="Longitude"),
+    device_id: Optional[str] = Query(None, description="IoT Device ID"),
+    lat: Optional[float] = Query(None, description="Latitude"),
+    lon: Optional[float] = Query(None, description="Longitude"),
     current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
     await _verify_farm_access(farm_id, current_user)
@@ -107,7 +108,9 @@ async def get_irrigation(
         farm_size_acres=farm_size,
         current_soil_moisture=soil_moisture,
         lat=lat,
-        lon=lon
+        lon=lon,
+        device_id=device_id,
+        current_user=current_user
     )
 
 @router.get("/disease-risk", summary="Get Explainable Disease Risk Forecast")

@@ -366,7 +366,11 @@ const DashboardPage = () => {
                 </div>
                 <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-sky-400/60 text-sky-300 text-xs sm:text-sm font-black shadow-lg">
                   <span>💧</span>
-                  <span>{isTe ? `నేల: ${activeTelemetry?.soil_moisture ?? 45}% (తగినంత)` : `Soil: ${activeTelemetry?.soil_moisture ?? 45}% (Optimal)`}</span>
+                  <span>
+                    {activeTelemetry?.soil_moisture != null
+                      ? (isTe ? `నేల: ${activeTelemetry.soil_moisture}%` : `Soil: ${activeTelemetry.soil_moisture}%`)
+                      : (isTe ? 'నేల: సెన్సార్ లేదు' : 'Soil: No Sensor (Weather Mode)')}
+                  </span>
                 </div>
                 <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-lg">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -455,13 +459,19 @@ const DashboardPage = () => {
                 </div>
               </div>
               <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-                {activeTelemetry?.soil_moisture ?? 45}%
+                {activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : '--'}
               </div>
             </div>
             <div className="mt-3">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 font-bold text-xs">
-                💧 {(activeTelemetry?.soil_moisture ?? 45) > 50 ? t('dashboard.kpi.optimal', 'Optimal') : (activeTelemetry?.soil_moisture ?? 45) > 30 ? t('dashboard.kpi.adequate', 'Adequate') : t('dashboard.kpi.needs_water', 'Needs Water')}
-              </span>
+              {activeTelemetry?.soil_moisture != null ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 font-bold text-xs">
+                  💧 {activeTelemetry.soil_moisture > 50 ? t('dashboard.kpi.optimal', 'Optimal') : activeTelemetry.soil_moisture > 30 ? t('dashboard.kpi.adequate', 'Adequate') : t('dashboard.kpi.needs_water', 'Needs Water')}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-xs">
+                  ☁️ {isTe ? 'వాతావరణ మోడ్' : 'Weather Mode'}
+                </span>
+              )}
             </div>
           </div>
         </div>

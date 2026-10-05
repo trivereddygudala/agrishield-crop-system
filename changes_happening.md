@@ -2,6 +2,145 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v376) - B15: Smart Irrigation Advisor Implementation
+- **Summary:**
+  1. 💧 **Two-Mode Smart Irrigation Advisor Architecture:**
+     - Implemented unified, production-grade Smart Irrigation Advisor supporting **Software AI Mode** (regional weather forecast, rain probability, crop evapotranspiration Kc, growth stage, irrigation method) and **Smart IoT Mode** (real-time field capacitive soil moisture, canopy temp/humidity, physical rain sensor, 90-second watchdog freshness).
+     - Authoritative backend calculation in [SmartIrrigationService](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/services/irrigation/service.py) calculating reference ET₀ (FAO-56), crop demand ETc, and pump run minutes across Drip, Sprinkler, and Flood methods.
+  2. 🚫 **Complete Removal of Synthetic Sensor Fallbacks:**
+     - Fully eliminated fake default soil moisture fallbacks (`?? 45`, `?? 50`, `else 42.0`). When live hardware telemetry is absent, `current_soil_moisture` returns `null` and UI displays "Unavailable" / "Not Connected" (or "--" / "Weather Mode" on Dashboard KPI).
+  3. 🛡️ **Safety Gates & Degradation Protection:**
+     - Enforced degraded confidence flag when mock weather is active to prevent false confident irrigation recommendations.
+     - Added profile requirement warning when crop metadata is missing instead of defaulting silently to Tomato.
+     - Preserved rain bypass logic delaying irrigation on high rain probability (>60%) or active rain sensor triggers.
+  4. 📱 **Frontend Integration & Testing:**
+     - Refactored [SmartIrrigationScheduler.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/farm/SmartIrrigationScheduler.jsx), [IrrigationAdvisor.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/intelligence/IrrigationAdvisor.jsx), and [FarmPage.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/farmer/FarmPage.jsx) (`farm-intelligence` tab) with reactive WebSocket updates, bilingual English/Telugu labels, and WhatsApp report sharing.
+     - Created comprehensive B15 test suite in `backend/tests/test_b15_smart_irrigation.py` (9/9 passed). All regressions passed (14/14 passed) and production frontend build completed with 0 errors.
+- **Files modified:** `backend/app/services/irrigation/service.py`, `backend/app/services/irrigation/schemas.py`, `backend/app/routers/common/intelligence.py`, `frontend/src/components/farm/SmartIrrigationScheduler.jsx`, `frontend/src/components/intelligence/IrrigationAdvisor.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `frontend/src/pages/farmer/DashboardPage.jsx`, `backend/tests/test_b15_smart_irrigation.py`, `changes_happening.md`.
+
+## 2026-10-05 (v375) - Revert: Restored Previous Farmer Dashboard & Removed Experimental System Designs
+- **Summary:**
+  1. 🔄 **Reverted Experimental System Designs & Simplified Dashboard (`DashboardPage.jsx`):**
+     - Completely removed the recent experimental SaaS system designs and simplified dashboard layout.
+     - Restored [DashboardPage.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/farmer/DashboardPage.jsx) to its previous state featuring authentic crop photography, real-time telemetry hero, 4 KPI cards (Active Crop, Leaf Scans, Soil Water, Market Rate), 8 illustrated quick farming tools, unified Field Intelligence widget, and recent crop diagnoses feed.
+  2. 🎨 **Restored Global Styles & Typography (`index.css` & `index.html`):**
+     - Reverted [frontend/src/index.css](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/index.css) to remove `.saas-card`, `@keyframes laserSweep`, `@keyframes pulseGlow`, and `@keyframes spinLeaf`.
+     - Reverted [frontend/index.html](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/index.html) to standard Inter & Outfit font imports.
+     - Removed temporary `scratch_stitch/` reference assets.
+  3. 🧪 **Validation:**
+     - Executed full production build (`npm run build`): Transformed 3167 modules in 1m 11s with 0 errors.
+     - Working tree clean with zero uncommitted frontend diffs.
+- **Files modified:** `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/index.css`, `frontend/index.html`, `changes_happening.md`, `chat by user.md`, `chats_by_user.md`.
+
+## 2026-10-03 (v374) - Farmer-First Simplified & Clean Dashboard Experience
+- **Summary:**
+  1. 🚜 **Streamlined Farmer Dashboard (`DashboardPage.jsx`):**
+     - Eliminated cognitive overload, redundant widgets, and cluttered duplicate cards.
+     - **Clean Header**: Welcoming greeting (`Namaste, Farmer! 👋`), farm location (`Nashik Agri-Cluster` or village), date, and manual refresh trigger.
+     - **Hero Status Card**: Calming emerald gradient with subtle crop background, crop condition status, weather (`☀️ 34°C`), safe spray timing (`⏱️ 8 AM – 11 AM`), and 3 quick vitals (Crop Healthy, Soil 45%, Disease Low).
+     - **Unmissable Primary Action**: Large, prominent **"📸 Scan Crop Leaf"** card with glowing icon, clear subtitle (*"Take a photo of any leaf to identify diseases & medicines"*), and instant AI badge.
+     - **4 Key Vitals (2x2 Grid)**: Leaf Scans, Soil Water with animated progress bar, Mandi Market Rate, and Active Crop stage/acreage.
+     - **Today's Farm Advice**: 2 clean actionable cards (Safe Spray Window and Scheduled Drip Irrigation).
+     - **6 Essential Quick Tools**: Large, friendly tap targets for Crop Doctor, Weather, Fertilizer, Mandi Prices, Equipment Rental, and AI Copilot.
+     - **Recent Scans**: Clean, compact 2-item diagnostic summary.
+- **Files modified:** `frontend/src/pages/farmer/DashboardPage.jsx`, `changes_happening.md`.
+
+## 2026-10-03 (v373) - Stitch SaaS Agriculture Enterprise Design Integration
+- **Summary:**
+  1. 🌾 **Extracted & Implemented Stitch Reference Design (`stitch_agrishield (1).zip`):**
+     - Unpacked reference HTML (`scratch_stitch/code.html`) and screen asset (`scratch_stitch/screen.png`).
+     - Adopted the exact SaaS agriculture design aesthetic:
+       - Crisp background mist (`#F4F7F5`), subtle organic borders (`#E2ECE5`), deep emerald brand anchors (`#0D5338`, `#065F46`, `#137547`), and vibrant leaf green accents (`#2ECC71`).
+       - Integrated Google Fonts `Plus Jakarta Sans` for enterprise typography alongside Inter and Outfit.
+       - Added custom CSS animations: `laserSweep` line, `pulseGlow`, `spinLeaf`, and `saas-card` elevation styles in [frontend/src/index.css](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/index.css).
+  2. 🛰️ **Persistent Telemetry Live Ticker Bar:**
+     - Added the live IoT sync ticker top bar with animated leaf icon (`animate-spin-leaf`), real-time synchronization status with field probes, and an interactive *"Sync Now"* button triggering live cache refresh with toast feedback.
+  3. 🌿 **High-Impact Authentic Field Telemetry Hero:**
+     - Built the Stitch-style deep photographic hero card with dark emerald gradient overlays (`from-[#043E2F]/95 via-[#064E3B]/70 to-black/45`).
+     - Dynamic greeting (`Namaste, Farmer! 👋`), Kharif 2026 operational badge, live pinging indicator, frosted weather badge (`34°C & Sunny`), safe spray window capsule (`8 – 11 AM`), and vitals capsule row (Healthy Crop, Optimal Moisture, Low Disease Risk).
+  4. 📋 **Today's Priority Actions Directive Center:**
+     - Clean white card (`rounded-3xl border border-[#E2ECE5]`) featuring actionable farm directives:
+       - Morning Drip Cycle (Plot C / 400L with NPK dosage) with *"Start"* action.
+       - Foliar Spray Application with safe spray radar window and *"Radar"* action.
+       - Daily Leaf Health & Pathogen Scan with *"Scan Leaf"* primary trigger.
+  5. 📊 **Precision Vitals (2x2 Grid):**
+     - Leaf Scans: Real total scan count with Normal and Mild/Treated breakdown pills.
+     - Soil Water: Active probe moisture %, status badge (*Adequate* / *Optimal*), and animated `#2ECC71` progress bar.
+     - Market Rate: Live Mandi APMC commodity price (₹2,150/Qtl) and daily movement badge (▲ +₹50 today).
+     - Active Crop: Current crop variety (`Tomato`, `Paddy`, etc.), vegetative growth stage pill, and acreage.
+  6. 🔬 **AI Crop & Agro Scanner Center (Master Diagnostic Hub):**
+     - Added the multi-module diagnostic center showcasing Disease Diagnosis (PyTorch AI), Plant Identification (Species ID Engine), and Agrochemical Scanner (OCR Vision).
+     - Interactive neural camera scan CTA with laser line animation.
+  7. ⚡ **8 Illustrated Quick Farming Tools & Field Intelligence:**
+     - Maintained all 8 illustrated tools (Crop Doctor, Weather Radar, Smart Soil, Mandi Rates, AI Agronomist, Equipment Rental, Farm Khata, Crop Calendar).
+     - Kept Unified Field Intelligence (dual-stream OpenWeather + ESP32 IoT telemetry) and Recent Crop Diagnoses history completely functional.
+- **Files modified:** `frontend/index.html`, `frontend/src/index.css`, `frontend/src/pages/farmer/DashboardPage.jsx`, `changes_happening.md`.
+
+## 2026-10-03 (v372) - B14 Final: Modernized Commercial Agricultural Farmer Home Experience
+- **Summary:**
+  1. 🌾 **Preserved Baseline Information Architecture & Composition:**
+     - Kept the approved baseline layout: My Farm Overview header, primary Scan Crop Leaf CTA, large agricultural telemetry hero, 4 KPI cards, Quick Farming Tools, unified Field Intelligence, and Recent Diagnoses.
+  2. 🚜 **Elevated to Real Commercial Agricultural Product Standard (`DashboardPage.jsx`):**
+     - **Hero Visual & Real Telemetry**: Dynamically bound to active crop photography (`getCropPhoto`), depth lighting, sunlight gradient, real OpenWeatherMap temperature & condition, safe spray window (8 AM – 11 AM), and 3 agricultural status badges (Crops, Soil, Disease Risk).
+     - **Active Crop KPI**: Features real crop plant thumbnail, vegetative growth stage pill, and farm acreage.
+     - **Leaf Scans KPI**: Features leaf diagnostic thumbnail, healthy/treated pills, and contextual empty state (*"Start your first crop scan"*) if no scans exist.
+     - **Soil Water KPI**: Features root-zone soil photo thumbnail, live moisture level bar/status (Optimal / Adequate / Needs Water).
+     - **Market Rate KPI**: Features APMC produce photo thumbnail, live commodity rate (₹2,150/Qtl), and movement trend.
+  3. ⚡ **8 Illustrated Quick Farming Tools:**
+     - Expanded to 8 compact, visually rich modules with authentic agricultural photography:
+       1. 🌿 **Crop Doctor** (`/upload`): Instant leaf disease detection.
+       2. 🌦 **Weather Radar** (`/crop-advisory`): Rain, wind & safe spray timing.
+       3. 💧 **Smart Soil** (`/farm?tab=soil-npk`): Moisture & N-P-K nutrient guidance.
+       4. 🧠 **AI Advice** (`/assistant`): Agronomist voice & chat copilot.
+       5. 📈 **Mandi Market** (`/market`): Daily live APMC commodity market rates.
+       6. 🚜 **Equipment** (`/equipment-booking`): Tractors, spraying drones & implements rental.
+       7. 📋 **Farm Khata** (`/farm?tab=farm-khata`): Farm expenses & harvest records.
+       8. 📅 **Crop Calendar** (`/crop-advisory`): Sowing to harvest milestone stages.
+  4. 🧭 **Bottom Navigation Kept Intact:**
+     - Preserved exact navigation structure: `Home | Field | Scan | Alerts | More`.
+  5. 🧪 **Validation & Verification:**
+     - Full production build (`npm run build`): Transformed 3167 modules in 35.57s with 0 errors.
+     - `git diff --check`: 0 errors.
+- **Files modified:** `frontend/src/pages/farmer/DashboardPage.jsx`, `changes_happening.md`.
+
+## 2026-10-03 (v371) - Revert: Restored Original Farmer Dashboard Design
+- **Summary:**
+  1. 🔄 **Reverted to Original Design:**
+     - Per explicit user request, completely removed the B14 experimental design changes.
+     - Restored [DashboardPage.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/farmer/DashboardPage.jsx) to its exact prior state (including original hero landscape banner, authentic field telemetry, KPI cards, quick tools, and field intelligence widgets).
+     - Restored [AppLayout.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/AppLayout.jsx) to its exact prior state (`Home | Field | Scan | Alerts | More`).
+  2. 🧪 **Verification:**
+     - Verified working tree: `git checkout HEAD` cleanly restored both frontend files with zero uncommitted code diffs.
+- **Files modified:** `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/components/AppLayout.jsx`, `changes_happening.md`.
+
+## 2026-10-03 (v370) - B14: Smart Farm Advisor & Clean Green/White Mobile Experience Implementation
+- **Summary:**
+  1. 🌾 **Implemented B14 Smart Farm Advisor Main Experience (`DashboardPage.jsx`):**
+     - Completely recreated the target sample design with a clean white/light background, agricultural green primary styling, and very light green secondary surfaces.
+     - **Today's Farm Overview Card**: Features Crop, Field, and Growth Stage metadata rows, plus 4 compact visual metric modules in a 2x2 grid:
+       - 🌱 **Health**: Overall health score (e.g. 88/100) with status badge (Healthy / Moderate).
+       - 💧 **Soil**: Real-time soil moisture percentage with status badge (Adequate / Optimal / Needs Water).
+       - 🌤 **Weather**: Temperature, rain probability, wind speed, and safe spray window badge.
+       - 🛡 **Risk**: Pathogen outbreak risk percentage with threat badge (Low / Moderate / Alert).
+  2. ⚡ **4 Touch-Friendly Quick Action Tiles (`DashboardPage.jsx`):**
+     - 📷 **Scan Leaf** (`/scan`): Instant AI crop leaf diagnosis.
+     - 🌤 **Weather**: Rain forecast & safe spray window with inline expandable `FieldIntelligenceWidget`.
+     - 💡 **AI Advice** (`/crop-advisory`): Direct link to Smart Crop & Pathogen Outbreak Radar.
+     - 📈 **Market** (`/market`): Live daily agricultural mandi rates.
+  3. 📋 **Prioritized Today's Actions & Disease Risk Modules:**
+     - 💧 **Irrigation Action**: Soil moisture check and drip cycle guidance.
+     - 🔍 **Field Inspection**: Lower leaf inspection guidance for early disease prevention.
+     - 🧪 **Foliar Spray Window**: Morning 8 AM – 11 AM spray window indicator with gentle breeze factors.
+     - 🛡️ **Disease Risk Capsule**: Spore germination radar overview with link to `/crop-advisory`.
+     - 🚜 **Farm Equipment Capsule**: Quick rental access for nearby tractors, drones, and harvesters.
+     - 🌿 **Recent Diagnoses Feed**: Compact list of recent leaf scans with health badges and match %.
+  4. 🧭 **Bottom Navigation Dock Alignment (`AppLayout.jsx`):**
+     - Updated Farmer BottomNav tabs to match target reference: `Home` (`/dashboard`), `Fields` (`/farm`), `Scan` (`/scan` elevated center button), `Advice` (`/crop-advisory`), `More` (`/more`).
+  5. 🧪 **Verification & Build Validation:**
+     - Executed full production build (`npm run build`): Transformed 3167 modules in 29.39s with 0 errors.
+     - Preserved 100% backward compatibility with B7–B13 (hardware IoT dual-stream, agrochemical detection, multilingual translation en/te/hi, role guards).
+- **Files modified:** `frontend/src/pages/farmer/DashboardPage.jsx`, `frontend/src/components/AppLayout.jsx`, `changes_happening.md`.
+
 ## 2026-10-03 (v369) - B12-H: Exhaustive Farmer Portal Visual Polish, Animation & Every-Tab Browser QA
 - **Summary:**
   1. 🌐 **Exhaustive Multi-Viewport Browser Validation:**
@@ -7812,3 +7951,12 @@ Files Modified:
 - **backend/tests/test_multilingual_system.py**: Updated test fixtures to conform with current booking schema (equipmentId, providerId, idempotency_key) and added in-memory booking/catalog cleanup and ws_manager registration.
 - **backend/tests/test_ws_validation.py**: Seeded iot_telemetry_ingestion in test database, added concurrent.futures timeout protection (10s) to WebSocketTestSession.receive_json, and registered ws_manager in clean_db.
 - **pytest.ini**: Established root pytest configuration with pythonpath = ., asyncio_mode = auto, testpaths = backend/tests.
+
+## [2026-10-03T11:12:00] Production Deployment Success & Live Verification
+- **Render Production Cluster**: Successfully deployed commit de528e\ after updating \IOT_API_KEY\ to production secret.
+- **Diagnostics Verified**:
+  - Main API: \https://agrishield-crop-system.onrender.com/health\ returning  OK\.
+  - Database status: connected.
+  - Background scheduler: running.
+  - Device watchdog: running.
+  - Service role: gateway (production).
