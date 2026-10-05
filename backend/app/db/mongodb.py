@@ -163,6 +163,17 @@ async def connect_to_mongo():
             name="idx_notifications_broadcast_user_unique"
         )
 
+        # B24: High-performance compound indexes for farm seasons and lifecycle lookup
+        await db_instance.db["farm_seasons"].create_index(
+            [("farm_id", 1), ("status", 1)],
+            name="idx_farm_seasons_farm_status"
+        )
+        await db_instance.db["farm_seasons"].create_index(
+            [("season_id", 1)],
+            unique=True,
+            name="idx_farm_seasons_season_id_unique"
+        )
+
         logger.info("MongoDB indexes verified.")
         await seed_default_notification_rules(db_instance.db)
     except Exception as e:

@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v386) - B24: Harvest & Season Management
+- **Summary:**
+  1. 🌾 **Dedicated Scalable Season Lifecycle Architecture (`farm_seasons`):**
+     - Introduced dedicated `farm_seasons` MongoDB collection to prevent unbounded document growth and historical array bloating in `farm_profiles`.
+     - Preserves immutable historical season snapshots: `season_id`, `crop_name`, `variety`, `historical_area`, `area_unit`, `planting_date`, `season_start_date`, `season_end_date`, and `status` (`active` | `closed`).
+  2. 🧺 **Harvest Logging & Multiple Pickings:**
+     - Implemented `POST /api/farms/{farm_id}/harvests` and `GET /api/farms/{farm_id}/harvests` with quantity validation (> 0), standard unit normalization (`kg`, `quintal`, `tonne`), picking sequence number tracking, and idempotency protection against duplicate submissions.
+  3. 💰 **Separate Crop Sale Recording & Farm Khata Linkage:**
+     - Enforced mandatory distinction between harvest (what was picked) and sale (what was sold).
+     - Implemented `POST /api/farms/{farm_id}/sales` with realized price calculation (`quantity_sold * price_per_unit`), buyer/mandi recording, and optional explicit Khata income integration with idempotent `booking_id="harvest-sale-{sale_id}"`.
+     - Zero automatic income generation on harvest creation alone.
+  4. 📊 **Season Performance Scorecard & Actual Unit Economics:**
+     - Implemented `GET /api/farms/{farm_id}/season-summary` and `GET /api/farms/{farm_id}/seasons/{season_id}/scorecard`.
+     - Calculates: Total Harvest (Quintals/kg), Yield per Acre (using historical season area, not current farm size), Actual Cultivation Cost (from Farm Khata actual expenses), Actual Sales Income, Net Profit/Loss, Production Cost per Quintal, Profit per Acre, and Actual ROI (%).
+     - Strictly labels metric states (`actual`, `not_available`) with zero fabricated values for missing financial or harvest data.
+  5. 🔄 **Safe Season Close & Non-Destructive Rollover:**
+     - Implemented idempotent season closure (`POST /api/farms/{farm_id}/close-season`), capturing the immutable final scorecard snapshot.
+     - Implemented `POST /api/farms/{farm_id}/seasons/start` for explicit new season initiation, cleanly rolling over farm profile parameters without overwriting or destroying historical seasons.
+  6. 📱 **Frontend Farmer Workflow (`HarvestSeasonManager.jsx` & `FarmPage.jsx`):**
+     - Built comprehensive `HarvestSeasonManager` component providing Performance Scorecard cards, Harvest Batches table, Crop Sales table, Historical Season Archive, and farmer-friendly modals for logging harvests, sales, season close, and new season launch.
+     - Integrated seamlessly into `FarmPage.jsx` navigation tabs (`tab=harvest-season`) and `CropGrowthTimeline.jsx` harvest callout banner.
+  7. 🧪 **Comprehensive Test Suite & Multi-Batch Regression:**
+     - Authored `backend/tests/test_b24_harvest_season_management.py` covering all 22 required test cases (22/22 passed, 100%).
+     - Ran multi-batch regression covering B15–B23 and RBAC (186/186 passed, 100%).
+     - Production frontend build (`npm run build`) succeeded with 0 errors.
+- **Files created:** `backend/app/models/harvest_season.py`, `backend/app/services/harvest_season_service.py`, `frontend/src/components/farm/HarvestSeasonManager.jsx`, `backend/tests/test_b24_harvest_season_management.py`.
+- **Files modified:** `backend/app/routers/farmer/farm_profiles.py`, `backend/app/db/mongodb.py`, `backend/app/services/action_center/service.py`, `frontend/src/pages/farmer/FarmPage.jsx`, `frontend/src/components/farm/CropGrowthTimeline.jsx`, `changes_happening.md`.
+
 ## 2026-10-05 (v385) - B23: Remove Unsupported Farm Input Assumptions & Authority Claims (Correction)
 - **Summary:**
   1. 🚫 **Removal of Universal 200 L/Acre Spray-Volume Assumption:**

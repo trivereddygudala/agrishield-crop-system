@@ -21,6 +21,15 @@ from backend.app.models.farm_profile import (
     VALID_INVENTORY_UNITS
 )
 from backend.app.services.farm_profile_service import FarmProfileService
+from backend.app.models.harvest_season import (
+    HarvestCreate,
+    SaleCreate,
+    SeasonCreate,
+    SeasonCloseRequest,
+    SeasonScorecardResponse,
+    SeasonResponse
+)
+from backend.app.services.harvest_season_service import HarvestSeasonService, serialize_mongo_doc
 
 router = APIRouter(prefix="/api/farms", tags=["Farm Profiles"])
 
@@ -1309,4 +1318,206 @@ async def archive_inventory_item(
         "id": item_id,
         "archived": True
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# B24: HARVEST & SEASON MANAGEMENT ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/{farm_id}/seasons")
+async def list_farm_seasons(
+    farm_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve all crop seasons (active and closed) for this farm."""
+    await _verify_farm_access(farm_id, current_user, db)
+    return await HarvestSeasonService.list_seasons(db, farm_id)
+
+
+@router.get("/{farm_id}/seasons/active")
+async def get_active_farm_season(
+    farm_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve the current active crop season for this farm, initializing if needed."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    season = await HarvestSeasonService.get_or_create_active_season(db, farm_id, current_user["id"], farm_doc)
+    return serialize_mongo_doc(season)
+
+
+@router.get("/{farm_id}/seasons/{season_id}")
+async def get_farm_season(
+    farm_id: str,
+    season_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve details for a specific crop season."""
+    await _verify_farm_access(farm_id, current_user, db)
+    season = await db["farm_seasons"].find_one({"season_id": season_id, "farm_id": farm_id})
+    if not season:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Season not found for this farm."
+        )
+    return serialize_mongo_doc(season)
+
+
+@router.post("/{farm_id}/seasons/start", status_code=status.HTTP_201_CREATED)
+async def start_farm_season(
+    farm_id: str,
+    payload: SeasonCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Start a new crop season for the farm without overwriting previous historical seasons."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    try:
+        new_season = await HarvestSeasonService.start_new_season(
+            db, farm_id, current_user["id"], payload, farm_doc
+        )
+        return serialize_mongo_doc(new_season)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/{farm_id}/seasons/{season_id}/close")
+@router.post("/{farm_id}/close-season")
+async def close_farm_season(
+    farm_id: str,
+    season_id: Optional[str] = None,
+    payload: Optional[SeasonCloseRequest] = None,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Close an active crop season and preserve its final scorecard snapshot."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    target_season_id = season_id
+    if not target_season_id:
+        active_season = await db["farm_seasons"].find_one({"farm_id": farm_id, "status": "active"})
+        if active_season:
+            target_season_id = active_season["season_id"]
+        else:
+            # If no active season exists, check for recently closed season for safe idempotency
+            recent_seasons = await db["farm_seasons"].find({"farm_id": farm_id}).sort("created_at", -1).to_list(1)
+            if recent_seasons and recent_seasons[0].get("status") == "closed":
+                return serialize_mongo_doc(recent_seasons[0])
+            active_season = await HarvestSeasonService.get_or_create_active_season(db, farm_id, current_user["id"], farm_doc)
+            target_season_id = active_season["season_id"]
+
+    try:
+        closed_season = await HarvestSeasonService.close_season(
+            db, farm_id, current_user["id"], target_season_id, payload or SeasonCloseRequest()
+        )
+        return serialize_mongo_doc(closed_season)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/{farm_id}/season-summary")
+@router.get("/{farm_id}/seasons/{season_id}/scorecard")
+async def get_season_scorecard(
+    farm_id: str,
+    season_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Calculate the Season Performance Scorecard using historical season area and actual Khata/sale records."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    if season_id:
+        season = await db["farm_seasons"].find_one({"season_id": season_id, "farm_id": farm_id})
+        if not season:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Season not found."
+            )
+    else:
+        season = await HarvestSeasonService.get_or_create_active_season(db, farm_id, current_user["id"], farm_doc)
+
+    scorecard = await HarvestSeasonService.calculate_season_scorecard(db, farm_id, season)
+    return scorecard.model_dump()
+
+
+@router.get("/{farm_id}/harvests")
+async def list_harvests(
+    farm_id: str,
+    season_id: Optional[str] = Query(None, description="Optional season ID filter"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve all harvest batches for the farm's active or specified season."""
+    await _verify_farm_access(farm_id, current_user, db)
+    return await HarvestSeasonService.list_harvests(db, farm_id, season_id)
+
+
+@router.post("/{farm_id}/harvests", status_code=status.HTTP_201_CREATED)
+async def log_harvest(
+    farm_id: str,
+    payload: HarvestCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Record an actual crop harvest batch with quantity, unit normalization, and picking number."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    try:
+        harvest_record = await HarvestSeasonService.log_harvest(
+            db, farm_id, current_user["id"], payload, farm_doc
+        )
+        return harvest_record
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to record harvest: {str(e)}"
+        )
+
+
+@router.get("/{farm_id}/sales")
+async def list_sales(
+    farm_id: str,
+    season_id: Optional[str] = Query(None, description="Optional season ID filter"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve all crop sales for the farm's active or specified season."""
+    await _verify_farm_access(farm_id, current_user, db)
+    return await HarvestSeasonService.list_sales(db, farm_id, season_id)
+
+
+@router.post("/{farm_id}/sales", status_code=status.HTTP_201_CREATED)
+async def record_sale(
+    farm_id: str,
+    payload: SaleCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Record an actual crop sale with realized price, buyer/mandi, and optional Farm Khata integration."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    try:
+        sale_record = await HarvestSeasonService.record_sale(
+            db, farm_id, current_user["id"], payload, farm_doc
+        )
+        return sale_record
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to record sale: {str(e)}"
+        )
 

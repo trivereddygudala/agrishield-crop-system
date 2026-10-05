@@ -25,6 +25,7 @@ import WhatsAppDiagnosisHub from '../../components/farm/WhatsAppDiagnosisHub';
 import CropGrowthTimeline from '../../components/farm/CropGrowthTimeline';
 import SmartIrrigationScheduler from '../../components/farm/SmartIrrigationScheduler';
 import FarmInventoryManager from '../../components/farm/FarmInventoryManager';
+import HarvestSeasonManager from '../../components/farm/HarvestSeasonManager';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -50,6 +51,7 @@ const FarmPage = () => {
     'field-setup',
     'soil-npk',
     'crop-lifecycle',
+    'harvest-season',
     'farm-khata',
     'farm-inventory',
     'farm-intelligence',
@@ -63,6 +65,7 @@ const FarmPage = () => {
     { id: 'field-setup', labelEn: 'Field Setup', labelTe: 'పొలం సెటప్', icon: '⚙️' },
     { id: 'soil-npk', labelEn: 'Fertilizer & NPK', labelTe: 'NPK ఎరువులు', icon: '💊' },
     { id: 'crop-lifecycle', labelEn: 'Crop Timeline', labelTe: 'పంట దశలు', icon: '🌱' },
+    { id: 'harvest-season', labelEn: 'Harvest & Seasons', labelTe: 'దిగుబడి & సీజన్', icon: '🧺' },
     { id: 'farm-khata', labelEn: 'Farm Khata', labelTe: 'డిజిటల్ ఖాతా', icon: '💰' },
     { id: 'farm-inventory', labelEn: 'Inventory', labelTe: 'ఇన్వెంటరీ', icon: '📦' },
     { id: 'farm-intelligence', labelEn: 'Rain & Spray', labelTe: 'వర్షం & స్ప్రే', icon: '🌦️' },
@@ -1209,6 +1212,16 @@ const FarmPage = () => {
             onClose={() => setActiveTab('modules')}
           />
 
+          <div id="harvest-season-section">
+            <HarvestSeasonManager
+              farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
+              farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+              cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+              farmSize={parseFloat(farmSize) || parseFloat(activeFarm?.farm_size) || 1.0}
+              onSeasonChanged={fetchFarmData}
+            />
+          </div>
+
           <form onSubmit={handleSaveFarm} className="space-y-5">
             <Card glass className="p-5 space-y-5">
               <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">
@@ -1274,6 +1287,19 @@ const FarmPage = () => {
               </Button>
             </div>
           </form>
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: B24 Harvest & Season Management ═══════ */}
+      {activeTab === 'harvest-season' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
+          <HarvestSeasonManager
+            farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+            farmSize={parseFloat(farmSize) || parseFloat(activeFarm?.farm_size) || 1.0}
+            onSeasonChanged={fetchFarmData}
+          />
         </motion.div>
       )}
 

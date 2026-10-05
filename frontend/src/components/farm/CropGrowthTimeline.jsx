@@ -250,6 +250,33 @@ export default function CropGrowthTimeline({
         </div>
       )}
 
+      {/* B24 Harvest & Season Scorecard Quick Callout */}
+      {calendarState && (calendarState.current_stage?.toLowerCase().includes('harvest') || (calendarState.days_since_sowing || 0) >= 80) && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-transparent border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🧺</span>
+            <div>
+              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                {isTe ? 'పంట కోత దశ — దిగుబడి & అమ్మకాలు నమోదు చేయండి' : 'Harvest Stage Active — Log Yield & Mandi Sales'}
+              </h4>
+              <p className="text-[11px] text-white/60">
+                {isTe ? 'దిగుబడిని నమోదు చేసి పూర్తి సీజన్ లాభం స్కోర్‌కార్డ్ రూపొందించండి.' : 'Record harvest pickings and crop sales below to view your Season Scorecard.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('harvest-season-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold shrink-0 cursor-pointer"
+          >
+            {isTe ? 'దిగుబడి విభాగం చూడండి' : 'Go to Harvest & Seasons'}
+          </button>
+        </div>
+      )}
+
       {/* 3 Main Action Views Navigation Bar */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-2">
         <button

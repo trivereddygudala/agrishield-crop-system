@@ -836,6 +836,30 @@ class ActionCenterService:
                     )
                 )
 
+        # ── SOURCE 8: B24 Harvest & Season Lifecycle ──
+        if growth_stage and any(s in growth_stage.lower() for s in ["harvest", "matur", "ripen"]):
+            raw_actions.append(
+                FarmerActionItem(
+                    action_id=f"act-harvest-log-{resolved_farm_id}",
+                    action_type="CROP_TASK",
+                    priority="P1",
+                    what=f"Log Harvest Output for {crop_name or 'Crop'}",
+                    why=f"{crop_name or 'Crop'} is in {growth_stage} stage. Record yield picking and mandi sales to generate the Season Scorecard.",
+                    when="Harvest Window",
+                    due_date=today_str,
+                    source="Season Management",
+                    operating_mode=operating_mode,
+                    status="pending",
+                    operational_bucket="today",
+                    field_name=field_name,
+                    crop_name=crop_name,
+                    growth_stage=growth_stage,
+                    action_url="/farm?tab=crop-lifecycle",
+                    action_label="Log Harvest & Sales",
+                    badge_text="Harvest Stage"
+                )
+            )
+
         # ------------------------------------------------------------------
         # 5. Apply Farmer Interaction State, Deduplication & Active Actions
         # ------------------------------------------------------------------
