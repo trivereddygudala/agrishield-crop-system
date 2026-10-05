@@ -417,10 +417,24 @@ async def update_timeline_tasks(
             detail="Invalid completed_tasks format or payload size exceeds 100 items."
         )
     for k, v in tasks.items():
-        if not isinstance(k, str) or len(k) > 100 or not isinstance(v, bool):
+        if not isinstance(k, str) or len(k) > 100:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid task entry: key must be string <= 100 chars, value must be boolean."
+                detail="Invalid task entry: key must be string <= 100 chars."
+            )
+        if isinstance(v, bool):
+            continue
+        elif isinstance(v, dict):
+            status_val = v.get("status")
+            if status_val not in ("completed", "skipped", "delayed", "pending"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid task status: '{status_val}'. Must be completed, skipped, delayed, or pending."
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid task entry: value must be boolean or status dictionary."
             )
 
     now = datetime.now(timezone.utc)

@@ -2,6 +2,24 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v377) - B16: Smart Crop Calendar & Farm Activity Planner Implementation
+- **Summary:**
+  1. 📅 **Dynamic Crop Calendar & Adaptive Phenology Date Mapping:**
+     - Upgraded [CropCalendarService](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/services/crop_calendar/service.py) to dynamically map days-after-sowing (DAS) and crop growth stages to actual calendar dates (Today, Upcoming, and Completed) using the farmer's registered planting date.
+     - Preserves clean degradation: returns explicit setup prompts when planting date or crop profile is missing without inventing fake defaults or defaulting to Tomato.
+  2. 🌦️ **Weather Adaptation & Two-Mode Support:**
+     - Automatically evaluates forecast rain probability (>60%) to flag chemical foliar spray delays and excessive heat (>38°C) for safer morning/evening field work.
+     - Supports **Software AI Mode** (regional OpenWeatherMap + crop phenology) and **Smart IoT Mode** (validated with authoritative 90-second watchdog live ESP32 soil moisture, canopy temperature, and rain sensors). Automatically falls back to Software AI Mode when hardware is offline.
+  3. 💧 **Authoritative B15 Smart Irrigation Integration:**
+     - Consumes authoritative recommendations from `SmartIrrigationService` without duplicate deficit or pump runtime calculations, dynamically inserting urgent watering tasks when moisture deficit requires it.
+  4. 📋 **Rich Task Status Persistence & Backward Compatibility:**
+     - Upgraded `farm_profiles.timeline_tasks` in [farm_profiles.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/farmer/farm_profiles.py) and [farm_profile.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/models/farm_profile.py) to accept task status states (`completed`, `skipped`, `delayed`, `pending`) and `completed_at` timestamps while maintaining 100% backward compatibility with legacy boolean task records.
+  5. 📱 **Frontend 3-Tab Interactive Planner (`CropGrowthTimeline.jsx`):**
+     - Upgraded [CropGrowthTimeline.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/farm/CropGrowthTimeline.jsx) at `farm?tab=crop-lifecycle` to provide dedicated views for **Today's Tasks** (with Mark Done, Delay, and Skip actions), **Upcoming Activities**, and **Completed / History**, paired with two-mode status badges and WhatsApp schedule sharing.
+  6. 🧪 **Validation & Test Suite:**
+     - Created `backend/tests/test_b16_smart_crop_calendar.py` covering all 9 test scenarios (100% passed). Full regression suite (23/23 tests) and production frontend build passed with 0 errors.
+- **Files modified:** `backend/app/services/crop_calendar/service.py`, `backend/app/routers/common/intelligence.py`, `backend/app/routers/farmer/farm_profiles.py`, `backend/app/models/farm_profile.py`, `frontend/src/components/farm/CropGrowthTimeline.jsx`, `backend/tests/test_b16_smart_crop_calendar.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v376) - B15: Smart Irrigation Advisor Implementation
 - **Summary:**
   1. 💧 **Two-Mode Smart Irrigation Advisor Architecture:**

@@ -67,4 +67,4 @@ class KhataTransactionCreate(BaseModel):
     booking_id: Optional[str] = Field(None, description="Optional booking reference to prevent duplicates")
 
 class TimelineTasksUpdate(BaseModel):
-    completed_tasks: Dict[str, bool] = Field(..., description="Map of task IDs to completed boolean")
+    completed_tasks: Dict[str, Any] = Field(..., description="Map of task IDs to completed boolean or task metadata object")

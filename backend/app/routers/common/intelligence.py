@@ -210,14 +210,23 @@ async def get_daily_recommendations(
         lon=lon
     )
 
-@router.get("/crop-calendar", summary="Get Crop Lifecycle Calendar")
+@router.get("/crop-calendar", summary="Get Crop Lifecycle Calendar & Task Planner")
 async def get_crop_calendar(
-    crop_name: str = Query("Tomato", description="Crop Name"),
-    growth_stage: str = Query("Vegetative", description="Growth Stage"),
-    days_since_sowing: int = Query(42, description="Days Since Sowing")
+    farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
+    crop_name: Optional[str] = Query(None, description="Crop Name"),
+    growth_stage: Optional[str] = Query(None, description="Growth Stage"),
+    planting_date: Optional[str] = Query(None, description="Planting / Sowing Date YYYY-MM-DD"),
+    days_since_sowing: Optional[int] = Query(None, description="Days Since Sowing"),
+    current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
+    await _verify_farm_access(farm_id, current_user)
     return await crop_calendar_service.get_crop_calendar(
-        crop_name=crop_name, current_stage=growth_stage, days_since_sowing=days_since_sowing
+        farm_id=farm_id,
+        crop_name=crop_name,
+        growth_stage=growth_stage,
+        planting_date=planting_date,
+        days_since_sowing=days_since_sowing,
+        current_user=current_user
     )
 
 @router.get("/health-score", summary="Get Farm Health Score 2.0 Breakdown")
