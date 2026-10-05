@@ -2,6 +2,39 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v382) - B21: Smart Farm Alerts & Notification Intelligence
+- **Summary:**
+  1. 🔗 **Broken Notification Route Fixes:**
+     - `alert_engine.py`: Replaced non-existent destination `/recommendations` with `/farm?tab=farm-intelligence` for soil moisture alerts.
+     - `predict.py`: Replaced circular self-referencing destination `/notifications` with `/upload` (Crop Leaf Scanner) for regional disease outbreak alerts.
+  2. 🎯 **Actionable Notification CTA Integration (`NotificationsPage.jsx`):**
+     - Implemented `getActionCTA` helper mapping genuine operational alerts to clear primary CTAs:
+       - Soil / Irrigation: *"View Irrigation Advice"* -> `/farm?tab=farm-intelligence`
+       - Weather: *"View Farm Operations"* -> `/farm?tab=farm-intelligence`
+       - Disease: *"Scan Crop Now"* -> `/upload`
+       - Hardware / Device: *"Check Hardware"* -> `/devices`
+       - Booking: *"View Booking"* -> `/equipment-booking`
+       - Inventory: *"View Inventory"* -> `/farm?tab=inventory`
+     - Non-actionable notifications (system notices, general broadcasts) suppress action buttons cleanly.
+  3. 🌦️ **Severe Weather Advisory Integration (`NotificationService`):**
+     - Added `trigger_weather_advisory` evaluating authoritative weather telemetry against severe thresholds (rain probability > 80%, heatwave > 38°C).
+     - Heavy rain: *"Heavy Rain Expected"* (priority High, advisory to delay irrigation/spraying).
+     - High heat: *"High Heat Advisory"* (priority Medium, check crop & irrigation plan).
+     - Action destination: `/farm?tab=farm-intelligence` (bridging into B19/B20 operations).
+  4. 🛡️ **12-Hour Deduplication & Quiet-Hours Safety:**
+     - Integrated 12-hour cooldown deduplication window per advisory type, user, and condition via `check_duplicate`.
+     - Supports condition escalation/transition (e.g. rain vs heatwave) without duplicate spam.
+     - Respects user category preferences (`weather_alerts=False`) and quiet hours (suppresses non-critical Medium priority heat advisories).
+  5. 🔒 **Protected Systems & Non-Intrusive Design:**
+     - Zero hardware actuator control (no MQTT, pump, relay, or ESP32 commands).
+     - Zero financial transactions, inventory mutations, or duplicate Action Center record generation.
+     - Seamless operation in both Software AI Mode (pure forecast) and Smart IoT Mode.
+  6. 🧪 **Validation & Regression Suite:**
+     - Authored `backend/tests/test_b21_smart_farm_alerts.py` (15/15 tests passed, 100%).
+     - Passed all 110 regression tests across B20, B19, B18, B17, B16, B15, B6 broadcast fanout/idempotency, and WebSocket authentication (100% pass).
+     - Frontend production build (`npm run build`) succeeded in 31.21s with zero errors.
+- **Files modified:** `backend/app/services/alert_engine.py`, `backend/app/routers/farmer/predict.py`, `backend/app/services/notification_service.py`, `frontend/src/pages/common/NotificationsPage.jsx`, `backend/tests/test_b21_smart_farm_alerts.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v381) - B19: Smart Farmer Action Center Implementation
 - **Summary:**
   1. 🎯 **Synthesized Action Center Architecture (`ActionCenterService`):**

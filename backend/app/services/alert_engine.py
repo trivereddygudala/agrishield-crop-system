@@ -168,7 +168,7 @@ class AlertEngine:
                         rendered_msg = rendered_msg.replace(f"{{{{{fld}}}}}", str(telemetry.get(fld, "")))
 
                     action_url = "/dashboard"
-                    if category == "soil": action_url = "/recommendations"
+                    if category == "soil": action_url = "/farm?tab=farm-intelligence"
                     elif category == "battery": action_url = "/devices"
 
                     await NotificationService.create_notification(db, NotificationCreate(
@@ -399,7 +399,7 @@ class AlertEngine:
                         message=msg,
                         category="soil",
                         priority="High",
-                        action_url="/recommendations"
+                        action_url="/farm?tab=farm-intelligence"
                     ), template_key="soil_moisture_low", template_context={"soil_moisture": avg_moisture, "liters": 5})
 
                     # Update cooldown

@@ -2618,7 +2618,7 @@ async def predict_pytorch_endpoint(
                                     ),
                                     category="Disease",
                                     priority="High",
-                                    action_url="/notifications"
+                                    action_url="/upload"
                                 ))
                     if notified_users:
                         print(f"[NVIDIA OUTBREAK ALERT] Broadcasted outbreak warning alerts to {len(notified_users)} nearby farmers in {user_district} district.")

@@ -32,13 +32,114 @@ class NotificationService:
     async def check_duplicate(db, user_id: str, category: str, title: str, window_hours: int = 2) -> bool:
         """Checks if an identical notification was sent to this user within the cooldown window."""
         threshold = datetime.now(timezone.utc) - timedelta(hours=window_hours)
+        cat_match = {"$in": [category, category.lower(), category.capitalize(), category.upper()]} if isinstance(category, str) else category
         count = await db.notifications.count_documents({
             "user_id": user_id,
-            "category": category,
+            "category": cat_match,
             "title": title,
-            "lifecycle.created_at": {"$gte": threshold}
+            "created_at": {"$gte": threshold}
         })
+        if count == 0:
+            count = await db.notifications.count_documents({
+                "user_id": user_id,
+                "category": cat_match,
+                "title": title,
+                "lifecycle.created_at": {"$gte": threshold}
+            })
         return count > 0
+
+    @staticmethod
+    async def trigger_weather_advisory(
+        db,
+        user_id: str,
+        weather_data: Dict[str, Any],
+        farm_id: Optional[str] = None,
+        device_id: Optional[str] = None,
+        override_priority: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        B21 Smart Farm Alert Intelligence: Evaluates authoritative weather data against
+        severe advisory thresholds (rain probability > 80%, heatwave > 38°C) and dispatches
+        actionable, quiet-hours aware, deduplicated farmer notifications.
+        Deduplication window: 12 hours.
+        Action URL: /farm?tab=farm-intelligence
+        """
+        if not weather_data or not user_id:
+            return []
+
+        advisories = []
+        current = weather_data.get("current") if isinstance(weather_data.get("current"), dict) else weather_data
+
+        # 1. Rain probability evaluation (>80%)
+        rain_prob = current.get("rain_probability")
+        if rain_prob is None:
+            rain_prob = current.get("pop")
+            if rain_prob is not None and isinstance(rain_prob, (int, float)) and rain_prob <= 1.0:
+                rain_prob = rain_prob * 100
+
+        # Also inspect forecast items if current rain probability is not severe
+        if (rain_prob is None or float(rain_prob) <= 80) and isinstance(weather_data.get("forecast"), list):
+            for fc in weather_data.get("forecast", []):
+                if isinstance(fc, dict):
+                    f_prob = fc.get("rain_probability")
+                    if f_prob is None:
+                        f_prob = fc.get("pop")
+                        if f_prob is not None and isinstance(f_prob, (int, float)) and f_prob <= 1.0:
+                            f_prob = f_prob * 100
+                    if f_prob is not None and float(f_prob) > 80:
+                        rain_prob = f_prob
+                        break
+
+        if rain_prob is not None and float(rain_prob) > 80:
+            rain_priority = override_priority if override_priority is not None else "High"
+            advisories.append({
+                "title": "Heavy Rain Expected",
+                "message": "Heavy rain is expected soon. Consider delaying irrigation or foliar spraying.",
+                "priority": rain_priority
+            })
+
+        # 2. Temperature / Heatwave evaluation (>38°C)
+        temp = current.get("temperature")
+        if temp is None:
+            temp = current.get("temp")
+
+        if temp is not None and float(temp) > 38.0:
+            heat_priority = override_priority if override_priority is not None else "Medium"
+            advisories.append({
+                "title": "High Heat Advisory",
+                "message": "High temperatures are expected. Check your crop and irrigation plan.",
+                "priority": heat_priority
+            })
+
+        created_results = []
+        for adv in advisories:
+            adv_title = adv["title"]
+            adv_message = adv["message"]
+            adv_priority = adv["priority"]
+
+            # 12-hour deduplication window per advisory type and user
+            is_dup = await NotificationService.check_duplicate(
+                db, user_id=user_id, category="weather", title=adv_title, window_hours=12
+            )
+            if is_dup:
+                logger.info(f"Weather advisory '{adv_title}' deduplicated for user {user_id} within 12h cooldown window.")
+                continue
+
+            notif_create = NotificationCreate(
+                user_id=user_id,
+                title=adv_title,
+                message=adv_message,
+                category="weather",
+                priority=adv_priority,
+                action_url="/farm?tab=farm-intelligence",
+                farm_id=farm_id,
+                device_id=device_id
+            )
+            created = await NotificationService.create_notification(db, notif_create)
+            if created and isinstance(created, dict) and created.get("notification_id"):
+                created_results.append(created)
+
+        return created_results
 
     @staticmethod
     async def create_notification(
@@ -192,6 +293,7 @@ class NotificationService:
             "category": category,
             "priority": priority,
             "status": "active",
+            "created_at": now_utc,
             "read": False,
             "confidence_score": notification.confidence_score or 0.9,
             "action_url": notification.action_url,

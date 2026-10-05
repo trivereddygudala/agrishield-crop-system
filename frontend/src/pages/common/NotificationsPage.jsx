@@ -106,6 +106,100 @@ function extractCropInfo(item, isTe = false) {
   };
 }
 
+// ── B21: Smart Farm Alerts Actionable Notification CTA Helper ──
+export function getActionCTA(item, isTe = false) {
+  if (!item) return null;
+
+  const cat = String(item.category || item.type || '').toLowerCase();
+  const rawUrl = item.action_url || '';
+  const title = String(item.title || '').toLowerCase();
+
+  // Guard against broken circular /notifications action URLs
+  const cleanUrl = (rawUrl && !rawUrl.startsWith('/notifications')) ? rawUrl : '';
+
+  // 1. Soil / Irrigation -> View Irrigation Advice
+  if (cat.includes('soil') || cat.includes('irrigation') || title.includes('soil') || title.includes('irrigation')) {
+    return {
+      label: isTe ? 'నీటి పారుదల సలహా చూడండి' : 'View Irrigation Advice',
+      url: cleanUrl || '/farm?tab=farm-intelligence'
+    };
+  }
+
+  // 2. Weather -> View Farm Operations
+  if (cat.includes('weather') || title.includes('weather') || title.includes('rain') || title.includes('heat')) {
+    return {
+      label: isTe ? 'వ్యవసాయ పనుల వివరాలు చూడండి' : 'View Farm Operations',
+      url: cleanUrl || '/farm?tab=farm-intelligence'
+    };
+  }
+
+  // 3. Disease / Regional Outbreak -> Scan Crop Now
+  if (cat.includes('disease') || cat.includes('outbreak') || title.includes('outbreak') || title.includes('disease')) {
+    return {
+      label: isTe ? 'పంటను స్కాన్ చేయండి' : 'Scan Crop Now',
+      url: cleanUrl || '/upload'
+    };
+  }
+
+  // 4. Battery / Device / Hardware -> Check Hardware
+  if (cat.includes('battery') || cat.includes('device') || cat.includes('hardware') || cat.includes('node') || cat.includes('sensor')) {
+    return {
+      label: isTe ? 'హార్డ్‌వేర్ తనిఖీ చేయండి' : 'Check Hardware',
+      url: cleanUrl || '/devices'
+    };
+  }
+
+  // 5. Booking / Machinery -> View Booking
+  if (cat.includes('booking') || cat.includes('machinery') || cat.includes('equipment') || item.booking_id || item.bookingId) {
+    const bookingTarget = item.booking_id || item.bookingId;
+    const dest = cleanUrl || (bookingTarget ? `/equipment-booking?bookingId=${bookingTarget}` : '/equipment-booking');
+    return {
+      label: isTe ? 'బుకింగ్ చూడండి' : 'View Booking',
+      url: dest
+    };
+  }
+
+  // 6. Inventory -> View Inventory
+  if (cat.includes('inventory') || title.includes('inventory') || title.includes('stock')) {
+    return {
+      label: isTe ? 'స్టాక్ వివరాలు చూడండి' : 'View Inventory',
+      url: cleanUrl || '/farm?tab=inventory'
+    };
+  }
+
+  // 7. Non-actionable system/support/onboarding types without explicit action URL
+  if (['system', 'support', 'farmer_onboarding', 'provider_onboarding', 'farm_field', 'security'].includes(cat)) {
+    if (cleanUrl) {
+      return {
+        label: isTe ? 'వివరాలు చూడండి' : 'View Details',
+        url: cleanUrl
+      };
+    }
+    return null;
+  }
+
+  // 8. Broadcast with legitimate action URL
+  if (cat === 'broadcast') {
+    if (cleanUrl) {
+      return {
+        label: isTe ? 'వివరాలు చూడండి' : 'View Details',
+        url: cleanUrl
+      };
+    }
+    return null;
+  }
+
+  // 9. Any other notification that explicitly carries an action_url
+  if (cleanUrl) {
+    return {
+      label: isTe ? 'వివరాలు చూడండి' : 'View Details',
+      url: cleanUrl
+    };
+  }
+
+  return null;
+}
+
 // ── Google Messages High-Contrast Color Coding ──
 // Emerald for Provider, Amber for Crop Alert, Blue for Weather, Orange for Support
 const THREAD_THEMES = {
@@ -1544,6 +1638,24 @@ export default function NotificationsPage() {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${meta.badgeBg}`}>
                         {meta.categoryLabel}
                       </span>
+                      {(() => {
+                        const actionCTA = getActionCTA(item, isTe);
+                        if (!actionCTA) return null;
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isUnread) handleMarkRead(item.notification_id || item.id, null, item.threadItemIds);
+                              navigate(actionCTA.url);
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-md shadow-2xs transition-all cursor-pointer group-hover:border-emerald-500"
+                          >
+                            <span>{actionCTA.label}</span>
+                            <ArrowRight className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
 
