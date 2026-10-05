@@ -55,7 +55,13 @@ class HarvestSeasonService:
         now = datetime.now(timezone.utc)
         crop_name = farm_doc.get("crop_name") or "Mixed Crop"
         variety = farm_doc.get("crop_variety")
-        area = float(farm_doc.get("farm_size", 1.0))
+        raw_size = farm_doc.get("farm_size")
+        try:
+            area = float(raw_size) if raw_size not in (None, "") else 1.0
+            if area <= 0:
+                area = 1.0
+        except (ValueError, TypeError):
+            area = 1.0
         area_unit = farm_doc.get("farm_unit", "acres")
         planting_date = farm_doc.get("planting_date")
         year_str = planting_date[:4] if planting_date and len(planting_date) >= 4 else str(now.year)
@@ -291,7 +297,13 @@ class HarvestSeasonService:
         season_name = season_doc.get("season_name") or "Crop Season"
         crop_name = season_doc.get("crop_name") or "Crop"
         variety = season_doc.get("variety")
-        historical_area = float(season_doc.get("area") or 1.0)
+        raw_area = season_doc.get("area")
+        try:
+            historical_area = float(raw_area) if raw_area not in (None, "") else 1.0
+            if historical_area <= 0:
+                historical_area = 1.0
+        except (ValueError, TypeError):
+            historical_area = 1.0
         area_unit = season_doc.get("area_unit") or "acres"
         status_val = season_doc.get("status") or "active"
 
@@ -305,12 +317,18 @@ class HarvestSeasonService:
         pickings_count = len(harvests)
 
         for h in harvests:
-            qty = float(h.get("quantity") or 0.0)
+            try:
+                qty = float(h.get("quantity") or 0.0)
+            except (ValueError, TypeError):
+                qty = 0.0
             total_harvest_qty += qty
             norm_qtl = h.get("normalized_quintals")
             if norm_qtl is not None:
-                total_quintals += float(norm_qtl)
-                has_convertible_quintals = True
+                try:
+                    total_quintals += float(norm_qtl)
+                    has_convertible_quintals = True
+                except (ValueError, TypeError):
+                    pass
             else:
                 # Attempt on-the-fly normalization
                 q_calc = normalize_to_quintals(qty, h.get("unit", ""))
@@ -362,7 +380,11 @@ class HarvestSeasonService:
         actual_sales_sum = 0.0
         sales_count = len(sales)
         for s in sales:
-            actual_sales_sum += float(s.get("total_sale_value") or 0.0)
+            try:
+                sale_val = float(s.get("total_sale_value") or 0.0)
+            except (ValueError, TypeError):
+                sale_val = 0.0
+            actual_sales_sum += sale_val
 
         actual_sales_income = round(actual_sales_sum, 2) if sales_count > 0 else None
         revenue_status = "actual" if sales_count > 0 else "not_available"

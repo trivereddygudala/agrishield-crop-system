@@ -54,15 +54,21 @@ class HarvestMarketService:
         harv_units = set()
 
         for h in harvests:
-            q = float(h.get("quantity") or 0.0)
+            try:
+                q = float(h.get("quantity") or 0.0)
+            except (ValueError, TypeError):
+                q = 0.0
             u = (h.get("unit") or "quintal").strip().lower()
             harv_units.add(u)
             total_harv_raw += q
 
             norm = h.get("normalized_quintals")
             if norm is not None:
-                total_harv_qtl += float(norm)
-                harv_has_convertible = True
+                try:
+                    total_harv_qtl += float(norm)
+                    harv_has_convertible = True
+                except (ValueError, TypeError):
+                    pass
             else:
                 calc_norm = normalize_to_quintals(q, u)
                 if calc_norm is not None:
@@ -76,7 +82,10 @@ class HarvestMarketService:
         sold_units = set()
 
         for s in sales:
-            q = float(s.get("quantity_sold") or 0.0)
+            try:
+                q = float(s.get("quantity_sold") or 0.0)
+            except (ValueError, TypeError):
+                q = 0.0
             u = (s.get("unit") or "quintal").strip().lower()
             sold_units.add(u)
             total_sold_raw += q
@@ -102,18 +111,30 @@ class HarvestMarketService:
             # Both sides are safely normalized to standard quintals
             total_harv_qtl = round(total_harv_qtl, 2)
             total_sold_qtl = round(total_sold_qtl, 2)
-            unsold_qtl = max(0.0, round(total_harv_qtl - total_sold_qtl, 2))
-            unsold_qty = unsold_qtl
-            primary_unit = "quintal"
-            quantity_status = "actual"
+            if total_sold_qtl > total_harv_qtl:
+                # Inconsistent data state: sales exceed harvests
+                unsold_qty = None
+                unsold_qtl = None
+                quantity_status = "not_available"
+            else:
+                unsold_qtl = round(total_harv_qtl - total_sold_qtl, 2)
+                unsold_qty = unsold_qtl
+                primary_unit = "quintal"
+                quantity_status = "actual"
         elif len(harv_units) == 1 and (len(sold_units) == 0 or (len(sold_units) == 1 and harv_units == sold_units)):
             # Same unit across all harvests and sales (e.g. crates)
             total_harv_raw = round(total_harv_raw, 2)
             total_sold_raw = round(total_sold_raw, 2)
-            unsold_qty = max(0.0, round(total_harv_raw - total_sold_raw, 2))
-            unsold_qtl = None
-            primary_unit = list(harv_units)[0]
-            quantity_status = "actual"
+            if total_sold_raw > total_harv_raw:
+                # Inconsistent data state: sales exceed harvests
+                unsold_qty = None
+                unsold_qtl = None
+                quantity_status = "not_available"
+            else:
+                unsold_qty = round(total_harv_raw - total_sold_raw, 2)
+                unsold_qtl = None
+                primary_unit = list(harv_units)[0]
+                quantity_status = "actual"
         else:
             # Inconsistent or mixed unsupported units cannot be safely reconciled
             unsold_qty = None

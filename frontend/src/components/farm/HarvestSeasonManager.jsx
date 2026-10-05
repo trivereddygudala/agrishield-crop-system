@@ -82,25 +82,23 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
     setLoading(true);
     setErrorMsg('');
     try {
-      // 1. Fetch active season
-      const activeRes = await API.get(`/api/farms/${farmId}/seasons/active`);
-      setActiveSeason(activeRes.data);
+      const [activeRes, scoreRes, harvRes, saleRes, histRes] = await Promise.allSettled([
+        API.get(`/api/farms/${farmId}/seasons/active`),
+        API.get(`/api/farms/${farmId}/season-summary`),
+        API.get(`/api/farms/${farmId}/harvests`),
+        API.get(`/api/farms/${farmId}/sales`),
+        API.get(`/api/farms/${farmId}/seasons`)
+      ]);
 
-      // 2. Fetch scorecard
-      const scoreRes = await API.get(`/api/farms/${farmId}/season-summary`);
-      setScorecard(scoreRes.data);
+      if (activeRes.status === 'fulfilled') setActiveSeason(activeRes.value.data);
+      if (scoreRes.status === 'fulfilled') setScorecard(scoreRes.value.data);
+      if (harvRes.status === 'fulfilled') setHarvests(harvRes.value.data || []);
+      if (saleRes.status === 'fulfilled') setSales(saleRes.value.data || []);
+      if (histRes.status === 'fulfilled') setSeasonHistory(histRes.value.data || []);
 
-      // 3. Fetch harvests
-      const harvRes = await API.get(`/api/farms/${farmId}/harvests`);
-      setHarvests(harvRes.data || []);
-
-      // 4. Fetch sales
-      const saleRes = await API.get(`/api/farms/${farmId}/sales`);
-      setSales(saleRes.data || []);
-
-      // 5. Fetch seasons history
-      const histRes = await API.get(`/api/farms/${farmId}/seasons`);
-      setSeasonHistory(histRes.data || []);
+      if (activeRes.status === 'rejected' && harvRes.status === 'rejected') {
+        setErrorMsg(isTe ? 'సీజన్ డేటా లోడ్ చేయడంలో విఫలమైంది.' : 'Failed to load season data.');
+      }
     } catch (err) {
       console.warn('Error loading season data:', err);
       setErrorMsg(isTe ? 'సీజన్ డేటా లోడ్ చేయడంలో విఫలమైంది.' : 'Failed to load season data.');

@@ -2,6 +2,26 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v388) - B26: Production Hardening & Reliability
+- **Summary:**
+  1. 🛡️ **B9.2/B13 Database Failure Handling Hardened:**
+     - Imported `PyMongoError` in `backend/app/routers/farmer/farm_profiles.py` and re-raised in `start_farm_season`, `close_farm_season`, `log_harvest`, and `record_sale`.
+     - Prevents database connection drops from being masked as 400 or 500 errors or leaking driver exception strings; ensures global handler returns HTTP 503 with `DATABASE_UNAVAILABLE` and `Retry-After: 5`.
+  2. 🌾 **B24 Season Lifecycle & Scorecard Data Safety:**
+     - Hardened `HarvestSeasonService` against `None`, empty string, and negative `farm_size` / `historical_area`.
+     - Wrapped float conversions for harvest quantities and sale values in safe `try/except` blocks to eliminate unexpected `TypeError` or `ValueError` crashes.
+  3. ⚖️ **B25 Unsold Harvest Inventory Inconsistency Gating:**
+     - In `HarvestMarketService.calculate_harvest_inventory`, flagged inconsistent states where sales exceed harvests as `quantity_status="not_available"` with `unsold_quantity=None` rather than inventing zero or negative stock.
+  4. 🎯 **Action Center Task Quality Gate:**
+     - Updated Source 9 rule in `ActionCenterService` to require `inv.get("quantity_status") == "actual"` before generating market-review tasks.
+  5. 📱 **Frontend Resilient Loading, Empty, and Error States:**
+     - Upgraded `HarvestSeasonManager.jsx` `fetchData` to use `Promise.allSettled`, preserving partial data accessibility if any individual API fails.
+     - Refined `HarvestMarketReconciler.jsx` to render exact farmer-friendly empty states (`"No harvest recorded yet."`, `"No unsold harvest available."`, `"Market price data is not available."`, `"Market information is temporarily unavailable. Please try again."`) in both English and Telugu.
+  6. 🧪 **Validation & Comprehensive Testing:**
+     - Created `backend/tests/test_b26_production_hardening.py` covering all 17 reliability requirements (17/17 passed, 100%).
+     - Ran complete regression suite: 220 tests passed, 0 failed across B1–B26.
+     - Frontend production build (`npm run build`) succeeded in 27.30s with 0 errors.
+
 ## 2026-10-05 (v387) - B25: Smart Harvest-to-Market Selling Intelligence
 - **Summary:**
   1. 🌉 **Harvest-to-Market Selling Intelligence Architecture (`HarvestMarketService`):**

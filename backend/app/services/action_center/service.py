@@ -874,7 +874,7 @@ class ActionCenterService:
                     unsold_unit = inv.get("unit", "quintal")
                     s_crop = active_season.get("crop_name") or crop_name or "Crop"
 
-                    if unsold_val is not None and unsold_val > 0:
+                    if unsold_val is not None and unsold_val > 0 and inv.get("quantity_status") == "actual":
                         farm_dist = farm_doc.get("district") or farm_doc.get("farm_location") if farm_doc else None
                         farm_st = farm_doc.get("state") if farm_doc else None
                         market_refs = HarvestMarketService.find_matching_market_references(

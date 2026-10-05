@@ -38,7 +38,7 @@ export default function HarvestMarketReconciler({ farmId, onInitiateSale }) {
     return (
       <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-center gap-3 text-xs text-slate-500">
         <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
-        {isTe ? 'మార్కెట్ & దిగుబడి సమాచారం లోడ్ అవుతోంది...' : 'Loading harvest market reconciliation...'}
+        {isTe ? 'దిగుబడి సమాచారం లోడ్ అవుతోంది...' : 'Loading harvest information...'}
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function HarvestMarketReconciler({ farmId, onInitiateSale }) {
   if (errorMsg || !advisory) {
     return (
       <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-center justify-between">
-        <span>{errorMsg || (isTe ? 'సమాచారం అందుబాటులో లేదు' : 'Advisory data unavailable')}</span>
+        <span>{errorMsg || (isTe ? 'మార్కెట్ సమాచారం తాత్కాలికంగా అందుబాటులో లేదు. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Market information is temporarily unavailable. Please try again.')}</span>
         <button onClick={fetchAdvisory} className="underline font-bold text-xs">{isTe ? 'మళ్ళీ ప్రయత్నించండి' : 'Retry'}</button>
       </div>
     );
@@ -127,12 +127,16 @@ export default function HarvestMarketReconciler({ farmId, onInitiateSale }) {
             <p className={`text-base sm:text-xl font-black ${hasUnsold ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-400'}`}>
               {unsoldQty !== null && unsoldQty !== undefined
                 ? `${unsoldQty} ${unsoldUnit}`
-                : (isTe ? 'అందుబాటులో లేదు' : 'Not available')}
+                : (inventory?.number_of_pickings === 0
+                    ? (isTe ? 'ఇంకా కోత లేదు' : 'No harvest yet')
+                    : (isTe ? 'అందుబాటులో లేదు' : 'Not available'))}
             </p>
             <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80">
-              {inventory?.is_fully_sold
-                ? (isTe ? 'పూర్తిగా విక్రయించబడింది' : 'Fully sold')
-                : (hasUnsold ? (isTe ? 'విక్రయానికి సిద్ధంగా ఉంది' : 'Available on farm') : '—')}
+              {inventory?.number_of_pickings === 0
+                ? (isTe ? 'ఇంకా కోత నమోదు కాలేదు.' : 'No harvest recorded yet.')
+                : (inventory?.is_fully_sold || !hasUnsold
+                    ? (isTe ? 'అమ్మని నిల్వ ఏదీ అందుబాటులో లేదు.' : 'No unsold harvest available.')
+                    : (isTe ? 'విక్రయానికి సిద్ధంగా ఉంది' : 'Available on farm'))}
             </span>
           </div>
         </div>
@@ -275,7 +279,7 @@ export default function HarvestMarketReconciler({ farmId, onInitiateSale }) {
           </div>
         ) : (
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 text-center text-xs text-slate-500">
-            {isTe ? 'ఈ పంటకు మార్కెట్ ధరల సమాచారం అందుబాటులో లేదు.' : 'Market reference prices are currently not available for this crop.'}
+            {isTe ? 'మార్కెట్ ధరల సమాచారం అందుబాటులో లేదు.' : 'Market price data is not available.'}
           </div>
         )}
 

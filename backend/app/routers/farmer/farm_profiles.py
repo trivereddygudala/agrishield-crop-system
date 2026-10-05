@@ -2,6 +2,7 @@ import math
 import uuid
 from datetime import datetime, timezone
 from bson import ObjectId
+from pymongo.errors import PyMongoError
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Dict, Any, Optional
 from backend.app.db.mongodb import get_database
@@ -1380,6 +1381,13 @@ async def start_farm_season(
             db, farm_id, current_user["id"], payload, farm_doc
         )
         return serialize_mongo_doc(new_season)
+    except PyMongoError:
+        raise
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1416,6 +1424,13 @@ async def close_farm_season(
             db, farm_id, current_user["id"], target_season_id, payload or SeasonCloseRequest()
         )
         return serialize_mongo_doc(closed_season)
+    except PyMongoError:
+        raise
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1473,6 +1488,8 @@ async def log_harvest(
             db, farm_id, current_user["id"], payload, farm_doc
         )
         return harvest_record
+    except PyMongoError:
+        raise
     except ValueError as ve:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1481,7 +1498,7 @@ async def log_harvest(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to record harvest: {str(e)}"
+            detail="Failed to record harvest."
         )
 
 
@@ -1511,6 +1528,8 @@ async def record_sale(
             db, farm_id, current_user["id"], payload, farm_doc
         )
         return sale_record
+    except PyMongoError:
+        raise
     except ValueError as ve:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1519,7 +1538,7 @@ async def record_sale(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to record sale: {str(e)}"
+            detail="Failed to record sale."
         )
 
 
