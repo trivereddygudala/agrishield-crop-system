@@ -52,12 +52,22 @@ class HarvestMarketService:
         total_harv_qtl = 0.0
         harv_has_convertible = False
         harv_units = set()
+        harv_valid = True
 
         for h in harvests:
+            raw_q = h.get("quantity")
+            if raw_q in (None, ""):
+                harv_valid = False
+                break
             try:
-                q = float(h.get("quantity") or 0.0)
+                q = float(raw_q)
+                if q <= 0:
+                    harv_valid = False
+                    break
             except (ValueError, TypeError):
-                q = 0.0
+                harv_valid = False
+                break
+
             u = (h.get("unit") or "quintal").strip().lower()
             harv_units.add(u)
             total_harv_raw += q
@@ -65,10 +75,16 @@ class HarvestMarketService:
             norm = h.get("normalized_quintals")
             if norm is not None:
                 try:
-                    total_harv_qtl += float(norm)
-                    harv_has_convertible = True
+                    norm_val = float(norm)
+                    if norm_val > 0:
+                        total_harv_qtl += norm_val
+                        harv_has_convertible = True
+                    else:
+                        harv_valid = False
+                        break
                 except (ValueError, TypeError):
-                    pass
+                    harv_valid = False
+                    break
             else:
                 calc_norm = normalize_to_quintals(q, u)
                 if calc_norm is not None:
@@ -80,12 +96,22 @@ class HarvestMarketService:
         total_sold_qtl = 0.0
         sold_has_convertible = False
         sold_units = set()
+        sold_valid = True
 
         for s in sales:
+            raw_q = s.get("quantity_sold")
+            if raw_q in (None, ""):
+                sold_valid = False
+                break
             try:
-                q = float(s.get("quantity_sold") or 0.0)
+                q = float(raw_q)
+                if q <= 0:
+                    sold_valid = False
+                    break
             except (ValueError, TypeError):
-                q = 0.0
+                sold_valid = False
+                break
+
             u = (s.get("unit") or "quintal").strip().lower()
             sold_units.add(u)
             total_sold_raw += q
@@ -94,6 +120,24 @@ class HarvestMarketService:
             if calc_norm is not None:
                 total_sold_qtl += calc_norm
                 sold_has_convertible = True
+
+        if not harv_valid or not sold_valid:
+            return {
+                "farm_id": farm_id,
+                "season_id": season_id,
+                "crop_name": crop_name,
+                "total_harvested": None,
+                "total_harvested_quintals": None,
+                "total_sold": None,
+                "total_sold_quintals": None,
+                "unsold_quantity": None,
+                "unsold_quintals": None,
+                "unit": "quintal",
+                "quantity_status": "not_available",
+                "number_of_pickings": len(harvests),
+                "number_of_sales": len(sales),
+                "is_fully_sold": False
+            }
 
         # ── 3. Determine Reconciled Unsold Stock ──
         # Default primary unit

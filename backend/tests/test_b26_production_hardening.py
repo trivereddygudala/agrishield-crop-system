@@ -530,20 +530,165 @@ async def test_inconsistent_harvest_sale_data_returns_not_available():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 17. MALFORMED FARM SIZE HANDLED GRACEFULLY
+# 17. DATA SAFETY: MISSING / INVALID FARM SIZE DOES NOT BECOME 1.0
 # ══════════════════════════════════════════════════════════════════════════════
 @pytest.mark.anyio
-async def test_malformed_farm_size_handled_gracefully():
-    # Farm profile with null or empty string farm_size
-    malformed_farm_doc = {
+async def test_missing_farm_size_does_not_become_one():
+    # Farm profile with None farm_size
+    farm_doc_none = {
         "crop_name": "Tomato",
         "crop_variety": "Hybrid",
-        "farm_size": None,  # malformed None
+        "farm_size": None,
         "farm_unit": "acres",
         "planting_date": "2026-06-01"
     }
     from backend.app.services.harvest_season_service import HarvestSeasonService
     season = await HarvestSeasonService.get_or_create_active_season(
-        mock_db, "farm-malformed", "user-malformed", malformed_farm_doc
+        mock_db, "farm-none-area", "user-test", farm_doc_none
     )
-    assert season["area"] == 1.0  # Safely fell back to default 1.0 without TypeError!
+    # Must NOT silently substitute 1.0 acre
+    assert season["area"] is None
+
+
+@pytest.mark.anyio
+async def test_invalid_farm_size_does_not_become_one():
+    from backend.app.services.harvest_season_service import HarvestSeasonService
+    for invalid_val in ["invalid_str", "", 0, -2.5]:
+        farm_doc = {
+            "crop_name": "Tomato",
+            "crop_variety": "Hybrid",
+            "farm_size": invalid_val,
+            "farm_unit": "acres",
+            "planting_date": "2026-06-01"
+        }
+        season = await HarvestSeasonService.get_or_create_active_season(
+            mock_db, f"farm-inv-{invalid_val}", "user-test", farm_doc
+        )
+        # Must NOT silently substitute 1.0 acre
+        assert season["area"] is None, f"Failed for invalid_val={invalid_val}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 18. DATA SAFETY: MISSING / INVALID HISTORICAL AREA DOES NOT BECOME 1.0
+# ══════════════════════════════════════════════════════════════════════════════
+@pytest.mark.anyio
+async def test_missing_historical_area_does_not_become_one():
+    from backend.app.services.harvest_season_service import HarvestSeasonService
+    season_doc = {
+        "season_id": "season-no-area",
+        "farm_id": "farm-no-area",
+        "crop_name": "Tomato",
+        "area": None,
+        "harvests": [{"quantity": 30.0, "unit": "quintal", "normalized_quintals": 30.0}],
+        "sales": []
+    }
+    scorecard = await HarvestSeasonService.calculate_season_scorecard(mock_db, "farm-no-area", season_doc)
+    assert scorecard.historical_area is None
+    # Yield cannot be calculated without area; must be not_available
+    assert scorecard.yield_status == "not_available"
+    assert scorecard.yield_per_acre_quintal is None
+
+
+@pytest.mark.anyio
+async def test_invalid_historical_area_does_not_become_one():
+    from backend.app.services.harvest_season_service import HarvestSeasonService
+    for invalid_val in ["corrupted", "", 0, -10.0]:
+        season_doc = {
+            "season_id": f"season-bad-area-{invalid_val}",
+            "farm_id": "farm-bad-area",
+            "crop_name": "Tomato",
+            "area": invalid_val,
+            "harvests": [{"quantity": 30.0, "unit": "quintal", "normalized_quintals": 30.0}],
+            "sales": []
+        }
+        scorecard = await HarvestSeasonService.calculate_season_scorecard(mock_db, "farm-bad-area", season_doc)
+        assert scorecard.historical_area is None, f"Failed for invalid_val={invalid_val}"
+        assert scorecard.yield_status == "not_available"
+        assert scorecard.yield_per_acre_quintal is None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 19. DATA SAFETY: MALFORMED HARVEST QUANTITY DOES NOT BECOME 0.0
+# ══════════════════════════════════════════════════════════════════════════════
+@pytest.mark.anyio
+async def test_malformed_harvest_quantity_does_not_become_zero():
+    from backend.app.services.harvest_season_service import HarvestSeasonService
+    season_doc = {
+        "season_id": "season-bad-harv",
+        "farm_id": "farm-bad-harv",
+        "crop_name": "Tomato",
+        "area": 2.0,
+        "harvests": [{"quantity": "corrupted_text", "unit": "quintal"}],
+        "sales": []
+    }
+    scorecard = await HarvestSeasonService.calculate_season_scorecard(mock_db, "farm-bad-harv", season_doc)
+    # Must NOT become 0.0 or actual
+    assert scorecard.total_harvest_quantity is None
+    assert scorecard.harvest_status == "not_available"
+    assert scorecard.yield_status == "not_available"
+
+    # Also verify inventory calculation doesn't silently substitute 0.0
+    inv = HarvestMarketService.calculate_harvest_inventory(season_doc)
+    assert inv["quantity_status"] == "not_available"
+    assert inv["unsold_quantity"] is None
+    assert inv["total_harvested"] is None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 20. DATA SAFETY: MALFORMED SALE QUANTITY / VALUE DOES NOT BECOME 0.0
+# ══════════════════════════════════════════════════════════════════════════════
+@pytest.mark.anyio
+async def test_malformed_sale_value_does_not_become_zero():
+    from backend.app.services.harvest_season_service import HarvestSeasonService
+    season_doc = {
+        "season_id": "season-bad-sale",
+        "farm_id": "farm-bad-sale",
+        "crop_name": "Tomato",
+        "area": 2.0,
+        "harvests": [{"quantity": 40.0, "unit": "quintal", "normalized_quintals": 40.0}],
+        "sales": [{"total_sale_value": "corrupted_text", "quantity_sold": "bad"}]
+    }
+    scorecard = await HarvestSeasonService.calculate_season_scorecard(mock_db, "farm-bad-sale", season_doc)
+    # Must NOT become 0.0 or actual
+    assert scorecard.actual_sales_income is None
+    assert scorecard.revenue_status == "not_available"
+    assert scorecard.profit_status == "not_available"
+
+    # Verify inventory calculation
+    inv = HarvestMarketService.calculate_harvest_inventory(season_doc)
+    assert inv["quantity_status"] == "not_available"
+    assert inv["unsold_quantity"] is None
+    assert inv["total_sold"] is None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 21. DATA SAFETY: VALID NUMERIC VALUES STILL CALCULATE NORMALLY
+# ══════════════════════════════════════════════════════════════════════════════
+@pytest.mark.anyio
+async def test_valid_numeric_values_calculate_normally():
+    from backend.app.services.harvest_season_service import HarvestSeasonService
+    season_doc = {
+        "season_id": "season-valid",
+        "farm_id": "farm-valid",
+        "crop_name": "Tomato",
+        "area": 2.5,
+        "harvests": [{"quantity": 50.0, "unit": "quintal", "normalized_quintals": 50.0}],
+        "sales": [{"total_sale_value": 40000.0, "quantity_sold": 20.0, "price_per_unit": 2000.0, "unit": "quintal"}]
+    }
+    scorecard = await HarvestSeasonService.calculate_season_scorecard(mock_db, "farm-valid", season_doc)
+    assert scorecard.historical_area == 2.5
+    assert scorecard.total_harvest_quantity == 50.0
+    assert scorecard.harvest_status == "actual"
+    # 50 / 2.5 = 20.0 Qtl/ac
+    assert scorecard.yield_per_acre_quintal == 20.0
+    assert scorecard.yield_status == "actual"
+    assert scorecard.actual_sales_income == 40000.0
+    assert scorecard.revenue_status == "actual"
+
+    # Inventory calculation
+    inv = HarvestMarketService.calculate_harvest_inventory(season_doc)
+    assert inv["quantity_status"] == "actual"
+    assert inv["total_harvested"] == 50.0
+    assert inv["total_sold"] == 20.0
+    assert inv["unsold_quantity"] == 30.0
+    assert inv["unsold_quintals"] == 30.0

@@ -71,7 +71,7 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
   const [newSeasonForm, setNewSeasonForm] = useState({
     crop_name: cropName || 'Tomato',
     variety: '',
-    area: farmSize || 1.0,
+    area: farmSize || '',
     area_unit: 'acres',
     planting_date: new Date().toISOString().split('T')[0],
     season_name: ''
@@ -228,13 +228,18 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
       setErrorMsg(isTe ? 'పంట పేరు అవసరం.' : 'Crop name is required.');
       return;
     }
+    const parsedArea = parseFloat(newSeasonForm.area);
+    if (!parsedArea || isNaN(parsedArea) || parsedArea <= 0) {
+      setErrorMsg(isTe ? 'దయచేసి సరైన పొలం విస్తీర్ణం నమోదు చేయండి.' : 'Please enter a valid positive land area.');
+      return;
+    }
     setSubmitting(true);
     setErrorMsg('');
     try {
       await API.post(`/api/farms/${farmId}/seasons/start`, {
         crop_name: newSeasonForm.crop_name.trim(),
         variety: newSeasonForm.variety.trim() || null,
-        area: parseFloat(newSeasonForm.area) || 1.0,
+        area: parsedArea,
         area_unit: newSeasonForm.area_unit,
         planting_date: newSeasonForm.planting_date,
         season_name: newSeasonForm.season_name.trim() || undefined,
@@ -428,7 +433,9 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
                   : '—'}
               </p>
               <p className="text-[10px] text-slate-400">
-                {scorecard?.historical_area || 1.0} {scorecard?.area_unit || 'acres'} {isTe ? 'పొలం విస్తీర్ణం' : 'historical area'}
+                {scorecard?.historical_area
+                  ? `${scorecard.historical_area} ${scorecard?.area_unit || 'acres'} ${isTe ? 'పొలం విస్తీర్ణం' : 'historical area'}`
+                  : (isTe ? 'విస్తీర్ణం అందుబాటులో లేదు' : 'Area not available')}
               </p>
             </div>
 

@@ -2,6 +2,27 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v389) - B26 Correction: Remove Unsafe Silent Data Fallbacks
+- **Summary:**
+  1. 🚫 **Eliminated Unsafe Silent 1.0 Acre Fallback:**
+     - Removed silent `1.0` acre substitution in `HarvestSeasonService.get_or_create_active_season` and `calculate_season_scorecard`.
+     - Missing, empty, malformed, zero, or negative `farm_size` / `historical_area` now resolves strictly to `None` / `not_available`.
+     - In `SeasonScorecardResponse` and `SeasonResponse`, updated `historical_area` and `area` to `Optional[float] = None`.
+     - `yield_per_acre` and `profit_per_acre` cleanly mark `not_available` with `None` value when land area is unavailable.
+  2. 🚫 **Eliminated Unsafe 0.0 Harvest and Sale Fallbacks:**
+     - Removed silent `0.0` conversions for malformed harvest quantities and sale amounts in `calculate_season_scorecard` and `HarvestMarketService.calculate_harvest_inventory`.
+     - Corrupted or invalid numeric entries now cleanly set `quantity_status="not_available"` with `None` values instead of manufacturing pseudo-valid calculations.
+  3. 📱 **Frontend Alignment (`HarvestSeasonManager.jsx`):**
+     - Removed `farmSize || 1.0` fallback in the new season modal and added validation prompting the farmer to provide a valid positive area.
+     - Hardened scorecard area badge to display `"Area not available"` instead of silently defaulting to `1.0 acres`.
+  4. 🧪 **Validation & Comprehensive Testing:**
+     - Updated and added focused B26 data safety tests (17–23) in `backend/tests/test_b26_production_hardening.py` (23/23 passed, 100%).
+     - All 21 tests in `test_b25_harvest_market_reconciliation.py` passed (100%).
+     - All 22 tests in `test_b24_harvest_season_management.py` passed (100%).
+     - All 129 tests across B15–B23 passed (100%).
+     - Frontend production build (`npm run build`) succeeded in 25.71s with 0 errors.
+     - `git diff --check` passed cleanly with 0 errors.
+
 ## 2026-10-05 (v388) - B26: Production Hardening & Reliability
 - **Summary:**
   1. 🛡️ **B9.2/B13 Database Failure Handling Hardened:**

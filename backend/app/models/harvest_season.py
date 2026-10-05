@@ -139,7 +139,7 @@ class SeasonScorecardResponse(BaseModel):
     season_name: str
     crop_name: str
     variety: Optional[str] = None
-    historical_area: float
+    historical_area: Optional[float] = None
     area_unit: str
     planting_date: Optional[str] = None
     season_start_date: str
@@ -186,7 +186,7 @@ class SeasonResponse(BaseModel):
     crop_name: str
     variety: Optional[str] = None
     field_id: Optional[str] = None
-    area: float
+    area: Optional[float] = None
     area_unit: str
     planting_date: Optional[str] = None
     season_start_date: str

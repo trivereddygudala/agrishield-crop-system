@@ -56,12 +56,14 @@ class HarvestSeasonService:
         crop_name = farm_doc.get("crop_name") or "Mixed Crop"
         variety = farm_doc.get("crop_variety")
         raw_size = farm_doc.get("farm_size")
-        try:
-            area = float(raw_size) if raw_size not in (None, "") else 1.0
-            if area <= 0:
-                area = 1.0
-        except (ValueError, TypeError):
-            area = 1.0
+        area = None
+        if raw_size not in (None, ""):
+            try:
+                parsed_area = float(raw_size)
+                if parsed_area > 0:
+                    area = parsed_area
+            except (ValueError, TypeError):
+                area = None
         area_unit = farm_doc.get("farm_unit", "acres")
         planting_date = farm_doc.get("planting_date")
         year_str = planting_date[:4] if planting_date and len(planting_date) >= 4 else str(now.year)
@@ -298,12 +300,14 @@ class HarvestSeasonService:
         crop_name = season_doc.get("crop_name") or "Crop"
         variety = season_doc.get("variety")
         raw_area = season_doc.get("area")
-        try:
-            historical_area = float(raw_area) if raw_area not in (None, "") else 1.0
-            if historical_area <= 0:
-                historical_area = 1.0
-        except (ValueError, TypeError):
-            historical_area = 1.0
+        historical_area = None
+        if raw_area not in (None, ""):
+            try:
+                parsed_area = float(raw_area)
+                if parsed_area > 0:
+                    historical_area = parsed_area
+            except (ValueError, TypeError):
+                historical_area = None
         area_unit = season_doc.get("area_unit") or "acres"
         status_val = season_doc.get("status") or "active"
 
@@ -315,20 +319,36 @@ class HarvestSeasonService:
         total_quintals = 0.0
         has_convertible_quintals = False
         pickings_count = len(harvests)
+        harvest_data_valid = True
 
         for h in harvests:
+            raw_q = h.get("quantity")
+            if raw_q in (None, ""):
+                harvest_data_valid = False
+                break
             try:
-                qty = float(h.get("quantity") or 0.0)
+                qty = float(raw_q)
+                if qty <= 0:
+                    harvest_data_valid = False
+                    break
             except (ValueError, TypeError):
-                qty = 0.0
+                harvest_data_valid = False
+                break
+
             total_harvest_qty += qty
             norm_qtl = h.get("normalized_quintals")
             if norm_qtl is not None:
                 try:
-                    total_quintals += float(norm_qtl)
-                    has_convertible_quintals = True
+                    parsed_norm = float(norm_qtl)
+                    if parsed_norm > 0:
+                        total_quintals += parsed_norm
+                        has_convertible_quintals = True
+                    else:
+                        harvest_data_valid = False
+                        break
                 except (ValueError, TypeError):
-                    pass
+                    harvest_data_valid = False
+                    break
             else:
                 # Attempt on-the-fly normalization
                 q_calc = normalize_to_quintals(qty, h.get("unit", ""))
@@ -336,15 +356,21 @@ class HarvestSeasonService:
                     total_quintals += q_calc
                     has_convertible_quintals = True
 
-        harvest_status = "actual" if pickings_count > 0 else "not_available"
-        disp_total_qty = round(total_harvest_qty, 2) if pickings_count > 0 else None
-        disp_total_quintals = round(total_quintals, 2) if (pickings_count > 0 and has_convertible_quintals) else None
+        if pickings_count > 0 and harvest_data_valid:
+            harvest_status = "actual"
+            disp_total_qty = round(total_harvest_qty, 2)
+            disp_total_quintals = round(total_quintals, 2) if has_convertible_quintals else None
+        else:
+            harvest_status = "not_available"
+            disp_total_qty = None
+            disp_total_quintals = None
+            has_convertible_quintals = False
 
         yield_per_acre_quintal = None
         yield_per_acre_kg = None
         yield_status = "not_available"
 
-        if has_convertible_quintals and historical_area > 0:
+        if has_convertible_quintals and historical_area is not None and historical_area > 0:
             yield_per_acre_quintal = round(total_quintals / historical_area, 2)
             yield_per_acre_kg = round(yield_per_acre_quintal * 100.0, 2)
             yield_status = "actual"
@@ -379,15 +405,45 @@ class HarvestSeasonService:
         # ── 3. Actual Sales Revenue ──
         actual_sales_sum = 0.0
         sales_count = len(sales)
+        sales_data_valid = True
+
         for s in sales:
-            try:
-                sale_val = float(s.get("total_sale_value") or 0.0)
-            except (ValueError, TypeError):
-                sale_val = 0.0
+            raw_val = s.get("total_sale_value")
+            if raw_val in (None, ""):
+                try:
+                    q_sold = s.get("quantity_sold")
+                    p_unit = s.get("price_per_unit")
+                    if q_sold is not None and p_unit is not None:
+                        q_f = float(q_sold)
+                        p_f = float(p_unit)
+                        if q_f > 0 and p_f >= 0:
+                            sale_val = q_f * p_f
+                        else:
+                            sales_data_valid = False
+                            break
+                    else:
+                        sales_data_valid = False
+                        break
+                except (ValueError, TypeError):
+                    sales_data_valid = False
+                    break
+            else:
+                try:
+                    sale_val = float(raw_val)
+                    if sale_val < 0:
+                        sales_data_valid = False
+                        break
+                except (ValueError, TypeError):
+                    sales_data_valid = False
+                    break
             actual_sales_sum += sale_val
 
-        actual_sales_income = round(actual_sales_sum, 2) if sales_count > 0 else None
-        revenue_status = "actual" if sales_count > 0 else "not_available"
+        if sales_count > 0 and sales_data_valid:
+            actual_sales_income = round(actual_sales_sum, 2)
+            revenue_status = "actual"
+        else:
+            actual_sales_income = None
+            revenue_status = "not_available"
 
         # ── 4. Unit Economics: Net Profit, Cost/Quintal, Profit/Acre, ROI ──
         net_profit = None
@@ -404,7 +460,7 @@ class HarvestSeasonService:
 
         profit_per_acre = None
         profit_per_acre_status = "not_available"
-        if net_profit is not None and historical_area > 0:
+        if net_profit is not None and historical_area is not None and historical_area > 0:
             profit_per_acre = round(net_profit / historical_area, 2)
             profit_per_acre_status = "actual"
 
