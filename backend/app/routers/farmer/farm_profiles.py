@@ -30,6 +30,7 @@ from backend.app.models.harvest_season import (
     SeasonResponse
 )
 from backend.app.services.harvest_season_service import HarvestSeasonService, serialize_mongo_doc
+from backend.app.services.harvest_market_service import HarvestMarketService
 
 router = APIRouter(prefix="/api/farms", tags=["Farm Profiles"])
 
@@ -1521,3 +1522,31 @@ async def record_sale(
             detail=f"Failed to record sale: {str(e)}"
         )
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# B25: SMART HARVEST-TO-MARKET SELLING INTELLIGENCE ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/{farm_id}/harvest-inventory")
+async def get_harvest_inventory(
+    farm_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve authoritative unsold harvest stock reconciled across pickings and sales."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    active_season = await HarvestSeasonService.get_or_create_active_season(
+        db, farm_id, current_user["id"], farm_doc
+    )
+    return HarvestMarketService.calculate_harvest_inventory(active_season)
+
+
+@router.get("/{farm_id}/selling-advisory")
+async def get_selling_advisory(
+    farm_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve harvest selling decision support comparing APMC mandi rates with production cost per quintal."""
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+    return await HarvestMarketService.get_selling_advisory(db, farm_id, current_user, farm_doc)

@@ -2,6 +2,43 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v387) - B25: Smart Harvest-to-Market Selling Intelligence
+- **Summary:**
+  1. 🌉 **Harvest-to-Market Selling Intelligence Architecture (`HarvestMarketService`):**
+     - Built a dedicated, non-invasive decision support bridge linking B24 Harvest & Sales, B17 Farm Khata, and authoritative APMC Mandi market references without creating duplicate market databases, collections, or financial ledgers.
+     - Authoritative implementation in `backend/app/services/harvest_market_service.py` consuming live APMC Mandi modal prices and Government MSP benchmarks from `backend/app/routers/farmer/market.py`.
+  2. ⚖️ **Unsold Harvest Inventory Reconciliation:**
+     - Computes unsold stock: unsold = total harvested - total sold across multiple pickings and multiple sales batches.
+     - Normalizes standard agricultural units (`kg`, `quintal`, `tonne`) safely into quintals via `normalize_to_quintals()`. Unsupported or mixed non-convertible units return `quantity_status="not_available"` with zero fabricated values.
+     - Prevents negative unsold stock and guards against inconsistent harvest/sale quantities.
+  3. 📊 **Authoritative Market Reference vs Actual Production Cost Spread:**
+     - Compares APMC Mandi modal reference prices against the farmer's authoritative B24 `cost_per_quintal` (derived from actual Farm Khata expenditures and season harvest volume).
+     - Calculates Reference Price Spread: market reference - actual cost per quintal.
+     - Strict financial semantics: spread is explicitly designated as "Reference Price Spread" / "Market Reference vs Production Cost" and NEVER labeled as "Guaranteed Profit" or "Expected Profit".
+     - Classifies decision states: `ABOVE_PRODUCTION_COST`, `AT_PRODUCTION_COST`, `BELOW_PRODUCTION_COST`, or `NOT_AVAILABLE`.
+     - Displays Government MSP Reference as a public price benchmark only, without claiming guaranteed farmer entitlement.
+  4. 🏷️ **Strict Semantic Separation of Actual vs Estimated vs Not Available:**
+     - Actual: Realized sale prices, sale quantities, and Khata expenses.
+     - Estimated: Reference market value (unsold quantity * modal price) labeled strictly as *"Reference Value — Not Actual Sale Income"*.
+     - Zero automatic entry of market values into Farm Khata or B24 sales.
+  5. 🤝 **Explicit Sale Handoff into Existing B24 Workflow:**
+     - One-click "Record Sale" action in UI opens the existing B24 sale modal pre-filled with active season, unsold quantity, selected mandi, and reference price.
+     - Zero autonomous selling or automatic income creation; sale confirmation and price agreement remain strictly at the farmer's explicit discretion.
+     - Preserves B24 sale idempotency (`harvest-sale-{sale_id}`) and optional Farm Khata income integration.
+  6. 🎯 **Conservative Action Center & Dual-Mode Integration:**
+     - Added Source 9 rule in `backend/app/services/action_center/service.py` generating deterministic, non-spam P2 advisory (`act-market-review-{farm_id}`) only when unsold stock > 0 and authoritative market data exists.
+     - 100% operational in **Software AI Mode** without hardware dependency.
+     - **Smart IoT Mode** compatibility preserved with zero actuator manipulation, zero synthetic sensor values, and zero autonomous transactions.
+  7. 📱 **Farmer-Friendly Frontend UI (`HarvestMarketReconciler.jsx` & Integrations):**
+     - Created `HarvestMarketReconciler.jsx` displaying Harvested/Sold/Unsold cards, Mandi Price Comparison table (Mandi, Modal, Min/Max, MSP, Spread vs Cost, Updated timestamp), Estimated Reference Value disclaimer card, and Sale Handoff button.
+     - Integrated as a dedicated "Market" sub-tab in `HarvestSeasonManager.jsx` and added an unsold harvest callout banner in `MarketPricesPage.jsx`.
+  8. 🧪 **Comprehensive Test Suite & Multi-Batch Regression:**
+     - Authored `backend/tests/test_b25_harvest_market_reconciliation.py` with 21 focused test cases covering all requirements (21/21 passed, 100%).
+     - Ran full multi-batch regression across B24, B20–B23, B15–B19, and B1/B3/B4 (196/196 passed, 100%).
+     - Frontend production bundle build (`npm run build`) succeeded with 0 errors in 23.47s.
+- **Files created:** `backend/app/services/harvest_market_service.py`, `frontend/src/components/farm/HarvestMarketReconciler.jsx`, `backend/tests/test_b25_harvest_market_reconciliation.py`.
+- **Files modified:** `backend/app/routers/farmer/farm_profiles.py`, `backend/app/services/action_center/service.py`, `frontend/src/components/farm/HarvestSeasonManager.jsx`, `frontend/src/pages/farmer/MarketPricesPage.jsx`, `changes_happening.md`.
+
 ## 2026-10-05 (v386) - B24: Harvest & Season Management
 - **Summary:**
   1. 🌾 **Dedicated Scalable Season Lifecycle Architecture (`farm_seasons`):**

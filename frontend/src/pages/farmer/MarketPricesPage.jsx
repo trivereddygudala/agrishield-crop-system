@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, TrendingDown, MapPin, Search, Calendar, 
@@ -98,6 +99,9 @@ const MarketPricesPage = () => {
   const [cropsList, setCropsList] = useState([]);
   const [varietiesByCrop, setVarietiesByCrop] = useState({});
   const [marketYardsDB, setMarketYardsDB] = useState({});
+
+  // B25: Active farm harvest unsold produce stock
+  const [harvestStock, setHarvestStock] = useState(null);
 
   // Display Unit Mode: Quintal (100kg), kg (1kg), Crate (25kg), Bag (50kg)
   const [priceUnit, setPriceUnit] = useState('quintal'); 
@@ -245,6 +249,20 @@ const MarketPricesPage = () => {
     return varietiesByCrop[selectedCrop];
   }, [selectedCrop, varietiesByCrop]);
 
+  useEffect(() => {
+    const fetchHarvestStock = async () => {
+      const fId = activeFarm?.id || activeFarm?._id;
+      if (!fId) return;
+      try {
+        const res = await API.get(`/api/farms/${fId}/harvest-inventory`);
+        setHarvestStock(res.data);
+      } catch (e) {
+        console.warn('Failed to load harvest stock on market page:', e);
+      }
+    };
+    fetchHarvestStock();
+  }, [activeFarm]);
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 8 }}
@@ -311,6 +329,35 @@ const MarketPricesPage = () => {
           </div>
         </div>
       </div>
+
+      {/* B25: Your Farm Harvest Unsold Produce Callout */}
+      {harvestStock && harvestStock.unsold_quantity > 0 && (
+        <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-transparent border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xl shrink-0">🧺</span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                  {isTe ? 'మీ పొలం దిగుబడి' : 'Your Farm Harvest'}
+                </span>
+                <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  {harvestStock.unsold_quantity} {harvestStock.unit} {harvestStock.crop_name} {isTe ? 'అమ్మని నిల్వ ఉంది' : 'currently unsold'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {isTe ? 'మార్కెట్ సూచన ధరలను పరిశీలించి అమ్మకాన్ని నమోదు చేయండి.' : 'Review APMC market references and record your realized crop sale.'}
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/farm?tab=harvest-season&subtab=market"
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
+          >
+            <span>{isTe ? 'దిగుబడి సమీకరణ చూడండి' : 'View Market Selling Advisory'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* 2. Top Ticker & Market Mood Bar */}
       {marketSummary && (

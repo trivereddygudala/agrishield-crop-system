@@ -860,6 +860,57 @@ class ActionCenterService:
                 )
             )
 
+        # ── SOURCE 9: B25 Harvest Market Selling Intelligence ──
+        if current_db is not None and resolved_farm_id != "default":
+            try:
+                active_season = await current_db["farm_seasons"].find_one({
+                    "farm_id": resolved_farm_id,
+                    "status": "active"
+                })
+                if active_season:
+                    from backend.app.services.harvest_market_service import HarvestMarketService
+                    inv = HarvestMarketService.calculate_harvest_inventory(active_season)
+                    unsold_val = inv.get("unsold_quantity")
+                    unsold_unit = inv.get("unit", "quintal")
+                    s_crop = active_season.get("crop_name") or crop_name or "Crop"
+
+                    if unsold_val is not None and unsold_val > 0:
+                        farm_dist = farm_doc.get("district") or farm_doc.get("farm_location") if farm_doc else None
+                        farm_st = farm_doc.get("state") if farm_doc else None
+                        market_refs = HarvestMarketService.find_matching_market_references(
+                            crop_name=s_crop,
+                            variety=active_season.get("variety"),
+                            district=farm_dist,
+                            state=farm_st
+                        )
+                        if market_refs:
+                            top_mandi = market_refs[0].get("mandi_name") or "Local APMC"
+                            top_price = market_refs[0].get("modal_price")
+                            price_str = f" @ ₹{top_price:,.0f}/{unsold_unit}" if top_price else ""
+                            raw_actions.append(
+                                FarmerActionItem(
+                                    action_id=f"act-market-review-{resolved_farm_id}",
+                                    action_type="MARKET",
+                                    priority="P2",
+                                    what=f"Review Market Prices — {unsold_val:,.1f} {unsold_unit} {s_crop} Unsold",
+                                    why=f"{unsold_val:,.1f} {unsold_unit} of harvested {s_crop} remains unsold. Compare {top_mandi}{price_str} against your production cost before recording a sale.",
+                                    when="Post-Harvest Window",
+                                    due_date=today_str,
+                                    source="Market Intelligence",
+                                    operating_mode=operating_mode,
+                                    status="pending",
+                                    operational_bucket="today",
+                                    field_name=field_name,
+                                    crop_name=s_crop,
+                                    growth_stage=growth_stage,
+                                    action_url="/farm?tab=harvest-season&subtab=market",
+                                    action_label="Review Mandi Prices & Record Sale",
+                                    badge_text=f"{unsold_val:,.0f} {unsold_unit} Unsold"
+                                )
+                            )
+            except Exception as e:
+                logger.warning(f"[ActionCenter] Error querying B25 harvest market intelligence: {e}")
+
         # ------------------------------------------------------------------
         # 5. Apply Farmer Interaction State, Deduplication & Active Actions
         # ------------------------------------------------------------------

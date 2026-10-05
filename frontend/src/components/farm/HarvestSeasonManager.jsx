@@ -7,13 +7,20 @@ import {
   ShieldCheck, FileText, ArrowRight, RefreshCw, Archive, Award, HelpCircle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import HarvestMarketReconciler from './HarvestMarketReconciler';
 
 export default function HarvestSeasonManager({ farmId, farmName, cropName, farmSize, onSeasonChanged }) {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
   const isTe = currentLang === 'te';
 
-  const [activeTab, setActiveTab] = useState('scorecard'); // 'scorecard' | 'harvests' | 'sales' | 'history'
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('subtab') === 'market') return 'market';
+    } catch {}
+    return 'scorecard';
+  }); // 'scorecard' | 'harvests' | 'sales' | 'market' | 'history'
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -365,6 +372,17 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
         </button>
         <button
           type="button"
+          onClick={() => setActiveTab('market')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+            activeTab === 'market'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          🏪 {isTe ? 'మార్కెట్ & అమ్మకాలు' : 'Market Intelligence'}
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('history')}
           className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === 'history'
@@ -670,6 +688,23 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
             </div>
           )}
         </div>
+      )}
+
+      {/* ── TAB 5: B25 HARVEST-TO-MARKET SELLING RECONCILER ── */}
+      {activeTab === 'market' && (
+        <HarvestMarketReconciler
+          farmId={farmId}
+          onInitiateSale={({ mandi, price_per_unit, quantity_sold, unit }) => {
+            setSaleForm(prev => ({
+              ...prev,
+              mandi: mandi || prev.mandi,
+              price_per_unit: price_per_unit != null ? price_per_unit : prev.price_per_unit,
+              quantity_sold: quantity_sold != null && quantity_sold !== '' ? quantity_sold : prev.quantity_sold,
+              unit: unit || prev.unit
+            }));
+            setShowSaleModal(true);
+          }}
+        />
       )}
 
       {/* ── MODAL 1: LOG HARVEST ── */}
