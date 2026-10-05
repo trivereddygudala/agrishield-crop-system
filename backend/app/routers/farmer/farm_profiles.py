@@ -1,7 +1,7 @@
 import math
 from datetime import datetime, timezone
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Dict, Any, Optional
 from backend.app.db.mongodb import get_database
 from backend.app.routers.auth import get_current_user
@@ -270,17 +270,45 @@ async def _verify_farm_access(farm_id: str, current_user: dict, db) -> dict:
 @router.get("/{farm_id}/khata")
 async def get_farm_khata(
     farm_id: str,
+    tx_type: Optional[str] = Query(None, alias="type", description="Filter by expense or income"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    crop_name: Optional[str] = Query(None, description="Filter by crop name"),
+    season: Optional[str] = Query(None, description="Filter by season"),
+    is_estimated: Optional[bool] = Query(None, description="Filter by actual (false) or estimated (true)"),
+    payment_status: Optional[str] = Query(None, description="Filter by paid, unpaid, or partial"),
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Retrieve all financial ledger transactions for a farm."""
+    """Retrieve financial ledger transactions for a farm with optional B17 filters."""
     await _verify_farm_access(farm_id, current_user, db)
 
-    cursor = db["farm_khata"].find({"farm_id": farm_id}).sort("date", -1)
+    query: Dict[str, Any] = {"farm_id": farm_id}
+    if tx_type and tx_type.strip():
+        query["type"] = tx_type.strip().lower()
+    if category and category.strip():
+        query["category"] = category.strip().lower()
+    if crop_name and crop_name.strip():
+        query["crop_name"] = crop_name.strip()
+    if season and season.strip():
+        query["season"] = season.strip()
+    if is_estimated is not None:
+        query["is_estimated"] = is_estimated
+    if payment_status and payment_status.strip():
+        query["payment_status"] = payment_status.strip().lower()
+
+    cursor = db["farm_khata"].find(query).sort("date", -1)
     transactions = []
     async for doc in cursor:
         doc["id"] = str(doc.get("_id") or doc.get("id"))
         doc["_id"] = str(doc.get("_id"))
+        doc["field_id"] = doc.get("field_id")
+        doc["crop_name"] = doc.get("crop_name")
+        doc["season"] = doc.get("season")
+        doc["is_estimated"] = bool(doc.get("is_estimated", False))
+        doc["payment_status"] = str(doc.get("payment_status") or "paid").lower()
+        doc["quantity"] = doc.get("quantity")
+        doc["unit"] = doc.get("unit")
+        doc["vendor"] = doc.get("vendor")
         if "created_at" in doc and isinstance(doc["created_at"], datetime):
             doc["created_at"] = doc["created_at"].isoformat()
         if "updated_at" in doc and isinstance(doc["updated_at"], datetime):
@@ -295,6 +323,159 @@ async def get_farm_khata(
     }
 
 
+@router.get("/{farm_id}/khata/analytics")
+async def get_farm_khata_analytics(
+    farm_id: str,
+    season: Optional[str] = Query(None, description="Optional season filter"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    B17: Calculate comprehensive farm financial analytics:
+    - Actual Expenses vs Actual Income -> Actual Net Profit/Loss
+    - Estimated Expenses vs Estimated Income -> Projected Net Profit
+    - Unpaid and Partial Liabilities
+    - Category, Crop, Field, and Season-wise breakdowns
+    - Cost of Cultivation per acre/hectare
+    """
+    farm_doc = await _verify_farm_access(farm_id, current_user, db)
+
+    query: Dict[str, Any] = {"farm_id": farm_id}
+    if season and season.strip():
+        query["season"] = season.strip()
+
+    cursor = db["farm_khata"].find(query)
+
+    total_actual_expenses = 0.0
+    total_actual_income = 0.0
+    estimated_expenses = 0.0
+    estimated_income = 0.0
+    unpaid_amount = 0.0
+    partial_amount = 0.0
+
+    category_breakdown: Dict[str, Dict[str, Any]] = {}
+    crop_breakdown: Dict[str, Dict[str, float]] = {}
+    field_breakdown: Dict[str, Dict[str, float]] = {}
+    season_breakdown: Dict[str, Dict[str, Any]] = {}
+
+    async for doc in cursor:
+        amount = float(doc.get("amount") or 0.0)
+        tx_type = str(doc.get("type") or "expense").lower().strip()
+        is_est = bool(doc.get("is_estimated", False))
+        pay_stat = str(doc.get("payment_status") or "paid").lower().strip()
+        cat = str(doc.get("category") or "other").strip()
+        c_name = doc.get("crop_name") or "Unallocated"
+        f_id = doc.get("field_id") or "Farm-level"
+        s_name = doc.get("season") or "Unassigned"
+
+        if is_est:
+            if tx_type == "income":
+                estimated_income += amount
+            else:
+                estimated_expenses += amount
+        else:
+            if tx_type == "income":
+                total_actual_income += amount
+            else:
+                total_actual_expenses += amount
+                if pay_stat == "unpaid":
+                    unpaid_amount += amount
+                elif pay_stat == "partial":
+                    partial_amount += amount
+
+        # Category Breakdown for actual expenses
+        if not is_est and tx_type == "expense":
+            if cat not in category_breakdown:
+                category_breakdown[cat] = {"amount": 0.0, "count": 0}
+            category_breakdown[cat]["amount"] += amount
+            category_breakdown[cat]["count"] += 1
+
+        # Crop Breakdown for actual transactions
+        if not is_est:
+            if c_name not in crop_breakdown:
+                crop_breakdown[c_name] = {"expense": 0.0, "income": 0.0}
+            if tx_type == "expense":
+                crop_breakdown[c_name]["expense"] += amount
+            else:
+                crop_breakdown[c_name]["income"] += amount
+
+        # Field Breakdown for actual transactions
+        if not is_est:
+            if f_id not in field_breakdown:
+                field_breakdown[f_id] = {"expense": 0.0, "income": 0.0}
+            if tx_type == "expense":
+                field_breakdown[f_id]["expense"] += amount
+            else:
+                field_breakdown[f_id]["income"] += amount
+
+        # Season Breakdown (both actual and estimated)
+        if s_name not in season_breakdown:
+            season_breakdown[s_name] = {
+                "actual_expense": 0.0,
+                "actual_income": 0.0,
+                "estimated_expense": 0.0,
+                "estimated_income": 0.0
+            }
+        if is_est:
+            if tx_type == "income":
+                season_breakdown[s_name]["estimated_income"] += amount
+            else:
+                season_breakdown[s_name]["estimated_expense"] += amount
+        else:
+            if tx_type == "income":
+                season_breakdown[s_name]["actual_income"] += amount
+            else:
+                season_breakdown[s_name]["actual_expense"] += amount
+
+    actual_profit = total_actual_income - total_actual_expenses
+    projected_profit = (total_actual_income + estimated_income) - (total_actual_expenses + estimated_expenses)
+
+    farm_size = float(farm_doc.get("farm_size") or 0.0)
+    farm_unit = str(farm_doc.get("farm_unit") or "acres")
+    cost_per_unit = round(total_actual_expenses / farm_size, 2) if farm_size > 0 else None
+    profit_per_unit = round(actual_profit / farm_size, 2) if farm_size > 0 else None
+
+    # Calculate percentages for category breakdown
+    for cat, data in category_breakdown.items():
+        data["percentage"] = round((data["amount"] / total_actual_expenses * 100), 1) if total_actual_expenses > 0 else 0.0
+        data["amount"] = round(data["amount"], 2)
+
+    # Round numerical breakdown maps
+    for c_k, c_v in crop_breakdown.items():
+        c_v["expense"] = round(c_v["expense"], 2)
+        c_v["income"] = round(c_v["income"], 2)
+    for f_k, f_v in field_breakdown.items():
+        f_v["expense"] = round(f_v["expense"], 2)
+        f_v["income"] = round(f_v["income"], 2)
+    for s_k, s_v in season_breakdown.items():
+        s_v["actual_expense"] = round(s_v["actual_expense"], 2)
+        s_v["actual_income"] = round(s_v["actual_income"], 2)
+        s_v["estimated_expense"] = round(s_v["estimated_expense"], 2)
+        s_v["estimated_income"] = round(s_v["estimated_income"], 2)
+
+    return {
+        "status": "success",
+        "farm_id": farm_id,
+        "farm_name": farm_doc.get("farm_name", "My Farm"),
+        "farm_size": farm_size,
+        "farm_unit": farm_unit,
+        "total_actual_expenses": round(total_actual_expenses, 2),
+        "total_actual_income": round(total_actual_income, 2),
+        "actual_profit": round(actual_profit, 2),
+        "estimated_expenses": round(estimated_expenses, 2),
+        "estimated_income": round(estimated_income, 2),
+        "projected_profit": round(projected_profit, 2),
+        "unpaid_amount": round(unpaid_amount, 2),
+        "partial_amount": round(partial_amount, 2),
+        "cost_per_unit": cost_per_unit,
+        "profit_per_unit": profit_per_unit,
+        "category_breakdown": category_breakdown,
+        "crop_breakdown": crop_breakdown,
+        "field_breakdown": field_breakdown,
+        "season_breakdown": season_breakdown
+    }
+
+
 @router.post("/{farm_id}/khata", status_code=status.HTTP_201_CREATED)
 async def add_farm_khata_transaction(
     farm_id: str,
@@ -302,7 +483,7 @@ async def add_farm_khata_transaction(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Create a new Khata income or expense transaction."""
+    """Create a new Khata income or expense transaction with B17 attribution."""
     await _verify_farm_access(farm_id, current_user, db)
 
     user_id = str(current_user.get("id") or current_user.get("_id") or "")
@@ -316,6 +497,13 @@ async def add_farm_khata_transaction(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Amount must be greater than 0."
+        )
+
+    pay_status = (tx_data.payment_status or "paid").lower().strip()
+    if pay_status not in ["paid", "unpaid", "partial"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment status must be 'paid', 'unpaid', or 'partial'."
         )
 
     # Duplicate booking-sync protection: if booking_id is provided, check if already recorded
@@ -342,6 +530,14 @@ async def add_farm_khata_transaction(
         "description": tx_data.description.strip(),
         "amount": float(tx_data.amount),
         "date": tx_data.date.strip(),
+        "field_id": tx_data.field_id.strip() if tx_data.field_id else None,
+        "crop_name": tx_data.crop_name.strip() if tx_data.crop_name else None,
+        "season": tx_data.season.strip() if tx_data.season else None,
+        "is_estimated": bool(tx_data.is_estimated),
+        "payment_status": pay_status,
+        "quantity": float(tx_data.quantity) if tx_data.quantity is not None else None,
+        "unit": tx_data.unit.strip() if tx_data.unit else None,
+        "vendor": tx_data.vendor.strip() if tx_data.vendor else None,
         "created_at": now,
         "updated_at": now
     }

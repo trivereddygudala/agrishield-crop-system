@@ -65,6 +65,15 @@ class KhataTransactionCreate(BaseModel):
     amount: float = Field(..., gt=0)
     date: str = Field(..., description="YYYY-MM-DD")
     booking_id: Optional[str] = Field(None, description="Optional booking reference to prevent duplicates")
+    # B17 Farm Expense, Income & Profit Manager extensions:
+    field_id: Optional[str] = Field(None, max_length=100, description="Field reference or number")
+    crop_name: Optional[str] = Field(None, max_length=100, description="Crop associated with this transaction")
+    season: Optional[str] = Field(None, max_length=100, description="Crop season, e.g. Kharif 2026, Rabi 2026-27")
+    is_estimated: bool = Field(default=False, description="True if estimated, False if actual financial transaction")
+    payment_status: str = Field(default="paid", description="Payment status: paid, unpaid, or partial")
+    quantity: Optional[float] = Field(None, ge=0, description="Optional quantity in units")
+    unit: Optional[str] = Field(None, max_length=50, description="Optional measurement unit (Quintal, kg, bags, hours, crates)")
+    vendor: Optional[str] = Field(None, max_length=150, description="Optional dealer, buyer, or vendor name")
 
 class TimelineTasksUpdate(BaseModel):
     completed_tasks: Dict[str, Any] = Field(..., description="Map of task IDs to completed boolean or task metadata object")

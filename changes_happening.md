@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v378) - B17: Farm Expense, Income & Profit Manager Implementation
+- **Summary:**
+  1. 💰 **Authoritative Farm Khata Extension (`farm_khata`):**
+     - Extended the existing MongoDB `farm_khata` collection and [KhataTransactionCreate](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/models/farm_profile.py) schema with backward-compatible optional fields: `field_id`, `crop_name`, `season`, `is_estimated`, `payment_status` (`paid`, `unpaid`, `partial`), `quantity`, `unit`, and `vendor`.
+     - Preserved 100% legacy compatibility: missing fields default gracefully to farm-level / unallocated, actual (`is_estimated=False`), and paid.
+  2. ⚖️ **Strict Actual vs Estimated Distinction:**
+     - Enforced strict architectural separation between hard verified cashbook records (`is_estimated=False`) and forward projections (`is_estimated=True`).
+     - Net profit calculations guarantee that estimated income (e.g., yield $\times$ mandi rate) is never blended into actual realized income.
+  3. 📊 **Dedicated Backend Financial Analytics Endpoint (`GET /{farm_id}/khata/analytics`):**
+     - Authored high-performance analytics calculation in [farm_profiles.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/farmer/farm_profiles.py) providing `total_actual_expenses`, `total_actual_income`, `actual_profit`, `estimated_expenses`, `estimated_income`, `projected_profit`, `unpaid_amount`, `partial_amount`, `cost_per_unit` (per acre/ha), and detailed category, crop, field, and season breakdowns.
+     - Secured with `_verify_farm_access` to maintain strict tenant isolation across farmers.
+  4. 🏷️ **Field, Crop, Season & Payment Attribution:**
+     - Enabled granular attribution hierarchy (Field $\rightarrow$ Crop, Crop-level, or Farm-level overhead) without guessing or fabricating unallocated costs.
+     - Added payment status tracking to highlight outstanding credit liabilities to agricultural input dealers or labour.
+  5. 📱 **Farmer-Friendly UI Upgrade (`DigitalFarmKhata.jsx`):**
+     - Upgraded [DigitalFarmKhata.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/farm/DigitalFarmKhata.jsx) with 4 primary financial metric cards (Spent, Earned, Actual Net Profit, and Estimated Projected Profit), outstanding liability alert strip, interactive multi-dimensional filter bar, and enhanced WhatsApp passbook report generation.
+  6. 🧪 **Validation, Test Suite & Regressions:**
+     - Authored comprehensive test suite in `backend/tests/test_b17_farm_finance.py` (9/9 passed, 100%).
+     - Verified regression suites (B17, B4, B15, B16, B1 RBAC: 37/37 passed, 100%).
+     - Verified full frontend production bundle build (`npm run build`: built in 26.88s with 0 errors).
+- **Files modified:** `backend/app/models/farm_profile.py`, `backend/app/routers/farmer/farm_profiles.py`, `frontend/src/components/farm/DigitalFarmKhata.jsx`, `backend/tests/test_b17_farm_finance.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v377) - B16: Smart Crop Calendar & Farm Activity Planner Implementation
 - **Summary:**
   1. 📅 **Dynamic Crop Calendar & Adaptive Phenology Date Mapping:**
