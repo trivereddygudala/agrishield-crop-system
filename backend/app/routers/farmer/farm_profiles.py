@@ -740,6 +740,9 @@ def serialize_inventory_doc(doc: dict) -> dict:
         d["cost_per_unit"] = None
         d["remaining_stock_value"] = None
 
+    d["latest_cost_per_unit"] = d.get("latest_cost_per_unit")
+    d["latest_purchase_price"] = d.get("latest_purchase_price")
+    d["purchase_history"] = d.get("purchase_history") or []
     d["status"] = compute_inventory_status(d)
     return d
 
@@ -891,8 +894,18 @@ async def create_inventory_item(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Add a new material or product to farm inventory."""
+    """Add a new material or product to farm inventory with idempotency protection."""
     await _verify_farm_access(farm_id, current_user, db)
+
+    # 1. Idempotency Check for Initial Creation Retry
+    idemp_key = payload.idempotency_key.strip() if payload.idempotency_key else None
+    if idemp_key:
+        existing_inv = await db["farm_inventory"].find_one({
+            "farm_id": farm_id,
+            "idempotency_key": idemp_key
+        })
+        if existing_inv:
+            return serialize_inventory_doc(existing_inv)
 
     cat = payload.category.lower().strip()
     if cat not in VALID_INVENTORY_CATEGORIES:
@@ -918,7 +931,7 @@ async def create_inventory_item(
     khata_tx_id = payload.khata_tx_id
     # Handle optional linked Khata expense creation with strict idempotency
     if payload.record_in_khata and not khata_tx_id and payload.purchase_price and payload.purchase_price > 0:
-        booking_key = f"inv-{inv_id}"
+        booking_key = f"inv-purchase-{idemp_key if idemp_key else inv_id}"
         existing_khata = await db["farm_khata"].find_one({"farm_id": farm_id, "booking_id": booking_key})
         if existing_khata:
             khata_tx_id = str(existing_khata.get("id") or existing_khata.get("_id"))
@@ -947,6 +960,16 @@ async def create_inventory_item(
             res = await db["farm_khata"].insert_one(khata_doc)
             khata_tx_id = str(res.inserted_id)
 
+    purchase_entry = {
+        "op": "initial",
+        "quantity": round(float(payload.quantity), 4),
+        "purchase_price": float(payload.purchase_price) if payload.purchase_price is not None else None,
+        "cost_per_unit": cost_per_unit,
+        "date": payload.purchase_date or now.strftime("%Y-%m-%d"),
+        "vendor": payload.vendor.strip() if payload.vendor else None,
+        "created_at": now.isoformat()
+    } if payload.purchase_price is not None and payload.purchase_price > 0 else None
+
     doc = {
         "id": inv_id,
         "farm_id": farm_id,
@@ -964,11 +987,16 @@ async def create_inventory_item(
         "vendor": payload.vendor.strip() if payload.vendor else None,
         "purchase_price": float(payload.purchase_price) if payload.purchase_price is not None else None,
         "cost_per_unit": cost_per_unit,
+        "latest_purchase_price": float(payload.purchase_price) if payload.purchase_price is not None else None,
+        "latest_cost_per_unit": cost_per_unit,
         "field_id": payload.field_id.strip() if payload.field_id else None,
         "crop_name": payload.crop_name.strip() if payload.crop_name else None,
         "notes": payload.notes.strip() if payload.notes else None,
         "khata_tx_id": khata_tx_id,
+        "idempotency_key": idemp_key,
+        "restock_keys": [],
         "usage_history": [],
+        "purchase_history": [purchase_entry] if purchase_entry else [],
         "archived": False,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat()
@@ -986,7 +1014,7 @@ async def restock_inventory_item(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Increase quantity of existing inventory item with optional purchase tracking."""
+    """Increase quantity of existing inventory item with operation-level Khata idempotency and cost safety."""
     await _verify_farm_access(farm_id, current_user, db)
 
     cond = [{"id": item_id}]
@@ -1000,6 +1028,12 @@ async def restock_inventory_item(
             detail="Inventory item not found."
         )
 
+    # 1. Strict Operation Idempotency Check for Restock Retries
+    idemp_key = payload.idempotency_key.strip() if payload.idempotency_key else None
+    if idemp_key and idemp_key in item.get("restock_keys", []):
+        # Already processed this exact restock operation. Replay safely without double increments or double billing.
+        return serialize_inventory_doc(item)
+
     if payload.quantity <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1010,6 +1044,7 @@ async def restock_inventory_item(
     new_qty = round(current_qty + float(payload.quantity), 4)
     now = datetime.now(timezone.utc)
     user_id = str(current_user.get("id") or current_user.get("_id") or "")
+    op_ref = idemp_key if idemp_key else f"op-{uuid.uuid4().hex[:10]}"
 
     update_fields: Dict[str, Any] = {
         "quantity": new_qty,
@@ -1027,13 +1062,35 @@ async def restock_inventory_item(
     if payload.notes:
         update_fields["notes"] = payload.notes.strip()
 
+    purchase_entry = None
     if payload.purchase_price is not None and payload.purchase_price > 0:
-        update_fields["purchase_price"] = float(payload.purchase_price)
-        update_fields["cost_per_unit"] = round(float(payload.purchase_price) / float(payload.quantity), 2)
+        restock_cost_per_unit = round(float(payload.purchase_price) / float(payload.quantity), 2)
 
-        # Handle optional Khata link for this restock
+        # COST-BASIS SAFETY:
+        # If the item had no original cost basis, initialize it.
+        # If the item already has an original cost basis, DO NOT SILENTLY OVERWRITE IT!
+        # Preserve original cost_per_unit and track latest_purchase_price / latest_cost_per_unit.
+        if item.get("cost_per_unit") is None:
+            update_fields["cost_per_unit"] = restock_cost_per_unit
+            update_fields["purchase_price"] = float(payload.purchase_price)
+
+        update_fields["latest_purchase_price"] = float(payload.purchase_price)
+        update_fields["latest_cost_per_unit"] = restock_cost_per_unit
+
+        purchase_entry = {
+            "op": "restock",
+            "idempotency_key": idemp_key,
+            "quantity": float(payload.quantity),
+            "purchase_price": float(payload.purchase_price),
+            "cost_per_unit": restock_cost_per_unit,
+            "vendor": payload.vendor or item.get("vendor"),
+            "date": payload.purchase_date or now.strftime("%Y-%m-%d"),
+            "created_at": now.isoformat()
+        }
+
+        # Handle optional Khata link for this restock with operation-specific booking reference
         if payload.record_in_khata:
-            restock_booking = f"restock-{item_id}-{int(now.timestamp())}"
+            restock_booking = f"inv-restock-{item.get('id') or item_id}-{op_ref}"
             existing_khata = await db["farm_khata"].find_one({"farm_id": farm_id, "booking_id": restock_booking})
             if not existing_khata:
                 khata_cat = map_inventory_category_to_khata(item.get("category") or "other")
@@ -1059,10 +1116,19 @@ async def restock_inventory_item(
                 }
                 res = await db["farm_khata"].insert_one(khata_doc)
                 update_fields["khata_tx_id"] = str(res.inserted_id)
+            else:
+                update_fields["khata_tx_id"] = str(existing_khata.get("id") or existing_khata.get("_id"))
+
+    # Build atomic update pushing op_ref to restock_keys and purchase_entry to purchase_history
+    mongo_update: Dict[str, Any] = {"$set": update_fields}
+    push_dict: Dict[str, Any] = {"restock_keys": op_ref}
+    if purchase_entry:
+        push_dict["purchase_history"] = {"$each": [purchase_entry], "$slice": -50}
+    mongo_update["$push"] = push_dict
 
     await db["farm_inventory"].update_one(
         {"_id": item["_id"]},
-        {"$set": update_fields}
+        mongo_update
     )
 
     updated_doc = await db["farm_inventory"].find_one({"_id": item["_id"]})

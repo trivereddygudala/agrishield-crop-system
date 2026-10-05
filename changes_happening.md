@@ -2,6 +2,23 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v380) - B18: Fix Inventory Khata Restock Idempotency & Cost-Basis Safety (Hotfix)
+- **Summary:**
+  1. 🔄 **Operation-Level Restock Idempotency:**
+     - Upgraded `InventoryItemCreate` and `InventoryRestockCreate` in [inventory.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/models/inventory.py) with optional `idempotency_key`.
+     - In [farm_profiles.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/farmer/farm_profiles.py):
+       - `create_inventory_item`: Added idempotency deduplication check against `db["farm_inventory"]` and deterministic `booking_id = f"inv-purchase-{idemp_key or inv_id}"` for B17 Farm Khata links, preventing duplicate initial purchases and expenses.
+       - `restock_inventory_item`: Added check against `restock_keys` list. Retries of the same restock operation replay safely without double-incrementing stock or creating duplicate Khata expenses.
+       - Formulates unique per-operation booking reference `booking_id = f"inv-restock-{item_id}-{op_ref}"`, ensuring multiple legitimate restocks (e.g. Restock #1 and Restock #2) each create their own distinct Khata expense.
+  2. ⚖️ **Cost-Basis Safety:**
+     - Preserved original base `cost_per_unit` on restock so purchases at differing prices (e.g., 5 bags @ ₹550/bag after 10 bags @ ₹500/bag) do not silently overwrite historical cost or corrupt earlier valuation.
+     - Added `latest_purchase_price`, `latest_cost_per_unit`, and chronological `purchase_history` ledger for complete purchase auditability.
+     - Ensured remaining stock value (`total_stock_value`) correctly represents remaining physical stock valued at base cost rather than total cumulative historical spend.
+  3. 🧪 **Tests & Regressions:**
+     - Added comprehensive regression test `test_23_restock_idempotency_sequence_and_cost_safety` in `backend/tests/test_b18_farm_inventory.py`.
+     - All 45 regression tests passed across B18, B17, B16, B15, and B4.
+- **Files modified:** `backend/app/models/inventory.py`, `backend/app/routers/farmer/farm_profiles.py`, `backend/tests/test_b18_farm_inventory.py`, `backend/tests/mock_db.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v379) - B18: Smart Farm Inventory Manager Implementation
 - **Summary:**
   1. 📦 **Dedicated Physical Stock Ledger (`farm_inventory`):**

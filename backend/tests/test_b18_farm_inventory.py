@@ -559,3 +559,162 @@ async def test_21_22_summary_metrics_and_remaining_stock_valuation():
         assert summary["total_stock_value"] == 4400.0
         assert summary["category_counts"]["fertilizer"] == 1
         assert summary["category_counts"]["seeds"] == 1
+
+
+@pytest.mark.anyio
+async def test_23_restock_idempotency_sequence_and_cost_safety():
+    """
+    Focused regression test for B18 Hotfix:
+    1. Initial purchase creates exactly one Khata expense.
+    2. Retrying the initial purchase with same idempotency_key returns existing item and creates NO duplicate Khata expense.
+    3. Restock #1 creates one new Khata expense without touching initial transaction.
+    4. Restock #2 creates another new Khata expense without collision.
+    5. Retrying Restock #2 with same idempotency_key creates NO duplicate Khata expense and does NOT double-increment stock.
+    6. Initial purchase + Restock #1 + Restock #2 produces exactly 3 Khata transactions.
+    7. Restocking at different unit price (10 @ 500, restock 5 @ 550) does not corrupt original cost basis (cost_per_unit remains 500.0, latest_cost_per_unit is 550.0).
+    8. Remaining stock value is calculated safely based on cost_per_unit.
+    """
+    farmer_id, token = await create_user("Ramesh_Idemp", "ramesh_idemp@test.com")
+    farm_id = await create_farm(farmer_id)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Step 1: Initial purchase - 10 bags fertilizer @ ₹5,000 (unit cost = ₹500/bag)
+        initial_idemp = "idemp-fertilizer-initial-001"
+        res_init = await client.post(
+            f"/api/farms/{farm_id}/inventory",
+            json={
+                "item_name": "Complex Fertilizer 20-20-0-13",
+                "category": "fertilizer",
+                "quantity": 10.0,
+                "unit": "bags",
+                "purchase_price": 5000.0,
+                "record_in_khata": True,
+                "idempotency_key": initial_idemp,
+                "vendor": "Kisan Seva Kendra"
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res_init.status_code == 201
+        item = res_init.json()
+        item_id = item["id"]
+        assert item["quantity"] == 10.0
+        assert item["cost_per_unit"] == 500.0
+        assert item["latest_cost_per_unit"] == 500.0
+        assert item["latest_purchase_price"] == 5000.0
+
+        # Step 2: Retry initial purchase with same idempotency_key
+        res_init_retry = await client.post(
+            f"/api/farms/{farm_id}/inventory",
+            json={
+                "item_name": "Complex Fertilizer 20-20-0-13",
+                "category": "fertilizer",
+                "quantity": 10.0,
+                "unit": "bags",
+                "purchase_price": 5000.0,
+                "record_in_khata": True,
+                "idempotency_key": initial_idemp,
+                "vendor": "Kisan Seva Kendra"
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res_init_retry.status_code in (200, 201)
+        assert res_init_retry.json()["id"] == item_id
+
+        # Verify exactly ONE Khata expense exists
+        khata_step1 = await client.get(f"/api/farms/{farm_id}/khata", headers={"Authorization": f"Bearer {token}"})
+        assert khata_step1.status_code == 200
+        assert khata_step1.json()["count"] == 1
+        tx1 = khata_step1.json()["transactions"][0]
+        assert tx1["amount"] == 5000.0
+        assert tx1["type"] == "expense"
+
+        # Step 3: Restock #1 - 5 bags @ ₹2,750 (unit cost = ₹550/bag)
+        restock1_key = "restock-op-001"
+        res_restock1 = await client.post(
+            f"/api/farms/{farm_id}/inventory/{item_id}/restock",
+            json={
+                "quantity": 5.0,
+                "purchase_price": 2750.0,
+                "record_in_khata": True,
+                "idempotency_key": restock1_key,
+                "vendor": "IFFCO Depot"
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res_restock1.status_code == 200
+        item_r1 = res_restock1.json()
+        assert item_r1["quantity"] == 15.0  # 10 + 5
+        # Cost-basis safety: original cost_per_unit must NOT be corrupted
+        assert item_r1["cost_per_unit"] == 500.0
+        assert item_r1["latest_cost_per_unit"] == 550.0
+        assert item_r1["latest_purchase_price"] == 2750.0
+
+        # Verify Khata now has exactly TWO distinct transactions
+        khata_step2 = await client.get(f"/api/farms/{farm_id}/khata", headers={"Authorization": f"Bearer {token}"})
+        assert khata_step2.json()["count"] == 2
+        amounts = [tx["amount"] for tx in khata_step2.json()["transactions"]]
+        assert 5000.0 in amounts
+        assert 2750.0 in amounts
+
+        # Step 4: Restock #2 - another 5 bags @ ₹2,900 (unit cost = ₹580/bag)
+        restock2_key = "restock-op-002"
+        res_restock2 = await client.post(
+            f"/api/farms/{farm_id}/inventory/{item_id}/restock",
+            json={
+                "quantity": 5.0,
+                "purchase_price": 2900.0,
+                "record_in_khata": True,
+                "idempotency_key": restock2_key,
+                "vendor": "IFFCO Depot"
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res_restock2.status_code == 200
+        item_r2 = res_restock2.json()
+        assert item_r2["quantity"] == 20.0  # 15 + 5
+        assert item_r2["cost_per_unit"] == 500.0  # Original base cost preserved
+        assert item_r2["latest_cost_per_unit"] == 580.0
+        assert item_r2["latest_purchase_price"] == 2900.0
+
+        # Verify Khata now has exactly THREE distinct transactions (Initial + Restock 1 + Restock 2)
+        khata_step3 = await client.get(f"/api/farms/{farm_id}/khata", headers={"Authorization": f"Bearer {token}"})
+        assert khata_step3.json()["count"] == 3
+        amounts_step3 = [tx["amount"] for tx in khata_step3.json()["transactions"]]
+        assert amounts_step3.count(5000.0) == 1
+        assert amounts_step3.count(2750.0) == 1
+        assert amounts_step3.count(2900.0) == 1
+
+        # Step 5: RETRY Restock #2 with the exact same restock2_key
+        res_restock2_retry = await client.post(
+            f"/api/farms/{farm_id}/inventory/{item_id}/restock",
+            json={
+                "quantity": 5.0,
+                "purchase_price": 2900.0,
+                "record_in_khata": True,
+                "idempotency_key": restock2_key,
+                "vendor": "IFFCO Depot"
+            },
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res_restock2_retry.status_code == 200
+        item_r2_retry = res_restock2_retry.json()
+        # Quantity MUST NOT double increment: stays 20.0
+        assert item_r2_retry["quantity"] == 20.0
+
+        # Step 6: Verify Khata STILL has exactly 3 transactions, NOT 4
+        khata_step4 = await client.get(f"/api/farms/{farm_id}/khata", headers={"Authorization": f"Bearer {token}"})
+        assert khata_step4.json()["count"] == 3
+
+        # Step 7: Verify remaining stock valuation after partial consumption
+        # Farmer uses 8 bags -> 12 bags remain
+        await client.post(
+            f"/api/farms/{farm_id}/inventory/{item_id}/use",
+            json={"quantity_used": 8.0, "activity": "Broadcast in Paddy field"},
+            headers={"Authorization": f"Bearer {token}"}
+        )
+
+        sum_res = await client.get(f"/api/farms/{farm_id}/inventory/summary", headers={"Authorization": f"Bearer {token}"})
+        assert sum_res.status_code == 200
+        # 12 remaining * ₹500 (safe cost basis) = ₹6000
+        assert sum_res.json()["total_stock_value"] == 6000.0

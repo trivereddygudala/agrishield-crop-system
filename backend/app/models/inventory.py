@@ -54,6 +54,7 @@ class InventoryItemCreate(BaseModel):
     notes: Optional[str] = Field(None, max_length=500)
     record_in_khata: bool = Field(default=False)
     khata_tx_id: Optional[str] = Field(None, max_length=100)
+    idempotency_key: Optional[str] = Field(None, max_length=100, description="Client operation idempotency key for safe retries")
 
 class InventoryItemUpdate(BaseModel):
     item_name: Optional[str] = Field(None, min_length=1, max_length=150)
@@ -77,6 +78,7 @@ class InventoryRestockCreate(BaseModel):
     expiry_date: Optional[str] = Field(None, description="YYYY-MM-DD")
     notes: Optional[str] = Field(None, max_length=500)
     record_in_khata: bool = Field(default=False)
+    idempotency_key: Optional[str] = Field(None, max_length=100, description="Client operation idempotency key for safe retries")
 
 class InventoryUsageCreate(BaseModel):
     quantity_used: float = Field(..., gt=0)
