@@ -43,6 +43,7 @@ class ActionCenterService:
         farm_id: Optional[str] = None,
         priority: Optional[str] = None,
         limit: int = 20,
+        bucket: Optional[str] = None,
         current_user: Optional[dict] = None
     ) -> FarmerActionsResponse:
         now_utc = datetime.now(timezone.utc)
@@ -96,6 +97,9 @@ class ActionCenterService:
         farm_name = farm_doc.get("farm_name") or "My Farm" if farm_doc else "My Farm"
         crop_name = farm_doc.get("crop_name") if farm_doc else None
         growth_stage = farm_doc.get("growth_stage") if farm_doc else None
+        field_name = farm_doc.get("field_name") if farm_doc else None
+        if not field_name and farm_doc and farm_doc.get("number_of_fields"):
+            field_name = "Field 1"
         planting_date = farm_doc.get("planting_date") if farm_doc else None
         device_id = farm_doc.get("device_id") if farm_doc else None
         farm_size_acres = float(farm_doc.get("farm_size", 1.0)) if farm_doc and farm_doc.get("farm_size") else 1.0
@@ -258,6 +262,8 @@ class ActionCenterService:
         # ------------------------------------------------------------------
         raw_actions: List[FarmerActionItem] = []
 
+        today_date = now_utc.date()
+
         # ── SOURCE 1: B15 Smart Irrigation ──
         if irrigation_data and irrigation_data.get("irrigation_required") is True:
             pump_mins = irrigation_data.get("recommended_pump_minutes") or 45
@@ -287,6 +293,10 @@ class ActionCenterService:
                     source="Smart Irrigation",
                     operating_mode=operating_mode,
                     status="pending",
+                    operational_bucket="today",
+                    field_name=field_name,
+                    crop_name=crop_name,
+                    growth_stage=growth_stage,
                     action_url="/farm?tab=farm-intelligence",
                     action_label="View Irrigation Advice",
                     badge_text=f"{pump_mins} min run" if pump_mins else None,
@@ -322,6 +332,13 @@ class ActionCenterService:
                 if weather_warn:
                     why_text += f" • {weather_warn}"
 
+                t_due = t_item.get("due_date") or today_str
+                t_bucket = "today"
+                when_label = t_item.get("due_date") or "Today"
+                if t_due < today_str:
+                    t_bucket = "overdue"
+                    when_label = f"Overdue ({t_due})"
+
                 raw_actions.append(
                     FarmerActionItem(
                         action_id=f"act-crop-{t_id}",
@@ -329,11 +346,15 @@ class ActionCenterService:
                         priority=p_level,
                         what=t_item.get("title") or "Scheduled Crop Activity",
                         why=why_text,
-                        when=t_item.get("due_date") or "Today",
-                        due_date=t_item.get("due_date") or today_str,
+                        when=when_label,
+                        due_date=t_due,
                         source="Crop Calendar",
                         operating_mode=operating_mode,
                         status=t_item.get("status", "pending"),
+                        operational_bucket=t_bucket,
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=stg_name,
                         action_url="/farm?tab=crop-lifecycle",
                         action_label="Open Crop Calendar",
                         badge_text=stg_name,
@@ -344,6 +365,58 @@ class ActionCenterService:
                         }
                     )
                 )
+
+        # ── SOURCE 2B: B16 Crop Calendar (Upcoming 7-Day Activities) ──
+        if crop_calendar_data and crop_calendar_data.get("upcoming_activities"):
+            for u_item in crop_calendar_data["upcoming_activities"]:
+                u_id = u_item.get("task_id", "")
+                if u_id == "b15-irrigation-action":
+                    continue
+
+                u_due = u_item.get("due_date") or u_item.get("scheduled_date")
+                if not u_due:
+                    continue
+                try:
+                    u_date = datetime.strptime(str(u_due)[:10], "%Y-%m-%d").date()
+                    days_ahead = (u_date - today_date).days
+                    # Strictly bounded to next 7 days (1 to 7 days ahead)
+                    if 1 <= days_ahead <= 7:
+                        u_cat = (u_item.get("category") or "Agronomic Care").lower()
+                        u_act_type = "SPRAY" if "spray" in u_cat or "pest" in u_cat else (
+                            "FERTILIZE" if "nutrition" in u_cat or "fertilizer" in u_cat else "CROP_TASK"
+                        )
+                        u_stg = u_item.get("stage_name") or growth_stage or "Next Stage"
+                        when_str = "Tomorrow" if days_ahead == 1 else f"In {days_ahead} days ({u_due})"
+
+                        raw_actions.append(
+                            FarmerActionItem(
+                                action_id=f"act-crop-upcoming-{u_id}",
+                                action_type=u_act_type,
+                                priority="P2",
+                                what=u_item.get("title") or "Upcoming Crop Activity",
+                                why=f"Scheduled for upcoming {u_stg} stage (in {days_ahead} days).",
+                                when=when_str,
+                                due_date=u_due,
+                                source="Crop Calendar",
+                                operating_mode=operating_mode,
+                                status="pending",
+                                operational_bucket="upcoming",
+                                field_name=field_name,
+                                crop_name=crop_name,
+                                growth_stage=u_stg,
+                                action_url="/farm?tab=crop-lifecycle",
+                                action_label="Open Crop Calendar",
+                                badge_text=f"In {days_ahead}d",
+                                metadata={
+                                    "b16_task_id": u_id,
+                                    "stage_name": u_stg,
+                                    "category": u_item.get("category"),
+                                    "days_ahead": days_ahead
+                                }
+                            )
+                        )
+                except Exception:
+                    pass
 
         # ── SOURCE 3: Weather & Spray Safety ──
         if weather_data and weather_data.get("current"):
@@ -364,6 +437,10 @@ class ActionCenterService:
                         source="Weather Forecast",
                         operating_mode=operating_mode,
                         status="pending",
+                        operational_bucket="today",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
                         action_url="/farm?tab=farm-intelligence",
                         action_label="View Weather Forecast",
                         badge_text=f"{rain_prob:.0f}% Rain Risk"
@@ -383,6 +460,10 @@ class ActionCenterService:
                         source="Weather Forecast",
                         operating_mode=operating_mode,
                         status="pending",
+                        operational_bucket="today",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
                         action_url="/farm?tab=farm-intelligence",
                         action_label="View Weather Details",
                         badge_text=f"{temp_c:.1f}°C Heat"
@@ -412,6 +493,10 @@ class ActionCenterService:
                             source="AI Health Scan",
                             operating_mode=operating_mode,
                             status="pending",
+                            operational_bucket="today",
+                            field_name=field_name,
+                            crop_name=pred_crop,
+                            growth_stage=growth_stage,
                             action_url="/history",
                             action_label="View Diagnosis & Treatment",
                             badge_text=f"{round(conf * 100)}% Match",
@@ -435,6 +520,10 @@ class ActionCenterService:
                     source="Pathogen Radar",
                     operating_mode=operating_mode,
                     status="pending",
+                    operational_bucket="today",
+                    field_name=field_name,
+                    crop_name=crop_name,
+                    growth_stage=growth_stage,
                     action_url="/upload",
                     action_label="Scan Crop Leaf",
                     badge_text=f"{risk_data.get('risk_percentage')}% Outbreak Risk"
@@ -477,6 +566,10 @@ class ActionCenterService:
                         source="Farm Inventory",
                         operating_mode=operating_mode,
                         status="pending",
+                        operational_bucket="today",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
                         action_url="/farm?tab=farm-inventory",
                         action_label="Open Farm Inventory",
                         badge_text="Out of Stock",
@@ -496,6 +589,10 @@ class ActionCenterService:
                         source="Farm Inventory",
                         operating_mode=operating_mode,
                         status="pending",
+                        operational_bucket="today",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
                         action_url="/farm?tab=farm-inventory",
                         action_label="View Inventory",
                         badge_text="Low Stock",
@@ -508,7 +605,7 @@ class ActionCenterService:
             if exp_date_str:
                 try:
                     exp_date = datetime.strptime(str(exp_date_str).strip(), "%Y-%m-%d").date()
-                    days_to_exp = (exp_date - now_utc.date()).days
+                    days_to_exp = (exp_date - today_date).days
                     if days_to_exp < 0:
                         raw_actions.append(
                             FarmerActionItem(
@@ -517,14 +614,41 @@ class ActionCenterService:
                                 priority="P2",
                                 what=f"Dispose / Replace Expired {item_name}",
                                 why=f"Input expired on {exp_date_str}. Using expired chemicals may damage crop foliage or fail efficacy.",
-                                when="Immediate check",
-                                due_date=today_str,
+                                when=f"Expired ({exp_date_str})",
+                                due_date=exp_date_str,
                                 source="Farm Inventory",
                                 operating_mode=operating_mode,
                                 status="pending",
+                                operational_bucket="overdue",
+                                field_name=field_name,
+                                crop_name=crop_name,
+                                growth_stage=growth_stage,
                                 action_url="/farm?tab=farm-inventory",
                                 action_label="Review Inventory",
                                 badge_text="Expired",
+                                metadata={"item_id": item_id}
+                            )
+                        )
+                    elif days_to_exp <= 7:
+                        raw_actions.append(
+                            FarmerActionItem(
+                                action_id=f"act-inv-exps-{item_id}",
+                                action_type="BUY_INPUT",
+                                priority="P2",
+                                what=f"Check Expiring {item_name} Batch",
+                                why=f"Stock expires in {days_to_exp} days ({exp_date_str}). Utilize before expiration.",
+                                when=f"Within {days_to_exp} days",
+                                due_date=exp_date_str,
+                                source="Farm Inventory",
+                                operating_mode=operating_mode,
+                                status="pending",
+                                operational_bucket="today",
+                                field_name=field_name,
+                                crop_name=crop_name,
+                                growth_stage=growth_stage,
+                                action_url="/farm?tab=farm-inventory",
+                                action_label="Review Inventory",
+                                badge_text=f"{days_to_exp}d left",
                                 metadata={"item_id": item_id}
                             )
                         )
@@ -541,6 +665,10 @@ class ActionCenterService:
                                 source="Farm Inventory",
                                 operating_mode=operating_mode,
                                 status="pending",
+                                operational_bucket="upcoming",
+                                field_name=field_name,
+                                crop_name=crop_name,
+                                growth_stage=growth_stage,
                                 action_url="/farm?tab=farm-inventory",
                                 action_label="Review Inventory",
                                 badge_text=f"{days_to_exp}d left",
@@ -587,7 +715,7 @@ class ActionCenterService:
                 if due_d:
                     try:
                         parsed_d = datetime.strptime(str(due_d).strip(), "%Y-%m-%d").date()
-                        if parsed_d < now_utc.date():
+                        if parsed_d < today_date:
                             is_overdue = True
                     except Exception:
                         pass
@@ -599,11 +727,15 @@ class ActionCenterService:
                         priority="P1" if is_overdue else "P2",
                         what=f"Pay {vendor + ' for ' if vendor else ''}{title} (₹{amount:,.0f})",
                         why=f"Unpaid farming liability of ₹{amount:,.0f} due {due_d or 'soon'}.",
-                        when="Overdue" if is_overdue else f"Due {due_d or 'Today'}",
+                        when=f"Overdue ({due_d})" if is_overdue else f"Due {due_d or 'Today'}",
                         due_date=due_d or today_str,
                         source="Farm Khata",
                         operating_mode=operating_mode,
                         status="pending",
+                        operational_bucket="overdue" if is_overdue else "today",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
                         action_url="/farm?tab=farm-khata",
                         action_label="Open Farm Khata",
                         badge_text="Overdue" if is_overdue else "Pending Payment",
@@ -618,6 +750,20 @@ class ActionCenterService:
             eq_name = b.get("equipmentName") or b.get("equipmentType") or "Machinery"
             start_d = b.get("startDate") or b.get("bookingDate")
 
+            eq_bucket = "today"
+            if start_d:
+                try:
+                    b_date = datetime.strptime(str(start_d)[:10], "%Y-%m-%d").date()
+                    d_diff = (b_date - today_date).days
+                    if d_diff < 0:
+                        eq_bucket = "overdue"
+                    elif 1 <= d_diff <= 7:
+                        eq_bucket = "upcoming"
+                    elif d_diff > 7:
+                        continue  # Keep bounded to 7 days
+                except Exception:
+                    pass
+
             if b_stat == "confirmed":
                 raw_actions.append(
                     FarmerActionItem(
@@ -631,6 +777,10 @@ class ActionCenterService:
                         source="Equipment Rental",
                         operating_mode=operating_mode,
                         status="pending",
+                        operational_bucket=eq_bucket,
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
                         action_url="/equipment-booking",
                         action_label="View Equipment Booking",
                         badge_text="Confirmed Booking",
@@ -650,6 +800,10 @@ class ActionCenterService:
                         source="Equipment Rental",
                         operating_mode=operating_mode,
                         status="pending",
+                        operational_bucket=eq_bucket,
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
                         action_url="/equipment-booking",
                         action_label="Check Booking Status",
                         badge_text="Awaiting Provider",
@@ -658,7 +812,7 @@ class ActionCenterService:
                 )
 
         # ------------------------------------------------------------------
-        # 5. Apply Farmer Interaction State & Deduplication
+        # 5. Apply Farmer Interaction State, Deduplication & Active Actions
         # ------------------------------------------------------------------
         seen_ids = set()
         active_actions: List[FarmerActionItem] = []
@@ -698,13 +852,130 @@ class ActionCenterService:
             active_actions.append(item)
 
         # ------------------------------------------------------------------
-        # 6. Sort by Priority (P0 -> P1 -> P2 -> P3) and Truncate to Limit
+        # 6. Retrieve Bounded Completed Actions (Last 7 Days)
         # ------------------------------------------------------------------
-        active_actions.sort(key=lambda a: PRIORITY_SORT_ORDER.get(a.priority, 99))
-        urgent_count = sum(1 for a in active_actions if a.priority == "P0")
-        high_count = sum(1 for a in active_actions if a.priority == "P1")
+        completed_actions: List[FarmerActionItem] = []
+        seven_days_ago = now_utc - timedelta(days=7)
 
-        final_actions = active_actions[:limit]
+        # 1. From timeline_tasks in farm_doc
+        if timeline_tasks:
+            task_titles = {}
+            if crop_calendar_data:
+                for s in crop_calendar_data.get("stages", []):
+                    for idx, a in enumerate(s.get("activities", [])):
+                        task_titles[f"{s.get('id')}-task-{idx}"] = (a, s.get("stage_name"))
+
+            for t_id, t_state in timeline_tasks.items():
+                is_done = t_state is True or (
+                    isinstance(t_state, dict) and (
+                        t_state.get("status") == "completed" or t_state.get("completed") is True
+                    )
+                )
+                if not is_done:
+                    continue
+
+                c_at_str = t_state.get("completed_at") if isinstance(t_state, dict) else None
+                if c_at_str:
+                    try:
+                        c_dt = datetime.fromisoformat(c_at_str.replace("Z", "+00:00"))
+                        if c_dt < seven_days_ago:
+                            continue
+                    except Exception:
+                        pass
+
+                task_title = None
+                if isinstance(t_state, dict) and t_state.get("title"):
+                    task_title = t_state.get("title")
+                t_info = task_titles.get(t_id, (task_title or f"Crop Task ({t_id})", growth_stage))
+                completed_actions.append(
+                    FarmerActionItem(
+                        action_id=f"act-crop-{t_id}",
+                        action_type="CROP_TASK",
+                        priority="P3",
+                        what=f"Completed: {t_info[0]}",
+                        why="Activity marked completed in farm operations timeline.",
+                        when=f"Done {c_at_str[:10] if c_at_str else 'recently'}",
+                        due_date=today_str,
+                        source="Crop Calendar",
+                        operating_mode=operating_mode,
+                        status="completed",
+                        operational_bucket="completed",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=t_info[1] or growth_stage,
+                        action_url="/farm?tab=crop-lifecycle",
+                        action_label="View in Calendar",
+                        badge_text="Completed",
+                        metadata={"b16_task_id": t_id, "completed_at": c_at_str}
+                    )
+                )
+
+        # 2. From action_center_state in farm_doc
+        if action_state:
+            for a_id, a_state in action_state.items():
+                if isinstance(a_state, dict) and a_state.get("status") == "completed":
+                    c_at_str = a_state.get("completed_at")
+                    if c_at_str:
+                        try:
+                            c_dt = datetime.fromisoformat(c_at_str.replace("Z", "+00:00"))
+                            if c_dt < seven_days_ago:
+                                continue
+                        except Exception:
+                            pass
+
+                    clean_title = a_id.replace("act-", "").replace("-", " ").title()
+                    completed_actions.append(
+                        FarmerActionItem(
+                            action_id=a_id,
+                            action_type="INSPECT",
+                            priority="P3",
+                            what=f"Completed: {clean_title}",
+                            why="Advisory action marked completed by farmer.",
+                            when=f"Done {c_at_str[:10] if c_at_str else 'recently'}",
+                            due_date=today_str,
+                            source="Farm Operations",
+                            operating_mode=operating_mode,
+                            status="completed",
+                            operational_bucket="completed",
+                            field_name=field_name,
+                            crop_name=crop_name,
+                            growth_stage=growth_stage,
+                            action_url="/farm",
+                            action_label="Review Action",
+                            badge_text="Completed",
+                            metadata={"completed_at": c_at_str}
+                        )
+                    )
+
+        # ------------------------------------------------------------------
+        # 7. Compute Counts & Bucket Selection
+        # ------------------------------------------------------------------
+        today_count = sum(1 for a in active_actions if a.operational_bucket == "today")
+        overdue_count = sum(1 for a in active_actions if a.operational_bucket == "overdue")
+        upcoming_count = sum(1 for a in active_actions if a.operational_bucket == "upcoming")
+        completed_count = len(completed_actions)
+
+        # Filter items according to requested bucket
+        if bucket == "today":
+            selected_actions = [a for a in active_actions if a.operational_bucket == "today"]
+        elif bucket == "overdue":
+            selected_actions = [a for a in active_actions if a.operational_bucket == "overdue"]
+        elif bucket == "upcoming":
+            selected_actions = [a for a in active_actions if a.operational_bucket == "upcoming"]
+        elif bucket == "completed":
+            selected_actions = completed_actions
+        elif bucket == "all":
+            selected_actions = active_actions + completed_actions
+        else:
+            # Default (None): Active operations, 100% backward compatible with B19 consumers
+            selected_actions = active_actions
+
+        # Sort by Priority (P0 -> P1 -> P2 -> P3) and Truncate to Limit
+        selected_actions.sort(key=lambda a: PRIORITY_SORT_ORDER.get(a.priority, 99))
+        urgent_count = sum(1 for a in selected_actions if a.priority == "P0")
+        high_count = sum(1 for a in selected_actions if a.priority == "P1")
+
+        final_actions = selected_actions[:limit]
 
         return FarmerActionsResponse(
             farm_id=resolved_farm_id,
@@ -712,9 +983,13 @@ class ActionCenterService:
             crop_name=crop_name,
             operating_mode=operating_mode,
             sensor_status=sensor_status,
-            total_actions=len(active_actions),
+            total_actions=len(selected_actions),
             urgent_count=urgent_count,
             high_count=high_count,
+            overdue_count=overdue_count,
+            today_count=today_count,
+            upcoming_count=upcoming_count,
+            completed_count=completed_count,
             actions=final_actions,
             generated_at=now_utc.isoformat() + "Z"
         )
@@ -759,9 +1034,11 @@ class ActionCenterService:
 
         now_iso = datetime.now(timezone.utc).isoformat() + "Z"
 
-        # Check if this corresponds to a B16 crop task (e.g. act-crop-stage-1-task-0)
+        # Check if this corresponds to a B16 crop task (e.g. act-crop-stage-1-task-0 or act-crop-upcoming-stage-2-task-0)
         if action_id.startswith("act-crop-"):
             b16_tid = action_id[len("act-crop-"):]
+            if b16_tid.startswith("upcoming-"):
+                b16_tid = b16_tid[len("upcoming-"):]
             timeline_tasks = farm_doc.get("timeline_tasks") or {}
             timeline_tasks[b16_tid] = {
                 "status": "completed",
@@ -848,4 +1125,100 @@ class ActionCenterService:
             "action_id": action_id,
             "new_status": "dismissed",
             "message": "Action dismissed."
+        }
+
+    async def reopen_action(
+        self,
+        farm_id: str,
+        action_id: str,
+        current_user: Optional[dict] = None
+    ) -> Dict[str, Any]:
+        """
+        Reopens a previously completed action back to pending state.
+        - If B16 crop calendar task: updates farm_profiles.timeline_tasks directly.
+        - If advisory action: updates farm_profiles.action_center_state.
+        Idempotent and RBAC-enforced.
+        """
+        current_db = self.db
+        if current_db is None:
+            return {"status": "success", "action_id": action_id, "new_status": "pending", "message": "Action reopened (in-memory)"}
+
+        from bson import ObjectId
+        query_cond = [{"id": farm_id}]
+        if ObjectId.is_valid(farm_id):
+            query_cond.append({"_id": ObjectId(farm_id)})
+        else:
+            query_cond.append({"_id": farm_id})
+
+        farm_doc = await current_db["farm_profiles"].find_one({"$or": query_cond})
+        if not farm_doc:
+            farm_doc = await current_db["farms"].find_one({"$or": query_cond})
+        if not farm_doc:
+            from fastapi import HTTPException, status
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Farm profile not found.")
+
+        # RBAC verification
+        if current_user and (current_user.get("role") or "").lower() != "admin":
+            user_id = str(current_user.get("id") or current_user.get("user_id") or current_user.get("_id") or "")
+            owner_id = str(farm_doc.get("owner_id") or farm_doc.get("user_id") or "")
+            if owner_id and owner_id != user_id:
+                from fastapi import HTTPException, status
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden: you do not own this farm.")
+
+        now_iso = datetime.now(timezone.utc).isoformat() + "Z"
+
+        # Check if this corresponds to a B16 crop task (e.g. act-crop-stage-1-task-0 or act-crop-upcoming-stage-2-task-0)
+        if action_id.startswith("act-crop-"):
+            b16_tid = action_id[len("act-crop-"):]
+            if b16_tid.startswith("upcoming-"):
+                b16_tid = b16_tid[len("upcoming-"):]
+            timeline_tasks = dict(farm_doc.get("timeline_tasks") or {})
+            existing = timeline_tasks.get(b16_tid)
+            if existing and not existing.get("completed") and existing.get("status") == "pending":
+                return {
+                    "status": "success",
+                    "action_id": action_id,
+                    "new_status": "pending",
+                    "message": f"Crop task '{b16_tid}' is already pending."
+                }
+            timeline_tasks[b16_tid] = {
+                "status": "pending",
+                "completed": False,
+                "reopened_at": now_iso
+            }
+            await current_db["farm_profiles"].update_one(
+                {"_id": farm_doc["_id"]},
+                {"$set": {"timeline_tasks": timeline_tasks, "updated_at": datetime.now(timezone.utc)}}
+            )
+            return {
+                "status": "success",
+                "action_id": action_id,
+                "new_status": "pending",
+                "message": f"Crop task '{b16_tid}' reopened in crop calendar."
+            }
+
+        # Otherwise, update action_center_state
+        action_state = dict(farm_doc.get("action_center_state") or {})
+        existing = action_state.get(action_id)
+        if existing and existing.get("status") == "pending":
+            return {
+                "status": "success",
+                "action_id": action_id,
+                "new_status": "pending",
+                "message": f"Action '{action_id}' is already pending."
+            }
+        action_state[action_id] = {
+            "status": "pending",
+            "reopened_at": now_iso
+        }
+        await current_db["farm_profiles"].update_one(
+            {"_id": farm_doc["_id"]},
+            {"$set": {"action_center_state": action_state, "updated_at": datetime.now(timezone.utc)}}
+        )
+
+        return {
+            "status": "success",
+            "action_id": action_id,
+            "new_status": "pending",
+            "message": "Action reopened."
         }

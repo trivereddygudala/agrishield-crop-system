@@ -19,6 +19,7 @@ async def get_farmer_actions(
     farm_id: Optional[str] = Query(None, description="Active Farm Profile ID (optional, defaults to farmer's primary farm)"),
     priority: Optional[str] = Query(None, description="Filter by priority: P0 | P1 | P2 | P3"),
     limit: int = Query(20, ge=1, le=100, description="Max actions to return (default 20)"),
+    bucket: Optional[str] = Query(None, description="Operational bucket: today | overdue | upcoming | completed | all"),
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -30,6 +31,7 @@ async def get_farmer_actions(
         farm_id=farm_id,
         priority=priority,
         limit=limit,
+        bucket=bucket,
         current_user=current_user
     )
 
@@ -68,6 +70,27 @@ async def dismiss_farmer_action(
     """
     f_id = farm_id or "default"
     res = await action_center_service.dismiss_action(
+        farm_id=f_id,
+        action_id=action_id,
+        current_user=current_user
+    )
+    return res
+
+
+@router.post("/{action_id}/reopen", response_model=ActionStatusUpdateResponse, summary="Reopen Completed Action")
+async def reopen_farmer_action(
+    action_id: str,
+    farm_id: Optional[str] = Query(None, description="Farm Profile ID"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Reopen a previously completed action back to pending state.
+    - If B16 crop calendar task: updates farm_profiles.timeline_tasks directly.
+    - If advisory action: updates farm_profiles.action_center_state.
+    Idempotent and RBAC-enforced.
+    """
+    f_id = farm_id or "default"
+    res = await action_center_service.reopen_action(
         farm_id=f_id,
         action_id=action_id,
         current_user=current_user

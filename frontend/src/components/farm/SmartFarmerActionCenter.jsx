@@ -5,7 +5,7 @@ import {
   Sparkles, CheckCircle2, AlertTriangle, Droplets,
   Calendar, ShieldAlert, ShoppingBag, CreditCard,
   Truck, ArrowRight, Check, X, RefreshCw, ChevronDown,
-  ChevronUp, ExternalLink, Radio, Cloud, Info
+  ChevronUp, ExternalLink, Radio, Cloud, Info, RotateCcw, Clock
 } from 'lucide-react';
 import { Card, Badge, Button, Skeleton } from '../ui/index';
 import API from '../../services/api';
@@ -70,6 +70,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(null);
+  const [activeBucket, setActiveBucket] = useState('today'); // 'today' | 'overdue' | 'upcoming' | 'completed'
   const [actionFilter, setActionFilter] = useState('ALL'); // 'ALL' | 'URGENT' | 'WATER' | 'CROP' | 'INPUT' | 'KHATA'
   const [showAll, setShowAll] = useState(false);
   const [actionLoadingMap, setActionLoadingMap] = useState({});
@@ -80,7 +81,9 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
     else setLoading(true);
 
     try {
-      const params = {};
+      const params = {
+        bucket: activeBucket
+      };
       if (farmId && farmId !== 'default') params.farm_id = farmId;
       params.limit = 30;
 
@@ -94,7 +97,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [farmId]);
+  }, [farmId, activeBucket]);
 
   useEffect(() => {
     fetchActions();
@@ -103,8 +106,6 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
   const handleCompleteAction = async (action) => {
     const aId = action.action_id;
     setActionLoadingMap(prev => ({ ...prev, [aId]: true }));
-
-    // Optimistic UI update
     setCompletedMap(prev => ({ ...prev, [aId]: true }));
 
     try {
@@ -112,14 +113,30 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
       if (farmId && farmId !== 'default') params.farm_id = farmId;
       await API.post(`/api/v1/farmer/actions/${encodeURIComponent(aId)}/complete`, null, { params });
       if (onActionComplete) onActionComplete(action);
+      fetchActions(true);
     } catch (err) {
       console.warn('[ActionCenter] Error completing action:', err);
-      // Revert optimistic update on failure
       setCompletedMap(prev => {
         const next = { ...prev };
         delete next[aId];
         return next;
       });
+    } finally {
+      setActionLoadingMap(prev => ({ ...prev, [aId]: false }));
+    }
+  };
+
+  const handleReopenAction = async (action) => {
+    const aId = action.action_id;
+    setActionLoadingMap(prev => ({ ...prev, [aId]: true }));
+
+    try {
+      const params = {};
+      if (farmId && farmId !== 'default') params.farm_id = farmId;
+      await API.post(`/api/v1/farmer/actions/${encodeURIComponent(aId)}/reopen`, null, { params });
+      fetchActions(true);
+    } catch (err) {
+      console.warn('[ActionCenter] Error reopening action:', err);
     } finally {
       setActionLoadingMap(prev => ({ ...prev, [aId]: false }));
     }
@@ -134,6 +151,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
       const params = {};
       if (farmId && farmId !== 'default') params.farm_id = farmId;
       await API.post(`/api/v1/farmer/actions/${encodeURIComponent(aId)}/dismiss`, null, { params });
+      fetchActions(true);
     } catch (err) {
       console.warn('[ActionCenter] Error dismissing action:', err);
       setCompletedMap(prev => {
@@ -146,12 +164,12 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
     }
   };
 
-  // Filter actions
+  // Filter actions by category
   const filteredActions = useMemo(() => {
     if (!data?.actions) return [];
     return data.actions.filter(item => {
-      // Exclude completed/dismissed in local session
-      if (completedMap[item.action_id]) return false;
+      // For active buckets, exclude completed/dismissed in local session
+      if (activeBucket !== 'completed' && completedMap[item.action_id]) return false;
 
       if (actionFilter === 'URGENT') return item.priority === 'P0' || item.priority === 'P1';
       if (actionFilter === 'WATER') return item.action_type === 'WATER';
@@ -160,7 +178,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
       if (actionFilter === 'KHATA') return item.action_type === 'PAYMENT';
       return true;
     });
-  }, [data, completedMap, actionFilter]);
+  }, [data, completedMap, actionFilter, activeBucket]);
 
   const visibleActions = showAll ? filteredActions : filteredActions.slice(0, 4);
 
@@ -193,7 +211,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                {isTe ? 'నేటి వ్యవసాయ కార్యాచరణ కేంద్రం' : "Today's Action Center"}
+                {isTe ? 'వ్యవసాయ కార్యాచరణ కేంద్రం' : 'Smart Farm Operations'}
               </h2>
               {filteredActions.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
@@ -202,7 +220,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
               )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-              {isTe ? 'నేడు మీ పంట పొలంలో చేయవలసిన ప్రాధాన్యత పనులు' : 'Prioritized daily actions synthesizing irrigation, crop, stock & finance'}
+              {isTe ? 'నేడు, గడువు దాటిన మరియు రాబోయే పొలం పనుల నిర్వహణ' : 'Daily, overdue, and upcoming field work synthesized in one place'}
             </p>
           </div>
         </div>
@@ -233,21 +251,50 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
         </div>
       </div>
 
+      {/* ─── Operational Segmented Tabs (Today / Overdue / Upcoming / Completed) ─── */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 overflow-x-auto text-xs font-bold scrollbar-none">
+        {[
+          { id: 'today', labelEn: 'Today', labelTe: 'నేడు', count: data?.today_count ?? 0, badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
+          { id: 'overdue', labelEn: 'Overdue', labelTe: 'గడువు దాటినవి', count: data?.overdue_count ?? 0, badgeCls: (data?.overdue_count || 0) > 0 ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+          { id: 'upcoming', labelEn: 'Next 7 Days', labelTe: 'రాబోయే 7 రోజులు', count: data?.upcoming_count ?? 0, badgeCls: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300' },
+          { id: 'completed', labelEn: 'Completed', labelTe: 'పూర్తయినవి', count: data?.completed_count ?? 0, badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => {
+              setActiveBucket(tab.id);
+              setShowAll(false);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+              activeBucket === tab.id
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <span>{isTe ? tab.labelTe : tab.labelEn}</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${tab.badgeCls}`}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* ─── Category Filter Pills ─── */}
       <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
         {[
-          { id: 'ALL', labelEn: 'All Actions', labelTe: 'అన్ని పనులు' },
+          { id: 'ALL', labelEn: 'All Types', labelTe: 'అన్ని' },
           { id: 'URGENT', labelEn: 'Urgent', labelTe: 'అత్యవసరం' },
           { id: 'WATER', labelEn: 'Water', labelTe: 'నీటి తడులు' },
           { id: 'CROP', labelEn: 'Crop Tasks', labelTe: 'పంట పనులు' },
           { id: 'INPUT', labelEn: 'Inventory', labelTe: 'ఇన్వెంటరీ' },
-          { id: 'KHATA', labelEn: 'Finances', labelTe: 'ఖాతా చెల్లింపులు' },
+          { id: 'KHATA', labelEn: 'Finances', labelTe: 'ఖాతా' },
         ].map(filter => (
           <button
             key={filter.id}
             type="button"
             onClick={() => setActionFilter(filter.id)}
-            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               actionFilter === filter.id
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -265,12 +312,18 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
             ✨
           </div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">
-            {isTe ? 'అన్ని ముఖ్యమైన పనులు పూర్తయ్యాయి!' : 'All Caught Up! No Pending Actions'}
+            {activeBucket === 'completed'
+              ? (isTe ? 'ఇటీవల పూర్తయిన పనులేవీ లేవు' : 'No Completed Operations Yet')
+              : activeBucket === 'overdue'
+              ? (isTe ? 'అద్భుతం! గడువు దాటిన పనులేవీ లేవు' : 'Great! No Overdue Work')
+              : activeBucket === 'upcoming'
+              ? (isTe ? 'రాబోయే 7 రోజుల్లో పనులేవీ లేవు' : 'No Upcoming Operations Scheduled')
+              : (isTe ? 'అన్ని ముఖ్యమైన పనులు పూర్తయ్యాయి!' : 'All Caught Up! No Pending Actions Today')}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-            {isTe
-              ? 'మీ పంట పొలం పరిస్థితి స్థిరంగా ఉంది. కొత్త పనులు లేదా వాతావరణ మార్పులు ఉన్నప్పుడు ఇక్కడ కనిపిస్తాయి.'
-              : 'Your field conditions, inventory, and schedules are in optimal order. Relax or inspect your field.'}
+            {activeBucket === 'overdue'
+              ? (isTe ? 'మీ పొలంలో అన్ని పనులు సమయానికి నడుస్తున్నాయి.' : 'All farm activities and liabilities are on track.')
+              : (isTe ? 'మీ పంట పొలం పరిస్థితి స్థిరంగా ఉంది.' : 'Field conditions, inventory, and operations are in optimal order.')}
           </p>
         </div>
       ) : (
@@ -280,6 +333,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
               const prioCfg = PRIORITY_CONFIG[action.priority] || PRIORITY_CONFIG.P2;
               const IconComp = ACTION_TYPE_ICONS[action.action_type] || Sparkles;
               const isWorking = actionLoadingMap[action.action_id];
+              const isCompletedTab = activeBucket === 'completed';
 
               return (
                 <motion.div
@@ -310,14 +364,18 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                         </span>
 
                         {action.badge_text && (
-                          <span className="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 bg-slate-200/80 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                            action.operational_bucket === 'overdue'
+                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300'
+                              : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          }`}>
                             {action.badge_text}
                           </span>
                         )}
                       </div>
 
                       {/* Dismiss (X) */}
-                      {action.priority !== 'P0' && (
+                      {!isCompletedTab && action.priority !== 'P0' && (
                         <button
                           type="button"
                           onClick={() => handleDismissAction(action)}
@@ -329,6 +387,16 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                         </button>
                       )}
                     </div>
+
+                    {/* FIELD & CROP CONTEXT BADGES */}
+                    {(action.crop_name || action.growth_stage || action.field_name) && (
+                      <div className="text-[11px] font-extrabold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded-lg w-fit">
+                        <span>🌱</span>
+                        <span>
+                          {[action.crop_name, action.growth_stage, action.field_name].filter(Boolean).join(' • ')}
+                        </span>
+                      </div>
+                    )}
 
                     {/* WHAT: Title */}
                     <div className="flex items-start gap-2">
@@ -350,11 +418,13 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                     {/* WHEN: Due time */}
                     <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 pl-8 flex items-center gap-1.5">
                       <span>⏱️</span>
-                      <span>{action.when}</span>
+                      <span className={action.operational_bucket === 'overdue' ? 'text-rose-600 dark:text-rose-400 font-black' : ''}>
+                        {action.when}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Bottom Row: Call to Action + Complete Button */}
+                  {/* Bottom Row: Call to Action + Complete/Reopen Button */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
                     <Link
                       to={action.action_url}
@@ -364,17 +434,31 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                       <ExternalLink className="w-3 h-3" />
                     </Link>
 
-                    {/* Mark Done Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleCompleteAction(action)}
-                      disabled={isWorking}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-700 hover:border-emerald-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-                      title={isTe ? 'పూర్తయినట్లు గుర్తించండి' : 'Mark Completed'}
-                    >
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{isTe ? 'పూర్తయింది' : 'Done'}</span>
-                    </button>
+                    {isCompletedTab ? (
+                      /* Undo / Reopen Button for Completed Items */
+                      <button
+                        type="button"
+                        onClick={() => handleReopenAction(action)}
+                        disabled={isWorking}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-700 hover:border-amber-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                        title={isTe ? 'మళ్ళీ తెరవండి' : 'Reopen Action'}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                        <span>{isTe ? 'మళ్ళీ చేయండి' : 'Undo / Reopen'}</span>
+                      </button>
+                    ) : (
+                      /* Mark Done Button for Pending Items */
+                      <button
+                        type="button"
+                        onClick={() => handleCompleteAction(action)}
+                        disabled={isWorking}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-700 hover:border-emerald-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                        title={isTe ? 'పూర్తయినట్లు గుర్తించండి' : 'Mark Completed'}
+                      >
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{isTe ? 'పూర్తయింది' : 'Done'}</span>
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               );

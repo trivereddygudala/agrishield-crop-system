@@ -22,6 +22,7 @@ ActionType = Literal[
 ActionPriority = Literal["P0", "P1", "P2", "P3"]
 ActionStatus = Literal["pending", "completed", "dismissed", "delayed"]
 OperatingMode = Literal["smart_iot", "software_ai"]
+OperationalBucket = Literal["today", "overdue", "upcoming", "completed"]
 
 
 class FarmerActionItem(BaseModel):
@@ -35,6 +36,10 @@ class FarmerActionItem(BaseModel):
     source: str = Field(..., description="Authoritative origin subsystem name")
     operating_mode: OperatingMode = Field(default="software_ai", description="smart_iot | software_ai")
     status: ActionStatus = Field(default="pending", description="pending | completed | dismissed | delayed")
+    operational_bucket: OperationalBucket = Field(default="today", description="today | overdue | upcoming | completed")
+    field_name: Optional[str] = Field(None, description="Farmer-friendly field name")
+    crop_name: Optional[str] = Field(None, description="Farmer-friendly crop name")
+    growth_stage: Optional[str] = Field(None, description="Crop growth stage")
     action_url: str = Field(..., description="Client navigation path")
     action_label: str = Field(..., description="Button call-to-action text")
     badge_text: Optional[str] = Field(None, description="Optional highlight badge text")
@@ -52,6 +57,10 @@ class FarmerActionsResponse(BaseModel):
     total_actions: int = 0
     urgent_count: int = 0  # P0
     high_count: int = 0    # P1
+    overdue_count: int = 0
+    today_count: int = 0
+    upcoming_count: int = 0
+    completed_count: int = 0
     actions: List[FarmerActionItem] = Field(default_factory=list)
     generated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat() + "Z")
 
