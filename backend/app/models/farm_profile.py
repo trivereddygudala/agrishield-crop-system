@@ -77,3 +77,15 @@ class KhataTransactionCreate(BaseModel):
 
 class TimelineTasksUpdate(BaseModel):
     completed_tasks: Dict[str, Any] = Field(..., description="Map of task IDs to completed boolean or task metadata object")
+
+# B18 Smart Farm Inventory Models Re-export
+from backend.app.models.inventory import (
+    InventoryItemCreate,
+    InventoryItemUpdate,
+    InventoryRestockCreate,
+    InventoryUsageCreate,
+    InventoryAdjustCreate,
+    InventoryUsageRecord,
+    VALID_INVENTORY_CATEGORIES,
+    VALID_INVENTORY_UNITS
+)

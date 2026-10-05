@@ -1,4 +1,5 @@
 import math
+import uuid
 from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -10,7 +11,14 @@ from backend.app.models.farm_profile import (
     FarmProfileUpdate,
     FarmProfileResponse,
     KhataTransactionCreate,
-    TimelineTasksUpdate
+    TimelineTasksUpdate,
+    InventoryItemCreate,
+    InventoryItemUpdate,
+    InventoryRestockCreate,
+    InventoryUsageCreate,
+    InventoryAdjustCreate,
+    VALID_INVENTORY_CATEGORIES,
+    VALID_INVENTORY_UNITS
 )
 from backend.app.services.farm_profile_service import FarmProfileService
 
@@ -647,5 +655,592 @@ async def update_timeline_tasks(
         "status": "success",
         "farm_id": farm_id,
         "completed_tasks": tasks
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# B18: SMART FARM INVENTORY MANAGER ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def compute_inventory_status(doc: dict, today_str: Optional[str] = None) -> str:
+    """
+    Dynamically derive stock status following strict precedence:
+    1. quantity <= 0 -> out_of_stock
+    2. expiry_date < today -> expired
+    3. expiry_date within 30 days -> expiring_soon
+    4. quantity <= minimum_quantity -> low_stock
+    5. otherwise -> in_stock
+    """
+    qty = float(doc.get("quantity") or 0.0)
+    if qty <= 0.00001:
+        return "out_of_stock"
+
+    expiry_str = doc.get("expiry_date")
+    if expiry_str:
+        try:
+            exp_date = datetime.strptime(str(expiry_str)[:10], "%Y-%m-%d").date()
+            if today_str:
+                ref_date = datetime.strptime(str(today_str)[:10], "%Y-%m-%d").date()
+            else:
+                ref_date = datetime.now(timezone.utc).date()
+
+            if exp_date < ref_date:
+                return "expired"
+            days_left = (exp_date - ref_date).days
+            if 0 <= days_left <= 30:
+                return "expiring_soon"
+        except (ValueError, TypeError):
+            pass
+
+    min_qty = doc.get("minimum_quantity")
+    if min_qty is not None:
+        try:
+            min_val = float(min_qty)
+            if qty <= min_val:
+                return "low_stock"
+        except (ValueError, TypeError):
+            pass
+
+    return "in_stock"
+
+
+def map_inventory_category_to_khata(category: str) -> str:
+    cat = (category or "").lower().strip()
+    mapping = {
+        "seeds": "seeds",
+        "fertilizer": "fertilizer",
+        "pesticide": "pesticide",
+        "irrigation": "irrigation",
+        "tools": "machinery",
+        "machinery": "machinery",
+        "packaging": "other",
+        "other": "other"
+    }
+    return mapping.get(cat, "other")
+
+
+def serialize_inventory_doc(doc: dict) -> dict:
+    """Prepare inventory document for API response with derived fields."""
+    d = dict(doc)
+    d["id"] = str(d.get("id") or d.get("_id"))
+    d["_id"] = str(d.get("_id"))
+    d["archived"] = bool(d.get("archived", False))
+    qty = float(d.get("quantity") or 0.0)
+    d["quantity"] = qty
+
+    cost_per_unit = d.get("cost_per_unit")
+    if cost_per_unit is not None:
+        cost_val = float(cost_per_unit)
+        d["cost_per_unit"] = cost_val
+        if cost_val > 0 and qty > 0:
+            d["remaining_stock_value"] = round(qty * cost_val, 2)
+        else:
+            d["remaining_stock_value"] = 0.0
+    else:
+        d["cost_per_unit"] = None
+        d["remaining_stock_value"] = None
+
+    d["status"] = compute_inventory_status(d)
+    return d
+
+
+@router.get("/{farm_id}/inventory")
+async def list_farm_inventory(
+    farm_id: str,
+    category: Optional[str] = Query(None, description="Filter by category"),
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by derived status: in_stock, low_stock, expiring_soon, expired, out_of_stock"),
+    crop_name: Optional[str] = Query(None, description="Filter by associated crop"),
+    field_id: Optional[str] = Query(None, description="Filter by associated field"),
+    search: Optional[str] = Query(None, description="Search item name or brand"),
+    include_archived: bool = Query(False, description="Include archived items"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve farm inventory items with optional filtering and derived statuses."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    query: Dict[str, Any] = {"farm_id": farm_id}
+    if not include_archived:
+        query["archived"] = {"$ne": True}
+
+    if category and category.strip():
+        query["category"] = category.lower().strip()
+
+    if crop_name and crop_name.strip():
+        query["crop_name"] = crop_name.strip()
+
+    if field_id and field_id.strip():
+        query["field_id"] = field_id.strip()
+
+    cursor = db["farm_inventory"].find(query).sort("updated_at", -1)
+    items = []
+    async for raw_doc in cursor:
+        item = serialize_inventory_doc(raw_doc)
+
+        # Apply search filter
+        if search and search.strip():
+            s = search.lower().strip()
+            name_match = s in (item.get("item_name") or "").lower()
+            brand_match = s in (item.get("brand") or "").lower()
+            active_match = s in (item.get("active_ingredient") or "").lower()
+            if not (name_match or brand_match or active_match):
+                continue
+
+        # Apply status filter
+        if status_filter and status_filter.strip():
+            target_status = status_filter.lower().strip()
+            if item["status"] != target_status:
+                continue
+
+        items.append(item)
+
+    return {
+        "status": "success",
+        "farm_id": farm_id,
+        "items": items,
+        "count": len(items)
+    }
+
+
+@router.get("/{farm_id}/inventory/summary")
+async def get_farm_inventory_summary(
+    farm_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Calculate summary metrics for active farm inventory."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cursor = db["farm_inventory"].find({"farm_id": farm_id, "archived": {"$ne": True}})
+
+    total_items = 0
+    low_stock_count = 0
+    expired_count = 0
+    expiring_soon_count = 0
+    out_of_stock_count = 0
+    in_stock_count = 0
+    total_stock_value = 0.0
+    category_counts: Dict[str, int] = {}
+
+    async for raw_doc in cursor:
+        item = serialize_inventory_doc(raw_doc)
+        total_items += 1
+
+        cat = item.get("category") or "other"
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+
+        st = item["status"]
+        if st == "out_of_stock":
+            out_of_stock_count += 1
+        elif st == "expired":
+            expired_count += 1
+        elif st == "expiring_soon":
+            expiring_soon_count += 1
+        elif st == "low_stock":
+            low_stock_count += 1
+        elif st == "in_stock":
+            in_stock_count += 1
+
+        # Only sum value where valid cost basis exists on remaining stock
+        rem_val = item.get("remaining_stock_value")
+        if rem_val and rem_val > 0:
+            total_stock_value += rem_val
+
+    return {
+        "status": "success",
+        "farm_id": farm_id,
+        "total_items": total_items,
+        "low_stock_count": low_stock_count,
+        "expired_count": expired_count,
+        "expiring_soon_count": expiring_soon_count,
+        "out_of_stock_count": out_of_stock_count,
+        "in_stock_count": in_stock_count,
+        "total_stock_value": round(total_stock_value, 2),
+        "category_counts": category_counts
+    }
+
+
+@router.get("/{farm_id}/inventory/{item_id}")
+async def get_inventory_item(
+    farm_id: str,
+    item_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Retrieve details of a single inventory item."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cond = [{"id": item_id}]
+    if ObjectId.is_valid(item_id):
+        cond.append({"_id": ObjectId(item_id)})
+
+    item = await db["farm_inventory"].find_one({"$and": [{"farm_id": farm_id}, {"$or": cond}]})
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Inventory item not found."
+        )
+
+    return serialize_inventory_doc(item)
+
+
+@router.post("/{farm_id}/inventory", status_code=status.HTTP_201_CREATED)
+async def create_inventory_item(
+    farm_id: str,
+    payload: InventoryItemCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Add a new material or product to farm inventory."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cat = payload.category.lower().strip()
+    if cat not in VALID_INVENTORY_CATEGORIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid category '{payload.category}'. Must be one of: {', '.join(VALID_INVENTORY_CATEGORIES)}"
+        )
+
+    if payload.quantity < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Quantity cannot be negative."
+        )
+
+    cost_per_unit = None
+    if payload.purchase_price is not None and payload.purchase_price > 0 and payload.quantity > 0:
+        cost_per_unit = round(float(payload.purchase_price) / float(payload.quantity), 2)
+
+    inv_id = f"inv-{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc)
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+
+    khata_tx_id = payload.khata_tx_id
+    # Handle optional linked Khata expense creation with strict idempotency
+    if payload.record_in_khata and not khata_tx_id and payload.purchase_price and payload.purchase_price > 0:
+        booking_key = f"inv-{inv_id}"
+        existing_khata = await db["farm_khata"].find_one({"farm_id": farm_id, "booking_id": booking_key})
+        if existing_khata:
+            khata_tx_id = str(existing_khata.get("id") or existing_khata.get("_id"))
+        else:
+            khata_cat = map_inventory_category_to_khata(cat)
+            khata_doc = {
+                "id": f"khata-{uuid.uuid4().hex[:12]}",
+                "farm_id": farm_id,
+                "user_id": user_id,
+                "type": "expense",
+                "category": khata_cat,
+                "description": f"Inventory purchase: {payload.item_name} ({payload.quantity} {payload.unit})",
+                "amount": float(payload.purchase_price),
+                "date": payload.purchase_date or now.strftime("%Y-%m-%d"),
+                "booking_id": booking_key,
+                "field_id": payload.field_id,
+                "crop_name": payload.crop_name,
+                "is_estimated": False,
+                "payment_status": "paid",
+                "quantity": float(payload.quantity),
+                "unit": payload.unit,
+                "vendor": payload.vendor,
+                "created_at": now,
+                "updated_at": now
+            }
+            res = await db["farm_khata"].insert_one(khata_doc)
+            khata_tx_id = str(res.inserted_id)
+
+    doc = {
+        "id": inv_id,
+        "farm_id": farm_id,
+        "user_id": user_id,
+        "item_name": payload.item_name.strip(),
+        "category": cat,
+        "brand": payload.brand.strip() if payload.brand else None,
+        "active_ingredient": payload.active_ingredient.strip() if payload.active_ingredient else None,
+        "quantity": round(float(payload.quantity), 4),
+        "unit": payload.unit.strip(),
+        "minimum_quantity": float(payload.minimum_quantity) if payload.minimum_quantity is not None else None,
+        "purchase_date": payload.purchase_date,
+        "expiry_date": payload.expiry_date,
+        "batch_number": payload.batch_number.strip() if payload.batch_number else None,
+        "vendor": payload.vendor.strip() if payload.vendor else None,
+        "purchase_price": float(payload.purchase_price) if payload.purchase_price is not None else None,
+        "cost_per_unit": cost_per_unit,
+        "field_id": payload.field_id.strip() if payload.field_id else None,
+        "crop_name": payload.crop_name.strip() if payload.crop_name else None,
+        "notes": payload.notes.strip() if payload.notes else None,
+        "khata_tx_id": khata_tx_id,
+        "usage_history": [],
+        "archived": False,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+
+    await db["farm_inventory"].insert_one(doc)
+    return serialize_inventory_doc(doc)
+
+
+@router.post("/{farm_id}/inventory/{item_id}/restock")
+async def restock_inventory_item(
+    farm_id: str,
+    item_id: str,
+    payload: InventoryRestockCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Increase quantity of existing inventory item with optional purchase tracking."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cond = [{"id": item_id}]
+    if ObjectId.is_valid(item_id):
+        cond.append({"_id": ObjectId(item_id)})
+
+    item = await db["farm_inventory"].find_one({"$and": [{"farm_id": farm_id}, {"$or": cond}]})
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Inventory item not found."
+        )
+
+    if payload.quantity <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Restock quantity must be greater than zero."
+        )
+
+    current_qty = float(item.get("quantity") or 0.0)
+    new_qty = round(current_qty + float(payload.quantity), 4)
+    now = datetime.now(timezone.utc)
+    user_id = str(current_user.get("id") or current_user.get("_id") or "")
+
+    update_fields: Dict[str, Any] = {
+        "quantity": new_qty,
+        "updated_at": now.isoformat()
+    }
+
+    if payload.purchase_date:
+        update_fields["purchase_date"] = payload.purchase_date
+    if payload.expiry_date:
+        update_fields["expiry_date"] = payload.expiry_date
+    if payload.vendor:
+        update_fields["vendor"] = payload.vendor.strip()
+    if payload.batch_number:
+        update_fields["batch_number"] = payload.batch_number.strip()
+    if payload.notes:
+        update_fields["notes"] = payload.notes.strip()
+
+    if payload.purchase_price is not None and payload.purchase_price > 0:
+        update_fields["purchase_price"] = float(payload.purchase_price)
+        update_fields["cost_per_unit"] = round(float(payload.purchase_price) / float(payload.quantity), 2)
+
+        # Handle optional Khata link for this restock
+        if payload.record_in_khata:
+            restock_booking = f"restock-{item_id}-{int(now.timestamp())}"
+            existing_khata = await db["farm_khata"].find_one({"farm_id": farm_id, "booking_id": restock_booking})
+            if not existing_khata:
+                khata_cat = map_inventory_category_to_khata(item.get("category") or "other")
+                khata_doc = {
+                    "id": f"khata-{uuid.uuid4().hex[:12]}",
+                    "farm_id": farm_id,
+                    "user_id": user_id,
+                    "type": "expense",
+                    "category": khata_cat,
+                    "description": f"Restock purchase: {item.get('item_name')} (+{payload.quantity} {item.get('unit')})",
+                    "amount": float(payload.purchase_price),
+                    "date": payload.purchase_date or now.strftime("%Y-%m-%d"),
+                    "booking_id": restock_booking,
+                    "field_id": item.get("field_id"),
+                    "crop_name": item.get("crop_name"),
+                    "is_estimated": False,
+                    "payment_status": "paid",
+                    "quantity": float(payload.quantity),
+                    "unit": item.get("unit"),
+                    "vendor": payload.vendor or item.get("vendor"),
+                    "created_at": now,
+                    "updated_at": now
+                }
+                res = await db["farm_khata"].insert_one(khata_doc)
+                update_fields["khata_tx_id"] = str(res.inserted_id)
+
+    await db["farm_inventory"].update_one(
+        {"_id": item["_id"]},
+        {"$set": update_fields}
+    )
+
+    updated_doc = await db["farm_inventory"].find_one({"_id": item["_id"]})
+    return serialize_inventory_doc(updated_doc)
+
+
+@router.post("/{farm_id}/inventory/{item_id}/use")
+async def use_inventory_item(
+    farm_id: str,
+    item_id: str,
+    payload: InventoryUsageCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Consume stock from inventory and append to bounded usage history."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cond = [{"id": item_id}]
+    if ObjectId.is_valid(item_id):
+        cond.append({"_id": ObjectId(item_id)})
+
+    item = await db["farm_inventory"].find_one({"$and": [{"farm_id": farm_id}, {"$or": cond}]})
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Inventory item not found."
+        )
+
+    if payload.quantity_used <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Quantity used must be greater than zero."
+        )
+
+    current_qty = float(item.get("quantity") or 0.0)
+    unit = item.get("unit") or "units"
+
+    if payload.quantity_used > current_qty:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot use {payload.quantity_used} {unit}. Only {current_qty} {unit} available in stock."
+        )
+
+    new_qty = round(current_qty - float(payload.quantity_used), 4)
+    now = datetime.now(timezone.utc)
+
+    usage_entry = {
+        "log_id": f"use-{uuid.uuid4().hex[:10]}",
+        "date": now.strftime("%Y-%m-%d"),
+        "quantity_used": float(payload.quantity_used),
+        "activity": payload.activity.strip() if payload.activity else "Field Application",
+        "field_id": payload.field_id.strip() if payload.field_id else item.get("field_id"),
+        "crop_name": payload.crop_name.strip() if payload.crop_name else item.get("crop_name"),
+        "notes": payload.notes.strip() if payload.notes else None,
+        "created_at": now.isoformat()
+    }
+
+    # Atomic decrement and push to bounded usage history (last 100 entries)
+    await db["farm_inventory"].update_one(
+        {"_id": item["_id"]},
+        {
+            "$set": {
+                "quantity": new_qty,
+                "updated_at": now.isoformat()
+            },
+            "$push": {
+                "usage_history": {
+                    "$each": [usage_entry],
+                    "$slice": -100
+                }
+            }
+        }
+    )
+
+    updated_doc = await db["farm_inventory"].find_one({"_id": item["_id"]})
+    return serialize_inventory_doc(updated_doc)
+
+
+@router.post("/{farm_id}/inventory/{item_id}/adjust")
+async def adjust_inventory_item(
+    farm_id: str,
+    item_id: str,
+    payload: InventoryAdjustCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Adjust inventory stock count for damage, spillage, expiry, or audit."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cond = [{"id": item_id}]
+    if ObjectId.is_valid(item_id):
+        cond.append({"_id": ObjectId(item_id)})
+
+    item = await db["farm_inventory"].find_one({"$and": [{"farm_id": farm_id}, {"$or": cond}]})
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Inventory item not found."
+        )
+
+    if payload.new_quantity < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Adjusted quantity cannot be negative."
+        )
+
+    current_qty = float(item.get("quantity") or 0.0)
+    diff = round(current_qty - float(payload.new_quantity), 4)
+    now = datetime.now(timezone.utc)
+
+    adjust_entry = {
+        "log_id": f"adj-{uuid.uuid4().hex[:10]}",
+        "date": now.strftime("%Y-%m-%d"),
+        "quantity_used": diff,
+        "activity": f"Stock Adjustment: {payload.reason.strip()}",
+        "field_id": item.get("field_id"),
+        "crop_name": item.get("crop_name"),
+        "notes": payload.notes.strip() if payload.notes else None,
+        "created_at": now.isoformat()
+    }
+
+    await db["farm_inventory"].update_one(
+        {"_id": item["_id"]},
+        {
+            "$set": {
+                "quantity": round(float(payload.new_quantity), 4),
+                "updated_at": now.isoformat()
+            },
+            "$push": {
+                "usage_history": {
+                    "$each": [adjust_entry],
+                    "$slice": -100
+                }
+            }
+        }
+    )
+
+    updated_doc = await db["farm_inventory"].find_one({"_id": item["_id"]})
+    return serialize_inventory_doc(updated_doc)
+
+
+@router.delete("/{farm_id}/inventory/{item_id}")
+@router.post("/{farm_id}/inventory/{item_id}/archive")
+async def archive_inventory_item(
+    farm_id: str,
+    item_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Safely archive an inventory item while preserving its purchase and usage history."""
+    await _verify_farm_access(farm_id, current_user, db)
+
+    cond = [{"id": item_id}]
+    if ObjectId.is_valid(item_id):
+        cond.append({"_id": ObjectId(item_id)})
+
+    item = await db["farm_inventory"].find_one({"$and": [{"farm_id": farm_id}, {"$or": cond}]})
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Inventory item not found."
+        )
+
+    now = datetime.now(timezone.utc)
+    await db["farm_inventory"].update_one(
+        {"_id": item["_id"]},
+        {
+            "$set": {
+                "archived": True,
+                "updated_at": now.isoformat()
+            }
+        }
+    )
+
+    return {
+        "status": "success",
+        "message": "Inventory item archived successfully",
+        "id": item_id,
+        "archived": True
     }
 

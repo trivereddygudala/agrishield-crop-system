@@ -152,7 +152,16 @@ class MockCollection:
                 for k, v in update_dict["$push"].items():
                     if k not in rec or not isinstance(rec[k], list):
                         rec[k] = []
-                    rec[k].append(v)
+                    if isinstance(v, dict) and "$each" in v:
+                        rec[k].extend(v["$each"])
+                        if "$slice" in v:
+                            sl = v["$slice"]
+                            if sl < 0:
+                                rec[k] = rec[k][sl:]
+                            elif sl > 0:
+                                rec[k] = rec[k][:sl]
+                    else:
+                        rec[k].append(v)
         elif not rec and upsert:
             new_rec = dict(query)
             if "$set" in update_dict:
@@ -163,7 +172,17 @@ class MockCollection:
                     new_rec[k] = v
             if "$push" in update_dict:
                 for k, v in update_dict["$push"].items():
-                    new_rec[k] = [v]
+                    if isinstance(v, dict) and "$each" in v:
+                        items_to_push = list(v["$each"])
+                        if "$slice" in v:
+                            sl = v["$slice"]
+                            if sl < 0:
+                                items_to_push = items_to_push[sl:]
+                            elif sl > 0:
+                                items_to_push = items_to_push[:sl]
+                        new_rec[k] = items_to_push
+                    else:
+                        new_rec[k] = [v]
             if "_id" not in new_rec:
                 new_rec["_id"] = ObjectId()
             upserted_id = new_rec["_id"]

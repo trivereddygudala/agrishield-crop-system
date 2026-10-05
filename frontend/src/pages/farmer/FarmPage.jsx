@@ -24,6 +24,7 @@ import GovernmentSchemeNavigator from '../../components/farm/GovernmentSchemeNav
 import WhatsAppDiagnosisHub from '../../components/farm/WhatsAppDiagnosisHub';
 import CropGrowthTimeline from '../../components/farm/CropGrowthTimeline';
 import SmartIrrigationScheduler from '../../components/farm/SmartIrrigationScheduler';
+import FarmInventoryManager from '../../components/farm/FarmInventoryManager';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -50,6 +51,7 @@ const FarmPage = () => {
     'soil-npk',
     'crop-lifecycle',
     'farm-khata',
+    'farm-inventory',
     'farm-intelligence',
     'government-schemes',
     'whatsapp-diagnosis'
@@ -62,6 +64,7 @@ const FarmPage = () => {
     { id: 'soil-npk', labelEn: 'Fertilizer & NPK', labelTe: 'NPK ఎరువులు', icon: '💊' },
     { id: 'crop-lifecycle', labelEn: 'Crop Timeline', labelTe: 'పంట దశలు', icon: '🌱' },
     { id: 'farm-khata', labelEn: 'Farm Khata', labelTe: 'డిజిటల్ ఖాతా', icon: '💰' },
+    { id: 'farm-inventory', labelEn: 'Inventory', labelTe: 'ఇన్వెంటరీ', icon: '📦' },
     { id: 'farm-intelligence', labelEn: 'Rain & Spray', labelTe: 'వర్షం & స్ప్రే', icon: '🌦️' },
     { id: 'government-schemes', labelEn: 'Govt Schemes', labelTe: 'పథకాలు', icon: '🏛️' },
     { id: 'whatsapp-diagnosis', labelEn: 'WhatsApp Bot', labelTe: 'వాట్సాప్ బాట్', icon: '📱' },
@@ -320,6 +323,13 @@ const FarmPage = () => {
       subtitle: isTe ? 'సాగు ఖర్చులు, దిగుబడి అమ్మకాలు, ఎకరాకు నికర లాభం & వాట్సాప్ లెడ్జర్' : 'Track cultivation expenses, harvest sales & net profit per acre with WhatsApp ledger',
       icon: '💰',
       bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+    },
+    {
+      id: 'farm-inventory',
+      title: isTe ? 'వ్యవసాయ స్టాక్ & ఇన్వెంటరీ' : 'Farm Stock & Inventory',
+      subtitle: isTe ? 'విత్తనాలు, ఎరువులు, పురుగుమందులు, పరికరాలు & స్టాక్ లభ్యత' : 'Track seed bags, fertilizers, sprays, tools, low-stock & expiry alerts',
+      icon: '📦',
+      bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     },
     {
       id: 'soil-npk',
@@ -1277,6 +1287,19 @@ const FarmPage = () => {
             cropName={cropName || 'Tomato'}
             village={village || activeFarm?.village || 'Pasupugallu'}
             onClose={() => setActiveTab('modules')}
+          />
+        </motion.div>
+      )}
+
+      {/* ═══════ DRILL: Smart Farm Inventory Manager ═══════ */}
+      {activeTab === 'farm-inventory' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <FarmInventoryManager
+            farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
+            farmName={farmName || activeFarm?.farm_name || 'My Farm'}
+            cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+            onClose={() => setActiveTab('modules')}
+            onNavigateKhata={() => setActiveTab('farm-khata')}
           />
         </motion.div>
       )}

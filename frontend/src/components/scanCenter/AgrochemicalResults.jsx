@@ -8,6 +8,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
@@ -23,6 +24,7 @@ const AGRO_UI_LOCALIZATIONS = {
     pricing: "6. 💰 Pricing & Financials",
     mixingPPE: "7. 🛡️ Step-by-Step Mixing Protocol & PPE Safety Handling",
     scanAnother: "Scan Another Product / Bottle",
+    addToInventory: "Add to Farm Inventory",
     stopAudio: "Stop Audio",
     listenAudio: "Listen Instructions",
     copied: "Copied Markdown!",
@@ -35,6 +37,7 @@ const AGRO_UI_LOCALIZATIONS = {
     pricing: "6. 💰 ధర & ఆర్థిక వివరాలు",
     mixingPPE: "7. 🛡️ మిక్సింగ్ విధానం & PPE భద్రత",
     scanAnother: "మరో మందు సీసాను స్కాన్ చేయండి",
+    addToInventory: "వ్యవసాయ ఇన్వెంటరీకి జోడించండి",
     stopAudio: "వాయిస్ ఆపండి",
     listenAudio: "వివరాలు వినండి",
     copied: "కాపీ చేయబడింది!",
@@ -47,6 +50,7 @@ const AGRO_UI_LOCALIZATIONS = {
     pricing: "6. 💰 मूल्य निर्धारण और वित्तीय विवरण",
     mixingPPE: "7. 🛡️ घोल बनाने की विधि और पीपीई सुरक्षा",
     scanAnother: "दूसरी बोतल स्कैन करें",
+    addToInventory: "फार्म इन्वेंटरी में जोड़ें",
     stopAudio: "आवाज रोकें",
     listenAudio: "विवरण सुनें",
     copied: "कॉपी हो गया!",
@@ -59,6 +63,7 @@ const AGRO_UI_LOCALIZATIONS = {
     pricing: "6. 💰 விலை & நிதி விவரங்கள்",
     mixingPPE: "7. 🛡️ கலவை முறை & பிபிஇ பாதுகாப்பு விதிமுறைகள்",
     scanAnother: "மற்றொரு பொருளை ஸ்கேன் செய்",
+    addToInventory: "பண்ணை இருப்பில் சேர்க்கவும்",
     stopAudio: "ஆடியோவை நிறுத்து",
     listenAudio: "விவரங்களை கேளுங்கள்",
     copied: "நகலெடுக்கப்பட்டது!",
@@ -164,6 +169,7 @@ const AGRO_UI_LOCALIZATIONS = {
 
 const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const overrides = {};
   const isHumanCalibrated = false;
 
@@ -1223,11 +1229,11 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
       })}
 
       {/* Bottom Action Bar */}
-      <div className="pt-4 flex items-center justify-center">
+      <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
         <Button
           variant="outline"
           size="md"
-          className="w-full sm:w-auto px-8 py-3 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl shadow-sm"
+          className="w-full sm:w-auto px-6 py-3 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl shadow-sm"
           onClick={() => {
             if (onScanAnother) onScanAnother();
             else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
@@ -1235,6 +1241,32 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
         >
           <RotateCcw className="w-4 h-4" />
           <span>{locUI.scanAnother || 'Scan Another Product / Bottle'}</span>
+        </Button>
+
+        <Button
+          variant="primary"
+          size="md"
+          className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl shadow-md"
+          onClick={() => {
+            const prefill = {
+              item_name: productDetails.brand_name || 'Agrochemical Product',
+              brand: productDetails.company || '',
+              category: 'pesticide',
+              active_ingredient: activeIngredient || '',
+              notes: `Scanned Product: ${productDetails.brand_name || 'Product'}. Target crops: ${(productDetails.target_crops || []).slice(0, 3).join(', ')}`
+            };
+            try {
+              sessionStorage.setItem('agrishield_inventory_prefill', JSON.stringify(prefill));
+            } catch (_) {}
+            if (navigate) {
+              navigate('/farm?tab=farm-inventory');
+            } else {
+              window.location.href = '/farm?tab=farm-inventory';
+            }
+          }}
+        >
+          <Package className="w-4 h-4" />
+          <span>{locUI.addToInventory || 'Add to Farm Inventory'}</span>
         </Button>
       </div>
 

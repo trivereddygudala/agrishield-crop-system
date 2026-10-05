@@ -2,6 +2,38 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v379) - B18: Smart Farm Inventory Manager Implementation
+- **Summary:**
+  1. 📦 **Dedicated Physical Stock Ledger (`farm_inventory`):**
+     - Established dedicated MongoDB `farm_inventory` collection keeping physical inventory strictly decoupled from financial ledgers (`farm_khata`).
+     - Authored robust Pydantic data models in [inventory.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/models/inventory.py) and re-exported in [farm_profile.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/models/farm_profile.py): `InventoryItemCreate`, `InventoryItemUpdate`, `InventoryRestockCreate`, `InventoryUsageCreate`, and `InventoryAdjustCreate`.
+  2. ⚙️ **Comprehensive Backend Inventory APIs & Strict Precedence Status:**
+     - Implemented complete CRUD and movement endpoints in [farm_profiles.py](file:///c:/AI%20Crop%20Disease%20Detection%20System/backend/app/routers/farmer/farm_profiles.py):
+       - `POST /api/farms/{farm_id}/inventory` (Add material with optional Khata sync)
+       - `GET /api/farms/{farm_id}/inventory` (List with category, status, crop, field, search filtering)
+       - `GET /api/farms/{farm_id}/inventory/summary` (KPIs: items, low stock, expired, expiring soon, valuation)
+       - `GET /api/farms/{farm_id}/inventory/{item_id}` (Item details)
+       - `POST /api/farms/{farm_id}/inventory/{item_id}/restock` (Restock existing item)
+       - `POST /api/farms/{farm_id}/inventory/{item_id}/use` (Decrement stock with atomic bounded usage history)
+       - `POST /api/farms/{farm_id}/inventory/{item_id}/adjust` (Stock adjustments)
+       - `DELETE /api/farms/{farm_id}/inventory/{item_id}` (Safe archive soft-delete preserving history)
+     - Dynamic derived statuses with strict precedence: `out_of_stock` ($\le 0$) $\rightarrow$ `expired` ($< today$) $\rightarrow$ `expiring_soon` ($\le 30$ days) $\rightarrow$ `low_stock` ($\le min\_qty$) $\rightarrow$ `in_stock`.
+     - Zero-stock preservation rule: items are never deleted when quantity reaches zero, preserving complete historical purchase and batch context.
+  3. 💰 **Authoritative B17 Farm Khata Integration:**
+     - Connected inventory purchases to B17 Farm Khata with strict user confirmation (`record_in_khata`) and booking key idempotency reference (`inv-{id}`).
+     - Eliminates duplicate expense recording on retry, refresh, or repeated submission.
+  4. 🧪 **Agrochemical Scanner Prefill Integration:**
+     - Extended [AgrochemicalResults.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/scanCenter/AgrochemicalResults.jsx) with "Add to Farm Inventory" action button.
+     - Safely prefills item name, brand, active ingredient, and pesticide category into the inventory form while strictly enforcing explicit farmer entry of owned physical quantity and unit before creating stock.
+  5. 📱 **Farmer-Friendly UI (`FarmInventoryManager.jsx`):**
+     - Authored [FarmInventoryManager.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/components/farm/FarmInventoryManager.jsx) with 4 top KPI cards, interactive category filter pills, stock level threshold bars, and intuitive modals for Adding Stock, Using Stock, Restocking, and viewing Usage History.
+     - Mounted `farm-inventory` tab into [FarmPage.jsx](file:///c:/AI%20Crop%20Disease%20Detection%20System/frontend/src/pages/farmer/FarmPage.jsx) navigation strip and overview module cards.
+  6. 🧪 **Validation, Test Suite & Regressions:**
+     - Authored comprehensive test suite in `backend/tests/test_b18_farm_inventory.py` covering all 22 audit scenarios (14/14 test functions passed, 100%).
+     - Verified all regression suites (B18, B17, B16, B15, B4: 44/44 passed, 100%).
+     - Verified frontend production bundle build (`npm run build`: built in 29.50s with 0 errors).
+- **Files modified:** `backend/app/models/inventory.py`, `backend/app/models/farm_profile.py`, `backend/app/routers/farmer/farm_profiles.py`, `backend/tests/mock_db.py`, `backend/tests/test_b18_farm_inventory.py`, `frontend/src/components/farm/FarmInventoryManager.jsx`, `frontend/src/components/scanCenter/AgrochemicalResults.jsx`, `frontend/src/pages/farmer/FarmPage.jsx`, `changes_happening.md`.
+
 ## 2026-10-05 (v378) - B17: Farm Expense, Income & Profit Manager Implementation
 - **Summary:**
   1. 💰 **Authoritative Farm Khata Extension (`farm_khata`):**
