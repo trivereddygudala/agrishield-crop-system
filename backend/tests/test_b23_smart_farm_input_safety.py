@@ -1,21 +1,23 @@
 """
-Test Suite for B23: Smart Farm Input Safety, Advisory Trust & Farmer Decision Quality
+Test Suite for B23 Correction: Smart Farm Input Safety, Advisory Trust & Farmer Decision Quality
 Covers:
 1. Authoritative agrochemical safety extraction (PHI, REI, PPE, toxicity) strictly from database
 2. Zero hallucination: Missing safety info returns None, never synthetic data
 3. Expired inventory rejection: Expired chemicals flagged as unusable, never valid stock
-4. Expired inventory reasoning warning: Explicit alert in advisory reasoning
-5. Farm-size spray application calculation: 200 L/acre water volume and accurate chemical dosage
-6. Farm-size stock sufficiency matching: Accurate stock sufficiency comparison
-7. Farm-size stock shortfall matching: Accurate stock shortfall detection
-8. Zero or invalid dosage returns None (no synthetic calculation)
-9. Scientific authority attribution (ICAR, CIBRC, IMD, FAO-56)
-10. Action Center disease safety metadata propagation (PHI, REI, PPE in action metadata)
-11. Action Center expired inventory priority elevation (P1) and advisory metadata
-12. Software AI and Smart IoT compatibility (identical advisory intelligence)
-13. Zero hardware actuation guarantee
-14. Backward compatibility defaults (all B22 and prior fields intact)
-15. Regression immutability across B20-B22
+4. Expired inventory reasoning warning: Explicit alert in advisory reasoning with neutral wording
+5. Test A: No universal 200 L/acre assumption; returns None without authoritative application volume
+6. Test B: Authoritative application volume calculation when explicitly present in data
+7. Farm-size stock sufficiency matching when authoritative volume is present
+8. Farm-size stock shortfall matching when authoritative volume is present
+9. Zero or invalid dosage returns None (no synthetic calculation)
+10. Test C: No unsupported authority claims (ICAR, CIBRC, FAO-56, IMD, Certified, Approved, Verified, Official) when absent
+11. Test D: Existing source metadata preserved when present in data
+12. Action Center disease safety metadata propagation (PHI, REI, PPE in action metadata)
+13. Action Center expired inventory priority elevation (P1) and neutral advisory metadata
+14. Software AI and Smart IoT compatibility (identical advisory intelligence)
+15. Zero hardware actuation guarantee
+16. Backward compatibility defaults (all B22 and prior fields intact)
+17. Regression immutability across B20-B22
 """
 
 import pytest
@@ -83,7 +85,7 @@ def test_expired_inventory_rejection():
     assert res["badge_variant"] == "destructive"
 
 
-# 4. Expired Inventory Warning in Reasoning
+# 4. Expired Inventory Warning in Reasoning (Neutral wording, no unsupported chemical-degradation claims)
 @pytest.mark.asyncio
 async def test_expired_inventory_reasoning_warning():
     mock_weather = MagicMock()
@@ -146,22 +148,46 @@ async def test_expired_inventory_reasoning_warning():
     assert spray_item["inventory_status"]["is_expired"] is True
     assert spray_item["inventory_status"]["in_stock"] is False
     assert any("STORAGE WARNING" in reason for reason in spray_item["reasoning"])
-    assert any("expired" in reason.lower() for reason in spray_item["reasoning"])
+    assert any("not counted as usable stock" in reason for reason in spray_item["reasoning"])
 
 
-# 5. Farm-Size Application Volume Calculation
-def test_farm_size_application_volume_calc():
+# 5. Test A — No universal 200 L/acre assumption
+def test_a_no_universal_200l_per_acre():
+    """
+    Given farm_size = 2.5 acres and dosage = 2 g/L with NO authoritative
+    application-volume field: verify calculate_farm_application returns None
+    and does NOT calculate 500 L or 1 kg.
+    """
     calc = calculate_farm_application("2.0 g / L of clean water", 2.5)
+    assert calc is None, "Should be None when authoritative volume is absent"
+
+    # Also verify with plain dosage string
+    calc2 = calculate_farm_application("2 g/L", 2.5)
+    assert calc2 is None
+
+
+# 6. Test B — Authoritative volume calculation
+def test_b_authoritative_volume_calculation():
+    """
+    If existing application data genuinely provides an authoritative volume,
+    verify calculation strictly uses that actual value.
+    """
+    # Authoritative volume = 150.0 L/acre, farm = 2.5 acres -> total_volume = 375.0 L
+    # dosage = 2.0 g/L -> 375 * 2.0 = 750 g
+    calc = calculate_farm_application(
+        dosage_str="2.0 g / L of clean water",
+        farm_size_acres=2.5,
+        authoritative_volume_per_acre=150.0
+    )
     assert calc is not None
     assert calc["farm_size_acres"] == 2.5
-    # Standard: 200 L per acre -> 2.5 * 200 = 500 L
-    assert calc["water_volume_litres"] == 500.0
-    assert "500 Litres" in calc["water_volume_display"]
-    # 500 L * 2.0 g/L = 1000 g = 1.00 kg
-    assert "1.00 kg" in calc["required_input_display"]
+    assert calc["water_volume_litres"] == 375.0
+    assert calc["water_volume_display"] == "375 L"
+    assert "750 g" in calc["required_input_display"]
+    assert calc["authoritative_volume_per_acre"] == 150.0
 
 
-# 6. Farm-Size Stock Sufficiency Matching
+# 7. Farm-Size Stock Sufficiency Matching with Authoritative Volume
 def test_farm_size_stock_sufficiency_matching():
     inv_match = {
         "in_stock": True,
@@ -170,14 +196,20 @@ def test_farm_size_stock_sufficiency_matching():
         "unit": "kg",
         "item_name": "SAAF Broad Spectrum Fungicide"
     }
-    calc = calculate_farm_application("2.0 g / L of clean water", 2.5, inv_match)
+    # 2.5 acres * 150 L/acre = 375 L -> 375 * 2 g/L = 750 g needed. 3.0 kg available -> sufficient!
+    calc = calculate_farm_application(
+        dosage_str="2.0 g / L of clean water",
+        farm_size_acres=2.5,
+        inventory_match=inv_match,
+        authoritative_volume_per_acre=150.0
+    )
     assert calc is not None
     assert calc["stock_sufficiency"] == "sufficient"
     assert "Sufficient Stock" in calc["stock_message"]
     assert "3.0 kg available in storage" in calc["stock_message"]
 
 
-# 7. Farm-Size Stock Shortfall Matching
+# 8. Farm-Size Stock Shortfall Matching with Authoritative Volume
 def test_farm_size_stock_shortfall_matching():
     inv_match = {
         "in_stock": True,
@@ -186,24 +218,30 @@ def test_farm_size_stock_shortfall_matching():
         "unit": "kg",
         "item_name": "SAAF Broad Spectrum Fungicide"
     }
-    calc = calculate_farm_application("2.0 g / L of clean water", 2.5, inv_match)
+    # 2.5 acres * 150 L/acre = 375 L -> 750 g needed. 400 g available -> shortfall of 350 g!
+    calc = calculate_farm_application(
+        dosage_str="2.0 g / L of clean water",
+        farm_size_acres=2.5,
+        inventory_match=inv_match,
+        authoritative_volume_per_acre=150.0
+    )
     assert calc is not None
     assert calc["stock_sufficiency"] == "shortfall"
     assert "Stock Shortfall" in calc["stock_message"]
     assert "0.4 kg" in calc["stock_message"]
 
 
-# 8. Zero or Missing Dosage Returns None
+# 9. Zero or Missing Dosage Returns None
 def test_farm_size_zero_or_missing_dosage():
-    assert calculate_farm_application(None, 2.5) is None
-    assert calculate_farm_application("2.0 g / L", 0.0) is None
-    assert calculate_farm_application("2.0 g / L", -1.5) is None
-    assert calculate_farm_application("spray as needed without dosage", 2.5) is None
+    assert calculate_farm_application(None, 2.5, authoritative_volume_per_acre=150.0) is None
+    assert calculate_farm_application("2.0 g / L", 0.0, authoritative_volume_per_acre=150.0) is None
+    assert calculate_farm_application("2.0 g / L", -1.5, authoritative_volume_per_acre=150.0) is None
+    assert calculate_farm_application("spray as needed without dosage", 2.5, authoritative_volume_per_acre=150.0) is None
 
 
-# 9. Source Authority Attribution
+# 10. Test C — No unsupported authority claims when source metadata is absent
 @pytest.mark.asyncio
-async def test_source_authority_attribution():
+async def test_c_no_unsupported_authority_claims():
     mock_weather = MagicMock()
     mock_weather.get_weather_for_farm = AsyncMock(return_value={
         "current": {"rain_probability": 85.0, "wind_speed": 2.0, "temperature": 26.0}
@@ -242,13 +280,67 @@ async def test_source_authority_attribution():
     irrig_item = next(r for r in items if r["id"] == "rec_irrigation")
     nutr_item = next(r for r in items if r["id"] == "rec_fertilizer")
 
-    assert "IMD" in weather_item["source_authority"]
-    assert "CIBRC" in spray_item["source_authority"]
-    assert "FAO-56" in irrig_item["source_authority"]
-    assert "ICAR" in nutr_item["source_authority"]
+    # When source metadata is absent in application data, source_authority must be None
+    assert weather_item["source_authority"] is None
+    assert spray_item["source_authority"] is None
+    assert irrig_item["source_authority"] is None
+    assert nutr_item["source_authority"] is None
+
+    # Verify forbidden unsupported authority claims never appear
+    forbidden_claims = ["CIBRC", "ICAR", "FAO-56", "IMD", "Certified", "Approved", "Verified", "Official"]
+    for item in items:
+        source_auth_val = str(item.get("source_authority") or "")
+        for claim in forbidden_claims:
+            assert claim.lower() not in source_auth_val.lower(), f"Forbidden claim '{claim}' found in {item['id']}"
 
 
-# 10. Action Center Disease Safety Propagation
+# 11. Test D — Existing source metadata preserved
+@pytest.mark.asyncio
+async def test_d_existing_source_metadata_preserved():
+    mock_weather = MagicMock()
+    mock_weather.get_weather_for_farm = AsyncMock(return_value={
+        "current": {"rain_probability": 75.0, "wind_speed": 1.0, "temperature": 26.0},
+        "source": "State Agro-Met Center"
+    })
+    mock_irrigation = MagicMock()
+    mock_irrigation.calculate_irrigation_recommendation = AsyncMock(return_value={
+        "recommendation": "Irrigate field",
+        "confidence_score": 90.0,
+        "reasoning": ["Low moisture"],
+        "irrigation_required": True,
+        "source_authority": "Station Soil Water Balance"
+    })
+    mock_risk = MagicMock()
+    mock_risk.calculate_disease_risk = AsyncMock(return_value={
+        "overall_risk_percentage": 20.0,
+        "dominant_pathogen": "Healthy",
+        "confidence_score": 90.0
+    })
+
+    service = DailyRecommendationsService(
+        weather_service=mock_weather,
+        irrigation_service=mock_irrigation,
+        risk_service=mock_risk
+    )
+
+    result = await service.generate_daily_recommendations(
+        farm_id="farm_meta",
+        crop_name="Tomato",
+        growth_stage="Vegetative",
+        farm_size=1.0
+    )
+
+    items = result["recommendations"]
+    weather_item = next((r for r in items if r["id"] == "rec_rain_warning"), None)
+    assert weather_item is not None
+    assert weather_item["source_authority"] == "State Agro-Met Center"
+
+    irrig_item = next((r for r in items if r["id"] == "rec_irrigation"), None)
+    assert irrig_item is not None
+    assert irrig_item["source_authority"] == "Station Soil Water Balance"
+
+
+# 12. Action Center Disease Safety Propagation
 @pytest.mark.asyncio
 async def test_action_center_disease_safety_propagation():
     farm_id = str(ObjectId())
@@ -304,7 +396,7 @@ async def test_action_center_disease_safety_propagation():
     assert disease_action.metadata.get("toxicity_level") is not None
 
 
-# 11. Action Center Expired Inventory Handling
+# 13. Action Center Expired Inventory Handling
 @pytest.mark.asyncio
 async def test_action_center_expired_inventory_handling():
     farm_id = str(ObjectId())
@@ -355,10 +447,11 @@ async def test_action_center_expired_inventory_handling():
     assert exp_action.priority == "P1"
     assert exp_action.operational_bucket == "overdue"
     assert exp_action.metadata.get("is_expired") is True
-    assert "Expired inputs must not be applied" in exp_action.metadata.get("safety_advisory", "")
+    assert "This inventory item is expired and is not counted as usable stock" in exp_action.metadata.get("safety_advisory", "")
+    assert "Do not apply expired stock" in exp_action.why
 
 
-# 12. Software AI and Smart IoT Compatibility
+# 14. Software AI and Smart IoT Compatibility
 @pytest.mark.asyncio
 async def test_software_ai_and_smart_iot_compatibility():
     mock_weather = MagicMock()
@@ -387,7 +480,7 @@ async def test_software_ai_and_smart_iot_compatibility():
         assert item_ai["category"] == item_iot["category"]
 
 
-# 13. Zero Hardware Actuation Guarantee
+# 15. Zero Hardware Actuation Guarantee
 def test_zero_hardware_actuation_guarantee():
     service = DailyRecommendationsService()
     forbidden = ["mqtt", "relay", "actuator", "gpio", "turn_pump_on", "pump_control", "esp32"]
@@ -395,7 +488,7 @@ def test_zero_hardware_actuation_guarantee():
         assert not any(f in attr.lower() for f in forbidden), f"Forbidden hardware actuator found: {attr}"
 
 
-# 14. Backward Compatibility Defaults
+# 16. Backward Compatibility Defaults
 @pytest.mark.asyncio
 async def test_backward_compatibility_defaults():
     mock_weather = MagicMock()
@@ -429,7 +522,7 @@ async def test_backward_compatibility_defaults():
         assert "generated_at" in rec
 
 
-# 15. Regression Immutability Across B20-B22
+# 17. Regression Immutability Across B20-B22
 @pytest.mark.asyncio
 async def test_regression_immutability_b20_b22():
     mock_weather = MagicMock()

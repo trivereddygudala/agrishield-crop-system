@@ -635,7 +635,7 @@ class ActionCenterService:
                         action_type="BUY_INPUT",
                         priority="P1",
                         what=f"Dispose / Replace Expired {item_name}",
-                        why=f"Input expired on {exp_date_str or 'past date'}. Using expired chemicals may damage crop foliage, cause phytotoxicity, or fail disease control.",
+                        why=f"Input expired on {exp_date_str or 'past date'}. This inventory item is expired and is not counted as usable stock. Do not apply expired stock.",
                         when=f"Expired ({exp_date_str or 'Past date'})",
                         due_date=exp_date_str or today_str,
                         source="Farm Inventory",
@@ -652,7 +652,7 @@ class ActionCenterService:
                             "item_id": item_id,
                             "is_expired": True,
                             "expiry_date": exp_date_str,
-                            "safety_advisory": "Expired inputs must not be applied to crops."
+                            "safety_advisory": "This inventory item is expired and is not counted as usable stock. Do not apply expired stock."
                         }
                     )
                 )

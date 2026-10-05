@@ -2,6 +2,28 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v385) - B23: Remove Unsupported Farm Input Assumptions & Authority Claims (Correction)
+- **Summary:**
+  1. 🚫 **Removal of Universal 200 L/Acre Spray-Volume Assumption:**
+     - Removed universal 200 L/acre foliar volume and knapsack tank assumptions from `calculate_farm_application()`.
+     - Farm application totals (`farm_application_calc`) are ONLY calculated when an authoritative application volume per acre explicitly exists in application data (`authoritative_volume_per_acre`).
+     - When authoritative application volume is absent, `farm_application_calc` safely evaluates to `None` with zero synthetic calculations (no fabricated 500 L, 1 kg, or tank counts).
+  2. 🏛️ **Correction of External Authority Attribution:**
+     - Eradicated hardcoded attribution claims (`CIBRC Certified...`, `ICAR Package...`, `IMD Weather...`, `FAO-56...`).
+     - Strict source attribution rule enforced: recommendations only present authority/source if the underlying application data explicitly contains source metadata (`source` or `source_authority`); otherwise `source_authority=None`.
+  3. ⚠️ **Factual Expired Inventory Advisory Wording:**
+     - Replaced unverified chemical-degradation and phytotoxicity claims with neutral factual advisory: *"This inventory item is expired and is not counted as usable stock. Do not apply expired stock."*
+     - Preserved all genuine B23 safety protocols: `is_expired=True`, `in_stock=False`, red badge `"Expired Stock (Do Not Apply)"`, P1 overdue priority elevation in Action Center.
+  4. 📱 **Frontend Display Refinement (`DailyRecommendations.jsx`):**
+     - Farm application totals rendered only when backed by authoritative volume data.
+     - When volume is unavailable, cleanly presents Application rate, Farm area, and states *"Total application volume: Not available"*.
+     - Authority footer rendered dynamically only when authentic source metadata exists.
+  5. 🧪 **Comprehensive Test Suite & Multi-Batch Regression:**
+     - Updated `backend/tests/test_b23_smart_farm_input_safety.py` covering Test A (No universal 200 L/acre), Test B (Authoritative volume calculation), Test C (No unsupported authority claims), Test D (Preservation of existing source metadata), and Test E (B23 safety regression). All 17/17 tests passed (100%).
+     - Verified full multi-batch regression across B15–B23: all 129/129 tests passed (100%).
+     - Frontend production build (`npm run build`) succeeded with 0 errors.
+- **Files modified:** `backend/app/services/recommendations/service.py`, `backend/app/services/action_center/service.py`, `frontend/src/components/intelligence/DailyRecommendations.jsx`, `backend/tests/test_b23_smart_farm_input_safety.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v384) - B23: Smart Farm Input Safety & Advisory Transparency
 - **Summary:**
   1. 🛡️ **Authoritative Agrochemical Safety Protocols (`DailyRecommendationsService`):**

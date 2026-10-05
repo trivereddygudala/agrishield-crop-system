@@ -8,7 +8,7 @@ from backend.app.services.risk_forecast import DiseaseRiskForecastService
 
 logger = logging.getLogger(__name__)
 
-# ICAR Agronomic Stage Nutrition Rulebook
+# Agronomic Stage Nutrition Guidance
 def get_stage_nutrition_recommendation(crop_name: str, growth_stage: str) -> Dict[str, Any]:
     norm_stage = (growth_stage or "Vegetative").strip().lower()
     crop_display = crop_name.title() if crop_name else "Crop"
@@ -177,7 +177,7 @@ def extract_safety_protocols(agro_dict: Optional[Dict[str, Any]]) -> Optional[Di
     """
     Extracts authoritative agrochemical safety and regulatory information.
     CRITICAL SAFETY REQUIREMENT: Extracts strictly fields present in authoritative database.
-    Never invents or hallucinates safety intervals or certification standards.
+    Never invents or hallucinates safety intervals, application volumes, or certification standards.
     """
     if not agro_dict or not isinstance(agro_dict, dict):
         return None
@@ -196,7 +196,18 @@ def extract_safety_protocols(agro_dict: Optional[Dict[str, Any]]) -> Optional[Di
     if not any([phi, rei, tox, ppe]):
         return None
 
-    return {
+    authoritative_vol = agro_dict.get("authoritative_volume_per_acre") or agro_dict.get("spray_volume_litres_per_acre") or agro_dict.get("water_volume_per_acre_l")
+    if authoritative_vol is not None:
+        try:
+            authoritative_vol = float(authoritative_vol)
+            if authoritative_vol <= 0:
+                authoritative_vol = None
+        except (ValueError, TypeError):
+            authoritative_vol = None
+
+    source_val = agro_dict.get("source") or agro_dict.get("source_authority")
+
+    res = {
         "product_name": product_name,
         "active_ingredients": active_ing,
         "preharvest_interval": phi,
@@ -207,20 +218,31 @@ def extract_safety_protocols(agro_dict: Optional[Dict[str, Any]]) -> Optional[Di
         "dosage_per_litre": dosage,
         "spray_interval": interval
     }
+    if authoritative_vol is not None:
+        res["authoritative_volume_per_acre"] = authoritative_vol
+    if source_val:
+        res["source_authority"] = source_val
+    return res
 
 
 def calculate_farm_application(
     dosage_str: Optional[str],
     farm_size_acres: float,
-    inventory_match: Optional[Dict[str, Any]] = None
+    inventory_match: Optional[Dict[str, Any]] = None,
+    authoritative_volume_per_acre: Optional[float] = None,
+    volume_unit: str = "L"
 ) -> Optional[Dict[str, Any]]:
     """
-    Calculates total spray solution water volume and required agrochemical product
-    for the farmer's acreage, based strictly on authoritative dosage data.
-    Standard agronomic benchmark: 200 Litres of foliar spray solution per acre for vegetable and field crops.
-    Never invents data; returns None if dosage cannot be parsed or farm size is invalid.
+    Calculates total spray solution volume and required agrochemical product
+    for the farmer's acreage ONLY when an authoritative application-volume value
+    is explicitly provided in the application data.
+    If no authoritative application volume exists (None or <= 0), returns None.
+    NEVER uses universal assumptions or invented benchmarks.
     """
     if not dosage_str or not isinstance(dosage_str, str) or farm_size_acres <= 0:
+        return None
+
+    if authoritative_volume_per_acre is None or authoritative_volume_per_acre <= 0:
         return None
 
     import re
@@ -235,9 +257,9 @@ def calculate_farm_application(
     base_unit = "mL" if is_liquid else "g"
     bulk_unit = "L" if is_liquid else "kg"
 
-    water_volume_litres = round(farm_size_acres * 200.0, 1)
-    min_chemical_needed = round(water_volume_litres * low_val, 1)
-    max_chemical_needed = round(water_volume_litres * high_val, 1)
+    total_volume = round(farm_size_acres * float(authoritative_volume_per_acre), 1)
+    min_chemical_needed = round(total_volume * low_val, 1)
+    max_chemical_needed = round(total_volume * high_val, 1)
 
     if min_chemical_needed >= 1000:
         min_display = f"{min_chemical_needed / 1000:.2f} {bulk_unit}"
@@ -250,11 +272,11 @@ def calculate_farm_application(
 
     calc_res = {
         "farm_size_acres": farm_size_acres,
-        "water_volume_litres": water_volume_litres,
-        "water_volume_display": f"{water_volume_litres:.0f} Litres (approx. {max(1, int(round(water_volume_litres / 16)))} knapsack tanks)",
+        "water_volume_litres": total_volume,
+        "water_volume_display": f"{total_volume:.0f} {volume_unit}",
         "dosage_rate": dosage_str,
         "required_input_display": needed_summary,
-        "benchmark_basis": "Standard foliar spray volume: 200 L water per acre for vegetable & field crops"
+        "authoritative_volume_per_acre": authoritative_volume_per_acre
     }
 
     if inventory_match and inventory_match.get("available_qty") is not None and not inventory_match.get("is_expired"):
@@ -351,7 +373,7 @@ class DailyRecommendationsService:
             dominant_name = f"{crop_name} Fungal Risk"
             dominant_risk = float(risk.get("overall_risk_percentage", risk.get("risk_percentage", 45.0)))
 
-        # Determine certified recommended chemical based on dominant pathogen & crop
+        # Determine recommended chemical based on dominant pathogen & crop
         recommended_chemicals = ["Mancozeb 75% WP", "Neem Oil 0.5% EC"]
         primary_safety = None
         source_authority_chem = None
@@ -361,19 +383,19 @@ class DailyRecommendationsService:
             if rec_result and rec_result.get("recommendations"):
                 top_recs = rec_result["recommendations"]
                 recommended_chemicals = [
-                    r.get("product_name") or r.get("active_ingredients") or "Certified Fungicide"
+                    r.get("product_name") or r.get("active_ingredients") or "Fungicide"
                     for r in top_recs[:2]
                 ]
                 if top_recs:
                     primary_safety = extract_safety_protocols(top_recs[0])
-                    if primary_safety:
-                        source_authority_chem = "CIBRC Certified Agrochemical Label Database"
+                    source_authority_chem = top_recs[0].get("source") or top_recs[0].get("source_authority")
         except Exception:
             pass
 
         items: List[Dict[str, Any]] = []
 
         # ── ITEM 1: Weather & Rain Alert Recommendation ──
+        weather_source = weather.get("source") or weather.get("source_authority")
         if rain_prob > 50:
             items.append({
                 "id": "rec_rain_warning",
@@ -386,7 +408,7 @@ class DailyRecommendationsService:
                 ],
                 "priority": "High",
                 "category": "Weather",
-                "source_authority": "IMD Weather Integration & AgriShield Agro-Meteorology Model",
+                "source_authority": weather_source,
                 "generated_at": now_iso
             })
 
@@ -394,7 +416,10 @@ class DailyRecommendationsService:
         chem_name_str = " or ".join(recommended_chemicals[:2])
         inv_match_chem = _match_inventory_stock(recommended_chemicals, inventory_items)
         dosage_rate_chem = primary_safety.get("dosage_per_litre") if primary_safety else None
-        farm_app_chem = calculate_farm_application(dosage_rate_chem, farm_size, inv_match_chem)
+        auth_vol_chem = primary_safety.get("authoritative_volume_per_acre") if primary_safety else None
+        farm_app_chem = calculate_farm_application(
+            dosage_rate_chem, farm_size, inv_match_chem, authoritative_volume_per_acre=auth_vol_chem
+        )
 
         if dominant_risk >= 50.0:
             if not spray_allowed:
@@ -413,7 +438,7 @@ class DailyRecommendationsService:
                 ]
                 if inv_match_chem.get("is_expired"):
                     disease_reasoning.append(
-                        f"⚠️ STORAGE WARNING: {inv_match_chem['item_name']} in farm inventory expired on {inv_match_chem.get('expiry_date')}. Do not apply expired chemicals; procure fresh stock."
+                        f"⚠️ STORAGE WARNING: {inv_match_chem['item_name']} in farm inventory expired on {inv_match_chem.get('expiry_date')}. This inventory item is expired and is not counted as usable stock. Do not apply expired stock."
                     )
                 elif inv_match_chem["in_stock"]:
                     disease_reasoning.append(f"Storage check: {inv_match_chem['item_name']} ({inv_match_chem['available_qty']} {inv_match_chem['unit']}) is ready in farm inventory.")
@@ -456,7 +481,7 @@ class DailyRecommendationsService:
                 ]
                 if inv_match_chem.get("is_expired"):
                     disease_reasoning.append(
-                        f"⚠️ STORAGE WARNING: {inv_match_chem['item_name']} in farm inventory expired on {inv_match_chem.get('expiry_date')}. Do not apply expired chemicals; procure fresh stock."
+                        f"⚠️ STORAGE WARNING: {inv_match_chem['item_name']} in farm inventory expired on {inv_match_chem.get('expiry_date')}. This inventory item is expired and is not counted as usable stock. Do not apply expired stock."
                     )
                 elif inv_match_chem["in_stock"]:
                     disease_reasoning.append(f"Available in farm inventory: {inv_match_chem['available_qty']} {inv_match_chem['unit']} of {inv_match_chem['item_name']}.")
@@ -510,6 +535,7 @@ class DailyRecommendationsService:
             })
 
         # ── ITEM 3: Irrigation Recommendation ──
+        irr_source = irrigation.get("source") or irrigation.get("source_authority")
         items.append({
             "id": "rec_irrigation",
             "recommendation": irrigation["recommendation"],
@@ -517,21 +543,24 @@ class DailyRecommendationsService:
             "reasoning": irrigation["reasoning"],
             "priority": "High" if irrigation["irrigation_required"] else "Medium",
             "category": "Irrigation",
-            "source_authority": "FAO-56 Evapotranspiration & Soil Moisture Balance",
+            "source_authority": irr_source,
             "generated_at": now_iso
         })
 
-        # ── ITEM 4: Stage-Specific Agronomic Nutrition (ICAR Matrix) ──
+        # ── ITEM 4: Stage-Specific Agronomic Nutrition ──
         stage_nutrition = get_stage_nutrition_recommendation(crop_name=crop_name, growth_stage=growth_stage)
         nutr_formulation = stage_nutrition.get("formulation", "Balanced N-P-K")
         inv_match_nutr = _match_inventory_stock([nutr_formulation, "Urea", "19-19-19", "DAP", "Potash"], inventory_items)
         nutr_dosage = stage_nutrition.get("dosage")
-        farm_app_nutr = calculate_farm_application(nutr_dosage, farm_size, inv_match_nutr)
+        auth_vol_nutr = stage_nutrition.get("authoritative_volume_per_acre")
+        farm_app_nutr = calculate_farm_application(
+            nutr_dosage, farm_size, inv_match_nutr, authoritative_volume_per_acre=auth_vol_nutr
+        )
 
         nutr_reasoning = list(stage_nutrition.get("reasoning", []))
         if inv_match_nutr.get("is_expired"):
             nutr_reasoning.append(
-                f"⚠️ STORAGE WARNING: {inv_match_nutr['item_name']} in farm inventory expired on {inv_match_nutr.get('expiry_date')}. Do not use expired fertilizer compounds."
+                f"⚠️ STORAGE WARNING: {inv_match_nutr['item_name']} in farm inventory expired on {inv_match_nutr.get('expiry_date')}. This inventory item is expired and is not counted as usable stock. Do not apply expired stock."
             )
         elif inv_match_nutr["in_stock"]:
             nutr_reasoning.append(f"Storage check: {inv_match_nutr['item_name']} ({inv_match_nutr['available_qty']} {inv_match_nutr['unit']}) available in inventory.")
@@ -541,6 +570,7 @@ class DailyRecommendationsService:
         if farm_app_nutr and farm_app_nutr.get("stock_message"):
             nutr_reasoning.append(farm_app_nutr["stock_message"])
 
+        nutr_source = stage_nutrition.get("source") or stage_nutrition.get("source_authority")
         items.append({
             "id": "rec_fertilizer",
             "recommendation": stage_nutrition["recommendation"],
@@ -554,7 +584,7 @@ class DailyRecommendationsService:
             "inventory_status": inv_match_nutr,
             "safety_protocols": None,
             "farm_application_calc": farm_app_nutr,
-            "source_authority": "ICAR Package of Practices & Recommended Fertilizer Schedule",
+            "source_authority": nutr_source,
             "generated_at": now_iso
         })
 
@@ -569,6 +599,7 @@ class DailyRecommendationsService:
                 "cache_expires_in": 1800,
                 "crop_name": crop_name,
                 "growth_stage": growth_stage,
+                "farm_size_acres": farm_size,
                 "spray_allowed": spray_allowed,
                 "dominant_pathogen": dominant_name
             },

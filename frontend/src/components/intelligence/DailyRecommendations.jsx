@@ -128,8 +128,8 @@ export const DailyRecommendations = React.memo(({ farmId, cropName = "Tomato", g
                 </div>
               )}
 
-              {/* Farm Application Calculation (Acreage-calibrated foliar volume) */}
-              {farmCalc && (
+              {/* Farm Application Calculation (Authoritative Data Only) */}
+              {farmCalc && farmCalc.water_volume_display && farmCalc.required_input_display ? (
                 <div className="bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200/50 dark:border-sky-900/30 p-2 rounded-lg text-[10px] text-sky-900 dark:text-sky-300 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="flex items-center gap-1 font-medium">
                     <Droplets className="w-3 h-3 text-sky-600 dark:text-sky-400" />
@@ -137,14 +137,15 @@ export const DailyRecommendations = React.memo(({ farmId, cropName = "Tomato", g
                   </span>
                   <span><b>Input Needed:</b> {farmCalc.required_input_display}</span>
                 </div>
-              )}
-
-              {item.dosage && !safety && (
-                <div className="text-[11px] font-medium text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-900/40 px-2.5 py-1 rounded-lg border border-slate-200/40 dark:border-slate-800/60">
-                  <span className="font-bold text-slate-700 dark:text-slate-200">Recommended Dosage: </span>
-                  {item.dosage}
+              ) : (safety?.dosage_per_litre || item.dosage) ? (
+                <div className="bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 p-2 rounded-lg text-[10px] text-slate-600 dark:text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span><b>Application rate:</b> {safety?.dosage_per_litre || item.dosage}</span>
+                  {(farmCalc?.farm_size_acres || data?.metadata?.farm_size_acres) && (
+                    <span><b>Farm area:</b> {farmCalc?.farm_size_acres || data?.metadata?.farm_size_acres} acres</span>
+                  )}
+                  <span className="text-slate-500 dark:text-slate-400"><b>Total application volume:</b> Not available</span>
                 </div>
-              )}
+              ) : null}
 
               {item.reasoning?.length > 0 && (
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 pl-0.5">
@@ -158,7 +159,7 @@ export const DailyRecommendations = React.memo(({ farmId, cropName = "Tomato", g
               {sourceAuth && (
                 <div className="pt-1 border-t border-slate-200/40 dark:border-slate-800/40 flex items-center gap-1 text-[9px] text-slate-400 dark:text-slate-500">
                   <BookOpen className="w-2.5 h-2.5 shrink-0" />
-                  <span>Authority Standard: {sourceAuth}</span>
+                  <span>Source: {sourceAuth}</span>
                 </div>
               )}
             </div>
