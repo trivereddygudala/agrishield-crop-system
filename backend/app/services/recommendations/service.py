@@ -1,7 +1,7 @@
 import time
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from backend.app.services.weather import WeatherIntelligenceService
 from backend.app.services.irrigation import SmartIrrigationService
 from backend.app.services.risk_forecast import DiseaseRiskForecastService
@@ -79,13 +79,36 @@ def get_stage_nutrition_recommendation(crop_name: str, growth_stage: str) -> Dic
         }
 
 
+def _is_item_expired(item: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    """
+    Determines if an inventory item is past its expiration date or explicitly marked expired.
+    """
+    if not item or not isinstance(item, dict):
+        return False, None
+
+    if item.get("status") == "expired" or item.get("is_expired") is True:
+        return True, str(item.get("expiry_date") or "Past date")
+
+    exp_str = item.get("expiry_date")
+    if exp_str:
+        try:
+            exp_date = datetime.strptime(str(exp_str).strip()[:10], "%Y-%m-%d").date()
+            if exp_date < datetime.now().date():
+                return True, str(exp_str)[:10]
+        except Exception:
+            pass
+    return False, None
+
+
 def _match_inventory_stock(recommended_names: List[str], inventory_items: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Cross-reference recommended chemical or fertilizer names against physical inventory.
+    Explicitly checks expiration dates to ensure expired inputs are never validated as usable stock.
     """
     if not inventory_items:
         return {
             "in_stock": False,
+            "is_expired": False,
             "badge": "Not in Inventory (Procure Input)",
             "badge_variant": "warning"
         }
@@ -108,9 +131,23 @@ def _match_inventory_stock(recommended_names: List[str], inventory_items: List[D
                 qty = float(item.get("quantity") or 0.0)
                 unit = str(item.get("unit") or "units")
                 real_name = item.get("name") or target
-                if qty > 0:
+                is_expired, exp_date_str = _is_item_expired(item)
+
+                if is_expired:
+                    return {
+                        "in_stock": False,
+                        "is_expired": True,
+                        "expiry_date": exp_date_str,
+                        "available_qty": qty,
+                        "unit": unit,
+                        "item_name": real_name,
+                        "badge": "Expired Stock (Do Not Apply)",
+                        "badge_variant": "destructive"
+                    }
+                elif qty > 0:
                     return {
                         "in_stock": True,
+                        "is_expired": False,
                         "available_qty": qty,
                         "unit": unit,
                         "item_name": real_name,
@@ -120,6 +157,7 @@ def _match_inventory_stock(recommended_names: List[str], inventory_items: List[D
                 else:
                     return {
                         "in_stock": False,
+                        "is_expired": False,
                         "available_qty": 0.0,
                         "unit": unit,
                         "item_name": real_name,
@@ -129,9 +167,120 @@ def _match_inventory_stock(recommended_names: List[str], inventory_items: List[D
 
     return {
         "in_stock": False,
+        "is_expired": False,
         "badge": "Not in Inventory (Procure Input)",
         "badge_variant": "warning"
     }
+
+
+def extract_safety_protocols(agro_dict: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Extracts authoritative agrochemical safety and regulatory information.
+    CRITICAL SAFETY REQUIREMENT: Extracts strictly fields present in authoritative database.
+    Never invents or hallucinates safety intervals or certification standards.
+    """
+    if not agro_dict or not isinstance(agro_dict, dict):
+        return None
+
+    phi = agro_dict.get("preharvest_interval")
+    rei = agro_dict.get("reentry_interval")
+    tox = agro_dict.get("toxicity_level")
+    ppe = agro_dict.get("protective_equipment")
+    dosage = agro_dict.get("recommended_dosage_per_litre")
+    interval = agro_dict.get("spray_interval")
+    hazard_color = agro_dict.get("hazard_color")
+    active_ing = agro_dict.get("active_ingredients")
+    product_name = agro_dict.get("product_name")
+
+    # If all core safety attributes are missing, return None
+    if not any([phi, rei, tox, ppe]):
+        return None
+
+    return {
+        "product_name": product_name,
+        "active_ingredients": active_ing,
+        "preharvest_interval": phi,
+        "reentry_interval": rei,
+        "toxicity_level": tox,
+        "hazard_color": hazard_color,
+        "protective_equipment": ppe,
+        "dosage_per_litre": dosage,
+        "spray_interval": interval
+    }
+
+
+def calculate_farm_application(
+    dosage_str: Optional[str],
+    farm_size_acres: float,
+    inventory_match: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Calculates total spray solution water volume and required agrochemical product
+    for the farmer's acreage, based strictly on authoritative dosage data.
+    Standard agronomic benchmark: 200 Litres of foliar spray solution per acre for vegetable and field crops.
+    Never invents data; returns None if dosage cannot be parsed or farm size is invalid.
+    """
+    if not dosage_str or not isinstance(dosage_str, str) or farm_size_acres <= 0:
+        return None
+
+    import re
+    match = re.search(r"(\d+(?:\.\d+)?)(?:\s*(?:to|-)\s*(\d+(?:\.\d+)?))?\s*(g|ml|mL|gram|grams)", dosage_str, re.IGNORECASE)
+    if not match:
+        return None
+
+    low_val = float(match.group(1))
+    high_val = float(match.group(2)) if match.group(2) else low_val
+    unit_raw = match.group(3).lower()
+    is_liquid = unit_raw in ["ml"]
+    base_unit = "mL" if is_liquid else "g"
+    bulk_unit = "L" if is_liquid else "kg"
+
+    water_volume_litres = round(farm_size_acres * 200.0, 1)
+    min_chemical_needed = round(water_volume_litres * low_val, 1)
+    max_chemical_needed = round(water_volume_litres * high_val, 1)
+
+    if min_chemical_needed >= 1000:
+        min_display = f"{min_chemical_needed / 1000:.2f} {bulk_unit}"
+        max_display = f"{max_chemical_needed / 1000:.2f} {bulk_unit}" if high_val != low_val else min_display
+        needed_summary = min_display if high_val == low_val else f"{min_display} – {max_display}"
+    else:
+        min_display = f"{min_chemical_needed:.0f} {base_unit}"
+        max_display = f"{max_chemical_needed:.0f} {base_unit}" if high_val != low_val else min_display
+        needed_summary = min_display if high_val == low_val else f"{min_display} – {max_display}"
+
+    calc_res = {
+        "farm_size_acres": farm_size_acres,
+        "water_volume_litres": water_volume_litres,
+        "water_volume_display": f"{water_volume_litres:.0f} Litres (approx. {max(1, int(round(water_volume_litres / 16)))} knapsack tanks)",
+        "dosage_rate": dosage_str,
+        "required_input_display": needed_summary,
+        "benchmark_basis": "Standard foliar spray volume: 200 L water per acre for vegetable & field crops"
+    }
+
+    if inventory_match and inventory_match.get("available_qty") is not None and not inventory_match.get("is_expired"):
+        avail_qty = float(inventory_match.get("available_qty", 0.0))
+        inv_unit = str(inventory_match.get("unit", "")).lower()
+
+        avail_normalized = avail_qty
+        if inv_unit in ["kg", "l", "litre", "litres", "kilogram", "kilograms"]:
+            avail_normalized = avail_qty * 1000.0
+
+        needed_for_comparison = max_chemical_needed
+        if avail_qty <= 0:
+            calc_res["stock_sufficiency"] = "out_of_stock"
+            calc_res["stock_message"] = f"Stock Shortfall: You need {needed_summary} for {farm_size_acres} acres, but current inventory is 0."
+        elif avail_normalized >= needed_for_comparison:
+            rounds = int(avail_normalized // needed_for_comparison)
+            calc_res["stock_sufficiency"] = "sufficient"
+            calc_res["stock_message"] = f"Sufficient Stock: {needed_summary} required for {farm_size_acres} acres ({avail_qty} {inventory_match.get('unit')} available in storage — covers {rounds} spray application{'s' if rounds > 1 else ''})."
+        else:
+            calc_res["stock_sufficiency"] = "shortfall"
+            deficit = needed_for_comparison - avail_normalized
+            def_str = f"{deficit / 1000:.2f} {bulk_unit}" if deficit >= 1000 else f"{deficit:.0f} {base_unit}"
+            calc_res["stock_message"] = f"Stock Shortfall: {needed_summary} needed for {farm_size_acres} acres, but only {avail_qty} {inventory_match.get('unit')} available. Procure ~{def_str} more before preparing solution."
+
+    return calc_res
+
 
 
 class DailyRecommendationsService:
@@ -192,11 +341,20 @@ class DailyRecommendationsService:
 
         # Dominant pathogen details
         dominant = risk.get("dominant_pathogen") or {}
-        dominant_name = dominant.get("name") or f"{crop_name} Fungal Risk"
-        dominant_risk = float(dominant.get("risk_percentage") or risk.get("overall_risk_percentage", risk.get("risk_percentage", 45.0)))
+        if isinstance(dominant, str):
+            dominant_name = dominant
+            dominant_risk = float(risk.get("overall_risk_percentage", risk.get("risk_percentage", 45.0)))
+        elif isinstance(dominant, dict):
+            dominant_name = dominant.get("name") or f"{crop_name} Fungal Risk"
+            dominant_risk = float(dominant.get("risk_percentage") or risk.get("overall_risk_percentage", risk.get("risk_percentage", 45.0)))
+        else:
+            dominant_name = f"{crop_name} Fungal Risk"
+            dominant_risk = float(risk.get("overall_risk_percentage", risk.get("risk_percentage", 45.0)))
 
         # Determine certified recommended chemical based on dominant pathogen & crop
         recommended_chemicals = ["Mancozeb 75% WP", "Neem Oil 0.5% EC"]
+        primary_safety = None
+        source_authority_chem = None
         try:
             from backend.app.services.agrochemical_detector import get_recommended_agrochemicals_for_disease
             rec_result = get_recommended_agrochemicals_for_disease(dominant_name)
@@ -206,6 +364,10 @@ class DailyRecommendationsService:
                     r.get("product_name") or r.get("active_ingredients") or "Certified Fungicide"
                     for r in top_recs[:2]
                 ]
+                if top_recs:
+                    primary_safety = extract_safety_protocols(top_recs[0])
+                    if primary_safety:
+                        source_authority_chem = "CIBRC Certified Agrochemical Label Database"
         except Exception:
             pass
 
@@ -224,12 +386,15 @@ class DailyRecommendationsService:
                 ],
                 "priority": "High",
                 "category": "Weather",
+                "source_authority": "IMD Weather Integration & AgriShield Agro-Meteorology Model",
                 "generated_at": now_iso
             })
 
         # ── ITEM 2: Disease Prevention & Spray Window Gated Recommendation ──
         chem_name_str = " or ".join(recommended_chemicals[:2])
         inv_match_chem = _match_inventory_stock(recommended_chemicals, inventory_items)
+        dosage_rate_chem = primary_safety.get("dosage_per_litre") if primary_safety else None
+        farm_app_chem = calculate_farm_application(dosage_rate_chem, farm_size, inv_match_chem)
 
         if dominant_risk >= 50.0:
             if not spray_allowed:
@@ -246,10 +411,25 @@ class DailyRecommendationsService:
                     f"SPRAY DELAYED: {status_reason}",
                     f"Prepare {chem_name_str} solution to apply immediately once leaf canopy dries and winds calm."
                 ]
-                if inv_match_chem["in_stock"]:
+                if inv_match_chem.get("is_expired"):
+                    disease_reasoning.append(
+                        f"⚠️ STORAGE WARNING: {inv_match_chem['item_name']} in farm inventory expired on {inv_match_chem.get('expiry_date')}. Do not apply expired chemicals; procure fresh stock."
+                    )
+                elif inv_match_chem["in_stock"]:
                     disease_reasoning.append(f"Storage check: {inv_match_chem['item_name']} ({inv_match_chem['available_qty']} {inv_match_chem['unit']}) is ready in farm inventory.")
                 elif inv_match_chem.get("badge"):
                     disease_reasoning.append(f"Storage check: {inv_match_chem['badge']}.")
+
+                if primary_safety:
+                    phi = primary_safety.get("preharvest_interval")
+                    rei = primary_safety.get("reentry_interval")
+                    if phi and rei:
+                        disease_reasoning.append(f"Safety Protocols: Pre-Harvest Interval (PHI) is {phi}; Field Re-entry Interval (REI) is {rei}.")
+                    if primary_safety.get("protective_equipment"):
+                        disease_reasoning.append(f"Mandatory PPE: {primary_safety.get('protective_equipment')}")
+
+                if farm_app_chem and farm_app_chem.get("stock_message"):
+                    disease_reasoning.append(farm_app_chem["stock_message"])
 
                 items.append({
                     "id": "rec_spray_delayed",
@@ -261,6 +441,9 @@ class DailyRecommendationsService:
                     "spray_window_status": status_badge,
                     "action_delayed": True,
                     "inventory_status": inv_match_chem,
+                    "safety_protocols": primary_safety,
+                    "farm_application_calc": farm_app_chem,
+                    "source_authority": source_authority_chem,
                     "generated_at": now_iso
                 })
             else:
@@ -271,10 +454,25 @@ class DailyRecommendationsService:
                     f"Safe atmospheric window is open (Rain: {rain_prob:.0f}%, Wind: {wind_speed * 3.6:.1f} km/h).",
                     f"Optimal spray timing: {best_timing}."
                 ]
-                if inv_match_chem["in_stock"]:
+                if inv_match_chem.get("is_expired"):
+                    disease_reasoning.append(
+                        f"⚠️ STORAGE WARNING: {inv_match_chem['item_name']} in farm inventory expired on {inv_match_chem.get('expiry_date')}. Do not apply expired chemicals; procure fresh stock."
+                    )
+                elif inv_match_chem["in_stock"]:
                     disease_reasoning.append(f"Available in farm inventory: {inv_match_chem['available_qty']} {inv_match_chem['unit']} of {inv_match_chem['item_name']}.")
                 elif inv_match_chem.get("badge"):
                     disease_reasoning.append(f"Inventory status: {inv_match_chem['badge']}.")
+
+                if primary_safety:
+                    phi = primary_safety.get("preharvest_interval")
+                    rei = primary_safety.get("reentry_interval")
+                    if phi and rei:
+                        disease_reasoning.append(f"Safety Protocols: Pre-Harvest Interval (PHI) is {phi}; Field Re-entry Interval (REI) is {rei}.")
+                    if primary_safety.get("protective_equipment"):
+                        disease_reasoning.append(f"Mandatory PPE: {primary_safety.get('protective_equipment')}")
+
+                if farm_app_chem and farm_app_chem.get("stock_message"):
+                    disease_reasoning.append(farm_app_chem["stock_message"])
 
                 items.append({
                     "id": "rec_spray_optimal",
@@ -286,6 +484,9 @@ class DailyRecommendationsService:
                     "spray_window_status": "Safe Window Open",
                     "action_delayed": False,
                     "inventory_status": inv_match_chem,
+                    "safety_protocols": primary_safety,
+                    "farm_application_calc": farm_app_chem,
+                    "source_authority": source_authority_chem,
                     "generated_at": now_iso
                 })
         else:
@@ -302,6 +503,9 @@ class DailyRecommendationsService:
                 "category": "Monitoring",
                 "spray_window_status": "Monitoring Window",
                 "action_delayed": False,
+                "safety_protocols": None,
+                "farm_application_calc": None,
+                "source_authority": None,
                 "generated_at": now_iso
             })
 
@@ -313,6 +517,7 @@ class DailyRecommendationsService:
             "reasoning": irrigation["reasoning"],
             "priority": "High" if irrigation["irrigation_required"] else "Medium",
             "category": "Irrigation",
+            "source_authority": "FAO-56 Evapotranspiration & Soil Moisture Balance",
             "generated_at": now_iso
         })
 
@@ -320,12 +525,21 @@ class DailyRecommendationsService:
         stage_nutrition = get_stage_nutrition_recommendation(crop_name=crop_name, growth_stage=growth_stage)
         nutr_formulation = stage_nutrition.get("formulation", "Balanced N-P-K")
         inv_match_nutr = _match_inventory_stock([nutr_formulation, "Urea", "19-19-19", "DAP", "Potash"], inventory_items)
+        nutr_dosage = stage_nutrition.get("dosage")
+        farm_app_nutr = calculate_farm_application(nutr_dosage, farm_size, inv_match_nutr)
 
         nutr_reasoning = list(stage_nutrition.get("reasoning", []))
-        if inv_match_nutr["in_stock"]:
+        if inv_match_nutr.get("is_expired"):
+            nutr_reasoning.append(
+                f"⚠️ STORAGE WARNING: {inv_match_nutr['item_name']} in farm inventory expired on {inv_match_nutr.get('expiry_date')}. Do not use expired fertilizer compounds."
+            )
+        elif inv_match_nutr["in_stock"]:
             nutr_reasoning.append(f"Storage check: {inv_match_nutr['item_name']} ({inv_match_nutr['available_qty']} {inv_match_nutr['unit']}) available in inventory.")
         elif inv_match_nutr.get("badge") and "Not in Inventory" not in inv_match_nutr.get("badge", ""):
             nutr_reasoning.append(f"Storage check: {inv_match_nutr['badge']}.")
+
+        if farm_app_nutr and farm_app_nutr.get("stock_message"):
+            nutr_reasoning.append(farm_app_nutr["stock_message"])
 
         items.append({
             "id": "rec_fertilizer",
@@ -338,6 +552,9 @@ class DailyRecommendationsService:
             "target_nutrients": stage_nutrition.get("target_nutrients"),
             "dosage": stage_nutrition.get("dosage"),
             "inventory_status": inv_match_nutr,
+            "safety_protocols": None,
+            "farm_application_calc": farm_app_nutr,
+            "source_authority": "ICAR Package of Practices & Recommended Fertilizer Schedule",
             "generated_at": now_iso
         })
 

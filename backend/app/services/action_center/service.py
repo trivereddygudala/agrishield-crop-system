@@ -481,6 +481,21 @@ class ActionCenterService:
 
                 if conf >= 0.70:
                     pred_id = str(pred.get("_id") or pred.get("id") or "pred")
+                    dis_safety_meta = {"disease_name": dis_name, "crop_name": pred_crop}
+                    try:
+                        from backend.app.services.agrochemical_detector import get_recommended_agrochemicals_for_disease
+                        dis_rec = get_recommended_agrochemicals_for_disease(dis_name)
+                        if dis_rec and dis_rec.get("recommendations"):
+                            top_prod = dis_rec["recommendations"][0]
+                            dis_safety_meta["recommended_product"] = top_prod.get("product_name")
+                            dis_safety_meta["dosage"] = top_prod.get("recommended_dosage_per_litre")
+                            dis_safety_meta["preharvest_interval"] = top_prod.get("preharvest_interval")
+                            dis_safety_meta["reentry_interval"] = top_prod.get("reentry_interval")
+                            dis_safety_meta["toxicity_level"] = top_prod.get("toxicity_level")
+                            dis_safety_meta["protective_equipment"] = top_prod.get("protective_equipment")
+                    except Exception:
+                        pass
+
                     raw_actions.append(
                         FarmerActionItem(
                             action_id=f"act-disease-followup-{pred_id}",
@@ -500,7 +515,7 @@ class ActionCenterService:
                             action_url="/history",
                             action_label="View Diagnosis & Treatment",
                             badge_text=f"{round(conf * 100)}% Match",
-                            metadata={"disease_name": dis_name, "crop_name": pred_crop}
+                            metadata=dis_safety_meta
                         )
                     )
                     # Limit to 1 most recent disease action to prevent alert fatigue
@@ -602,81 +617,91 @@ class ActionCenterService:
 
             # Expiry check
             exp_date_str = item.get("expiry_date")
+            is_item_exp = item.get("status") == "expired" or item.get("is_expired") is True
+            days_to_exp = 999
             if exp_date_str:
                 try:
                     exp_date = datetime.strptime(str(exp_date_str).strip(), "%Y-%m-%d").date()
                     days_to_exp = (exp_date - today_date).days
                     if days_to_exp < 0:
-                        raw_actions.append(
-                            FarmerActionItem(
-                                action_id=f"act-inv-exp-{item_id}",
-                                action_type="BUY_INPUT",
-                                priority="P2",
-                                what=f"Dispose / Replace Expired {item_name}",
-                                why=f"Input expired on {exp_date_str}. Using expired chemicals may damage crop foliage or fail efficacy.",
-                                when=f"Expired ({exp_date_str})",
-                                due_date=exp_date_str,
-                                source="Farm Inventory",
-                                operating_mode=operating_mode,
-                                status="pending",
-                                operational_bucket="overdue",
-                                field_name=field_name,
-                                crop_name=crop_name,
-                                growth_stage=growth_stage,
-                                action_url="/farm?tab=farm-inventory",
-                                action_label="Review Inventory",
-                                badge_text="Expired",
-                                metadata={"item_id": item_id}
-                            )
-                        )
-                    elif days_to_exp <= 7:
-                        raw_actions.append(
-                            FarmerActionItem(
-                                action_id=f"act-inv-exps-{item_id}",
-                                action_type="BUY_INPUT",
-                                priority="P2",
-                                what=f"Check Expiring {item_name} Batch",
-                                why=f"Stock expires in {days_to_exp} days ({exp_date_str}). Utilize before expiration.",
-                                when=f"Within {days_to_exp} days",
-                                due_date=exp_date_str,
-                                source="Farm Inventory",
-                                operating_mode=operating_mode,
-                                status="pending",
-                                operational_bucket="today",
-                                field_name=field_name,
-                                crop_name=crop_name,
-                                growth_stage=growth_stage,
-                                action_url="/farm?tab=farm-inventory",
-                                action_label="Review Inventory",
-                                badge_text=f"{days_to_exp}d left",
-                                metadata={"item_id": item_id}
-                            )
-                        )
-                    elif days_to_exp <= 30:
-                        raw_actions.append(
-                            FarmerActionItem(
-                                action_id=f"act-inv-exps-{item_id}",
-                                action_type="BUY_INPUT",
-                                priority="P2",
-                                what=f"Check Expiring {item_name} Batch",
-                                why=f"Stock expires in {days_to_exp} days ({exp_date_str}). Utilize before expiration.",
-                                when=f"Within {days_to_exp} days",
-                                due_date=exp_date_str,
-                                source="Farm Inventory",
-                                operating_mode=operating_mode,
-                                status="pending",
-                                operational_bucket="upcoming",
-                                field_name=field_name,
-                                crop_name=crop_name,
-                                growth_stage=growth_stage,
-                                action_url="/farm?tab=farm-inventory",
-                                action_label="Review Inventory",
-                                badge_text=f"{days_to_exp}d left",
-                                metadata={"item_id": item_id}
-                            )
-                        )
+                        is_item_exp = True
                 except Exception:
                     pass
+
+            if is_item_exp:
+                raw_actions.append(
+                    FarmerActionItem(
+                        action_id=f"act-inv-exp-{item_id}",
+                        action_type="BUY_INPUT",
+                        priority="P1",
+                        what=f"Dispose / Replace Expired {item_name}",
+                        why=f"Input expired on {exp_date_str or 'past date'}. Using expired chemicals may damage crop foliage, cause phytotoxicity, or fail disease control.",
+                        when=f"Expired ({exp_date_str or 'Past date'})",
+                        due_date=exp_date_str or today_str,
+                        source="Farm Inventory",
+                        operating_mode=operating_mode,
+                        status="pending",
+                        operational_bucket="overdue",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
+                        action_url="/farm?tab=farm-inventory",
+                        action_label="Review Inventory",
+                        badge_text="Expired",
+                        metadata={
+                            "item_id": item_id,
+                            "is_expired": True,
+                            "expiry_date": exp_date_str,
+                            "safety_advisory": "Expired inputs must not be applied to crops."
+                        }
+                    )
+                )
+            elif days_to_exp <= 7:
+                raw_actions.append(
+                    FarmerActionItem(
+                        action_id=f"act-inv-exps-{item_id}",
+                        action_type="BUY_INPUT",
+                        priority="P2",
+                        what=f"Check Expiring {item_name} Batch",
+                        why=f"Stock expires in {days_to_exp} days ({exp_date_str}). Utilize before expiration.",
+                        when=f"Within {days_to_exp} days",
+                        due_date=exp_date_str,
+                        source="Farm Inventory",
+                        operating_mode=operating_mode,
+                        status="pending",
+                        operational_bucket="today",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
+                        action_url="/farm?tab=farm-inventory",
+                        action_label="Review Inventory",
+                        badge_text=f"{days_to_exp}d left",
+                        metadata={"item_id": item_id}
+                    )
+                )
+            elif days_to_exp <= 30:
+                raw_actions.append(
+                    FarmerActionItem(
+                        action_id=f"act-inv-exps-{item_id}",
+                        action_type="BUY_INPUT",
+                        priority="P2",
+                        what=f"Check Expiring {item_name} Batch",
+                        why=f"Stock expires in {days_to_exp} days ({exp_date_str}). Utilize before expiration.",
+                        when=f"Within {days_to_exp} days",
+                        due_date=exp_date_str,
+                        source="Farm Inventory",
+                        operating_mode=operating_mode,
+                        status="pending",
+                        operational_bucket="upcoming",
+                        field_name=field_name,
+                        crop_name=crop_name,
+                        growth_stage=growth_stage,
+                        action_url="/farm?tab=farm-inventory",
+                        action_label="Review Inventory",
+                        badge_text=f"{days_to_exp}d left",
+                        metadata={"item_id": item_id}
+                    )
+                )
 
         # ── SOURCE 6: B17 Farm Khata (Pending Financial Liabilities) ──
         # Inspect genuine actual liabilities only (no estimated/projected values)

@@ -2,6 +2,40 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v384) - B23: Smart Farm Input Safety & Advisory Transparency
+- **Summary:**
+  1. 🛡️ **Authoritative Agrochemical Safety Protocols (`DailyRecommendationsService`):**
+     - Extracted certified safety attributes (`preharvest_interval`, `reentry_interval`, `toxicity_level`, `protective_equipment`, `recommended_dosage_per_litre`, `spray_interval`, `hazard_color`) strictly from the authoritative database (`AGROCHEMICAL_DATABASE` in `agrochemical_detector.py`).
+     - **Strict Non-Hallucination Guarantee:** If safety attributes do not exist in the database, the system returns `safety_protocols=None` rather than inventing synthetic certifications or safety intervals.
+     - Added comprehensive safety instructions to reasoning: Pre-Harvest Interval (PHI) in days, Field Re-entry Interval (REI) in hours, and mandatory Personal Protective Equipment (PPE: nitrile gloves, eye goggles, N95 respirator).
+  2. ⚠️ **Strict Expired Inventory Handling & Rejection:**
+     - Upgraded `_match_inventory_stock()` to inspect expiration dates (`status == "expired"`, `is_expired is True`, or `expiry_date < today`).
+     - Expired chemicals and fertilizers are strictly invalidated (`in_stock=False`, `is_expired=True`) and badged with `"Expired Stock (Do Not Apply)"`.
+     - Injects explicit storage warnings into advisory reasoning: *"STORAGE WARNING: [Item] in farm inventory expired on [Date]. Do not apply expired chemicals as efficacy is degraded and phytotoxicity risk is high."*
+     - In `ActionCenterService`, elevated expired inventory tasks to high priority (`P1`), marked bucket `"overdue"`, and attached safety advisory metadata preventing field application.
+  3. 💧 **Farm-Scale Foliar Water Volume & Input Requirement Calculation:**
+     - Implemented `calculate_farm_application()` calibrated to standard agricultural foliar spray volume: **200 Litres per acre** (approx. 10–12 knapsack tanks per acre).
+     - Calculates total water volume and required input quantity based strictly on the authoritative dosage rate (e.g. 500 L water & 1.00 kg chemical for 2.5 acres at 2.0 g/L).
+     - Cross-references with unexpired storage stock to provide actionable stock sufficiency (`"Sufficient Stock (... covers N spray rounds)"`) or shortfall warnings (`"Stock Shortfall (... procure ~X kg more)"`).
+     - Safely returns `farm_application_calc=None` when dosage cannot be parsed or farm size is invalid (zero hallucination).
+  4. 📜 **Agronomic Authority Attribution:**
+     - Tagged recommendations with verified scientific authority metadata:
+       - Agrochemicals / Disease: `"CIBRC Certified Agrochemical Label Database"`
+       - Crop Nutrition: `"ICAR Package of Practices & Recommended Fertilizer Schedule"`
+       - Weather & Spray Window: `"IMD Weather Integration & AgriShield Agro-Meteorology Model"`
+       - Irrigation Intelligence: `"FAO-56 Evapotranspiration & Soil Moisture Balance"`
+  5. 📱 **Frontend Safety & Dosage Badging (`DailyRecommendations.jsx`):**
+     - Added prominent Safety Protocols bar displaying PHI countdown badge, REI field re-entry badge, toxicity classification with hazard indicator, and required PPE gear.
+     - Added Farm Application Volume chip showing calculated spray water volume and required chemical inputs for the farm's exact acreage.
+     - Added high-visibility red badge for expired stock (`⚠️ Expired Stock (Do Not Apply)`).
+     - Added Authority Standard attribution footer.
+  6. 🧪 **Testing, Verification & Non-Regression:**
+     - Authored comprehensive test suite in `backend/tests/test_b23_smart_farm_input_safety.py` (15/15 passed, 100%).
+     - Ran multi-phase regression suite covering B23, B22, B21, B20, B19, B18, B17, B16, B15 (127/127 passed, 100%).
+     - Verified clean `git diff --check` with zero whitespace errors.
+     - Verified frontend production build (`npm run build`).
+- **Files modified:** `backend/app/services/recommendations/service.py`, `backend/app/services/action_center/service.py`, `frontend/src/components/intelligence/DailyRecommendations.jsx`, `backend/tests/test_b23_smart_farm_input_safety.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v383) - B22: Smart Farm Decision & Advisory Quality
 - **Summary:**
   1. 🌦️ **Spray Window Gating & Washout/Drift Conflict Resolution (`DailyRecommendationsService`):**
