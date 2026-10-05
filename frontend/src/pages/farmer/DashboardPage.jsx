@@ -14,6 +14,7 @@ import { useWebSocket } from '../../context/WebSocketContext';
 
 // Intelligence System Widgets
 import FieldIntelligenceWidget from '../../components/intelligence/FieldIntelligenceWidget';
+import SmartFarmerActionCenter from '../../components/farm/SmartFarmerActionCenter';
 import { translateCrop, translateStage, translateDisease } from '../../utils/diseaseAdvisoryData';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
@@ -380,6 +381,18 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
+      </motion.div>
+
+      {/* ─── B19: Smart Farmer Action Center ("What should I do today?") ─── */}
+      <motion.div variants={itemVariants} className="col-span-12">
+        <WidgetErrorBoundary name="Smart Farmer Action Center">
+          <SmartFarmerActionCenter
+            farmId={activeFarm?.id || activeFarm?._id}
+            onActionComplete={() => {
+              fetchDashboardData(true, true);
+            }}
+          />
+        </WidgetErrorBoundary>
       </motion.div>
 
       {/* ─── Essential Farmer KPIs (4 Spacious, High-Contrast Cards) ─── */}

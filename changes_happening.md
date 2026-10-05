@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v381) - B19: Smart Farmer Action Center Implementation
+- **Summary:**
+  1. 🎯 **Synthesized Action Center Architecture (`ActionCenterService`):**
+     - Implemented `ActionCenterService` in `backend/app/services/action_center/service.py` answering the core question: *"What should I do today?"*
+     - Concurrently gathers authoritative signals via `asyncio.gather` with per-source failure isolation across B15 (Smart Irrigation), B16 (Smart Crop Calendar), B17 (Farm Khata liabilities), B18 (Farm Inventory stockouts), Weather (spray delay/heat warnings), Disease Pathology (follow-ups & pathogen radar), and Machinery Bookings.
+     - Structures every action with: WHAT, WHY, WHEN, PRIORITY (`P0`, `P1`, `P2`, `P3`), SOURCE, and ACTION call-to-action link.
+  2. 📡 **Two-Mode Intelligence (Software AI & Smart IoT):**
+     - Software AI Mode operates dynamically with zero IoT sensors without inventing synthetic sensor values.
+     - Smart IoT Mode activates live root-zone soil moisture and hardware rain detection when connected within the authoritative 90-second watchdog window, falling back cleanly if offline.
+  3. ⚖️ **Safety & State Integration:**
+     - Pure action synthesis layer with ZERO duplicate calculations: never runs separate AI inference, irrigation models, weather scrapers, financial ledger writes, or stock modifications.
+     - B16 Crop Calendar tasks delegate completion directly to the authoritative `farm_profiles.timeline_tasks` store, preventing duplicate states or re-emergence of finished tasks.
+     - Advisory cards persist lightweight completion/dismissal states inside `farm_profiles.action_center_state` without creating new database collections or migrations.
+  4. 🔌 **Backend APIs & Security:**
+     - Registered `/api/v1/farmer/actions` and `/api/farmer/actions` endpoints with strict JWT authentication, farmer scoping, and `_verify_farm_access` tenant isolation.
+     - Provided `POST /{action_id}/complete` and `POST /{action_id}/dismiss` endpoints.
+  5. 📱 **Interactive Frontend Component (`SmartFarmerActionCenter.jsx`):**
+     - Mounted interactive Action Center component onto `DashboardPage.jsx` directly below the Farm Status Banner and above Essential KPIs.
+     - Features 4 priority badges, category filters (`All`, `Urgent`, `Water`, `Crop Tasks`, `Inventory`, `Finances`), 1-tap completion checkmarks, dismiss controls, and bilingual support (English & Telugu).
+  6. 🧪 **Validation, Test Suite & Regressions:**
+     - Created `backend/tests/test_b19_smart_farmer_action_center.py` covering all 20 audit scenarios (20/20 passed, 100%).
+     - All 45 regression tests passed across B18, B17, B16, B15, and B4.
+     - All 32 booking regression tests passed across `test_b1_concurrency.py` and `test_b5_provider_portal.py`.
+     - Frontend production bundle build (`npm run build`) succeeded in 28.86s with zero errors.
+- **Files modified:** `backend/app/models/action_center.py`, `backend/app/services/action_center/__init__.py`, `backend/app/services/action_center/service.py`, `backend/app/routers/farmer/action_center.py`, `backend/app/routers/__init__.py`, `backend/app/main.py`, `frontend/src/components/farm/SmartFarmerActionCenter.jsx`, `frontend/src/pages/farmer/DashboardPage.jsx`, `backend/tests/test_b19_smart_farmer_action_center.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v380) - B18: Fix Inventory Khata Restock Idempotency & Cost-Basis Safety (Hotfix)
 - **Summary:**
   1. 🔄 **Operation-Level Restock Idempotency:**

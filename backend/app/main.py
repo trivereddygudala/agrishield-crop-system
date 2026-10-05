@@ -281,6 +281,11 @@ from backend.app.routers.common import diagnostics
 app.include_router(diagnostics.router, prefix="/api/v1")
 app.include_router(diagnostics.router, prefix="/api")
 
+# Smart Farmer Action Center Router (B19)
+from backend.app.routers.farmer import action_center
+app.include_router(action_center.router, prefix="/api/v1/farmer/actions")
+app.include_router(action_center.router, prefix="/api/farmer/actions")
+
 # 3. Dynamic V1 Router construction mapping legacy routers to v1 paths
 v1_router = APIRouter(prefix="/api/v1")
 
