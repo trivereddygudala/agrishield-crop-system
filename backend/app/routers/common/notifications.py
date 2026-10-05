@@ -366,7 +366,7 @@ async def trigger_test_alert(
                 message="Soil moisture level is critically low. Recommended irrigation: 5 L/m².",
                 category="soil",
                 priority="High",
-                action_url="/recommendations",
+                action_url="/farm?tab=farm-intelligence",
                 confidence_score=0.98
             ),
             template_key="soil_moisture_low",

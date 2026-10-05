@@ -2,6 +2,39 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-05 (v383) - B22: Smart Farm Decision & Advisory Quality
+- **Summary:**
+  1. 🌦️ **Spray Window Gating & Washout/Drift Conflict Resolution (`DailyRecommendationsService`):**
+     - Cross-referenced disease prevention recommendations against the authoritative `spray_window` (Rain probability & Wind velocity).
+     - Eliminated conflicting advice (saying "Delay spray" due to rain while simultaneously saying "Spray now" for disease).
+     - When rain > 50% or wind > 5.5 m/s, automatically gates spray directives: *"Delay Spraying [Chemical] on [Crop] — High Washout/Drift Risk"* with `action_delayed=True`.
+     - When weather is favorable, confirms safe spray window: *"Spray [Chemical] on [Crop] — Safe Window Open"* with optimal application timing.
+  2. 🌾 **ICAR Growth-Stage Specific Nutrition Matrix (`get_stage_nutrition_recommendation`):**
+     - Replaced the generic hardcoded "requiring nitrogen support" with expert-grade ICAR stage rules:
+       - **Seedling / Nursery:** Balanced water-soluble starter (19-19-19) + root stimulants (humic acid); avoids harsh granular urea.
+       - **Vegetative:** High Nitrogen (N-rich, 19-19-19 / foliar Urea 1-2%) + Zinc for canopy shoot vigor.
+       - **Flowering / Budding:** High Phosphorus (P-rich, 12-61-0) + Boron (1g/L) for floral retention and pollen tube elongation; explicitly warns against excess nitrogen (preventing flower drop).
+       - **Fruiting / Bulking:** High Potassium (K-rich, 0-0-50 / SOP) + Calcium for fruit bulking, sugar transport, and cuticle disease tolerance.
+       - **Harvest / Maturity:** Halts chemical fertilization and enforces Pre-Harvest Withholding Intervals (PHI).
+  3. 🧪 **Dynamic Crop-Aware Pathogen & Certified Agrochemical Matching:**
+     - Connected `DailyRecommendationsService` to `get_recommended_agrochemicals_for_disease` from `agrochemical_detector.py`.
+     - Recommends certified formulations tailored to the crop and dominant pathogen (e.g., SAAF, Kavach, Mancozeb 75% WP, Neem Oil, Copper Hydroxide) instead of hardcoded generic prescriptions.
+  4. 📦 **B18 Farm Inventory Stock Cross-Referencing:**
+     - Querying `db["farm_inventory"]` to match recommended chemical or fertilizer inputs against actual physical storage.
+     - Attaches detailed status: *"In Stock (X kg available)"*, *"Out of Stock (Restock Needed)"*, or *"Not in Inventory (Procure Input)"*.
+     - Enriches advisory reasoning with direct storage context for real-world farmer decision making.
+  5. 🔗 **Dead Route Cleanup:**
+     - Repaired residual `action_url="/recommendations"` to `/farm?tab=farm-intelligence` in `backend/app/routers/common/notifications.py` (`dispatch_test_notification`).
+  6. 📱 **Frontend Enhancements (`DailyRecommendations.jsx`):**
+     - Rendered real-time Spray Window pills (`Safe Window Open`, `High Washout Risk`, `High Drift Risk`) with weather icons.
+     - Added physical inventory availability badges (`In Stock`, `Out of Stock`, `Not in Inventory`).
+     - Displayed recommended agronomic dosages cleanly.
+  7. 🧪 **Test Verification & Regressions:**
+     - Created `backend/tests/test_b22_smart_farm_advisory.py` (15/15 passed, 100%).
+     - Ran 97 regression tests across B21, B20, B19, B18, B17, B16, B15 (97/97 passed, 100%).
+     - Frontend production build (`npm run build`) succeeded in 27.74s with zero errors.
+- **Files modified:** `backend/app/routers/common/notifications.py`, `backend/app/routers/common/intelligence.py`, `backend/app/services/recommendations/service.py`, `frontend/src/components/intelligence/DailyRecommendations.jsx`, `backend/tests/test_b22_smart_farm_advisory.py`, `changes_happening.md`.
+
 ## 2026-10-05 (v382) - B21: Smart Farm Alerts & Notification Intelligence
 - **Summary:**
   1. 🔗 **Broken Notification Route Fixes:**

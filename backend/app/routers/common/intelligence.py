@@ -201,13 +201,16 @@ async def get_daily_recommendations(
     current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
     await _verify_farm_access(farm_id, current_user)
+    db = getattr(db_instance, "db", None)
     return await recommendations_service.generate_daily_recommendations(
         farm_id=farm_id,
         crop_name=crop_name,
         growth_stage=growth_stage,
         farm_size=farm_size,
         lat=lat,
-        lon=lon
+        lon=lon,
+        db=db,
+        current_user=current_user
     )
 
 @router.get("/crop-calendar", summary="Get Crop Lifecycle Calendar & Task Planner")
