@@ -292,9 +292,10 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
     extracting scientific name, family, genus, and confidence, with seamless fallback to Gemini Vision.
     """
 
-    def __init__(self, api_key: str, gemini_key: str = None):
+    def __init__(self, api_key: str, gemini_key: str = None, min_confidence: float = 15.0):
         self.api_key = api_key
         self.gemini_key = gemini_key
+        self.min_confidence = min_confidence
         self.gemini_provider = GeminiVisionOnlineProvider(gemini_key) if gemini_key else None
         self.base_url = "https://my-api.plantnet.org/v2/identify/all"
 
@@ -327,9 +328,10 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
                             common_names = species_obj.get("commonNames", [])
                             score = float(top.get("score", 0.0)) * 100.0
 
-                            # If confidence is below 15%, return None to trigger Gemini Vision second opinion
-                            if score < 15.0:
-                                logger.info(f"Pl@ntNet score too low ({score:.1f}%), deferring to Gemini Vision")
+                            # If confidence is below threshold, return None to trigger Gemini Vision second opinion
+                            min_conf = getattr(self, "min_confidence", 15.0)
+                            if score < min_conf:
+                                logger.info(f"Pl@ntNet score too low ({score:.1f}% < {min_conf}%), deferring to Gemini Vision")
                                 return None
 
                             # Check if local database matches this scientific name, genus, or common name
@@ -365,7 +367,7 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
                                     plant_dict["family"] = family_name
                                 plant_dict["is_weed"] = is_weed
                                 plant_dict["identified_type"] = matched_dict.get("identified_type", "Weed" if is_weed else ("Tree" if plant_type == "tree" else "Crop"))
-                                plant_dict["confidence"] = max(round(score, 1), 96.5)
+                                plant_dict["confidence"] = round(score, 1)
                             else:
                                 plant_dict = {
                                     "common_name": f"{best_common}",
@@ -392,7 +394,7 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
                                     "common_pests": ["Thrips", "Aphids", "Caterpillars"],
                                     "weed_eradication_advice": "Apply selective post-emergence herbicide (e.g., 2,4-D or Pendimethalin) or perform timely manual weeding before seed dispersal." if is_weed else "Not applicable - cultivated plant.",
                                     "regional_names": get_authentic_regional_names(best_common or sci_name),
-                                    "confidence": max(round(score, 1), 96.0)
+                                    "confidence": round(score, 1)
                                 }
 
                             plant_dict["identification_source"] = "plantnet_botanical_ai"

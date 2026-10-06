@@ -1814,14 +1814,24 @@ async def predict_pytorch_endpoint(
     except Exception as chew_ex:
         logger.debug(f"Chewing pest analysis exception: {chew_ex}")
 
-    # Identify non-crop insect genus labels or unverified model anomalies from IP102 dataset
-    is_non_crop_label = (
-        prediction_result.get("crop_name") in ["Therioaphis", "General Plant", "Unknown", "Acrobasis", "Lytta", "Spodoptera"] or 
-        raw_label.startswith(("Therioaphis", "Lytta", "Acrobasis", "General_Plant"))
-    )
-    if is_non_crop_label:
+    # Identify non-crop botanical classes, weeds, insect pests, or unverified model anomalies
+    from backend.services.pytorch.taxonomy import TaxonomyManager
+    label_to_check = raw_label or (top_preds[0].get("class_name") if top_preds else "") or prediction_result.get("disease_name", "")
+    if label_to_check:
+        is_non_crop_label = not TaxonomyManager.is_valid_crop_candidate(label_to_check) or (
+            prediction_result.get("crop_name") in ["Wild Flora", "Agricultural Pest", "Agricultural Weed", "Plant Nutrient", "Produce Quality", "Unknown", "Therioaphis", "General Plant", "Acrobasis", "Lytta", "Spodoptera"] or
+            label_to_check.startswith(("Therioaphis", "Lytta", "Acrobasis", "General_Plant"))
+        )
+        is_crop_mismatch = bool(user_crop_filter and not TaxonomyManager.matches_crop_filter(label_to_check, user_crop_filter))
+    else:
+        is_non_crop_label = False
+        is_crop_mismatch = False
+
+    if is_non_crop_label or is_crop_mismatch:
         is_ood = True
         prediction_result["prediction_status"] = "unsupported"
+        prediction_result["diagnosis_status"] = "uncertain"
+        prediction_result["requires_secondary_review"] = True
         if user_crop_filter:
             prediction_result["crop_name"] = user_crop_filter.title()
 
@@ -1836,6 +1846,7 @@ async def predict_pytorch_endpoint(
             prediction_result["disease_name"] = pest_name
             prediction_result["confidence"] = pest_conf
             prediction_result["prediction_status"] = "diseased"
+            prediction_result["diagnosis_status"] = "provisional_secondary_assessment"
             prediction_result["disease_severity"] = "Severe" if chewing_analysis.get("hole_count", 0) > 10 else "Moderate"
             prediction_result["raw_label"] = f"{final_crop}___Spodoptera_Litura"
             confidence = pest_conf
@@ -1844,7 +1855,7 @@ async def predict_pytorch_endpoint(
             prediction_result["organic_treatment"] = "Apply Bacillus thuringiensis (Bt) @ 2.0 g/L or Neem Oil (10,000 ppm) @ 5 ml/L with soap surfactant."
 
     # Evaluate Ambiguity
-    is_ambiguous = is_non_crop_label or is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
+    is_ambiguous = is_non_crop_label or is_crop_mismatch or is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
     prediction_result["is_ambiguous"] = is_ambiguous
 
     # Dual AI Ensemble: If confidence is below 75%, ambiguous, or flagged as OOD, cross-verify with Google Gemini Flash Vision
@@ -1867,10 +1878,11 @@ async def predict_pytorch_endpoint(
             if vision_opinion and isinstance(vision_opinion, dict):
                 v_dis = vision_opinion.get("disease_name")
                 v_crop = vision_opinion.get("crop_name")
-                if v_dis and str(v_dis).lower() not in ["unknown", "n/a", "none", "unsupported"]:
+                if v_dis and str(v_dis).lower() not in ["unknown", "n/a", "none", "unsupported", "unrecognized", "crop health condition"]:
                     ensemble_used = True
                     ensemble_provider = "Google Gemini Flash Vision (Multi-Part)" if has_multipart_scan else "Google Gemini Flash Vision"
-                    v_conf = float(vision_opinion.get("confidence", 0.92))
+                    v_conf = float(vision_opinion.get("confidence", 0.85))
+                    v_conf = round(min(max(v_conf, 0.40), 0.95), 3)
                     v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
                     v_is_healthy = bool(vision_opinion.get("is_healthy", False))
                     v_sev = vision_opinion.get("severity", "Moderate")
@@ -1879,8 +1891,10 @@ async def predict_pytorch_endpoint(
                     final_crop = user_crop_filter.title() if user_crop_filter else (v_crop.title() if v_crop else prediction_result.get("crop_name", "Crop"))
                     prediction_result["crop_name"] = final_crop
                     prediction_result["disease_name"] = v_dis
-                    prediction_result["confidence"] = max(v_conf, confidence, 0.88)
+                    prediction_result["confidence"] = v_conf
                     prediction_result["prediction_status"] = "healthy" if v_is_healthy else "diseased"
+                    prediction_result["diagnosis_status"] = "provisional_secondary_assessment"
+                    prediction_result["requires_secondary_review"] = False
                     prediction_result["disease_severity"] = "None" if v_is_healthy else v_sev
                     prediction_result["raw_label"] = f"{final_crop}___{v_dis.replace(' ', '_')}"
                     prediction_result["is_ambiguous"] = False
@@ -1903,9 +1917,9 @@ async def predict_pytorch_endpoint(
                         v_prev = vision_opinion["prevention_steps"]
                         prediction_result["prevention_methods"] = v_prev if isinstance(v_prev, list) else [str(v_prev)]
 
-                    ensemble_notes = f"Dual AI Consensus: Gemini Flash Vision confirmed {final_crop} {v_dis} with {prediction_result['confidence']*100:.0f}% confidence. {v_reasoning}"
+                    ensemble_notes = f"Secondary Visual Assessment: Gemini Vision evaluated {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% advisory confidence). {v_reasoning}"
                     prediction_result["disease_explanation"] = (
-                        f"[Dual AI Consensus]: Gemini Flash Vision confirmed {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% confidence).\n\n"
+                        f"[Secondary Visual Assessment]: Gemini Vision analyzed {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% advisory confidence).\n\n"
                         f"Pathology Analysis: {v_reasoning}"
                     )
 
@@ -1924,15 +1938,24 @@ async def predict_pytorch_endpoint(
     prediction_result["ensemble_notes"] = ensemble_notes
     prediction_result["multipart_scan_used"] = has_multipart_scan
 
+
     # Post-ensemble Safety Gates: Only reject if BOTH local model and Gemini Vision could not identify the image
     if not ensemble_used:
         if is_ood or prediction_result.get("raw_label") == "OOD":
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=prediction_result.get("disease_name", "Unsupported crop or non-plant image.")
-            )
+            if user_crop_filter:
+                prediction_result["crop_name"] = user_crop_filter.title()
+                prediction_result["disease_name"] = "Unrecognized or uncertain"
+                prediction_result["confidence"] = 0.0
+                prediction_result["prediction_status"] = "unsupported"
+                prediction_result["diagnosis_status"] = "uncertain"
+                prediction_result["requires_secondary_review"] = True
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail=prediction_result.get("disease_name", "Unsupported crop or non-plant image.")
+                )
 
-        if confidence < 0.40:
+        elif confidence < 0.40:
             if user_crop_filter:
                 prediction_result["confidence"] = max(confidence, 0.70)
                 prediction_result["crop_name"] = user_crop_filter.title()
@@ -1941,6 +1964,7 @@ async def predict_pytorch_endpoint(
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail=f"Low Confidence Detection ({confidence * 100:.1f}%). The image is either blurry, taken too far away, or under poor lighting. Please select your specific crop (e.g. 🍅 Tomato) from the quick chips above or upload a closer, focused leaf photo to avoid incorrect pesticide application."
                 )
+
 
     # Harmonize predicted crop: ALWAYS strictly lock to user_crop_filter if specified
     if user_crop_filter:

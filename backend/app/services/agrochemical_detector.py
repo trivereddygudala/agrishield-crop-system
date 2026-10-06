@@ -54,6 +54,41 @@ def get_catalog_products():
         _CATALOG_PRODUCTS = merged
     return _CATALOG_PRODUCTS
 
+# Generic Agrochemical Stop-Words that cannot by themselves identify a product
+GENERIC_AGRO_KEYWORDS = {
+    "fungicide", "fungicides", "insecticide", "insecticides", "pesticide", "pesticides",
+    "herbicide", "herbicides", "fertilizer", "fertilizers", "systemic", "spray", "spraying",
+    "crop", "crops", "plant", "plants", "solution", "powder", "liquid", "chemical",
+    "chemicals", "control", "protection", "treatment", "agriculture", "agricultural",
+    "active", "ingredient", "ingredients", "formula", "formulation", "product", "products",
+    "bottle", "packet", "water", "clean", "dose", "dosage", "field", "farm", "farmer",
+    "target", "pest", "pests", "disease", "diseases", "leaf", "leaves", "growth",
+    "yield", "quality", "broad", "spectrum", "contact", "organic", "action", "caution",
+    "warning", "danger", "poison", "direction", "directions", "leaflet", "read",
+    "emulsifiable", "concentrate", "wettable", "suspension", "granules"
+}
+
+def has_distinctive_product_evidence(query_text: str, target_name: str) -> bool:
+    """
+    Verifies that target_name matches query_text with genuine distinctive evidence.
+    Prevents false matches when only generic terms (e.g., 'fungicide', 'spray', 'crop') appear.
+    """
+    target_lower = target_name.lower().strip()
+    if not target_lower:
+        return False
+    # If the full target name is found verbatim and is not just a generic word
+    if target_lower in query_text and target_lower not in GENERIC_AGRO_KEYWORDS:
+        if len(target_lower) >= 4:
+            return True
+    # Break target name into distinct tokens
+    tokens = [t.strip() for t in re.split(r'[\s_\-\+]+', target_lower) if len(t.strip()) >= 4]
+    distinctive_tokens = [t for t in tokens if t not in GENERIC_AGRO_KEYWORDS]
+    if not distinctive_tokens:
+        return False
+    # Check if any distinctive token appears as an exact token in query_text
+    words_in_query = set(re.findall(r'[a-zA-Z0-9]+', query_text.lower()))
+    return any(tok in words_in_query for tok in distinctive_tokens)
+
 # Structured Agrochemical Database fallback map
 AGROCHEMICAL_DATABASE = {
     # ==================== 1. FERTILIZERS & NUTRIENTS ====================
@@ -1062,6 +1097,14 @@ def _preprocess_and_extract_text(image_path: str) -> list:
     if img is None:
         return extracted_lines
 
+    # Bounded pre-scaling: cap maximum dimension at approximately 1024px while preserving aspect ratio
+    h, w = img.shape[:2]
+    if max(h, w) > 1024:
+        scale = 1024.0 / float(max(h, w))
+        new_w = max(1, int(round(w * scale)))
+        new_h = max(1, int(round(h * scale)))
+        img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
     orientations = [
         img,
         cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE),
@@ -1522,7 +1565,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             logger.info(f"[AGROCHEMICAL OFFLINE OCR EXTRACTED]: {extracted_text}")
             parsed_fields = extract_structured_ocr_fields(extracted_text)
 
-            # 2.1 Check against 36 certified catalog commercial products
+            # 2.1 Check against 36 certified catalog commercial products with distinctive evidence
             catalog_products = get_catalog_products()
             matched_catalog_item = None
             matched_confidence = 0.0
@@ -1532,29 +1575,30 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 c_name = str(prod.get("company", "")).lower()
                 actives = str(prod.get("active_ingredients", "")).lower()
 
-                if b_name and (b_name in extracted_text or any(token in extracted_text for token in b_name.split() if len(token) > 3)):
+                if b_name and has_distinctive_product_evidence(extracted_text, b_name):
                     matched_catalog_item = prod
                     matched_confidence = 98.5
                     break
 
-                if actives and any(chem in extracted_text for chem in [a.strip().split()[0] for a in actives.split("+") if len(a.strip()) > 3]):
+                if actives and any(has_distinctive_product_evidence(extracted_text, chem) for chem in [a.strip().split()[0] for a in actives.split("+") if len(a.strip()) > 3]):
                     matched_catalog_item = prod
                     matched_confidence = 96.0
                     break
 
-            # 2.2 Check against expanded 73-product AGROCHEMICAL_DATABASE
+            # 2.2 Check against expanded 73-product AGROCHEMICAL_DATABASE with distinctive evidence
             matched_db_item = None
             if not matched_catalog_item:
                 for key, product in AGROCHEMICAL_DATABASE.items():
-                    if key in extracted_text or any(word in extracted_text for word in key.split("_") if len(word) > 3):
+                    if has_distinctive_product_evidence(extracted_text, key) or has_distinctive_product_evidence(extracted_text, product.get("product_name", "")):
                         matched_db_item = product
                         matched_confidence = 97.0
                         break
 
                 if not matched_db_item:
-                    urea_aliases = ["urvarak", "bnartiya", "krieheq", "erarlja", "huarttm", "bharat", "pariyajna", "iffco", "urea", "nitrogen", "khad", "dap", "potash", "gromor", "paras"]
-                    if any(alias in extracted_text for alias in urea_aliases):
-                        matched_db_item = AGROCHEMICAL_DATABASE.get("dap" if "dap" in extracted_text else "urea")
+                    urea_aliases = ["urvarak", "bnartiya", "krieheq", "erarlja", "huarttm", "bharat", "pariyajna", "iffco", "urea", "khad", "dap", "potash", "gromor", "paras"]
+                    words_in_query = set(re.findall(r'[a-zA-Z0-9]+', extracted_text))
+                    if any(alias in words_in_query for alias in urea_aliases):
+                        matched_db_item = AGROCHEMICAL_DATABASE.get("dap" if "dap" in words_in_query else "urea")
                         matched_confidence = 95.0
 
             custom_utility = None
@@ -1639,21 +1683,60 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                     source_type = "live_web_search"
                     custom_utility = enriched.get("utility_and_benefits")
                 else:
-                    brand_name = clean_keywords[0].title() if clean_keywords else "Scanned Commercial Agrochemical"
-                    company = parsed_fields.get("registration_number", "Registered Agrochemical Manufacturer")
-                    active_ingredient = f"OCR Extracted: {extracted_text[:100] or 'Standard Agricultural Active Ingredient'}"
-                    formulation = parsed_fields.get("formulation", "Standard Liquid / Granular Formulation")
-                    dosage_per_l = "2.0 mL or 2.5 g per liter of clean water"
-                    spray_interval = "Repeat after 10 to 14 days based on pest or disease intensity"
-                    action_mode = "Broad Spectrum Protective & Curative Plant Protection Chemical"
-                    target_crops = ["Tomato", "Chilli", "Paddy", "Cotton", "Groundnut", "All Crops"]
-                    target_diseases = ["Foliar Blights", "Leaf Spots", "Mildew", "Sucking Pests", "Caterpillars"]
-                    hazard_color = "#2563eb"
-                    phi_days = 14
-                    img_url = "/samples/fertilizer_01.jpg"
-                    matched_confidence = 85.0
-                    source_type = "local_offline_ocr"
-                    custom_utility = None
+                    # Weak evidence: only generic chemical keywords found, no distinctive commercial match
+                    return {
+                        "success": False,
+                        "is_agrochemical": False,
+                        "product_identified": False,
+                        "confidence": 0.0,
+                        "matched_confidence": 0.0,
+                        "category_type": "Uncertain",
+                        "is_fertilizer": False,
+                        "matched_key": "unidentified",
+                        "source": "insufficient_evidence",
+                        "gemini_vision_used": gemini_vision_used,
+                        "product_details": {
+                            "brand_name": "Unrecognized or uncertain",
+                            "company": "Unknown",
+                            "active_ingredient": "Insufficient technical chemical evidence on label",
+                            "category_type": "Uncertain",
+                            "is_fertilizer": False,
+                            "primary_function": "Label evidence is insufficient to verify product formulation.",
+                            "detailed_description": "The scanned label contains only generic agricultural words without verifiable brand or active ingredient details.",
+                            "formulation": "Unverified",
+                            "batch_number": "Unverified",
+                            "mfg_date": "Unverified",
+                            "exp_date": "Unverified",
+                            "net_quantity": "Unverified",
+                            "mrp_price": "Unverified",
+                            "government_subsidy": "None",
+                            "registration_number": "Unverified",
+                            "hazard_color": "#2563eb",
+                            "toxicity_class": "Class III - Caution (Handle with standard PPE)",
+                            "image_url": "/samples/fertilizer_01.jpg",
+                            "verification_source": "uncertain_insufficient_evidence"
+                        },
+                        "user_instructions": {
+                            "dilution_rate_per_litre": "Do not apply chemical without verified product identity",
+                            "mixing_guide": _build_mixing_guide(),
+                            "best_spray_timing": "Early morning or late afternoon",
+                            "spray_interval": "Do not spray without verified product identity",
+                            "ppe_precautions": _build_ppe_guidelines(),
+                            "is_fertilizer": False
+                        },
+                        "chemical_explanation": {
+                            "category_type": "Uncertain",
+                            "is_fertilizer": False,
+                            "fertilizer_growth_stages": None,
+                            "detailed_description": "The scanner requires clear brand name or chemical active ingredient evidence (e.g. Chlorpyrifos, Mancozeb, Neem Oil) to identify a specific product.",
+                            "action_mode": "Unverified",
+                            "approved_crops": [],
+                            "target_diseases_and_pests": [],
+                            "preharvest_interval": "Mandatory 14 days waiting period if unknown chemical is applied.",
+                            "utility_and_benefits": "Product could not be confirmed."
+                        },
+                        "extracted_text": extracted_text
+                    }
 
             raw_type_hint = matched_catalog_item.get("product_type", "") if matched_catalog_item else (matched_db_item.get("product_type", "") if matched_db_item else "")
             category_type = get_chemical_category_type(brand_name, active_ingredient, action_mode, raw_type_hint)
@@ -1765,6 +1848,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
         return {
             "success": True,
             "is_agrochemical": True,
+            "product_identified": True,
             "confidence": round(matched_confidence, 1),
             "category_type": category_type,
             "is_fertilizer": is_fertilizer,

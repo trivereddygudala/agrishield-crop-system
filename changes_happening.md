@@ -2,6 +2,34 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-06 (v390) - B30: AI Diagnosis, Plant Identification & Agrochemical Reliability
+- **Summary:**
+  1. 🧬 **Authoritative Crop Disease Taxonomy Engine (`backend/services/pytorch/taxonomy.py`):**
+     - Mapped all 1,252 classes from `model/classes.json` into exact, verified partitions: 104 insect pests, 21 weeds, 7 deficiencies, 2 fruit quality, 118 cultivated crop classes (34 healthy, 84 diseases), and 1,000 PlantCLEF wild botanical flora.
+     - Enforces strict biological filtering: botanical species, wild flora, weeds, and insect pests are NEVER classified as crop diseases.
+     - Re-exported clean taxonomy interface in `model/taxonomy.py` and updated `ClassMapper` to parse all classes through `TaxonomyManager`.
+  2. 🌾 **Crop-Aware Disease Filtering & Safe Uncertainty:**
+     - Enforced crop-aware filtering in `model/predict_pytorch.py` and `backend/app/routers/farmer/predict.py`.
+     - Valid crop diseases only accepted when matching the selected crop family; mismatched crops or unsupported specimens route to Gemini fallback or safe uncertain state (`diagnosis_status: "uncertain"`, `confidence: 0.0`, `requires_secondary_review: True`).
+     - Preserves optimized ONNX (21.58 MB) and FP16 (42.07 MB) models as primary local inference without retraining or replacing models.
+  3. 🔍 **Secondary Gemini Vision Verification Safety:**
+     - Gemini Vision remains strictly secondary/fallback (<0.75 confidence, ambiguous candidates, or crop filter mismatches).
+     - Removed unvalidated 98% accuracy claims and artificial confidence floors; returns provisional secondary assessment without overriding safe uncertain states with unvalidated claims.
+     - Handled timeouts and errors gracefully to prevent endpoint crashes or secret leaks.
+  4. 🌿 **Pl@ntNet Real Confidence & Fallback Hardening (`online_provider.py`):**
+     - Removed artificial 96.5% and 96.0% confidence floors; preserves true provider confidence scores.
+     - Enables low-confidence Pl@ntNet scores (<15.0%) to correctly route to Gemini Vision fallback.
+     - Preserves clear separation between botanical plant identification and crop disease diagnosis.
+  5. 🧪 **Agrochemical Scanner Reliability & Bounded Pre-scaling (`agrochemical_detector.py`, `gemini_vision.py`):**
+     - Added bounded image pre-scaling to max 1024px while preserving aspect ratio, reducing memory and payload pressure.
+     - Prevented false product matches from generic keyword collisions (e.g., "fungicide", "spray", "crop"); returns `product_identified: False` and uncertain profile when evidence is insufficient.
+     - Preserved all chemical safety gates: PHI, REI, PPE, and dilution rate per litre (no 20L backpack pump dosage, no automatic actuation).
+  6. 🧪 **Comprehensive Validation & Testing:**
+     - Created `backend/tests/test_b30_ai_reliability.py` verifying all 15 required B30 criteria (15/15 passed, 100%).
+     - Ran full regression suite: `test_pytorch_prediction.py` passed (100%), `test_api.py` passed (100%).
+     - Frontend production build (`npm run build`) succeeded in 38.29s with 0 errors and 0 warnings.
+     - `git diff --check` passed cleanly with 0 whitespace errors.
+
 ## 2026-10-05 (v389) - B26 Correction: Remove Unsafe Silent Data Fallbacks
 - **Summary:**
   1. 🚫 **Eliminated Unsafe Silent 1.0 Acre Fallback:**

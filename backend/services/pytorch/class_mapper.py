@@ -1,7 +1,7 @@
 from datetime import timezone
 import json
 import os
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 class ClassMapper:
     def __init__(self, classes_json_path: str = None):
@@ -28,41 +28,14 @@ class ClassMapper:
     def parse_class_details(self, class_label: str) -> Tuple[str, str, str]:
         """
         Parses class string e.g. 'Tomato___Early_blight' -> ('Tomato', 'Early Blight', 'diseased')
+        Botanical species and pests are categorized as 'unsupported' rather than fake crop diseases.
         """
-        clean_label = class_label.strip()
-        
-        # Handle known pest edge-cases that lack crop prefixes
-        known_rice_pests = ["Brown_Planthopper", "Small_Brown_Planthopper", "White_Backed_Planthopper"]
-        if clean_label in known_rice_pests:
-            return "Rice", clean_label.replace("_", " ").title(), "diseased"
-            
-        known_general_pests = ["Tarnished_Plant_Bug", "Green_Stinkbug"]
-        if clean_label in known_general_pests:
-            return "General Plant", clean_label.replace("_", " ").title(), "diseased"
-        
-        if "___" in clean_label:
-            parts = clean_label.split("___")
-            crop = parts[0].replace("_", " ").strip().title()
-            disease_raw = parts[1].replace("_", " ").strip()
-        elif "_" in clean_label:
-            parts = clean_label.split("_")
-            crop = parts[0].strip().title()
-            disease_raw = " ".join(parts[1:]).strip()
-        else:
-            crop = clean_label.title()
-            disease_raw = "General Condition"
+        from backend.services.pytorch.taxonomy import TaxonomyManager
+        return TaxonomyManager.parse_class_details(class_label)
 
-        # Sanitize crop name formatting
-        if "Pepper" in crop:
-            crop = "Bell Pepper"
-        elif "Corn" in crop:
-            crop = "Corn (Maize)"
-
-        if disease_raw.lower() in ["healthy", "normal"]:
-            disease_name = "Healthy"
-            status = "healthy"
-        else:
-            disease_name = disease_raw.replace("_", " ").title()
-            status = "diseased"
-
-        return crop, disease_name, status
+    def get_disease_details(self, class_label: str) -> Dict[str, Any]:
+        """
+        Returns full structured details for class label.
+        """
+        from backend.services.pytorch.taxonomy import get_taxonomy_manager
+        return get_taxonomy_manager().get_class_info(class_label)

@@ -122,81 +122,13 @@ def get_model_health_status():
 
 def parse_class_label(class_label: str):
     """
-    Normalizes class naming conventions.
-    Supports:
-    1. PlantVillage format: Tomato___Bacterial_spot -> ('Tomato', 'Bacterial Spot', 'diseased')
-    2. Single underscore format: Apple_Red_Spider -> ('Apple', 'Red Spider', 'diseased')
-    3. Space separated format: Apple Red Spider -> ('Apple', 'Red Spider', 'diseased')
-    4. Species format: Acer_saccharinum -> ('Acer', 'Saccharinum', 'diseased')
+    Normalizes class naming conventions using verified TaxonomyManager.
+    Guarantees botanical species, pests, weeds, and deficiencies are categorized
+    as 'unsupported' rather than fake crop diseases.
     """
-    clean_label = class_label.strip()
-    
-    # Handle known pest edge-cases that lack crop prefixes in the dataset
-    known_rice_pests = ["Brown_Planthopper", "Small_Brown_Planthopper", "White_Backed_Planthopper"]
-    if clean_label in known_rice_pests:
-        return "Rice", clean_label.replace("_", " ").title(), "diseased"
-        
-    known_general_pests = ["Tarnished_Plant_Bug", "Green_Stinkbug"]
-    if clean_label in known_general_pests:
-        return "General Plant", clean_label.replace("_", " ").title(), "diseased"
+    from backend.services.pytorch.taxonomy import TaxonomyManager
+    return TaxonomyManager.parse_class_details(class_label)
 
-    # Known edge cases where crop is at the end or has special prefix:
-    # e.g. Fruit_Anthracnose_Mango -> ("Mango", "Anthracnose", "diseased")
-    if clean_label.startswith("Fruit_") or clean_label.startswith("fruit_"):
-        parts = clean_label.split("_")
-        if len(parts) >= 3 and parts[-1].lower() in ["mango", "papaya", "banana", "guava", "apple", "citrus", "grape"]:
-            crop = parts[-1].title()
-            disease_raw = " ".join(parts[1:-1]).strip()
-            return crop, disease_raw.replace("_", " ").title(), "diseased"
-    
-    if "___" in clean_label:
-        parts = clean_label.split("___")
-        crop = parts[0].replace("_", " ").strip().title()
-        disease_raw = parts[1].replace("_", " ").strip()
-    elif "_" in clean_label:
-        parts = clean_label.split("_")
-        crop = parts[0].strip().title()
-        disease_raw = " ".join(parts[1:]).strip()
-    elif " " in clean_label:
-        parts = clean_label.split(" ")
-        crop = parts[0].strip().title()
-        disease_raw = " ".join(parts[1:]).strip()
-    else:
-        crop = clean_label.title()
-        disease_raw = "General Condition"
-
-    # Normalize crop name variants
-    c_low = crop.lower()
-    if "corn" in c_low or "maize" in c_low:
-        crop = "Corn"
-    elif "pepper" in c_low or "capsicum" in c_low or "chilli" in c_low or "chili" in c_low:
-        # In Indian agronomy, Capsicum annuum foliage is universally managed as Chilli
-        crop = "Chilli"
-    elif "soyabean" in c_low or "soybean" in c_low:
-        crop = "Soybean"
-    elif "potato" in c_low:
-        crop = "Potato"
-    elif "tomato" in c_low:
-        crop = "Tomato"
-    elif "rice" in c_low or "paddy" in c_low:
-        crop = "Rice"
-    elif "grape" in c_low:
-        crop = "Grape"
-
-    if crop.lower() in ["negative", "background", "other", "unknown"]:
-        return "Unknown", "Unsupported crop or non-plant image", "unsupported"
-
-    if disease_raw.lower() in ["healthy", "normal", "leaf"]:
-        disease_name = "Healthy"
-        status = "healthy"
-    elif any(k in disease_raw.lower() for k in ["negative", "other", "background"]):
-        disease_name = "Unsupported crop or non-plant image"
-        status = "unsupported"
-    else:
-        disease_name = disease_raw.replace("_", " ").title()
-        status = "diseased"
-        
-    return crop, disease_name, status
 
 def calibrate_probabilities(probs, temperature=1.25):
     """Applies Temperature Scaling to raw soft probabilities."""
@@ -547,47 +479,11 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
             if best_auto_mass >= 0.12 and best_auto_crop in KNOWN_AGRI_CROPS:
                 effective_crop_filter = best_auto_crop
 
+    from backend.services.pytorch.taxonomy import TaxonomyManager
+
+    is_ood = False
     if effective_crop_filter:
-        cf_clean = effective_crop_filter.lower().strip()
-        if "rice" in cf_clean or "paddy" in cf_clean:
-            keywords = ["rice", "paddy"]
-        elif "chilli" in cf_clean or "chili" in cf_clean or "pepper" in cf_clean or "capsicum" in cf_clean:
-            keywords = ["chilli", "chili", "pepper", "capsicum"]
-        elif "groundnut" in cf_clean or "peanut" in cf_clean:
-            keywords = ["groundnut", "peanut"]
-        elif "maize" in cf_clean or "corn" in cf_clean:
-            keywords = ["maize", "corn"]
-        elif "soybean" in cf_clean or "soyabean" in cf_clean:
-            keywords = ["soybean", "soyabean", "soya"]
-        elif "cherry" in cf_clean:
-            keywords = ["cherry", "prunus"]
-        elif "wheat" in cf_clean:
-            keywords = ["wheat", "triticum"]
-        elif "cotton" in cf_clean:
-            keywords = ["cotton", "gossypium"]
-        elif "sugarcane" in cf_clean:
-            keywords = ["sugarcane", "saccharum"]
-        elif "citrus" in cf_clean or "orange" in cf_clean or "lemon" in cf_clean:
-            keywords = ["citrus", "orange", "lemon", "lime"]
-        elif "apple" in cf_clean:
-            keywords = ["apple", "malus"]
-        elif "grape" in cf_clean:
-            keywords = ["grape", "vitis"]
-        elif "potato" in cf_clean:
-            keywords = ["potato"]
-        elif "tomato" in cf_clean:
-            keywords = ["tomato"]
-        else:
-            keywords = [cf_clean]
-            
-        mask = []
-        for cls in classes:
-            c_name, _, _ = parse_class_label(cls)
-            c_name_lower = c_name.lower()
-            match = any(kw in c_name_lower or kw in cls.lower() for kw in keywords)
-            mask.append(match)
-            
-        mask_arr = np.array(mask, dtype=bool)
+        mask_arr = np.array([TaxonomyManager.matches_crop_filter(cls, effective_crop_filter) for cls in classes], dtype=bool)
         if np.any(mask_arr):
             filtered_probs = probs * mask_arr
             sum_probs = np.sum(filtered_probs)
@@ -595,41 +491,21 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
                 probs = filtered_probs / sum_probs
             else:
                 probs = mask_arr.astype(np.float32) / np.sum(mask_arr)
+        else:
+            is_ood = True
     
     mc_variance = 0.0
     entropy = -np.sum(probs * np.log(probs + 1e-10))
     max_conf = float(np.max(probs))
     
-    is_ood = (max_conf < PipelineConfig.OOD_CONFIDENCE_THRESHOLD)
+    is_ood = is_ood or (max_conf < PipelineConfig.OOD_CONFIDENCE_THRESHOLD)
     
     if is_ood:
-        return {
-            "crop_name": "Unknown",
-            "disease_name": "Unsupported crop or unknown input. Please upload a supported crop leaf image.",
-            "confidence": 0.0,
-            "prediction_status": "unsupported",
-            "raw_label": "OOD",
-            "top_predictions": [],
-            "prediction_time_ms": (time.time() - start_time) * 1000.0,
-            "gradcam_base64": None,
-            "uncertainty_score": 1.0,
-            "disease_severity": "Unknown",
-            "most_affected_region": "None",
-            "possible_causes": ["Unrelated input file"],
-            "similar_diseases": [],
-            "symptoms": "None",
-            "disease_stage": "None",
-            "prevention_methods": [],
-            "organic_treatment": "None",
-            "chemical_treatment": "None",
-            "recommended_pesticides": [],
-            "recommended_fertilizers": [],
-            "safety_precautions": "None",
-            "estimated_recovery_probability": 0.0,
-            "recommended_follow_up_actions": [],
-            "irrigation_suggestions": "None",
-            "environmental_recommendations": "None"
-        }
+        return TaxonomyManager.build_uncertain_response(
+            crop_hint=effective_crop_filter,
+            reason="Confidence below threshold or out-of-distribution specimen",
+            prediction_time_ms=(time.time() - start_time) * 1000.0
+        )
 
     top_indices = np.argsort(probs)[-3:][::-1]
     top_predictions = []
@@ -676,34 +552,16 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     top_predictions[0]["crop_name"] = crop_name
     top_predictions[0]["disease_name"] = disease_name
     
-    if prediction_status == "unsupported" or crop_name == "Unknown":
-        return {
-            "crop_name": "Unknown",
-            "disease_name": "Unsupported crop or non-plant image. Please upload a supported crop leaf image.",
-            "confidence": 0.0,
-            "prediction_status": "unsupported",
-            "raw_label": "OOD",
-            "top_predictions": top_predictions,
-            "prediction_time_ms": (time.time() - start_time) * 1000.0,
-            "gradcam_base64": None,
-            "uncertainty_score": 1.0,
-            "disease_severity": "Unknown",
-            "most_affected_region": "None",
-            "possible_causes": ["Unrelated input file"],
-            "similar_diseases": [],
-            "symptoms": "None",
-            "disease_stage": "None",
-            "prevention_methods": [],
-            "organic_treatment": "None",
-            "chemical_treatment": "None",
-            "recommended_pesticides": [],
-            "recommended_fertilizers": [],
-            "safety_precautions": "None",
-            "estimated_recovery_probability": 0.0,
-            "recommended_follow_up_actions": [],
-            "irrigation_suggestions": "None",
-            "environmental_recommendations": "None"
-        }
+    # Reject botanical species, insect pests, weeds, and unknown biological classes
+    is_invalid_candidate = not TaxonomyManager.is_valid_crop_candidate(top_predictions[0]["class_name"])
+    if prediction_status == "unsupported" or crop_name in ["Unknown", "Wild Flora", "Agricultural Pest", "Agricultural Weed", "Plant Nutrient", "Produce Quality"] or is_invalid_candidate:
+        return TaxonomyManager.build_uncertain_response(
+            crop_hint=effective_crop_filter or crop_name,
+            reason="Specimen identified as botanical flora, insect pest, or unsupported species rather than crop disease",
+            top_predictions=top_predictions,
+            prediction_time_ms=(time.time() - start_time) * 1000.0
+        )
+
     
     elapsed_time_ms = (time.time() - start_time) * 1000.0
     
@@ -730,6 +588,8 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
         "disease_name": disease_name,
         "confidence": float(probs[best_idx]),
         "prediction_status": prediction_status,
+        "diagnosis_status": "confirmed_local",
+        "requires_secondary_review": False,
         "raw_label": top_predictions[0]["class_name"],
         "top_predictions": top_predictions,
         "prediction_time_ms": elapsed_time_ms,

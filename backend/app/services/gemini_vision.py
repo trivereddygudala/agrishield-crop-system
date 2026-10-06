@@ -424,25 +424,37 @@ Provide exactly three distinct, safe chemical control strategies:
 
     return parse_extension_officer_markdown(raw_md)
 
-def _optimize_to_b64(path: str) -> Optional[str]:
-    """Helper to load and downscale image to max 800px (<60 KB) base64 string."""
-    if not path or not os.path.exists(path):
+def _optimize_to_b64(path: Any, max_dim: int = 1024) -> Optional[str]:
+    """Helper to load and downscale image to max dimension 1024px while preserving aspect ratio."""
+    if not path:
         return None
     try:
         from PIL import Image
         import io
-        with Image.open(path) as img:
+        if isinstance(path, (bytes, bytearray)):
+            img = Image.open(io.BytesIO(path))
+        elif isinstance(path, io.BytesIO):
+            img = Image.open(path)
+        elif isinstance(path, str) and os.path.exists(path):
+            img = Image.open(path)
+        else:
+            return None
+
+        with img:
             img_rgb = img.convert("RGB")
-            img_rgb.thumbnail((800, 800), Image.Resampling.LANCZOS)
+            if max(img_rgb.size) > max_dim:
+                img_rgb.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
             buf = io.BytesIO()
-            img_rgb.save(buf, format="JPEG", quality=82, optimize=True)
+            img_rgb.save(buf, format="JPEG", quality=85, optimize=True)
             return base64.b64encode(buf.getvalue()).decode("utf-8")
     except Exception:
-        try:
-            with open(path, "rb") as f:
-                return base64.b64encode(f.read()).decode("utf-8")
-        except Exception:
-            return None
+        if isinstance(path, str) and os.path.exists(path):
+            try:
+                with open(path, "rb") as f:
+                    return base64.b64encode(f.read()).decode("utf-8")
+            except Exception:
+                return None
+        return None
 
 async def cross_verify_disease_with_vision(
     image_path: str,
@@ -567,9 +579,9 @@ async def extract_agrochemical_label_vision(image_path: str) -> Optional[Dict[st
         return None
 
     try:
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
-        b64_img = base64.b64encode(image_bytes).decode("utf-8")
+        b64_img = _optimize_to_b64(image_path, max_dim=1024)
+        if not b64_img:
+            return None
 
         prompt = """You are an expert agricultural scientist, chemist, and agrochemical packaging inspector.
 Analyze this photo of an agricultural chemical container, bottle, carton, sachet, or fertilizer bag.
