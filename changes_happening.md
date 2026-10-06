@@ -2,6 +2,30 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-06 (v392) - B32: Diagnostic Advisory & Chemical Safety Gating
+- **Summary:**
+  1. 🛡️ **Advisory Safety Gating (`backend/app/routers/farmer/predict.py`):**
+     - Established diagnostic safety contract across four mutually exclusive states: `image_unsuitable`, `uncertain` / OOD, `healthy`, and confirmed disease.
+     - Enforced that non-disease states (`image_unsuitable`, `uncertain`, `healthy`) never invent or recommend chemical treatments, fungicides, bactericides, or disease symptoms.
+     - Gated NVIDIA NIM refinement, agronomic advice, and Crop Advisor default chemical attachments so disease chemicals (e.g. Mancozeb, Copper Oxychloride, Carbendazim, Hexaconazole) are strictly suppressed for non-disease states.
+  2. 🚫 **Chemical Prescription Calendar Safety Gating:**
+     - Restricted 7-day chemical spray schedule generation strictly to confirmed disease diagnoses with verified local certainty.
+     - Prescriptions are strictly suppressed (`prescription_calendar: []`) for `image_unsuitable`, `uncertain`, and `healthy` results.
+     - Value-at-risk (VAR) and economic loss ratios zeroed out (`0.0`) for non-disease states.
+  3. 🌿 **Gemini Fallback Advisory Safety (`backend/app/services/gemini_vision.py`):**
+     - Hardened `generate_fallback_extension_officer_report` to explicitly handle `image_unsuitable`, `uncertain` / OOD, and `healthy` states.
+     - Removed artificial confidence floors/clamping (e.g. 75.0%) for uncertain/unsuitable states; preserves honest 0.0% match and zero candidate confidence.
+     - Suppressed necrotic lesions, blight traits, fungicides, and chemical sprays for healthy plants; returns positive crop vigor indicators and balanced maintenance guidance only.
+  4. 🔔 **Notification Safety & Severity Calibration:**
+     - Downgraded `uncertain` / OOD and `image_unsuitable` notifications from Critical alerts to informational notices (`priority: "Low"`), completely eliminating misleading *"Immediate treatment recommended"* warnings.
+     - Restricted neighborhood outbreak broadcast alerts strictly to confirmed contagious diseases.
+  5. 📋 **API Response Contract & Secondary Review Persistence:**
+     - Standardized `requires_secondary_review` boolean across prediction responses and MongoDB persistence records (`True` for uncertain diagnoses, `False` for confirmed disease / healthy / unsuitable).
+  6. 🧪 **Validation & Test Coverage:**
+     - Authored `backend/tests/test_b32_advisory_safety.py` covering all 16 required verification points (16/16 passed, 100%).
+     - Verified zero regression across existing test suites: B31 tests (15/15 passed), B30 tests (15/15 passed), PyTorch prediction pipeline (1/1 passed), API test suite (4/4 passed).
+- **Files modified**: `backend/app/routers/farmer/predict.py`, `backend/app/services/gemini_vision.py`, `backend/tests/test_b32_advisory_safety.py`, `changes_happening.md`.
+
 ## 2026-10-06 (v391) - B31: Image Suitability Gating & Crop-Filter OOD Guard
 - **Summary:**
   1. 📷 **Image Suitability Pre-Inference Gating (`backend/app/services/image_preprocessor.py`):**

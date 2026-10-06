@@ -123,7 +123,10 @@ def parse_extension_officer_markdown(text: str) -> Dict[str, Any]:
         for idx, (cand_name, trait_desc) in enumerate(items[:3]):
             clean_name = cand_name.strip().strip("[]")
             clean_trait = trait_desc.strip().strip("[]")
-            cand_conf = max(0.20, (res["confidence"] if idx == 0 else (res["confidence"] * (0.85 - idx * 0.12))))
+            if res["confidence"] <= 0.0:
+                cand_conf = 0.0
+            else:
+                cand_conf = max(0.20, (res["confidence"] if idx == 0 else (res["confidence"] * (0.85 - idx * 0.12))))
             candidates.append({
                 "disease_name": clean_name,
                 "crop_name": res["crop_name"],
@@ -167,15 +170,77 @@ def generate_fallback_extension_officer_report(crop: str, disease: str, confiden
     """Generates agronomy-grade 5 structured blocks deterministically if Gemini is offline."""
     c_title = (crop or "Agricultural Crop").strip().title()
     d_title = (disease or "Crop Health Condition").strip().title()
-    conf_pct = f"{min(99.4, max(75.0, confidence * 100 if confidence <= 1.0 else confidence)):.1f}%"
-    conf_num = float(conf_pct.replace("%", "")) / 100.0
+    d_clean = (disease or "").strip().lower()
+
+    is_unsuitable_diag = "unsuitable" in d_clean
+    is_uncertain_diag = any(k in d_clean for k in ["unrecognized", "uncertain", "ood", "unsupported", "unknown"])
+    is_healthy_diag = "healthy" in d_clean
+
+    if is_unsuitable_diag or is_uncertain_diag:
+        conf_pct = "0.0% Match"
+    elif is_healthy_diag:
+        c_val = confidence * 100 if confidence <= 1.0 else confidence
+        conf_pct = f"{min(99.4, max(1.0, c_val)):.1f}% Match"
+    else:
+        c_val = confidence * 100 if confidence <= 1.0 else confidence
+        conf_pct = f"{min(99.4, max(40.0, c_val)):.1f}% Match"
+
+    conf_num = float(conf_pct.replace("%", "").replace(" Match", "")) / 100.0
 
     # Deterministic candidates by pathology / pest category
     c_low = c_title.lower()
     d_low = d_title.lower()
 
+    # Category 0A: Image Unsuitable
+    if is_unsuitable_diag:
+        d_title = "Image Unsuitable for Analysis"
+        cand1_trait = "Image resolution, focus, or visual clarity is insufficient to resolve foliar features."
+        cand2_name = "Camera Focus Guidance"
+        cand2_trait = "Hold the camera steady and focus directly on the leaf blade."
+        cand3_name = "Lighting Guidance"
+        cand3_trait = "Photograph leaves in bright natural daylight avoiding deep shadows and glare."
+        obs_symptoms = "The uploaded photo could not be reliably analyzed. The image is either blurry, under/over-exposed, or does not show recognizable plant leaf tissue."
+        field_cleanup = "Inspect the crop field in person to locate leaves showing visible symptoms."
+        water_mgmt = "Maintain standard balanced irrigation schedule."
+        organic_spray = "None required. Retake a clear leaf photograph before applying any spray treatments."
+        target_chem = "No chemical treatment recommended for unsuitable images."
+        alt_chem = "Avoid unnecessary chemical applications without verified diagnosis."
+        prev_chem = "Upload a clear, focused photograph showing the affected crop leaf for accurate analysis."
+
+    # Category 0B: Unrecognized / Uncertain / OOD
+    elif is_uncertain_diag:
+        d_title = "Unrecognized or Uncertain"
+        cand1_trait = f"Foliar patterns do not match recognized disease signatures for {c_title}."
+        cand2_name = "Macro Leaf Photo"
+        cand2_trait = "Take a close-up photo focusing directly on the leaf lesion margins."
+        cand3_name = "Extension Officer Consultation"
+        cand3_trait = "Consult local Krishi Vigyan Kendra (KVK) or extension specialist if symptoms persist."
+        obs_symptoms = f"Visual symptoms on {c_title} cannot be definitively diagnosed from this image alone. Patterns do not match known reference diseases with sufficient confidence."
+        field_cleanup = "Monitor the field closely over the next 48 hours for symptom spread."
+        water_mgmt = "Maintain regular root-zone watering; avoid wetting foliage."
+        organic_spray = "None required without confirmed disease identification."
+        target_chem = "No chemical fungicides or bactericides recommended without confirmed diagnosis."
+        alt_chem = "Consult an agricultural extension officer before purchasing commercial chemicals."
+        prev_chem = "Retake a clear, well-focused photo of affected leaves to obtain a definitive diagnosis."
+
+    # Category 0C: Healthy Crop
+    elif is_healthy_diag:
+        d_title = "Healthy"
+        cand1_trait = f"Foliage exhibits vibrant green color, intact cuticle, and normal turgidity with no pathogen spots on {c_title}."
+        cand2_name = "Nutrient Monitoring"
+        cand2_trait = f"Uniform coloration indicates balanced nutrient uptake across {c_title} canopy."
+        cand3_name = "Abiotic Check"
+        cand3_trait = f"No signs of heat stress, waterlogging, or scorch detected on {c_title}."
+        obs_symptoms = f"The {c_title} foliage displays healthy vigor with vibrant green coloration, intact cuticle layers, and normal cell turgidity. No pathogen lesions, chlorosis, or pest damage observed."
+        field_cleanup = "Maintain routine field sanitation; remove naturally senescing lower leaves to promote aeration."
+        water_mgmt = "Maintain standard balanced irrigation schedule according to crop stage; avoid waterlogging."
+        organic_spray = "No curative treatment required. Maintain regular organic compost and bio-fertilizer schedule."
+        target_chem = "No chemical fungicides or bactericides required for healthy foliage."
+        alt_chem = "Maintain standard balanced crop nutrition (e.g. 19:19:19 NPK foliar spray during vegetative growth if needed)."
+        prev_chem = "Routine chemical sprays not recommended on healthy plants to preserve beneficial predatory insects."
+
     # Category 1: Sucking Pests & Vectors (Thrips, Whiteflies, Aphids, Jassids, Leaf Curl Virus)
-    if any(k in d_low for k in ["thrip", "whitefly", "aphid", "jassid", "hopper", "sucking", "curl", "therioaphis", "maculata"]):
+    elif any(k in d_low for k in ["thrip", "whitefly", "aphid", "jassid", "hopper", "sucking", "curl", "therioaphis", "maculata"]):
         if "chilli" in c_low or "capsicum" in c_low or "pepper" in c_low:
             d_title = "Chilli Thrips (Scirtothrips dorsalis) / Leaf Curl Complex"
         cand1_trait = f"Upward curling, silvery foliar scarring, or honeydew secretions on {c_title}."

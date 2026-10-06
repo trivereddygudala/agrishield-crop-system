@@ -25,8 +25,8 @@ from backend.app.db.mongodb import get_database
 from backend.app.routers.auth import get_current_user
 from backend.app.services.image_resolver import resolve_image_path
 from backend.app.models.schemas import (
-    PredictionResponse, 
-    PredictionHistoryResponse, 
+    PredictionResponse,
+    PredictionHistoryResponse,
     PredictRequest,
     PredictBatchRequest,
     TranslatePlantRequest,
@@ -140,7 +140,7 @@ def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
         return ""
     crop_lower = crop_name.lower().strip()
     lang_lower = lang.lower().strip()[:2]
-    
+
     crop_db = {
         "corn": {
             "te": "మొక్కజొన్న",
@@ -405,7 +405,7 @@ def get_farmer_crop_translation(crop_name: str, lang: str) -> str:
             "mr": "गाजर गवत"
         }
     }
-    
+
     for crop_key, langs in crop_db.items():
         if crop_key in crop_lower:
             return langs.get(lang_lower, crop_name)
@@ -1163,7 +1163,7 @@ def get_farmer_disease_translation(disease_name: str, lang: str) -> str:
             "ur": "صحت مند فصل"
         }
     }
-    
+
     for dis_key, langs in disease_db.items():
         if dis_key in dis_lower:
             return langs.get(lang_lower, disease_name)
@@ -1254,7 +1254,7 @@ async def worker_predict_endpoint(
     os.makedirs(temp_dir, exist_ok=True)
     temp_filename = f"worker_{uuid.uuid4().hex[:8]}_{safe_filename}"
     temp_path = os.path.join(temp_dir, temp_filename)
-    
+
     try:
         with open(temp_path, "wb") as f:
             f.write(content)
@@ -1720,9 +1720,9 @@ async def predict_pytorch_endpoint(
         full_stem_image_path = await asyncio.to_thread(resolve_image_path, req.image_stem_path)
 
     has_multipart_scan = bool(
-        full_root_image_path or full_stem_image_path or 
-        getattr(req, "wilt_condition", None) or 
-        getattr(req, "soil_condition", None) or 
+        full_root_image_path or full_stem_image_path or
+        getattr(req, "wilt_condition", None) or
+        getattr(req, "soil_condition", None) or
         getattr(req, "crop_stage", None)
     )
 
@@ -1927,7 +1927,7 @@ async def predict_pytorch_endpoint(
                     v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
                     v_is_healthy = bool(vision_opinion.get("is_healthy", False))
                     v_sev = vision_opinion.get("severity", "Moderate")
-                    
+
                     # Resolved crop name: User selection takes first priority, then vision model
                     final_crop = user_crop_filter.title() if user_crop_filter else (v_crop.title() if v_crop else prediction_result.get("crop_name", "Crop"))
                     prediction_result["crop_name"] = final_crop
@@ -1945,7 +1945,7 @@ async def predict_pytorch_endpoint(
                     if vision_opinion.get("symptoms"):
                         v_sym = vision_opinion["symptoms"]
                         prediction_result["symptoms"] = ". ".join(v_sym) if isinstance(v_sym, list) else str(v_sym)
-                    
+
                     if vision_opinion.get("organic_remedies"):
                         v_org = vision_opinion["organic_remedies"]
                         prediction_result["organic_treatment"] = "\n".join([f"• {r}" for r in v_org]) if isinstance(v_org, list) else str(v_org)
@@ -2019,13 +2019,67 @@ async def predict_pytorch_endpoint(
     confidence = float(prediction_result.get("confidence", 0.0))
     top_preds = prediction_result.get("top_predictions", [])
 
+    raw_label = str(prediction_result.get("raw_label") or "")
+    diag_status = str(prediction_result.get("diagnosis_status") or "").lower()
+    pred_status = str(prediction_result.get("prediction_status") or "").lower()
+    curr_dis_low = str(prediction_result.get("disease_name") or "").lower()
+
+    # User ID resolution
+    user_id_val = (
+        str(current_user.get("id") or current_user.get("_id") or "demo_user")
+        if (current_user and isinstance(current_user, dict))
+        else (str(getattr(current_user, "id", "demo_user")) if current_user else "demo_user")
+    )
+
+    # B32 Diagnostic State Resolution & Safety Contract Classification
+    is_unsuitable_state = bool(is_image_unsuitable or (diag_status == "image_unsuitable"))
+    is_uncertain_state = bool(
+        (diag_status == "uncertain") or
+        (pred_status == "unsupported") or
+        is_ood or
+        (raw_label == "OOD") or
+        any(k in curr_dis_low for k in ["unrecognized", "uncertain", "unsupported"])
+    ) and not is_unsuitable_state
+    is_healthy_state = bool("healthy" in curr_dis_low or pred_status == "healthy") and not is_unsuitable_state and not is_uncertain_state
+    is_confirmed_disease = not is_unsuitable_state and not is_uncertain_state and not is_healthy_state
+
+    # Synchronize core diagnostic fields according to state
+    if is_unsuitable_state:
+        prediction_result["diagnosis_status"] = "image_unsuitable"
+        prediction_result["prediction_status"] = "unsupported"
+        prediction_result["disease_name"] = "Image Unsuitable for Analysis"
+        prediction_result["confidence"] = 0.0
+        prediction_result["requires_secondary_review"] = False
+        prediction_result["disease_severity"] = "None"
+    elif is_uncertain_state:
+        prediction_result["diagnosis_status"] = "uncertain"
+        prediction_result["prediction_status"] = "unsupported"
+        prediction_result["disease_name"] = "Unrecognized or uncertain"
+        prediction_result["confidence"] = 0.0 if (confidence == 0.0 or is_ood) else min(confidence, 0.39)
+        prediction_result["requires_secondary_review"] = True
+        prediction_result["disease_severity"] = "None"
+    elif is_healthy_state:
+        prediction_result["diagnosis_status"] = "confirmed_local"
+        prediction_result["prediction_status"] = "healthy"
+        prediction_result["disease_name"] = "Healthy"
+        prediction_result["requires_secondary_review"] = False
+        prediction_result["disease_severity"] = "None"
+    else:
+        prediction_result["requires_secondary_review"] = bool(prediction_result.get("requires_secondary_review", False))
+
     # Always enrich with Extension Officer structured diagnostic report
     from backend.app.services.gemini_vision import generate_fallback_extension_officer_report
     final_c = prediction_result.get("crop_name", user_crop_filter or "Agricultural Crop")
     final_d = prediction_result.get("disease_name", "Crop Health Condition")
-    final_conf = float(prediction_result.get("confidence", 0.92))
+    final_conf = float(prediction_result.get("confidence", 0.0))
 
-    if ensemble_used and vision_opinion and isinstance(vision_opinion, dict) and vision_opinion.get("differential_candidates"):
+    if is_unsuitable_state:
+        ext_report = generate_fallback_extension_officer_report(final_c, "Image Unsuitable for Analysis", 0.0)
+    elif is_uncertain_state:
+        ext_report = generate_fallback_extension_officer_report(final_c, "Unrecognized or uncertain", 0.0)
+    elif is_healthy_state:
+        ext_report = generate_fallback_extension_officer_report(final_c, "Healthy", final_conf)
+    elif ensemble_used and vision_opinion and isinstance(vision_opinion, dict) and vision_opinion.get("differential_candidates"):
         ext_report = vision_opinion
     else:
         ext_report = generate_fallback_extension_officer_report(final_c, final_d, final_conf)
@@ -2036,33 +2090,35 @@ async def predict_pytorch_endpoint(
     prediction_result["pro_chemical_plan"] = ext_report.get("pro_chemical_plan", {})
     prediction_result["label_verification"] = ext_report.get("label_verification", "")
 
-    # Ensure differential candidates has 3 distinct possibilities
-    diff_cands = ext_report.get("differential_candidates", [])
-    if not diff_cands or len(diff_cands) < 3:
-        fallback_data = generate_fallback_extension_officer_report(final_c, final_d, final_conf)
-        diff_cands = fallback_data.get("differential_candidates", [])
-
-    prediction_result["differential_candidates"] = diff_cands[:3]
+    # Differential candidates handling
+    if is_unsuitable_state or is_uncertain_state or is_healthy_state:
+        prediction_result["differential_candidates"] = ext_report.get("differential_candidates", [])[:3]
+    else:
+        diff_cands = ext_report.get("differential_candidates", [])
+        if not diff_cands or len(diff_cands) < 3:
+            fallback_data = generate_fallback_extension_officer_report(final_c, final_d, final_conf)
+            diff_cands = fallback_data.get("differential_candidates", [])
+        prediction_result["differential_candidates"] = diff_cands[:3]
 
     # Dual-Model Consensus & Refinement Logic
     prediction_result["dual_model_consensus"] = False
     prediction_result["consensus_details"] = ""
 
-    if confidence >= 0.85:
+    if is_confirmed_disease and confidence >= 0.85:
         prediction_result["dual_model_consensus"] = True
         prediction_result["consensus_details"] = "High Precision Neural Alignment (>85% Model Confidence)"
 
-    # NIM/LLM Refinement: only runs on valid candidates with 0.40 <= confidence < 0.85 (never on OOD, uncertain, or unsuitable)
-    if not is_image_unsuitable and not is_ood and prediction_result.get("diagnosis_status") not in ["uncertain", "unsupported", "image_unsuitable"] and (0.40 <= confidence < 0.85) and top_preds:
+    # NIM/LLM Refinement: only runs on valid confirmed disease candidates with 0.40 <= confidence < 0.85
+    if is_confirmed_disease and (0.40 <= confidence < 0.85) and top_preds:
         try:
             from backend.app.services.nvidia_service import nvidia_service
             from backend.app.services.farm_profile_service import FarmProfileService
-            
+
             # Fetch active farm profile
-            active_farm = await FarmProfileService.get_active_farm(db, str(current_user["id"])) if current_user else None
+            active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
             if active_farm and "_id" in active_farm:
                 active_farm["_id"] = str(active_farm["_id"])
-            
+
             # Fetch latest telemetry context from MongoDB
             latest_telemetry = {}
             try:
@@ -2104,7 +2160,7 @@ async def predict_pytorch_endpoint(
                     if refined_d == cand_d or refined_d in cand_d or cand_d in refined_d:
                         matched_cand = cand
                         break
-                
+
                 if matched_cand:
                     print(f"[NVIDIA REFINEMENT SUCCESS] Tie-break resolved to: {matched_cand['disease_name']} ({refinement.get('confidence', 0.90)})")
                     prediction_result["crop_name"] = user_crop_filter.title() if user_crop_filter else matched_cand.get("crop_name", prediction_result["crop_name"])
@@ -2123,83 +2179,127 @@ async def predict_pytorch_endpoint(
 
     # Base diagnostic fields
     symptoms = prediction_result.get("symptoms", "None")
-    severity = prediction_result.get("disease_severity", "Unknown")
+    severity = prediction_result.get("disease_severity", "None" if (is_unsuitable_state or is_uncertain_state or is_healthy_state) else "Unknown")
     prevention_methods = prediction_result.get("prevention_methods", [])
     organic_treatment = prediction_result.get("organic_treatment", "None")
     chemical_treatment = prediction_result.get("chemical_treatment", "None")
     possible_causes = prediction_result.get("possible_causes", [])
-    farmer_friendly_advice = ""
+    farmer_friendly_advice = prediction_result.get("farmer_friendly_advice", "")
 
-    # Enrich with NVIDIA LLM agronomic advice
-    try:
-        from backend.app.services.nvidia_service import nvidia_service
-        from backend.app.services.farm_profile_service import FarmProfileService
-        user_id_val = str(current_user["id"]) if current_user else "demo_user"
-        active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
-        if active_farm and "_id" in active_farm:
-            active_farm["_id"] = str(active_farm["_id"])
+    # B32 Safety Enforcement: Never manufacture chemical treatments or disease symptoms for non-disease states
+    if is_unsuitable_state:
+        severity = "None"
+        symptoms = f"The uploaded photo could not be reliably analyzed. Reason: {unsuitable_reason or 'Image could not be reliably analyzed'}. Please upload a clear photo of the crop leaf in good lighting."
+        farmer_friendly_advice = f"Image could not be reliably analyzed ({unsuitable_reason or 'Please hold camera steady'}). Please upload a clear photo of the crop leaf."
+        organic_treatment = "None required (Image unsuitable)."
+        chemical_treatment = "None required (Image unsuitable)."
+        prevention_methods = [
+            "Capture photos in bright, natural daylight",
+            "Ensure the camera is focused directly on the leaf surface",
+            "Avoid capturing non-plant objects, people, or dark backgrounds"
+        ]
+        possible_causes = []
+        prediction_result["recommended_pesticides"] = []
+        prediction_result["recommended_fertilizers"] = []
+    elif is_uncertain_state:
+        severity = "None"
+        symptoms = "The visual symptoms on this leaf cannot be reliably identified. The leaf patterns do not match standard reference diseases with sufficient confidence."
+        farmer_friendly_advice = "Diagnosis uncertain. Please upload a closer, focused leaf photo or consult a local agricultural extension officer before applying any chemical treatments."
+        organic_treatment = "None required (Diagnosis uncertain)."
+        chemical_treatment = "None required (Diagnosis uncertain)."
+        prevention_methods = [
+            "Monitor the crop closely over the next 48 hours for symptom progression",
+            "Inspect underside of leaves for early pest or fungal signs",
+            "Consult local agricultural extension officer (KVK) if symptoms persist"
+        ]
+        possible_causes = ["Unrecognized foliar symptoms", "Atypical microclimate damage", "Specimen outside current AI reference models"]
+        prediction_result["recommended_pesticides"] = []
+        prediction_result["recommended_fertilizers"] = []
+    elif is_healthy_state:
+        severity = "None"
+        symptoms = f"The {final_c} foliage displays healthy vigor with vibrant green coloration, intact cuticle layers, and normal cell turgidity. No pathogen lesions, chlorosis, or pest damage observed."
+        farmer_friendly_advice = f"Your {final_c} crop appears completely healthy! Continue scheduled watering and balanced nutrition."
+        organic_treatment = "No curative treatment required. Maintain regular watering and nutrient schedules."
+        chemical_treatment = "No chemical fungicides or bactericides required for healthy foliage."
+        prevention_methods = [
+            "Perform routine weekly inspection of lower leaf under-surfaces",
+            "Maintain balanced irrigation schedule to avoid waterlogging",
+            "Keep farm borders free of weed hosts"
+        ]
+        possible_causes = ["Optimal soil nutrition and balanced moisture management", "Adequate plant spacing ensuring healthy canopy airflow"]
+        prediction_result["recommended_pesticides"] = []
+        prediction_result["recommended_fertilizers"] = []
+    else:
+        # Confirmed disease: Enrich with NVIDIA LLM agronomic advice
         try:
-            llama_advice = await asyncio.wait_for(
-                nvidia_service.generate_farming_advice(
-                    crop_name=prediction_result["crop_name"],
-                    disease_name=prediction_result["disease_name"],
-                    confidence=prediction_result["confidence"],
-                    farm_profile=active_farm
-                ),
-                timeout=2.5
-            )
-        except Exception as err:
-            logger.info(f"Advice generation fast-failover ({err}); using instant ICAR knowledge base.")
-            llama_advice = nvidia_service._generate_mock_advice(
-                prediction_result["crop_name"],
-                prediction_result["disease_name"]
-            )
-        if llama_advice:
-            def force_str(val, depth=0):
-                if isinstance(val, str):
-                    val_stripped = val.strip()
-                    if (val_stripped.startswith("{") and val_stripped.endswith("}")) or (val_stripped.startswith("[") and val_stripped.endswith("]")):
-                        try:
-                            import ast
-                            val = ast.literal_eval(val_stripped)
-                        except Exception:
+            from backend.app.services.nvidia_service import nvidia_service
+            from backend.app.services.farm_profile_service import FarmProfileService
+            user_id_val = str(current_user["id"]) if current_user else "demo_user"
+            active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
+            if active_farm and "_id" in active_farm:
+                active_farm["_id"] = str(active_farm["_id"])
+            try:
+                llama_advice = await asyncio.wait_for(
+                    nvidia_service.generate_farming_advice(
+                        crop_name=prediction_result["crop_name"],
+                        disease_name=prediction_result["disease_name"],
+                        confidence=prediction_result["confidence"],
+                        farm_profile=active_farm
+                    ),
+                    timeout=2.5
+                )
+            except Exception as err:
+                logger.info(f"Advice generation fast-failover ({err}); using instant ICAR knowledge base.")
+                llama_advice = nvidia_service._generate_mock_advice(
+                    prediction_result["crop_name"],
+                    prediction_result["disease_name"]
+                )
+            if llama_advice:
+                def force_str(val, depth=0):
+                    if isinstance(val, str):
+                        val_stripped = val.strip()
+                        if (val_stripped.startswith("{") and val_stripped.endswith("}")) or (val_stripped.startswith("[") and val_stripped.endswith("]")):
                             try:
-                                import json
-                                val = json.loads(val_stripped)
+                                import ast
+                                val = ast.literal_eval(val_stripped)
                             except Exception:
-                                pass
-                if isinstance(val, dict):
-                    lines = []
-                    for k, v in val.items():
-                        k_clean = str(k).replace("_", " ").title()
-                        if isinstance(v, (dict, list)):
-                            lines.append(f"{k_clean}: [{force_str(v, depth+1)}]")
-                        else:
-                            lines.append(f"{k_clean}: {v}")
-                    return "; ".join(lines) if depth > 0 else "\n".join(lines)
-                elif isinstance(val, list):
-                    return ", ".join(force_str(x, depth+1) for x in val)
-                return str(val) if val is not None else "None"
-                
-            if llama_advice.get("disease_explanation"):
-                symptoms = force_str(llama_advice["disease_explanation"])
-            if llama_advice.get("severity"):
-                severity = force_str(llama_advice["severity"])
-            if llama_advice.get("organic_treatment"):
-                organic_treatment = force_str(llama_advice["organic_treatment"])
-            if llama_advice.get("chemical_treatment"):
-                chemical_treatment = force_str(llama_advice["chemical_treatment"])
-            if llama_advice.get("farmer_friendly_advice"):
-                farmer_friendly_advice = force_str(llama_advice["farmer_friendly_advice"])
-            
-            if llama_advice.get("prevention_methods"):
-                pm = llama_advice["prevention_methods"]
-                prevention_methods = pm if isinstance(pm, list) else [force_str(pm)]
-            if llama_advice.get("possible_causes"):
-                pc = llama_advice["possible_causes"]
-                possible_causes = pc if isinstance(pc, list) else [force_str(pc)]
-    except Exception:
-        pass
+                                try:
+                                    import json
+                                    val = json.loads(val_stripped)
+                                except Exception:
+                                    pass
+                    if isinstance(val, dict):
+                        lines = []
+                        for k, v in val.items():
+                            k_clean = str(k).replace("_", " ").title()
+                            if isinstance(v, (dict, list)):
+                                lines.append(f"{k_clean}: [{force_str(v, depth+1)}]")
+                            else:
+                                lines.append(f"{k_clean}: {v}")
+                        return "; ".join(lines) if depth > 0 else "\n".join(lines)
+                    elif isinstance(val, list):
+                        return ", ".join(force_str(x, depth+1) for x in val)
+                    return str(val) if val is not None else "None"
+
+                if llama_advice.get("disease_explanation"):
+                    symptoms = force_str(llama_advice["disease_explanation"])
+                if llama_advice.get("severity"):
+                    severity = force_str(llama_advice["severity"])
+                if llama_advice.get("organic_treatment"):
+                    organic_treatment = force_str(llama_advice["organic_treatment"])
+                if llama_advice.get("chemical_treatment"):
+                    chemical_treatment = force_str(llama_advice["chemical_treatment"])
+                if llama_advice.get("farmer_friendly_advice"):
+                    farmer_friendly_advice = force_str(llama_advice["farmer_friendly_advice"])
+
+                if llama_advice.get("prevention_methods"):
+                    pm = llama_advice["prevention_methods"]
+                    prevention_methods = pm if isinstance(pm, list) else [force_str(pm)]
+                if llama_advice.get("possible_causes"):
+                    pc = llama_advice["possible_causes"]
+                    possible_causes = pc if isinstance(pc, list) else [force_str(pc)]
+        except Exception:
+            pass
 
     # Translate diagnostic text into user's preferred language - fallback to profile language if not provided
     user_pref_lang = (current_user.get("preferred_language") if current_user else None) or "en"
@@ -2207,7 +2307,7 @@ async def predict_pytorch_endpoint(
     target_lang = (raw_req_lang or user_pref_lang).lower()
     if "-" in target_lang:
         target_lang = target_lang.split("-")[0]
-        
+
     if target_lang != "en":
         # Always preserve canonical English names and translation container before translation
         prediction_result["canonical_crop_name"] = prediction_result.get("crop_name", "")
@@ -2216,7 +2316,7 @@ async def predict_pytorch_endpoint(
         prediction_result["original_disease_name"] = prediction_result.get("disease_name", "")
         prediction_result["source_language"] = "en"
         prediction_result["translations"] = {}
-        
+
         translated_via_nvidia = False
         try:
             from backend.app.services.nvidia_service import nvidia_service
@@ -2233,7 +2333,7 @@ async def predict_pytorch_endpoint(
                     "farmer_friendly_advice": farmer_friendly_advice,
                     "safety_precautions": prediction_result.get("safety_precautions", "None")
                 }
-                
+
                 translated_fields = await asyncio.wait_for(
                     nvidia_service.translate_diagnosis(fields_to_translate, target_lang),
                     timeout=3.5
@@ -2262,7 +2362,7 @@ async def predict_pytorch_endpoint(
                 from deep_translator import GoogleTranslator
                 from concurrent.futures import ThreadPoolExecutor
                 translator = GoogleTranslator(source='auto', target=target_lang[:2])
-                
+
                 def safe_translate(text):
                     if not text or text == "None": return text
                     cache_key = f"{target_lang[:2]}:{str(text).strip()}"
@@ -2279,9 +2379,9 @@ async def predict_pytorch_endpoint(
                     if not text or text == "None": return text
                     translated = safe_translate(text)
                     chemicals = [
-                        "Mancozeb", "Chlorothalonil", "Copper", "Neem", "Azoxystrobin", 
-                        "Propiconazole", "Hexaconazole", "Validamycin", "Streptomycin", 
-                        "Tetracycline", "Carbendazim", "Captan", "Thiram", "Bordeaux", 
+                        "Mancozeb", "Chlorothalonil", "Copper", "Neem", "Azoxystrobin",
+                        "Propiconazole", "Hexaconazole", "Validamycin", "Streptomycin",
+                        "Tetracycline", "Carbendazim", "Captan", "Thiram", "Bordeaux",
                         "Sulfur", "Imidacloprid", "Thiamethoxam", "Spinosad", "Fungicide", "Pesticide", "Insecticide"
                     ]
                     found = [c for c in chemicals if c.lower() in str(text).lower()]
@@ -2351,135 +2451,147 @@ async def predict_pytorch_endpoint(
 
     # --- PHASE 5: AI CROP ADVISOR INTEGRATION ---
     advisor_data = None
-    try:
-        from backend.app.services.crop_advisor import crop_advisor_service
-        advisor_data = crop_advisor_service.generate_advisory(
-            crop_name=prediction_result["crop_name"],
-            disease_name=prediction_result["disease_name"],
-            confidence=float(prediction_result["confidence"]),
-            prediction_status=prediction_result.get("prediction_status", "diseased"),
-            uncertainty_score=float(prediction_result.get("uncertainty_score", 0.0))
-        )
-        
-        if target_lang != "en" and advisor_data:
-            translated_advisor_via_nvidia = False
-            try:
-                from backend.app.services.nvidia_service import nvidia_service
-                if nvidia_service.client:
-                    advisor_fields = {
-                        "organic_treatment": advisor_data.get("treatment", {}).get("organic", []),
-                        "chemical_treatment": advisor_data.get("treatment", {}).get("chemical", []),
-                        "prevention": advisor_data.get("prevention", []),
-                        "tips": advisor_data.get("tips", []),
-                        "severity_level": advisor_data.get("severity", {}).get("level", ""),
-                        "severity_description": advisor_data.get("severity", {}).get("description", ""),
-                        "spray_best_time": advisor_data.get("spray", {}).get("best_time", ""),
-                        "spray_wind_warning": advisor_data.get("spray", {}).get("wind_warning", "")
-                    }
-                    translated_advisor = await nvidia_service.translate_diagnosis(advisor_fields, target_lang)
-                    if translated_advisor:
-                        advisor_data["treatment"]["organic"] = translated_advisor.get("organic_treatment", advisor_data["treatment"]["organic"])
-                        advisor_data["treatment"]["chemical"] = translated_advisor.get("chemical_treatment", advisor_data["treatment"]["chemical"])
-                        advisor_data["prevention"] = translated_advisor.get("prevention", advisor_data["prevention"])
-                        advisor_data["tips"] = translated_advisor.get("tips", advisor_data["tips"])
-                        if "level" in advisor_data.get("severity", {}):
-                            advisor_data["severity"]["level"] = translated_advisor.get("severity_level", advisor_data["severity"]["level"])
-                        if "description" in advisor_data.get("severity", {}):
-                            advisor_data["severity"]["description"] = translated_advisor.get("severity_description", advisor_data["severity"]["description"])
-                        if "best_time" in advisor_data.get("spray", {}):
-                            advisor_data["spray"]["best_time"] = translated_advisor.get("spray_best_time", advisor_data["spray"]["best_time"])
-                        if "wind_warning" in advisor_data.get("spray", {}):
-                            advisor_data["spray"]["wind_warning"] = translated_advisor.get("spray_wind_warning", advisor_data["spray"]["wind_warning"])
-                        translated_advisor_via_nvidia = True
-            except Exception as tx_adv_err:
-                print("NVIDIA advisor translation failed, falling back to deep_translator:", tx_adv_err)
+    if is_confirmed_disease or is_healthy_state:
+        try:
+            from backend.app.services.crop_advisor import crop_advisor_service
+            advisor_data = crop_advisor_service.generate_advisory(
+                crop_name=prediction_result["crop_name"],
+                disease_name=prediction_result["disease_name"],
+                confidence=float(prediction_result["confidence"]),
+                prediction_status=prediction_result.get("prediction_status", "diseased"),
+                uncertainty_score=float(prediction_result.get("uncertainty_score", 0.0))
+            )
 
-            if not translated_advisor_via_nvidia:
+            # Enforce zero chemical treatments for healthy state
+            if is_healthy_state and advisor_data:
+                if "treatment" in advisor_data and isinstance(advisor_data["treatment"], dict):
+                    advisor_data["treatment"]["chemical"] = []
+
+            if target_lang != "en" and advisor_data:
+                translated_advisor_via_nvidia = False
                 try:
-                    from deep_translator import GoogleTranslator
-                    from concurrent.futures import ThreadPoolExecutor
-                    
-                    organic_texts = advisor_data.get("treatment", {}).get("organic", [])
-                    chemical_texts = advisor_data.get("treatment", {}).get("chemical", [])
-                    prevention_texts = advisor_data.get("prevention", [])
-                    tips_texts = advisor_data.get("tips", [])
-                    
-                    translator = GoogleTranslator(source='auto', target=target_lang[:2])
-                    
-                    def safe_adv_translate(text):
-                        if not text: return ""
-                        cache_key = f"{target_lang[:2]}:{str(text).strip()}"
-                        if cache_key in _TRANSLATION_CACHE:
-                            return _TRANSLATION_CACHE[cache_key]
-                        try:
-                            res = translator.translate(str(text))
-                            _TRANSLATION_CACHE[cache_key] = res
-                            return res
-                        except Exception:
-                            return text
+                    from backend.app.services.nvidia_service import nvidia_service
+                    if nvidia_service.client:
+                        advisor_fields = {
+                            "organic_treatment": advisor_data.get("treatment", {}).get("organic", []),
+                            "chemical_treatment": advisor_data.get("treatment", {}).get("chemical", []) if is_confirmed_disease else [],
+                            "prevention": advisor_data.get("prevention", []),
+                            "tips": advisor_data.get("tips", []),
+                            "severity_level": advisor_data.get("severity", {}).get("level", ""),
+                            "severity_description": advisor_data.get("severity", {}).get("description", ""),
+                            "spray_best_time": advisor_data.get("spray", {}).get("best_time", ""),
+                            "spray_wind_warning": advisor_data.get("spray", {}).get("wind_warning", "")
+                        }
+                        translated_advisor = await nvidia_service.translate_diagnosis(advisor_fields, target_lang)
+                        if translated_advisor:
+                            advisor_data["treatment"]["organic"] = translated_advisor.get("organic_treatment", advisor_data["treatment"]["organic"])
+                            if is_confirmed_disease:
+                                advisor_data["treatment"]["chemical"] = translated_advisor.get("chemical_treatment", advisor_data["treatment"]["chemical"])
+                            else:
+                                advisor_data["treatment"]["chemical"] = []
+                            advisor_data["prevention"] = translated_advisor.get("prevention", advisor_data["prevention"])
+                            advisor_data["tips"] = translated_advisor.get("tips", advisor_data["tips"])
+                            if "level" in advisor_data.get("severity", {}):
+                                advisor_data["severity"]["level"] = translated_advisor.get("severity_level", advisor_data["severity"]["level"])
+                            if "description" in advisor_data.get("severity", {}):
+                                advisor_data["severity"]["description"] = translated_advisor.get("severity_description", advisor_data["severity"]["description"])
+                            if "best_time" in advisor_data.get("spray", {}):
+                                advisor_data["spray"]["best_time"] = translated_advisor.get("spray_best_time", advisor_data["spray"]["best_time"])
+                            if "wind_warning" in advisor_data.get("spray", {}):
+                                advisor_data["spray"]["wind_warning"] = translated_advisor.get("spray_wind_warning", advisor_data["spray"]["wind_warning"])
+                            translated_advisor_via_nvidia = True
+                except Exception as tx_adv_err:
+                    print("NVIDIA advisor translation failed, falling back to deep_translator:", tx_adv_err)
 
-                    def parallel_translate_adv(arr):
-                        if not arr: return []
-                        uncached = [t for t in arr if t and f"{target_lang[:2]}:{str(t).strip()}" not in _TRANSLATION_CACHE]
-                        if uncached:
-                            with ThreadPoolExecutor(max_workers=min(len(uncached), 5)) as pool:
-                                list(pool.map(safe_adv_translate, uncached))
-                        return [safe_adv_translate(t) for t in arr if t]
+                if not translated_advisor_via_nvidia:
+                    try:
+                        from deep_translator import GoogleTranslator
+                        from concurrent.futures import ThreadPoolExecutor
 
-                    if organic_texts:
-                        advisor_data["treatment"]["organic"] = parallel_translate_adv(organic_texts)
-                    if chemical_texts:
-                        advisor_data["treatment"]["chemical"] = parallel_translate_adv(chemical_texts)
-                    if prevention_texts:
-                        advisor_data["prevention"] = parallel_translate_adv(prevention_texts)
-                    if tips_texts:
-                        advisor_data["tips"] = parallel_translate_adv(tips_texts)
-                        
-                    if "level" in advisor_data.get("severity", {}):
-                        advisor_data["severity"]["level"] = safe_adv_translate(advisor_data["severity"]["level"])
-                    if "description" in advisor_data.get("severity", {}):
-                        advisor_data["severity"]["description"] = safe_adv_translate(advisor_data["severity"]["description"])
-                    if "best_time" in advisor_data.get("spray", {}):
-                        advisor_data["spray"]["best_time"] = safe_adv_translate(advisor_data["spray"]["best_time"])
-                    if "wind_warning" in advisor_data.get("spray", {}):
-                        advisor_data["spray"]["wind_warning"] = safe_adv_translate(advisor_data["spray"]["wind_warning"])
-                except Exception as ex:
-                    print("Deep-translator fallback failed:", ex)
-                    pass
-            
-            # Map advisor crop name to farmer-friendly translation
-            if "crop" in advisor_data and "name" in advisor_data["crop"]:
-                advisor_data["crop"]["name"] = get_farmer_crop_translation(advisor_data["crop"]["name"], target_lang)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"Crop Advisor generation failed: {e}")
+                        organic_texts = advisor_data.get("treatment", {}).get("organic", [])
+                        chemical_texts = advisor_data.get("treatment", {}).get("chemical", []) if is_confirmed_disease else []
+                        prevention_texts = advisor_data.get("prevention", [])
+                        tips_texts = advisor_data.get("tips", [])
 
-    # Generate a customized 7-day spray and treatment schedule
+                        translator = GoogleTranslator(source='auto', target=target_lang[:2])
+
+                        def safe_adv_translate(text):
+                            if not text: return ""
+                            cache_key = f"{target_lang[:2]}:{str(text).strip()}"
+                            if cache_key in _TRANSLATION_CACHE:
+                                return _TRANSLATION_CACHE[cache_key]
+                            try:
+                                res = translator.translate(str(text))
+                                _TRANSLATION_CACHE[cache_key] = res
+                                return res
+                            except Exception:
+                                return text
+
+                        def parallel_translate_adv(arr):
+                            if not arr: return []
+                            uncached = [t for t in arr if t and f"{target_lang[:2]}:{str(t).strip()}" not in _TRANSLATION_CACHE]
+                            if uncached:
+                                with ThreadPoolExecutor(max_workers=min(len(uncached), 5)) as pool:
+                                    list(pool.map(safe_adv_translate, uncached))
+                            return [safe_adv_translate(t) for t in arr if t]
+
+                        if organic_texts:
+                            advisor_data["treatment"]["organic"] = parallel_translate_adv(organic_texts)
+                        if chemical_texts and is_confirmed_disease:
+                            advisor_data["treatment"]["chemical"] = parallel_translate_adv(chemical_texts)
+                        else:
+                            advisor_data["treatment"]["chemical"] = []
+                        if prevention_texts:
+                            advisor_data["prevention"] = parallel_translate_adv(prevention_texts)
+                        if tips_texts:
+                            advisor_data["tips"] = parallel_translate_adv(tips_texts)
+
+                        if "level" in advisor_data.get("severity", {}):
+                            advisor_data["severity"]["level"] = safe_adv_translate(advisor_data["severity"]["level"])
+                        if "description" in advisor_data.get("severity", {}):
+                            advisor_data["severity"]["description"] = safe_adv_translate(advisor_data["severity"]["description"])
+                        if "best_time" in advisor_data.get("spray", {}):
+                            advisor_data["spray"]["best_time"] = safe_adv_translate(advisor_data["spray"]["best_time"])
+                        if "wind_warning" in advisor_data.get("spray", {}):
+                            advisor_data["spray"]["wind_warning"] = safe_adv_translate(advisor_data["spray"]["wind_warning"])
+                    except Exception as ex:
+                        print("Deep-translator fallback failed:", ex)
+                        pass
+
+                # Map advisor crop name to farmer-friendly translation
+                if "crop" in advisor_data and "name" in advisor_data["crop"]:
+                    advisor_data["crop"]["name"] = get_farmer_crop_translation(advisor_data["crop"]["name"], target_lang)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Crop Advisor generation failed: {e}")
+
+    # Generate a customized 7-day spray and treatment schedule (Confirmed disease only)
     prescription_calendar = []
-    try:
-        from backend.app.services.nvidia_service import nvidia_service
-        from backend.app.services.farm_profile_service import FarmProfileService
-        active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
-        irrigation = active_farm.get("irrigation_method", "Drip") if active_farm else "Drip"
-        
-        prescription_calendar = await nvidia_service.generate_prescription_calendar(
-            crop_name=prediction_result["crop_name"],
-            disease_name=prediction_result["disease_name"],
-            severity=severity,
-            irrigation_method=irrigation,
-            target_lang=target_lang
-        )
-    except Exception as cal_err:
-        print(f"[NVIDIA PRESCRIPTION WARNING] Failed to generate treatment calendar: {cal_err}")
+    if is_confirmed_disease:
+        try:
+            from backend.app.services.nvidia_service import nvidia_service
+            from backend.app.services.farm_profile_service import FarmProfileService
+            active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
+            irrigation = active_farm.get("irrigation_method", "Drip") if active_farm else "Drip"
+
+            prescription_calendar = await nvidia_service.generate_prescription_calendar(
+                crop_name=prediction_result["crop_name"],
+                disease_name=prediction_result["disease_name"],
+                severity=severity,
+                irrigation_method=irrigation,
+                target_lang=target_lang
+            )
+        except Exception as cal_err:
+            print(f"[NVIDIA PRESCRIPTION WARNING] Failed to generate treatment calendar: {cal_err}")
 
     # Financial matching and VAR Analysis
     financial_metrics = None
     try:
         from backend.app.services.farm_profile_service import FarmProfileService
         active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
-        
+
         land_size = float(active_farm.get("land_size", 2.0)) if active_farm else 2.0
-        
+
         mandi_rate_map = {
             "tomato": (2200, 150),
             "rice": (2100, 25),
@@ -2494,23 +2606,25 @@ async def predict_pytorch_endpoint(
             "chilli": (18000, 15),
             "chili": (18000, 15)
         }
-        
+
         crop_lower = prediction_result["crop_name"].lower()
         matched_rate = None
         for key, val in mandi_rate_map.items():
             if key in crop_lower:
                 matched_rate = val
                 break
-        
+
         if not matched_rate:
             matched_rate = (2000, 20)
-            
+
         price_per_qtl, yield_per_acre = matched_rate
         total_yield_qtl = land_size * yield_per_acre
         total_crop_value = total_yield_qtl * price_per_qtl
-        
+
         severity_lower = severity.lower()
-        if "critical" in severity_lower or "emergency" in severity_lower:
+        if is_unsuitable_state or is_uncertain_state or is_healthy_state:
+            loss_ratio = 0.0
+        elif "critical" in severity_lower or "emergency" in severity_lower:
             loss_ratio = 0.60
         elif "high" in severity_lower or "moderate" in severity_lower:
             loss_ratio = 0.25
@@ -2518,9 +2632,9 @@ async def predict_pytorch_endpoint(
             loss_ratio = 0.10
         else:
             loss_ratio = 0.05
-            
+
         val_at_risk = total_crop_value * loss_ratio
-        
+
         financial_metrics = {
             "mandi_price_qtl": price_per_qtl,
             "estimated_yield_qtl": total_yield_qtl,
@@ -2547,6 +2661,7 @@ async def predict_pytorch_endpoint(
         "prediction_time": now.strftime("%H:%M:%S"),
         "prediction_status": prediction_result.get("prediction_status", "diseased"),
         "diagnosis_status": prediction_result.get("diagnosis_status", "confirmed_local"),
+        "requires_secondary_review": bool(prediction_result.get("requires_secondary_review", False)),
         "created_at": now,
         "top_predictions": prediction_result.get("top_predictions", []),
         "prediction_time_ms": float(prediction_result.get("prediction_time_ms", 0.0)),
@@ -2618,7 +2733,7 @@ async def predict_pytorch_endpoint(
             loc_crop = get_farmer_crop_translation(crop, target_lang) or crop
             loc_disease = get_farmer_disease_translation(disease, target_lang) or disease
 
-            if diag_status == "image_unsuitable":
+            if diag_status == "image_unsuitable" or is_unsuitable_state:
                 if target_lang == "te":
                     title = "⚠️ ఫోటో సరిపోలేదు (Image Unsuitable)"
                     message = "అప్‌లోడ్ చేసిన ఫోటో పంట వ్యాధి విశ్లేషణకు సరిపోలేదు. దయచేసి స్పష్టమైన, మంచి వెలుతురులో ఉన్న ఆకు ఫోటోను అప్‌లోడ్ చేయండి."
@@ -2626,20 +2741,28 @@ async def predict_pytorch_endpoint(
                     title = "⚠️ Image Unsuitable for Analysis"
                     message = "The uploaded photo could not be reliably analyzed. Please upload a clear photo of the crop leaf."
                 priority = "Low"
-            elif target_lang == "te":
-                if is_healthy:
+            elif is_uncertain_state or diag_status == "uncertain":
+                if target_lang == "te":
+                    title = f"ℹ️ వ్యాధి నిర్ధారణ అస్పష్టంగా ఉంది: {loc_crop}"
+                    message = f"{loc_crop} పంట ఆకుల ఫోటోలో నిర్దిష్ట వ్యాధి నిర్ధారించబడలేదు. మందులు వాడే ముందు స్పష్టమైన ఫోటో తీయండి లేదా వ్యవసాయ అధికారిని సంప్రదించండి."
+                else:
+                    title = f"ℹ️ Diagnosis Uncertain: {crop}"
+                    message = f"AI diagnosis for {crop} could not confirm a specific disease. Please retake a clearer photo or consult an agricultural specialist before applying treatments."
+                priority = "Low"
+            elif is_healthy_state or is_healthy:
+                if target_lang == "te":
                     title = f"🌱 ఆరోగ్యకరమైన పంట: {loc_crop}"
                     message = f"AI పంట నిర్ధారణ పూర్తయింది: మీ {loc_crop} పంట ఆకులు {confidence}% ఖచ్చితత్వంతో సంపూర్ణ ఆరోగ్యంగా ఉన్నాయి. సాధారణ నీటిపారుదల & ఎరువుల షెడ్యూల్ కొనసాగించండి."
                     priority = "Low"
                 else:
+                    title = f"🌱 Healthy Crop Verified: {crop}"
+                    message = f"AI diagnosis complete: Your {crop} foliage is healthy with {confidence}% confidence. Maintain regular watering & nutrient schedules."
+                priority = "Low"
+            else:
+                if target_lang == "te":
                     title = f"🚨 రోగం గుర్తించబడింది: {loc_disease}"
                     message = f"{loc_crop} పంటలో {confidence}% ఖచ్చితత్వంతో {loc_disease} గుర్తించబడింది. పంటను కాపాడటానికి వెంటనే నివారణ చర్యలు చేపట్టండి. పూర్తి వివరాల కోసం మీ AI స్కాన్ ఫలితాలను చూడండి."
                     priority = "Critical"
-            else:
-                if is_healthy:
-                    title = f"🌱 Healthy Crop Verified: {crop}"
-                    message = f"AI diagnosis complete: Your {crop} foliage is healthy with {confidence}% confidence. Maintain regular watering & nutrient schedules."
-                    priority = "Low"
                 else:
                     title = f"🚨 Disease Alert: {disease} Detected"
                     message = f"{disease} identified on {crop} with {confidence}% confidence. Immediate treatment recommended. Check your AI scan results for treatment details."
@@ -2664,20 +2787,20 @@ async def predict_pytorch_endpoint(
         # --- Neighborhood Outbreak Alert Trigger ---
         is_contagious = any(k in disease.lower() for k in ["blight", "blast", "rust", "canker", "smut", "rot"])
         is_severe = severity.lower() in ["high", "critical", "emergency", "medium", "moderate"]
-        if is_contagious and is_severe and diag_status != "image_unsuitable":
+        if is_confirmed_disease and is_contagious and is_severe:
             try:
                 from backend.app.services.farm_profile_service import FarmProfileService
                 active_farm = await FarmProfileService.get_active_farm(db, str(current_user["id"]))
                 if active_farm and active_farm.get("district"):
                     user_district = active_farm.get("district")
                     user_village = active_farm.get("village", "N/A")
-                    
+
                     # Query other farmers in the same district
                     other_farms = db["farms"].find({
                         "district": user_district,
                         "user_id": {"$ne": str(current_user["id"])}
                     })
-                    
+
                     notified_users = set()
                     async for farm_doc in other_farms:
                         other_uid = farm_doc.get("user_id")
@@ -2831,7 +2954,7 @@ async def predict_batch_endpoint(
             loc_disease = get_farmer_disease_translation(raw_disease, target_lang) or raw_disease
 
             severity = res.get("disease_severity", "Mild" if is_healthy else "Moderate")
-            
+
             treatment = res.get("chemical_treatment") or res.get("organic_treatment") or "No treatment needed for healthy leaf."
             if is_healthy:
                 treatment = "Maintain current balanced irrigation & NPK nutrient schedule."
@@ -2957,7 +3080,7 @@ async def get_history(
             {"crop_name": {"$regex": search, "$options": "i"}},
             {"disease_name": {"$regex": search, "$options": "i"}}
         ]
-    
+
     if status_filter:
         query["prediction_status"] = status_filter.lower()
 
@@ -3006,7 +3129,7 @@ async def get_history(
     sanitized_records = []
     for rec in records:
         clean_rec = sanitize_mongo_doc(rec)
-        
+
         # Inject farmer info
         u_id = clean_rec.get("user_id")
         if u_id and u_id in user_cache:
@@ -3015,11 +3138,11 @@ async def get_history(
         elif u_id and u_id == str(current_user["id"]):
             clean_rec["farmer_name"] = current_user.get("name") or current_user.get("full_name")
             clean_rec["farmer_email"] = current_user.get("email")
-            
+
         # Map legacy literal translations to high-fidelity agricultural terms
         if clean_rec.get("disease_name") == "పసుపు రంగు":
             clean_rec["disease_name"] = "ఆకులు పసుపుబారడం (క్లోరోసిస్)"
-            
+
         # Ensure proper UTC ISO strings for frontend parsing
         if "created_at" in clean_rec and isinstance(clean_rec["created_at"], datetime):
             dt = clean_rec["created_at"]
