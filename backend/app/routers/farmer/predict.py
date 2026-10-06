@@ -2448,14 +2448,40 @@ async def predict_pytorch_endpoint(
                     if not text or text == "None": return text
                     translated = safe_translate(text)
                     chemicals = [
-                        "Mancozeb", "Chlorothalonil", "Copper", "Neem", "Azoxystrobin",
-                        "Propiconazole", "Hexaconazole", "Validamycin", "Streptomycin",
-                        "Tetracycline", "Carbendazim", "Captan", "Thiram", "Bordeaux",
-                        "Sulfur", "Imidacloprid", "Thiamethoxam", "Spinosad", "Fungicide", "Pesticide", "Insecticide"
+                        "Mancozeb", "Chlorothalonil", "Copper Oxychloride", "Copper Hydroxide", "Copper",
+                        "Neem", "Azoxystrobin", "Difenoconazole", "Propiconazole", "Hexaconazole",
+                        "Validamycin", "Streptomycin", "Streptocycline", "Tetracycline", "Carbendazim",
+                        "Captan", "Thiram", "Bordeaux Mixture", "Bordeaux", "Sulfur", "Imidacloprid",
+                        "Thiamethoxam", "Spinosad", "Broflanilide", "Chlorantraniliprole", "Emamectin Benzoate",
+                        "Diafenthiuron", "Tricyclazole", "Isoprothiolane", "Metalaxyl", "Metalaxyl-M",
+                        "Cymoxanil", "Dimethomorph", "Fosetyl-Al", "Tebuconazole", "Trifloxystrobin",
+                        "Fluopyram", "Carbofuran", "Cartap Hydrochloride", "Flubendiamide", "Fipronil",
+                        "Kasugamycin", "Thiophanate Methyl", "Dinocap", "Pyraclostrobin", "Bismerthiazol",
+                        "Fungicide", "Pesticide", "Insecticide", "Bactericide"
                     ]
                     found = [c for c in chemicals if c.lower() in str(text).lower()]
-                    if found:
-                        translated += f" ({', '.join(found)})"
+                    filtered_found = []
+                    for c in found:
+                        if not any(other != c and c.lower() in other.lower() for other in found):
+                            if c not in filtered_found:
+                                filtered_found.append(c)
+
+                    # Preserve explicit dosage expressions if present in source (e.g. '@ 2.5 g/L', '@ 0.3 ml/L')
+                    dose_matches = re.findall(r'@\s*[\d\.\-]+\s*(?:g|ml|kg|l)\s*/\s*(?:l|liter|litre|acre|pump|tank)\b', str(text), re.IGNORECASE)
+
+                    extras = []
+                    if filtered_found:
+                        extras.append(", ".join(filtered_found))
+                    if dose_matches:
+                        for dm in dose_matches:
+                            clean_dm = dm.strip()
+                            if clean_dm not in extras:
+                                extras.append(clean_dm)
+
+                    if extras:
+                        suffix = f" ({'; '.join(extras)})"
+                        if suffix not in translated:
+                            translated += suffix
                     return translated
 
                 def parallel_translate_list(items):

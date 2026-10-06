@@ -2687,10 +2687,10 @@ export function normalizeDiseaseKey(rawName = '', statusHint = '') {
 
   // If status is diseased or infected, NEVER declare it as healthy!
   if (statusHint === 'diseased' || statusHint === 'infected') {
-    return cleanKey || 'blight';
+    return cleanKey || 'unknown_condition';
   }
 
-  return cleanKey || (isHealthyCheck ? 'healthy' : 'blight');
+  return cleanKey || (isHealthyCheck ? 'healthy' : 'unknown_condition');
 }
 
 export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
@@ -2716,12 +2716,12 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
   const key = normalizeDiseaseKey(diseaseName);
   const isGroundnut = String(cropName).toLowerCase().includes('groundnut') || String(cropName).toLowerCase().includes('peanut') || String(cropName).includes('వేరుశనగ') || String(cropName).includes('मूंगफली');
 
+  // Normalization-only mappings — zero cross-pathology aliasing
   const keyMap = {
     'early_blight': 'early blight',
     'late_blight': 'late blight',
     'target_spot': 'target spot',
     'bacterial_spot': 'bacterial spot',
-    'bacterial_blight': 'bacterial spot',
     'leaf_curl': 'leaf curl virus',
     'rust': 'common rust',
     'leaf_spot': isGroundnut ? 'tikka disease' : 'leaf spot',
@@ -2734,41 +2734,38 @@ export function getDiseaseDetails(arg1, arg2, arg3 = 'en') {
     'sheath_blight': 'sheath blight',
     'rice_sheath_blight': 'sheath blight',
     'powdery_mildew': 'powdery mildew',
-    'downy_mildew': 'powdery mildew',
     'tikka_disease': 'tikka disease',
     'brown_spot': 'brown spot',
     'rice_brown_spot': 'brown spot',
-    'black_rot': 'early blight',
-    'root_rot': 'early blight',
-    'damping_off': 'early blight',
-    'choanephora_blight': 'anthracnose',
-    'phytophthora_root_rot': 'early blight',
-    'fusarium_wilt': 'early blight',
-    'bacterial_wilt': 'bacterial spot',
-    'root_knot_nematode': 'spodoptera litura',
-    'stem_borer': 'spodoptera litura',
-    'fruit_fly': 'spodoptera litura',
-    'clubroot': 'early blight',
-    'rhizome_rot': 'early blight',
-    'scab': 'target spot',
-    'leaf_mold': 'powdery mildew',
-    'mosaic_virus': 'leaf curl virus',
-    'canker': 'bacterial spot',
-    'yellow_vein_mosaic': 'leaf curl virus',
-    'false_smut': 'early blight',
+    'spodoptera_litura': 'spodoptera litura',
+    'spodoptera': 'spodoptera litura',
     'healthy': 'healthy'
   };
-  const kbKey = keyMap[key] || (DISEASE_KB[key] ? key : 'early blight');
+
+  const kbKey = keyMap[key] || (DISEASE_KB[key] ? key : null);
   
-  const kbEntry = DISEASE_KB[kbKey] || DISEASE_KB['early blight'];
+  // Safe neutral state for unknown/uncatalogued conditions — NEVER default to Early Blight
+  if (!kbKey || !DISEASE_KB[kbKey]) {
+    return {
+      key: key || 'unknown',
+      name: diseaseName || 'Uncatalogued Condition',
+      overview: 'No verified agronomic advisory record exists in the local knowledge base.',
+      chemicals: [],
+      organic: [],
+      prevention: 'Consult a local certified agronomist or Krishi Vigyan Kendra (KVK) specialist for targeted diagnosis.',
+      isHealthy: key === 'healthy'
+    };
+  }
+
+  const kbEntry = DISEASE_KB[kbKey];
   const cleanLang = (lang || 'en').split('-')[0].toLowerCase();
-  const language = DISEASE_KB[kbKey]?.[cleanLang] ? cleanLang : 'en';
-  const data = kbEntry[language] || kbEntry.en;
+  const language = kbEntry[cleanLang] ? cleanLang : 'en';
+  const data = kbEntry[language] || kbEntry.en || {};
 
   return {
     ...data,
-    key,
-    isHealthy: key === 'healthy'
+    key: kbKey,
+    isHealthy: kbKey === 'healthy'
   };
 }
 

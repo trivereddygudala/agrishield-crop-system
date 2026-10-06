@@ -154,43 +154,70 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     return () => { isMounted = false; };
   }, [rawCropName, rawDiseaseName]);
 
-  // Advisory lookup for real trade names and dilution
+  // B30-B33 Safety State Classification & Boundary Enforcement
+  const predStatus = (liveResult?.prediction_status || '').toLowerCase();
+  const diagStatus = (liveResult?.diagnosis_status || '').toLowerCase();
+  const isUnsupported = predStatus === 'unsupported' || diagStatus === 'image_unsuitable';
+  const isUncertain = liveResult?.requires_secondary_review === true || diagStatus === 'uncertain' || isUnsupported;
+  const isHealthy = predStatus === 'healthy' || ((liveResult?.canonical_disease_name || liveResult?.disease_name || '').toLowerCase().includes('healthy') && predStatus !== 'diseased');
+  const isNonChemicalState = isUnsupported || isUncertain || isHealthy;
+
+  // Advisory lookup for verified reference data
   const diseaseInfo = getDiseaseDetails(rawCropName, rawDiseaseName, activeLang);
-  const hasRegionalText = (str) => /[\u0900-\u0D7F]/.test(str || '');
 
-  const baseChemicalsList = (activeLang !== 'en' && !hasRegionalText(liveResult?.chemical_treatment) && diseaseInfo?.chemicals?.length)
-    ? diseaseInfo.chemicals
-    : (liveResult?.chemical_treatment 
-        ? [liveResult.chemical_treatment]
-        : (diseaseInfo?.chemicals || [
-            activeLang === 'te' 
-              ? "సాల్మొన్ (బేయర్) లేదా ఎక్స్‌పోనస్ (BASF) @ 1.0 మి.లీ/లీ నీటికి కలిపి పిచికారీ చేయాలి." 
-              : "Solomon (Bayer) or Exponus (BASF) @ 1.0 ml/L of water."
-          ])
-      );
+  // Safe chemical resolution: NEVER substitute Solomon, Exponus, or invented chemicals
+  let baseChemicalsList = [];
+  if (isNonChemicalState) {
+    baseChemicalsList = [];
+  } else if (liveResult?.chemical_treatment && typeof liveResult.chemical_treatment === 'string' && liveResult.chemical_treatment.trim()) {
+    const chemLower = liveResult.chemical_treatment.toLowerCase();
+    if (chemLower.includes('none required') || chemLower.includes('no chemical') || chemLower.includes('not required')) {
+      baseChemicalsList = [];
+    } else {
+      baseChemicalsList = [liveResult.chemical_treatment];
+    }
+  } else if (Array.isArray(liveResult?.recommended_pesticides) && liveResult.recommended_pesticides.length > 0) {
+    baseChemicalsList = liveResult.recommended_pesticides;
+  } else if (!isNonChemicalState && diseaseInfo?.chemicals?.length > 0 && diseaseInfo.key !== 'unknown') {
+    baseChemicalsList = diseaseInfo.chemicals;
+  } else {
+    baseChemicalsList = [];
+  }
 
-  const chemicalsList = overrides.chemical_treatment 
-    ? [overrides.chemical_treatment, ...baseChemicalsList.filter(c => c !== overrides.chemical_treatment)]
-    : baseChemicalsList;
+  const chemicalsList = isNonChemicalState
+    ? []
+    : (overrides.chemical_treatment
+        ? [overrides.chemical_treatment, ...baseChemicalsList.filter(c => c !== overrides.chemical_treatment)]
+        : baseChemicalsList);
 
-  const baseOrganicList = (activeLang !== 'en' && !hasRegionalText(liveResult?.organic_treatment) && diseaseInfo?.organic?.length)
-    ? diseaseInfo.organic
-    : (liveResult?.organic_treatment 
-        ? [liveResult.organic_treatment] 
-        : (diseaseInfo?.organic || [
-            activeLang === 'te'
-              ? "వేప నూనె స్ప్రే (5 మి.లీ/లీటర్ నీటికి) ప్రతి 7 రోజులకు ఒకసారి పిచికారీ చేయాలి."
-              : "Neem oil spray (5 ml/L with liquid soap) every 7 days."
-          ])
-      );
+  let baseOrganicList = [];
+  if (isUnsupported || isUncertain) {
+    baseOrganicList = [];
+  } else if (liveResult?.organic_treatment && typeof liveResult.organic_treatment === 'string' && liveResult.organic_treatment.trim()) {
+    baseOrganicList = [liveResult.organic_treatment];
+  } else if (!isNonChemicalState && diseaseInfo?.organic?.length > 0 && diseaseInfo.key !== 'unknown') {
+    baseOrganicList = diseaseInfo.organic;
+  } else if (isHealthy) {
+    baseOrganicList = [
+      activeLang === 'te'
+        ? "సమతుల్య సేంద్రీయ ఎరువులు మరియు క్రమం తప్పని నీటి యాజమాన్యం కొనసాగించండి."
+        : "Maintain balanced organic compost nutrition and scheduled drip irrigation."
+    ];
+  } else {
+    baseOrganicList = [];
+  }
 
   const organicList = overrides.organic_treatment
     ? [overrides.organic_treatment, ...baseOrganicList.filter(o => o !== overrides.organic_treatment)]
     : baseOrganicList;
 
-  // Retrieve commercial branded products matching disease and crop
-  const candidateProducts = getMatchingProducts(rawDiseaseName, rawCropName, 6);
-  const activeProduct = candidateProducts[activeProductIdx] || candidateProducts[0] || COMMERCIAL_PRODUCTS[0];
+  const hasAuthorizedChemicals = !isNonChemicalState && chemicalsList.length > 0;
+
+  // Retrieve commercial branded products matching disease and crop ONLY when authorized
+  const candidateProducts = hasAuthorizedChemicals
+    ? getMatchingProducts(rawDiseaseName, rawCropName, 6)
+    : [];
+  const activeProduct = candidateProducts[activeProductIdx] || candidateProducts[0] || null;
 
   const displayOriginalImg = previewUrl || (liveResult?.image_path ? `/${liveResult.image_path}` : '');
   const gradCamImg = liveResult?.gradcam_base64 || null;
@@ -214,8 +241,8 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       cropName: localizedCrop || liveResult?.crop_name || 'Crop',
       diseaseName: localizedDisease || liveResult?.disease_name || 'Crop Disease',
       confidence: liveResult?.confidence ? Math.round(Number(liveResult.confidence) * (liveResult.confidence <= 1 ? 100 : 1)) : 98,
-      severity: liveResult?.severity || 'Moderate',
-      chemicals: chemicalsList,
+      severity: isHealthy ? 'Healthy' : (liveResult?.severity || 'Moderate'),
+      chemicals: hasAuthorizedChemicals ? chemicalsList : [],
       organic: organicList,
       prevention: plantixSymptoms.join('\n'),
       acres: 1.0,
@@ -225,30 +252,22 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     });
   };
 
-  // Dynamic Dosage Calculator Logic based on selected product and tank size
-  const calculateSprayerDose = (product, tankLitres) => {
-    if (!product) return { amount: '20 ml', tip: '~1 measuring cap' };
-    const isLiquid = (product.formulation || '').includes('SC') || (product.formulation || '').includes('EC') || (product.formulation || '').includes('SL') || (product.dosagePer20L || '').includes('ml');
-    const unit = isLiquid ? (activeLang === 'te' ? 'మి.లీ' : 'ml') : (activeLang === 'te' ? 'గ్రా' : 'g');
-
+  // Display verified label dosage only — ZERO client-side arithmetic scaling
+  const getProductDose = (product, tankLitres) => {
+    if (!product) return { amount: 'As per label', tip: 'Follow product packaging' };
     if (tankLitres === 15 && product.dosagePer15L) {
-      return { amount: `${product.dosagePer15L}`, tip: product.farmerMeasureTip || '~1 cap / spoon' };
+      return { amount: `${product.dosagePer15L}`, tip: product.farmerMeasureTip || 'As per calibrated label' };
     }
-    if (tankLitres === 20 && product.dosagePer20L) {
-      return { amount: `${product.dosagePer20L}`, tip: product.farmerMeasureTip || '~1 cap / spoon' };
+    if (product.dosagePer20L) {
+      return { amount: `${product.dosagePer20L} (per 20L tank)`, tip: product.farmerMeasureTip || 'As per calibrated label' };
     }
-
-    // Estimate proportionally from 20L
-    const baseMatch = (product.dosagePer20L || '20').match(/([\d\.]+)/);
-    const baseRate = baseMatch ? parseFloat(baseMatch[1]) : 20;
-    const computed = ((baseRate / 20) * tankLitres).toFixed(tankLitres >= 100 ? 0 : 1);
-    return {
-      amount: `${computed} ${unit}`,
-      tip: product.farmerMeasureTip || '~1 cap / spoon'
-    };
+    if (product.dosagePerAcre) {
+      return { amount: `${product.dosagePerAcre}`, tip: 'Per acre application' };
+    }
+    return { amount: 'As per product label instructions', tip: 'Do not alter label dilution' };
   };
 
-  const calculatedDose = calculateSprayerDose(activeProduct, selectedTankSize);
+  const calculatedDose = activeProduct ? getProductDose(activeProduct, selectedTankSize) : { amount: 'None', tip: 'None' };
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto pb-12">
@@ -640,7 +659,10 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
             </div>
           </Card>
 
-          {/* Step 2: Recommended Products Carousel (Plantix Page 3 & 7-9) */}
+                    {/* Step 2 & 3: Agrochemical Advisory & Products (B30-B33 Safety Gated) */}
+          {hasAuthorizedChemicals && activeProduct ? (
+            <>
+    {/* Step 2: Recommended Products Carousel (Plantix Page 3 & 7-9) */}
           <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md text-left space-y-3.5">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
@@ -830,6 +852,34 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
               </div>
             </div>
           </Card>
+            </>
+          ) : (
+            <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md text-left space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                  ✓
+                </div>
+                <h2 className="text-base sm:text-lg font-black text-slate-950 dark:text-white">
+                  {isHealthy
+                    ? (activeLang === 'te' ? 'రసాయన మందులు అవసరం లేదు' : activeLang === 'hi' ? 'रासायनिक उपचार आवश्यक नहीं है' : 'No Chemical Treatment Required')
+                    : isUnsupported
+                      ? (activeLang === 'te' ? 'చిత్రం విశ్లేషణకు సరిపోలేదు' : activeLang === 'hi' ? 'छवि विश्लेषण के लिए अनुपयुक्त' : 'Image Unsuitable for Analysis')
+                      : isUncertain
+                        ? (activeLang === 'te' ? 'వ్యాధి నిర్ధారణ అనిశ్చితంగా ఉంది' : activeLang === 'hi' ? 'निदान अनिश्चित है' : 'Diagnosis Uncertain')
+                        : (activeLang === 'te' ? 'రసాయన సిఫారసు లేదు' : activeLang === 'hi' ? 'कोई रासायनिक सिफ़ारिश नहीं' : 'No Chemical Treatment Authorized')}
+                </h2>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                {isHealthy
+                  ? (activeLang === 'te' ? 'మీ పంట ఆరోగ్యంగా ఉంది. సహజ జీవక్రియలను మరియు మిత్ర పురుగులను కాపాడటానికి ఎటువంటి రసాయన పిచికారీలు అవసరం లేదు.' : activeLang === 'hi' ? 'आपकी फसल स्वस्थ है। प्राकृतिक पर्यावरण और मित्र कीटों की सुरक्षा के लिए किसी रासायनिक छिड़काव की आवश्यकता नहीं है।' : 'Your crop is healthy! No synthetic chemical sprays are required. Maintain balanced irrigation and nutrition.')
+                  : isUnsupported
+                    ? (activeLang === 'te' ? 'అస్పష్టమైన ఫోటో కారణంగా ఖచ్చితమైన విశ్లేషణ సాధ్యం కాలేదు. రసాయనాలు వాడకండి. దయచేసి సహజ వెలుతురులో స్పష్టమైన ఆకు ఫోటో తీయండి.' : activeLang === 'hi' ? 'अस्पष्ट फोटो के कारण सटीक विश्लेषण संभव नहीं हो सका। कोई रसायन न छिड़कें। कृपया स्पष्ट फोटो लें।' : 'Photo could not be reliably analyzed. No chemical treatment is recommended. Please upload a clear photo of the leaf.')
+                    : isUncertain
+                      ? (activeLang === 'te' ? 'లక్షణాలు నిర్ధారించబడలేదు. అనవసర రసాయన మందులు పిచికారీ చేయవద్దు. సమీప వ్యవసాయ అధికారి లేదా KVK నిపుణులను సంప్రదించండి.' : activeLang === 'hi' ? 'लक्षण स्पष्ट नहीं हैं। अनावश्यक रसायनों का छिड़काव न करें। स्थानीय कृषि विशेषज्ञ से परामर्श लें।' : 'Symptoms cannot be definitively identified. Do not apply synthetic chemicals without qualified agricultural extension (KVK) review.')
+                      : (activeLang === 'te' ? 'ఈ నిర్ధారణకు నిర్దిష్ట రసాయన చికిత్స అందించబడలేదు. సేంద్రీయ పద్ధతులు లేదా నిపుణుల సలహాను పాటించండి.' : activeLang === 'hi' ? 'इस निदान के लिए कोई रासायनिक उपचार प्रदान नहीं किया गया है। जैविक तरीकों का पालन करें।' : 'No chemical treatment has been provided for this diagnosis. Follow biological management or consult an agronomist.')}
+              </div>
+            </Card>
+          )}
 
           {/* Step 4: Crop Damage Severity Survey & Rating (Plantix Pages 5 & 6) */}
           <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md text-left space-y-3.5">
@@ -979,7 +1029,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
           ...liveResult,
           crop_name: rawCropName,
           disease_name: rawDiseaseName,
-          chemical_treatment: activeProduct?.brandName ? `${activeProduct.brandName} (${activeProduct.activeIngredients}) @ ${calculatedDose.amount} in ${selectedTankSize}L` : chemicalsList[0],
+          chemical_treatment: hasAuthorizedChemicals ? (activeProduct?.brandName ? `${activeProduct.brandName} (${activeProduct.activeIngredients})` : (chemicalsList[0] || null)) : null,
           organic_treatment: organicList[0],
           agronomist_notes: overrides.agronomist_notes,
           is_human_verified: isHumanCalibrated

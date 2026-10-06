@@ -286,7 +286,13 @@ const PredictionResultPage = () => {
     );
   }
 
-  const isHealthy = result?.prediction_status === 'healthy' || ((result?.canonical_disease_name || result?.disease_name || '').toLowerCase().includes('healthy') && result?.prediction_status !== 'diseased');
+  const predStatus = (result?.prediction_status || '').toLowerCase();
+  const diagStatus = (result?.diagnosis_status || '').toLowerCase();
+  const isUnsupported = predStatus === 'unsupported' || diagStatus === 'image_unsuitable';
+  const isUncertain = result?.requires_secondary_review === true || diagStatus === 'uncertain' || isUnsupported;
+  const isHealthy = predStatus === 'healthy' || ((result?.canonical_disease_name || result?.disease_name || '').toLowerCase().includes('healthy') && predStatus !== 'diseased');
+  const isNonChemicalState = isUnsupported || isUncertain || isHealthy;
+
   const rawDis = result?.canonical_disease_name || result?.disease_name;
   const rawCrop = result?.canonical_crop_name || result?.crop_name;
   const fallbackAdvice = getAdviceForDisease(rawDis);
@@ -303,15 +309,43 @@ const PredictionResultPage = () => {
   const localizedCrop = translateCrop(rawCrop, activeLang);
   const localizedDisease = translateDisease(rawDis, activeLang, rawCrop, result?.prediction_status);
 
+  // Authoritative chemical resolution: NEVER override backend non-chemical safety states
+  let authorizedChemicals = [];
+  if (isNonChemicalState) {
+    authorizedChemicals = [];
+  } else if (result?.chemical_treatment && typeof result.chemical_treatment === 'string' && result.chemical_treatment.trim()) {
+    const chemLower = result.chemical_treatment.toLowerCase();
+    if (chemLower.includes('none required') || chemLower.includes('no chemical') || chemLower.includes('not required')) {
+      authorizedChemicals = [];
+    } else {
+      authorizedChemicals = [result.chemical_treatment];
+    }
+  } else if (Array.isArray(result?.recommended_pesticides) && result.recommended_pesticides.length > 0) {
+    authorizedChemicals = result.recommended_pesticides;
+  } else if (!isNonChemicalState && diseaseKb?.chemicals?.length > 0 && diseaseKb.key !== 'unknown') {
+    authorizedChemicals = diseaseKb.chemicals;
+  }
+
+  let authorizedOrganic = [];
+  if (isUnsupported || isUncertain) {
+    authorizedOrganic = [];
+  } else if (result?.organic_treatment && typeof result.organic_treatment === 'string' && result.organic_treatment.trim()) {
+    authorizedOrganic = [result.organic_treatment];
+  } else if (!isNonChemicalState && diseaseKb?.organic?.length > 0 && diseaseKb.key !== 'unknown') {
+    authorizedOrganic = diseaseKb.organic;
+  } else if (isHealthy) {
+    authorizedOrganic = ['Maintain balanced organic compost nutrition and scheduled drip irrigation.'];
+  }
+
   const handleWhatsAppShare = () => {
     if (!result) return;
     shareDiagnosticToWhatsApp({
       cropName: localizedCrop || result.crop_name,
       diseaseName: localizedDisease || result.disease_name,
       confidence: confidencePercent,
-      severity: isHealthy ? 'Healthy' : 'Active Symptoms',
-      chemicals: diseaseKb.chemicals?.length > 0 ? diseaseKb.chemicals : (result.chemical_treatment ? [result.chemical_treatment] : []),
-      organic: diseaseKb.organic?.length > 0 ? diseaseKb.organic : (result.organic_treatment ? [result.organic_treatment] : []),
+      severity: isHealthy ? 'Healthy' : (result?.severity || 'Active Symptoms'),
+      chemicals: authorizedChemicals,
+      organic: authorizedOrganic,
       prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
       acres: activeFarm?.total_area || 1.0,
       farmLocation: activeFarm?.location || 'Pasupugallu Farm',
@@ -326,9 +360,9 @@ const PredictionResultPage = () => {
       cropName: localizedCrop || result.crop_name,
       diseaseName: localizedDisease || result.disease_name,
       confidence: confidencePercent,
-      severity: isHealthy ? 'Healthy' : 'Active Symptoms',
-      chemicals: diseaseKb.chemicals?.length > 0 ? diseaseKb.chemicals : (result.chemical_treatment ? [result.chemical_treatment] : []),
-      organic: diseaseKb.organic?.length > 0 ? diseaseKb.organic : (result.organic_treatment ? [result.organic_treatment] : []),
+      severity: isHealthy ? 'Healthy' : (result?.severity || 'Active Symptoms'),
+      chemicals: authorizedChemicals,
+      organic: authorizedOrganic,
       prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
       acres: activeFarm?.total_area || 1.0,
       farmLocation: activeFarm?.location || 'Pasupugallu Farm',
@@ -345,13 +379,19 @@ const PredictionResultPage = () => {
         diseaseName: localizedDisease || result.disease_name,
         confidence: confidencePercent,
         severity: isHealthy ? 'Healthy' : (result.severity || 'Active Symptoms'),
-        chemicals: diseaseKb.chemicals?.length > 0 ? diseaseKb.chemicals : (result.chemical_treatment ? [result.chemical_treatment] : []),
-        organic: diseaseKb.organic?.length > 0 ? diseaseKb.organic : (result.organic_treatment ? [result.organic_treatment] : []),
+        chemicals: authorizedChemicals,
+        organic: authorizedOrganic,
         prevention: diseaseKb.prevention || (result.prevention_methods?.[0] || ''),
         acres: activeFarm?.total_area || 1.0,
         farmLocation: activeFarm?.location || 'Pasupugallu Farm',
         farmerName: activeFarm?.farm_name || 'AgriShield Farmer',
-        doctorNote: result.symptoms || 'Early foliar spray recommended before dewfall.',
+        doctorNote: isHealthy
+          ? 'Healthy foliage. No curative chemical treatments required.'
+          : isUnsupported
+            ? 'Photo could not be reliably analyzed. Retake clear photo in daylight.'
+            : isUncertain
+              ? 'Diagnosis uncertain. Secondary review required before any chemical application.'
+              : (result.symptoms || 'Early foliar spray recommended before dewfall.'),
         language: activeLang || i18n?.language || 'en',
         isOffline: result.is_offline || false
       });

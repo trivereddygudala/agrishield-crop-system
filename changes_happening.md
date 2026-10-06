@@ -2,6 +2,33 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-06 (v394) - D2.4.1: Restore Frontend Agronomic Safety Boundaries
+- **Summary:**
+  1. 🛡️ **Cross-Pathology Alias Removal (`diseaseAdvisoryData.js`):**
+     - Neutralized `normalizeDiseaseKey` to return `'unknown_condition'` rather than defaulting unknown diseases to `'blight'`.
+     - Eliminated 19 unsafe cross-pathology aliases from `keyMap` (`fusarium_wilt`, `root_rot`, `root_knot_nematode`, `fruit_fly`, `clubroot`, `false_smut`, `black_rot`, etc.) that previously mapped disparate pathologies onto Early Blight or Spodoptera Litura.
+  2. 🚫 **Unknown Disease Neutral State (`diseaseAdvisoryData.js`):**
+     - Neutralized fallback at line 2748: unknown or uncatalogued disease keys resolve to safe neutral object with `chemicals: []` and agronomist consultation advisory instead of defaulting to Early Blight.
+  3. 🛑 **Hardcoded Chemical Fallback Elimination (`DiseaseDiagnosisResults.jsx`):**
+     - Completely removed hardcoded fallback array recommending Solomon (Bayer) and Exponus (BASF).
+     - Removed unsafe `!hasRegionalText(...)` regional language override that previously bypassed backend chemical safety results.
+     - Enforced B30–B33 safety state gates (`isUnsupported`, `isUncertain`, `isHealthy`) to strictly suppress commercial product carousels and spraying dosage steps.
+  4. ⚖️ **Client-Side Dosage Calculation Elimination (`DiseaseDiagnosisResults.jsx`):**
+     - Removed client-side linear dosage arithmetic (`calculateSprayerDose`, `(baseRate / 20) * tankLitres`).
+     - Frontend only displays authoritative, label-recommended concentrations as provided.
+  5. 📄 **Export & Prescription Flow Safety (`PredictionResultPage.jsx`, `UploadImagePage.jsx`):**
+     - Gated `authorizedChemicals` and `authorizedOrganic` with B30–B33 safety states across `PredictionResultPage.jsx` (WhatsApp share, prescription slip, PDF download).
+     - Removed hardcoded Mancozeb foliar spray fallback from `UploadImagePage.jsx` PDF export path, replacing with safety-state-aware neutral messages.
+  6. 🌐 **Dynamic Chemical Translation Safety (`predict.py`):**
+     - Enhanced `translate_with_english_chemicals` active ingredient whitelist with comprehensive CIBRC molecules.
+     - Preserves English active-ingredient names and verbatim numeric dosage expressions without fabricating chemicals or altering backend diagnosis logic.
+  7. 🧪 **Focused Tests & Multi-Suite Regression:**
+     - Created `frontend/tests/d2_4_1_safety_remediation.test.js` (9/9 passed) and `backend/tests/test_d2_4_1_safety.py` (5/5 passed).
+     - Verified complete B30–B33 backend regression suite (55/55 passed).
+     - Successfully validated frontend production build (`npm run build`).
+- **Files created:** `frontend/tests/d2_4_1_safety_remediation.test.js`, `backend/tests/test_d2_4_1_safety.py`.
+- **Files modified:** `frontend/src/utils/diseaseAdvisoryData.js`, `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx`, `frontend/src/pages/farmer/PredictionResultPage.jsx`, `frontend/src/pages/farmer/UploadImagePage.jsx`, `backend/app/routers/farmer/predict.py`, `changes_happening.md`.
+
 ## 2026-10-06 (v393) - B33: AI Safety, Security & Backend Hardening
 - **Summary:**
   1. 🛡️ **Agrochemical Scan Safety Gating (B33-1):**

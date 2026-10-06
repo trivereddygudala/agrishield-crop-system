@@ -684,6 +684,34 @@ const UploadImagePage = () => {
       const crop = liveResult?.crop_name || 'Agricultural Crop';
       const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
 
+      const predStatus = (liveResult?.prediction_status || '').toLowerCase();
+      const diagStatus = (liveResult?.diagnosis_status || '').toLowerCase();
+      const isUnsupported = predStatus === 'unsupported' || diagStatus === 'image_unsuitable';
+      const isUncertain = liveResult?.requires_secondary_review === true || diagStatus === 'uncertain' || isUnsupported;
+      const isHealthy = predStatus === 'healthy' || ((liveResult?.canonical_disease_name || liveResult?.disease_name || '').toLowerCase().includes('healthy') && predStatus !== 'diseased');
+
+      let safeChemText = 'No chemical treatment provided.';
+      if (isUnsupported) {
+        safeChemText = 'None required (Image unsuitable for analysis).';
+      } else if (isUncertain) {
+        safeChemText = 'None required (Diagnosis uncertain). Consult an agricultural extension officer.';
+      } else if (isHealthy) {
+        safeChemText = 'No chemical fungicides or insecticides required for healthy foliage.';
+      } else if (liveResult?.chemical_treatment && liveResult.chemical_treatment.trim()) {
+        safeChemText = liveResult.chemical_treatment;
+      }
+
+      let safeOrgText = 'No specific organic treatment provided.';
+      if (isUnsupported) {
+        safeOrgText = 'None required (Image unsuitable for analysis).';
+      } else if (isUncertain) {
+        safeOrgText = 'None required (Diagnosis uncertain).';
+      } else if (isHealthy) {
+        safeOrgText = 'Maintain routine organic compost and balanced irrigation.';
+      } else if (liveResult?.organic_treatment && liveResult.organic_treatment.trim()) {
+        safeOrgText = liveResult.organic_treatment;
+      }
+
       const tableConfig = {
         startY: 38,
         head: [['Category', 'Details']],
@@ -691,9 +719,9 @@ const UploadImagePage = () => {
           ['Target Crop', crop],
           ['AI Pathology Diagnosis', disease],
           ['Detection Confidence', confidence],
-          ['Organic Treatment', liveResult?.organic_treatment || 'Apply copper fungicide or neem oil solution every 7-10 days.'],
-          ['Chemical Treatment', liveResult?.chemical_treatment || 'Apply Mancozeb 75% WP (2.5g/L) as foliar spray.'],
-          ['Safety Guidelines', liveResult?.safety_precautions || 'Wear protective gloves and eye goggles during application.']
+          ['Organic Treatment', safeOrgText],
+          ['Chemical Treatment', safeChemText],
+          ['Safety Guidelines', liveResult?.safety_precautions || 'Follow certified product label guidelines and avoid unnecessary spraying.']
         ],
         theme: 'grid',
         headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] }
@@ -724,8 +752,8 @@ const UploadImagePage = () => {
           diseaseName: liveResult?.disease_name || 'Crop Health Condition',
           confidence: liveResult?.confidence ? Math.round(liveResult.confidence * 100) : 98,
           severity: liveResult?.severity || 'Moderate',
-          chemicals: liveResult?.chemical_treatment ? [liveResult.chemical_treatment] : [],
-          organic: liveResult?.organic_treatment ? [liveResult.organic_treatment] : [],
+          chemicals: (isUnsupported || isUncertain || isHealthy) ? [] : (liveResult?.chemical_treatment ? [liveResult.chemical_treatment] : []),
+          organic: (isUnsupported || isUncertain) ? [] : (liveResult?.organic_treatment ? [liveResult.organic_treatment] : []),
           prevention: liveResult?.safety_precautions || '',
           language: (i18n.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase()
         });
