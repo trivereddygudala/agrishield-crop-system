@@ -2,7 +2,9 @@ import os, sys
 from pymongo import MongoClient, UpdateOne
 from datetime import datetime
 
-uri = 'mongodb+srv://trivereddygudala_db_user:65lzhEkdcOgMITc5@agrishield-db.cn2tf7s.mongodb.net/?appName=agrishield-db'
+uri = os.getenv("MONGODB_URI")
+if not uri:
+    raise ValueError("Configuration error: MONGODB_URI environment variable must be set to run this seed script.")
 client = MongoClient(uri, serverSelectionTimeoutMS=10000)
 db = client['agrishield_db']
 

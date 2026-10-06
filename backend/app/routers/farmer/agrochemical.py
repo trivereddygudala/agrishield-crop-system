@@ -59,7 +59,74 @@ async def agrochemical_scan_endpoint(
 
         now = datetime.now(timezone.utc)
 
-        # Save scan to MongoDB predictions history
+        is_identified = bool(
+            agro_res.get("product_identified", False)
+            and agro_res.get("is_agrochemical", False)
+            and agro_res.get("success", False)
+        )
+
+        # Handle unverified / non-chemical / unreadable scan safely (B33-1)
+        if not is_identified:
+            scan_record = {
+                "user_id": str(current_user["id"]),
+                "image_path": req.image_path,
+                "crop_name": "Agrochemical Product",
+                "disease_name": "Unidentified Product",
+                "confidence": 0.0,
+                "prediction_date": now.strftime("%Y-%m-%d"),
+                "prediction_time": now.strftime("%H:%M:%S"),
+                "prediction_status": "unsupported",
+                "created_at": now,
+                "brand": "Unverified",
+                "product_type": "Uncertain",
+                "active_ingredients": "None",
+                "language": req.language or "en",
+                "extracted_text": extracted_text,
+                "symptoms": "Product label could not be reliably verified.",
+                "organic_treatment": "None",
+                "chemical_treatment": "None"
+            }
+            try:
+                if db is not None:
+                    await db.predictions.insert_one(scan_record)
+            except Exception as db_err:
+                logger.warning(f"Failed to record agrochemical scan history: {db_err}")
+
+            return {
+                "success": False,
+                "product_identified": False,
+                "is_agrochemical": False,
+                "confidence": 0.0,
+                "product_name": None,
+                "brand": None,
+                "category": "Uncertain",
+                "product_type": None,
+                "active_ingredients": None,
+                "formulation": None,
+                "target_crops": [],
+                "target_diseases": [],
+                "target_pests": [],
+                "recommended_dosage": None,
+                "mixing_ratio": None,
+                "spray_interval": None,
+                "toxicity_class": "N/A",
+                "hazard_level": "Unknown",
+                "antidote": None,
+                "protective_equipment": [],
+                "storage": "Store in a secure, ventilated area away from children.",
+                "disposal": "Dispose according to local regulations.",
+                "compatibleProducts": [],
+                "incompatibleProducts": [],
+                "extracted_text": extracted_text,
+                "gemini_vision_used": agro_res.get("gemini_vision_used", False),
+                "source": agro_res.get("source", "insufficient_evidence"),
+                "product_details": agro_res.get("product_details", {}),
+                "user_instructions": agro_res.get("user_instructions", {}),
+                "chemical_explanation": agro_res.get("chemical_explanation", {}),
+                "message": "Product label could not be verified. Do not apply chemical treatments without verified product identification."
+            }
+
+        # Save scan to MongoDB predictions history for verified products
         scan_record = {
             "user_id": str(current_user["id"]),
             "image_path": req.image_path,
@@ -100,6 +167,7 @@ async def agrochemical_scan_endpoint(
 
         scan_result = {
             "success": True,
+            "product_identified": True,
             "is_agrochemical": True,
             "product_name": info.get("product_name", "Identified Agricultural Formulation"),
             "brand": info.get("brand", "AgriShield Verified"),
@@ -110,9 +178,9 @@ async def agrochemical_scan_endpoint(
             "target_crops": target_crops,
             "target_diseases": target_diseases,
             "target_pests": target_pests,
-            "recommended_dosage": info.get("recommended_dosage", "Dilute 2.0 mL per Litre of clean water."),
-            "mixing_ratio": info.get("mixing_ratio", "2.0 mL / L water"),
-            "spray_interval": info.get("spray_interval", "Repeat after 10-14 days if pest pressure persists."),
+            "recommended_dosage": info.get("recommended_dosage"),
+            "mixing_ratio": info.get("mixing_ratio"),
+            "spray_interval": info.get("spray_interval"),
             "toxicity_class": info.get("toxicity_class", "Green Label (Slightly Toxic)"),
             "hazard_level": info.get("hazard_level", "Caution"),
             "antidote": info.get("antidote", "Treat symptomatically. Contact medical professional immediately."),

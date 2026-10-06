@@ -401,7 +401,7 @@ def get_timeframe_bounds(timeframe: str, start_date: Optional[str] = None, end_d
     }
     
     if timeframe == "today":
-        start = datetime(now.year, now.month, now.day)
+        start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
         end = now
         group_id["hour"] = {"$hour": "$received_at"}
         group_id["minute"] = {

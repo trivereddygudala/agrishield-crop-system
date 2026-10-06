@@ -2,6 +2,36 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-06 (v393) - B33: AI Safety, Security & Backend Hardening
+- **Summary:**
+  1. 🛡️ **Agrochemical Scan Safety Gating (B33-1):**
+     - Hardened `backend/app/routers/farmer/agrochemical.py` and `backend/app/services/agrochemical_detector.py`.
+     - Strictly gates chemical identification: only returns verified product details when `product_identified == True` and `is_agrochemical == True`.
+     - For unverified, non-chemical, or unreadable scans, returns safe response (`success: False`, `product_identified: False`, `confidence: 0.0`) with zero chemical prescriptions, zero dosage, and zero dilution instructions.
+  2. 🔬 **Gemini Secondary Assessment Taxonomy Validation (B33-2):**
+     - Hardened `backend/app/routers/farmer/predict.py` dual AI ensemble.
+     - When local model flags OOD, cross-checks Gemini secondary opinions against `TaxonomyManager`.
+     - Preserves OOD and uncertain state (`is_ood: True`, `diagnosis_status: "uncertain"`, `requires_secondary_review: True`, zero chemicals) if Gemini produces an unsupported or invalid crop-disease candidate.
+  3. 🌾 **Safe Batch Field Plot Scanning (B33-3):**
+     - Added image suitability pre-evaluation to batch scan samples in `backend/app/routers/farmer/predict.py`.
+     - Failed, corrupted, or unreadable samples return `is_unsuitable: True`, `status: "unsuitable"`, `confidence: 0.0`, with zero treatments.
+     - Excluded unsuitable samples from infection rate denominator (only valid analyzable samples contribute to field infection percentage).
+  4. 🔒 **Remote Database Credential Removal (B33-4):**
+     - Removed hardcoded remote MongoDB Atlas credentials from `backend/app/core/config.py`, `backend/scripts/seed_1000_bookings.py`, and `backend/scripts/provider/seed_1000_bookings.py`.
+     - Application and seed scripts now strictly require environment-configured `MONGODB_URI`, defaulting to local instance for development and failing with actionable error if unset in production/cloud.
+  5. 🛑 **Internal Worker Endpoint Authorization (B33-5):**
+     - Restricted internal worker endpoints (`GET /worker/image/{filename}` and `POST /worker/predict`) in `backend/app/routers/farmer/predict.py`.
+     - Denies normal farmer, provider, and user JWTs with HTTP 403 Forbidden, allowing only valid cluster worker keys (`X-Worker-Key`) and administrators.
+  6. 🌱 **Plant Identification Synthetic Confidence Elimination (B33-6):**
+     - Eliminated synthetic `78.5%` confidence and automatic `rice` botanical triage fallback from `identify_plant_endpoint` in `backend/app/routers/farmer/predict.py`.
+     - Returns honest `confidence: 0.0`, `success: False` failure response with guidance when plant species cannot be reliably identified.
+  7. 🕒 **Timezone-Aware UTC Datetime Standardization (B33-7):**
+     - Replaced deprecated `datetime.utcnow()` with timezone-aware `datetime.now(timezone.utc)` across `backend/app/routers/farmer/market.py` and `backend/app/routers/common/iot.py`.
+  8. 🧪 **Validation & Regression Suite:**
+     - Created focused B33 test suite `backend/tests/test_b33_safety_fixes.py` (9/9 passed, 100%).
+     - Verified zero regression across existing test suites: B32 tests (16/16 passed), B31 tests (15/15 passed), B30 tests (15/15 passed), PyTorch prediction test (1/1 passed), API test suite (4/4 passed).
+- **Files modified:** `backend/app/routers/farmer/agrochemical.py`, `backend/app/services/agrochemical_detector.py`, `backend/app/routers/farmer/predict.py`, `backend/app/core/config.py`, `backend/scripts/seed_1000_bookings.py`, `backend/scripts/provider/seed_1000_bookings.py`, `backend/app/routers/farmer/market.py`, `backend/app/routers/common/iot.py`, `backend/tests/test_b33_safety_fixes.py`, `changes_happening.md`.
+
 ## 2026-10-06 (v392) - B32: Diagnostic Advisory & Chemical Safety Gating
 - **Summary:**
   1. 🛡️ **Advisory Safety Gating (`backend/app/routers/farmer/predict.py`):**

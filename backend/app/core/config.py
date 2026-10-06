@@ -69,9 +69,13 @@ class Settings(BaseSettings):
             return env_uri
         if env_uri and "mongodb" in env_uri and "localhost" not in env_uri:
             return env_uri
-        # If in cloud environment or localhost unreachable, connect directly to configured Atlas cluster
+        # Cloud environments must supply MONGODB_URI via environment
         if os.environ.get("RENDER") or os.environ.get("PORT"):
-            return env_uri or "mongodb+srv://trivereddygudala_db_user:65lzhEkdcOgMITc5@agrishield-db.cn2tf7s.mongodb.net/?appName=agrishield-db"
+            if not env_uri:
+                raise ValueError(
+                    "Cloud environment configuration error: MONGODB_URI must be provided via environment in cloud deployments."
+                )
+            return env_uri
         return env_uri or "mongodb://localhost:27017"
 
     # NVIDIA NIM API Settings (Primary High-Reliability Cloud AI)

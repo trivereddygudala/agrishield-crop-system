@@ -5,7 +5,7 @@ hierarchical filters (State -> District -> Mandi -> Crop -> Variety), and AI agr
 """
 from fastapi import APIRouter, Query
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 
 router = APIRouter(tags=["Market & Mandi Intelligence"])
@@ -738,7 +738,7 @@ async def get_market_prices(
         # Sort so exact district matches appear at the top
         results.sort(key=lambda x: 0 if x["district"].lower() == district.lower() else 1)
 
-    now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    now_ist = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
     formatted_sync_time = now_ist.strftime("%d %b %Y, %I:%M %p IST")
 
     from backend.app.core.config import settings
@@ -880,7 +880,7 @@ async def get_msp_benchmarks():
     """
     Returns official Government of India Minimum Support Prices (MSP) for 2025-2026.
     """
-    now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    now_ist = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
     return {
         "status": "success",
         "season": "2025-2026 Kharif & Rabi Marketing Season",

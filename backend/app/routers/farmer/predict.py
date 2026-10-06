@@ -1225,7 +1225,17 @@ async def verify_worker_internal_auth(
             from backend.app.core.security import decode_access_token
             payload = await decode_access_token(token)
             if payload:
-                return {"type": "jwt_user", "payload": payload}
+                # B33-5: Only administrative operational access is permitted for JWTs on worker endpoints.
+                # Standard farmer / provider / user JWTs MUST be explicitly denied.
+                role = str(payload.get("role", "")).lower()
+                if role == "admin":
+                    return {"type": "admin", "payload": payload}
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Worker internal endpoints are restricted to worker nodes and administrators."
+                )
+        except HTTPException:
+            raise
         except Exception:
             pass
 
@@ -1621,25 +1631,17 @@ async def identify_plant_endpoint(
             organ=getattr(req, "organ", "leaf") or "leaf"
         )
         if not result.get("success", False):
-            # Attempt an intelligent agricultural botanical fallback rather than hard 422 crashing
-            from backend.app.services.plant_identifier.plant_information import get_plant_info
-            fallback_crop = req.crop_filter or "rice"
-            fallback_info = get_plant_info(fallback_crop)
-            if fallback_info:
-                result = {
-                    "success": True,
-                    "source": "botanical_triage_fallback",
-                    "model": "AgriShield Flora Knowledge Engine",
-                    "confidence": 78.5,
-                    "plant_type": req.plant_type or "crop",
-                    "organ": getattr(req, "organ", "leaf") or "leaf",
-                    "plant": fallback_info
-                }
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    detail=result.get("error", "This plant could not be confidently identified.")
-                )
+            # B33-6: Remove fabricated fallback confidence and botanical triage fallback.
+            # Return safe failure response when plant identification fails.
+            return {
+                "success": False,
+                "confidence": 0.0,
+                "plant": None,
+                "plant_type": req.plant_type or "crop",
+                "organ": getattr(req, "organ", "leaf") or "leaf",
+                "message": "Plant could not be confidently identified from the provided image. Please upload a clear, focused photograph showing distinct leaf or flower features.",
+                "error": result.get("error", "Unidentified plant species")
+            }
 
         # Automatic Multilingual Translation for Plant Identification
         target_lang = (req.language or "en").lower().split("-")[0].strip()
@@ -1897,12 +1899,58 @@ async def predict_pytorch_endpoint(
 
     # Evaluate Ambiguity
     is_ambiguous = is_non_crop_label or is_crop_mismatch or is_ood or (confidence < 0.75) or (len(top_preds) >= 2 and abs(float(top_preds[0].get("confidence", 0.0)) - float(top_preds[1].get("confidence", 0.0))) < 0.20)
+    def _is_supported_taxonomy_combination(crop_arg: Optional[str], dis_arg: Optional[str], healthy_arg: bool = False) -> bool:
+        from backend.services.pytorch.taxonomy import (
+            TaxonomyManager,
+            DISEASE_CROP_CLASSES,
+            HEALTHY_CROP_MAPPING,
+            CROP_ALIASES
+        )
+        if not crop_arg:
+            return False
+        crop_clean = crop_arg.strip().lower()
+
+        canonical_crop = None
+        for canon, aliases in CROP_ALIASES.items():
+            if crop_clean in aliases or crop_clean == canon:
+                canonical_crop = canon
+                break
+        if not canonical_crop:
+            return False
+
+        if healthy_arg:
+            for h_cls, h_crop in HEALTHY_CROP_MAPPING.items():
+                if h_crop.lower() == canonical_crop:
+                    return True
+            return False
+
+        if not dis_arg:
+            return False
+        dis_clean = dis_arg.strip().lower()
+
+        for cls_name, cls_crop in DISEASE_CROP_CLASSES.items():
+            if cls_crop.lower() != canonical_crop:
+                continue
+            _, parsed_d, _ = TaxonomyManager.parse_class_details(cls_name)
+            if dis_clean == parsed_d.lower() or dis_clean == cls_name.lower():
+                return True
+            d_norm = dis_clean.replace("_", " ").replace("-", " ").strip()
+            p_norm = parsed_d.lower().replace("_", " ").replace("-", " ").strip()
+            if d_norm == p_norm or d_norm in p_norm or p_norm in d_norm:
+                return True
+            cls_norm = cls_name.lower().replace("___", " ").replace("_", " ")
+            if d_norm in cls_norm:
+                return True
+
+        return False
+
     prediction_result["is_ambiguous"] = is_ambiguous
 
     # Dual AI Ensemble: If confidence is below 75%, ambiguous, or flagged as OOD, cross-verify with Google Gemini Flash Vision
     ensemble_used = False
     ensemble_provider = None
     ensemble_notes = None
+    was_initially_ood = bool(is_ood)
 
     if not is_image_unsuitable and (is_ambiguous or confidence < 0.75 or is_ood or has_multipart_scan):
         try:
@@ -1920,57 +1968,78 @@ async def predict_pytorch_endpoint(
                 v_dis = vision_opinion.get("disease_name")
                 v_crop = vision_opinion.get("crop_name")
                 if v_dis and str(v_dis).lower() not in ["unknown", "n/a", "none", "unsupported", "unrecognized", "crop health condition"]:
-                    ensemble_used = True
-                    ensemble_provider = "Google Gemini Flash Vision (Multi-Part)" if has_multipart_scan else "Google Gemini Flash Vision"
-                    v_conf = float(vision_opinion.get("confidence", 0.85))
-                    v_conf = round(min(max(v_conf, 0.40), 0.95), 3)
-                    v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
                     v_is_healthy = bool(vision_opinion.get("is_healthy", False))
-                    v_sev = vision_opinion.get("severity", "Moderate")
-
-                    # Resolved crop name: User selection takes first priority, then vision model
                     final_crop = user_crop_filter.title() if user_crop_filter else (v_crop.title() if v_crop else prediction_result.get("crop_name", "Crop"))
-                    prediction_result["crop_name"] = final_crop
-                    prediction_result["disease_name"] = v_dis
-                    prediction_result["confidence"] = v_conf
-                    prediction_result["prediction_status"] = "healthy" if v_is_healthy else "diseased"
-                    prediction_result["diagnosis_status"] = "provisional_secondary_assessment"
-                    prediction_result["requires_secondary_review"] = False
-                    prediction_result["disease_severity"] = "None" if v_is_healthy else v_sev
-                    prediction_result["raw_label"] = f"{final_crop}___{v_dis.replace(' ', '_')}"
-                    prediction_result["is_ambiguous"] = False
-                    is_ood = False
 
-                    # Enforce expert vision symptoms and treatment recommendations
-                    if vision_opinion.get("symptoms"):
-                        v_sym = vision_opinion["symptoms"]
-                        prediction_result["symptoms"] = ". ".join(v_sym) if isinstance(v_sym, list) else str(v_sym)
+                    # B33-2: Validate crop + disease against TaxonomyManager if local model detected OOD
+                    is_tax_supported = _is_supported_taxonomy_combination(final_crop, v_dis, v_is_healthy)
 
-                    if vision_opinion.get("organic_remedies"):
-                        v_org = vision_opinion["organic_remedies"]
-                        prediction_result["organic_treatment"] = "\n".join([f"• {r}" for r in v_org]) if isinstance(v_org, list) else str(v_org)
+                    if was_initially_ood and not is_tax_supported:
+                        ensemble_used = True
+                        ensemble_provider = "Google Gemini Flash Vision"
+                        is_ood = True
+                        prediction_result["crop_name"] = final_crop
+                        prediction_result["disease_name"] = "Unrecognized or uncertain"
+                        prediction_result["confidence"] = 0.0
+                        prediction_result["prediction_status"] = "unsupported"
+                        prediction_result["diagnosis_status"] = "uncertain"
+                        prediction_result["requires_secondary_review"] = True
+                        prediction_result["disease_severity"] = "None"
+                        prediction_result["raw_label"] = "OOD"
+                        prediction_result["chemical_treatment"] = None
+                        prediction_result["recommended_pesticides"] = []
+                        prediction_result["prescription_calendar"] = None
+                        ensemble_notes = f"Secondary visual assessment noted unverified combination '{final_crop} - {v_dis}'. Retaining OOD/uncertain state per taxonomy safety."
+                    else:
+                        ensemble_used = True
+                        ensemble_provider = "Google Gemini Flash Vision (Multi-Part)" if has_multipart_scan else "Google Gemini Flash Vision"
+                        v_conf = float(vision_opinion.get("confidence", 0.85))
+                        v_conf = round(min(max(v_conf, 0.40), 0.95), 3)
+                        v_reasoning = vision_opinion.get("diagnostic_reasoning", "")
+                        v_sev = vision_opinion.get("severity", "Moderate")
 
-                    if vision_opinion.get("chemical_remedies"):
-                        v_chem = vision_opinion["chemical_remedies"]
-                        prediction_result["chemical_treatment"] = "\n".join([f"• {c}" for c in v_chem]) if isinstance(v_chem, list) else str(v_chem)
+                        # Resolved crop name: User selection takes first priority, then vision model
+                        prediction_result["crop_name"] = final_crop
+                        prediction_result["disease_name"] = v_dis
+                        prediction_result["confidence"] = v_conf
+                        prediction_result["prediction_status"] = "healthy" if v_is_healthy else "diseased"
+                        prediction_result["diagnosis_status"] = "provisional_secondary_assessment"
+                        prediction_result["requires_secondary_review"] = False
+                        prediction_result["disease_severity"] = "None" if v_is_healthy else v_sev
+                        prediction_result["raw_label"] = f"{final_crop}___{v_dis.replace(' ', '_')}"
+                        prediction_result["is_ambiguous"] = False
+                        is_ood = False
 
-                    if vision_opinion.get("prevention_steps"):
-                        v_prev = vision_opinion["prevention_steps"]
-                        prediction_result["prevention_methods"] = v_prev if isinstance(v_prev, list) else [str(v_prev)]
+                        # Enforce expert vision symptoms and treatment recommendations
+                        if vision_opinion.get("symptoms"):
+                            v_sym = vision_opinion["symptoms"]
+                            prediction_result["symptoms"] = ". ".join(v_sym) if isinstance(v_sym, list) else str(v_sym)
 
-                    ensemble_notes = f"Secondary Visual Assessment: Gemini Vision evaluated {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% advisory confidence). {v_reasoning}"
-                    prediction_result["disease_explanation"] = (
-                        f"[Secondary Visual Assessment]: Gemini Vision analyzed {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% advisory confidence).\n\n"
-                        f"Pathology Analysis: {v_reasoning}"
-                    )
+                        if vision_opinion.get("organic_remedies"):
+                            v_org = vision_opinion["organic_remedies"]
+                            prediction_result["organic_treatment"] = "\n".join([f"• {r}" for r in v_org]) if isinstance(v_org, list) else str(v_org)
 
-                    # Update top predictions list to reflect consensus
-                    prediction_result["top_predictions"] = [{
-                        "class_name": prediction_result["raw_label"],
-                        "crop_name": final_crop,
-                        "disease_name": v_dis,
-                        "confidence": prediction_result["confidence"]
-                    }]
+                        if vision_opinion.get("chemical_remedies"):
+                            v_chem = vision_opinion["chemical_remedies"]
+                            prediction_result["chemical_treatment"] = "\n".join([f"• {c}" for c in v_chem]) if isinstance(v_chem, list) else str(v_chem)
+
+                        if vision_opinion.get("prevention_steps"):
+                            v_prev = vision_opinion["prevention_steps"]
+                            prediction_result["prevention_methods"] = v_prev if isinstance(v_prev, list) else [str(v_prev)]
+
+                        ensemble_notes = f"Secondary Visual Assessment: Gemini Vision evaluated {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% advisory confidence). {v_reasoning}"
+                        prediction_result["disease_explanation"] = (
+                            f"[Secondary Visual Assessment]: Gemini Vision analyzed {final_crop} {v_dis} ({prediction_result['confidence']*100:.0f}% advisory confidence).\n\n"
+                            f"Pathology Analysis: {v_reasoning}"
+                        )
+
+                        # Update top predictions list to reflect consensus
+                        prediction_result["top_predictions"] = [{
+                            "class_name": prediction_result["raw_label"],
+                            "crop_name": final_crop,
+                            "disease_name": v_dis,
+                            "confidence": prediction_result["confidence"]
+                        }]
         except Exception as ens_ex:
             logger.warning(f"Dual AI ensemble cross-verification bypassed: {ens_ex}")
 
@@ -2887,13 +2956,41 @@ async def predict_batch_endpoint(
                 "label": label or f"Sample #{idx + 1}",
                 "image_path": rel_path,
                 "error": "Image file not found on server",
+                "is_unsuitable": True,
+                "status": "unsuitable",
                 "is_healthy": False,
+                "is_diseased": False,
                 "confidence": 0.0,
                 "crop_name": user_crop_filter or "Unknown",
-                "disease_name": "File Error",
-                "severity": "Unknown",
-                "treatment": "N/A"
+                "disease_name": None,
+                "severity": "None",
+                "treatment": None,
+                "symptoms": "Image file not found on server"
             }
+
+        # B33-3: Evaluate image suitability before neural inference
+        try:
+            from backend.app.services.image_preprocessor import evaluate_image_suitability
+            suitability = evaluate_image_suitability(full_path)
+            if not suitability.get("is_suitable", False):
+                return {
+                    "sample_index": idx + 1,
+                    "label": label or f"Sample #{idx + 1}",
+                    "image_path": rel_path,
+                    "error": suitability.get("reason", "Image unsuitable for analysis"),
+                    "is_unsuitable": True,
+                    "status": "unsuitable",
+                    "is_healthy": False,
+                    "is_diseased": False,
+                    "confidence": 0.0,
+                    "crop_name": user_crop_filter or "Unknown",
+                    "disease_name": None,
+                    "severity": "None",
+                    "treatment": None,
+                    "symptoms": suitability.get("reason", "Image unsuitable for analysis")
+                }
+        except Exception as suit_err:
+            logger.debug(f"Batch image suitability check exception: {suit_err}")
 
         try:
             import asyncio
@@ -2963,12 +3060,15 @@ async def predict_batch_endpoint(
                 "sample_index": idx + 1,
                 "label": label or f"Sample #{idx + 1}",
                 "image_path": rel_path,
+                "is_unsuitable": False,
+                "status": "healthy" if is_healthy else "diseased",
                 "crop_name": raw_crop,
                 "disease_name": raw_disease,
                 "localized_crop_name": loc_crop,
                 "localized_disease_name": loc_disease,
                 "confidence": conf,
                 "is_healthy": is_healthy,
+                "is_diseased": not is_healthy,
                 "severity": severity,
                 "treatment": treatment,
                 "symptoms": res.get("symptoms", "None observed")
@@ -2979,12 +3079,16 @@ async def predict_batch_endpoint(
                 "label": label or f"Sample #{idx + 1}",
                 "image_path": rel_path,
                 "error": str(e),
+                "is_unsuitable": True,
+                "status": "unsuitable",
                 "is_healthy": False,
-                "confidence": 75.0,
+                "is_diseased": False,
+                "confidence": 0.0,
                 "crop_name": user_crop_filter or "Crop",
-                "disease_name": "Pathology Observed",
-                "severity": "Moderate",
-                "treatment": "Inspect leaf closely and apply organic bio-fungicide preventative spray."
+                "disease_name": None,
+                "severity": "None",
+                "treatment": None,
+                "symptoms": f"Processing error: {str(e)}"
             }
 
     import asyncio
@@ -2998,21 +3102,37 @@ async def predict_batch_endpoint(
     samples_results = await asyncio.gather(*tasks)
 
     total_samples = len(samples_results)
-    healthy_count = sum(1 for s in samples_results if s.get("is_healthy", False))
-    infected_count = total_samples - healthy_count
-    infection_rate = round((infected_count / total_samples) * 100, 1) if total_samples > 0 else 0.0
+    unsuitable_samples = [s for s in samples_results if s.get("is_unsuitable", False)]
+    unsuitable_count = len(unsuitable_samples)
+    analyzable_samples = [s for s in samples_results if not s.get("is_unsuitable", False)]
+    analyzable_count = len(analyzable_samples)
 
-    diseases = [s.get("disease_name") for s in samples_results if not s.get("is_healthy", False) and s.get("disease_name")]
+    healthy_count = sum(1 for s in analyzable_samples if s.get("is_healthy", False))
+    infected_count = sum(1 for s in analyzable_samples if not s.get("is_healthy", False))
+
+    # B33-3: Only valid analyzable samples contribute to the infection denominator
+    if analyzable_count > 0:
+        infection_rate = round((infected_count / analyzable_count) * 100, 1)
+    else:
+        infection_rate = 0.0
+
+    diseases = [s.get("disease_name") for s in analyzable_samples if not s.get("is_healthy", False) and s.get("disease_name")]
     if diseases:
         dominant_disease = Counter(diseases).most_common(1)[0][0]
-    else:
+    elif healthy_count > 0:
         dominant_disease = "Healthy Crop"
+    else:
+        dominant_disease = "No Analyzable Samples"
 
-    crops = [s.get("crop_name") for s in samples_results if s.get("crop_name")]
+    crops = [s.get("crop_name") for s in analyzable_samples if s.get("crop_name")]
     dominant_crop = Counter(crops).most_common(1)[0][0] if crops else (user_crop_filter or "Field Crop")
 
     # Field Treatment Directive
-    if infection_rate == 0:
+    if analyzable_count == 0:
+        severity_level = "Unsuitable / Inconclusive"
+        directive = "⚪ Inconclusive Field Assessment: Uploaded images could not be analyzed due to poor image quality or corrupted files. Please upload clear, focused daylight photographs of crop leaves."
+        directive_type = "info"
+    elif infection_rate == 0:
         severity_level = "Pristine (Disease-Free)"
         directive = "🟢 Pristine Field Health: 100% of sampled plot leaves are healthy with zero visible lesions. Maintain standard irrigation and routine bio-fertilizer schedule."
         directive_type = "healthy"
@@ -3036,6 +3156,8 @@ async def predict_batch_endpoint(
         "user_id": str(current_user["id"]) if current_user else "anonymous",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "total_samples": total_samples,
+        "analyzable_count": analyzable_count,
+        "unsuitable_count": unsuitable_count,
         "healthy_count": healthy_count,
         "infected_count": infected_count,
         "plot_infection_rate": infection_rate,

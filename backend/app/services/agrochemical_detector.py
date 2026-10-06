@@ -1643,6 +1643,8 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 # Live Web Search & AI Intelligence fallback
                 if not force_scan and len(extracted_text.strip()) < 5:
                     return {
+                        "success": False,
+                        "product_identified": False,
                         "is_agrochemical": False,
                         "confidence": 0.0,
                         "extracted_text": extracted_text
