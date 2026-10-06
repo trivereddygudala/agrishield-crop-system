@@ -71,6 +71,11 @@ export const useSpeechReader = () => {
       if (match) return match;
     }
 
+    // Safety Gate: For Odia (or), never fall back to a Hindi or English voice engine
+    if (primaryCode === 'or') {
+      return null;
+    }
+
     // 5. Fallback to an Indian English or local English voice if no regional voice exists
     match = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || v.name.toLowerCase().includes('india')));
     if (match) return match;
@@ -86,6 +91,7 @@ export const useSpeechReader = () => {
     }
 
     const synth = window.speechSynthesis;
+    const primaryCode = (lang || 'en').split('-')[0].toLowerCase();
 
     // If clicking on current playing item, toggle stop
     if (speakingId === id) {
@@ -102,6 +108,21 @@ export const useSpeechReader = () => {
 
     if (!cleanText) return;
 
+    const matchedVoice = findBestVoice(lang);
+
+    // Odia TTS Safety Check: If no native Odia voice exists on browser/OS, do not speak garbled phonemes
+    if (primaryCode === 'or' && !matchedVoice) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('agrishield-toast', {
+          detail: {
+            message: 'ଓଡ଼ିଆ ଭଏସ୍ ରିଡର୍ ଡିଭାଇସରେ ଉପଲବ୍ଧ ନାହିଁ। ଅନ-ସ୍କ୍ରିନ୍ ଟେକ୍ସଟ୍ ପ୍ରଦର୍ଶିତ ହେଉଛି।',
+            type: 'info'
+          }
+        }));
+      }
+      return;
+    }
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utteranceRef.current = utterance;
 
@@ -111,7 +132,6 @@ export const useSpeechReader = () => {
     utterance.rate = rate || 0.8;
     utterance.pitch = 1.0;
 
-    const matchedVoice = findBestVoice(lang);
     if (matchedVoice) {
       utterance.voice = matchedVoice;
       utterance.lang = matchedVoice.lang;
@@ -124,6 +144,13 @@ export const useSpeechReader = () => {
 
     utterance.onerror = (e) => {
       console.warn('Speech synthesis error:', e);
+      // For Odia, do not retry with en-IN
+      if (primaryCode === 'or') {
+        setSpeakingId(null);
+        setIsPaused(false);
+        return;
+      }
+
       // If the specific voice/language failed and was non-English, retry once with default voice
       if ((e.error === 'language-unavailable' || e.error === 'voice-unavailable' || e.error === 'synthesis-failed') && lang !== 'en') {
         try {

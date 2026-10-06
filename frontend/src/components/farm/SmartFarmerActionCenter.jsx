@@ -13,32 +13,32 @@ import { useTranslation } from 'react-i18next';
 
 const PRIORITY_CONFIG = {
   P0: {
+    labelKey: 'dashboard.smart_actions.priority_urgent',
     labelEn: 'Urgent',
-    labelTe: 'తక్షణమే',
     badgeVariant: 'critical',
     borderClass: 'border-rose-500/80 dark:border-rose-500/70',
     bgClass: 'bg-rose-50/70 dark:bg-rose-950/30',
     dotClass: 'bg-rose-500 animate-ping'
   },
   P1: {
+    labelKey: 'dashboard.smart_actions.priority_high',
     labelEn: 'High',
-    labelTe: 'ముఖ్యమైనది',
     badgeVariant: 'warning',
     borderClass: 'border-amber-500/80 dark:border-amber-500/70',
     bgClass: 'bg-amber-50/70 dark:bg-amber-950/30',
     dotClass: 'bg-amber-500'
   },
   P2: {
+    labelKey: 'dashboard.smart_actions.priority_medium',
     labelEn: 'Normal',
-    labelTe: 'సాధారణం',
     badgeVariant: 'healthy',
     borderClass: 'border-emerald-500/60 dark:border-emerald-500/50',
     bgClass: 'bg-emerald-50/50 dark:bg-emerald-950/20',
     dotClass: 'bg-emerald-500'
   },
   P3: {
+    labelKey: 'dashboard.smart_actions.priority_low',
     labelEn: 'Info',
-    labelTe: 'సమాచారం',
     badgeVariant: 'default',
     borderClass: 'border-slate-300 dark:border-slate-700',
     bgClass: 'bg-slate-50 dark:bg-slate-800/40',
@@ -65,8 +65,6 @@ const ACTION_TYPE_ICONS = {
 export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
-  const isTe = currentLang === 'te';
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(null);
@@ -211,7 +209,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                {isTe ? 'వ్యవసాయ కార్యాచరణ కేంద్రం' : 'Smart Farm Operations'}
+                {t('dashboard.smart_actions.title', 'Smart Farm Operations')}
               </h2>
               {filteredActions.length > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
@@ -220,7 +218,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
               )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-              {isTe ? 'నేడు, గడువు దాటిన మరియు రాబోయే పొలం పనుల నిర్వహణ' : 'Daily, overdue, and upcoming field work synthesized in one place'}
+              {t('dashboard.smart_actions.subtitle', 'Daily, overdue, and upcoming field work synthesized in one place')}
             </p>
           </div>
         </div>
@@ -230,12 +228,12 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
           {isIoT ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{isTe ? 'స్మార్ట్ IoT మోడ్ (ప్రత్యక్ష సమాచారం)' : 'Smart IoT Mode'}</span>
+              <span>{t('dashboard.smart_actions.smart_iot_mode', 'Smart IoT Mode')}</span>
             </div>
           ) : (
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-700 dark:text-sky-300 text-xs font-bold">
               <span>☁️</span>
-              <span>{isTe ? 'సాఫ్ట్‌వేర్ AI మోడ్' : 'Software AI Mode'}</span>
+              <span>{t('dashboard.smart_actions.software_ai_mode', 'Software AI Mode')}</span>
             </div>
           )}
 
@@ -244,7 +242,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
             onClick={() => fetchActions(true)}
             disabled={refreshing}
             className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-all cursor-pointer"
-            title={isTe ? 'రిఫ్రెష్ చేయండి' : 'Refresh actions'}
+            title={t('dashboard.smart_actions.refresh', 'Refresh actions')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-500' : ''}`} />
           </button>
@@ -254,10 +252,10 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
       {/* ─── Operational Segmented Tabs (Today / Overdue / Upcoming / Completed) ─── */}
       <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 overflow-x-auto text-xs font-bold scrollbar-none">
         {[
-          { id: 'today', labelEn: 'Today', labelTe: 'నేడు', count: data?.today_count ?? 0, badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
-          { id: 'overdue', labelEn: 'Overdue', labelTe: 'గడువు దాటినవి', count: data?.overdue_count ?? 0, badgeCls: (data?.overdue_count || 0) > 0 ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
-          { id: 'upcoming', labelEn: 'Next 7 Days', labelTe: 'రాబోయే 7 రోజులు', count: data?.upcoming_count ?? 0, badgeCls: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300' },
-          { id: 'completed', labelEn: 'Completed', labelTe: 'పూర్తయినవి', count: data?.completed_count ?? 0, badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
+          { id: 'today', labelKey: 'dashboard.smart_actions.tabs_today', labelEn: 'Today', count: data?.today_count ?? 0, badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
+          { id: 'overdue', labelKey: 'dashboard.smart_actions.tabs_overdue', labelEn: 'Overdue', count: data?.overdue_count ?? 0, badgeCls: (data?.overdue_count || 0) > 0 ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+          { id: 'upcoming', labelKey: 'dashboard.smart_actions.tabs_upcoming', labelEn: 'Next 7 Days', count: data?.upcoming_count ?? 0, badgeCls: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300' },
+          { id: 'completed', labelKey: 'dashboard.smart_actions.tabs_completed', labelEn: 'Completed', count: data?.completed_count ?? 0, badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -272,7 +270,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <span>{isTe ? tab.labelTe : tab.labelEn}</span>
+            <span>{t(tab.labelKey, tab.labelEn)}</span>
             <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${tab.badgeCls}`}>
               {tab.count}
             </span>
@@ -283,12 +281,12 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
       {/* ─── Category Filter Pills ─── */}
       <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
         {[
-          { id: 'ALL', labelEn: 'All Types', labelTe: 'అన్ని' },
-          { id: 'URGENT', labelEn: 'Urgent', labelTe: 'అత్యవసరం' },
-          { id: 'WATER', labelEn: 'Water', labelTe: 'నీటి తడులు' },
-          { id: 'CROP', labelEn: 'Crop Tasks', labelTe: 'పంట పనులు' },
-          { id: 'INPUT', labelEn: 'Inventory', labelTe: 'ఇన్వెంటరీ' },
-          { id: 'KHATA', labelEn: 'Finances', labelTe: 'ఖాతా' },
+          { id: 'ALL', labelKey: 'dashboard.smart_actions.filter_all', labelEn: 'All Types' },
+          { id: 'URGENT', labelKey: 'dashboard.smart_actions.filter_urgent', labelEn: 'Urgent' },
+          { id: 'WATER', labelKey: 'dashboard.smart_actions.filter_water', labelEn: 'Water' },
+          { id: 'CROP', labelKey: 'dashboard.smart_actions.filter_crop', labelEn: 'Crop Tasks' },
+          { id: 'INPUT', labelKey: 'dashboard.smart_actions.filter_input', labelEn: 'Inventory' },
+          { id: 'KHATA', labelKey: 'dashboard.smart_actions.filter_khata', labelEn: 'Finances' },
         ].map(filter => (
           <button
             key={filter.id}
@@ -300,7 +298,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                 : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
-            {isTe ? filter.labelTe : filter.labelEn}
+            {t(filter.labelKey, filter.labelEn)}
           </button>
         ))}
       </div>
@@ -312,18 +310,12 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
             ✨
           </div>
           <h3 className="text-sm font-black text-slate-900 dark:text-white">
-            {activeBucket === 'completed'
-              ? (isTe ? 'ఇటీవల పూర్తయిన పనులేవీ లేవు' : 'No Completed Operations Yet')
-              : activeBucket === 'overdue'
-              ? (isTe ? 'అద్భుతం! గడువు దాటిన పనులేవీ లేవు' : 'Great! No Overdue Work')
-              : activeBucket === 'upcoming'
-              ? (isTe ? 'రాబోయే 7 రోజుల్లో పనులేవీ లేవు' : 'No Upcoming Operations Scheduled')
-              : (isTe ? 'అన్ని ముఖ్యమైన పనులు పూర్తయ్యాయి!' : 'All Caught Up! No Pending Actions Today')}
+            {activeBucket === 'completed' ? t('dashboard.smart_actions.empty_completed', 'No Completed Operations Yet') : activeBucket === 'overdue' ? t('dashboard.smart_actions.empty_overdue', 'Great! No Overdue Work') : activeBucket === 'upcoming' ? t('dashboard.smart_actions.empty_upcoming', 'No Upcoming Operations Scheduled') : t('dashboard.smart_actions.empty_today', 'All Caught Up! No Pending Actions Today')}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
             {activeBucket === 'overdue'
-              ? (isTe ? 'మీ పొలంలో అన్ని పనులు సమయానికి నడుస్తున్నాయి.' : 'All farm activities and liabilities are on track.')
-              : (isTe ? 'మీ పంట పొలం పరిస్థితి స్థిరంగా ఉంది.' : 'Field conditions, inventory, and operations are in optimal order.')}
+              ? t('dashboard.smart_actions.empty_overdue_sub', 'All farm activities and liabilities are on track.')
+              : t('dashboard.smart_actions.empty_today_sub', 'Field conditions, inventory, and operations are in optimal order.')}
           </p>
         </div>
       ) : (
@@ -356,7 +348,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                             : 'bg-emerald-600 text-white'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${prioCfg.dotClass}`} />
-                          {isTe ? prioCfg.labelTe : prioCfg.labelEn}
+                          {t(prioCfg.labelKey, prioCfg.labelEn)}
                         </span>
 
                         <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 bg-white/70 dark:bg-slate-900/60 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60">
@@ -381,7 +373,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                           onClick={() => handleDismissAction(action)}
                           disabled={isWorking}
                           className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                          title={isTe ? 'తీసివేయండి' : 'Dismiss'}
+                          title={t('dashboard.smart_actions.dismiss_action', 'Dismiss')}
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -441,10 +433,10 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                         onClick={() => handleReopenAction(action)}
                         disabled={isWorking}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-700 hover:border-amber-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-                        title={isTe ? 'మళ్ళీ తెరవండి' : 'Reopen Action'}
+                        title={t('dashboard.smart_actions.reopen_action', 'Reopen Action')}
                       >
                         <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{isTe ? 'మళ్ళీ చేయండి' : 'Undo / Reopen'}</span>
+                        <span>{t('dashboard.smart_actions.undo_reopen', 'Undo / Reopen')}</span>
                       </button>
                     ) : (
                       /* Mark Done Button for Pending Items */
@@ -453,10 +445,10 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                         onClick={() => handleCompleteAction(action)}
                         disabled={isWorking}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-700 hover:border-emerald-300 text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-                        title={isTe ? 'పూర్తయినట్లు గుర్తించండి' : 'Mark Completed'}
+                        title={t('dashboard.smart_actions.mark_completed', 'Mark Completed')}
                       >
                         <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{isTe ? 'పూర్తయింది' : 'Done'}</span>
+                        <span>{t('dashboard.smart_actions.mark_done', 'Done')}</span>
                       </button>
                     )}
                   </div>
@@ -476,9 +468,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
           >
             <span>
-              {showAll
-                ? (isTe ? 'తక్కువ పనులు చూపించు' : 'Show Fewer Actions')
-                : (isTe ? `అన్ని పనులు చూడండి (${filteredActions.length})` : `View All ${filteredActions.length} Actions`)}
+              {showAll ? t('dashboard.smart_actions.show_fewer', 'Show Fewer Actions') : t('dashboard.smart_actions.view_all', 'View All {{count}} Actions', { count: filteredActions.length })}
             </span>
             {showAll ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>

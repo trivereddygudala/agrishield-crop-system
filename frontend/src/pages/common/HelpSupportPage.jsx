@@ -179,7 +179,6 @@ export default function HelpSupportPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
-  const isTe = currentLang === 'te';
   const currentLangCode = (i18n?.language || user?.preferred_language || 'en').split('-')[0].toLowerCase();
 
   // Role detection: Equipment Provider vs Farmer
@@ -266,9 +265,7 @@ export default function HelpSupportPage() {
 
   const handleWhatsApp = (cropContext = '') => {
     const cleanNum = supportConfig.whatsapp_number.replace(/[^0-9]/g, '');
-    const defaultMsg = isTe
-      ? `నమస్తే అగ్రిషీల్డ్ సపోర్ట్, నాకు పంట ఆరోగ్యం మరియు సాంకేతిక సహాయం కావాలి. (రైతు: ${user?.name || 'రైతు'})`
-      : `Hello AgriShield Support, I need assistance regarding crop health or hardware sensor readings. (Farmer: ${user?.name || 'Farmer'})`;
+    const defaultMsg = t('support_center.default_wa_msg', { name: user?.name || t('support_center.farmer', 'Farmer'), defaultValue: `Hello AgriShield Support, I need assistance regarding crop health or hardware sensor readings.` });
     const message = cropContext ? `${defaultMsg} - సందర్భం: ${cropContext}` : defaultMsg;
     const waUrl = `https://wa.me/${cleanNum}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
@@ -283,23 +280,22 @@ export default function HelpSupportPage() {
         ? `${user?.farm_location?.village}, ${user?.farm_location?.district || ''}` 
         : (user?.location || 'Machinery Hub');
 
-      const text = isTe
-        ? `🚜 *అగ్రిషీల్డ్ మెషినరీ ప్రొవైడర్ హెల్ప్‌డెస్క్ సంప్రదింపు*\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 *ప్రొవైడర్/ఏజెన్సీ:* ${providerName}\n` +
-          `📞 *డిస్పాచ్ ఫోన్:* ${providerPhone}\n` +
-          `📍 *బేస్ హబ్:* ${hubLocation}\n` +
-          `📅 *తేదీ:* ${new Date().toLocaleDateString('te-IN')}\n\n` +
-          `💬 *నా సమస్య వివరాలు:*\n` +
-          `నమస్కారం అగ్రిషీల్డ్ ప్రొవైడర్ సపోర్ట్ టీమ్, నా మెషినరీ బుకింగ్స్ / అద్దె చెల్లింపులు / ఫ్లీట్ లిస్టింగ్ విషయంలో మీ సహాయం కావాలి.`
-        : `🚜 *AgriShield Equipment Provider Support Request*\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 *Provider/Hub Name:* ${providerName}\n` +
-          `📞 *Dispatch Phone:* ${providerPhone}\n` +
-          `📍 *Base Hub:* ${hubLocation}\n` +
-          `📅 *Date:* ${new Date().toLocaleDateString()}\n\n` +
-          `💬 *Issue Summary:*\n` +
-          `Hello AgriShield Provider Desk, I need assistance regarding machinery bookings, rental payouts, or fleet dispatch.`;
+      const text = `🚜 *${t('support_center.wa_prov_header', 'AgriShield Equipment Provider Support Request')}*
+` +
+          `━━━━━━━━━━━━━━━━━━━━
+` +
+          `👤 *${t('support_center.wa_prov_name', 'Provider/Hub Name')}:* ${providerName}
+` +
+          `📞 *${t('support_center.wa_dispatch_phone', 'Dispatch Phone')}:* ${providerPhone}
+` +
+          `📍 *${t('support_center.wa_base_hub', 'Base Hub')}:* ${hubLocation}
+` +
+          `📅 *${t('support_center.wa_date', 'Date')}:* ${new Date().toLocaleDateString()}
+
+` +
+          `💬 *${t('support_center.wa_issue_summary', 'Issue Summary')}:*
+` +
+          `${t('support_center.wa_prov_body', 'Hello AgriShield Provider Desk, I need assistance regarding machinery bookings, rental payouts, or fleet dispatch.')}`;
 
       const rawNumber = supportConfig.whatsapp_number || '';
       const cleanDigits = rawNumber.replace(/[^0-9]/g, '');
@@ -316,23 +312,22 @@ export default function HelpSupportPage() {
     const farmerPhone = user?.phone || 'Not provided';
     const location = user?.farm_location || user?.location || 'Field';
 
-    const text = isTe
-      ? `🌾 *అగ్రిషీల్డ్ రైతు మద్దతు హెల్ప్‌డెస్క్ సంప్రదింపు*\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `👤 *రైతు పేరు:* ${farmerName}\n` +
-        `📞 *ఫోన్ నంబర్:* ${farmerPhone}\n` +
-        `📍 *ప్రాంతం:* ${location}\n` +
-        `📅 *తేదీ:* ${new Date().toLocaleDateString('te-IN')}\n\n` +
-        `💬 *నా సమస్య వివరాలు:*\n` +
-        `నమస్కారం అగ్రిషీల్డ్ సపోర్ట్ టీమ్, నాకు వ్యవసాయం/సెన్సార్/యాప్ విషయంలో మీ సాంకేతిక సహాయం కావాలి.`
-      : `🌾 *AgriShield Farmer Support Consultation Request*\n` +
-        `━━━━━━━━━━━━━━━━━━━━\n` +
-        `👤 *Farmer Name:* ${farmerName}\n` +
-        `📞 *Phone:* ${farmerPhone}\n` +
-        `📍 *Location:* ${location}\n` +
-        `📅 *Date:* ${new Date().toLocaleDateString()}\n\n` +
-        `💬 *Problem Summary:*\n` +
-        `Hello AgriShield Support Team, I need technical/agronomic support regarding my farm setup.`;
+    const text = `🌾 *${t('support_center.wa_farmer_header', 'AgriShield Farmer Support Consultation Request')}*
+` +
+        `━━━━━━━━━━━━━━━━━━━━
+` +
+        `👤 *${t('support_center.wa_farmer_name', 'Farmer Name')}:* ${farmerName}
+` +
+        `📞 *${t('support_center.wa_farmer_phone', 'Phone')}:* ${farmerPhone}
+` +
+        `📍 *${t('support_center.wa_farmer_location', 'Location')}:* ${location}
+` +
+        `📅 *${t('support_center.wa_date', 'Date')}:* ${new Date().toLocaleDateString()}
+
+` +
+        `💬 *${t('support_center.wa_problem_summary', 'Problem Summary')}:*
+` +
+        `${t('support_center.wa_farmer_body', 'Hello AgriShield Support Team, I need technical/agronomic support regarding my farm setup.')}`;
 
     const rawNumber = supportConfig.whatsapp_number || '';
     const cleanDigits = rawNumber.replace(/[^0-9]/g, '');
@@ -348,7 +343,7 @@ export default function HelpSupportPage() {
   const handleCallbackSubmit = async (e) => {
     e.preventDefault();
     if (!callbackPhone.trim()) {
-      alert(isTe ? 'దయచేసి సరైన ఫోన్ నంబర్ నమోదు చేయండి.' : 'Please enter a valid phone number.');
+      alert(t('support_center.invalid_phone', 'Please enter a valid phone number.'));
       return;
     }
 
@@ -366,14 +361,14 @@ export default function HelpSupportPage() {
 
       const res = await API.post('/api/support/callback-request', payload);
 
-      setCallbackSuccess(res.data?.message || (isTe ? 'కాల్‌బ్యాక్ అభ్యర్థన విజయవంతంగా నమోదయింది!' : 'Callback requested! Our officer will call you in 15 minutes.'));
+      setCallbackSuccess(res.data?.message || t('support_center.callback_success', 'Callback requested! Our officer will call you in 15 minutes.'));
       setCallbackIssue('');
       setTimeout(() => {
         setIsCallbackOpen(false);
         setCallbackSuccess('');
       }, 3500);
     } catch (err) {
-      alert(err.response?.data?.detail || (isTe ? 'అభ్యర్థన నమోదు విఫలమైంది.' : 'Failed to register callback request.'));
+      alert(err.response?.data?.detail || t('support_center.callback_failed', 'Failed to register callback request.'));
     } finally {
       setCallbackSubmitting(false);
     }
@@ -383,7 +378,7 @@ export default function HelpSupportPage() {
   const handleTicketSubmit = async (e) => {
     e.preventDefault();
     if (!ticketSubject.trim() || !ticketDesc.trim()) {
-      setTicketError(isTe ? 'దయచేసి సమస్య శీర్షిక మరియు వివరాలు నమోదు చేయండి.' : 'Please provide a subject and detailed description.');
+      setTicketError(t('support_center.ticket_error_fields', 'Please provide a subject and detailed description.'));
       return;
     }
 
@@ -405,14 +400,14 @@ export default function HelpSupportPage() {
 
       const res = await API.post('/api/support/tickets', payload);
 
-      setTicketSuccess(res.data?.message || (isTe ? 'సమస్య టికెట్ నమోదయింది! మా బృందం త్వరలో సంప్రదిస్తుంది.' : 'Ticket submitted successfully!'));
+      setTicketSuccess(res.data?.message || t('support_center.ticket_success', 'Ticket submitted successfully!'));
       setTicketSubject('');
       setTicketDesc('');
       setTicketDeviceId('');
       // Refresh tickets if on list
       fetchMyTickets();
     } catch (err) {
-      setTicketError(err.response?.data?.detail || (isTe ? 'టికెట్ సమర్పణ విఫలమైంది.' : 'Failed to submit support ticket.'));
+      setTicketError(err.response?.data?.detail || t('support_center.ticket_failed', 'Failed to submit support ticket.'));
     } finally {
       setTicketSubmitting(false);
     }
@@ -420,61 +415,43 @@ export default function HelpSupportPage() {
 
   const FAQS = [
     {
-      q: isTe ? 'నా ESP32 ఫీల్డ్ సెన్సార్ ఆఫ్‌లైన్‌లో ఎందుకు చూపిస్తోంది?' : 'Why does my ESP32 field sensor show offline?',
-      a: isTe
-        ? '1) సెన్సార్ బ్యాటరీ లేదా సోలార్ పవర్ సరిగ్గా ఉందో లేదో చూడండి. 2) నోడ్ వై-ఫై లేదా సిమ్ కనెక్టివిటీ రేంజ్ లో ఉందో ధృవీకరించండి. 3) పరికరంపై ఉన్న చిన్న రీసెట్ (RST) బటన్‌ను 3 సెకన్లు నొక్కి పట్టుకోండి.'
-        : '1) Verify that the solar panel / 18650 battery has sufficient charge. 2) Ensure the ESP32 node is within 2.4GHz Wi-Fi or hotspot range. 3) Press the RST button on the node for 3 seconds to reboot.'
+      q: t('support_page.faqs.q1', 'Why does my ESP32 field sensor show offline?'),
+      a: t('support_page.faqs.a1', '1) Verify that the solar panel / 18650 battery has sufficient charge. 2) Ensure the ESP32 node is within 2.4GHz Wi-Fi or hotspot range. 3) Press the RST button on the node for 3 seconds to reboot.')
     },
     {
-      q: isTe ? 'భూమి విస్తీర్ణ కొలతలలో 1 మీటర్ ఖచ్చితత్వం ఎలా పొందాలి?' : 'How do I achieve 1-meter pinpoint GPS field measuring accuracy?',
-      a: isTe
-        ? 'పొలం సరిహద్దు వెంట నడిచేటప్పుడు ఫోన్‌ను చేతిలో పైకి పట్టుకోండి. చెట్ల కింద కాకుండా బహిరంగ ఆకాశం కింద GPS సిగ్నల్ "±1.8m" లేదా పచ్చటి సూచిక కనిపించిన తర్వాత మాత్రమే వాక్ మోడ్ ప్రారంభించండి.'
-        : 'Hold your phone upright with an unobstructed view of the open sky. Wait for the GPS accuracy indicator on the screen to turn green (±1.8m) before beginning your perimeter walk.'
+      q: t('support_page.faqs.q2', 'How do I achieve 1-meter pinpoint GPS field measuring accuracy?'),
+      a: t('support_page.faqs.a2', 'Hold your phone upright with an unobstructed view of the open sky. Wait for the GPS accuracy indicator on the screen to turn green (±1.8m) before beginning your perimeter walk.')
     },
     {
-      q: isTe ? 'రోగ నిర్ధారణ స్కాన్ ఫలితంపై నాకు సందేహం ఉంటే ఏమి చేయాలి?' : 'What if I suspect an incorrect disease diagnosis on my scan?',
-      a: isTe
-        ? 'క్రింద ఉన్న "టికెట్ సమర్పించు" ఫారమ్‌లో "పంట వ్యాధి సమీక్ష" వర్గాన్ని ఎంచుకోండి. మా సీనియర్ వ్యవసాయ శాస్త్రవేత్తలు మీ పంట ఆకు ఫోటోను నేరుగా పరిశీలించి 24 గంటల్లో నిపుణుల సలహా అందిస్తారు.'
-        : 'Select "Crop Disease Diagnosis & Scan Review" in the ticket form below. An AgriShield agronomist will manually inspect your leaf scan and provide a certified second opinion.'
+      q: t('support_page.faqs.q3', 'What if I suspect an incorrect disease diagnosis on my scan?'),
+      a: t('support_page.faqs.a3', 'Select "Crop Disease Diagnosis & Scan Review" in the ticket form below. An AgriShield agronomist will manually inspect your leaf scan and provide a certified second opinion.')
     },
     {
-      q: isTe ? 'కాల్‌బ్యాక్ అభ్యర్థన చేసిన తర్వాత అధికారులు ఎప్పుడు కాల్ చేస్తారు?' : 'How soon will a support officer call me after a callback request?',
-      a: isTe
-        ? 'సాధారణ పని వేళల్లో (ఉదయం 8:00 నుండి రాత్రి 8:00 వరకు) మా వ్యవసాయ లేదా సాంకేతిక నిపుణుడు 15 నిమిషాల్లోపు మీ ఫోన్‌కు నేరుగా కాల్ చేస్తారు.'
-        : 'During operational hours (8:00 AM – 8:00 PM IST), an agricultural or technical specialist will call your phone directly within 15 minutes.'
+      q: t('support_page.faqs.q4', 'How soon will a support officer call me after a callback request?'),
+      a: t('support_page.faqs.a4', 'During operational hours (8:00 AM – 8:00 PM IST), an agricultural or technical specialist will call your phone directly within 15 minutes.')
     }
   ];
 
   const PROVIDER_FAQS = [
     {
-      q: isTe ? 'రైతు అద్దె చెల్లింపులు (Payouts) నా బ్యాంకు ఖాతాకు ఎప్పుడు జమ అవుతాయి?' : 'When will rental payouts be credited to my bank account?',
-      a: isTe
-        ? 'రైతు యంత్రం పని పూర్తయినట్లు ధృవీకరించిన తర్వాత లేదా ప్రొవైడర్ డ్యాష్‌బోర్డ్‌లో "Completed" గా మార్చిన 24 గంటలలోపు మీ ప్రొఫైల్ సెట్టింగ్‌లలో నమోదు చేసిన UPI ID లేదా బ్యాంక్ ఖాతాకు నేరుగా జమ చేయబడుతుంది.'
-        : 'Once the farmer service is completed and marked "Completed" in your Provider Dashboard, rental proceeds are settled directly to your registered UPI ID or bank account within 24 hours.'
+      q: t('support_page.faqs.q5', 'When will rental payouts be credited to my bank account?'),
+      a: t('support_page.faqs.a5', 'Once the farmer service is completed and marked "Completed" in your Provider Dashboard, rental proceeds are settled directly to your registered UPI ID or bank account within 24 hours.')
     },
     {
-      q: isTe ? 'రైతు చివరి నిమిషంలో బుకింగ్ రద్దు చేస్తే ప్రొవైడర్‌కు పరిహారం లభిస్తుందా?' : 'Do I receive compensation if a farmer cancels a booking at the last minute?',
-      a: isTe
-        ? 'అవును. మీ యంత్రం డిస్పాచ్ అయిన తర్వాత రైతు రద్దు చేస్తే లేదా పొలంలో అందుబాటులో లేకపోతే, ఇంధన రవాణా రుసుము మరియు రద్దు పరిహారం ఆటోమేటిక్‌గా ప్రొవైడర్‌కు చెల్లించబడుతుంది.'
-        : 'Yes. If a farmer cancels after equipment dispatch or fails to appear at the field, a transport/fuel compensation fee is credited to your provider account from the farmer booking deposit.'
+      q: t('support_page.faqs.q6', 'Do I receive compensation if a farmer cancels a booking at the last minute?'),
+      a: t('support_page.faqs.a6', 'Yes. If a farmer cancels after equipment dispatch or fails to appear at the field, a transport/fuel compensation fee is credited to your provider account from the farmer booking deposit.')
     },
     {
-      q: isTe ? 'యంత్రం రిపేర్‌లో ఉన్నప్పుడు లేదా బిజీగా ఉన్నప్పుడు బుకింగ్‌లను ఎలా నిలిపివేయాలి?' : 'How do I prevent farmers from booking while machinery is under maintenance or busy?',
-      a: isTe
-        ? '1) ప్రొవైడర్ డ్యాష్‌బోర్డ్ -> ఫ్లీట్ హబ్ లో సదరు యంత్రం వద్ద ఉన్న "అందుబాటులో ఉంది" స్విచ్‌ను ఆఫ్ చేయండి. 2) లేదా హెడర్‌లోని "నేటి లభ్యత (Today Status)" ని ఆఫ్‌లైన్ గా మార్చండి. దీంతో కేటలాగ్‌లో యంత్రం "Currently Booked / Maintenance" గా లాక్ అవుతుంది.'
-        : '1) In Provider Dashboard -> Fleet Hub, toggle the machine availability switch to OFF ("Under Maintenance"). 2) Or switch your top "Today Status" to Offline. Farmers will see the machine locked as "Currently Booked / Maintenance".'
+      q: t('support_page.faqs.q7', 'How do I prevent farmers from booking while machinery is under maintenance or busy?'),
+      a: t('support_page.faqs.a7', '1) In Provider Dashboard -> Fleet Hub, toggle the machine availability switch to OFF ("Under Maintenance"). 2) Or switch your top "Today Status" to Offline. Farmers will see the machine locked as "Currently Booked / Maintenance".')
     },
     {
-      q: isTe ? 'నా సర్వీస్ కవరేజ్ రేడియస్ (10km నుండి 50km) ఎలా పెంచుకోవాలి?' : 'How do I change or expand my service dispatch radius (e.g. from 10km to 50km)?',
-      a: isTe
-        ? 'సెట్టింగ్‌లు -> "మెషినరీ హబ్ సెట్టింగ్‌లు" లోకి వెళ్లి Service Coverage Radius లో 10km, 25km, 50km లేదా 100km ఎంచుకుని సేవ్ చేయండి. ఎంచుకున్న దూరం పరిధిలోని రైతులకే మీ యంత్రాలు కనిపిస్తాయి.'
-        : 'Navigate to Settings -> "Machinery Hub Settings" and adjust your Service Coverage Radius (10km, 25km, 50km, or 100km). Only farmers within this distance will see your machinery in their local catalog.'
+      q: t('support_page.faqs.q8', 'How do I change or expand my service dispatch radius (e.g. from 10km to 50km)?'),
+      a: t('support_page.faqs.a8', 'Navigate to Settings -> "Machinery Hub Settings" and adjust your Service Coverage Radius (10km, 25km, 50km, or 100km). Only farmers within this distance will see your machinery in their local catalog.')
     },
     {
-      q: isTe ? 'ప్రభుత్వ SMAM కస్టమ్ హైరింగ్ సెంటర్ 40% సబ్సిడీ వివరాలు ఎలా తెలుసుకోవాలి?' : 'How do I apply for the Government SMAM Custom Hiring Center 40% machinery subsidy?',
-      a: isTe
-        ? 'కిసాన్ హెల్ప్‌లైన్ (1800-180-1551) లేదా మా ప్రొవైడర్ AI కోపైలట్ ద్వారా సబ్-మిషన్ ఆన్ అగ్రికల్చరల్ మెకనైజేషన్ (SMAM) అర్హత నియమాలు, అవసరమైన భూమి దస్తావేజులు మరియు కొటేషన్ పత్రాల వివరాలను తనిఖీ చేయవచ్చు.'
-        : 'Ask the Machinery AI Copilot or contact the Kisan Helpline (1800-180-1551) to inspect required documentation, dealer quotations, and eligibility guidelines for the SMAM 40% Custom Hiring Center subsidy.'
+      q: t('support_page.faqs.q9', 'How do I apply for the Government SMAM Custom Hiring Center 40% machinery subsidy?'),
+      a: t('support_page.faqs.a9', 'Ask the Machinery AI Copilot or contact the Kisan Helpline (1800-180-1551) to inspect required documentation, dealer quotations, and eligibility guidelines for the SMAM 40% Custom Hiring Center subsidy.')
     }
   ];
 
@@ -492,7 +469,7 @@ export default function HelpSupportPage() {
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95 shadow-xs"
           >
             <ChevronLeft className="w-4 h-4 stroke-[3]" />
-            <span>{isEquipmentProvider ? (isTe ? '← ప్రొవైడర్ డ్యాష్‌బోర్డ్' : '← Provider Dashboard') : t('support_page.back_to_more', isTe ? '← ఇతర సేవలు (More)' : '← Back to More')}</span>
+            <span>{isEquipmentProvider ? t('support_center.provider_dashboard_back', '← Provider Dashboard') : t('support_page.back_to_more', '← Back to More')}</span>
           </button>
 
           {/* Quick Access Pills for Equipment Providers */}
@@ -504,7 +481,7 @@ export default function HelpSupportPage() {
                 className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Truck className="w-3.5 h-3.5" />
-                <span>{isTe ? 'యంత్రాల హబ్' : 'Fleet Hub'}</span>
+                <span>{t('support_center.fleet_hub', 'Fleet Hub')}</span>
               </button>
               <button
                 type="button"
@@ -512,7 +489,7 @@ export default function HelpSupportPage() {
                 className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Calendar className="w-3.5 h-3.5" />
-                <span>{isTe ? 'రైతు ఆర్డర్లు' : 'Farmer Orders'}</span>
+                <span>{t('support_center.farmer_orders', 'Farmer Orders')}</span>
               </button>
               <button
                 type="button"
@@ -520,7 +497,7 @@ export default function HelpSupportPage() {
                 className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-all cursor-pointer flex items-center gap-1"
               >
                 <Sliders className="w-3.5 h-3.5" />
-                <span>{isTe ? 'హబ్ సెట్టింగ్‌లు' : 'Hub Settings'}</span>
+                <span>{t('support_center.hub_settings', 'Hub Settings')}</span>
               </button>
             </div>
           )}
@@ -538,22 +515,14 @@ export default function HelpSupportPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {isEquipmentProvider
-                    ? (isTe ? 'అగ్రిషీల్డ్ మెషినరీ ప్రొవైడర్ సపోర్ట్ & హెల్ప్‌డెస్క్' : 'AgriShield Equipment Provider Support & Help Desk')
-                    : t('support_page.title', isTe ? 'అగ్రిషీల్డ్ రైతు మద్దతు బృందం' : 'AgriShield Help & Support Team')}
+                  {isEquipmentProvider ? t('support_center.provider_desk_title', 'AgriShield Equipment Provider Support & Help Desk') : t('support_page.title', 'AgriShield Help & Support Team')}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
                   24x7 Helpdesk
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {isEquipmentProvider
-                  ? (isTe 
-                      ? 'యంత్రాల డిస్పాచ్, రైతు బుకింగ్ వివాదాలు, అద్దె చెల్లింపులు & ఆపరేషనల్ సమస్యలపై ప్రత్యేక సహాయం' 
-                      : 'Dedicated 24x7 machinery fleet dispatch, farmer booking disputes, and rental payout settlement assistance')
-                  : (isTe
-                      ? 'హార్డ్‌వేర్, వ్యాధి నిర్ధారణ, వాతావరణం లేదా యాప్ సమస్యలపై సాంకేతిక & వ్యవసాయ నిపుణుల సహాయం'
-                      : 'Direct technical, hardware, disease diagnosis & agronomic support for farmers')}
+                {isEquipmentProvider ? t('support_center.provider_desk_desc', 'Fast-track resolution for machinery dispatch, booking schedule disputes, and instant rental payouts.') : t('support_center.farmer_desk_desc', '24/7 direct assistance for crop diagnosis, IoT hardware, field boundary measurements, and equipment rentals.')}
               </p>
             </div>
           </div>
@@ -567,7 +536,7 @@ export default function HelpSupportPage() {
             }`}
           >
             <Bot className="w-4 h-4" />
-            <span>{isEquipmentProvider ? (isTe ? 'మెషినరీ AI కోపైలట్' : 'Machinery AI Copilot') : t('support_page.ask_ai', isTe ? 'ఏఐ నిపుణుడిని అడగండి' : 'Ask AI Agronomist')}</span>
+            <span>{isEquipmentProvider ? t('support_center.machinery_ai_copilot', 'Machinery AI Copilot') : t('support_page.ask_ai', 'Ask AI Agronomist')}</span>
           </button>
         </div>
       </div>
@@ -578,17 +547,13 @@ export default function HelpSupportPage() {
         <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-md flex items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full text-emerald-100">
-              {isEquipmentProvider 
-                ? (isTe ? 'ప్రొవైడర్ డిస్పాచ్ హెల్ప్‌లైన్' : 'Provider Dispatch 24x7') 
-                : (isTe ? 'జాతీయ ఉచిత హెల్ప్‌లైన్' : 'National Toll-Free 24x7')}
+              {isEquipmentProvider ? t('support_center.prov_dispatch_24x7', 'Provider Dispatch 24x7') : t('support_center.national_toll_free', 'National Toll-Free 24x7')}
             </span>
             <h3 className="text-xl sm:text-2xl font-black tracking-tight mt-1">
               {isEquipmentProvider ? supportConfig.support_phone : '1800-180-1551'}
             </h3>
             <p className="text-xs text-emerald-100 font-medium">
-              {isEquipmentProvider
-                ? (isTe ? 'అగ్రిషీల్డ్ మెషినరీ ఆపరేషన్స్ & డిస్పాచ్ డెస్క్' : 'AgriShield Machinery & Fleet Operations Desk')
-                : t('support_page.kisan_call_center', isTe ? 'కిసాన్ కాల్ సెంటర్ (భారత ప్రభుత్వం)' : 'Kisan Call Centre (Govt. of India)')}
+              {isEquipmentProvider ? t('support_center.fleet_operations_desk', 'AgriShield Machinery & Fleet Operations Desk') : t('support_page.kisan_call_center', 'Kisan Call Centre (Govt. of India)')}
             </p>
           </div>
           <a
@@ -596,7 +561,7 @@ export default function HelpSupportPage() {
             className="px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-white/90 font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 shrink-0 transition-all"
           >
             <Phone className="w-4 h-4 text-emerald-600" />
-            <span>{t('support_page.call_free', isTe ? 'కాల్ చేయండి' : 'Call Free')}</span>
+            <span>{t('support_page.call_free', 'Call Free')}</span>
           </a>
         </div>
 
@@ -604,17 +569,13 @@ export default function HelpSupportPage() {
         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-md border border-slate-700 flex items-center justify-between gap-4">
           <div className="space-y-1">
             <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-              {isEquipmentProvider
-                ? (isTe ? 'ప్రభుత్వ SMAM సబ్సిడీ డెస్క్' : 'Govt. SMAM Subsidy Desk')
-                : (isTe ? 'ఆంధ్రప్రదేశ్ & తెలంగాణ' : 'AP & Telangana RBK')}
+              {isEquipmentProvider ? t('support_center.smam_subsidy_desk', 'Govt. SMAM Subsidy Desk') : t('support_center.ap_tg_rbk', 'AP & Telangana RBK')}
             </span>
             <h3 className="text-xl sm:text-2xl font-black tracking-tight mt-1 text-emerald-400">
               {isEquipmentProvider ? '1800-180-1551' : '1907'}
             </h3>
             <p className="text-xs text-slate-300 font-medium">
-              {isEquipmentProvider
-                ? (isTe ? 'కస్టమ్ హైరింగ్ సెంటర్ (CHC) సబ్సిడీ విచారణ' : 'Custom Hiring Center (CHC) Machinery Subsidy')
-                : (isTe ? 'రైతు భరోసా కేంద్రం (ప్రత్యక్ష సహాయం)' : 'Rythu Bharosa Kendram Extension Line')}
+              {isEquipmentProvider ? t('support_center.chc_subsidy_inquiry', 'Custom Hiring Center (CHC) Machinery Subsidy') : t('support_center.rbk_extension_line', 'Rythu Bharosa Kendram Extension Line')}
             </p>
           </div>
           <a
@@ -622,7 +583,7 @@ export default function HelpSupportPage() {
             className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 shrink-0 transition-all"
           >
             <PhoneCall className="w-4 h-4" />
-            <span>{isEquipmentProvider ? (isTe ? 'సబ్సిడీ హెల్ప్‌లైన్' : 'Dial Helpline') : (isTe ? '1907 కు కాల్' : 'Dial 1907')}</span>
+            <span>{isEquipmentProvider ? t('support_center.dial_helpline', 'Dial Helpline') : t('support_center.dial_1907', 'Dial 1907')}</span>
           </a>
         </div>
       </div>
@@ -638,7 +599,7 @@ export default function HelpSupportPage() {
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          {t('support_page.contact_support', isTe ? 'మద్దతు మార్గాలు (Contact)' : 'Contact Support')}
+          {t('support_page.contact_support', 'Contact Support')}
         </button>
 
         <button
@@ -650,7 +611,7 @@ export default function HelpSupportPage() {
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          {t('support_page.my_tickets', isTe ? 'నా ఫిర్యాదులు (My Tickets)' : 'My Support Tickets')}
+          {t('support_page.my_tickets', 'My Support Tickets')}
         </button>
 
         <button
@@ -662,7 +623,7 @@ export default function HelpSupportPage() {
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          {t('support_page.faq_title', isTe ? 'తరచుగా అడిగే ప్రశ్నలు (FAQ)' : 'Instant Help & FAQ')}
+          {t('support_page.faq_title', 'Instant Help & FAQ')}
         </button>
       </div>
 
@@ -678,12 +639,10 @@ export default function HelpSupportPage() {
                   <MessageCircle className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  {t('support_page.whatsapp_advisory', isTe ? 'వాట్సాప్ ఇన్‌స్టంట్ హెల్ప్‌డెస్క్' : 'WhatsApp Instant Helpdesk')}
+                  {t('support_page.whatsapp_advisory', 'WhatsApp Instant Helpdesk')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {isTe
-                    ? 'మీ సమస్య వివరాలతో ఆటో-ఫిల్ అయిన వాట్సాప్ మెసేజ్ ద్వారా మా సపోర్ట్ ఆఫీసర్‌తో నేరుగా చాట్ చేయండి.'
-                    : 'Chat directly with an AgriShield agronomist on WhatsApp with pre-filled farm diagnostics.'}
+                  {t('support_page.whatsapp_desc', 'Chat directly with an AgriShield agronomist on WhatsApp with pre-filled farm diagnostics.')}
                 </p>
                 <div className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
                   <span>📱 WA: {supportConfig.whatsapp_number}</span>
@@ -696,7 +655,7 @@ export default function HelpSupportPage() {
                 className="w-full py-3 px-4 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>{t('support_page.chat_on_whatsapp', isTe ? 'వాట్సాప్‌లో చాట్ చేయండి' : 'Chat on WhatsApp Now')}</span>
+                <span>{t('support_page.chat_on_whatsapp', 'Chat on WhatsApp Now')}</span>
               </button>
             </div>
 
@@ -707,12 +666,10 @@ export default function HelpSupportPage() {
                   <PhoneCall className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  {t('support_page.request_callback', isTe ? '15 నిమిషాల్లో కాల్‌బ్యాక్ అభ్యర్థించండి' : 'Request a 15-Minute Callback')}
+                  {t('support_page.request_callback', 'Request a 15-Minute Callback')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {isTe
-                    ? 'టైప్ చేయడం కంటే మాట్లాడటం ఇష్టపడే రైతులకు. మా అధికారి 15 నిమిషాల్లో మీ ఫోన్‌కు నేరుగా కాల్ చేస్తారు.'
-                    : 'Preferred by field farmers. An agricultural technician will call your phone within 15 minutes.'}
+                  {t('support_page.callback_desc', 'Preferred by field farmers. An agricultural technician will call your phone within 15 minutes.')}
                 </p>
               </div>
 
@@ -722,7 +679,7 @@ export default function HelpSupportPage() {
                 className="w-full py-3 px-4 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
               >
                 <PhoneCall className="w-4 h-4" />
-                <span>{isTe ? 'నాకు కాల్ చేయండి' : 'Request Callback'}</span>
+                <span>{t('support_center.request_callback_btn', 'Request Callback')}</span>
               </button>
             </div>
           </div>
@@ -733,14 +690,10 @@ export default function HelpSupportPage() {
               {isEquipmentProvider ? <Wrench className="w-5 h-5 text-indigo-600" /> : <FileText className="w-5 h-5 text-emerald-600" />}
               <div>
                 <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {isEquipmentProvider
-                    ? (isTe ? 'మెషినరీ, బుకింగ్ లేదా అద్దె చెల్లింపు టికెట్ నమోదు' : 'Submit a Machinery, Booking or Payout Ticket')
-                    : t('support_page.submit_ticket', isTe ? 'సాంకేతిక సమస్య లేదా సలహా టికెట్ నమోదు' : 'Submit a Technical or Agronomy Ticket')}
+                  {isEquipmentProvider ? t('support_center.prov_ticket_title', 'Submit a Machinery, Booking or Payout Ticket') : t('support_page.submit_ticket', 'Submit a Technical or Agronomy Ticket')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {isEquipmentProvider
-                    ? (isTe ? 'ఫ్లీట్ లిస్టింగ్ సమస్యలు, రైతు బుకింగ్ వివాదాలు లేదా చెల్లింపులపై అధికారిక టికెట్ సమర్పించండి' : 'Report fleet listing issues, farmer booking disputes, or payment settlements')
-                    : (isTe ? 'హార్డ్‌వేర్, సెన్సార్, పంట లేదా యాప్ సమస్యలపై వివరణాత్మక టికెట్ సమర్పించండి' : 'Report hardware faults, crop scan reviews, or account issues')}
+                  {isEquipmentProvider ? t('support_center.prov_ticket_desc', 'Report fleet listing issues, farmer booking disputes, or payment settlements') : t('support_center.farmer_ticket_desc', 'Report hardware faults, crop scan reviews, or account issues')}
                 </p>
               </div>
             </div>
@@ -776,10 +729,10 @@ export default function HelpSupportPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="font-extrabold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    <span>{isEquipmentProvider ? (isTe ? 'ఫిర్యాదు వర్గం ఎంచుకోండి:' : 'Select Issue Category:') : (isTe ? 'సమస్య వర్గం:' : 'Select Issue Category:')}</span>
+                    <span>{t('support_center.select_category', 'Select Issue Category:')}</span>
                   </label>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                    {activeCategories.length} {isTe ? 'వర్గాలు అందుబాటులో ఉన్నాయి' : 'Categories Available'}
+                    {activeCategories.length} {t('support_center.categories_available', 'Categories Available')}
                   </span>
                 </div>
 
@@ -800,7 +753,7 @@ export default function HelpSupportPage() {
                         }`}
                       >
                         <span>{cat.icon}</span>
-                        <span>{isTe ? (cat.badge_te || cat.label_te) : (cat.badge_en || cat.label_en)}</span>
+                        <span>{cat.badge_en || cat.label_en}</span>
                       </button>
                     );
                   })}
@@ -812,7 +765,7 @@ export default function HelpSupportPage() {
                 {/* Category Dropdown */}
                 <div className="space-y-1.5">
                   <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                    {t('support_page.category', isTe ? 'సమస్య వర్గం (Category):' : 'Issue Category:')}
+                    {t('support_page.category', 'Issue Category:')}
                   </label>
                   <select
                     value={ticketCategory}
@@ -821,7 +774,7 @@ export default function HelpSupportPage() {
                   >
                     {activeCategories.map((cat) => (
                       <option key={cat.value} value={cat.value}>
-                        {isTe ? cat.label_te : cat.label_en}
+                        {cat.label_en}
                       </option>
                     ))}
                   </select>
@@ -830,17 +783,17 @@ export default function HelpSupportPage() {
                 {/* Priority Selection */}
                 <div className="space-y-1.5">
                   <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                    {isTe ? 'ప్రాధాన్యత (Priority Level):' : 'Priority Level:'}
+                    {t('support_center.priority_level', 'Priority Level:')}
                   </label>
                   <select
                     value={ticketPriority}
                     onChange={(e) => setTicketPriority(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="low">{isTe ? '🟢 సాధారణం (Low - 48h)' : '🟢 Low (48h resolution)'}</option>
-                    <option value="medium">{isTe ? '🟡 మధ్యస్థం (Medium - 24h)' : '🟡 Medium (24h resolution)'}</option>
-                    <option value="high">{isTe ? '🟠 ఎక్కువ (High - 12h priority)' : '🟠 High (12h priority)'}</option>
-                    <option value="urgent">{isTe ? '🔴 అత్యవసరం (Urgent field issue)' : '🔴 Urgent (Field emergency)'}</option>
+                    <option value="low">{t('support_center.priority_low', '🟢 Low (48h resolution)')}</option>
+                    <option value="medium">{t('support_center.priority_medium', '🟡 Medium (24h resolution)')}</option>
+                    <option value="high">{t('support_center.priority_high', '🟠 High (12h priority)')}</option>
+                    <option value="urgent">{t('support_center.priority_urgent', '🔴 Urgent (Field emergency)')}</option>
                   </select>
                 </div>
               </div>
@@ -850,10 +803,10 @@ export default function HelpSupportPage() {
                 <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/20 border border-emerald-200/90 dark:border-emerald-800/60 text-xs space-y-1">
                   <div className="flex items-center gap-1.5 font-black text-emerald-800 dark:text-emerald-300 text-[11px] uppercase tracking-wider">
                     <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>{isTe ? 'ఈ వర్గాన్ని ఎందుకు ఎంచుకోవాలి? (Reason to Select):' : 'Why select this category? (Reason & Guidance):'}</span>
+                    <span>{t('support_center.reason_guidance', 'Why select this category? (Reason & Guidance):')}</span>
                   </div>
                   <p className="text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
-                    {isTe ? selectedCategoryMeta.reason_te : selectedCategoryMeta.reason_en}
+                    {selectedCategoryMeta.reason_en}
                   </p>
                 </div>
               )}
@@ -861,16 +814,14 @@ export default function HelpSupportPage() {
               {/* Subject Input */}
               <div className="space-y-1.5">
                 <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                  {t('support_page.subject', isTe ? 'సమస్య శీర్షిక (Subject):' : 'Subject Summary:')}
+                  {t('support_page.subject', 'Subject Summary:')}
                 </label>
                 <input
                   type="text"
                   value={ticketSubject}
                   onChange={(e) => setTicketSubject(e.target.value)}
                   placeholder={
-                    isEquipmentProvider
-                      ? (isTe ? 'ఉదా: బుకింగ్ #BK-94812 రైతు పొలానికి రాలేదు' : 'e.g., Farmer absent for booking #BK-94812, or Rotavator payout delayed')
-                      : (isTe ? 'ఉదా: ESP32 నోడ్ తేమ రీడింగ్ సరిగ్గా రావడం లేదు' : 'e.g., Soil moisture sensor fluctuating on ESP32 node')
+                    isEquipmentProvider ? t('support_center.prov_subj_placeholder', 'e.g., Farmer absent for booking #BK-94812, or Rotavator payout delayed') : t('support_center.farmer_subj_placeholder', 'e.g., Soil moisture sensor fluctuating on ESP32 node')
                   }
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
                   required
@@ -880,16 +831,14 @@ export default function HelpSupportPage() {
               {/* Detailed Description */}
               <div className="space-y-1.5">
                 <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                  {t('support_page.description', isTe ? 'సమస్య పూర్తి వివరణ (Description):' : 'Detailed Description:')}
+                  {t('support_page.description', 'Detailed Description:')}
                 </label>
                 <textarea
                   rows={4}
                   value={ticketDesc}
                   onChange={(e) => setTicketDesc(e.target.value)}
                   placeholder={
-                    isEquipmentProvider
-                      ? (isTe ? 'మీ యంత్రం, బుకింగ్ నంబర్, తేదీ/సమయం, రైతు వివరాలు మరియు మీకు కావాల్సిన పరిష్కారాన్ని వివరించండి...' : 'Describe the machinery, booking number, date/time, farmer details, and what resolution you require...')
-                      : (isTe ? 'మీ పొలం పరిస్థితి, ఎప్పటి నుండి సమస్య ఉంది, మరియు ఎలాంటి సహాయం కావాలో వివరించండి...' : 'Describe what happened, any error messages, and what assistance you require...')
+                    isEquipmentProvider ? t('support_center.prov_desc_placeholder', 'Describe the machinery, booking number, date/time, farmer details, and what resolution you require...') : t('support_center.farmer_desc_placeholder', 'Describe what happened, any error messages, and what assistance you require...')
                   }
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"
                   required
@@ -900,9 +849,7 @@ export default function HelpSupportPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                    {isEquipmentProvider
-                      ? (isTe ? 'యంత్రం ID లేదా బుకింగ్ నంబర్ (#BK-XXXXX) (ఐచ్ఛికం):' : 'Machinery ID or Booking Reference (#BK-XXXXX) (Optional):')
-                      : (isTe ? 'హార్డ్‌వేర్ పరికరం ID (ఐచ్ఛికం):' : 'Hardware Node ID (Optional):')}
+                    {isEquipmentProvider ? t('support_center.machinery_ref_label', 'Machinery ID or Booking Reference (#BK-XXXXX) (Optional):') : t('support_center.hardware_node_label', 'Hardware Node ID (Optional):')}
                   </label>
                   <input
                     type="text"
@@ -915,7 +862,7 @@ export default function HelpSupportPage() {
 
                 <div className="space-y-1.5">
                   <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                    {t('support_page.phone', isTe ? 'సంప్రదించాల్సిన ఫోన్ నంబర్:' : 'Contact Phone Number:')}
+                    {t('support_page.phone', 'Contact Phone Number:')}
                   </label>
                   <input
                     type="tel"
@@ -939,9 +886,7 @@ export default function HelpSupportPage() {
               >
                 <Send className="w-4 h-4" />
                 <span>
-                  {ticketSubmitting 
-                    ? (isTe ? 'నమోదవుతోంది...' : 'Submitting Ticket...') 
-                    : (isTe ? 'టికెట్ సమర్పించండి' : 'Submit Support Ticket')}
+                  {ticketSubmitting ? t('support_center.submitting_ticket', 'Submitting Ticket...') : t('support_center.submit_support_ticket', 'Submit Support Ticket')}
                 </span>
               </button>
             </form>
@@ -955,7 +900,7 @@ export default function HelpSupportPage() {
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{isTe ? 'నా ప్రస్తుత ఫిర్యాదులు & అభ్యర్థనలు' : 'My Support Tickets & Callback Status'}</span>
+              <span>{t('support_center.my_tickets_heading', 'My Support Tickets & Callback Status')}</span>
             </h3>
             <button
               type="button"
@@ -964,13 +909,13 @@ export default function HelpSupportPage() {
               className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
             >
               <RotateCcw className={`w-3 h-3 ${loadingTickets ? 'animate-spin' : ''}`} />
-              <span>{isTe ? 'రిఫ్రెష్' : 'Refresh'}</span>
+              <span>{t('support_center.refresh', 'Refresh')}</span>
             </button>
           </div>
 
           {loadingTickets ? (
             <div className="p-8 text-center text-slate-400 text-xs">
-              {isTe ? 'టికెట్లు లోడ్ అవుతున్నాయి...' : 'Loading support tickets...'}
+              {t('support_center.loading_tickets', 'Loading support tickets...')}
             </div>
           ) : myTickets.length === 0 ? (
             <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 text-center space-y-3">
@@ -978,12 +923,10 @@ export default function HelpSupportPage() {
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                {isTe ? 'ఎలాంటి పెండింగ్ సమస్యలు లేవు!' : 'No Open Support Tickets'}
+                {t('support_center.no_open_tickets', 'No Open Support Tickets')}
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                {isTe
-                  ? 'మీకు ఏవైనా ప్రశ్నలు లేదా సమస్యలు ఉంటే పైనున్న "మద్దతు మార్గాలు" ట్యాబ్ ద్వారా కొత్త టికెట్ లేదా కాల్‌బ్యాక్ అభ్యర్థించండి.'
-                  : 'You do not have any open support complaints. Submit a ticket or request a callback anytime you need assistance.'}
+                {t('support_center.no_open_tickets_desc', 'You do not have any open support complaints. Submit a ticket or request a callback anytime you need assistance.')}
               </p>
             </div>
           ) : (
@@ -1007,11 +950,11 @@ export default function HelpSupportPage() {
                             ? 'bg-blue-500/15 text-blue-600 border border-blue-500/30'
                             : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
                         }`}>
-                          {tkt.status === 'resolved' ? (t('support_center.resolved', 'Resolved')) : (tkt.status === 'in_progress' ? (isTe ? 'పరిశీలనలో ఉంది' : 'In Progress') : (isTe ? 'ఓపెన్' : 'Open'))}
+                          {tkt.status === 'resolved' ? (t('support_center.resolved', 'Resolved')) : (tkt.status === 'in_progress' ? (t('support_center.in_progress', 'In Progress')) : (t('support_center.open', 'Open')))}
                         </span>
                         {matchedCat && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                            {matchedCat.icon} {isTe ? (matchedCat.badge_te || matchedCat.label_te) : (matchedCat.badge_en || matchedCat.label_en)}
+                            {matchedCat.icon} {matchedCat.badge_en || matchedCat.label_en}
                           </span>
                         )}
                         {tkt.is_callback_request && (
@@ -1045,7 +988,7 @@ export default function HelpSupportPage() {
                     {tkt.resolution_notes && (
                       <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-500/30 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block">
-                          {isTe ? 'సపోర్ట్ బృందం పరిష్కార వివరాలు (Support Resolution):' : 'Support Resolution Note:'}
+                          {t('support_center.resolution_note', 'Support Resolution Note:')}
                         </span>
                         <p className="font-medium leading-relaxed">{tkt.resolution_notes}</p>
                       </div>
@@ -1064,7 +1007,7 @@ export default function HelpSupportPage() {
           <div className="px-1">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{isEquipmentProvider ? (isTe ? 'ప్రొవైడర్లకు తక్షణ సమాధానాలు & మార్గదర్శకాలు' : 'Provider Instant Solutions & Guidelines') : (isTe ? 'రైతులకు తక్షణ సమాధానాలు & పరిష్కారాలు' : 'Instant Self-Help Solutions & FAQs')}</span>
+              <span>{isEquipmentProvider ? t('support_center.provider_faqs_title', 'Provider Instant Solutions & Guidelines') : t('support_center.farmer_faqs_title', 'Instant Self-Help Solutions & FAQs')}</span>
             </h3>
           </div>
 
@@ -1114,14 +1057,10 @@ export default function HelpSupportPage() {
                   </div>
                   <div>
                     <h3 className="text-sm sm:text-base font-black">
-                      {isEquipmentProvider 
-                        ? (isTe ? '15 నిమిషాల్లో ప్రొవైడర్ కాల్‌బ్యాక్ అభ్యర్థించండి' : 'Request a 15-Minute Operations Callback')
-                        : t('support_page.request_callback', isTe ? '15 నిమిషాల్లో కాల్‌బ్యాక్ అభ్యర్థించండి' : 'Request a 15-Minute Callback')}
+                      {isEquipmentProvider ? t('support_center.provider_callback_title', 'Request a 15-Minute Operations Callback') : t('support_page.request_callback', 'Request a 15-Minute Callback')}
                     </h3>
                     <p className="text-[11px] text-slate-400">
-                      {isEquipmentProvider
-                        ? (isTe ? 'మా మెషినరీ ఆపరేషన్స్ మేనేజర్ మీతో నేరుగా మాట్లాడతారు' : 'Speak directly with our machinery operations manager')
-                        : (isTe ? 'మా వ్యవసాయ అధికారి మీతో నేరుగా మాట్లాడతారు' : 'Speak directly with our agricultural specialist')}
+                      {isEquipmentProvider ? t('support_center.provider_callback_desc', 'Speak directly with our machinery operations manager') : t('support_center.farmer_callback_desc', 'Speak directly with our agricultural specialist')}
                     </p>
                   </div>
                 </div>
@@ -1154,7 +1093,7 @@ export default function HelpSupportPage() {
                   />
                   <div className="space-y-1.5">
                     <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                      {isTe ? 'మీ ఫోన్ నంబర్:' : 'Your Phone Number:'}
+                      {t('support_center.your_phone', 'Your Phone Number:')}
                     </label>
                     <input
                       type="tel"
@@ -1168,7 +1107,7 @@ export default function HelpSupportPage() {
 
                   <div className="space-y-1.5">
                     <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                      {isTe ? 'మీరు మాట్లాడాలనుకునే భాష:' : 'Preferred Language for Call:'}
+                      {t('support_center.preferred_lang_call', 'Preferred Language for Call:')}
                     </label>
                     <select
                       value={callbackLang}
@@ -1187,16 +1126,14 @@ export default function HelpSupportPage() {
 
                   <div className="space-y-1.5">
                     <label className="font-extrabold text-slate-700 dark:text-slate-300">
-                      {isTe ? 'సమస్య క్లుప్తంగా (ఐచ్ఛికం):' : 'Brief Issue (Optional):'}
+                      {t('support_center.brief_issue_label', 'Brief Issue (Optional):')}
                     </label>
                     <input
                       type="text"
                       value={callbackIssue}
                       onChange={(e) => setCallbackIssue(e.target.value)}
                       placeholder={
-                        isEquipmentProvider
-                          ? (isTe ? 'ఉదా: ట్రాక్టర్ బుకింగ్ వివాదం లేదా అత్యవసర అద్దె చెల్లింపు' : 'e.g., Tractor booking dispute or urgent payout settlement')
-                          : (isTe ? 'ఉదా: టమోటా పంట ఆకులపై మచ్చలు, పిచికారీ సలహా' : 'e.g., Tomato leaf blight, spray advice required')
+                        isEquipmentProvider ? t('support_center.cb_prov_issue_ph', 'e.g., Tractor booking dispute or urgent payout settlement') : t('support_center.cb_farmer_issue_ph', 'e.g., Tomato leaf blight, spray advice required')
                       }
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium outline-none focus:ring-2 focus:ring-sky-500"
                     />
@@ -1208,7 +1145,7 @@ export default function HelpSupportPage() {
                     className="w-full py-3 px-4 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer mt-2"
                   >
                     <PhoneCall className="w-4 h-4" />
-                    <span>{callbackSubmitting ? (isTe ? 'నమోదవుతోంది...' : 'Submitting...') : (isTe ? 'కాల్‌బ్యాక్ నిర్ధారించండి' : 'Confirm Callback Request')}</span>
+                    <span>{callbackSubmitting ? t('support_center.submitting', 'Submitting...') : t('support_center.confirm_callback', 'Confirm Callback Request')}</span>
                   </button>
                 </form>
               )}

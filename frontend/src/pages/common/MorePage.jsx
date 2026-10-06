@@ -65,7 +65,6 @@ const MenuCard = ({ icon: Icon, label, description, path, iconColor, iconBg, acc
 const MorePage = () => {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
-  const isTe = currentLang === 'te';
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { hardwareMode, setHardwareMode } = useHardwareMode();
@@ -80,23 +79,23 @@ const MorePage = () => {
   const FARMING_TOOLS = [
     {
       icon: Truck,
-      label: isTe ? 'వ్యవసాయ పరికరాలు, ట్రాక్టర్ & డ్రోన్ అద్దె' : 'Farm Machinery, Drone & Pump Rental',
-      description: isTe ? 'ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు & నీటిపారుదల పంపుల బుకింగ్ లేదా మీ యంత్రాల రిజిస్ట్రేషన్' : 'Book nearby tractors, spraying drones & irrigation pumps or list your equipment',
+      label: t('more.machinery_rental', 'Farm Machinery, Drone & Pump Rental'),
+      description: t('more.machinery_rental_desc', 'Book nearby tractors, spraying drones & irrigation pumps or list your equipment'),
       path: '/equipment-booking',
       iconColor: 'text-amber-600 dark:text-amber-400',
       iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',
       accent: 'border-l-amber-500',
-      badge: isTe ? 'రైతు అద్దె సేవలు' : 'Live Rentals'
+      badge: t('more.live_rentals', 'Live Rentals')
     },
     {
       icon: Ruler,
-      label: isTe ? 'పొలం విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator',
-      description: isTe ? 'జీపీఎస్ వాక్ మోడ్ & మ్యాప్ ద్వారా ఖచ్చితమైన ఎకరాలు, గుంటలు, సెంట్లు కొలవండి' : 'GPS perimeter walk & map pin measuring for acres, cents & gunthas',
+      label: t('more.field_calculator', 'Field Area Calculator'),
+      description: t('more.field_calculator_desc', 'GPS perimeter walk & map pin measuring for acres, cents & gunthas'),
       path: '/field-calculator',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
       iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
       accent: 'border-l-emerald-500',
-      badge: isTe ? '1m ఖచ్చితత్వం' : '1m GPS'
+      badge: t('more.1m_gps', '1m GPS')
     },
     {
       icon: TrendingUp,
@@ -161,11 +160,11 @@ const MorePage = () => {
     {
       icon: Headphones,
       label: isEquipmentProvider 
-        ? (isTe ? 'మెషినరీ ప్రొవైడర్ సపోర్ట్ & హెల్ప్‌డెస్క్' : 'Provider Support & Help Desk')
-        : (isTe ? 'రైతు మద్దతు & హెల్ప్‌డెస్క్' : 'Help & Support Team'),
+        ? t('more.provider_support', 'Provider Support & Help Desk')
+        : t('more.farmer_support', 'Help & Support Team'),
       description: isEquipmentProvider
-        ? (isTe ? '24x7 యంత్రాల డిస్పాచ్, రైతు బుకింగ్ వివాదాలు & అద్దె చెల్లింపుల మద్దతు' : '24x7 machinery dispatch, booking disputes & rental payouts desk')
-        : (isTe ? '24x7 వాట్సాప్ సహాయం, 15 నిమిషాల కాల్‌బ్యాక్ & సాంకేతిక టికెట్ సేవ' : '24x7 WhatsApp desk, 15-min phone callback & tech tickets'),
+        ? t('more.provider_support_desc', '24x7 machinery dispatch, booking disputes & rental payouts desk')
+        : t('more.farmer_support_desc', '24x7 WhatsApp desk, 15-min phone callback & tech tickets'),
       path: '/support',
       iconColor: 'text-indigo-600 dark:text-indigo-400',
       iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
@@ -203,28 +202,28 @@ const MorePage = () => {
   const PROVIDER_HUB_TOOLS = [
     {
       icon: Truck,
-      label: isTe ? 'మెషినరీ ఫ్లీట్ & రిజిస్ట్రేషన్' : 'Machinery Fleet Hub',
-      description: isTe ? 'ట్రాక్టర్లు, డ్రోన్లు, హార్వెస్టర్ల లభ్యత & ధరలను నిర్వహించండి' : 'Manage your listed tractors, spray drones & attachments',
+      label: t('more.machinery_fleet', 'Machinery Fleet Hub'),
+      description: t('more.machinery_fleet_desc', 'Manage your listed tractors, spray drones & attachments'),
       path: '/provider/dashboard?tab=fleet',
       iconColor: 'text-amber-600 dark:text-amber-400',
       iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',
       accent: 'border-l-amber-500',
-      badge: isTe ? 'లైవ్ ఫ్లీట్' : 'Active Fleet'
+      badge: t('more.active_fleet', 'Active Fleet')
     },
     {
       icon: Calendar,
-      label: isTe ? 'రైతు బుకింగ్‌లు & ఆర్డర్లు' : 'Farmer Booking Orders',
-      description: isTe ? 'వచ్చిన కొత్త బుకింగ్ అభ్యర్థనలు ఆమోదించండి & డిస్పాచ్ చేయండి' : 'Accept, schedule, and complete incoming farm service requests',
+      label: t('more.booking_orders', 'Farmer Booking Orders'),
+      description: t('more.booking_orders_desc', 'Accept, schedule, and complete incoming farm service requests'),
       path: '/provider/dashboard?tab=orders',
       iconColor: 'text-indigo-600 dark:text-indigo-400',
       iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
       accent: 'border-l-indigo-500',
-      badge: isTe ? 'ఆర్డర్లు' : 'Orders'
+      badge: t('more.orders_badge', 'Orders')
     },
     {
       icon: TrendingUp,
-      label: isTe ? 'సంపాదన & లెడ్జర్ లెక్కలు' : 'Earnings & Payout Ledger',
-      description: isTe ? 'రోజువారీ & ఎకరాల వారీ అద్దె ఆదాయం, పెండింగ్ బకాయిల లెక్కలు' : 'Daily & acreage rental revenue, completed job earnings, UPI payouts',
+      label: t('more.earnings_ledger', 'Earnings & Payout Ledger'),
+      description: t('more.earnings_ledger_desc', 'Daily & acreage rental revenue, completed job earnings, UPI payouts'),
       path: '/provider/dashboard?tab=earnings',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
       iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
@@ -232,18 +231,18 @@ const MorePage = () => {
     },
     {
       icon: Bot,
-      label: isTe ? 'AI మెషినరీ & ఫ్లీట్ కోపైలట్ (AI చాట్ బాట్)' : 'AI Machinery & Fleet Copilot',
-      description: isTe ? 'ట్రాక్టర్ ఇంజిన్ నిర్వహణ, డ్రోన్ బ్యాటరీలు, డీజిల్ వినియోగం & అద్దె ధరల AI సలహాదారు' : 'AI chatbot for tractor maintenance, drone battery SOPs, per-acre diesel & rental pricing',
+      label: t('more.machinery_copilot', 'AI Machinery & Fleet Copilot'),
+      description: t('more.machinery_copilot_desc', 'AI chatbot for tractor maintenance, drone battery SOPs, per-acre diesel & rental pricing'),
       path: '/provider/dashboard?tab=copilot',
       iconColor: 'text-purple-600 dark:text-purple-400',
       iconBg: 'bg-purple-100 dark:bg-purple-950/70 border border-purple-300 dark:border-purple-800',
       accent: 'border-l-purple-500',
-      badge: isTe ? 'AI చాట్ బాట్' : 'AI Assistant'
+      badge: t('more.ai_assistant', 'AI Assistant')
     },
     {
       icon: Ruler,
-      label: isTe ? 'పొలం విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator',
-      description: isTe ? 'జీపీఎస్ వాక్ మోడ్ ద్వారా ఎకరాలు, గుంటలు లెక్కించండి' : 'Measure farmer fields accurately with GPS for exact acre billing',
+      label: t('more.field_calculator', 'Field Area Calculator'),
+      description: t('more.field_calculator_desc2', 'Measure farmer fields accurately with GPS for exact acre billing'),
       path: '/field-calculator',
       iconColor: 'text-cyan-600 dark:text-cyan-400',
       iconBg: 'bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300 dark:border-cyan-800',
@@ -254,8 +253,8 @@ const MorePage = () => {
   const PROVIDER_ACCOUNT_TOOLS = [
     {
       icon: Bell,
-      label: isTe ? 'బుకింగ్ నోటిఫికేషన్ల ఇన్‌బాక్స్' : 'Booking Notifications Inbox',
-      description: isTe ? 'రైతుల నుండి వచ్చిన కొత్త బుకింగ్ అలర్ట్‌లు మరియు డిస్పాచ్ సందేశాలు' : 'Real-time alerts for new tractor/drone bookings and farmer requests',
+      label: t('more.notifications_inbox', 'Booking Notifications Inbox'),
+      description: t('more.notifications_inbox_desc', 'Real-time alerts for new tractor/drone bookings and farmer requests'),
       path: '/notifications',
       iconColor: 'text-amber-600 dark:text-amber-400',
       iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',
@@ -263,8 +262,8 @@ const MorePage = () => {
     },
     {
       icon: User,
-      label: isTe ? 'మెషినరీ ప్రొవైడర్ ప్రొఫైల్' : 'Equipment Provider Profile',
-      description: isTe ? 'హబ్ పేరు, సర్వీస్ పరిధి (కి.మీ), ఆపరేటర్ల సంఖ్య & యూపీఐ ఐడీ' : 'Hub name, dispatch radius, operator count & payment UPI ID',
+      label: t('more.provider_profile', 'Equipment Provider Profile'),
+      description: t('more.provider_profile_desc', 'Hub name, dispatch radius, operator count & payment UPI ID'),
       path: '/profile',
       iconColor: 'text-rose-600 dark:text-rose-400',
       iconBg: 'bg-rose-100 dark:bg-rose-950/70 border border-rose-300 dark:border-rose-800',
@@ -272,8 +271,8 @@ const MorePage = () => {
     },
     {
       icon: Settings,
-      label: isTe ? 'సిస్టమ్ & డిస్‌ప్లే సెట్టింగ్‌లు' : 'System & Display Settings',
-      description: isTe ? 'థీమ్, ఫీల్డ్ మోడ్, వేలిముద్ర లాగిన్ సెట్టింగ్‌లు' : 'Theme, Field High-Contrast mode, biometrics & accessibility',
+      label: t('more.system_settings', 'System & Display Settings'),
+      description: t('more.system_settings_desc', 'Theme, Field High-Contrast mode, biometrics & accessibility'),
       path: '/settings',
       iconColor: 'text-emerald-600 dark:text-emerald-400',
       iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
@@ -281,8 +280,8 @@ const MorePage = () => {
     },
     {
       icon: Headphones,
-      label: isTe ? 'ప్రొవైడర్ మద్దతు & హెల్ప్‌డెస్క్' : 'Provider Support & Helpdesk',
-      description: isTe ? '24x7 టెక్నికల్ డెస్క్, డిస్పాచ్ సహాయం & కాల్‌బ్యాక్' : '24x7 WhatsApp support, machinery dispatch assist & phone callback',
+      label: t('more.provider_helpdesk', 'Provider Support & Helpdesk'),
+      description: t('more.provider_helpdesk_desc', '24x7 WhatsApp support, machinery dispatch assist & phone callback'),
       path: '/support',
       iconColor: 'text-indigo-600 dark:text-indigo-400',
       iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
@@ -415,11 +414,11 @@ const MorePage = () => {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              {isAdmin ? 'Settings & System Hub' : isEquipmentProvider ? (isTe ? 'ప్రొవైడర్ హబ్ & సెట్టింగ్‌లు' : 'Equipment Provider Hub & More') : (isTe ? 'మరిన్ని సాధనాలు & సెట్టింగ్‌లు' : 'More Tools & Settings')}
+              {isAdmin ? 'Settings & System Hub' : isEquipmentProvider ? t('more.provider_hub_settings', 'Equipment Provider Hub & More') : t('more.tools_settings', 'More Tools & Settings')}
             </h1>
             {isEquipmentProvider && (
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                {isTe ? 'మీ యంత్రాల సేవలు, ఆర్డర్లు & హబ్ సెట్టింగ్‌లు' : 'Machinery rental fleet, bookings & hub settings'}
+                {t('more.hub_settings_subtitle', 'Machinery rental fleet, bookings & hub settings')}
               </p>
             )}
           </div>
@@ -430,7 +429,7 @@ const MorePage = () => {
           <div className="space-y-2 mb-6">
             <div className="flex items-center justify-between px-1">
               <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                {isTe ? "ఆపరేటింగ్ మోడ్" : "Operating Mode"}
+                {t('more.operating_mode', 'Operating Mode')}
               </span>
               <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${hardwareMode
                   ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25'
@@ -462,10 +461,10 @@ const MorePage = () => {
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                    {isTe ? "సాఫ్ట్‌వేర్ AI మోడ్" : "Software AI Mode"}
+                    {t('more.software_ai_mode', 'Software AI Mode')}
                   </h3>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-snug">
-                    {isTe ? "మొబైల్ కెమెరా స్కాన్, వాతావరణం, మండి ధరలు" : "Camera scan, weather, satellite map & mandi rates"}
+                    {t('more.software_ai_desc', 'Camera scan, weather, satellite map & mandi rates')}
                   </p>
                 </div>
               </button>
@@ -491,10 +490,10 @@ const MorePage = () => {
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                    {isTe ? "స్మార్ట్ IoT హార్డ్‌వేర్" : "Smart IoT Hardware"}
+                    {t('more.smart_iot_hardware', 'Smart IoT Hardware')}
                   </h3>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 leading-snug">
-                    {isTe ? "ESP32 సెన్సార్ నోడ్స్, నేల ప్రోబ్స్ & మైక్రో-SD" : "ESP32 nodes, live telemetry & SD blackbox logs"}
+                    {t('more.smart_iot_desc', 'ESP32 nodes, live telemetry & SD blackbox logs')}
                   </p>
                 </div>
               </button>
@@ -516,12 +515,12 @@ const MorePage = () => {
           </>
         ) : isEquipmentProvider ? (
           <>
-            <SectionHeader title={isTe ? "🚜 మెషినరీ ఫ్లీట్ & బుకింగ్‌లు" : "🚜 Machinery Fleet & Bookings"} first />
+            <SectionHeader title={t('more.machinery_fleet_bookings', '🚜 Machinery Fleet & Bookings')} first />
             <div className="flex flex-col gap-2.5">
               {PROVIDER_HUB_TOOLS.map((item) => <MenuCard key={item.path + item.label} {...item} onClick={item.onClick || navigate} />)}
             </div>
 
-            <SectionHeader title={isTe ? "👤 ప్రొవైడర్ ప్రొఫైల్ & సెట్టింగ్‌లు" : "👤 Provider Profile & Hub Settings"} />
+            <SectionHeader title={t('more.provider_profile_settings', '👤 Provider Profile & Hub Settings')} />
             <div className="flex flex-col gap-2.5">
               {PROVIDER_ACCOUNT_TOOLS.map((item) => <MenuCard key={item.path + item.label} {...item} onClick={item.onClick || navigate} />)}
             </div>

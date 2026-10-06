@@ -28,8 +28,6 @@ const DashboardPage = () => {
   const { activeFarm } = useFarm();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const isTe = i18n.language === 'te';
-  
   // Instant load: If cache exists from this session, do NOT show skeleton
   const [loading, setLoading] = useState(!cachedDashboardStats);
 
@@ -342,19 +340,19 @@ const DashboardPage = () => {
               <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/55 backdrop-blur-md border border-white/20 shadow-2xl space-y-3 max-w-2xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/30 border border-emerald-400/60 text-emerald-300 text-xs font-black shadow-md">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>🌾 {isTe ? 'పొలం ప్రత్యక్ష సమాచారం' : 'Authentic Field Telemetry'}</span>
+                  <span>🌾 {t('dashboard.telemetry_banner.title', 'Authentic Field Telemetry')}</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
                 </h2>
                 <div className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span>{isTe ? 'ఈరోజు ' : 'Today is '}</span>
+                  <span>{t('dashboard.telemetry_banner.today_is', 'Today is ')}</span>
                   <span className="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-black shadow-md border border-amber-300 text-xs sm:text-sm">
-                    ☀️ {isTe ? '34°C & ఎండగా ఉంది' : '34°C & Sunny'}
+                    ☀️ {t('dashboard.telemetry_banner.weather_summary', '34°C & Sunny')}
                   </span>
-                  <span>{isTe ? ' — సురక్షిత స్ప్రే సమయం: ' : ' — Safe spray window: '}</span>
+                  <span>{t('dashboard.telemetry_banner.safe_spray_window', ' — Safe spray window: ')}</span>
                   <span className="px-2.5 py-0.5 rounded-lg bg-emerald-400 text-slate-950 font-black shadow-md border border-emerald-300 text-xs sm:text-sm">
-                    ⏱️ {isTe ? 'ఉదయం 8 AM – 11 AM' : '8 AM – 11 AM'}
+                    ⏱️ {t('dashboard.telemetry_banner.spray_window_time', '8 AM – 11 AM')}
                   </span>
                 </div>
               </div>
@@ -363,19 +361,19 @@ const DashboardPage = () => {
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-lg">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{isTe ? 'పంట: ఆరోగ్యకరం' : 'Crops: Healthy'}</span>
+                  <span>{t('dashboard.telemetry_banner.crops_healthy', 'Crops: Healthy')}</span>
                 </div>
                 <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-sky-400/60 text-sky-300 text-xs sm:text-sm font-black shadow-lg">
                   <span>💧</span>
                   <span>
                     {activeTelemetry?.soil_moisture != null
-                      ? (isTe ? `నేల: ${activeTelemetry.soil_moisture}%` : `Soil: ${activeTelemetry.soil_moisture}%`)
-                      : (isTe ? 'నేల: సెన్సార్ లేదు' : 'Soil: No Sensor (Weather Mode)')}
+                      ? t('dashboard.telemetry_banner.soil_moisture_val', 'Soil: {{val}}%', { val: activeTelemetry.soil_moisture })
+                      : t('dashboard.telemetry_banner.soil_no_sensor', 'Soil: No Sensor (Weather Mode)')}
                   </span>
                 </div>
                 <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-lg">
                   <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{isTe ? 'తెగుళ్ల ముప్పు: తక్కువ' : 'Disease Risk: Low'}</span>
+                  <span>{t('dashboard.telemetry_banner.disease_risk_low', 'Disease Risk: Low')}</span>
                 </div>
               </div>
             </div>
@@ -482,7 +480,7 @@ const DashboardPage = () => {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-xs">
-                  ☁️ {isTe ? 'వాతావరణ మోడ్' : 'Weather Mode'}
+                  ☁️ {t('dashboard.telemetry_banner.weather_mode', 'Weather Mode')}
                 </span>
               )}
             </div>
@@ -625,10 +623,10 @@ const DashboardPage = () => {
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.machinery', isTe ? 'వ్యవసాయ యంత్రాలు & డ్రోన్లు' : 'Farm Machinery, Drone & Pump Rental')}
+                    {t('dashboard.quick_tools.machinery', 'Farm Machinery, Drone & Pump Rental')}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.machinery_desc', isTe ? 'ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు & పంపుల అద్దె.' : 'Book nearby tractors, spraying drones & pumps.')}
+                    {t('dashboard.quick_tools.machinery_desc', 'Book nearby tractors, spraying drones & pumps.')}
                   </p>
                 </div>
               </Card>
@@ -647,10 +645,10 @@ const DashboardPage = () => {
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.support', isTe ? 'రైతు సహాయం & మద్దతు' : 'Help & Support Team')}
+                    {t('dashboard.quick_tools.support', 'Help & Support Team')}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.support_desc', isTe ? '24×7 వాట్సాప్ సహాయం & కాల్‌బ్యాక్ సేవ.' : '24×7 WhatsApp desk & 15-min phone callback.')}
+                    {t('dashboard.quick_tools.support_desc', '24×7 WhatsApp desk & 15-min phone callback.')}
                   </p>
                 </div>
               </Card>

@@ -131,9 +131,9 @@ export const parseLocationParts = (farmLoc, activeFarm, user) => {
   return { village, mandal, district, state };
 };
 
-export const formatLocationSummary = (loc, isTe = false) => {
+export const formatLocationSummary = (loc, notSetLabel = 'Location not set') => {
   if (!loc || typeof loc !== 'object') {
-    return isTe ? 'లొకేషన్ నమోదు కాలేదు' : 'Location not set';
+    return typeof notSetLabel === 'string' ? notSetLabel : 'Location not set';
   }
   const cleanV = loc.village && loc.village !== '0' && loc.village !== 'undefined' ? String(loc.village).trim() : '';
   const cleanM = loc.mandal && loc.mandal !== '0' && loc.mandal !== 'undefined' ? String(loc.mandal).trim() : '';
@@ -148,7 +148,7 @@ export const formatLocationSummary = (loc, isTe = false) => {
     main = main ? `${main} (${cleanD})` : cleanD;
   }
 
-  return main || (isTe ? 'లొకేషన్ నమోదు కాలేదు' : 'Location not set');
+  return main || (typeof notSetLabel === 'string' ? notSetLabel : 'Location not set');
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -158,7 +158,6 @@ export const formatLocationSummary = (loc, isTe = false) => {
 export default function EquipmentBookingPage() {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
-  const isTe = currentLang === 'te';
   const navigate = useNavigate();
   const { activeFarm } = useFarm();
   const { user } = useAuth();
@@ -518,21 +517,19 @@ export default function EquipmentBookingPage() {
       booking_id: `INQ-${item.id}`,
       equipmentTitle: item.title,
       title: item.title,
-      providerName: item.providerName || item.ownerName || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
+      providerName: item.providerName || item.ownerName || t('equipment_hub.verified_provider', 'Verified Provider'),
       providerPhone: item.phone || item.contactPhone || '',
       provider_phone: item.phone || item.contactPhone || '',
-      farmerName: user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'),
+      farmerName: user?.name || user?.full_name || t('equipment_hub.farmer', 'Farmer'),
       farmerPhone: user?.phone || user?.mobile || '',
       phone: user?.phone || user?.mobile || '',
-      village: locationVillage || item.village || item.locationVillage || (isTe ? 'పొలం స్థానం' : 'Field Location'),
+      village: locationVillage || item.village || item.locationVillage || t('equipment_hub.field_location', 'Field Location'),
       mandal: locationMandal || item.mandal || '',
       district: locationDistrict || item.district || '',
       acres: '2',
       totalCost: item.ratePerAcre || item.hourlyRate || '800',
       status: 'inquiry',
-      message: isTe
-        ? `నమస్తే! నేను మీ ${item.title} యంత్రం అద్దెకు తీసుకోవడం గురించి సంప్రదిస్తున్నాను.`
-        : `Hello! Inquiring to rent your ${item.title} via AgriShield AI.`
+      message: t('equipment_hub.chat_inquiry_msg', { title: item.title, defaultValue: `Hello! Inquiring to rent your ${item.title} via AgriShield AI.` })
     };
     setActiveChatBooking(chatMessageObj);
   };
@@ -549,13 +546,13 @@ export default function EquipmentBookingPage() {
       booking_id: bKey,
       equipmentTitle: b.equipmentTitle || b.title || 'Farm Machinery',
       title: b.title || b.equipmentTitle || 'Farm Machinery',
-      providerName: b.providerName || (isTe ? 'ధృవీకరించబడిన ప్రొవైడర్' : 'Verified Provider'),
+      providerName: b.providerName || t('equipment_hub.verified_provider', 'Verified Provider'),
       providerPhone: b.providerPhone || b.phone || b.contactPhone || '',
       provider_phone: b.providerPhone || b.phone || b.contactPhone || '',
-      farmerName: b.farmerName || user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'),
+      farmerName: b.farmerName || user?.name || user?.full_name || t('equipment_hub.farmer', 'Farmer'),
       farmerPhone: b.farmerPhone || user?.phone || user?.mobile || '',
       phone: b.farmerPhone || user?.phone || user?.mobile || '',
-      village: b.village || locationVillage || (isTe ? 'పొలం స్థానం' : 'Field Location'),
+      village: b.village || locationVillage || t('equipment_hub.field_location', 'Field Location'),
       mandal: b.mandal || locationMandal || '',
       district: b.district || locationDistrict || '',
       acres: b.acres || '1.5',
@@ -565,9 +562,7 @@ export default function EquipmentBookingPage() {
       timeSlot: b.timeSlot,
       operation: b.operation,
       fieldStatus: b.fieldStatus,
-      message: isTe
-        ? `బుకింగ్ #${bKey} కోసం ప్రొవైడర్‌తో సంభాషణ.`
-        : `Booking #${bKey} coordination thread.`
+      message: t('equipment_hub.booking_conversation_msg', { bookingId: bKey, defaultValue: `Booking #${bKey} coordination thread.` })
     };
     setActiveChatBooking(chatMessageObj);
   };
@@ -584,13 +579,13 @@ export default function EquipmentBookingPage() {
     const bookingId = booking.id || booking._id;
 
     if (!canonicalFarmId) {
-      alert(isTe ? 'దయచేసి ముందుగా క్రియాశీల పొలాన్ని ఎంచుకోండి.' : 'Please select an active farm profile first.');
+      alert(t('equipment_hub.select_farm_first', 'Please select an active farm profile first.'));
       return;
     }
 
     // Prevent duplicate booking-expense insertion when the same booking is synced repeatedly
     if (booking.syncedToKhata) {
-      alert(isTe ? 'ఈ బుకింగ్ ఇప్పటికే డిజిటల్ ఖాతాలో చేర్చబడింది!' : 'This booking is already synced to Farm Khata!');
+      alert(t('equipment_hub.already_synced_khata', 'This booking is already synced to Farm Khata!'));
       return;
     }
 
@@ -628,11 +623,11 @@ export default function EquipmentBookingPage() {
         prev.map((b) => ((b.id === booking.id || b._id === booking._id) ? { ...b, syncedToKhata: true } : b))
       );
 
-      alert(isTe ? 'డిజిటల్ పొలం ఖాతా పాస్‌బుక్‌కు ఖర్చు విజయవంతంగా జోడించబడింది!' : 'Rental cost successfully logged into Digital Farm Khata passbook!');
+      alert(t('equipment_hub.sync_khata_success', 'Rental cost successfully logged into Digital Farm Khata passbook!'));
     } catch (apiErr) {
       console.error('Backend Khata sync error:', apiErr);
       // DO NOT mark synced. Allow farmer to retry.
-      alert(isTe ? 'ఖాతా సమకాలీకరణ విఫలమైంది. దయచేసి మళ్లీ ప్రయత్నించండి.' : 'Failed to sync with Farm Khata. Please check your connection and try again.');
+      alert(t('equipment_hub.sync_khata_failed', 'Failed to sync with Farm Khata. Please check your connection and try again.'));
     }
   };
 
@@ -721,7 +716,7 @@ export default function EquipmentBookingPage() {
     if (!bookingId) return;
 
     const selectedReasonObj = CANCELLATION_REASONS.find(r => r.key === cancelReasonKey);
-    let finalReason = isTe ? (selectedReasonObj?.labelTe || cancelReasonKey) : (selectedReasonObj?.labelEn || cancelReasonKey);
+    let finalReason = selectedReasonObj ? t(selectedReasonObj.key, selectedReasonObj.labelEn) : cancelReasonKey;
     if (cancelReasonKey === 'other' && customCancelReason.trim()) {
       finalReason = customCancelReason.trim();
     }
@@ -766,7 +761,7 @@ export default function EquipmentBookingPage() {
       setCancelModalBooking(null);
       setCustomCancelReason('');
       window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
-      showToast(isTe ? 'బుకింగ్ విజయవంతంగా రద్దు చేయబడింది' : 'Booking cancelled successfully', 'info');
+      showToast(t('equipment_hub.booking_cancelled_success', 'Booking cancelled successfully'), 'info');
     }
   };
 
@@ -805,7 +800,7 @@ export default function EquipmentBookingPage() {
       setIsProcessingAction(false);
       setDeleteModalBooking(null);
       window.dispatchEvent(new CustomEvent('agrishield_bookings_updated'));
-      showToast(isTe ? 'రసీదు విజయవంతంగా తొలగించబడింది' : 'Voucher deleted permanently', 'success');
+      showToast(t('equipment_hub.voucher_deleted_success', 'Voucher deleted permanently'), 'success');
     }
   };
 
@@ -842,13 +837,13 @@ export default function EquipmentBookingPage() {
             className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors py-1 cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5" />
-            <span>{isTe ? '← మరిన్ని సాధనాలకు తిరిగి' : '← Back to More'}</span>
+            <span>{t('equipment_hub.back_to_more', '← Back to More')}</span>
           </button>
           
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
               <Zap className="w-3 h-3 text-amber-500" />
-              <span>{isTe ? 'రైతు అద్దె సేవలు' : 'Custom Hiring Hub'}</span>
+              <span>{t('equipment_hub.custom_hiring_hub', 'Custom Hiring Hub')}</span>
             </span>
           </div>
         </div>
@@ -859,12 +854,10 @@ export default function EquipmentBookingPage() {
               <div className="p-2 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 <Truck className="w-6 h-6" />
               </div>
-              <span>{isTe ? 'వ్యవసాయ పరికరాలు & డ్రోన్ అద్దె బుకింగ్' : 'Farm Machinery, Drone & Irrigation Rental'}</span>
+              <span>{t('equipment_hub.title', 'Farm Machinery, Drone & Irrigation Rental')}</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {isTe
-                ? 'మీ గ్రామం & మండలంలో సమీప ధృవీకరించబడిన ట్రాక్టర్లు, స్ప్రేయింగ్ డ్రోన్లు మరియు నీటిపారుదల పంపుల బుకింగ్'
-                : 'Book nearby verified tractors, spraying drones & irrigation pumps per acre or hour.'}
+              {t('equipment_hub.hero_desc', 'Book nearby verified tractors, spraying drones & irrigation pumps per acre or hour.')}
             </p>
           </div>
 
@@ -879,13 +872,13 @@ export default function EquipmentBookingPage() {
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="min-w-0 pr-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isTe ? 'సేవా ప్రాంతం' : 'Service Area'}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('equipment_hub.service_area', 'Service Area')}</p>
                 <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                  {formatLocationSummary({ village: locationVillage, mandal: locationMandal, district: locationDistrict }, isTe)}
+                  {formatLocationSummary({ village: locationVillage, mandal: locationMandal, district: locationDistrict }, t('equipment_hub.location_not_set', 'Location not set'))}
                 </p>
               </div>
               <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0 ml-1">
-                {isTe ? 'మార్చండి ▾' : 'Change ▾'}
+                {t('equipment_hub.change_btn', 'Change ▾')}
               </span>
             </button>
           </div>
@@ -901,10 +894,10 @@ export default function EquipmentBookingPage() {
             </div>
             <div>
               <p className="text-xs font-black text-indigo-950 dark:text-indigo-200">
-                {isTe ? 'యంత్రాల ప్రదాత పోర్టల్ అందుబాటులో ఉంది' : 'Equipment Provider Hub Active'}
+                {t('equipment_hub.provider_portal_active', 'Equipment Provider Hub Active')}
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {isTe ? 'మీ యంత్రాల కేటలాగ్, రైతు బుకింగ్‌లు మరియు రాబడి లెడ్జర్‌ను నిర్వహించండి.' : 'Manage your machinery fleet, incoming farmer bookings, and earnings in your dedicated portal.'}
+                {t('equipment_hub.provider_portal_desc', 'Manage your machinery fleet, incoming farmer bookings, and earnings in your dedicated portal.')}
               </p>
             </div>
           </div>
@@ -913,7 +906,7 @@ export default function EquipmentBookingPage() {
             onClick={() => navigate('/provider/dashboard')}
             className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shrink-0 transition-all shadow-sm"
           >
-            {isTe ? 'ప్రదాత హబ్‌కి వెళ్లండి →' : 'Go to Provider Hub →'}
+            {t('equipment_hub.go_to_provider_hub', 'Go to Provider Hub →')}
           </button>
         </div>
       )}
@@ -930,7 +923,7 @@ export default function EquipmentBookingPage() {
           }`}
         >
           <Truck className="w-4 h-4" />
-          <span>{isTe ? 'యంత్రాల కేటలాగ్' : 'Browse Fleet'}</span>
+          <span>{t('equipment_hub.browse_fleet', 'Browse Fleet')}</span>
           <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-white/20 text-white font-bold ml-0.5">
             {displayedEquipment.length}
           </span>
@@ -946,7 +939,7 @@ export default function EquipmentBookingPage() {
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>{isTe ? 'నా బుకింగ్స్' : 'My Bookings'}</span>
+          <span>{t('equipment_hub.my_bookings', 'My Bookings')}</span>
           {myBookings.length > 0 && (
             <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-500 text-white font-black ml-0.5">
               {myBookings.length}
@@ -964,7 +957,7 @@ export default function EquipmentBookingPage() {
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>{isTe ? 'ప్రభుత్వ CHC స్కీములు' : 'Govt CHC Schemes'}</span>
+          <span>{t('equipment_hub.govt_chc_schemes', 'Govt CHC Schemes')}</span>
         </button>
       </div>
 
@@ -978,12 +971,12 @@ export default function EquipmentBookingPage() {
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <label htmlFor="equipment-search-query" className="sr-only">
-                {isTe ? 'ట్రాక్టర్లు, డ్రోన్లు, సోలార్ పంపులను శోధించండి' : 'Search tractors, drones, solar pumps'}
+                {t('equipment_hub.search_placeholder', 'Search tractors, drones, solar pumps...')}
               </label>
               <input
                 id="equipment-search-query"
                 type="text"
-                placeholder={isTe ? 'ట్రాక్టర్లు, డ్రోన్లు, సోలార్ పంపులను శోధించండి...' : 'Search tractors, drones, solar pumps...'}
+                placeholder={t('equipment_hub.search_placeholder', 'Search tractors, drones, solar pumps...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800/80 border-0 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -1008,9 +1001,9 @@ export default function EquipmentBookingPage() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-0 focus:outline-none cursor-pointer"
               >
-                <option value="nearest">{isTe ? 'సమీపంలోనివి' : 'Nearest'}</option>
-                <option value="price-low">{isTe ? 'తక్కువ ధర' : 'Price: Low'}</option>
-                <option value="rating">{isTe ? 'రేటింగ్' : 'Top Rated'}</option>
+                <option value="nearest">{t('equipment_hub.sort_nearest', 'Nearest')}</option>
+                <option value="price-low">{t('equipment_hub.sort_price_low', 'Price: Low')}</option>
+                <option value="rating">{t('equipment_hub.sort_rating', 'Top Rated')}</option>
               </select>
             </div>
           </div>
@@ -1018,12 +1011,12 @@ export default function EquipmentBookingPage() {
           {/* Category Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             {[
-              { id: 'all', label: isTe ? 'అన్నీ' : 'All', icon: Zap },
-              { id: 'tractor', label: isTe ? 'ట్రాక్టర్లు' : 'Tractors', icon: Truck },
-              { id: 'drone', label: isTe ? 'డ్రోన్లు' : 'Drones', icon: Compass },
-              { id: 'irrigation', label: isTe ? 'నీటి పంపులు' : 'Pumps', icon: Droplets },
-              { id: 'harvester', label: isTe ? 'హార్వెస్టర్లు' : 'Harvesters', icon: Wrench },
-              { id: 'implement', label: isTe ? 'పరికరాలు' : 'Implements', icon: Sliders }
+              { id: 'all', label: t('equipment_hub.category_all', 'All'), icon: Zap },
+              { id: 'tractor', label: t('equipment_hub.category_tractors', 'Tractors'), icon: Truck },
+              { id: 'drone', label: t('equipment_hub.category_drones', 'Drones'), icon: Compass },
+              { id: 'irrigation', label: t('equipment_hub.category_irrigation', 'Pumps'), icon: Droplets },
+              { id: 'harvester', label: t('equipment_hub.category_harvesters', 'Harvesters'), icon: Wrench },
+              { id: 'implement', label: t('equipment_hub.category_tillage', 'Implements'), icon: Sliders }
             ].map((cat) => {
               const Icon = cat.icon;
               const isSelected = categoryFilter === cat.id;
@@ -1048,7 +1041,7 @@ export default function EquipmentBookingPage() {
           {/* Section Header */}
           <div className="flex items-center justify-between pt-1">
             <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span>{isTe ? 'సమీపంలో అందుబాటులో ఉన్న యంత్రాలు' : 'Equipment available nearby'}</span>
+              <span>{t('equipment_hub.equipment_nearby', 'Equipment available nearby')}</span>
               <span className="px-2 py-0.5 rounded-full text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                 {displayedEquipment.length}
               </span>
@@ -1093,21 +1086,21 @@ export default function EquipmentBookingPage() {
                       <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-600/95 text-white backdrop-blur-md shadow-sm flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3 text-white" />
-                          <span>{isTe ? 'ధృవీకరించబడింది' : 'Verified'}</span>
+                          <span>{t('equipment_hub.verified', 'Verified')}</span>
                         </span>
                       </div>
 
                       <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
                         <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-900/80 text-white backdrop-blur-md shadow-sm flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-emerald-400" />
-                          <span>{item.distanceKm || 2.1} km {isTe ? 'దూరం' : 'away'}</span>
+                          <span>{item.distanceKm || 2.1} km {t('equipment_hub.away', 'away')}</span>
                         </span>
                       </div>
                     </div>
 
                     {/* Machine Title */}
                     <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
-                      {isTe && item.teluguTitle ? item.teluguTitle : item.title}
+                      {getLocalizedField(item, 'title', currentLang)}
                     </h3>
 
                     {/* Specs Line matching Concept 2 */}
@@ -1122,7 +1115,7 @@ export default function EquipmentBookingPage() {
                         ₹{item.ratePerAcre || item.ratePerHour}
                       </span>
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                        / {item.ratePerAcre ? (isTe ? 'ఎకరాకు' : 'Acre') : (isTe ? 'గంటకు' : 'hr')}
+                        / {item.ratePerAcre ? t('equipment_hub.per_acre', 'Acre') : t('equipment_hub.per_hour', 'hr')}
                       </span>
                       {item.dailyRate && (
                         <span className="text-[11px] text-slate-400 font-medium ml-1">
@@ -1141,7 +1134,7 @@ export default function EquipmentBookingPage() {
                         className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed select-none"
                       >
                         <Lock className="w-4 h-4" />
-                        <span>{isTe ? 'ప్రస్తుతం బుక్ చేయబడింది' : 'Currently Booked'}</span>
+                        <span>{t('equipment_hub.currently_booked', 'Currently Booked')}</span>
                       </button>
                     ) : (
                       <button
@@ -1150,7 +1143,7 @@ export default function EquipmentBookingPage() {
                         className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                       >
                         <Truck className="w-4 h-4" />
-                        <span>{isTe ? 'అద్దెకు తీసుకోండి' : 'Book Rental'}</span>
+                        <span>{t('equipment_hub.book_now', 'Book Rental')}</span>
                       </button>
                     )}
 
@@ -1160,17 +1153,15 @@ export default function EquipmentBookingPage() {
                         type="button"
                         onClick={() => openChatForMachine(item)}
                         className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                        title={isTe ? 'యాప్‌లోనే ప్రొవైడర్‌తో చాట్ చేయండి' : 'In-App Direct Chat with Provider'}
+                        title={t('equipment_hub.chat_with_provider', 'In-App Direct Chat with Provider')}
                       >
                         <MessageSquare className="w-3.5 h-3.5 fill-white shrink-0" />
-                        <span className="truncate">{isTe ? 'సందేశం' : 'Message'}</span>
+                        <span className="truncate">{t('equipment_hub.message', 'Message')}</span>
                       </button>
 
                       <a
                         href={`https://wa.me/${String(item.phone || item.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                          isTe
-                            ? `నమస్తే! నేను అగ్రిషీల్డ్ యాప్ ద్వారా మీ ${item.teluguTitle || item.title || 'యంత్రం'} బుకింగ్ కోసం సంప్రదిస్తున్నాను. లొకేషన్: ${locationVillage || ''}, ${locationMandal || ''}. వివరాలు తెలపగలరు.`
-                            : `Hello! Inquiring to book your ${item.title || 'machinery'} via AgriShield AI for my farm in ${locationVillage || ''}, ${locationMandal || ''}. Please share availability.`
+                          t('equipment_hub.wa_booking_inquiry', { title: item.title || 'machinery', village: locationVillage || '', mandal: locationMandal || '', defaultValue: `Hello! Inquiring to book your ${item.title || 'machinery'} via AgriShield AI for my farm in ${locationVillage || ''}, ${locationMandal || ''}. Please share availability.` })
                         )}`}
                         target="_blank"
                         rel="noreferrer"
@@ -1184,10 +1175,10 @@ export default function EquipmentBookingPage() {
                       <a
                         href={`tel:${item.phone || item.contactPhone || ''}`}
                         className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
-                        title={isTe ? 'కాల్ చేయండి' : 'Call Provider'}
+                        title={t('equipment_hub.call_provider', 'Call Provider')}
                       >
                         <Phone className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                        <span className="truncate">{isTe ? 'కాల్' : 'Call'}</span>
+                        <span className="truncate">{t('equipment_hub.call', 'Call')}</span>
                       </a>
                     </div>
                   </div>
@@ -1200,14 +1191,10 @@ export default function EquipmentBookingPage() {
             <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 space-y-3">
               <Truck className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-1" />
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-                {isTe
-                  ? `${locationVillage || locationMandal} ప్రాంతంలో ఇంకా పరికరాలు రిజిస్టర్ కాలేదు`
-                  : `No machinery registered in ${locationVillage || locationMandal} yet`}
+                {t('equipment_hub.no_machinery_area_title', { area: locationVillage || locationMandal || '', defaultValue: `No machinery registered in ${locationVillage || locationMandal} yet` })}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                {isTe
-                  ? 'ఈ గ్రామంలో ప్రస్తుతానికి సరిపడే యంత్రాలు జాబితా చేయబడలేదు. సమీప గ్రామాల లేదా మండల పరిధిలోని పరికరాలను చూడటానికి లొకేషన్ మార్చండి లేదా ప్రభుత్వ CHC కేంద్రాల సహాయం పొందండి.'
-                  : 'No machinery registered in this specific village yet. Try changing your search location to view machinery available in nearby villages/mandals or explore Govt CHC centers.'}
+                {t('equipment_hub.no_machinery_area_desc', 'No machinery registered in this specific village yet. Try changing your search location to view machinery available in nearby villages/mandals or explore Govt CHC centers.')}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                 <button
@@ -1216,7 +1203,7 @@ export default function EquipmentBookingPage() {
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-sm cursor-pointer"
                 >
                   <MapPin className="w-3.5 h-3.5" />
-                  <span>{isTe ? 'లొకేషన్ మార్చండి' : 'Change Search Location'}</span>
+                  <span>{t('equipment_hub.change_location', 'Change Search Location')}</span>
                 </button>
                 <button
                   type="button"
@@ -1224,7 +1211,7 @@ export default function EquipmentBookingPage() {
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{isTe ? 'ప్రభుత్వ CHC & సబ్సిడీలు' : 'Govt CHC Subsidies'}</span>
+                  <span>{t('equipment_hub.govt_chc_subsidies', 'Govt CHC Subsidies')}</span>
                 </button>
               </div>
             </div>
@@ -1244,17 +1231,15 @@ export default function EquipmentBookingPage() {
                 <div className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   <Calendar className="w-5 h-5" />
                 </div>
-                <span>{isTe ? 'రైతు సర్వీస్ పాస్‌బుక్ & రసీదులు' : 'My Equipment Bookings & Vouchers'}</span>
+                <span>{t('equipment_hub.farmer_passbook_title', 'My Equipment Bookings & Vouchers')}</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {isTe
-                  ? 'మీ అన్ని ట్రాక్టర్, డ్రోన్ మరియు యంత్రాల బుకింగ్ స్థితి, రసీదులు మరియు ప్రత్యక్ష నిర్వహణ'
-                  : 'Track real-time provider confirmations, dispatch progress, manage vouchers and re-book with 1 tap.'}
+                {t('equipment_hub.my_bookings_subtitle', 'Track real-time provider confirmations, dispatch progress, manage vouchers and re-book with 1 tap.')}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-full text-xs font-black bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                {myBookings.length} {isTe ? 'మొత్తం రసీదులు' : 'Total Vouchers'}
+                {myBookings.length} {t('equipment_hub.total_vouchers', 'Total Vouchers')}
               </span>
             </div>
           </div>
@@ -1262,11 +1247,11 @@ export default function EquipmentBookingPage() {
           {/* Status Filter Chips Bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
             {[
-              { id: 'all', label: isTe ? 'అన్నీ' : 'All Bookings', count: bookingCounts.all, icon: '📋' },
-              { id: 'pending', label: isTe ? 'ధృవీకరణ వేచి ఉంది' : 'Pending Approval', count: bookingCounts.pending, icon: '⏳' },
-              { id: 'confirmed', label: isTe ? 'షెడ్యూల్ / పురోగతి' : 'Confirmed & Active', count: bookingCounts.confirmed, icon: '🚜' },
-              { id: 'completed', label: isTe ? 'పూర్తయినవి' : 'Completed', count: bookingCounts.completed, icon: '🏆' },
-              { id: 'cancelled', label: isTe ? 'రద్దు / తిరస్కరించినవి' : 'Cancelled / Declined', count: bookingCounts.cancelled, icon: '❌' },
+              { id: 'all', label: t('equipment_hub.tab_all_bookings', 'All Bookings'), count: bookingCounts.all, icon: '📋' },
+              { id: 'pending', label: t('equipment_hub.tab_pending', 'Pending Approval'), count: bookingCounts.pending, icon: '⏳' },
+              { id: 'confirmed', label: t('equipment_hub.tab_confirmed', 'Confirmed & Active'), count: bookingCounts.confirmed, icon: '🚜' },
+              { id: 'completed', label: t('equipment_hub.tab_completed', 'Completed'), count: bookingCounts.completed, icon: '🏆' },
+              { id: 'cancelled', label: t('equipment_hub.tab_cancelled', 'Cancelled / Declined'), count: bookingCounts.cancelled, icon: '❌' },
             ].map((chip) => {
               const isActive = bookingStatusFilter === chip.id;
               return (
@@ -1301,17 +1286,13 @@ export default function EquipmentBookingPage() {
                 </div>
                 <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
                   {bookingStatusFilter === 'all'
-                    ? (isTe ? 'ఇంకా ఎటువంటి బుకింగ్స్ లేవు' : 'No equipment bookings found')
-                    : (isTe ? 'ఈ కేటగిరీలో ఎటువంటి బుకింగ్స్ లేవు' : 'No bookings in this filter')}
+                ? t('equipment_hub.no_bookings_yet', 'No equipment bookings found')
+                : t('equipment_hub.no_bookings_in_filter', 'No bookings in this filter')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
                   {bookingStatusFilter === 'all'
-                    ? (isTe
-                        ? 'మీరు ఏదైనా ట్రాక్టర్, డ్రోన్ లేదా నీటి పారుదల పంపును బుక్ చేసినప్పుడు, ఆ రసీదులు ఇక్కడ కనిపిస్తాయి.'
-                        : 'When you book machinery or a spraying drone, your booking vouchers and statuses will appear here.')
-                    : (isTe
-                        ? 'వేరే ఫిల్టర్‌ని ఎంచుకోండి లేదా మొత్తం బుకింగ్స్‌ను చూడండి.'
-                        : 'Try selecting a different filter chip or clear your filter to view all vouchers.')}
+                    ? t('equipment_hub.when_you_book_desc', 'When you book machinery or a spraying drone, your booking vouchers and statuses will appear here.')
+                    : t('equipment_hub.try_other_filter_desc', 'Try selecting a different filter chip or clear your filter to view all vouchers.')}
                 </p>
                 <div className="flex items-center justify-center gap-2 pt-2">
                   {bookingStatusFilter !== 'all' && (
@@ -1320,7 +1301,7 @@ export default function EquipmentBookingPage() {
                       onClick={() => setBookingStatusFilter('all')}
                       className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors cursor-pointer"
                     >
-                      {isTe ? 'అన్ని బుకింగ్స్ చూడండి' : 'Show All Bookings'}
+                      {t('equipment_hub.show_all_bookings', 'Show All Bookings')}
                     </button>
                   )}
                   <button
@@ -1328,7 +1309,7 @@ export default function EquipmentBookingPage() {
                     onClick={() => setActiveTab('browse')}
                     className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-600/20 transition-colors cursor-pointer"
                   >
-                    {isTe ? 'పరికరాలను చూడండి' : 'Browse Available Equipment'}
+                    {t('equipment_hub.browse_available', 'Browse Available Equipment')}
                   </button>
                 </div>
               </div>
@@ -1347,36 +1328,36 @@ export default function EquipmentBookingPage() {
                   // Status Theme
                   const statusMeta = isCancelled
                     ? {
-                        label: isTe ? 'రద్దు చేయబడింది' : 'Cancelled',
+            label: t('equipment_hub.status_cancelled', 'Cancelled'),
                         color: 'bg-rose-500/90 text-white border-rose-600',
                         badgeIcon: <Ban className="w-3 h-3 text-white" />
                       }
                     : isDeclined
                     ? {
-                        label: isTe ? 'తిరస్కరించబడింది' : 'Declined',
+            label: t('equipment_hub.status_declined', 'Declined'),
                         color: 'bg-rose-500/90 text-white border-rose-600',
                         badgeIcon: <AlertTriangle className="w-3 h-3 text-white" />
                       }
                     : isCompleted
                     ? {
-                        label: isTe ? 'పూర్తయింది' : 'Completed',
+            label: t('equipment_hub.status_completed', 'Completed'),
                         color: 'bg-purple-600/90 text-white border-purple-700',
                         badgeIcon: <CheckCircle2 className="w-3 h-3 text-white" />
                       }
                     : isInProgress
                     ? {
-                        label: isTe ? 'పనిలో ఉంది' : 'In Progress',
+            label: t('equipment_hub.status_in_progress', 'In Progress'),
                         color: 'bg-sky-600/90 text-white border-sky-700',
                         badgeIcon: <Truck className="w-3 h-3 text-white animate-pulse" />
                       }
                     : isConfirmed
                     ? {
-                        label: isTe ? 'షెడ్యూల్ అయింది' : 'Confirmed',
+            label: t('equipment_hub.status_confirmed', 'Confirmed'),
                         color: 'bg-emerald-600/90 text-white border-emerald-700',
                         badgeIcon: <Check className="w-3 h-3 text-white" />
                       }
                     : {
-                        label: isTe ? 'వేచి ఉంది' : 'Pending',
+            label: t('equipment_hub.status_pending', 'Pending'),
                         color: 'bg-amber-500/90 text-white border-amber-600',
                         badgeIcon: <Clock className="w-3 h-3 text-white animate-spin" />
                       };
@@ -1431,7 +1412,7 @@ export default function EquipmentBookingPage() {
 
                         {/* Machine Title */}
                         <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
-                          {isTe && b.teluguTitle ? b.teluguTitle : b.title}
+                          {getLocalizedField(b, 'title', currentLang)}
                         </h3>
 
                         {/* Provider & Location line */}
@@ -1452,7 +1433,7 @@ export default function EquipmentBookingPage() {
                             <span>{b.timeSlot}</span>
                           </span>
                           <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
-                            {b.acres} {isTe ? 'ఎకరాలు' : 'Acres'}
+                            {b.acres} {t('equipment_hub.acres', 'Acres')}
                           </span>
                         </div>
 
@@ -1461,8 +1442,8 @@ export default function EquipmentBookingPage() {
                           <div className="mt-2.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-[11px] flex items-start gap-1.5">
                             <Ban className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
                             <span className="line-clamp-2">
-                              <strong>{isTe ? 'రద్దు కారణం: ' : 'Cancelled: '}</strong>
-                              {b.cancelReason || (isTe ? 'రైతు అభ్యర్థన మేరకు' : 'Farmer request')}
+                            <strong>{t('equipment_hub.cancel_reason_prefix', 'Cancelled: ')}</strong>
+                            {b.cancelReason || t('equipment_hub.farmer_request_default', 'Farmer request')}
                             </span>
                           </div>
                         )}
@@ -1470,7 +1451,7 @@ export default function EquipmentBookingPage() {
                         {isDeclined && (
                           <div className="mt-2.5 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-200 text-[11px] flex items-start gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
-                            <span>{isTe ? 'ప్రొవైడర్ తిరస్కరించారు (స్లాట్ బిజీ)' : 'Declined by provider (Slot unavailable)'}</span>
+                            <span>{t('equipment_hub.declined_by_provider', 'Declined by provider (Slot unavailable)')}</span>
                           </div>
                         )}
 
@@ -1520,7 +1501,7 @@ export default function EquipmentBookingPage() {
                                         ? 'text-emerald-600 dark:text-emerald-400'
                                         : 'text-slate-400 dark:text-slate-500'
                                     }`}>
-                                      {isTe ? st.labelTe : st.labelEn}
+                                      {st.label}
                                     </span>
                                   </div>
                                 );
@@ -1533,7 +1514,7 @@ export default function EquipmentBookingPage() {
                         <div className="flex items-baseline justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
                           <div>
                             <span className="text-[10px] font-bold text-slate-400 uppercase block">
-                              {isTe ? 'మొత్తం అద్దె' : 'Estimated Rent'}
+                              {t('equipment_hub.estimated_rent', 'Estimated Rent')}
                             </span>
                             <div className="flex items-baseline gap-1">
                               <span className={`text-xl font-black ${isCancelled ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>
@@ -1560,10 +1541,10 @@ export default function EquipmentBookingPage() {
                             type="button"
                             onClick={() => openChatForBooking(b)}
                             className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                            title={isTe ? 'ఆర్డర్ చాట్ & వాయిస్ నోట్స్' : 'In-App Order Chat & Voice Notes'}
+                            title={t('equipment_hub.order_chat_tooltip', 'In-App Order Chat & Voice Notes')}
                           >
                             <MessageSquare className="w-3.5 h-3.5 fill-white shrink-0" />
-                            <span className="truncate">{isTe ? 'సందేశం' : 'Message'}</span>
+                            <span className="truncate">{t('equipment_hub.message', 'Message')}</span>
                           </button>
 
                           <a
@@ -1582,10 +1563,10 @@ export default function EquipmentBookingPage() {
                           <a
                             href={`tel:${b.phone || b.farmerPhone || b.contactPhone || ''}`}
                             className="flex items-center justify-center gap-1 py-2 px-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all cursor-pointer"
-                            title={isTe ? 'కాల్ చేయండి' : 'Call'}
+                            title={t('equipment_hub.call', 'Call')}
                           >
                             <Phone className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                            <span className="truncate">{isTe ? 'కాల్' : 'Call'}</span>
+                            <span className="truncate">{t('equipment_hub.call', 'Call')}</span>
                           </a>
                         </div>
 
@@ -1603,13 +1584,13 @@ export default function EquipmentBookingPage() {
                                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900 text-xs font-bold transition-all cursor-pointer"
                               >
                                 <Ban className="w-3 h-3 text-rose-600" />
-                                <span>{isTe ? 'బుకింగ్ రద్దు చేయండి' : 'Cancel Booking'}</span>
+                        <span>{t('equipment_hub.cancel_booking', 'Cancel Booking')}</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeleteModalBooking(b)}
                                 className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/50 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all cursor-pointer"
-                                title={isTe ? 'రసీదు తొలగించండి' : 'Delete Voucher'}
+                                title={t('equipment_hub.delete_voucher', 'Delete Voucher')}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1624,12 +1605,12 @@ export default function EquipmentBookingPage() {
                                 className="flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                               >
                                 <RotateCcw className="w-3 h-3" />
-                                <span>{isTe ? 'మళ్లీ బుక్' : 'Book Again'}</span>
+                        <span>{t('equipment_hub.book_again', 'Book Again')}</span>
                               </button>
 
                               {isCompleted && (
                                 b.syncedToKhata ? (
-                                  <span className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-0.5" title={isTe ? 'పొలం ఖాతాకు చేరింది' : 'Synced to Farm Khata'}>
+                                  <span className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-0.5" title={t('equipment_hub.synced_to_khata_badge', 'Synced to Farm Khata')}>
                                     <Check className="w-3.5 h-3.5" />
                                   </span>
                                 ) : (
@@ -1637,7 +1618,7 @@ export default function EquipmentBookingPage() {
                                     type="button"
                                     onClick={() => handleSyncToKhata(b)}
                                     className="p-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all cursor-pointer"
-                                    title={isTe ? 'ఖాతాకు చేర్చండి' : 'Sync to Farm Khata'}
+                                    title={t('equipment_hub.sync_to_khata_btn', 'Sync to Farm Khata')}
                                   >
                                     <FileText className="w-3.5 h-3.5" />
                                   </button>
@@ -1648,7 +1629,7 @@ export default function EquipmentBookingPage() {
                                 type="button"
                                 onClick={() => setDeleteModalBooking(b)}
                                 className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/50 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all cursor-pointer"
-                                title={isTe ? 'రసీదు తొలగించండి' : 'Delete Voucher'}
+                                title={t('equipment_hub.delete_voucher', 'Delete Voucher')}
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1673,15 +1654,13 @@ export default function EquipmentBookingPage() {
           <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-3">
               <span className="px-3 py-1 rounded-full text-xs font-black bg-white/20 uppercase tracking-wider backdrop-blur-xs">
-                {isTe ? 'రైతు భరోసా కేంద్రం (RBK) పథకం' : 'Government Agri Mechanization Support'}
+                {t('equipment_hub.govt_support_sub', 'Government Agri Mechanization Support')}
               </span>
               <h2 className="text-xl sm:text-2xl font-black">
-                {isTe ? 'కస్టమ్ హైరింగ్ సెంటర్ల (CHC) 40% – 50% రాయితీ సేవలు' : 'Custom Hiring Centers (CHC) 40% - 50% Subsidized Rentals'}
+                {t('equipment_hub.govt_chc_head', 'Custom Hiring Centers (CHC) 40% - 50% Subsidized Rentals')}
               </h2>
               <p className="text-xs sm:text-sm text-emerald-50 max-w-2xl leading-relaxed">
-                {isTe
-                  ? 'ఆంధ్రప్రదేశ్ ప్రభుత్వం ప్రతి రైతు భరోసా కేంద్రంలో (RBK) చిన్న మరియు సన్నకారు రైతుల కోసం ట్రాక్టర్లు, రొటవేటర్లు, మరియు అధునాతన స్ప్రేయింగ్ డ్రోన్లను నియంత్రిత తక్కువ అద్దె రేట్లలో అందుబాటులో ఉంచింది.'
-                  : 'The Department of Agriculture operates village-level Custom Hiring Centers (CHCs) via Rythu Bharosa Kendrams to provide high-horsepower machinery and spraying drones at standardized, subsidized hiring rates.'}
+                {t('equipment_hub.chc_rbk_desc', 'The Department of Agriculture operates village-level Custom Hiring Centers (CHCs) via Rythu Bharosa Kendrams to provide high-horsepower machinery and spraying drones at standardized, subsidized hiring rates.')}
               </p>
             </div>
           </div>
@@ -1692,12 +1671,10 @@ export default function EquipmentBookingPage() {
                 🚜
               </div>
               <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
-                {isTe ? 'ట్రాక్టర్ & ఇంప్లిమెంట్స్ రాయితీ' : 'Tractor & Implement Subsidy (SMAM)'}
+                {t('equipment_hub.tractor_subsidy_title', 'Tractor & Implement Subsidy (SMAM)')}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {isTe
-                  ? 'రైతుల గ్రూపులు (SHGs / FPOs) 80% వరకు సబ్సిడీతో కమ్యూనిటీ CHC యూనిట్లను నెలకొల్పవచ్చు.'
-                  : 'FPOs and Farmer Groups receive 40% to 80% capital subsidy under the Sub-Mission on Agricultural Mechanization to purchase CHC fleets.'}
+                {t('equipment_hub.fpo_shg_subsidy_desc', 'FPOs and Farmer Groups receive 40% to 80% capital subsidy under the Sub-Mission on Agricultural Mechanization to purchase CHC fleets.')}
               </p>
             </div>
 
@@ -1706,12 +1683,10 @@ export default function EquipmentBookingPage() {
                 🚁
               </div>
               <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
-                {isTe ? 'కిసాన్ డ్రోన్ స్కీమ్ (₹5 లక్షల వరకు)' : 'Kisan Drone Subsidy (Up to ₹5 Lakh)'}
+                {t('equipment_hub.drone_subsidy_title', 'Kisan Drone Subsidy (Up to ₹5 Lakh)')}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {isTe
-                  ? 'యువ గ్రామీణ వ్యవసాయ అభ్యర్థులు మరియు FPOలకు వ్యవసాయ స్ప్రేయింగ్ డ్రోన్ కొనుగోలుపై 50% లేదా ₹5 లక్షల వరకు గ్రాంట్ అందించబడుతుంది.'
-                  : 'Subsidies up to 50% (capped at ₹5 Lakhs) for FPOs and agriculture graduates to purchase DGCA-certified agricultural spraying drones.'}
+                {t('equipment_hub.drone_grant_desc', 'Subsidies up to 50% (capped at ₹5 Lakhs) for FPOs and agriculture graduates to purchase DGCA-certified agricultural spraying drones.')}
               </p>
             </div>
 
@@ -1720,12 +1695,10 @@ export default function EquipmentBookingPage() {
                 💧
               </div>
               <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
-                {isTe ? 'APMIP 90% మైక్రో ఇరిగేషన్' : 'APMIP 90% Drip & Sprinkler Subsidy'}
+                {t('equipment_hub.irrigation_subsidy_title', 'APMIP 90% Drip & Sprinkler Subsidy')}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {isTe
-                  ? 'ఆంధ్రప్రదేశ్ మైక్రో ఇరిగేషన్ ప్రాజెక్ట్ కింద SC/ST రైతులకు 90% మరియు OC/BC రైతులకు 70% సబ్సిడీతో డ్రిప్ సెట్లు మంజూరు చేయబడతాయి.'
-                  : 'Andhra Pradesh Micro Irrigation Project grants 90% subsidy for SC/ST farmers and 70% for other farmers for permanent drip and sprinkler kits.'}
+                {t('equipment_hub.irrigation_subsidy_desc', '90% subsidy for SC/ST smallholders and 70% for other farmers for drip lines, sprinklers, and solar pumps.')}
               </p>
             </div>
           </div>
@@ -1748,7 +1721,6 @@ export default function EquipmentBookingPage() {
               village: locationVillage
             }}
             isProviderOnline={isProviderOnline}
-            isTe={isTe}
             onClose={() => setIsBookModalOpen(false)}
             onConfirm={async (newBooking) => {
               // F-04: Stable Idempotency-Key per logical booking submission
@@ -1771,7 +1743,7 @@ export default function EquipmentBookingPage() {
               } catch (err) {
                 console.warn('Backend booking sync notice:', err);
                 const detail = err?.response?.data?.detail;
-                alert(isTe ? `బుకింగ్ విఫలమైంది: ${detail || 'దయచేసి మళ్లీ ప్రయత్నించండి'}` : `Booking failed: ${detail || 'Please retry.'}`);
+      alert(t('equipment_hub.booking_failed_msg', { detail: detail || t('equipment_hub.please_retry', 'Please retry.'), defaultValue: `Booking failed: ${detail || 'Please retry.'}` }));
               }
             }}
           />
@@ -1794,7 +1766,7 @@ export default function EquipmentBookingPage() {
                 <div className="flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
-                    {isTe ? 'సేవా ప్రాంతాన్ని ఎంచుకోండి' : 'Select Service Location'}
+            {t('equipment_hub.select_service_location', 'Select Service Location')}
                   </h3>
                 </div>
                 <button
@@ -1808,7 +1780,7 @@ export default function EquipmentBookingPage() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="font-bold text-slate-500 block mb-1">{isTe ? 'రాష్ట్రం' : 'State'}</label>
+                  <label className="font-bold text-slate-500 block mb-1">{t('equipment_hub.state', 'State')}</label>
                   <select
                     value={locationState}
                     onChange={(e) => {
@@ -1827,7 +1799,7 @@ export default function EquipmentBookingPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-500 block mb-1">{isTe ? 'జిల్లా' : 'District'}</label>
+                  <label className="font-bold text-slate-500 block mb-1">{t('equipment_hub.district', 'District')}</label>
                   <select
                     value={locationDistrict}
                     onChange={(e) => {
@@ -1844,7 +1816,7 @@ export default function EquipmentBookingPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-500 block mb-1">{isTe ? 'మండలం' : 'Mandal'}</label>
+                  <label className="font-bold text-slate-500 block mb-1">{t('equipment_hub.mandal', 'Mandal')}</label>
                   <select
                     value={locationMandal}
                     onChange={(e) => {
@@ -1861,7 +1833,7 @@ export default function EquipmentBookingPage() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-500 block mb-1">{isTe ? 'గ్రామం' : 'Village'}</label>
+                  <label className="font-bold text-slate-500 block mb-1">{t('equipment_hub.village', 'Village')}</label>
                   {availableVillages.length > 0 ? (
                     <select
                       value={locationVillage}
@@ -1876,8 +1848,8 @@ export default function EquipmentBookingPage() {
                     <input
                       id="manual-village-input"
                       type="text"
-                      aria-label={isTe ? 'గ్రామం పేరు' : 'Village Name'}
-                      placeholder={isTe ? 'గ్రామం పేరు టైప్ చేయండి' : 'Type Village Name'}
+                      aria-label={t('equipment_hub.village', 'Village Name')}
+                      placeholder={t('equipment_hub.type_village_name', 'Type Village Name')}
                       value={locationVillage}
                       onChange={(e) => setLocationVillage(e.target.value)}
                       className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold"
@@ -1892,7 +1864,7 @@ export default function EquipmentBookingPage() {
                   onClick={() => setShowLocationModal(false)}
                   className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold cursor-pointer"
                 >
-                  {isTe ? 'నిర్ధారించండి' : 'Apply Location'}
+                  {t('equipment_hub.apply_location', 'Apply Location')}
                 </button>
               </div>
             </motion.div>
@@ -1906,7 +1878,7 @@ export default function EquipmentBookingPage() {
       <Dialog
         isOpen={Boolean(cancelModalBooking)}
         onClose={() => !isProcessingAction && setCancelModalBooking(null)}
-        title={isTe ? 'బుకింగ్ రద్దు చేయండి' : 'Cancel Equipment Booking'}
+        title={t('equipment_hub.cancel_booking_title', 'Cancel Equipment Booking')}
         maxWidth="max-w-lg"
       >
         <div className="space-y-4 pt-1">
@@ -1918,9 +1890,7 @@ export default function EquipmentBookingPage() {
                 #{cancelModalBooking?.id || cancelModalBooking?.bookingId}: {cancelModalBooking?.title}
               </p>
               <p className="text-amber-800/90 dark:text-amber-300/90">
-                {isTe
-                  ? 'మీరు ఈ బుకింగ్‌ను రద్దు చేయాలనుకుంటున్నారా? ప్రొవైడర్‌కు తక్షణమే రద్దు సందేశం చేరుతుంది.'
-                  : 'Are you sure you want to cancel this booking? The equipment provider will receive an instant alert.'}
+                {t('equipment_hub.cancel_modal_desc', 'Are you sure you want to cancel this equipment booking? The equipment provider will be notified immediately.')}
               </p>
             </div>
           </div>
@@ -1928,7 +1898,7 @@ export default function EquipmentBookingPage() {
           {/* Reason Selection Radio Group */}
           <div>
             <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-              {isTe ? 'రద్దు చేయడానికి కారణాన్ని ఎంచుకోండి:' : 'Select Reason for Cancellation:'}
+              {t('equipment_hub.select_cancel_reason', 'Select Reason for Cancellation:')}
             </label>
             <div className="space-y-2">
               {CANCELLATION_REASONS.map((reason) => {
@@ -1951,8 +1921,7 @@ export default function EquipmentBookingPage() {
                       className="mt-0.5 w-4 h-4 text-emerald-600 focus:ring-emerald-500"
                     />
                     <div className="leading-snug">
-                      <p>{isTe ? reason.labelTe : reason.labelEn}</p>
-                      {isTe && <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-0.5">{reason.labelEn}</p>}
+                      <p>{t(reason.key, reason.labelEn)}</p>
                     </div>
                   </label>
                 );
@@ -1964,13 +1933,13 @@ export default function EquipmentBookingPage() {
           {cancelReasonKey === 'other' && (
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                {isTe ? 'దయచేసి కారణం రాయండి:' : 'Please describe the reason:'}
+                {t('equipment_hub.describe_cancel_reason', 'Please describe the reason:')}
               </label>
               <textarea
                 rows={2}
                 value={customCancelReason}
                 onChange={(e) => setCustomCancelReason(e.target.value)}
-                placeholder={isTe ? 'ఉదాహరణ: తేదీ మార్పు, యంత్రం అందుబాటులో లేకపోవడం...' : 'E.g., Rescheduling with provider, field stage delayed...'}
+                placeholder={t('equipment_hub.cancel_reason_placeholder', 'E.g., Rescheduling with provider, field stage delayed...')}
                 className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -1984,7 +1953,7 @@ export default function EquipmentBookingPage() {
               disabled={isProcessingAction}
               onClick={() => setCancelModalBooking(null)}
             >
-              {isTe ? 'వెనుకకు' : 'Keep Booking'}
+              {t('equipment_hub.keep_booking', 'Keep Booking')}
             </Button>
             <Button
               variant="danger"
@@ -1993,7 +1962,7 @@ export default function EquipmentBookingPage() {
               onClick={handleCancelBooking}
               leftIcon={<Ban className="w-3.5 h-3.5" />}
             >
-              {isTe ? 'రద్దును నిర్ధారించండి' : 'Confirm Cancellation'}
+              {t('equipment_hub.confirm_cancellation', 'Confirm Cancellation')}
             </Button>
           </div>
         </div>
@@ -2005,7 +1974,7 @@ export default function EquipmentBookingPage() {
       <Dialog
         isOpen={Boolean(deleteModalBooking)}
         onClose={() => !isProcessingAction && setDeleteModalBooking(null)}
-        title={isTe ? 'బుకింగ్ రసీదును తొలగించాలా?' : 'Delete Booking Voucher?'}
+        title={t('equipment_hub.delete_voucher_title', 'Delete Booking Voucher?')}
         maxWidth="max-w-md"
       >
         <div className="space-y-4 pt-1">
@@ -2016,9 +1985,7 @@ export default function EquipmentBookingPage() {
                 #{deleteModalBooking?.id || deleteModalBooking?.bookingId}: {deleteModalBooking?.title}
               </p>
               <p className="text-rose-800/90 dark:text-rose-300/90 leading-relaxed">
-                {isTe
-                  ? 'ఈ రసీదు మీ పాస్‌బుక్ చరిత్ర నుండి శాశ్వతంగా తొలగించబడుతుంది. ఈ చర్యను వెనక్కి తీసుకోలేరు.'
-                  : 'This voucher will be permanently deleted from your passbook record. You will no longer see this voucher.'}
+                {t('equipment_hub.voucher_permanent_del_warn', 'This voucher will be permanently deleted from your passbook record. You will no longer see this voucher.')}
               </p>
             </div>
           </div>
@@ -2030,7 +1997,7 @@ export default function EquipmentBookingPage() {
               disabled={isProcessingAction}
               onClick={() => setDeleteModalBooking(null)}
             >
-              {isTe ? 'వద్దనివ్వండి' : 'Keep Voucher'}
+              {t('equipment_hub.keep_voucher', 'Keep Voucher')}
             </Button>
             <Button
               variant="danger"
@@ -2039,7 +2006,7 @@ export default function EquipmentBookingPage() {
               onClick={handleDeleteBooking}
               leftIcon={<Trash2 className="w-3.5 h-3.5" />}
             >
-              {isTe ? 'శాశ్వతంగా తొలగించండి' : 'Delete Permanently'}
+              {t('equipment_hub.delete_permanently', 'Delete Permanently')}
             </Button>
           </div>
         </div>
@@ -2090,8 +2057,9 @@ export default function EquipmentBookingPage() {
 // ═══════════════════════════════════════════════════════════════════
 // SUB-COMPONENT: BOOKING MODAL WITH ALL REQUIRED FIELDS & LIVE MATH
 // ═══════════════════════════════════════════════════════════════════
-function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isProviderOnline, isTe, onClose, onConfirm }) {
-  const [farmerName, setFarmerName] = useState(user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'));
+function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isProviderOnline, onClose, onConfirm }) {
+  const { t } = useTranslation();
+  const [farmerName, setFarmerName] = useState(user?.name || user?.full_name || t('equipment_hub.farmer', 'Farmer'));
   const [farmerPhone, setFarmerPhone] = useState(user?.phone || user?.mobile || '');
   const [farmSector, setFarmSector] = useState(activeFarm?.farm_name || 'My Farm Field 1');
   const [approachRoad, setApproachRoad] = useState('Tractor Accessible Road');
@@ -2128,17 +2096,17 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
   // ── Land Status & Field Condition Options (Replacing static Target Crop) ──
   const FIELD_STATUS_OPTIONS = useMemo(() => [
-    { value: 'Empty Field / Dry Fallow Land', label: isTe ? '🌱 ఖాళీ పొలం / బీడు భూమి (దుక్కికి సిద్ధం)' : '🌱 Empty Field / Dry Fallow Land (Ready for Ploughing)' },
-    { value: 'Ploughed Soil / Rough Tilled', label: isTe ? '🚜 దున్నిన పొలం (రోటవేటర్ / లెవలింగ్ కోసం)' : '🚜 Ploughed Soil / Rough Tilled (Needs Rotavator/Harrow)' },
-    { value: 'Seedbed Ready / Pre-Sowing', label: isTe ? '🌾 విత్తేందుకు సిద్ధమైన నేల (బోదెలు / బెడ్స్)' : '🌾 Seedbed Ready / Pre-Sowing (Bed / Furrows Ready)' },
-    { value: 'Planted Field / Young Sprouts', label: isTe ? '🌿 నాటిన చిన్న పైరు / మొలకలు (కలుపు తీత)' : '🌿 Planted Field / Young Sprouts (Weeding / Interculture)' },
-    { value: 'Standing Growing Crop Field', label: isTe ? '🌽 ఎదుగుతున్న పంట పొలం (స్ప్రేయింగ్ / ఎరువులు)' : '🌽 Standing / Growing Crop Field (Spraying / Fertilizer)' },
-    { value: 'Flowering & Fruiting Stage Field', label: isTe ? '🍅 పూత & కాత దశలో ఉన్న పొలం (సస్యరక్షణ)' : '🍅 Flowering & Fruiting Stage Field (Pest Control)' },
-    { value: 'Mature / Ready for Harvest Field', label: isTe ? '🌾 కోతకు సిద్ధమైన పంట పొలం (హార్వెస్టింగ్)' : '🌾 Mature / Ready for Harvest Field (Harvesting)' },
-    { value: 'Post-Harvest Stubble Field', label: isTe ? '🪵 పంట కోసిన తర్వాత మొద్దులున్న పొలం (మల్చర్)' : '🪵 Post-Harvest Stubble Field (Mulcher / Clearing)' },
-    { value: 'Paddy Wetland / Muddy Puddle', label: isTe ? '💧 వరి దమ్ము పొలం / బురద నేల (కేజ్ వీల్స్)' : '💧 Paddy Wetland / Muddy Puddle (Cage Wheels Puddling)' },
-    { value: 'Orchard / Tree Plantation Field', label: isTe ? '🌳 తోటల భూమి (మిరప, పండ్ల తోటలు)' : '🌳 Orchard / Tree Plantation (Chilli, Mango, Citrus)' },
-  ], [isTe]);
+    { value: 'Empty Field / Dry Fallow Land', label: t('equipment_hub.land_stage_fallow', '🌱 Empty Field / Dry Fallow Land (Ready for Ploughing)') },
+    { value: 'Ploughed Soil / Rough Tilled', label: t('equipment_hub.land_stage_ploughed', '🚜 Ploughed Soil / Rough Tilled (Needs Rotavator/Harrow)') },
+    { value: 'Seedbed Ready / Pre-Sowing', label: t('equipment_hub.land_stage_seedbed', '🌾 Seedbed Ready / Pre-Sowing (Bed / Furrows Ready)') },
+    { value: 'Planted Field / Young Sprouts', label: t('equipment_hub.land_stage_sprouts', '🌿 Planted Field / Young Sprouts (Weeding / Interculture)') },
+    { value: 'Standing Growing Crop Field', label: t('equipment_hub.land_stage_growing', '🌽 Standing / Growing Crop Field (Spraying / Fertilizer)') },
+    { value: 'Flowering & Fruiting Stage Field', label: t('equipment_hub.land_stage_flowering', '🍅 Flowering & Fruiting Stage Field (Pest Control)') },
+    { value: 'Mature / Ready for Harvest Field', label: t('equipment_hub.land_stage_mature', '🌾 Mature / Ready for Harvest Field (Harvesting)') },
+    { value: 'Post-Harvest Stubble Field', label: t('equipment_hub.land_stage_stubble', '🪵 Post-Harvest Stubble Field (Mulcher / Clearing)') },
+    { value: 'Paddy Wetland / Muddy Puddle', label: t('equipment_hub.land_stage_paddy', '💧 Paddy Wetland / Muddy Puddle (Cage Wheels Puddling)') },
+    { value: 'Orchard / Tree Plantation Field', label: t('equipment_hub.land_stage_orchard', '🌳 Orchard / Tree Plantation (Chilli, Mango, Citrus)') },
+  ], [t]);
 
   const [fieldStatus, setFieldStatus] = useState('Empty Field / Dry Fallow Land');
 
@@ -2163,7 +2131,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       imps.forEach(imp => {
         list.push({
           value: `${imp} Operation`,
-          label: `★ ${imp} (${isTe ? 'ప్రొవైడర్ అందించే పరికరం' : 'Provider Equipped Attachment'})`
+          label: `★ ${imp} (${t('equipment_hub.provider_equipped_attachment', 'Provider Equipped Attachment')})`
         });
       });
     }
@@ -2171,50 +2139,50 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
     // 2. Comprehensive operations categorized by machine category
     if (isDrone) {
       list.push(
-        { value: 'Foliar Spraying (Nano Urea / Micronutrients)', label: isTe ? 'ఆకులపై స్ప్రే (నానో యూరియా / సూక్ష్మపోషకాలు)' : 'Foliar Spraying (Nano Urea / Micronutrients)' },
-        { value: 'Pesticide & Insecticide Ultra-Low Spraying', label: isTe ? 'పురుగు & తెగుళ్ల మందుల పిచికారీ' : 'Pesticide & Insecticide Ultra-Low Spraying' },
-        { value: 'Fungicide Canopy Protection Spray', label: isTe ? 'శిలీంద్ర సంహారిణి కానోపీ స్ప్రే' : 'Fungicide Canopy Protection Spray' },
-        { value: 'Granular Fertilizer / Seed Broadcasting', label: isTe ? 'గుళికల ఎరువులు / విత్తనాలు వెదజల్లుట' : 'Granular Fertilizer / Seed Broadcasting' },
-        { value: 'Multi-Spectral Crop Health & Stress Survey', label: isTe ? 'మల్టీ-స్పెక్ట్రల్ పైరు ఆరోగ్య సర్వే' : 'Multi-Spectral Crop Health & Stress Survey' }
+        { value: 'Foliar Spraying (Nano Urea / Micronutrients)', label: t('equipment_hub.drone_op_foliar', 'Foliar Spraying (Nano Urea / Micronutrients)') },
+        { value: 'Pesticide & Insecticide Ultra-Low Spraying', label: t('equipment_hub.drone_op_pest', 'Pesticide & Insecticide Ultra-Low Spraying') },
+        { value: 'Fungicide Canopy Protection Spray', label: t('equipment_hub.drone_op_orchard', 'Fungicide Canopy Protection Spray') },
+        { value: 'Granular Fertilizer / Seed Broadcasting', label: t('equipment_hub.drone_op_preharvest', 'Granular Fertilizer / Seed Broadcasting') },
+        { value: 'Multi-Spectral Crop Health & Stress Survey', label: t('equipment_hub.drone_op_survey', 'Multi-Spectral Crop Health & Stress Survey') }
       );
     } else if (isHarvester) {
       list.push(
-        { value: 'Paddy Combine Harvesting & Threshing', label: isTe ? 'వరి కోత మరియు నూర్పిడి' : 'Paddy Combine Harvesting & Threshing' },
-        { value: 'Maize / Corn Combine Harvesting', label: isTe ? 'మొక్కజొన్న కోత' : 'Maize / Corn Combine Harvesting' },
-        { value: 'Pulse / Groundnut Threshing', label: isTe ? 'వేరుశనగ / పప్పుధాన్యాల నూర్పిడి' : 'Pulse / Groundnut Threshing' },
-        { value: 'Straw Baling / Residue Collection', label: isTe ? 'గడ్డి చుట్టలు కట్టుట' : 'Straw Baling / Residue Collection' }
+        { value: 'Paddy Combine Harvesting & Threshing', label: t('equipment_hub.harv_op_paddy', 'Paddy Combine Harvesting & Threshing') },
+        { value: 'Maize / Corn Combine Harvesting', label: t('equipment_hub.harv_op_maize', 'Maize / Corn Combine Harvesting') },
+        { value: 'Pulse / Groundnut Threshing', label: t('equipment_hub.harv_op_groundnut', 'Pulse / Groundnut Threshing') },
+        { value: 'Straw Baling / Residue Collection', label: t('equipment_hub.harv_op_wheat', 'Straw Baling / Residue Collection') }
       );
     } else if (isPump) {
       list.push(
-        { value: 'High-Volume Flood Irrigation Pumping', label: isTe ? 'బోరు / బావి నుండి నీటి తోడుట' : 'High-Volume Flood Irrigation Pumping' },
-        { value: 'Portable Diesel Engine Field Irrigation', label: isTe ? 'డీజిల్ ఇంజిన్ నీటి పారుదల' : 'Portable Diesel Engine Field Irrigation' },
-        { value: 'Drip System Pressurized Fertigation', label: isTe ? 'డ్రిప్ సిస్టమ్ ఫెర్టిగేషన్ & ఫ్లషింగ్' : 'Drip System Pressurized Fertigation' },
-        { value: 'Farm Pond Dewatering & Transfer', label: isTe ? 'రైతు గుంట నీటి బదిలీ' : 'Farm Pond Dewatering & Transfer' }
+        { value: 'High-Volume Flood Irrigation Pumping', label: t('equipment_hub.irrig_op_flood', 'High-Volume Flood Irrigation Pumping') },
+        { value: 'Portable Diesel Engine Field Irrigation', label: t('equipment_hub.irrig_op_diesel', 'Portable Diesel Engine Field Irrigation') },
+        { value: 'Drip System Pressurized Fertigation', label: t('equipment_hub.irrig_op_drip', 'Drip System Pressurized Fertigation') },
+        { value: 'Farm Pond Dewatering & Transfer', label: t('equipment_hub.irrig_op_pond', 'Farm Pond Dewatering & Transfer') }
       );
     } else {
       // Tractor & Primary/Secondary Tillage Machinery
       list.push(
-        { value: 'Rotavator / Secondary Tillage', label: isTe ? '🚜 రోటవేటర్ - మట్టిని మెత్తగా చేయుట (Secondary Tillage)' : '🚜 Rotavator / Secondary Tillage' },
-        { value: 'Disc Plough / Deep Primary Ploughing', label: isTe ? '🚜 డిస్క్ నాగలి - లోతు దుక్కి దున్నుట (Deep Ploughing)' : '🚜 Disc Plough / Deep Primary Ploughing' },
-        { value: 'Cultivator 9-Tyne Harrowing & Clod Crushing', label: isTe ? '🚜 కల్టివేటర్ 9-టైన్ - గడ్డలు పగులగొట్టుట (Harrowing)' : '🚜 Cultivator 9-Tyne Harrowing & Clod Crushing' },
-        { value: 'Laser Land Leveling', label: isTe ? '🚜 లేజర్ ల్యాండ్ లెవలింగ్ (భూమి సమాంతరీకరణ)' : '🚜 Laser Land Leveling (Precision Grading)' },
-        { value: 'Ridges & Furrows Formation', label: isTe ? '🚜 బోదెలు & కాలువలు వేయుట (Ridger)' : '🚜 Ridges & Furrows Formation' },
-        { value: 'Automatic Seed Drill Sowing', label: isTe ? '🚜 సీడ్ డ్రిల్ విత్తనం విత్తుట & ఎరువు వేయుట' : '🚜 Automatic Seed Drill Sowing & Fertilization' },
-        { value: 'Tractor Trolley / Heavy Haulage', label: isTe ? '🚜 ట్రాక్టర్ ట్రాలీ - ఎరువులు / పంట రవాణా' : '🚜 Tractor Trolley / Heavy Farm Haulage' },
-        { value: 'Paddy Wetland Puddling with Cage Wheels', label: isTe ? '🚜 వరి దమ్ము చేయుట (కేజ్ వీల్స్)' : '🚜 Paddy Wetland Puddling with Cage Wheels' },
-        { value: 'Subsoiler Hardpan Breaking', label: isTe ? '🚜 సబ్ సాయిలర్ - గట్టి నేల లోతు బద్దలు కొట్టుట' : '🚜 Subsoiler Hardpan Breaking' },
-        { value: 'Mulcher / Crop Stubble Shredding', label: isTe ? '🚜 మల్చర్ - పత్తి/మిర్చి మొద్దులు కత్తిరించుట' : '🚜 Mulcher / Crop Stubble Shredding' },
-        { value: 'Inter-row Weed Cultivation', label: isTe ? '🚜 వరుసల మధ్య చిన్న నాగలితో కలుపు తీత' : '🚜 Inter-row Weed Cultivation' }
+        { value: 'Rotavator / Secondary Tillage', label: t('equipment_hub.trac_op_rotavator', '🚜 Rotavator / Secondary Tillage') },
+        { value: 'Disc Plough / Deep Primary Ploughing', label: t('equipment_hub.trac_op_disc', '🚜 Disc Plough / Deep Primary Ploughing') },
+        { value: 'Cultivator 9-Tyne Harrowing & Clod Crushing', label: t('equipment_hub.trac_op_cultivator', '🚜 Cultivator 9-Tyne Harrowing & Clod Crushing') },
+        { value: 'Laser Land Leveling', label: t('equipment_hub.trac_op_laser', '🚜 Laser Land Leveling (Precision Grading)') },
+        { value: 'Ridges & Furrows Formation', label: t('equipment_hub.trac_op_ridges', '🚜 Ridges & Furrows Formation') },
+        { value: 'Automatic Seed Drill Sowing', label: t('equipment_hub.trac_op_seed_drill', '🚜 Automatic Seed Drill Sowing & Fertilization') },
+        { value: 'Tractor Trolley / Heavy Haulage', label: t('equipment_hub.trac_op_trolley', '🚜 Tractor Trolley / Heavy Farm Haulage') },
+        { value: 'Paddy Wetland Puddling with Cage Wheels', label: t('equipment_hub.trac_op_paddy_wetland', '🚜 Paddy Wetland Puddling with Cage Wheels') },
+        { value: 'Subsoiler Hardpan Breaking', label: t('equipment_hub.trac_op_subsoiler', '🚜 Subsoiler Hardpan Breaking') },
+        { value: 'Mulcher / Crop Stubble Shredding', label: t('equipment_hub.trac_op_mulcher', '🚜 Mulcher / Crop Stubble Shredding') },
+        { value: 'Inter-row Weed Cultivation', label: t('equipment_hub.trac_op_inter_row', '🚜 Inter-row Weed Cultivation') }
       );
     }
 
     list.push({
       value: 'Other Custom Operation',
-      label: isTe ? '✏️ ఇతర పని (కస్టమ్ వివరణ రాయండి)...' : '✏️ Other Custom Operation (Type Note)...'
+      label: t('equipment_hub.op_other', '✏️ Other Custom Operation (Type Note)...')
     });
 
     return list;
-  }, [equipment, isTe]);
+  }, [equipment, t]);
 
   // Initial operation value matching the first implement or standard
   const [operationType, setOperationType] = useState(() => {
@@ -2275,10 +2243,8 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
     if (!canonicalProviderId || String(canonicalProviderId) === String(equipment.id)) {
       toast.error(
-        isTe ? 'ప్రొవైడర్ ID లేదు' : 'Provider Unavailable',
-        isTe
-          ? 'ఈ యంత్రానికి చెల్లుబాటు అయ్యే ప్రొవైడర్ ID లేదు. దయచేసి మరొక యంత్రాన్ని ఎంచుకోండి.'
-          : 'This machinery listing is missing a valid provider ID. Booking cannot proceed.'
+        t('equipment_hub.provider_unavailable', 'Provider Unavailable'),
+        t('equipment_hub.provider_unavailable_msg', 'This machinery listing is missing a valid provider ID. Booking cannot proceed.')
       );
       return;
     }
@@ -2291,20 +2257,20 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       equipmentTitle: equipment.title,
       teluguTitle: equipment.teluguTitle,
       category: equipment.category,
-      providerName: equipment.providerName || equipment.ownerName || (isTe ? 'వ్యవసాయ పరికరాల ప్రొవైడర్' : 'Agro Equipment Provider'),
+      providerName: equipment.providerName || equipment.ownerName || t('equipment_hub.agro_equipment_provider', 'Agro Equipment Provider'),
       providerPhone: safeProviderPhone,
       provider_phone: safeProviderPhone,
       phone: safeFarmerPhone,
       farmerPhone: safeFarmerPhone,
       contactPhone: safeFarmerPhone,
-      farmerName: farmerName || user?.name || user?.full_name || (isTe ? 'రైతు' : 'Farmer'),
+      farmerName: farmerName || user?.name || user?.full_name || t('equipment_hub.farmer', 'Farmer'),
       farmSector,
       fieldStatus,
       targetCrop: fieldStatus,
       crop: fieldStatus,
       approachRoad,
       location: serviceLocation,
-      village: serviceLocation?.village || locationVillage || (isTe ? 'పొలం స్థానం' : 'Field Location'),
+      village: serviceLocation?.village || locationVillage || t('equipment_hub.field_location', 'Field Location'),
       bookingDate: serviceDate,
       date: serviceDate,
       timeSlot,
@@ -2332,12 +2298,14 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
       type: 'booking',
       category: 'booking',
       priority: 'HIGH',
-      title: isTe ? `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bookingId})` : `🚜 New Machinery Booking Received (#${bookingId})`,
-      title_te: `🚜 కొత్త యంత్ర బుకింగ్ వచ్చింది (#${bookingId})`,
-      message: isTe
-        ? `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${fieldStatus}, పని: ${effectiveOperation}, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`
-        : `Farmer ${newBooking.farmerName} booked your ${equipment.title} (${quantity} Acres, ${fieldStatus}, Operation: ${effectiveOperation}, ${newBooking.village}). Total: ₹${totalCost}. Contact: ${safeFarmerPhone}.`,
-      message_te: `${newBooking.farmerName} గారు మీ ${equipment.teluguTitle || equipment.title} బుక్ చేసుకున్నారు (${quantity} ఎకరాలు, ${fieldStatus}, పని: ${effectiveOperation}, ${newBooking.village}). మొత్తం: ₹${totalCost}. ఫోన్: ${safeFarmerPhone}.`,
+        title: t('equipment_hub.new_booking_received_title', { bookingId, defaultValue: `🚜 New Machinery Booking Received (#${bookingId})` }),
+        message: t('equipment_hub.new_booking_received_msg', {
+          farmerName: farmerName || t('equipment_hub.farmer', 'Farmer'),
+          title: equipment.title,
+          date: bookingDate,
+          timeSlot: timeSlot,
+          defaultValue: `${farmerName || 'Farmer'} requested booking for your ${equipment.title} on ${bookingDate} (${timeSlot}). Please review and accept.`
+        }),
       booking_id: bookingId,
       bookingId: bookingId,
       farmer_name: newBooking.farmerName,
@@ -2388,10 +2356,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
         <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-3 shrink-0">
           <div>
             <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">
-              {isTe ? 'స్లాట్ రిజర్వేషన్ ఫారమ్' : 'Instant Slot Reservation'}
+              {t('equipment_hub.instant_slot_reservation', 'Instant Slot Reservation')}
             </span>
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 mt-0.5">
-              {isTe && equipment.teluguTitle ? equipment.teluguTitle : equipment.title}
+              {equipment.title}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {equipment.providerName} • ₹{baseRate}/{unitMode === 'acres' ? 'Acre' : 'Hr'}
@@ -2417,10 +2385,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
               <div className="text-left">
                 <p className="text-[11px] font-black leading-tight">
-                  {isTe ? '🟢 ప్రొవైడర్ ఈరోజు ఆన్‌లైన్‌లో ఉన్నారు' : '🟢 Equipment Provider is Online Today'}
+                  {t('equipment_hub.provider_online', '🟢 Equipment Provider is Online Today')}
                 </p>
                 <p className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 font-medium leading-tight mt-0.5">
-                  {isTe ? 'మీ బుకింగ్ అభ్యర్థన నేరుగా ప్రొవైడర్‌కు చేరుతుంది.' : 'Your booking request will be dispatched instantly to the provider.'}
+                  {t('equipment_hub.provider_online_desc', 'Your booking request will be dispatched instantly to the provider.')}
                 </p>
               </div>
             </div>
@@ -2429,10 +2397,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
               <div className="text-left">
                 <p className="text-[11px] font-black leading-tight">
-                  {isTe ? '🔴 ప్రొవైడర్ ఈరోజు ఆఫ్‌లైన్‌లో ఉన్నారు' : '🔴 Equipment Provider is Offline Today'}
+                  {t('equipment_hub.provider_offline', '🔴 Equipment Provider is Offline Today')}
                 </p>
                 <p className="text-[10px] text-rose-700/80 dark:text-rose-300/80 font-medium leading-tight mt-0.5">
-                  {isTe ? 'మీ బుకింగ్ క్యూ చేయబడుతుంది మరియు పరిశీలిస్తారు.' : 'Booking queued and reviewed once online.'}
+                  {t('equipment_hub.provider_offline_desc', 'Booking queued and reviewed once online.')}
                 </p>
               </div>
             </div>
@@ -2441,10 +2409,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
               <div className="text-left">
                 <p className="text-[11px] font-black leading-tight">
-                  {isTe ? '⚪ ప్రొవైడర్ స్థితి: అస్పష్టం / క్యూలో సమర్పించబడుతుంది' : '⚪ Provider Status: In Queue'}
+                  {t('equipment_hub.provider_queue', '⚪ Provider Status: In Queue')}
                 </p>
                 <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80 font-medium leading-tight mt-0.5">
-                  {isTe ? 'బుకింగ్ అభ్యర్థన సాధారణ క్యూలో సమర్పించబడుతుంది.' : 'Booking request will be submitted to provider queue.'}
+                  {t('equipment_hub.provider_queue_desc', 'Booking request will be submitted to provider queue.')}
                 </p>
               </div>
             </div>
@@ -2454,12 +2422,12 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-3.5 rounded-2xl space-y-2.5">
             <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{isTe ? '1. రైతు & పొలం సమాచారం' : '1. Farmer & Field Info'}</span>
+              <span>{t('equipment_hub.step1_farmer_info', '1. Farmer & Field Info')}</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label htmlFor="booking-farmer-name" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'రైతు పేరు' : 'Farmer Name'}</label>
+                <label htmlFor="booking-farmer-name" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{t('equipment_hub.farmer_name', 'Farmer Name')}</label>
                 <input
                   id="booking-farmer-name"
                   type="text"
@@ -2471,7 +2439,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
 
               <div>
-                <label htmlFor="booking-farmer-phone" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'వాట్సాప్ మొబైల్ నంబర్' : 'WhatsApp Phone'}</label>
+                <label htmlFor="booking-farmer-phone" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{t('equipment_hub.whatsapp_phone', 'WhatsApp Phone')}</label>
                 <input
                   id="booking-farmer-phone"
                   type="tel"
@@ -2483,19 +2451,19 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
 
               <div>
-                <label htmlFor="booking-service-location" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'లొకేషన్' : 'Field Village'}</label>
+                <label htmlFor="booking-service-location" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{t('equipment_hub.field_village', 'Field Village')}</label>
                 <input
                   id="booking-service-location"
                   type="text"
                   disabled
-                  value={formatLocationSummary(serviceLocation, isTe)}
+                  value={formatLocationSummary(serviceLocation, t('equipment_hub.location_not_set', 'Location not set'))}
                   className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-200"
                 />
               </div>
 
               <div>
                 <label htmlFor="booking-field-status" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">
-                  {isTe ? 'పొలం స్థితి / దశ' : 'Field Condition / Land Stage'}
+                  {t('equipment_hub.land_stage_title', 'Field Condition / Land Stage')}
                 </label>
                 <select
                   id="booking-field-status"
@@ -2517,12 +2485,12 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-3.5 rounded-2xl space-y-2.5">
             <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-sky-600" />
-              <span>{isTe ? '2. సేవ తేదీ & సమయం' : '2. Date & Time Slot'}</span>
+              <span>{t('equipment_hub.step2_date_time', '2. Date & Time Slot')}</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label htmlFor="booking-service-date" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'బుకింగ్ తేదీ' : 'Booking Date'}</label>
+                <label htmlFor="booking-service-date" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{t('equipment_hub.booking_date', 'Booking Date')}</label>
                 <input
                   id="booking-service-date"
                   type="date"
@@ -2534,7 +2502,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               </div>
 
               <div>
-                <label htmlFor="booking-time-slot" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{isTe ? 'సమయం స్లాట్' : 'Time Slot'}</label>
+                <label htmlFor="booking-time-slot" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">{t('equipment_hub.time_slot', 'Time Slot')}</label>
                 <select
                   id="booking-time-slot"
                   value={timeSlot}
@@ -2553,13 +2521,13 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-3.5 rounded-2xl space-y-2.5">
             <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <Sliders className="w-3.5 h-3.5 text-amber-600" />
-              <span>{isTe ? '3. పని పరిమాణం & ఎంపికలు' : '3. Work Scope & Options'}</span>
+              <span>{t('equipment_hub.step3_scope_options', '3. Work Scope & Options')}</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label htmlFor="booking-quantity" className="font-bold text-slate-700 dark:text-slate-200 block mb-1 cursor-pointer">
-                  {unitMode === 'acres' ? (isTe ? 'ఎకరాల విస్తీర్ణం' : 'Total Acres') : (isTe ? 'పని గంటలు' : 'Operating Hours')}
+                  {unitMode === 'acres' ? t('equipment_hub.total_acres', 'Total Acres') : t('equipment_hub.operating_hours', 'Operating Hours')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -2594,7 +2562,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-200 block mb-1">
-                  {isTe ? 'నిర్దిష్ట పని రకం' : 'Specific Operation'}
+                  {t('equipment_hub.specific_operation', 'Specific Operation')}
                 </label>
                 <select
                   value={operationType}
@@ -2612,7 +2580,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                   <input
                     type="text"
                     required
-                    placeholder={isTe ? 'పని వివరాలు ఇక్కడ టైప్ చేయండి...' : 'Type specific operation note here...'}
+                    placeholder={t('equipment_hub.type_operation_note', 'Type specific operation note here...')}
                     value={customOperationNote}
                     onChange={(e) => setCustomOperationNote(e.target.value)}
                     className="w-full p-2 mt-2 rounded-xl bg-white dark:bg-slate-900 border border-indigo-400 dark:border-indigo-600 font-bold text-slate-900 dark:text-white"
@@ -2630,7 +2598,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                   onChange={(e) => setIncludeOperator(e.target.checked)}
                   className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 shrink-0"
                 />
-                <span className="text-xs leading-snug">{isTe ? 'ఆపరేటర్ / డ్రైవర్ అవసరం (ఉచితం)' : 'Include Driver / Pilot (Included)'}</span>
+                <span className="text-xs leading-snug">{t('equipment_hub.driver_included', 'Include Driver / Pilot (Included)')}</span>
               </label>
 
               <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/90 cursor-pointer font-bold text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition-colors min-h-[44px]">
@@ -2640,7 +2608,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                   onChange={(e) => setIncludeDiesel(e.target.checked)}
                   className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 shrink-0"
                 />
-                <span className="text-xs leading-snug">{isTe ? 'డీజిల్ యజమానిదే' : 'Machine Owner provides Fuel'}</span>
+                <span className="text-xs leading-snug">{t('equipment_hub.owner_provides_fuel', 'Machine Owner provides Fuel')}</span>
               </label>
             </div>
           </div>
@@ -2656,7 +2624,7 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
 
             {!includeDiesel && fuelDiscount > 0 && (
               <div className="flex items-center justify-between text-xs text-amber-600">
-                <span>{isTe ? 'రైతు డీజిల్ తగ్గింపు' : 'Farmer Diesel Supply Discount'}</span>
+                <span>{t('equipment_hub.farmer_fuel_discount', 'Farmer Diesel Supply Discount')}</span>
                 <span className="font-bold">- ₹{fuelDiscount}</span>
               </div>
             )}
@@ -2664,10 +2632,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
             <div className="border-t border-emerald-200/80 dark:border-emerald-800 pt-2 flex items-center justify-between">
               <div>
                 <span className="text-xs font-black text-slate-900 dark:text-slate-100 block">
-                  {isTe ? 'మొత్తం అంచనా ధర:' : 'Total Estimated Cost:'}
+                  {t('equipment_hub.total_cost_label', 'Total Estimated Cost:')}
                 </span>
                 <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">
-                  {isTe ? 'పని పూర్తయిన తర్వాత డ్రైవర్‌కు చెల్లించండి (క్యాష్ / UPI)' : 'Pay to operator upon field work completion (Cash / UPI)'}
+                  {t('equipment_hub.pay_after_work', 'Pay to operator upon field work completion (Cash / UPI)')}
                 </span>
               </div>
               <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
@@ -2683,14 +2651,14 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               onClick={onClose}
               className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              {isTe ? 'రద్దు చేయండి' : 'Cancel'}
+              {t('equipment_hub.cancel_booking_btn', 'Cancel')}
             </button>
             <button
               type="submit"
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-md shadow-emerald-600/30 cursor-pointer active:scale-95 transition-all"
             >
               <Zap className="w-4 h-4 fill-white" />
-              <span>{isTe ? 'బుకింగ్‌ను నిర్ధారించండి' : 'Confirm Rental Booking'}</span>
+              <span>{t('equipment_hub.confirm_booking', 'Confirm Rental Booking')}</span>
             </button>
           </div>
         </form>

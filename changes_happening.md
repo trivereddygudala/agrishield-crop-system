@@ -8470,3 +8470,31 @@ Files Modified:
   - Total tests passed: 117/117.
   - Frontend production build: Vite build successful in 26.10s with zero errors.
   - Git diff check: Clean formatting and zero whitespace errors.
+
+## [D2.3 Implementation] Farmer Six-Language UI Localization
+- **Date / Timestamp:** 2026-10-06 15:35 UTC
+- **Scope:** D2.3 Farmer Six-Language UI Localization (te, en, hi, ta, kn, or).
+- **Key Enhancements:**
+  1. Odia Typography & TTS Safety: Added Google Fonts @import for Noto Sans Oriya (400, 500, 600, 700, 800) in `index.css`, updated font-sans/font-display stacks, added `.font-odia` utility. In `useSpeechReader.js`, implemented strict safety guard preventing Odia text from being routed to English/Hindi TTS engines when no native `or-IN` voice exists, displaying non-blocking on-screen fallback toast instead.
+  2. Six-Language Dictionary Integration: Populated missing `dashboard.kpi`, `advisor.*`, `ai_safety.*`, `support_page.faqs.*`, `dashboard.smart_actions.*`, `equipment_hub.*`, and `more.*` across all six mandatory languages in `translations.js` and `extendedTranslations.js`.
+  3. Binary UI Ternary Elimination: Replaced all legacy `isTe ? Telugu : English` hardcoded ternaries across approved farmer-facing pages:
+     - `EquipmentBookingPage.jsx`: Replaced 206 binary ternaries with `t('equipment_hub.*')` keys (0 remaining).
+     - `FarmPage.jsx`: Replaced 74 binary ternaries with `t('farm_tools.*')` keys (0 remaining).
+     - `HelpSupportPage.jsx`: Replaced 86 binary ternaries with `t('support_center.*')` and `t('support_page.faqs.*')` (0 remaining).
+     - `MorePage.jsx`: Replaced 42 binary ternaries with `t('more.*')` (0 remaining).
+     - `ProfilePage.jsx`: Replaced 47 binary ternaries with `t('profile_page.*')` (0 remaining).
+     - `SettingsPage.jsx`: Replaced 44 binary ternaries with `t('settings_page.*')` (0 remaining).
+     - `DashboardPage.jsx`: Replaced 15 binary ternaries with `t('dashboard.*')` (0 remaining).
+     - `SmartFarmerActionCenter.jsx`: Replaced 22 binary ternaries with `t('dashboard.smart_actions.*')` (0 remaining).
+     - `FieldIntelligenceWidget.jsx`: Replaced 36 binary ternaries with `t('dashboard.weather.*')` (0 remaining).
+     - `PathogenWeatherRadar.jsx`: Replaced 21 binary ternaries with `t('advisor.*')` (0 remaining).
+     - `UploadImagePage.jsx`: Replaced 11 binary ternaries with `t('scan_page.*')` (0 remaining).
+  4. Notification Localization: Added structured category mappings for soil moisture alerts, heat stress warnings, and equipment rental booking updates across all six languages in `notificationTranslator.js` while strictly preserving dynamic values.
+  5. Critical Safety Boundaries Preserved: Strictly zero changes to agronomic disease treatment protocols, chemical recommendations, dosages, active ingredients, PHI, PPE, `diseaseAdvisoryData.js`, or `plantixDiagnosisHelper.js` (deferred to D2.4). Zero changes to backend APIs, PyTorch/Gemini models, B30-B33 logic, or database schemas.
+- **Verification Results:**
+  - `frontend/tests/d2_3_farmer_localization.test.js`: 8/8 tests passed (100%).
+  - `frontend/tests/localization_7language.test.js`: 12/12 tests passed (100%).
+  - Backend B30-B33 regression suite: 55/55 passed (100%).
+  - Frontend production build (`npm run build`): Succeeded in 29.17s with 0 errors.
+  - `git diff --check`: Clean formatting and 0 whitespace errors.
+  - Audit across all 18 approved files: Exactly 0 `isTe` and 0 `isTelugu` occurrences remain.

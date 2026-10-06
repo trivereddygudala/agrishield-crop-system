@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Telugu:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700;800&family=Noto+Sans+Kannada:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Telugu:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700;800&family=Noto+Sans+Kannada:wght@400;500;600;700;800&family=Noto+Sans+Oriya:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    --font-sans: 'Inter', 'Noto Sans Telugu', 'Noto Sans Devanagari', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans Kannada', system-ui, -apple-system, sans-serif;
-    --font-display: 'Outfit', 'Noto Sans Telugu', 'Noto Sans Devanagari', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans Kannada', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Inter', 'Noto Sans Telugu', 'Noto Sans Devanagari', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans Kannada', 'Noto Sans Oriya', system-ui, -apple-system, sans-serif;
+    --font-display: 'Outfit', 'Noto Sans Telugu', 'Noto Sans Devanagari', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans Kannada', 'Noto Sans Oriya', system-ui, -apple-system, sans-serif;
     
     /* Default: AgriShield Default (Emerald) */
     --primary-50: 240 253 244;
@@ -539,6 +539,13 @@
   }
   html[lang="ml"] body {
     font-family: 'Noto Sans Malayalam', var(--font-sans) !important;
+  }
+  html[lang="or"] body {
+    font-family: 'Noto Sans Oriya', var(--font-sans) !important;
+  }
+
+  .font-odia {
+    font-family: 'Noto Sans Oriya', var(--font-sans) !important;
   }
   
   /* Farmer Mode increases base rem size globally */

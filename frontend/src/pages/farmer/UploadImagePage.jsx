@@ -167,9 +167,8 @@ const UploadImagePage = () => {
   } = currentTabState;
 
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
-  const isTe = currentLang === 'te';
   const currentModule = SCAN_MODULES.find(m => m.id === activeTab);
-  const currentModuleTitle = isTe ? currentModule?.teluguTitle : (currentModule?.titleKey ? t(currentModule.titleKey, currentModule.defaultTitle) : currentModule?.defaultTitle);
+  const currentModuleTitle = currentModule?.titleKey ? t(currentModule.titleKey, currentModule.defaultTitle) : currentModule?.defaultTitle;
 
   // Universal normalized active language across all 3 AI scanner modules
   const activeLang = (i18n?.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase();
@@ -641,9 +640,7 @@ const UploadImagePage = () => {
         }
       }
 
-      let newError = isTe
-        ? "AI స్కానర్‌కి కనెక్ట్ చేయడం విఫలమైంది. దయచేసి మళ్లీ ప్రయత్నించండి."
-        : "Unable to analyze the photo right now. Please ensure your connection is active and try again.";
+      let newError = t('scan_page.error_connect_failed', 'Unable to analyze the photo right now. Please ensure your connection is active and try again.');
       if (err.response && err.response.data) {
         const detail = err.response.data.detail || err.response.data.message;
         if (typeof detail === 'string' && !detail.includes('Traceback') && !detail.includes('Exception') && !detail.includes('Error:')) {
@@ -767,17 +764,17 @@ const UploadImagePage = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
-                {isTe ? 'AI డయాగ్నస్టిక్ సాధనాలు' : 'AI Diagnostic Modules'}
+                {t('scan_page.diagnostic_tools', 'AI Diagnostic Modules')}
               </h3>
               <span className="text-xs text-slate-500 dark:text-white/40 font-medium">
-                {isTe ? 'ప్రారంభించడానికి ట్యాప్ చేయండి' : 'Tap to open dedicated scanner'}
+                {t('scan_page.tap_to_open', 'Tap to open dedicated scanner')}
               </span>
             </div>
 
             {SCAN_MODULES.map((mod, idx) => {
               const Icon = mod.icon;
-              const title = isTe ? mod.teluguTitle : t(mod.titleKey, mod.defaultTitle);
-              const desc = isTe ? mod.teluguDesc : t(mod.descKey, mod.defaultDesc);
+              const title = mod.titleKey ? t(mod.titleKey, mod.defaultTitle) : mod.defaultTitle;
+              const desc = mod.descKey ? t(mod.descKey, mod.defaultDesc) : mod.defaultDesc;
               const badge = mod.badgeKey ? t(mod.badgeKey, mod.badge) : mod.badge;
 
               return (
@@ -836,7 +833,7 @@ const UploadImagePage = () => {
               className="self-start flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 transition-colors py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 cursor-pointer group"
             >
               <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span>{isTe ? '← స్కాన్ సెంటర్‌కు తిరిగి' : '← Back to AI Scan Center'}</span>
+              <span>{t('scan_page.back_to_scan_center', '← Back to AI Scan Center')}</span>
             </button>
 
             {/* Direct Switcher across all 3 AI scanners */}
@@ -851,7 +848,7 @@ const UploadImagePage = () => {
                 }`}
               >
                 <span>🌿</span>
-                <span>{isTe ? 'పంట వ్యాధి' : 'Disease'}</span>
+                <span>{t('scan_page.tab_disease', 'Disease')}</span>
                 {tabs['disease-diag']?.hasScanned && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>}
               </button>
 
@@ -865,7 +862,7 @@ const UploadImagePage = () => {
                 }`}
               >
                 <span>🌱</span>
-                <span>{isTe ? 'మొక్క గుర్తింపు' : 'Plant ID'}</span>
+                <span>{t('scan_page.tab_plant_id', 'Plant ID')}</span>
                 {tabs['plant-id']?.hasScanned && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>}
               </button>
 
@@ -879,7 +876,7 @@ const UploadImagePage = () => {
                 }`}
               >
                 <span>🧪</span>
-                <span>{isTe ? 'పురుగుమందు' : 'Agrochemical'}</span>
+                <span>{t('scan_page.tab_agrochemical', 'Agrochemical')}</span>
                 {tabs['agro-scan']?.hasScanned && <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 inline-block"></span>}
               </button>
             </div>

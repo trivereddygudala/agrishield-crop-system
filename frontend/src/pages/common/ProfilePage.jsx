@@ -147,7 +147,6 @@ const ProfilePage = () => {
   const { user, updateProfile } = useAuth();
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
-  const isTe = currentLang === 'te';
   const userRole = user?.role?.toLowerCase() || 'farmer';
   const { theme, setTheme: handleNavbarThemeChange } = useNavbarTheme();
   const { colorTheme, setColorTheme: handleColorThemeChange } = useColorTheme();
@@ -182,10 +181,10 @@ const ProfilePage = () => {
     localStorage.setItem('sim_hardware_alarms', String(val));
     window.dispatchEvent(new CustomEvent('simHardwareAlarmsChange', { detail: val }));
   };
-  
+
   const { lastTelemetry } = useWebSocket();
   const activeTelemetry = lastTelemetry?.telemetry || lastTelemetry || {};
-  
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [farmLocation, setFarmLocation] = useState('');
@@ -216,13 +215,13 @@ const ProfilePage = () => {
     setLanguagesToast('');
     if (preferredLanguages.includes(langCode)) {
       if (preferredLanguages.length <= 1) {
-        setLanguagesError(isTe ? 'కనీసం 1 భాషను ఎంచుకోవాలి.' : 'At least 1 language must remain selected.');
+        setLanguagesError(t('profile_page.languages_min_error', 'At least 1 language must remain selected.'));
         return;
       }
       setPreferredLanguages(preferredLanguages.filter(c => c !== langCode));
     } else {
       if (preferredLanguages.length >= 3) {
-        setLanguagesError(isTe ? 'గరిష్టంగా 3 భాషలను మాత్రమే ఎంచుకోవచ్చు. మరొకటి జోడించడానికి ఒకదాన్ని తీసివేయండి.' : 'You can select up to 3 quick-switch languages. Deselect one to add another.');
+        setLanguagesError(t('profile_page.languages_max_error', 'You can select up to 3 quick-switch languages. Deselect one to add another.'));
         return;
       }
       setPreferredLanguages([...preferredLanguages, langCode]);
@@ -231,7 +230,7 @@ const ProfilePage = () => {
 
   const handleSavePreferredLanguages = async () => {
     if (preferredLanguages.length === 0) {
-      setLanguagesError(isTe ? 'దయచేసి కనీసం 1 భాషను ఎంచుకోండి.' : 'Please select at least 1 language.');
+      setLanguagesError(t('profile_page.languages_select_error', 'Please select at least 1 language.'));
       return;
     }
     setSavingLanguages(true);
@@ -252,11 +251,11 @@ const ProfilePage = () => {
       window.dispatchEvent(new CustomEvent('agrishield-preferred-languages-updated', {
         detail: { languages: preferredLanguages }
       }));
-      setLanguagesToast(isTe ? `భాషల ప్రాధాన్యతలు సేవ్ చేయబడ్డాయి! స్కాన్ ఫలితాల్లో ఈ ${preferredLanguages.length} భాషలు మాత్రమే కనిపిస్తాయి.` : `Language preferences saved! Scan results will strictly show only these ${preferredLanguages.length} language(s).`);
+      setLanguagesToast(t('profile_page.languages_saved_toast', 'Language preferences saved! Scan results will strictly show only these {{count}} language(s).', { count: preferredLanguages.length }));
       setTimeout(() => setLanguagesToast(''), 5000);
     } catch (err) {
       console.error("Language save error:", err);
-      setLanguagesToast(isTe ? 'భాషలు లోకల్‌గా సేవ్ చేయబడ్డాయి!' : 'Language preferences saved locally!');
+      setLanguagesToast(t('profile_page.languages_saved_locally', 'Language preferences saved locally!'));
       setTimeout(() => setLanguagesToast(''), 5000);
     } finally {
       setSavingLanguages(false);
@@ -366,7 +365,7 @@ const ProfilePage = () => {
   const availableDistricts = getDistricts(state);
   const availableMandals = getMandals(state, district);
   const availableVillages = getVillages(state, district, mandal);
-  
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
@@ -378,7 +377,7 @@ const ProfilePage = () => {
       setFarmLocation(user.farm_location || '');
       setPreferredLanguage(user.preferred_language || 'en');
       setFarmingPractices(user.farming_practices || 'Conventional');
-      
+
       if (user.phone || user.mobile) setFarmerPhone(user.phone || user.mobile);
       if (user.selected_crops) setSelectedCrops(user.selected_crops);
 
@@ -509,7 +508,7 @@ const ProfilePage = () => {
     }
   };
 
-  const formattedDate = user?.created_at 
+  const formattedDate = user?.created_at
     ? new Date(user.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' })
     : 'Recently';
 
@@ -520,14 +519,14 @@ const ProfilePage = () => {
     { id: 'themes', label: 'Website Themes', hideOnMobile: true },
   ] : [
     { id: 'profile', label: t('profile_page.tabs.profile', 'Profile Settings') },
-    { id: 'languages', label: isTe ? '🌐 భాషల ఎంపిక (1-3)' : '🌐 Languages (1-3)' },
+    { id: 'languages', label: t('profile_page.tab_languages', '🌐 Languages (1-3)') },
     { id: 'visuals', label: t('profile_page.tabs.visuals', 'Visual Customization'), hideOnMobile: true },
     { id: 'themes', label: t('profile_page.tabs.themes', 'Website Themes'), hideOnMobile: true },
     ...(userRole === 'tester' ? [{ id: 'tester', label: t('profile_page.tabs.tester', 'Tester Operations Panel') }] : [])
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -535,19 +534,19 @@ const ProfilePage = () => {
     >
       <div className="flex flex-col gap-1 pb-4 border-b border-slate-200/80 dark:border-white/10">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-          {userRole === 'admin' 
-            ? 'Administrator Profile & Security' 
-            : isEquipmentProvider 
-              ? (isTe ? 'మెషినరీ ప్రొవైడర్ హబ్ ప్రొఫైల్' : 'Equipment Provider Hub Profile')
-              : userRole === 'tester' 
-                ? 'QA Tester Profile' 
+          {userRole === 'admin'
+            ? 'Administrator Profile & Security'
+            : isEquipmentProvider
+              ? t('profile_page.hub_profile_title', 'Equipment Provider Hub Profile')
+              : userRole === 'tester'
+                ? 'QA Tester Profile'
                 : t('profile_page.farmer_title', 'Farmer Profile & Identity')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
-          {userRole === 'admin' 
+          {userRole === 'admin'
             ? 'Manage administrative credentials, security credentials, and interface themes.'
             : isEquipmentProvider
-              ? (isTe ? 'మీ యంత్రాల హబ్ వివరాలు, సర్వీస్ పరిధి, ఆపరేటర్లు మరియు చెల్లింపు వివరాలు నిర్వహించండి.' : 'Manage your machinery hub profile, dispatch radius, operator count, and payout UPI details.')
+              ? t('profile_page.hub_profile_desc', 'Manage your machinery hub profile, dispatch radius, operator count, and payout UPI details.')
               : 'Review your credentials and update your personal profile attributes.'}
         </p>
       </div>
@@ -558,16 +557,16 @@ const ProfilePage = () => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-xs sm:text-sm font-bold whitespace-nowrap transition-colors relative focus:outline-none ${tab.hideOnMobile ? 'hidden md:inline-block' : ''} ${
-              activeTab === tab.id 
-                ? 'text-emerald-500' 
+              activeTab === tab.id
+                ? 'text-emerald-500'
                 : 'text-slate-500 hover:text-slate-700 dark:text-white/35 dark:hover:text-white/60'
             }`}
           >
             {tab.label}
             {activeTab === tab.id && (
-              <motion.div 
-                layoutId="profileTabIndicator" 
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-t-full" 
+              <motion.div
+                layoutId="profileTabIndicator"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-t-full"
               />
             )}
           </button>
@@ -586,7 +585,7 @@ const ProfilePage = () => {
             <div className="grid md:grid-cols-3 gap-6">
               <Card glass className="p-6 text-center md:col-span-1 flex flex-col items-center justify-between border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md relative overflow-hidden group min-h-[340px]">
                 <div className={`absolute top-0 left-0 right-0 h-1.5 ${isEquipmentProvider ? 'bg-gradient-to-r from-amber-500 to-orange-400' : userRole === 'admin' ? 'bg-gradient-to-r from-sky-500 to-indigo-500' : 'bg-gradient-to-r from-emerald-500 to-teal-400'}`} />
-                
+
                 {isEquipmentProvider ? (
                   <div className="flex flex-col items-center mt-3 w-full">
                     <div className="bg-amber-500/10 text-amber-500 border border-amber-500/25 h-20 w-20 rounded-full flex items-center justify-center font-black text-3xl shadow-inner mb-3">
@@ -597,7 +596,7 @@ const ProfilePage = () => {
                     </h3>
                     <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black tracking-wider uppercase">
-                        🚜 {isTe ? 'మెషినరీ ప్రొవైడర్' : 'EQUIPMENT PROVIDER'}
+                        🚜 {t('profile_page.role_provider', 'EQUIPMENT PROVIDER')}
                       </span>
                     </div>
 
@@ -623,7 +622,7 @@ const ProfilePage = () => {
                     <div className="w-full pt-4 mt-auto">
                       <Link to="/provider/dashboard?tab=fleet" className="w-full block">
                         <Button size="sm" variant="outline" className="w-full text-xs font-bold border-amber-400 text-amber-600 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400">
-                          🚜 {isTe ? 'ఫ్లీట్ నిర్వహణ హబ్' : 'Open Machinery Fleet'}
+                          🚜 {t('profile_page.open_fleet', 'Open Machinery Fleet')}
                         </Button>
                       </Link>
                     </div>
@@ -658,7 +657,7 @@ const ProfilePage = () => {
                     <div className="w-full pt-4 mt-auto">
                       <Link to="/admin" className="w-full block">
                         <Button size="sm" variant="outline" className="w-full text-xs font-bold border-sky-400 text-sky-600 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-400">
-                          🛡️ {isTe ? 'అడ్మిన్ కంట్రోల్ సెంటర్' : 'Open Admin Center'}
+                          🛡️ {t('profile_page.open_admin', 'Open Admin Center')}
                         </Button>
                       </Link>
                     </div>
@@ -673,10 +672,10 @@ const ProfilePage = () => {
                     </h3>
                     <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[9px] font-black tracking-wider uppercase">
-                        🌾 {isTe ? 'రైతు' : 'FARMER'}
+                        🌾 {t('profile_page.role_farmer', 'FARMER')}
                       </span>
                       <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 text-[9px] font-black tracking-wider uppercase">
-                        🛡️ {isTe ? 'కిసాన్ ధృవీకరణ' : 'KISAN VERIFIED'}
+                        🛡️ {t('profile_page.kisan_verified', 'KISAN VERIFIED')}
                       </span>
                     </div>
 
@@ -724,7 +723,7 @@ const ProfilePage = () => {
                     <div className="w-full pt-4 mt-auto">
                       <Link to="/farm" className="w-full block">
                         <Button size="sm" variant="outline" className="w-full text-xs font-bold border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400">
-                          🌾 {isTe ? 'నా పొలం & భూమి రికార్డులు' : 'Go to My Farm & Land'}
+                          🌾 {t('profile_page.go_to_farm', 'Go to My Farm & Land')}
                         </Button>
                       </Link>
                     </div>
@@ -735,10 +734,10 @@ const ProfilePage = () => {
               <Card glass className="p-6 md:col-span-2 border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md">
                 <form onSubmit={handleUpdateSubmit} className="space-y-5">
                   <h3 className="font-black text-slate-900 dark:text-white text-base border-b border-slate-100 dark:border-white/5 pb-3">
-                    {userRole === 'admin' 
-                      ? 'Admin Identity & Credentials' 
-                      : isEquipmentProvider 
-                        ? (isTe ? 'మెషినరీ హబ్ & ప్రొవైడర్ సెట్టింగ్‌లు' : 'Machinery Hub & Provider Settings') 
+                    {userRole === 'admin'
+                      ? 'Admin Identity & Credentials'
+                      : isEquipmentProvider
+                        ? t('profile_page.provider_settings_link', 'Machinery Hub & Provider Settings')
                         : t('profile_page.form.heading', 'Agronomic Profile Settings')}
                   </h3>
 
@@ -758,7 +757,7 @@ const ProfilePage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
-                      label={isEquipmentProvider ? (isTe ? 'ప్రొవైడర్ / యజమాని పేరు' : 'Provider / Owner Name') : t('profile_page.form.full_name', 'Full Name')}
+                      label={isEquipmentProvider ? t('profile_page.provider_owner_name', 'Provider / Owner Name') : t('profile_page.form.full_name', 'Full Name')}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       leftIcon={<User className="w-4 h-4 text-slate-400" />}
@@ -780,7 +779,7 @@ const ProfilePage = () => {
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
                           <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
-                            {isEquipmentProvider ? (isTe ? 'హబ్ బేస్ డిస్పాచ్ ప్రదేశం (భారతదేశం)' : 'Equipment Hub Base Dispatch Location (India)') : t('profile_page.location_title', 'Farmer Native Location (India)')}
+                            {isEquipmentProvider ? t('profile_page.provider_base_location', 'Equipment Hub Base Dispatch Location (India)') : t('profile_page.location_title', 'Farmer Native Location (India)')}
                           </span>
                         </div>
 
@@ -838,10 +837,10 @@ const ProfilePage = () => {
                               disabled={!mandal}
                             >
                               <option value="">
-                                {!mandal 
-                                  ? '-- Select Mandal first --' 
-                                  : availableVillages.length > 0 
-                                    ? '-- Select Village --' 
+                                {!mandal
+                                  ? '-- Select Mandal first --'
+                                  : availableVillages.length > 0
+                                    ? '-- Select Village --'
                                     : '-- Select Village / Sector --'}
                               </option>
                               {availableVillages.map(v => (
@@ -857,13 +856,13 @@ const ProfilePage = () => {
                           <div className="flex items-center gap-2">
                             <Truck className="w-4 h-4 text-amber-500" />
                             <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                              {isTe ? 'మెషినరీ హబ్ వ్యాపార సమాచారం & చెల్లింపులు' : 'Machinery Hub Operations & Payout Settings'}
+                              {t('profile_page.hub_operations_title', 'Machinery Hub Operations & Payout Settings')}
                             </span>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Input
-                              label={isTe ? 'వ్యాపార / హబ్ పేరు' : 'Machinery Hub / Agency Name'}
+                              label={t('profile_page.hub_agency_name', 'Machinery Hub / Agency Name')}
                               value={hubName}
                               onChange={(e) => setHubName(e.target.value)}
                               placeholder="e.g. Balaji Agro Custom Hiring Center"
@@ -872,7 +871,7 @@ const ProfilePage = () => {
                             />
 
                             <Input
-                              label={isTe ? 'డిస్పాచ్ మొబైల్ / వాట్సాప్' : 'Dispatch Contact Phone / WhatsApp'}
+                              label={t('profile_page.dispatch_contact', 'Dispatch Contact Phone / WhatsApp')}
                               value={dispatchPhone}
                               onChange={(e) => setDispatchPhone(e.target.value)}
                               placeholder="e.g. 9876543210"
@@ -881,7 +880,7 @@ const ProfilePage = () => {
                             />
 
                             <Select
-                              label={isTe ? 'సేవా పరిధి (కి.మీ)' : 'Service Coverage Radius'}
+                              label={t('profile_page.coverage_radius', 'Service Coverage Radius')}
                               value={serviceRadiusKm}
                               onChange={(e) => setServiceRadiusKm(e.target.value)}
                               options={[
@@ -894,7 +893,7 @@ const ProfilePage = () => {
                             />
 
                             <Select
-                              label={isTe ? 'శిక్షణ పొందిన ఆపరేటర్ల సంఖ్య' : 'Trained Operators & Drivers'}
+                              label={t('profile_page.trained_operators', 'Trained Operators & Drivers')}
                               value={operatorCount}
                               onChange={(e) => setOperatorCount(e.target.value)}
                               options={[
@@ -908,7 +907,7 @@ const ProfilePage = () => {
                             />
 
                             <Input
-                              label={isTe ? 'చెల్లింపుల యూపీఐ ఐడీ (UPI ID)' : 'Payout UPI ID (Direct Bank Settlement)'}
+                              label={t('profile_page.payout_upi', 'Payout UPI ID (Direct Bank Settlement)')}
                               value={payoutUpiId}
                               onChange={(e) => setPayoutUpiId(e.target.value)}
                               placeholder="e.g. balajihub@oksbi"
@@ -917,7 +916,7 @@ const ProfilePage = () => {
                             />
 
                             <Input
-                              label={isTe ? 'రోజువారీ పని వేళలు' : 'Operating Dispatch Hours'}
+                              label={t('profile_page.dispatch_hours', 'Operating Dispatch Hours')}
                               value={operatingTimings}
                               onChange={(e) => setOperatingTimings(e.target.value)}
                               placeholder="e.g. 06:00 AM - 07:00 PM"
@@ -926,7 +925,7 @@ const ProfilePage = () => {
                             />
 
                             <Input
-                              label={isTe ? 'ప్రభుత్వ SMAM 40% సబ్సిడీ / CHC లైసెన్స్ సంఖ్య (ఐచ్ఛికం)' : 'Government SMAM 40% Subsidy / CHC License No. (Optional)'}
+                              label={t('profile_page.subsidy_license', 'Government SMAM 40% Subsidy / CHC License No. (Optional)')}
                               value={smamLicenseNo}
                               onChange={(e) => setSmamLicenseNo(e.target.value)}
                               placeholder="e.g. AP-SMAM-CHC-2024-8841"
@@ -935,7 +934,7 @@ const ProfilePage = () => {
                             />
 
                             <Input
-                              label={isTe ? 'అత్యవసర బ్రేక్‌డౌన్ / మెకానిక్ ఫోన్' : 'Emergency Field Breakdown & Mechanic Phone'}
+                              label={t('profile_page.breakdown_phone', 'Emergency Field Breakdown & Mechanic Phone')}
                               value={emergencyPhone}
                               onChange={(e) => setEmergencyPhone(e.target.value)}
                               placeholder="e.g. 9440182736"
@@ -949,13 +948,13 @@ const ProfilePage = () => {
                           <div className="flex items-center gap-2">
                             <Sprout className="w-4 h-4 text-emerald-500" />
                             <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                              {isTe ? 'రైతు సాగు భూమి & పంట వివరాలు' : 'Farmer Land, Crops & Agronomic Specifications'}
+                              {t('profile_page.farmer_specs_title', 'Farmer Land, Crops & Agronomic Specifications')}
                             </span>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <Input
-                              label={isTe ? 'రైతు మొబైల్ / వాట్సాప్ నంబర్' : 'Farmer Mobile / WhatsApp Number'}
+                              label={t('profile_page.farmer_mobile', 'Farmer Mobile / WhatsApp Number')}
                               value={farmerPhone}
                               onChange={(e) => setFarmerPhone(e.target.value)}
                               placeholder="e.g. 9440182736"
@@ -965,7 +964,7 @@ const ProfilePage = () => {
 
                             <div className="grid grid-cols-2 gap-2">
                               <Input
-                                label={isTe ? 'మొత్తం సాగు భూమి (ఎకరాలు)' : 'Total Farm Size (Acres)'}
+                                label={t('profile_page.total_farm_size', 'Total Farm Size (Acres)')}
                                 type="number"
                                 step="0.1"
                                 value={totalAcres}
@@ -975,20 +974,20 @@ const ProfilePage = () => {
                               />
 
                               <Select
-                                label={isTe ? 'భూమి హక్కు' : 'Land Tenure'}
+                                label={t('profile_page.land_tenure', 'Land Tenure')}
                                 value={ownershipType}
                                 onChange={(e) => setOwnershipType(e.target.value)}
                                 options={[
-                                  { value: 'Owner', label: isTe ? 'భూ యజమాని (Owner)' : 'Owner Farmer' },
-                                  { value: 'Tenant', label: isTe ? 'కౌలు రైతు (Tenant)' : 'Tenant Farmer' },
-                                  { value: 'Joint Family', label: isTe ? 'ఉమ్మడి కుటుంబం (Joint)' : 'Joint Holding' }
+                                  { value: 'Owner', label: t('profile_page.tenure_owner', 'Owner Farmer') },
+                                  { value: 'Tenant', label: t('profile_page.tenure_tenant', 'Tenant Farmer') },
+                                  { value: 'Joint Family', label: t('profile_page.tenure_joint', 'Joint Holding') }
                                 ]}
                                 className="text-xs font-bold text-slate-800 dark:text-white"
                               />
                             </div>
 
                             <Select
-                              label={isTe ? 'నేల రకం (భారతీయ వర్గీకరణ)' : 'Soil Classification'}
+                              label={t('profile_page.soil_classification', 'Soil Classification')}
                               value={soilType}
                               onChange={(e) => setSoilType(e.target.value)}
                               options={[
@@ -1002,7 +1001,7 @@ const ProfilePage = () => {
                             />
 
                             <Select
-                              label={isTe ? 'నీటి వనరు & సాగు పద్ధతి' : 'Irrigation & Water Source'}
+                              label={t('profile_page.irrigation_water', 'Irrigation & Water Source')}
                               value={irrigationSource}
                               onChange={(e) => setIrrigationSource(e.target.value)}
                               options={[
@@ -1030,7 +1029,7 @@ const ProfilePage = () => {
                             />
 
                             <Input
-                              label={isTe ? 'పీఎం-కిసాన్ / రైతు భరోసా ఐడీ (ఐచ్ఛికం)' : 'PM-KISAN / Rythu Bharosa ID (Optional)'}
+                              label={t('profile_page.pm_kisan_id', 'PM-KISAN / Rythu Bharosa ID (Optional)')}
                               value={kisanId}
                               onChange={(e) => setKisanId(e.target.value)}
                               placeholder="e.g. AP-PMK-2024-9918"
@@ -1042,7 +1041,7 @@ const ProfilePage = () => {
                           {/* Primary Crops Selector Chips */}
                           <div className="space-y-1.5 pt-1">
                             <label className="block text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase">
-                              {isTe ? 'ప్రస్తుత సీజన్ పంటలు (ఎంచుకోండి)' : 'Current Season Crops (Select all that apply)'}
+                              {t('profile_page.current_season_crops', 'Current Season Crops (Select all that apply)')}
                             </label>
                             <div className="flex flex-wrap gap-2">
                               {[
@@ -1114,7 +1113,7 @@ const ProfilePage = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="pt-2 flex justify-end">
                     <Button
                       variant="primary"
@@ -1143,12 +1142,10 @@ const ProfilePage = () => {
                     </div>
                     <div>
                       <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                        {isTe ? 'స్కాన్ ఫలితాల భాషల ప్రాధాన్యత (1 నుండి 3 భాషలు)' : 'Diagnostic Results Preferred Languages (1 to 3)'}
+                        {t('profile_page.diagnostic_languages_title', 'Diagnostic Results Preferred Languages (1 to 3)')}
                       </h2>
                       <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-0.5">
-                        {isTe 
-                          ? 'మీరు ఇక్కడ ఎంచుకున్న 1, 2 లేదా 3 భాషలు మాత్రమే వ్యాధి నిర్ధారణ, మొక్కల గుర్తింపు మరియు పురుగుమందుల స్కానర్ ఫలితాల్లో క్విక్ బటన్లుగా కనిపిస్తాయి.' 
-                          : 'Scan results across Disease Diagnosis, Plant Identification, and Agrochemical Verification will strictly display ONLY the 1, 2, or 3 languages you choose and save here.'}
+                        {t('profile_page.diagnostic_languages_desc', 'Scan results across Disease Diagnosis, Plant Identification, and Agrochemical Verification will strictly display ONLY the 1, 2, or 3 languages you choose and save here.')}
                       </p>
                     </div>
                   </div>
@@ -1160,14 +1157,14 @@ const ProfilePage = () => {
                         : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                     }`}>
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>{preferredLanguages.length} / 3 {isTe ? 'ఎంచుకున్నారు' : 'Selected'}</span>
+                      <span>{preferredLanguages.length} / 3 {t('profile_page.selected_count', 'Selected')}</span>
                     </span>
                   </div>
                 </div>
 
                 {/* Notifications & Error Banners */}
                 {languagesError && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-500 text-xs font-bold flex items-center gap-2"
@@ -1178,7 +1175,7 @@ const ProfilePage = () => {
                 )}
 
                 {languagesToast && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-2"
@@ -1192,13 +1189,13 @@ const ProfilePage = () => {
                 <div className="pt-2 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-white/40">
-                      {isTe ? 'ప్రస్తుత ఎంపిక క్రమం:' : 'Active Quick-Switch Order:'}
+                      {t('profile_page.quick_switch_order', 'Active Quick-Switch Order:')}
                     </span>
                     {preferredLanguages.map((code, idx) => {
                       const langObj = SUPPORTED_LANGUAGES.find(l => l.code === code);
                       return (
-                        <span 
-                          key={code} 
+                        <span
+                          key={code}
                           className="px-3 py-1 rounded-xl text-xs font-extrabold bg-slate-900 text-white dark:bg-white/10 border border-slate-700/80 flex items-center gap-1.5 shadow-xs"
                         >
                           <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-500 text-slate-950 font-black">
@@ -1220,7 +1217,7 @@ const ProfilePage = () => {
                     leftIcon={<Save className="w-4 h-4" />}
                     className="shadow-md shadow-emerald-500/20 font-black text-xs"
                   >
-                    {isTe ? 'భాషల ప్రాధాన్యతలను సేవ్ చేయండి' : 'Save Language Preferences'}
+                    {t('profile_page.save_languages', 'Save Language Preferences')}
                   </Button>
                 </div>
               </Card>
@@ -1229,10 +1226,10 @@ const ProfilePage = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-white/40">
-                    {isTe ? 'అందుబాటులో ఉన్న భారతీయ భాషలు (కనీసం 1, గరిష్టంగా 3 ఎంచుకోండి)' : 'Select 1, 2, or 3 Languages for Instant Scan Switching'}
+                    {t('profile_page.select_languages_heading', 'Select 1, 2, or 3 Languages for Instant Scan Switching')}
                   </h3>
                   <span className="text-xs text-slate-500 dark:text-white/40 font-semibold">
-                    {preferredLanguages.length}/3 {isTe ? 'ఎంపిక పూర్తయింది' : 'Max Limit'}
+                    {preferredLanguages.length}/3 {t('profile_page.max_limit', 'Max Limit')}
                   </span>
                 </div>
 
@@ -1256,8 +1253,8 @@ const ProfilePage = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
                             <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 border ${
-                              isSelected 
-                                ? 'bg-emerald-500 text-white border-emerald-400 shadow-xs' 
+                              isSelected
+                                ? 'bg-emerald-500 text-white border-emerald-400 shadow-xs'
                                 : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10'
                             }`}>
                               {lang.flag}
@@ -1307,9 +1304,7 @@ const ProfilePage = () => {
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-emerald-400 shrink-0" />
                   <p className="text-xs text-slate-300">
-                    {isTe 
-                      ? 'సేవ్ చేసిన తర్వాత, మీరు స్కాన్ చేసే ప్రతిసారీ ఫలితాల పైన కేవలం ఈ భాషలే 1-ట్యాప్ బటన్లుగా కనిపిస్తాయి.' 
-                      : 'Once saved, every time you scan, strictly only these selected languages will appear as 1-tap quick buttons on the diagnosis screen.'}
+                    {t('profile_page.save_languages_notice', 'Once saved, every time you scan, strictly only these selected languages will appear as 1-tap quick buttons on the diagnosis screen.')}
                   </p>
                 </div>
                 <Button
@@ -1321,7 +1316,7 @@ const ProfilePage = () => {
                   leftIcon={<Save className="w-4 h-4" />}
                   className="shadow-lg shadow-emerald-500/25 shrink-0 w-full sm:w-auto font-black"
                 >
-                  {isTe ? 'భాషల ప్రాధాన్యతలను సేవ్ చేయండి' : 'Save Language Preferences'}
+                  {t('profile_page.save_languages', 'Save Language Preferences')}
                 </Button>
               </div>
             </div>
@@ -1348,14 +1343,14 @@ const ProfilePage = () => {
                 {ANIMATION_THEMES.map((t) => {
                   const isActive = theme === t.id;
                   return (
-                    <motion.button 
+                    <motion.button
                       key={t.id}
                       onClick={() => handleNavbarThemeChange(t.id)}
                       whileHover={{ y: -4 }}
                       whileTap={{ scale: 0.98 }}
                       className={`relative text-left p-3 rounded-2xl border transition-all duration-300 group flex flex-col justify-between h-[145px] overflow-hidden ${
-                        isActive 
-                          ? 'border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10' 
+                        isActive
+                          ? 'border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10'
                           : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-emerald-500/30'
                       }`}
                     >
@@ -1406,8 +1401,8 @@ const ProfilePage = () => {
                       whileHover={{ y: -3 }}
                       whileTap={{ scale: 0.98 }}
                       className={`relative text-left p-5 rounded-2xl border transition-all duration-300 flex gap-4 group ${
-                        isActive 
-                          ? 'border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10' 
+                        isActive
+                          ? 'border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10'
                           : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-emerald-500/30'
                       }`}
                     >
@@ -1439,11 +1434,11 @@ const ProfilePage = () => {
                   <FarmRoutineWidget />
                 </div>
               </WidgetErrorBoundary>
-              
+
               <WidgetErrorBoundary name="Live Weather Intelligence">
                 <LiveWeatherWidget telemetry={activeTelemetry} />
               </WidgetErrorBoundary>
-              
+
               <WidgetErrorBoundary name="Spray Application Advisor">
                 <SprayAdvisorWidget telemetry={activeTelemetry} />
               </WidgetErrorBoundary>

@@ -120,7 +120,27 @@ export const resources = {
         "namaste_farmer": "Namaste, {{name}}! 👋",
         "telemetry_stream": "Live Field Micro-Telemetry Streams",
         "streaming_live": "STREAMING LIVE",
-        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA"
+        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA",
+        "smart_actions": {
+          "title": "Smart Farm Operations",
+          "subtitle": "Daily prioritized operations, overdue tasks & field actions",
+          "iot_mode": "Smart IoT Mode (Live Sensor Telemetry)",
+          "ai_mode": "Software AI Mode (Satellite & Crop Models)",
+          "refresh": "Refresh Actions",
+          "tabs_today": "Today",
+          "tabs_overdue": "Overdue",
+          "tabs_upcoming": "Upcoming",
+          "empty_today": "All Caught Up! No Pending Actions Today",
+          "empty_today_sub": "All farm activities and liabilities are on track.",
+          "empty_overdue": "Great! No Overdue Work",
+          "empty_overdue_sub": "Your field conditions and schedules are running on time.",
+          "empty_upcoming": "No Upcoming Operations Scheduled",
+          "empty_upcoming_sub": "No mandatory interventions for the next 7 days.",
+          "priority_high": "Urgent",
+          "priority_medium": "Recommended",
+          "priority_low": "Routine",
+          "dismiss_action": "Dismiss"
+        }
       },
       "scan_page": {
         "vision_engine": "Multi-Modal Vision Engine",
@@ -1226,7 +1246,25 @@ export const resources = {
         "description": "Describe your issue or question...",
         "phone": "Farmer Contact Mobile",
         "submit_btn": "Submit Ticket Now",
-        "ticket_submitted": "Your ticket has been logged successfully! An agronomist will contact you shortly."
+        "ticket_submitted": "Your ticket has been logged successfully! An agronomist will contact you shortly.",
+        "faqs": {
+          "q1": "Why does my ESP32 field sensor show offline?",
+          "a1": "1) Check battery or solar charging. 2) Ensure node is within 2.4GHz Wi-Fi / SIM range. 3) Press the RST button on the node for 3 seconds.",
+          "q2": "How do I achieve 1-meter pinpoint GPS field measuring accuracy?",
+          "a2": "Hold the phone steady with screen upward while walking boundaries. Ensure high-accuracy GPS location is enabled in phone settings.",
+          "q3": "What if I suspect an incorrect disease diagnosis on my scan?",
+          "a3": "Take a closer photo in clear daylight without flash or blur. You can also request an agricultural extension officer review via the Helpdesk.",
+          "q4": "How soon will a support officer call me after a callback request?",
+          "a4": "Our regional agronomy team calls within 15–30 minutes during working hours (8:00 AM – 7:00 PM).",
+          "q5": "Does the system work without internet in remote fields?",
+          "a5": "Yes. Diagnostic scans, farm khata, and field measurements queue offline automatically and synchronize once mobile signal is restored.",
+          "q6": "How do equipment rental payments and cancellation work?",
+          "a6": "Bookings can be cancelled for free before the provider dispatches the tractor. Settlement occurs via UPI or cash upon field job completion.",
+          "q7": "Are live mandi commodity rates official?",
+          "a7": "Yes, live mandi market rates are synchronized daily from official Agmarknet wholesale APMC auction settlement yards.",
+          "q8": "Is my farm boundary data and crop photos kept secure?",
+          "a8": "Yes, all farm coordinates, crop photos, and accounting ledgers are securely encrypted and private to your verified farmer account."
+        }
       },
       "sdcard_page": {
         "title": "MicroSD Storage & Offline Packet Buffer",
@@ -1247,6 +1285,30 @@ export const resources = {
         "current_active": "Active Language",
         "no_save_needed": "No save button needed • Changes apply live",
         "footer_info": "Telugu, Hindi, Tamil & 9 other Indian regional languages supported."
+      },
+      "advisor": {
+        "high_risk": "HIGH RISK",
+        "normal": "NORMAL",
+        "agro_climatic": "Agro-Climatic Intelligence",
+        "forecast_48h": "48-Hr Forecast",
+        "risk": "Risk",
+        "vulnerable_crops": "🌾 Vulnerable Crops:",
+        "hide_details": "Hide Details",
+        "view_protocol": "View Action Protocol",
+        "biological_prevention": "1. Biological Prevention",
+        "bio_desc": "Foliar spray of Trichoderma viride or Pseudomonas during overcast hours.",
+        "field_drainage": "2. Field Drainage",
+        "drainage_desc": "Clear furrow drains to prevent soil water stagnation around roots.",
+        "chemical_cushion": "3. Chemical Cushion",
+        "chemical_desc": "If active sporulation occurs, spray protective contact fungicide."
+      },
+      "ai_safety": {
+        "healthy": "Crop Healthy • No Disease Detected",
+        "confirmed_disease": "Disease Detected • Treatment Required",
+        "uncertain": "Diagnosis Uncertain • Please Retake Clear Photo",
+        "image_unsuitable": "Photo Unsuitable for Analysis • Follow Camera Guidelines",
+        "unsupported": "Unsupported Leaf or Non-Crop Image",
+        "secondary_review_required": "Secondary Review Recommended • Consult Extension Officer"
       }
     }
   },
@@ -1284,7 +1346,7 @@ export const resources = {
           "healthy": "स्वस्थ",
           "sick": "रोगग्रस्त",
           "active_crop": "सक्रिय फसल",
-          "stage": "अवस्था",
+          "stage": "अवस्था / चरण",
           "esp32_hardware": "ESP32 हार्डवेयर",
           "ai_engine": "AI इंजन",
           "online": "ऑनलाइन",
@@ -1298,7 +1360,16 @@ export const resources = {
           "view_history": "इतिहास देखें →",
           "more_hub": "अधिक हब",
           "all_tools": "सभी उपकरण",
-          "modules": "12 उपकरण →"
+          "modules": "12 उपकरण →",
+          "active_crop_label": "सक्रिय फसल:",
+          "leaf_scans_label": "पत्ती स्कैन:",
+          "treated": "उपचारित",
+          "soil_water_label": "मृदा नमी:",
+          "optimal": "उत्कृष्ट",
+          "adequate": "पर्याप्त",
+          "needs_water": "पानी की आवश्यकता",
+          "mandi_rate_label": "मंडी भाव:",
+          "today": "आज"
         },
         "quick_tools": {
           "title": "त्वरित कृषि उपकरण",
@@ -1310,7 +1381,8 @@ export const resources = {
           "agronomist": "AI कृषि विशेषज्ञ",
           "agronomist_desc": "तुरंत उत्तर",
           "more": "अधिक हब",
-          "more_desc": "12 कृषि उपकरण"
+          "more_desc": "12 कृषि उपकरण",
+          "leaf_doctor": "पत्ती डॉक्टर"
         },
         "weather": {
           "provider": "प्रदाता",
@@ -1372,7 +1444,27 @@ export const resources = {
         "daily_actionable_summary": "Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying",
         "telemetry_stream": "Live Field Micro-Telemetry Streams",
         "streaming_live": "STREAMING LIVE",
-        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA"
+        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA",
+        "smart_actions": {
+          "title": "स्मार्ट कृषि कार्य केंद्र",
+          "subtitle": "दैनिक प्राथमिकता वाले कार्य, लंबित कार्य और खेत प्रबंधन",
+          "iot_mode": "स्मार्ट IoT मोड (लाइव सेंसर डेटा)",
+          "ai_mode": "सॉफ्टवेयर एआई मोड",
+          "refresh": "ताज़ा करें",
+          "tabs_today": "आज",
+          "tabs_overdue": "विलंबित",
+          "tabs_upcoming": "आगामी",
+          "empty_today": "आज के सभी कार्य पूर्ण! कोई लंबित कार्य नहीं",
+          "empty_today_sub": "आपकी सभी खेत गतिविधियाँ समय पर चल रही हैं।",
+          "empty_overdue": "बढ़िया! कोई विलंबित कार्य नहीं है",
+          "empty_overdue_sub": "आपके खेत की स्थिति सामान्य और संतुलित है।",
+          "empty_upcoming": "अगले 7 दिनों के लिए कोई कार्य निर्धारित नहीं",
+          "empty_upcoming_sub": "आगामी सप्ताह में कोई तत्काल कार्य आवश्यक नहीं है।",
+          "priority_high": "अति आवश्यक",
+          "priority_medium": "अनुशंसित",
+          "priority_low": "नियमित",
+          "dismiss_action": "हटाएं"
+        }
       },
       "scan_page": {
         "vision_engine": "मल्टी-मॉडल विज़न इंजन",
@@ -2471,7 +2563,25 @@ export const resources = {
         "description": "अपनी समस्या या प्रश्न का वर्णन करें...",
         "phone": "किसान संपर्क मोबाइल",
         "submit_btn": "अभी टिकट जमा करें",
-        "ticket_submitted": "आपका टिकट सफलतापूर्वक दर्ज हो गया है! एक कृषि वैज्ञानिक जल्द ही आपसे संपर्क करेगा।"
+        "ticket_submitted": "आपका टिकट सफलतापूर्वक दर्ज हो गया है! एक कृषि वैज्ञानिक जल्द ही आपसे संपर्क करेगा।",
+        "faqs": {
+          "q1": "मेरा ESP32 सेंसर ऑफ़लाइन क्यों दिखाई दे रहा है?",
+          "a1": "1) बैटरी या सोलर चार्जिंग की जांच करें। 2) सुनिश्चित करें कि नोड वाई-फाई या नेटवर्क रेंज में है। 3) नोड पर RST बटन को 3 सेकंड तक दबाएं।",
+          "q2": "खेत नापने में 1 मीटर सटीक जीपीएस सटीकता कैसे प्राप्त करें?",
+          "a2": "खेत की मेड़ पर चलते समय फोन को स्थिर रखें और स्क्रीन को ऊपर रखें। फोन में उच्च सटीकता जीपीएस चालू करें।",
+          "q3": "यदि मुझे रोग निदान पर संदेह हो तो क्या करें?",
+          "a3": "साफ दिन के उजाले में पत्ती की एक स्पष्ट फोटो दोबारा लें। आप हेल्पडेस्क के माध्यम से कृषि अधिकारी से समीक्षा का अनुरोध भी कर सकते हैं।",
+          "q4": "कॉलबैक अनुरोध के बाद अधिकारी कब कॉल करेंगे?",
+          "a4": "कार्य समय (सुबह 8:00 से शाम 7:00) के दौरान हमारी कृषि टीम 15–30 मिनट के भीतर कॉल करती है।",
+          "q5": "क्या बिना इंटरनेट के भी ऐप काम करता है?",
+          "a5": "हाँ। ऑफलाइन मोड में स्कैन, खाता और माप सुरक्षित रहते हैं और नेटवर्क मिलते ही अपने आप सिंक हो जाते हैं।",
+          "q6": "मशीनरी किराया भुगतान और रद्दीकरण कैसे काम करता है?",
+          "a6": "ट्रैक्टर निकलने से पहले बुकिंग मुफ्त रद्द की जा सकती है। काम पूरा होने पर यूपीआई या नकद भुगतान किया जा सकता है।",
+          "q7": "क्या लाइव मंडी भाव आधिकारिक हैं?",
+          "a7": "हाँ, मंडी भाव दैनिक रूप से सरकारी एग्मार्कनेट (Agmarknet APMC) थोक नीलामी से सीधे अपडेट होते हैं।",
+          "q8": "क्या मेरा खेत डेटा और फसल फोटो सुरक्षित हैं?",
+          "a8": "हाँ, आपके खेत के निर्देशांक, फसल फोटो और खाते का विवरण पूरी तरह से सुरक्षित और निजी रहता है।"
+        }
       },
       "sdcard_page": {
         "title": "माइक्रोएसडी स्टोरेज और ऑफलाइन पैकेट बफर",
@@ -2492,6 +2602,30 @@ export const resources = {
         "current_active": "सक्रिय भाषा",
         "no_save_needed": "सेव बटन की आवश्यकता नहीं • लाइव लागू होता है",
         "footer_info": "हिंदी, तेलुगु, तमिल, कन्नड़, मलयालम और ओडिया सहित 12 भारतीय भाषाएं समर्थित हैं।"
+      },
+      "advisor": {
+        "high_risk": "उच्च जोखिम",
+        "normal": "सामान्य",
+        "agro_climatic": "कृषि-मौसम पूर्वानुमान",
+        "forecast_48h": "48 घंटे का पूर्वानुमान",
+        "risk": "जोखिम",
+        "vulnerable_crops": "🌾 संवेदनशील फसलें:",
+        "hide_details": "विवरण छिपाएं",
+        "view_protocol": "कार्य योजना देखें",
+        "biological_prevention": "1. जैविक रोकथाम",
+        "bio_desc": "बादल छाए रहने के समय ट्राइकोडर्मा विरिडी या स्यूडोमोनास का छिड़काव करें।",
+        "field_drainage": "2. खेत से जल निकासी",
+        "drainage_desc": "जड़ों के पास जलभराव रोकने के लिए नालियों को साफ रखें।",
+        "chemical_cushion": "3. रासायनिक सुरक्षा",
+        "chemical_desc": "प्रकोप दिखने पर अनुमोदित संपर्क कवकनाशी का छिड़काव करें।"
+      },
+      "ai_safety": {
+        "healthy": "फसल स्वस्थ है • कोई रोग नहीं पाया गया",
+        "confirmed_disease": "रोग का पता चला • उपचार आवश्यक",
+        "uncertain": "निदान अनिश्चित • कृपया स्पष्ट फोटो दोबारा लें",
+        "image_unsuitable": "फोटो विश्लेषण के लिए उपयुक्त नहीं • कैमरा निर्देश देखें",
+        "unsupported": "असमर्थित पत्ती या गैर-कृषि छवि",
+        "secondary_review_required": "पुनरावलोकन अनुशंसित • कृषि अधिकारी से परामर्श लें"
       }
     },
     "field_calculator": {
@@ -2696,7 +2830,27 @@ export const resources = {
         "daily_actionable_summary": "నేడు 34°C, ఎండగా ఉంది — పొలం పని మరియు పిచికారీకి అనుకూల వాతావరణం",
         "telemetry_stream": "ప్రత్యక్ష పొలం సెన్సార్ డేటా",
         "streaming_live": "లైవ్ స్ట్రీమింగ్",
-        "node_offline_msg": "పరికరం ఆఫ్‌లైన్ — అంచనా విలువలు చూపిస్తోంది"
+        "node_offline_msg": "పరికరం ఆఫ్‌లైన్ — అంచనా విలువలు చూపిస్తోంది",
+        "smart_actions": {
+          "title": "వ్యవసాయ కార్యాచరణ కేంద్రం",
+          "subtitle": "నేడు, గడువు దాటిన మరియు రాబోయే పొలం పనుల నిర్వహణ",
+          "iot_mode": "స్మార్ట్ IoT మోడ్ (ప్రత్యక్ష సమాచారం)",
+          "ai_mode": "సాఫ్ట్‌వేర్ AI మోడ్",
+          "refresh": "రిఫ్రెష్ చేయండి",
+          "tabs_today": "నేడు",
+          "tabs_overdue": "గడువు దాటినవి",
+          "tabs_upcoming": "రాబోయేవి",
+          "empty_today": "అన్ని పనులు పూర్తయ్యాయి! నేటికి బాకీ లేవు",
+          "empty_today_sub": "మీ పొలంలో అన్ని పనులు సమయానికి నడుస్తున్నాయి.",
+          "empty_overdue": "అద్భుతం! గడువు దాటిన పనులేవీ లేవు",
+          "empty_overdue_sub": "మీ పంట పొలం పరిస్థితి స్థిరంగా ఉంది.",
+          "empty_upcoming": "రాబోయే 7 రోజుల్లో పనులేవీ లేవు",
+          "empty_upcoming_sub": "రాబోయే వారంలో అత్యవసర చర్యలు ఏవీ అవసరం లేదు.",
+          "priority_high": "అత్యవసరం",
+          "priority_medium": "సిఫార్సు",
+          "priority_low": "సాధారణం",
+          "dismiss_action": "తీసివేయండి"
+        }
       },
       "scan_page": {
         "vision_engine": "మల్టీ-మోడల్ విజన్ ఇంజిన్",
@@ -3815,7 +3969,25 @@ export const resources = {
         "description": "మీ సమస్యను వివరించండి...",
         "phone": "రైతు మొబైల్ నంబర్",
         "submit_btn": "టికెట్ సమర్పించండి",
-        "ticket_submitted": "మీ టికెట్ విజయవంతంగా నమోదయింది! త్వరలోనే నిపుణులు మిమ్మల్ని సంప్రదిస్తారు."
+        "ticket_submitted": "మీ టికెట్ విజయవంతంగా నమోదయింది! త్వరలోనే నిపుణులు మిమ్మల్ని సంప్రదిస్తారు.",
+        "faqs": {
+          "q1": "నా ESP32 ఫీల్డ్ సెన్సార్ ఆఫ్‌లైన్‌లో ఎందుకు చూపిస్తోంది?",
+          "a1": "1) సెన్సార్ బ్యాటరీ లేదా సోలార్ పవర్ సరిగ్గా ఉందో లేదో చూడండి. 2) నోడ్ వై-ఫై లేదా సిమ్ కనెక్టివిటీ పరిధిలో ఉందో ధృవీకరించండి. 3) పరికరంపై ఉన్న రీసెట్ (RST) బటన్‌ను 3 సెకన్లు నొక్కండి.",
+          "q2": "భూమి విస్తీర్ణ కొలతలలో 1 మీటర్ ఖచ్చితత్వం ఎలా పొందాలి?",
+          "a2": "పొలం సరిహద్దు వెంట నడిచేటప్పుడు ఫోన్‌ను పైకి పెట్టి స్థిరంగా పట్టుకోండి. ఫోన్ సెట్టింగ్స్‌లో హై-అక్యురసీ GPS ఆన్ చేయండి.",
+          "q3": "రోగ నిర్ధారణ స్కాన్ ఫలితంపై సందేహం ఉంటే ఏమి చేయాలి?",
+          "a3": "స్పష్టమైన పగటి వెలుతురులో నీడ పడకుండా ఆకు ఫోటో మళ్లీ తీయండి. హెల్ప్‌డెస్క్ ద్వారా వ్యవసాయ విస్తరణ అధికారి సమీక్షను కూడా అభ్యర్థించవచ్చు.",
+          "q4": "కాల్‌బ్యాక్ అభ్యర్థన చేసిన తర్వాత అధికారులు ఎప్పుడు కాల్ చేస్తారు?",
+          "a4": "ఉదయం 8:00 నుండి సాయంత్రం 7:00 గంటల మధ్యలో 15–30 నిమిషాల్లో వ్యవసాయ అధికారులు మీకు ఫోన్ చేస్తారు.",
+          "q5": "ఇంటర్నెట్ లేని సమయంలో కూడా యాప్ పనిచేస్తుందా?",
+          "a5": "అవును. ఆఫ్‌లైన్ మోడ్‌లో స్కాన్‌లు, పొలం ఖాతా మరియు విస్తీర్ణ కొలతలు నిల్వ చేయబడి, ఇంటర్నెట్ రాగానే ఆటోమేటిక్‌గా సింక్ అవుతాయి.",
+          "q6": "యంత్రాల అద్దె చెల్లింపులు మరియు రద్దు ఎలా జరుగుతుంది?",
+          "a6": "యంత్రం బయలుదేరక ముందే బుకింగ్‌ను ఉచితంగా రద్దు చేసుకోవచ్చు. పని పూర్తయ్యాక UPI లేదా నగదు ద్వారా చెల్లించవచ్చు.",
+          "q7": "మండీ మార్కెట్ ధరలు అధికారికమైనవేనా?",
+          "a7": "అవును, వ్యవసాయ మార్కెట్ యార్డుల (Agmarknet APMC) రోజువారీ వేలం ధరల ఆధారంగా ఇవి నేరుగా అప్‌డేట్ చేయబడతాయి.",
+          "q8": "నా పొలం వివరాలు మరియు ఫోటోలు సురక్షితంగా ఉంటాయా?",
+          "a8": "అవును, మీ పొలం సరిహద్దులు, ఫోటోలు మరియు ఖాతా వివరాలు ఎన్‌క్రిప్ట్ చేయబడి పూర్తి గోప్యంగా ఉంచబడతాయి."
+        }
       },
       "sdcard_page": {
         "title": "మైక్రో SD కార్డ్ & ఆఫ్‌లైన్ స్టోరేజ్",
@@ -3836,6 +4008,30 @@ export const resources = {
         "current_active": "యాక్టివ్ భాష",
         "no_save_needed": "సేవ్ బటన్ అవసరం లేదు • లైవ్‌గా మారుతుంది",
         "footer_info": "తెలుగు, హిందీ, తమిళం మరియు మరో 9 భారతీయ ప్రాంతీయ భాషలకు మద్దతు ఉంది."
+      },
+      "advisor": {
+        "high_risk": "తీవ్ర ప్రమాదం",
+        "normal": "సాధారణం",
+        "agro_climatic": "వ్యవసాయ వాతావరణ సమాచారం",
+        "forecast_48h": "48 గంటల సూచన",
+        "risk": "ప్రమాదం",
+        "vulnerable_crops": "🌾 ప్రమాదంలో ఉన్న పంటలు:",
+        "hide_details": "వివరాలు దాచు",
+        "view_protocol": "చర్యల ప్రణాళిక చూడండి",
+        "biological_prevention": "1. జీవసంబంధ నివారణ",
+        "bio_desc": "మేఘావృతమైన వేళల్లో ట్రైకోడెర్మా విరిడే లేదా సూడోమోనాస్ పిచికారీ చేయండి.",
+        "field_drainage": "2. పొలంలో నీటి పారుదల",
+        "drainage_desc": "వేర్ల వద్ద నీరు నిలవకుండా మురుగు కాలువలను శుభ్రం చేయండి.",
+        "chemical_cushion": "3. రసాయన రక్షణ",
+        "chemical_desc": "తెగులు ప్రారంభ దశలో ఉంటే రక్షిత కాంటాక్ట్ శిలీంద్ర సంహారిణిని పిచికారీ చేయండి."
+      },
+      "ai_safety": {
+        "healthy": "పంట ఆరోగ్యంగా ఉంది • ఎటువంటి తెగులు గుర్తించబడలేదు",
+        "confirmed_disease": "రోగం గుర్తించబడింది • నివారణ చర్యలు అవసరం",
+        "uncertain": "నిర్ధారణ అస్పష్టంగా ఉంది • దయచేసి స్పష్టమైన ఫోటో మళ్లీ తీయండి",
+        "image_unsuitable": "ఫోటో విశ్లేషణకు సరిపోలేదు • కెమెరా సూచనలను పాటించండి",
+        "unsupported": "మద్దతు లేని ఆకు లేదా వ్యవసాయేతర ఫోటో",
+        "secondary_review_required": "పునఃపరిశీలన సిఫార్సు చేయబడింది • వ్యవసాయ అధికారిని సంప్రదించండి"
       }
     }
   },
@@ -3873,7 +4069,7 @@ export const resources = {
           "healthy": "ஆரோக்கியமானது",
           "sick": "பாதிக்கப்பட்டது",
           "active_crop": "தற்போதைய பயிர்",
-          "stage": "நிலை",
+          "stage": "வளர்ச்சி நிலை",
           "esp32_hardware": "ESP32 சாதனம்",
           "ai_engine": "AI எஞ்சின்",
           "online": "ஆன்லைன்",
@@ -3887,7 +4083,16 @@ export const resources = {
           "view_history": "வரலாறு காண்க →",
           "more_hub": "கூடுதல் மையம்",
           "all_tools": "அனைத்து கருவிகள்",
-          "modules": "12 கருவிகள் →"
+          "modules": "12 கருவிகள் →",
+          "active_crop_label": "செயலில் உள்ள பயிர்:",
+          "leaf_scans_label": "இலை ஸ்கேன்கள்:",
+          "treated": "சிகிச்சையளிக்கப்பட்டது",
+          "soil_water_label": "மண் ஈரப்பதம்:",
+          "optimal": "ஏற்ற நிலை",
+          "adequate": "போதுமானது",
+          "needs_water": "நீர் தேவை",
+          "mandi_rate_label": "சந்தை விலை:",
+          "today": "இன்று"
         },
         "quick_tools": {
           "title": "விரைவு விவசாய கருவிகள்",
@@ -3899,7 +4104,8 @@ export const resources = {
           "agronomist": "AI விவசாய நிபுணர்",
           "agronomist_desc": "உடனடி பதில்கள்",
           "more": "கூடுதல் மையம்",
-          "more_desc": "12 விவசாய கருவிகள்"
+          "more_desc": "12 விவசாய கருவிகள்",
+          "leaf_doctor": "இலை மருத்துவர்"
         },
         "weather": {
           "provider": "வழங்குநர்",
@@ -3961,7 +4167,27 @@ export const resources = {
         "daily_actionable_summary": "Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying",
         "telemetry_stream": "Live Field Micro-Telemetry Streams",
         "streaming_live": "STREAMING LIVE",
-        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA"
+        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA",
+        "smart_actions": {
+          "title": "ஸ்மார்ட் பண்ணை செயல்பாடுகள்",
+          "subtitle": "இன்றைய முன்னுரிமைப் பணிகள், தாமதமான பணிகள் & வயல் நடவடிக்கைகள்",
+          "iot_mode": "ஸ்மார்ட் IoT பயன்முறை (நேரலை சென்சார்)",
+          "ai_mode": "மென்பொருள் AI பயன்முறை",
+          "refresh": "புதுப்பிக்கவும்",
+          "tabs_today": "இன்று",
+          "tabs_overdue": "தாமதமானவை",
+          "tabs_upcoming": "வரவிருப்பவை",
+          "empty_today": "இன்றைய பணிகள் முடிந்தது! நிலுவை இல்லை",
+          "empty_today_sub": "அனைத்து பண்ணை நடவடிக்கைகளும் சரியாக நடைபெறுகின்றன.",
+          "empty_overdue": "சிறப்பு! தாமதமான பணிகள் எதுவுமில்லை",
+          "empty_overdue_sub": "உங்கள் வயல் நிலைமைகள் சீராக உள்ளன.",
+          "empty_upcoming": "அடுத்த 7 நாட்களுக்கு பணிகள் திட்டமிடப்படவில்லை",
+          "empty_upcoming_sub": "அடுத்த வாரத்தில் அவசர பணிகள் எதுவும் தேவையில்லை.",
+          "priority_high": "அவசரம்",
+          "priority_medium": "பரிந்துரைக்கப்பட்டது",
+          "priority_low": "வழக்கமானது",
+          "dismiss_action": "நீக்கு"
+        }
       },
       "scan_page": {
         "vision_engine": "மல்டி-மாடல் விஷன் என்ஜின்",
@@ -5070,7 +5296,25 @@ export const resources = {
         "description": "உங்கள் பிரச்சனை அல்லது கேள்வியை விவரிக்கவும்...",
         "phone": "விவசாயி தொடர்பு எண்",
         "submit_btn": "டிக்கெட்டை சமர்ப்பிக்கவும்",
-        "ticket_submitted": "உங்கள் டிக்கெட் பதிவு செய்யப்பட்டது! வேளாண் நிபுணர் விரைவில் தொடர்புகொள்வார்."
+        "ticket_submitted": "உங்கள் டிக்கெட் பதிவு செய்யப்பட்டது! வேளாண் நிபுணர் விரைவில் தொடர்புகொள்வார்.",
+        "faqs": {
+          "q1": "எனது ESP32 சென்சார் ஏன் ஆஃப்லைனில் காட்டுகிறது?",
+          "a1": "1) பேட்டரி அல்லது சோலார் சார்ஜிங்கை சரிபார்க்கவும். 2) நோட் வைஃபை வரம்பில் உள்ளதா எனப் பார்க்கவும். 3) RST பொத்தானை 3 வினாடிகள் அழுத்தவும்.",
+          "q2": "நில அளவீட்டில் 1 மீட்டர் துல்லியத்தை எவ்வாறு பெறுவது?",
+          "a2": "வயல் வரப்பில் நடக்கும்போது போனை அசைக்காமல் நேராகப் பிடிக்கவும். போன் அமைப்புகளில் உயர் துல்லிய ஜிபிஎஸ் ஆன் செய்யவும்.",
+          "q3": "நோய் கண்டறிதல் முடிவில் சந்தேகம் இருந்தால் என்ன செய்வது?",
+          "a3": "நல்ல வெளிச்சத்தில் தெளிவான புகைப்படத்தை மீண்டும் எடுக்கவும். வேளாண் அலுவலரின் மறுஆய்வையும் கோரலாம்.",
+          "q4": "அழைப்பு கோரிக்கைக்குப் பிறகு அலுவலர் எப்போது அழைப்பார்?",
+          "a4": "வேலை நேரங்களில் (காலை 8:00 முதல் மாலை 7:00 வரை) 15–30 நிமிடங்களுக்குள் வேளாண் குழுவினர் அழைப்பார்கள்.",
+          "q5": "இன்டர்நெட் இல்லாமல் ஆப் வேலை செய்யுமா?",
+          "a5": "ஆம். ஆஃப்லைன் முறையில் ஸ்கேன்கள் மற்றும் கணக்குகள் சேமிக்கப்பட்டு, சிக்னல் கிடைத்ததும் தானாக ஒத்திசைக்கப்படும்.",
+          "q6": "இயந்திர வாடகை கட்டணம் மற்றும் ரத்து செய்தல் எவ்வாறு செயல்படுகிறது?",
+          "a6": "இயந்திரம் புறப்படுவதற்கு முன் முன்பதிவை இலவசமாக ரத்து செய்யலாம். வேலை முடிந்ததும் யுபிஐ அல்லது ரொக்கமாக செலுத்தலாம்.",
+          "q7": "சந்தை விலைகள் அதிகாரப்பூர்வமானவையா?",
+          "a7": "ஆம், அதிகாரப்பூர்வ அக்மார்க்நெட் (Agmarknet APMC) சந்தை நிலவரப்படி தினமும் புதுப்பிக்கப்படுகிறது.",
+          "q8": "எனது நில விவரங்கள் மற்றும் பயிர் படங்கள் பாதுகாப்பானவையா?",
+          "a8": "ஆம், உங்கள் பண்ணை விவரங்கள் மற்றும் படங்கள் முழுமையாக குறியாக்கம் செய்யப்பட்டு பாதுகாக்கப்படுகின்றன."
+        }
       },
       "sdcard_page": {
         "title": "MicroSD சேமிப்பகம் & ஆஃப்லைன் பாக்கெட் பஃபர்",
@@ -5091,6 +5335,30 @@ export const resources = {
         "current_active": "செயலில் உள்ள மொழி",
         "no_save_needed": "சேமிக்க வேண்டியதில்லை • மாற்றங்கள் நேரலையாக மாறும்",
         "footer_info": "தமிழ், தெலுங்கு, இந்தி, கன்னடம், மலையாளம் மற்றும் ஒடியா உட்பட 12 மொழிகள் ஆதரிக்கப்படுகின்றன."
+      },
+      "advisor": {
+        "high_risk": "அதிக ஆபத்து",
+        "normal": "சாதாரணமானது",
+        "agro_climatic": "வேளாண் வானிலை நுண்ணறிவு",
+        "forecast_48h": "48 மணி நேர முன்னறிவிப்பு",
+        "risk": "ஆபத்து",
+        "vulnerable_crops": "🌾 பாதிக்கப்படக்கூடிய பயிர்கள்:",
+        "hide_details": "விவரங்களை மறை",
+        "view_protocol": "செயல் திட்டத்தை காண்க",
+        "biological_prevention": "1. இயற்கை தடுப்பு முறை",
+        "bio_desc": "மேகமூட்டமான நேரங்களில் ட்ரைக்கோடெர்மா விரிடி அல்லது சூடோமோனாஸ் தெளிக்கவும்.",
+        "field_drainage": "2. வயல் வடிகால் வசதி",
+        "drainage_desc": "வேர் பகுதியில் தண்ணீர் தேங்குவதை தடுக்க வடிகால் வாய்க்கால்களை தூர்வாரவும்.",
+        "chemical_cushion": "3. இரசாயன பாதுகாப்பு",
+        "chemical_desc": "நோய் அறிகுறி தென்பட்டால் பரிந்துரைக்கப்பட்ட பூஞ்சைக் கொல்லியை தெளிக்கவும்."
+      },
+      "ai_safety": {
+        "healthy": "பயிர் ஆரோக்கியமாக உள்ளது • நோய் எதுவும் கண்டறியப்படவில்லை",
+        "confirmed_disease": "நோய் கண்டறியப்பட்டது • சிகிச்சை தேவை",
+        "uncertain": "முடிவு தெளிவற்றது • தெளிவான புகைப்படத்தை மீண்டும் எடுக்கவும்",
+        "image_unsuitable": "படம் ஆய்வுக்கு ஏற்றதல்ல • கேமரா வழிகாட்டுதலைப் பின்பற்றவும்",
+        "unsupported": "ஆதரிக்கப்படாத இலை அல்லது பயிர் அல்லாத படம்",
+        "secondary_review_required": "மறுஆய்வு பரிந்துரைக்கப்படுகிறது • வேளாண் அலுவலரை அணுகவும்"
       }
     }
   },
@@ -5125,10 +5393,10 @@ export const resources = {
         "status_critical": "Crop Status: Critical — Irrigate Now",
         "kpi": {
           "total_diagnoses": "Total Diagnoses",
-          "healthy": "Healthy",
+          "healthy": "ಆರೋಗ್ಯಕರ",
           "sick": "Sick",
           "active_crop": "Active Crop",
-          "stage": "Stage",
+          "stage": "ಹಂತ",
           "esp32_hardware": "ESP32 Hardware",
           "ai_engine": "AI Engine",
           "online": "Online",
@@ -5142,7 +5410,16 @@ export const resources = {
           "view_history": "View history →",
           "more_hub": "More Hub",
           "all_tools": "All Tools",
-          "modules": "12 Modules →"
+          "modules": "12 Modules →",
+          "active_crop_label": "ಸಕ್ರಿಯ ಬೆಳೆ:",
+          "leaf_scans_label": "ಎಲೆ ಸ್ಕ್ಯಾನ್‌ಗಳು:",
+          "treated": "ಚಿಕಿತ್ಸೆ ನೀಡಲಾಗಿದೆ",
+          "soil_water_label": "ಮಣ್ಣಿನ ತೇವಾಂಶ:",
+          "optimal": "ಉತ್ತಮ",
+          "adequate": "ಸಾಕಷ್ಟು",
+          "needs_water": "ನೀರು ಬೇಕು",
+          "mandi_rate_label": "ಮಾರುಕಟ್ಟೆ ದರ:",
+          "today": "ಇಂದು"
         },
         "quick_tools": {
           "title": "Quick Farming Tools",
@@ -5154,7 +5431,8 @@ export const resources = {
           "agronomist": "AI Agronomist",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
-          "more_desc": "12 farming tools"
+          "more_desc": "12 farming tools",
+          "leaf_doctor": "ಎಲೆ ವೈದ್ಯ"
         },
         "weather": {
           "provider": "Provider",
@@ -5216,7 +5494,27 @@ export const resources = {
         "daily_actionable_summary": "Today is 34°C & Sunny — Ideal conditions for field work and foliar spraying",
         "telemetry_stream": "Live Field Micro-Telemetry Streams",
         "streaming_live": "STREAMING LIVE",
-        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA"
+        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA",
+        "smart_actions": {
+          "title": "ಸ್ಮಾರ್ಟ್ ಕೃಷಿ ಕಾರ್ಯ ಕೇಂದ್ರ",
+          "subtitle": "ದೈನಂದಿನ ಆದ್ಯತೆಯ ಕೆಲಸಗಳು, ಬಾಕಿ ಕೆಲಸಗಳು ಮತ್ತು ಜಮೀನು ನಿರ್ವಹಣೆ",
+          "iot_mode": "ಸ್ಮಾರ್ಟ್ IoT ಮೋಡ್ (ಲೈವ್ ಸಂವೇದಕ ಮಾಹಿತಿ)",
+          "ai_mode": "ಸಾಫ್ಟ್‌ವೇರ್ AI ಮೋಡ್",
+          "refresh": "ನವೀಕರಿಸಿ",
+          "tabs_today": "ಇಂದು",
+          "tabs_overdue": "ಅವಧಿ ಮೀರಿದವು",
+          "tabs_upcoming": "ಮುಂಬರುವ",
+          "empty_today": "ಇಂದಿನ ಎಲ್ಲಾ ಕೆಲಸಗಳು ಮುಗಿದಿವೆ!",
+          "empty_today_sub": "ನಿಮ್ಮ ಎಲ್ಲಾ ಕೃಷಿ ಚಟುವಟಿಕೆಗಳು ಸಮಯಕ್ಕೆ ಸರಿಯಾಗಿ ನಡೆಯುತ್ತಿವೆ.",
+          "empty_overdue": "ಉತ್ತಮ! ಯಾವುದೇ ಬಾಕಿ ಕೆಲಸಗಳಿಲ್ಲ",
+          "empty_overdue_sub": "ನಿಮ್ಮ ಜಮೀನಿನ ಪರಿಸ್ಥಿತಿ ಸ್ಥಿರವಾಗಿದೆ.",
+          "empty_upcoming": "ಮುಂದಿನ 7 ದಿನಗಳಿಗೆ ಯಾವುದೇ ಕೆಲಸ ನಿಗದಿಯಾಗಿಲ್ಲ",
+          "empty_upcoming_sub": "ಮುಂದಿನ ವಾರದಲ್ಲಿ ತುರ್ತು ಕ್ರಮಗಳ ಅಗತ್ಯವಿಲ್ಲ.",
+          "priority_high": "ತುರ್ತು",
+          "priority_medium": "ಶಿಫಾರಸು",
+          "priority_low": "ವಾಡಿಕೆಯ",
+          "dismiss_action": "ತೆಗೆದುಹಾಕಿ"
+        }
       },
       "scan_page": {
         "vision_engine": "ಮಲ್ಟಿ-ಮಾಡಲ್ ವಿಷನ್ ಎಂಜಿನ್",
@@ -6325,7 +6623,25 @@ export const resources = {
         "description": "ನಿಮ್ಮ ಸಮಸ್ಯೆ ಅಥವಾ ಪ್ರಶ್ನೆಯನ್ನು ವಿವರಿಸಿ...",
         "phone": "ರೈತರ ಸಂಪರ್ಕ ಮೊಬೈಲ್",
         "submit_btn": "ಈಗಲೇ ಟಿಕೆಟ್ ಸಲ್ಲಿಸಿ",
-        "ticket_submitted": "ನಿಮ್ಮ ಟಿಕೆಟ್ ಯಶಸ್ವಿಯಾಗಿ ದಾಖಲಾಗಿದೆ! ಕೃಷಿ ವಿಜ್ಞಾನಿ ಶೀಘ್ರದಲ್ಲೇ ನಿಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸುತ್ತಾರೆ."
+        "ticket_submitted": "ನಿಮ್ಮ ಟಿಕೆಟ್ ಯಶಸ್ವಿಯಾಗಿ ದಾಖಲಾಗಿದೆ! ಕೃಷಿ ವಿಜ್ಞಾನಿ ಶೀಘ್ರದಲ್ಲೇ ನಿಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸುತ್ತಾರೆ.",
+        "faqs": {
+          "q1": "ನನ್ನ ESP32 ಸಂವೇದಕ ಏಕೆ ಆಫ್‌ಲೈನ್ ತೋರಿಸುತ್ತಿದೆ?",
+          "a1": "1) ಬ್ಯಾಟರಿ ಅಥವಾ ಸೌರ ಚಾರ್ಜ್ ಪರಿಶೀಲಿಸಿ. 2) ನೋಡ್ ನೆಟ್‌ವರ್ಕ್ ವ್ಯಾಪ್ತಿಯಲ್ಲಿದೆಯೇ ನೋಡಿ. 3) RST ಬಟನ್ ಅನ್ನು 3 ಸೆಕೆಂಡುಗಳ ಕಾಲ ಒತ್ತಿ ಹಿಡಿಯಿರಿ.",
+          "q2": "ಜಮೀನು ಅಳತೆಯಲ್ಲಿ 1 ಮೀಟರ್ ನಿಖರತೆ ಪಡೆಯುವುದು ಹೇಗೆ?",
+          "a2": "ವರದಿಯ ಉದ್ದಕ್ಕೂ ನಡೆಯುವಾಗ ಫೋನ್ ಅನ್ನು ಅಲುಗಾಡಿಸದೆ ಹಿಡಿಯಿರಿ. ಫೋನ್‌ನಲ್ಲಿ ಹೈ-ಅಕ್ಯುರೆಸಿ ಜಿಪಿಎಸ್ ಆನ್ ಮಾಡಿ.",
+          "q3": "ರೋಗ ಪತ್ತೆ ಫಲಿತಾಂಶದ ಬಗ್ಗೆ ಅನುಮಾನವಿದ್ದರೆ ಏನು ಮಾಡಬೇಕು?",
+          "a3": "ಸ್ಪಷ್ಟ ಬೆಳಕಿನಲ್ಲಿ ಎಲೆಯ ಫೋಟೋವನ್ನು ಮತ್ತೆ ತೆಗೆಯಿರಿ. ಹೆಲ್ಪ್‌ಡೆಸ್ಕ್ ಮೂಲಕ ಕೃಷಿ ಅಧಿಕಾರಿಯ ಪರಿಶೀಲನೆಯನ್ನು ವಿನಂತಿಸಬಹುದು.",
+          "q4": "ಕಾಲ್‌ಬ್ಯಾಕ್ ವಿನಂತಿಯ ನಂತರ ಅಧಿಕಾರಿಗಳು ಯಾವಾಗ ಕರೆ ಮಾಡುತ್ತಾರೆ?",
+          "a4": "ಕೆಲಸದ ಸಮಯದಲ್ಲಿ (ಬೆಳಿಗ್ಗೆ 8:00 ರಿಂದ ಸಂಜೆ 7:00) 15–30 ನಿಮಿಷಗಳಲ್ಲಿ ಕೃಷಿ ಅಧಿಕಾರಿಗಳು ಕರೆ ಮಾಡುತ್ತಾರೆ.",
+          "q5": "ಇಂಟರ್ನೆಟ್ ಇಲ್ಲದೆ ಅಪ್ಲಿಕೇಶನ್ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆಯೇ?",
+          "a5": "ಹೌದು. ಆಫ್‌ಲೈನ್ ಮೋಡ್‌ನಲ್ಲಿ ಸ್ಕ್ಯಾನ್‌ಗಳು ಮತ್ತು ಖಾತೆ ಸಂಗ್ರಹವಾಗುತ್ತವೆ ಮತ್ತು ಇಂಟರ್ನೆಟ್ ಬಂದಾಗ ತಾನಾಗಿಯೇ ಸಿಂಕ್ ಆಗುತ್ತವೆ.",
+          "q6": "ಯಂತ್ರ ಬಾಡಿಗೆ ಪಾವತಿ ಮತ್ತು ರದ್ದತಿ ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ?",
+          "a6": "ಯಂತ್ರ ಹೊರಡುವ ಮುನ್ನ ಬುಕಿಂಗ್ ಅನ್ನು ಉಚಿತವಾಗಿ ರದ್ದುಗೊಳಿಸಬಹುದು. ಕೆಲಸ ಮುಗಿದ ನಂತರ ಯುಪಿಐ ಅಥವಾ ನಗದು ಮೂಲಕ ಪಾವತಿಸಬಹುದು.",
+          "q7": "ಮಾರುಕಟ್ಟೆ ದರಗಳು ಅಧಿಕೃತವೇ?",
+          "a7": "ಹೌದು, ಇವುಗಳನ್ನು ಸರ್ಕಾರಿ ಎಗ್‌ಮಾರ್ಕ್‌ನೆಟ್ (Agmarknet APMC) ಮಾರುಕಟ್ಟೆಯಿಂದ ದಿನವೂ ನೇರವಾಗಿ ನವೀಕರಿಸಲಾಗುತ್ತದೆ.",
+          "q8": "ನನ್ನ ಜಮೀನಿನ ವಿವರಗಳು ಮತ್ತು ಫೋಟೋಗಳು ಸುರಕ್ಷಿತವೇ?",
+          "a8": "ಹೌದು, ನಿಮ್ಮ ಎಲ್ಲಾ ಕೃಷಿ ಮಾಹಿತಿ ಮತ್ತು ಫೋಟೋಗಳನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ಗೌಪ್ಯವಾಗಿ ಮತ್ತು ಸುರಕ್ಷಿತವಾಗಿಡಲಾಗುತ್ತದೆ."
+        }
       },
       "sdcard_page": {
         "title": "MicroSD ಸಂಗ್ರಹಣೆ ಮತ್ತು ಆಫ್‌ಲೈನ್ ಪ್ಯಾಕೆಟ್ ಬಫರ್",
@@ -6346,6 +6662,30 @@ export const resources = {
         "current_active": "ಸಕ್ರಿಯ ಭಾಷೆ",
         "no_save_needed": "ಉಳಿಸುವ ಅಗತ್ಯವಿಲ್ಲ • ಲೈವ್ ಅನ್ವಯಿಸುತ್ತದೆ",
         "footer_info": "ಕನ್ನಡ, ತೆಲುಗು, ಹಿಂದಿ, ತಮಿಳು, ಮಲಯಾಳಂ ಮತ್ತು ಒಡಿಯಾ ಸೇರಿದಂತೆ 12 ಭಾರತೀಯ ಭಾಷೆಗಳು ಬೆಂಬಲಿತವಾಗಿವೆ."
+      },
+      "advisor": {
+        "high_risk": "ಹೆಚ್ಚಿನ ಅಪಾಯ",
+        "normal": "ಸಾಮಾನ್ಯ",
+        "agro_climatic": "ಕೃಷಿ-ಹವಾಮಾನ ಮಾಹಿತಿ",
+        "forecast_48h": "48 ಗಂಟೆಗಳ ಮುನ್ಸೂಚನೆ",
+        "risk": "ಅಪಾಯ",
+        "vulnerable_crops": "🌾 ಅಪಾಯದಲ್ಲಿರುವ ಬೆಳೆಗಳು:",
+        "hide_details": "ವಿವರ ಮರೆಮಾಡಿ",
+        "view_protocol": "ಕ್ರಿಯಾ ಯೋಜನೆ ವೀಕ್ಷಿಸಿ",
+        "biological_prevention": "1. ಜೈವಿಕ ತಡೆಗಟ್ಟುವಿಕೆ",
+        "bio_desc": "ಮೋಡ ಕವಿದ ವಾತಾವರಣದಲ್ಲಿ ಟ್ರೈಕೋಡರ್ಮಾ ವಿರಿಡೆ ಅಥವಾ ಸ್ಯೂಡೋಮೊನಾಸ್ ಸಿಂಪಡಿಸಿ.",
+        "field_drainage": "2. ಜಮೀನಿನಲ್ಲಿ ನೀರು ಬಸಿದು ಹೋಗುವುದು",
+        "drainage_desc": "ಬೇರುಗಳ ಬಳಿ ನೀರು ನಿಲ್ಲದಂತೆ ಚರಂಡಿಗಳನ್ನು ಸ್ವಚ್ಛಗೊಳಿಸಿ.",
+        "chemical_cushion": "3. ರಾಸಾಯನಿಕ ಸುರಕ್ಷತೆ",
+        "chemical_desc": "ರೋಗದ ಲಕ್ಷಣಗಳು ಕಂಡುಬಂದರೆ ಶಿಫಾರಸು ಮಾಡಿದ ಶಿಲೀಂಧ್ರನಾಶಕ ಸಿಂಪಡಿಸಿ."
+      },
+      "ai_safety": {
+        "healthy": "ಬೆಳೆ ಆರೋಗ್ಯಕರವಾಗಿದೆ • ಯಾವುದೇ ರೋಗ ಕಂಡುಬಂದಿಲ್ಲ",
+        "confirmed_disease": "ರೋಗ ಪತ್ತೆಯಾಗಿದೆ • ಚಿಕಿತ್ಸೆ ಅಗತ್ಯವಿದೆ",
+        "uncertain": "ರೋಗ ನಿರ್ಧಾರ ಅನಿಶ್ಚಿತ • ದಯವಿಟ್ಟು ಸ್ಪಷ್ಟ ಫೋಟೋ ಮತ್ತೆ ತೆಗೆಯಿರಿ",
+        "image_unsuitable": "ಫೋಟೋ ವಿಶ್ಲೇಷಣೆಗೆ ಸೂಕ್ತವಲ್ಲ • ಕ್ಯಾಮೆರಾ ಮಾರ್ಗದರ್ಶಿ ನೋಡಿ",
+        "unsupported": "ಬೆಂಬಲವಿಲ್ಲದ ಎಲೆ ಅಥವಾ ಬೆಳೆಯಲ್ಲದ ಚಿತ್ರ",
+        "secondary_review_required": "ಮರುಪರಿಶೀಲನೆ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ • ಕೃಷಿ ಅಧಿಕಾರಿಯನ್ನು ಸಂಪರ್ಕಿಸಿ"
       }
     }
   },
@@ -11194,10 +11534,10 @@ export const resources = {
         "status_critical": "Crop Status: Critical — Irrigate Now",
         "kpi": {
           "total_diagnoses": "Total Diagnoses",
-          "healthy": "Healthy",
+          "healthy": "ସୁସ୍ଥ",
           "sick": "Sick",
           "active_crop": "Active Crop",
-          "stage": "Stage",
+          "stage": "ପର୍ଯ୍ୟାୟ",
           "esp32_hardware": "ESP32 Hardware",
           "ai_engine": "AI Engine",
           "online": "Online",
@@ -11211,7 +11551,16 @@ export const resources = {
           "view_history": "View history →",
           "more_hub": "More Hub",
           "all_tools": "All Tools",
-          "modules": "12 Modules →"
+          "modules": "12 Modules →",
+          "active_crop_label": "ସକ୍ରିୟ ଫସଲ:",
+          "leaf_scans_label": "ପତ୍ର ସ୍କାନ୍:",
+          "treated": "ଚିକିତ୍ସିତ",
+          "soil_water_label": "ମାଟି ଆର୍ଦ୍ରତା:",
+          "optimal": "ଉପଯୁକ୍ତ",
+          "adequate": "ପର୍ଯ୍ୟାପ୍ତ",
+          "needs_water": "ପାଣି ଆବଶ୍ୟକ",
+          "mandi_rate_label": "ମଣ୍ଡି ଦର:",
+          "today": "ଆଜି"
         },
         "quick_tools": {
           "title": "Quick Farming Tools",
@@ -11223,7 +11572,8 @@ export const resources = {
           "agronomist": "AI Agronomist",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
-          "more_desc": "12 farming tools"
+          "more_desc": "12 farming tools",
+          "leaf_doctor": "ପତ୍ର ଡାକ୍ତର"
         },
         "weather": {
           "provider": "Provider",
@@ -11285,7 +11635,27 @@ export const resources = {
         "namaste_farmer": "Namaste, {{name}}! 👋",
         "telemetry_stream": "Live Field Micro-Telemetry Streams",
         "streaming_live": "STREAMING LIVE",
-        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA"
+        "node_offline_msg": "NODE OFFLINE — SHOWING ESTIMATED DATA",
+        "smart_actions": {
+          "title": "ସ୍ମାର୍ଟ କୃଷି କାର୍ଯ୍ୟ କେନ୍ଦ୍ର",
+          "subtitle": "ଦୈନିକ ପ୍ରାଥମିକତା କାର୍ଯ୍ୟ, ବକେୟା କାର୍ଯ୍ୟ ଏବଂ ଜମି ପରିଚାଳନା",
+          "iot_mode": "ସ୍ମାର୍ଟ IoT ମୋଡ୍ (ପ୍ରତ୍ୟକ୍ଷ ସେନସର ଡାଟା)",
+          "ai_mode": "ସଫ୍ଟୱେୟାର୍ AI ମୋଡ୍",
+          "refresh": "ରିଫ୍ରେଶ୍ କରନ୍ତୁ",
+          "tabs_today": "ଆଜି",
+          "tabs_overdue": "ସମୟ ବିତିଯାଇଥିବା",
+          "tabs_upcoming": "ଆଗାମୀ",
+          "empty_today": "ଆଜିର ସମସ୍ତ କାର୍ଯ୍ୟ ସମ୍ପୂର୍ଣ୍ଣ!",
+          "empty_today_sub": "ଆପଣଙ୍କର ସମସ୍ତ ଚାଷ କାର୍ଯ୍ୟ ଠିକ୍ ସମୟରେ ଚାଲିଛି।",
+          "empty_overdue": "ଉତ୍ତମ! କୌଣସି ବିଳମ୍ବିତ କାର୍ଯ୍ୟ ନାହିଁ",
+          "empty_overdue_sub": "ଆପଣଙ୍କ ଜମିର ଅବସ୍ଥା ସ୍ଥିର ରହିଛି।",
+          "empty_upcoming": "ଆଗାମୀ ୭ ଦିନ ପାଇଁ କୌଣସି କାର୍ଯ୍ୟ ନାହିଁ",
+          "empty_upcoming_sub": "ଆଗାମୀ ସପ୍ତାହରେ କୌଣସି ଜରୁରୀ ପଦକ୍ଷେପ ଆବଶ୍ୟକ ନାହିଁ।",
+          "priority_high": "ଜରୁରୀ",
+          "priority_medium": "ପରାମର୍ଶିତ",
+          "priority_low": "ନିୟମିତ",
+          "dismiss_action": "ହଟାନ୍ତୁ"
+        }
       },
       "scan_page": {
         "vision_engine": "ମଲ୍ଟି-ମଡାଲ ଭିଜନ ଇଞ୍ଜିନ",
@@ -12384,7 +12754,25 @@ export const resources = {
         "description": "ଆପଣଙ୍କ ସମସ୍ୟା ବର୍ଣ୍ଣନା କରନ୍ତୁ...",
         "phone": "କୃଷକ ମୋବାଇଲ୍ ନମ୍ବର",
         "submit_btn": "ଟିକେଟ୍ ଦାଖଲ କରନ୍ତୁ",
-        "ticket_submitted": "ଆପଣଙ୍କ ଟିକେଟ୍ ସଫଳତାର ସହ ପଞ୍ଜୀକୃତ ହୋଇଛି! କୃଷି ବୈଜ୍ଞାନିକ ଖୁବ୍ ଶୀଘ୍ର ଯୋଗାଯୋଗ କରିବେ |"
+        "ticket_submitted": "ଆପଣଙ୍କ ଟିକେଟ୍ ସଫଳତାର ସହ ପଞ୍ଜୀକୃତ ହୋଇଛି! କୃଷି ବୈଜ୍ଞାନିକ ଖୁବ୍ ଶୀଘ୍ର ଯୋଗାଯୋଗ କରିବେ |",
+        "faqs": {
+          "q1": "ମୋର ESP32 ସେନସର କାହିଁକି ଅଫଲାଇନ୍ ଦେଖାଉଛି?",
+          "a1": "୧) ବ୍ୟାଟେରୀ କିମ୍ବା ସୋଲାର ଚାର୍ଜ ଯାଞ୍ଚ କରନ୍ତୁ। ୨) ନୋଡ୍ ନେଟୱାର୍କ ପରିସର ମଧ୍ୟରେ ଅଛି କି ନାହିଁ ଦେଖନ୍ତୁ। ୩) RST ବଟନକୁ ୩ ସେକେଣ୍ଡ ଦବାନ୍ତୁ।",
+          "q2": "ଜମି ମାପିବାରେ ୧ ମିଟର ସଠିକତା କିପରି ପାଇବେ?",
+          "a2": "ଜମି ହିଡ଼ରେ ଚାଲିବା ସମୟରେ ଫୋନକୁ ସ୍ଥିର ରଖନ୍ତୁ। ଫୋନରେ ହାଇ-ଏକ୍ୟୁରେସି ଜିପିଏସ୍ ଅନ୍ କରନ୍ତୁ।",
+          "q3": "ରୋଗ ନିଦାନ ଉପରେ ସନ୍ଦେହ ଥିଲେ କଣ କରିବେ?",
+          "a3": "ଦିନର ସ୍ପଷ୍ଟ ଆଲୋକରେ ପତ୍ରର ଏକ ସ୍ପଷ୍ଟ ଫଟୋ ପୁଣି ଉଠାନ୍ତୁ। ଆପଣ କୃଷି ଅଧିକାରୀଙ୍କ ପରାମର୍ଶ ମଧ୍ୟ ନେଇପାରିବେ।",
+          "q4": "କଲ୍‌ବ୍ୟାକ୍ ଅନୁରୋଧ ପରେ ଅଧିକାରୀ କେବେ କଲ୍ କରିବେ?",
+          "a4": "କାର୍ଯ୍ୟ ସମୟ ମଧ୍ୟରେ (ସକାଳ ୮:୦୦ ରୁ ସନ୍ଧ୍ୟା ୭:୦୦) ୧୫–୩୦ ମିନିଟ୍ ମଧ୍ୟରେ କୃଷି ଟିମ୍ କଲ୍ କରିବେ।",
+          "q5": "ଇଣ୍ଟରନେଟ୍ ବିନା ଆପ୍ କାମ କରେ କି?",
+          "a5": "ହଁ। ଅଫଲାଇନ୍ ମୋଡ୍‌ରେ ସ୍କାନ୍ ଏବଂ ଖାତା ସୁରକ୍ଷିତ ରହେ ଏବଂ ନେଟୱାର୍କ ଆସିବା ମାତ୍ରେ ସିଙ୍କ୍ ହୋଇଯାଏ।",
+          "q6": "ମେସିନ୍ ଭଡ଼ା ଦେୟ ଏବଂ ବାତିଲ୍ କିପରି କାମ କରେ?",
+          "a6": "ଟ୍ରାକ୍ଟର ବାହାରିବା ପୂର୍ବରୁ ବୁକିଂ ମାଗଣାରେ ବାତିଲ୍ କରାଯାଇପାରିବ। କାମ ସରିବା ପରେ ୟୁପିଆଇ କିମ୍ବା ନଗଦ ଟଙ୍କା ଦେଇପାରିବେ।",
+          "q7": "ଲାଇଭ୍ ମଣ୍ଡି ଦର ସରକାରୀ କି?",
+          "a7": "ହଁ, ସରକାରୀ ଏଗମାର୍କନେଟ୍ (Agmarknet APMC) ପାଇକାରୀ ନିଲାମରୁ ଦୈନିକ ଦର ଅପଡେଟ୍ ହୁଏ।",
+          "q8": "ମୋର ଜମି ତଥ୍ୟ ଏବଂ ଫସଲ ଫଟୋ ସୁରକ୍ଷିତ କି?",
+          "a8": "ହଁ, ଆପଣଙ୍କ ଜମିର ସମସ୍ତ ତଥ୍ୟ ଏବଂ ଫଟୋ ସମ୍ପୂର୍ଣ୍ଣ ସୁରକ୍ଷିତ ଏବଂ ଗୋପନୀୟ ରହିଥାଏ।"
+        }
       },
       "sdcard_page": {
         "title": "MicroSD ଷ୍ଟୋରେଜ୍ ଏବଂ ଅଫଲାଇନ୍ ପ୍ୟାକେଟ୍ ବଫର୍",
@@ -12405,6 +12793,30 @@ export const resources = {
         "current_active": "ସକ୍ରିୟ ଭାଷା",
         "no_save_needed": "ସେଭ୍ କରିବା ଆବଶ୍ୟକ ନାହିଁ • ଲାଇଭ୍ ଲାଗୁ ହୁଏ",
         "footer_info": "ଓଡ଼ିଆ, ତେଲୁଗୁ, ହିନ୍ଦୀ, ତାମିଲ୍, କନ୍ନଡ ଓ ମାଲାୟାଲାମ ସମେତ 12ଟି ଭାରତୀୟ ଭାଷା ସମର୍ଥିତ |"
+      },
+      "advisor": {
+        "high_risk": "ଅଧିକ ବିପଦ",
+        "normal": "ସାଧାରଣ",
+        "agro_climatic": "କୃଷି-ପାଣିପାଗ ସୂଚନା",
+        "forecast_48h": "୪୮ ଘଣ୍ଟାର ପୂର୍ବାନୁମାନ",
+        "risk": "ବିପଦ",
+        "vulnerable_crops": "🌾 ବିପଦରେ ଥିବା ଫସଲ:",
+        "hide_details": "ବିବରଣୀ ଲୁଚାନ୍ତୁ",
+        "view_protocol": "କାର୍ଯ୍ୟ ଯୋଜନା ଦେଖନ୍ତୁ",
+        "biological_prevention": "୧. ଜୈବିକ ନିବାରଣ",
+        "bio_desc": "ମେଘୁଆ ପାଗରେ ଟ୍ରାଇକୋଡର୍ମା ଭିରିଡି କିମ୍ବା ସୁଡୋମୋନାସ୍ ସ୍ପ୍ରେ କରନ୍ତୁ।",
+        "field_drainage": "୨. ଜମିରୁ ଜଳ ନିଷ୍କାସନ",
+        "drainage_desc": "ଚେର ପାଖରେ ପାଣି ଜମିବା ବନ୍ଦ କରିବା ପାଇଁ ନାଳ ସଫା କରନ୍ତୁ।",
+        "chemical_cushion": "୩. ରାସାୟନିକ ସୁରକ୍ଷା",
+        "chemical_desc": "ରୋଗ ଆରମ୍ଭ ହେଲେ ପରାମର୍ଶିତ କବକନାଶକ ସ୍ପ୍ରେ କରନ୍ତୁ।"
+      },
+      "ai_safety": {
+        "healthy": "ଫସଲ ସୁସ୍ଥ ଅଛି • କୌଣସି ରୋଗ ଚିହ୍ନଟ ହୋଇନାହିଁ",
+        "confirmed_disease": "ରୋଗ ଚିହ୍ନଟ ହୋଇଛି • ଚିକିତ୍ସା ଆବଶ୍ୟକ",
+        "uncertain": "ନିଦାନ ଅନିଶ୍ଚିତ • ଦୟାକରି ସ୍ପଷ୍ଟ ଫଟୋ ପୁଣି ଉଠାନ୍ତୁ",
+        "image_unsuitable": "ଫଟୋ ବିଶ୍ଳେଷଣ ପାଇଁ ଅନୁପଯୁକ୍ତ • କ୍ୟାମେରା ନିର୍ଦ୍ଦେଶାବଳୀ ଦେଖନ୍ତୁ",
+        "unsupported": "ଅସମର୍ଥିତ ପତ୍ର କିମ୍ବା ଅଣ-ଫସଲ ଫଟୋ",
+        "secondary_review_required": "ପୁନଃପରୀକ୍ଷା ପରାମର୍ଶିତ • କୃଷି ଅଧିକାରୀଙ୍କ ସହ ପରାମର୍ଶ କରନ୍ତୁ"
       }
     }
   },

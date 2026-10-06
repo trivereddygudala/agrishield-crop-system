@@ -18,7 +18,6 @@ const SettingsPage = () => {
   const { user, logout, updateProfile } = useAuth();
   const { t, i18n } = useTranslation();
   const { hardwareMode, toggleHardwareMode } = useHardwareMode();
-  const isTe = i18n.language === 'te';
   const userRole = user?.role?.toLowerCase() || 'farmer';
   const isFarmer = userRole === 'farmer';
   const isEquipmentProvider = userRole === 'equipment_provider';
@@ -146,10 +145,10 @@ const SettingsPage = () => {
         biometric_hash: res.data?.biometric_hash,
         device_name: cred.device_name
       });
-      setToastMsg(isTe ? 'వేలిముద్ర / ఫేస్ లాగిన్ విజయవంతంగా సక్రియం చేయబడింది!' : 'Fingerprint / Face ID sign-in successfully enabled on this device!');
+      setToastMsg(t('settings_page.biometric_success_toast', 'Fingerprint / Face ID sign-in successfully enabled on this device!'));
     } catch (err) {
       console.error('Biometric registration failed:', err);
-      const msg = err.message || (isTe ? 'సెన్సార్ నమోదు విఫలమైంది.' : 'Failed to enroll biometric sensor.');
+      const msg = err.message || t('settings_page.biometric_failed_toast', 'Failed to enroll biometric sensor.');
       setModalError(msg);
       setErrorMsg(msg);
     } finally {
@@ -158,7 +157,7 @@ const SettingsPage = () => {
   };
 
   const handleDisableBiometric = async () => {
-    if (!window.confirm(isTe ? 'వేలిముద్ర లాగిన్ నిలిపివేయాలా?' : 'Disable biometric sign-in on your account?')) return;
+    if (!window.confirm(t('settings_page.biometric_disable_confirm', 'Disable biometric sign-in on your account?'))) return;
     try {
       await API.delete('/api/auth/biometric/disable');
       localStorage.removeItem('agrishield_biometric_enabled');
@@ -166,7 +165,7 @@ const SettingsPage = () => {
       localStorage.removeItem('agrishield_biometric_email');
       setBiometricEnabled(false);
       setBiometricDevices([]);
-      setToastMsg(isTe ? 'వేలిముద్ర లాగిన్ నిలిపివేయబడింది.' : 'Biometric sign-in disabled.');
+      setToastMsg(t('settings_page.biometric_disabled_toast', 'Biometric sign-in disabled.'));
     } catch (err) {
       console.error('Failed to disable biometrics:', err);
       setErrorMsg('Failed to disable biometric sign-in.');
@@ -224,7 +223,7 @@ const SettingsPage = () => {
       }
 
       await updateProfile(payload);
-      setToastMsg(isTe ? 'ఖాతా వివరాలు విజయవంతంగా భద్రపరచబడ్డాయి!' : 'Account profile updated successfully!');
+      setToastMsg(t('settings_page.account_updated_toast', 'Account profile updated successfully!'));
       setPassword('');
       setConfirmPassword('');
     } catch (err) {
@@ -245,11 +244,11 @@ const SettingsPage = () => {
       {/* Title Header */}
       <div className="flex flex-col gap-1 pb-4 border-b border-slate-200/80 dark:border-white/10">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-          {isEquipmentProvider ? (isTe ? 'మెషినరీ ప్రొవైడర్ హబ్ సెట్టింగ్‌లు' : 'Machinery Provider Hub Settings') : t('settings_page.title', 'System Settings')}
+          {isEquipmentProvider ? t('settings_page.provider_hub_title', 'Machinery Provider Hub Settings') : t('settings_page.title', 'System Settings')}
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
           {isEquipmentProvider 
-            ? (isTe ? 'మీ యంత్రాల హబ్ కార్యకలాపాలు, డిస్పాచ్ మొబైల్, చెల్లింపు యూపీఐ మరియు భద్రతా సెట్టింగ్‌లు నిర్వహించండి.' : 'Manage your machinery hub operations, dispatch contact, payout UPI, biometric unlock, and account credentials.')
+            ? t('settings_page.provider_hub_subtitle', 'Manage your machinery hub operations, dispatch contact, payout UPI, biometric unlock, and account credentials.')
             : t('settings_page.subtitle', 'Manage your account, preferences, and notifications.')}
         </p>
       </div>
@@ -257,7 +256,7 @@ const SettingsPage = () => {
       {/* Notifications & Provider Quick Links */}
       <div className="space-y-3">
         <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
-          {userRole === 'admin' ? t('settings_page.admin_access', 'Administrative Quick Access') : isEquipmentProvider ? (isTe ? 'హబ్ త్వరిత లింక్‌లు' : 'Machinery Hub Quick Access') : t('settings_page.inbox_alerts', 'Inbox & Alerts')}
+          {userRole === 'admin' ? t('settings_page.admin_access', 'Administrative Quick Access') : isEquipmentProvider ? t('settings_page.provider_quick_access', 'Machinery Hub Quick Access') : t('settings_page.inbox_alerts', 'Inbox & Alerts')}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {isEquipmentProvider && (
@@ -267,8 +266,8 @@ const SettingsPage = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🚜</span>
                     <div className="text-left">
-                      <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{isTe ? 'మెషినరీ ఫ్లీట్ హబ్' : 'Machinery Fleet Hub'}</p>
-                      <p className="text-[10px] text-slate-450 dark:text-white/30">{isTe ? 'ట్రాక్టర్లు, డ్రోన్లు మరియు లభ్యత నిర్వహణ' : 'Manage tractors, drones, rates & machine availability'}</p>
+                      <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{t('settings_page.machinery_fleet_hub', 'Machinery Fleet Hub')}</p>
+                      <p className="text-[10px] text-slate-450 dark:text-white/30">{t('settings_page.machinery_fleet_desc', 'Manage tractors, drones, rates & machine availability')}</p>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -280,8 +279,8 @@ const SettingsPage = () => {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📅</span>
                     <div className="text-left">
-                      <p className="text-xs font-bold text-amber-600 dark:text-amber-400">{isTe ? 'రైతు అద్దె బుకింగ్‌లు' : 'Farmer Rental Orders'}</p>
-                      <p className="text-[10px] text-slate-450 dark:text-white/30">{isTe ? 'ఇన్‌కమింగ్ స్లాట్ ఆర్డర్లు & ఆమోదాలు' : 'View incoming farmer requests & dispatch status'}</p>
+                      <p className="text-xs font-bold text-amber-600 dark:text-amber-400">{t('settings_page.farmer_rental_orders', 'Farmer Rental Orders')}</p>
+                      <p className="text-[10px] text-slate-450 dark:text-white/30">{t('settings_page.farmer_rental_desc', 'View incoming farmer requests & dispatch status')}</p>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-amber-500 shrink-0" />
@@ -296,8 +295,8 @@ const SettingsPage = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">📒</span>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{isTe ? 'డిజిటల్ ఫార్మ్ ఖాతా' : 'Digital Farm Khata'}</p>
-                    <p className="text-[10px] text-slate-450 dark:text-white/30">{isTe ? 'పంట ఖర్చులు, ఆదాయం & లాభాల లెక్కలు' : 'Track crop expenses, fertilizer costs & net profit'}</p>
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{t('settings_page.digital_farm_khata', 'Digital Farm Khata')}</p>
+                    <p className="text-[10px] text-slate-450 dark:text-white/30">{t('settings_page.digital_farm_desc', 'Track crop expenses, fertilizer costs & net profit')}</p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -460,7 +459,7 @@ const SettingsPage = () => {
       {/* ── Biometric Quick Sign-In (Fingerprint / Face ID) ── */}
       <div className="space-y-3">
         <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
-          {isTe ? "వేలిముద్ర & ఫేస్ లాగిన్ (Biometric Quick Sign-In)" : "Biometric Quick Sign-In (Fingerprint / Face ID)"}
+          {t('settings_page.biometric_signin_title', 'Biometric Quick Sign-In (Fingerprint / Face ID)')}
         </h3>
         <Card glass className={`p-4 sm:p-5 rounded-3xl border-2 transition-all space-y-4 ${
           biometricEnabled
@@ -479,20 +478,18 @@ const SettingsPage = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
-                    {isTe ? "వేలిముద్ర / ముఖంతో 1-ట్యాప్ లాగిన్" : "1-Tap Fingerprint & Face Unlock"}
+                    {t('settings_page.biometric_unlock_title', '1-Tap Fingerprint & Face Unlock')}
                   </h4>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     biometricEnabled
                       ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}>
-                    {biometricEnabled ? (isTe ? "🟢 సక్రియంగా ఉంది (ACTIVE)" : "🟢 ACTIVE") : (isTe ? "⚪ నిలిపివేయబడింది" : "⚪ NOT ENABLED")}
+                    {biometricEnabled ? t('settings_page.biometric_active', '🟢 ACTIVE') : t('settings_page.biometric_not_enabled', '⚪ NOT ENABLED')}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-white/45 mt-1 leading-relaxed max-w-xl">
-                  {isTe 
-                    ? "రైతులు పొలంలో మట్టి చేతులతో ఉన్నప్పుడు లేదా పాస్‌వర్డ్ టైప్ చేయకుండా, మీ ఫోన్ వేలిముద్ర సెన్సార్ లేదా ఫేస్ రికగ్నిషన్‌తో 1-సెకనులో సులభంగా లాగిన్ అవ్వండి."
-                    : "Skip typing passwords! Use your phone's fingerprint sensor, Touch ID, Face ID, or Windows Hello for instant, 1-tap secure sign-in."}
+                  {t('settings_page.biometric_skip_passwords', "Skip typing passwords! Use your phone's fingerprint sensor, Touch ID, Face ID, or Windows Hello for instant, 1-tap secure sign-in.")}
                 </p>
               </div>
             </div>
@@ -507,7 +504,7 @@ const SettingsPage = () => {
                   leftIcon={<Trash2 className="w-4 h-4 text-rose-500" />}
                   className="font-extrabold text-xs text-rose-600 border-rose-200 dark:border-rose-800/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                 >
-                  {isTe ? "నిలిపివేయండి (Disable)" : "Disable Biometrics"}
+                  {t('settings_page.disable_biometrics', 'Disable Biometrics')}
                 </Button>
               ) : (
                 <Button
@@ -518,8 +515,7 @@ const SettingsPage = () => {
                   className="font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 active:scale-95"
                 >
                   {enrollingBiometric 
-                    ? (isTe ? "సెన్సార్ తనిఖీ చేస్తోంది..." : "Scanning Sensor...")
-                    : (isTe ? "ఈ పరికరంలో వేలిముద్ర ఆన్ చేయండి" : "Enable on This Device")}
+                    ? t('settings_page.scanning_sensor', 'Scanning Sensor...') : t('settings_page.enable_on_device', 'Enable on This Device')}
                 </Button>
               )}
             </div>
@@ -529,9 +525,7 @@ const SettingsPage = () => {
           <div className="pt-3 border-t border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-white/40">
             <span className="flex items-center gap-1.5 font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-              {isTe 
-                ? "హార్డ్‌వేర్ సెక్యూర్ ఎన్‌క్లేవ్ & SHA-256 డిజిటల్ హాష్ • క్లౌడ్ ద్వారా ఇతర పరికరాల్లో కూడా పని చేస్తుంది."
-                : "Hardware TPM & SHA-256 Digital Hash • Cloud synced for multi-device login."}
+              {t('settings_page.hardware_tpm_notice', 'Hardware TPM & SHA-256 Digital Hash • Cloud synced for multi-device login.')}
             </span>
             {biometricDevices.length > 0 && (
               <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
@@ -653,17 +647,17 @@ const SettingsPage = () => {
               </div>
               <div>
                 <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
-                  {isTe ? 'మెషినరీ హబ్ & చెల్లింపుల వివరాలు' : 'Machinery Hub Operations & Payouts'}
+                  {t('settings_page.hub_operations_payouts', 'Machinery Hub Operations & Payouts')}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">
-                  {isTe ? 'రైతులకు కనిపించే డిస్పాచ్ మొబైల్, ఏజెన్సీ పేరు మరియు చెల్లింపు యూపీఐ ఐడీ.' : 'Dispatch contact and UPI settlement ID linked to all incoming farmer rental bookings.'}
+                  {t('settings_page.hub_dispatch_desc', 'Dispatch contact and UPI settlement ID linked to all incoming farmer rental bookings.')}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label={isTe ? 'మెషినరీ హబ్ / ఏజెన్సీ పేరు' : 'Machinery Hub / Agency Name'}
+                label={t('settings_page.hub_agency_name', 'Machinery Hub / Agency Name')}
                 value={hubName}
                 onChange={(e) => setHubName(e.target.value)}
                 placeholder="e.g. Balaji Agro Custom Hiring Center"
@@ -671,7 +665,7 @@ const SettingsPage = () => {
                 className="bg-white dark:bg-slate-900 text-xs font-bold"
               />
               <Input
-                label={isTe ? 'డిస్పాచ్ మొబైల్ / వాట్సాప్ (రైతు బుకింగ్స్)' : 'Dispatch Contact Phone / WhatsApp'}
+                label={t('settings_page.dispatch_contact', 'Dispatch Contact Phone / WhatsApp')}
                 value={dispatchPhone}
                 onChange={(e) => {
                   setDispatchPhone(e.target.value);
@@ -679,20 +673,20 @@ const SettingsPage = () => {
                 }}
                 placeholder="e.g. +91 9876543210"
                 leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
-                helperText={isTe ? 'ఈ నంబర్ ఆధారంగా రైతుల బుకింగ్‌లు మీ ప్రొవైడర్ ఖాతాకు వస్తాయి.' : 'Incoming farmer bookings link directly to this phone number.'}
+                helperText={t('settings_page.dispatch_helper', 'Incoming farmer bookings link directly to this phone number.')}
                 className="bg-white dark:bg-slate-900 text-xs font-bold"
               />
               <Input
-                label={isTe ? 'చెల్లింపుల యూపీఐ ఐడీ (UPI ID)' : 'Payout UPI ID (Direct Bank Settlement)'}
+                label={t('settings_page.payout_upi_label', 'Payout UPI ID (Direct Bank Settlement)')}
                 value={payoutUpiId}
                 onChange={(e) => setPayoutUpiId(e.target.value)}
                 placeholder="e.g. balajihub@oksbi"
                 leftIcon={<DollarSign className="w-4 h-4 text-emerald-500" />}
-                helperText={isTe ? 'రైతుల అద్దె డిపాజిట్లు ఈ యూపీఐ ఖాతాకు జమ చేయబడతాయి.' : 'Direct settlement account for farmer rental payments.'}
+                helperText={t('settings_page.payout_helper', 'Direct settlement account for farmer rental payments.')}
                 className="bg-white dark:bg-slate-900 text-xs font-bold"
               />
               <Select
-                label={isTe ? 'సేవా పరిధి (కి.మీ)' : 'Service Coverage Radius'}
+                label={t('settings_page.coverage_radius', 'Service Coverage Radius')}
                 value={serviceRadiusKm}
                 onChange={(e) => setServiceRadiusKm(e.target.value)}
                 options={[
@@ -705,7 +699,7 @@ const SettingsPage = () => {
               />
               <div className="sm:col-span-2">
                 <Input
-                  label={isTe ? 'రోజువారీ పని వేళలు' : 'Operating Dispatch Hours'}
+                  label={t('settings_page.dispatch_hours', 'Operating Dispatch Hours')}
                   value={operatingTimings}
                   onChange={(e) => setOperatingTimings(e.target.value)}
                   placeholder="e.g. 06:00 AM - 07:00 PM"
@@ -715,7 +709,7 @@ const SettingsPage = () => {
               </div>
 
               <Input
-                label={isTe ? 'ప్రభుత్వ SMAM 40% సబ్సిడీ / CHC రిజిస్ట్రేషన్ సంఖ్య (ఐచ్ఛికం)' : 'Government SMAM 40% Subsidy / CHC License No. (Optional)'}
+                label={t('settings_page.subsidy_license', 'Government SMAM 40% Subsidy / CHC License No. (Optional)')}
                 value={smamLicenseNo}
                 onChange={(e) => setSmamLicenseNo(e.target.value)}
                 placeholder="e.g. AP-SMAM-CHC-2024-8841"
@@ -724,7 +718,7 @@ const SettingsPage = () => {
               />
 
               <Input
-                label={isTe ? 'అత్యవసర బ్రేక్‌డౌన్ / మెకానిక్ ఫోన్' : 'Emergency Field Breakdown & Mechanic Phone'}
+                label={t('settings_page.breakdown_phone', 'Emergency Field Breakdown & Mechanic Phone')}
                 value={emergencyPhone}
                 onChange={(e) => setEmergencyPhone(e.target.value)}
                 placeholder="e.g. 9440182736"
@@ -749,7 +743,7 @@ const SettingsPage = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label={isEquipmentProvider ? (isTe ? 'ప్రొవైడర్ / యజమాని పూర్తి పేరు' : 'Provider / Owner Full Name') : t('profile_page.form.full_name', 'Full Name')}
+              label={isEquipmentProvider ? t('settings_page.provider_full_name', 'Provider / Owner Full Name') : t('profile_page.form.full_name', 'Full Name')}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -814,20 +808,18 @@ const SettingsPage = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-base font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
-                    {isTe ? '🌾 ఖాతా బయోమెట్రిక్ లాగిన్' : 'Account Biometric Sign-In'}
+                    {t('settings_page.account_biometric_signin', 'Account Biometric Sign-In')}
                   </h2>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                     biometricEnabled
                       ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                       : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-white/50'
                   }`}>
-                    {biometricEnabled ? (isTe ? '✓ సక్రియం' : '✓ Enabled for Account') : (isTe ? 'నిష్క్రియం' : 'Disabled')}
+                    {biometricEnabled ? t('settings_page.account_biometric_enabled', '✓ Enabled for Account') : t('settings_page.account_biometric_disabled', 'Disabled')}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-white/45 mt-0.5">
-                  {isTe
-                    ? 'పాస్‌వర్డ్ లేకుండా మీ ఖాతాలోకి వేలిముద్ర లేదా ఫేస్ ఐడీతో 1-ట్యాప్‌లో లాగిన్ అవ్వండి.'
-                    : 'Sign in to your account with 1-tap using your device fingerprint sensor, Face ID, or Windows Hello.'}
+                  {t('settings_page.biometric_device_signin_desc', 'Sign in to your account with 1-tap using your device fingerprint sensor, Face ID, or Windows Hello.')}
                 </p>
               </div>
             </div>
@@ -841,7 +833,7 @@ const SettingsPage = () => {
                 leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
                 className="border-rose-200 dark:border-rose-950/40 text-rose-500 hover:bg-rose-500/10 text-xs shrink-0"
               >
-                {isTe ? 'తీసివేయి' : 'Disable'}
+                {t('settings_page.btn_disable', 'Disable')}
               </Button>
             )}
           </div>
@@ -852,7 +844,7 @@ const SettingsPage = () => {
               <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 space-y-2">
                 <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                   <Smartphone className="w-3.5 h-3.5" />
-                  {isTe ? 'ఖాతాలో నమోదు చేయబడిన బయోమెట్రిక్ కీలు:' : 'Active Account Biometric Keys:'}
+                  {t('settings_page.active_keys_heading', 'Active Account Biometric Keys:')}
                 </p>
                 <div className="space-y-1.5">
                   {biometricDevices.map((dev, idx) => (
@@ -870,7 +862,7 @@ const SettingsPage = () => {
               </div>
             ) : (
               <p className="text-xs text-slate-500 dark:text-white/40 italic">
-                {isTe ? 'ప్రస్తుతం మీ ఖాతాలో బయోమెట్రిక్ నమోదు కాలేదు.' : 'No biometric credentials currently active on this account.'}
+                {t('settings_page.no_active_keys', 'No biometric credentials currently active on this account.')}
               </p>
             )}
 
@@ -879,9 +871,7 @@ const SettingsPage = () => {
               <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-white/40">
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>
-                  {isTe
-                    ? 'మీ బయోమెట్రిక్ డేటా మీ పరికరం సెక్యూర్ ఎన్‌క్లేవ్‌లోనే భద్రంగా ఉంటుంది.'
-                    : 'Biometric cryptographic keys remain protected inside your hardware security enclave.'}
+                  {t('settings_page.enclave_protected_desc', 'Biometric cryptographic keys remain protected inside your hardware security enclave.')}
                 </span>
               </div>
 
@@ -893,8 +883,7 @@ const SettingsPage = () => {
                 className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-md shadow-emerald-500/20 text-xs font-bold shrink-0"
               >
                 {biometricEnabled
-                  ? (isTe ? 'బయోమెట్రిక్ కీని నవీకరించు' : 'Update Account Biometrics')
-                  : (isTe ? 'ఖాతాకు బయోమెట్రిక్ ప్రారంభించు' : 'Enable Account Biometrics')}
+                  ? t('settings_page.update_biometrics', 'Update Account Biometrics') : t('settings_page.enable_biometrics', 'Enable Account Biometrics')}
               </Button>
             </div>
           </div>

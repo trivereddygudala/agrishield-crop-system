@@ -11,7 +11,6 @@ let _cachedWeather = null;
 const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
-  const isTe = currentLang === 'te';
   const { activeFarm } = useFarm();
 
   const [data, setData] = useState(_cachedWeather);
@@ -61,7 +60,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
       fetchWeather(false, null);
     } else {
       if (!navigator.geolocation) {
-        alert(isTe ? "ఈ పరికరంలో GPS సదుపాయం అందుబాటులో లేదు." : "GPS Geolocation is not supported by your browser.");
+        alert(t('dashboard.weather.gps_not_supported', 'GPS Geolocation is not supported by your browser.'));
         return;
       }
       setGpsLoading(true);
@@ -79,7 +78,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
         (err) => {
           console.warn("GPS location permission/error:", err);
           setGpsLoading(false);
-          alert(isTe ? "GPS లొకేషన్ పొందలేకపోయాము. దయచేసి బ్రౌజర్ లొకేషన్ అనుమతి ఆన్ చేయండి." : "Could not retrieve live GPS location. Please check browser location permissions.");
+          alert(t('dashboard.weather.gps_permission_denied', 'Could not retrieve live GPS location. Please check browser location permissions.'));
         },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
       );
@@ -103,12 +102,12 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
 
   const current = data?.current || { temperature: 27.4, feels_like: 29.0, humidity: 81, rain_probability: 0, wind_speed: 5.7 };
   const forecast = data?.forecast && data.forecast.length > 0 ? data.forecast.slice(0, 3) : [
-    { date: isTe ? "నేడు" : "Today", temp_max: 34, temp_min: 24, rain_probability: 0 },
-    { date: isTe ? "రేపు" : "Tomorrow", temp_max: 35, temp_min: 25, rain_probability: 10 },
-    { date: isTe ? "ఎల్లుండి" : "Day After", temp_max: 33, temp_min: 24, rain_probability: 20 },
+    { date: t('dashboard.weather.today', 'Today'), temp_max: 34, temp_min: 24, rain_probability: 0 },
+    { date: t('dashboard.weather.tomorrow', 'Tomorrow'), temp_max: 35, temp_min: 25, rain_probability: 10 },
+    { date: t('dashboard.weather.day_after', 'Day After'), temp_max: 33, temp_min: 24, rain_probability: 20 },
   ];
 
-  const locationDisplay = activeFarm?.village 
+  const locationDisplay = activeFarm?.village
     ? `${activeFarm.village}${activeFarm.district ? `, ${activeFarm.district}` : ''}`
     : (activeFarm?.district || activeFarm?.farm_name || data?.location || "Pasupugallu, Prakasam");
 
@@ -132,13 +131,13 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span>{isTe ? '⛅ పొలం వాతావరణం & వర్ష సూచన' : '⛅ Farm Weather & Rain Forecast'}</span>
+                <span>{t('dashboard.weather.title', '⛅ Farm Weather & Rain Forecast')}</span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
                 <MapPin className={`w-3.5 h-3.5 shrink-0 ${useLiveGps ? 'text-emerald-500 animate-bounce' : 'text-sky-500'}`} />
                 <span className={useLiveGps ? 'text-emerald-700 dark:text-emerald-300 font-black' : ''}>
-                  {useLiveGps 
-                    ? `${data?.location || (isTe ? 'మొబైల్ లైవ్ లొకేషన్' : 'Current Mobile Location')} (${liveGpsCoords?.lat}°, ${liveGpsCoords?.lon}°)` 
+                  {useLiveGps
+                    ? `${data?.location || t('dashboard.weather.mobile_location', 'Current Mobile Location')} (${liveGpsCoords?.lat}°, ${liveGpsCoords?.lon}°)`
                     : locationDisplay}
                 </span>
               </p>
@@ -156,13 +155,12 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400 shadow-md shadow-emerald-500/30'
                   : 'bg-slate-100 dark:bg-slate-800 border-slate-200/90 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-500/40'
               }`}
-              title={useLiveGps ? (isTe ? 'రిజిస్టర్డ్ పొలం లొకేషన్‌కి మారండి' : 'Switch back to Registered Farm Location') : (isTe ? 'ఫోన్ లైవ్ GPS ఉపయోగించండి' : 'Switch to Live Mobile GPS')}
+              title={useLiveGps ? t('dashboard.weather.switch_registered_gps', 'Switch back to Registered Farm Location') : t('dashboard.weather.switch_live_gps', 'Switch to Live Mobile GPS')}
             >
               <Navigation className={`w-3.5 h-3.5 ${useLiveGps ? 'fill-current animate-pulse' : ''} ${gpsLoading ? 'animate-spin' : ''}`} />
               <span>
                 {gpsLoading
-                  ? (isTe ? 'లొకేషన్...' : 'Locating...')
-                  : (useLiveGps ? (isTe ? 'లైవ్ GPS' : 'Live GPS') : (isTe ? 'ఫోన్ GPS' : 'Phone GPS'))}
+                  ? t('dashboard.weather.locating', 'Locating...') : (useLiveGps ? t('dashboard.weather.live_gps', 'Live GPS') : t('dashboard.weather.phone_gps', 'Phone GPS'))}
               </span>
             </button>
 
@@ -173,9 +171,9 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             </Badge>
 
             {/* Refresh Button */}
-            <button 
-              type="button" 
-              onClick={() => fetchWeather(true)} 
+            <button
+              type="button"
+              onClick={() => fetchWeather(true)}
               disabled={refreshing || gpsLoading}
               className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-sky-500 transition-colors cursor-pointer"
               title={t('dashboard.weather.sync', 'Refresh Weather')}
@@ -201,7 +199,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
                 </span>
               </div>
               <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 block mt-0.5">
-                🌤️ {isTe ? 'పాక్షికంగా మేఘావృతం • పంటలకు మంచి ఎండ' : 'Partly Cloudy • Good Sunshine for crops'}
+                🌤️ {t('dashboard.weather.sky_partly_cloudy', 'Partly Cloudy • Good Sunshine for crops')}
               </span>
             </div>
           </div>
@@ -217,7 +215,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               💧 {current.humidity}%
             </span>
             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
-              {isTe ? 'ఆకులకు మంచిది' : 'Optimal'}
+              {t('dashboard.weather.humidity_optimal', 'Optimal')}
             </span>
           </div>
 
@@ -229,7 +227,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               🌧️ {current.rain_probability}%
             </span>
             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
-              {isTe ? 'వర్షం లేదు (సేఫ్)' : 'No Rain (Safe)'}
+              {t('dashboard.weather.rain_none_safe', 'No Rain (Safe)')}
             </span>
           </div>
 
@@ -241,7 +239,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               💨 {current.wind_speed} km/h
             </span>
             <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 block mt-0.5">
-              {isTe ? 'తేలికపాటి గాలి' : 'Gentle Breeze'}
+              {t('dashboard.weather.wind_gentle', 'Gentle Breeze')}
             </span>
           </div>
 
@@ -253,7 +251,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               ☀️ 6 / 10
             </span>
             <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 block mt-0.5">
-              {isTe ? 'మితమైన ఎండ' : 'Moderate Sun'}
+              {t('dashboard.weather.uv_moderate', 'Moderate Sun')}
             </span>
           </div>
         </div>
@@ -261,7 +259,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
         {/* 3-Day Farmer Rain Forecast */}
         <div>
           <span className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-2">
-            📅 {isTe ? 'రాబోయే 3 రోజుల వర్ష సూచన:' : 'Next 3 Days Rain Forecast for Field:'}
+            📅 {t('dashboard.weather.forecast_3days', 'Next 3 Days Rain Forecast for Field:')}
           </span>
           <div className="grid grid-cols-3 gap-2">
             {forecast.map((f, idx) => (
@@ -269,7 +267,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
                 <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block">{f.date}</span>
                 <span className="text-xs font-black text-slate-900 dark:text-white block">{f.temp_max}° / {f.temp_min}°</span>
                 <span className={`text-[10px] font-extrabold block ${f.rain_probability > 30 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                  {f.rain_probability}% {isTe ? 'వర్షం' : 'Rain'}
+                  {f.rain_probability}% {t('dashboard.weather.rain_label', 'Rain')}
                 </span>
               </div>
             ))}
@@ -292,10 +290,10 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span>{isTe ? '🌿 మందులు పిచికారీ భద్రత సమయం' : '🌿 Crop Spraying Safety Window'}</span>
+                <span>{t('dashboard.weather.spraying_window_title', '🌿 Crop Spraying Safety Window')}</span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                {isTe ? 'పురుగుమందులు & పోషకాల పిచికారీ విండో' : 'Foliar pesticide & nutrient timing'}
+                {t('dashboard.weather.spraying_window_desc', 'Foliar pesticide & nutrient timing')}
               </p>
             </div>
           </div>
@@ -308,22 +306,18 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
 
         {/* Big Farmer Status Banner */}
         <div className={`p-4 rounded-2xl border ${
-          isSpraySafe 
-            ? 'bg-emerald-500/15 border-emerald-500/40 dark:bg-emerald-950/40 dark:border-emerald-500/40' 
+          isSpraySafe
+            ? 'bg-emerald-500/15 border-emerald-500/40 dark:bg-emerald-950/40 dark:border-emerald-500/40'
             : 'bg-amber-500/15 border-amber-500/40 dark:bg-amber-950/40 dark:border-amber-500/40'
         }`}>
           <div className="flex items-center gap-2">
             <CheckCircle2 className={`w-6 h-6 ${isSpraySafe ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'} shrink-0`} />
             <div>
               <h4 className={`text-base sm:text-lg font-black ${isSpraySafe ? 'text-emerald-900 dark:text-emerald-200' : 'text-amber-900 dark:text-amber-200'}`}>
-                {isSpraySafe 
-                  ? (isTe ? '✅ ఇప్పుడు పిచికారీ చేయడానికి అనుకూలమైన సమయం' : '✅ SAFE TO SPRAY RIGHT NOW (8 AM – 11 AM)')
-                  : (isTe ? '⚠️ గాలి ఎక్కువ — పిచికారీ ఆపండి' : '⚠️ WIND IS HIGH — POSTPONE SPRAYING')}
+                {isSpraySafe ? t('dashboard.weather.spray_safe_banner', '✅ SAFE TO SPRAY RIGHT NOW (8 AM – 11 AM)') : t('dashboard.weather.spray_unsafe_banner', '⚠️ WIND IS HIGH — POSTPONE SPRAYING')}
               </h4>
               <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mt-0.5">
-                {isTe 
-                  ? 'మధ్యాహ్నం ఎండ రాకముందే పిచికారీ పూర్తి చేయండి.' 
-                  : 'Ideal morning window before hot afternoon heat.'}
+                {t('dashboard.weather.spray_morning_tip', 'Ideal morning window before hot afternoon heat.')}
               </p>
             </div>
           </div>
@@ -332,7 +326,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
         {/* 4 Clear Reasons for Farmers ("Why is it safe right now?") */}
         <div className="space-y-2.5">
           <span className="text-xs font-black text-slate-700 dark:text-slate-300 block">
-            📋 {isTe ? 'రైతులకు స్పష్టమైన కారణాలు:' : 'Clear Reasons for Farmers (Why It Is Safe):'}
+            📋 {t('dashboard.weather.reasons_title', 'Clear Reasons for Farmers (Why It Is Safe):')}
           </span>
 
           {/* Reason 1: Wind */}
@@ -341,14 +335,14 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-slate-900 dark:text-white">
-                  {isTe ? 'గాలి వేగం తక్కువ (5.7 km/h):' : 'Gentle Breeze (5.7 km/h):'}
+                  {t('dashboard.weather.reason_wind_title', 'Gentle Breeze (5.7 km/h):')}
                 </span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  {isTe ? 'మందు కొట్టుకుపోదు' : 'Spray Won\'t Blow Away'}
+                  {t('dashboard.weather.reason_wind_tag', "Spray Won't Blow Away")}
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 leading-snug">
-                {isTe ? 'గాలి వేగం సాధారణంగా ఉంది, మందు పక్క పొలాలకు కొట్టుకుపోకుండా నేరుగా మొక్కలపై పడుతుంది.' : 'Wind is gentle. Medicine stays on your target crop without drifting to neighboring fields.'}
+                {t('dashboard.weather.reason_wind_desc', 'Wind is gentle. Medicine stays on your target crop without drifting to neighboring fields.')}
               </p>
             </div>
           </div>
@@ -359,14 +353,14 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-slate-900 dark:text-white">
-                  {isTe ? 'వర్షం ముప్పు లేదు (0%):' : 'Zero Rain Risk (0%):'}
+                  {t('dashboard.weather.reason_rain_title', 'Zero Rain Risk (0%):')}
                 </span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  {isTe ? 'మందు కడిగిపోదు' : 'Won\'t Wash Off'}
+                  {t('dashboard.weather.reason_rain_tag', "Won't Wash Off")}
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 leading-snug">
-                {isTe ? 'ఈరోజు వర్షం పడే అవకాశం లేదు కాబట్టి పిచికారీ చేసిన మందు ఆకులపై స్థిరంగా పనిచేస్తుంది.' : 'No rainfall is expected today. The medicine will dry and adhere properly to plant leaves.'}
+                {t('dashboard.weather.reason_rain_desc', 'No rainfall is expected today. The medicine will dry and adhere properly to plant leaves.')}
               </p>
             </div>
           </div>
@@ -377,14 +371,14 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-slate-900 dark:text-white">
-                  {isTe ? 'ఆకులు పొడిగా ఉన్నాయి:' : 'Dry Crop Foliage:'}
+                  {t('dashboard.weather.reason_foliage_title', 'Dry Crop Foliage:')}
                 </span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  {isTe ? 'త్వరగా పీల్చుకుంటాయి' : 'Absorbs Effectively'}
+                  {t('dashboard.weather.reason_foliage_tag', 'Absorbs Effectively')}
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 leading-snug">
-                {isTe ? 'ఉదయం మంచు ఆరిపోయింది, ఆకులు మందు మరియు పోషకాలను త్వరగా గ్రహిస్తాయి.' : 'Morning dew has cleared. Leaves are ready to absorb foliar nutrition and protective sprays.'}
+                {t('dashboard.weather.reason_foliage_desc', 'Morning dew has cleared. Leaves are ready to absorb foliar nutrition and protective sprays.')}
               </p>
             </div>
           </div>
@@ -394,9 +388,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
         <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-[11px] font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2">
           <span>💡</span>
           <span>
-            {isTe 
-              ? 'ముఖ్య సూచన: మధ్యాహ్నం 11:30 లోపు పిచికారీ పూర్తి చేయండి. ఆ తర్వాత ఎండ వేడికి మందు ఆవిరైపోతుంది.' 
-              : 'Farmer Tip: Complete your spraying before 11:30 AM to prevent evaporation from midday sun.'}
+            {t('dashboard.weather.farmer_tip_evaporation', 'Farmer Tip: Complete your spraying before 11:30 AM to prevent evaporation from midday sun.')}
           </span>
         </div>
       </Card>
