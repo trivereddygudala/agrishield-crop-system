@@ -385,59 +385,19 @@ def get_diagnostics_for_disease(disease_name: str, prediction_status: str, crop_
 
     return diag
 
-def is_plant_image(image_input, min_largest_contour_ratio: float = 0.05, min_total_plant_ratio: float = 0.07) -> bool:
+def is_plant_image(image_input, min_largest_contour_ratio: float = 0.02, min_total_plant_ratio: float = 0.03) -> bool:
     """
     Validates if an image contains actual agricultural plant/leaf foliage.
-    Rejects human photos, medicine bottles/boxes with tiny green logos, electronics/breadboards, clothing, and non-plant objects.
+    Accommodates both healthy green leaves and chlorotic (yellow) or necrotic (brown) diseased foliage.
     """
     try:
-        from PIL import Image
-        if isinstance(image_input, str):
-            img = cv2.imread(image_input)
-        elif isinstance(image_input, Image.Image):
-            img = cv2.cvtColor(np.array(image_input), cv2.COLOR_RGB2BGR)
-        elif isinstance(image_input, np.ndarray):
-            img = image_input
-        else:
-            return True
-        if img is None:
-            return False
-            
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        
-        # Genuine Plant Foliage Green Hue Range (OpenCV Hue 32 to 88 -> ~64 deg to 176 deg)
-        lower_green = np.array([32, 35, 35], dtype=np.uint8)
-        upper_green = np.array([88, 255, 255], dtype=np.uint8)
-        green_mask = cv2.inRange(hsv, lower_green, upper_green)
-        
-        # Excess Green Index: ExG = 2G - R - B
-        # Real green plant tissue has high positive ExG (ExG > 15)
-        b, g, r = cv2.split(img.astype(np.float32))
-        exg = 2.0 * g - r - b
-        exg_mask = (exg > 15.0).astype(np.uint8) * 255
-        
-        # Combined plant tissue mask
-        plant_mask = cv2.bitwise_and(green_mask, exg_mask)
-        total_pixels = float(img.shape[0] * img.shape[1])
-        total_plant_ratio = float(np.count_nonzero(plant_mask)) / total_pixels
-        
-        # Morphological clean up to connect leaf regions and filter noise
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        cleaned_mask = cv2.morphologyEx(plant_mask, cv2.MORPH_OPEN, kernel)
-        cleaned_mask = cv2.morphologyEx(cleaned_mask, cv2.MORPH_CLOSE, kernel)
-        
-        # Find largest contiguous green foliage contour
-        contours, _ = cv2.findContours(cleaned_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        largest_contour_area = 0.0
-        if contours:
-            largest_contour_area = max(cv2.contourArea(c) for c in contours)
-            
-        largest_contour_ratio = largest_contour_area / total_pixels
-        
-        # Valid crop leaf scan requires a contiguous leaf blade (at least 5% of total image area)
-        # AND total foliage ratio of at least 7%
-        return (largest_contour_ratio >= min_largest_contour_ratio) and (total_plant_ratio >= min_total_plant_ratio)
+        from backend.app.services.image_preprocessor import evaluate_image_suitability
+        suitability = evaluate_image_suitability(
+            image_input,
+            min_vegetation_ratio=min_total_plant_ratio,
+            min_contour_ratio=min_largest_contour_ratio
+        )
+        return bool(suitability.get("is_suitable", True))
     except Exception:
         return True
 
@@ -445,8 +405,43 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     """
     Runs high-speed, low-memory inference on input image using Quantized ONNX Runtime or PyTorch fallback.
     Supports optional crop_filter parameter to restrict class search space to specified crop category.
+    Includes B31 image-suitability gating and global crop-evidence OOD protection.
     """
     start_time = time.time()
+
+    # B31 Image Suitability Pre-Inference Gate
+    if not is_plant_image(image_path):
+        try:
+            from backend.app.services.image_preprocessor import evaluate_image_suitability
+            suitability = evaluate_image_suitability(image_path)
+            unsuitable_reason = suitability.get("reason", "Image could not be reliably analyzed.")
+        except Exception:
+            unsuitable_reason = "Image could not be reliably analyzed."
+        return {
+            "crop_name": crop_filter.title() if crop_filter else "Agricultural Crop",
+            "disease_name": "Image Unsuitable for Analysis",
+            "confidence": 0.0,
+            "prediction_status": "unsupported",
+            "diagnosis_status": "image_unsuitable",
+            "requires_secondary_review": False,
+            "raw_label": "UNSUITABLE",
+            "top_predictions": [],
+            "prediction_time_ms": (time.time() - start_time) * 1000.0,
+            "disease_severity": "None",
+            "symptoms": f"The uploaded photo could not be reliably analyzed. Reason: {unsuitable_reason}. Please upload a clear photo of the crop leaf.",
+            "farmer_friendly_advice": f"Image could not be reliably analyzed ({unsuitable_reason}). Please upload a clear photo of the crop leaf.",
+            "prevention_methods": [
+                "Capture photos in bright, natural daylight",
+                "Ensure the camera is focused on the leaf surface",
+                "Avoid capturing non-plant objects, people, or dark backgrounds"
+            ],
+            "organic_treatment": "None required (Image unsuitable).",
+            "chemical_treatment": "None required (Image unsuitable).",
+            "recommended_pesticides": [],
+            "recommended_fertilizers": [],
+            "uncertainty_score": 1.0,
+            "is_ambiguous": False
+        }
     
     # Load model resources (pure NumPy ONNX runtime, <50MB RAM)
     loader, classes = load_resources()
@@ -482,28 +477,46 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     from backend.services.pytorch.taxonomy import TaxonomyManager
 
     is_ood = False
+    raw_crop_mass = 0.0
+    crop_evidence_sufficient = True
+
     if effective_crop_filter:
         mask_arr = np.array([TaxonomyManager.matches_crop_filter(cls, effective_crop_filter) for cls in classes], dtype=bool)
         if np.any(mask_arr):
             filtered_probs = probs * mask_arr
-            sum_probs = np.sum(filtered_probs)
-            if sum_probs > 0:
-                probs = filtered_probs / sum_probs
+            sum_probs = float(np.sum(filtered_probs))
+            raw_crop_mass = sum_probs
+
+            # B31 Crop-Filter OOD Guard:
+            # Conservative minimum global probability mass required for the selected crop family.
+            # Prevents negligible raw probability mass (e.g. 0.005) from being blown up to 90%+ confidence after subset normalization.
+            # (Engineering OOD threshold; does not claim calibrated model accuracy).
+            MIN_CROP_MASS_THRESHOLD = 0.035
+
+            if sum_probs < MIN_CROP_MASS_THRESHOLD:
+                crop_evidence_sufficient = False
+                is_ood = True
             else:
-                probs = mask_arr.astype(np.float32) / np.sum(mask_arr)
+                probs = filtered_probs / sum_probs
         else:
             is_ood = True
+            crop_evidence_sufficient = False
     
     mc_variance = 0.0
     entropy = -np.sum(probs * np.log(probs + 1e-10))
     max_conf = float(np.max(probs))
     
-    is_ood = is_ood or (max_conf < PipelineConfig.OOD_CONFIDENCE_THRESHOLD)
+    is_ood = is_ood or (max_conf < PipelineConfig.OOD_CONFIDENCE_THRESHOLD) or (not crop_evidence_sufficient)
     
     if is_ood:
+        reason_desc = (
+            f"Insufficient global crop evidence ({raw_crop_mass*100:.1f}% mass for {effective_crop_filter})"
+            if (effective_crop_filter and not crop_evidence_sufficient)
+            else "Confidence below threshold or out-of-distribution specimen"
+        )
         return TaxonomyManager.build_uncertain_response(
             crop_hint=effective_crop_filter,
-            reason="Confidence below threshold or out-of-distribution specimen",
+            reason=reason_desc,
             prediction_time_ms=(time.time() - start_time) * 1000.0
         )
 

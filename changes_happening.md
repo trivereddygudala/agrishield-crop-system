@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-06 (v391) - B31: Image Suitability Gating & Crop-Filter OOD Guard
+- **Summary:**
+  1. 📷 **Image Suitability Pre-Inference Gating (`backend/app/services/image_preprocessor.py`):**
+     - Implemented `evaluate_image_suitability` analyzing brightness, contrast (std), blur (Laplacian variance), and plant foliar tissue evidence before model inference.
+     - Accommodates both healthy green foliage and chlorotic (yellow) or necrotic (brown) diseased leaf tissue, preventing false rejection of genuine diseased leaves.
+     - Accommodates multi-leaf canopy scans (5-10 leaves) and macro single-leaf photos without aggressively cropping down to one leaf.
+     - Accurately rejects blank, uniform, severely blurred, overexposed, underexposed, and clearly non-plant images with honest farmer guidance and diagnosis status `image_unsuitable` (confidence 0.0, zero pesticide/chemical treatment).
+     - Bypasses expensive secondary Gemini Vision and NIM calls for unsuitable images.
+  2. 🛡️ **Crop-Filter Global Evidence & OOD Guard (`model/predict_pytorch.py`):**
+     - Hardened subset-filtering against OOD bypass: when a user specifies a crop filter, the candidate classes must possess sufficient global probability mass (`MIN_CROP_MASS_THRESHOLD = 0.035` / 3.5%).
+     - Eliminates subset normalization distortion where negligible model output (e.g. 0.005) on an out-of-distribution leaf was artificially renormalized into a 90%+ false positive disease claim.
+     - Unmatched crops or insufficient evidence route cleanly to safe uncertain state (`diagnosis_status: "uncertain"`, `confidence: 0.0`, `prediction_status: "unsupported"`).
+  3. ⚖️ **Confidence Preservation & Elimination of Artificial Inflation (`backend/app/routers/farmer/predict.py`):**
+     - Removed artificial confidence floor (`prediction_result["confidence"] = max(confidence, 0.70)`) on low-confidence crop predictions.
+     - Preserves true model confidence (e.g., 0.25 remains 0.25) and marks uncertain diagnoses with `diagnosis_status: "uncertain"`, `requires_secondary_review: True`.
+     - Guarded NVIDIA NIM refinement so it only resolves ambiguous ties between valid candidates with 0.40 <= confidence < 0.85, never running on OOD, uncertain, or unsuitable images.
+     - B8 advisory contract preserved: user crop filter guidance maintained and unselected low confidence prompts farmer for leaf focus.
+  4. 🧪 **Comprehensive Validation & Test Coverage:**
+     - Created `backend/tests/test_b31_ai_reliability.py` with 15 automated test cases verifying all B31 criteria (15/15 passed, 100%).
+     - All 15 tests in `backend/tests/test_b30_ai_reliability.py` passed (100%).
+     - `backend/tests/test_pytorch_prediction.py` passed (100%).
+     - `backend/tests/test_api.py` passed (4/4, 100%).
+     - Frontend production build (`npm run build`) succeeded in 25.67s with 0 errors.
+     - `git diff --check` passed cleanly with 0 whitespace errors.
+- **Files modified**: `backend/app/services/image_preprocessor.py`, `model/predict_pytorch.py`, `backend/app/routers/farmer/predict.py`, `backend/tests/test_b31_ai_reliability.py`, `changes_happening.md`.
+
 ## 2026-10-06 (v390) - B30: AI Diagnosis, Plant Identification & Agrochemical Reliability
 - **Summary:**
   1. 🧬 **Authoritative Crop Disease Taxonomy Engine (`backend/services/pytorch/taxonomy.py`):**

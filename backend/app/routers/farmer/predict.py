@@ -1760,46 +1760,86 @@ async def predict_pytorch_endpoint(
     except Exception as prep_ex:
         logger.warning(f"Leaf image preprocessing fallback: {prep_ex}")
 
-    # Perform prediction using the real PyTorch/ONNX pipeline inside a separate worker thread
+    # B31 Image Suitability Pre-Inference Gate
+    is_image_unsuitable = False
+    unsuitable_reason = ""
     try:
-        import inspect
-        sig = inspect.signature(predict_crop_disease)
-        kwargs = {}
-        # User selection has absolute sovereign priority over any vision model guess
-        active_crop_filter = user_crop_filter if user_crop_filter else detected_vision_crop
-        if "crop_filter" in sig.parameters:
-            kwargs["crop_filter"] = active_crop_filter
-        elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
-            kwargs["crop_filter"] = active_crop_filter
+        from backend.app.services.image_preprocessor import evaluate_image_suitability
+        suitability = await asyncio.to_thread(evaluate_image_suitability, effective_image_path)
+        if not suitability.get("is_suitable", True):
+            is_image_unsuitable = True
+            unsuitable_reason = suitability.get("reason", "Image could not be reliably analyzed.")
+    except Exception as suit_err:
+        logger.debug(f"Image suitability evaluation bypass on error: {suit_err}")
 
-        # Check if we should offload to AI Worker Cluster (Worker 1 / Worker 2)
-        prediction_result = None
+    if is_image_unsuitable:
+        prediction_result = {
+            "crop_name": user_crop_filter.title() if user_crop_filter else "Agricultural Crop",
+            "disease_name": "Image Unsuitable for Analysis",
+            "confidence": 0.0,
+            "prediction_status": "unsupported",
+            "diagnosis_status": "image_unsuitable",
+            "requires_secondary_review": False,
+            "raw_label": "UNSUITABLE",
+            "top_predictions": [],
+            "prediction_time_ms": (time.perf_counter() - _req_start_t) * 1000.0,
+            "disease_severity": "None",
+            "symptoms": f"The uploaded photo could not be reliably analyzed. Reason: {unsuitable_reason}. Please upload a clear photo of the crop leaf.",
+            "farmer_friendly_advice": f"Image could not be reliably analyzed ({unsuitable_reason}). Please upload a clear photo of the crop leaf.",
+            "prevention_methods": [
+                "Capture photos in bright, natural daylight",
+                "Ensure the camera is focused on the leaf surface",
+                "Avoid capturing non-plant objects, people, or dark backgrounds"
+            ],
+            "organic_treatment": "None required (Image unsuitable).",
+            "chemical_treatment": "None required (Image unsuitable).",
+            "recommended_pesticides": [],
+            "recommended_fertilizers": [],
+            "uncertainty_score": 1.0,
+            "is_ambiguous": False,
+            "ensemble_used": False
+        }
+    else:
+        # Perform prediction using the real PyTorch/ONNX pipeline inside a separate worker thread
         try:
-            from backend.app.services.ai_cluster import ai_cluster
-            with open(effective_image_path, "rb") as img_f:
-                img_bytes = img_f.read()
-            prediction_result = await ai_cluster.offload_prediction(
-                image_bytes=img_bytes,
-                filename=os.path.basename(effective_image_path),
-                explainer_type=req.explainer_type or "gradcam++",
-                crop_filter=active_crop_filter
-            )
-        except Exception as cluster_err:
-            logger.warning(f"Cluster offload attempt bypassed: {cluster_err}")
+            import inspect
+            sig = inspect.signature(predict_crop_disease)
+            kwargs = {}
+            # User selection has absolute sovereign priority over any vision model guess
+            active_crop_filter = user_crop_filter if user_crop_filter else detected_vision_crop
+            if "crop_filter" in sig.parameters:
+                kwargs["crop_filter"] = active_crop_filter
+            elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+                kwargs["crop_filter"] = active_crop_filter
 
-        # If not offloaded or workers offline, execute locally on server threadpool
-        if not prediction_result:
-            prediction_result = await asyncio.to_thread(
-                predict_crop_disease,
-                effective_image_path, 
-                req.explainer_type or "gradcam++",
-                **kwargs
+            # Check if we should offload to AI Worker Cluster (Worker 1 / Worker 2)
+            prediction_result = None
+            try:
+                from backend.app.services.ai_cluster import ai_cluster
+                with open(effective_image_path, "rb") as img_f:
+                    img_bytes = img_f.read()
+                prediction_result = await ai_cluster.offload_prediction(
+                    image_bytes=img_bytes,
+                    filename=os.path.basename(effective_image_path),
+                    explainer_type=req.explainer_type or "gradcam++",
+                    crop_filter=active_crop_filter
+                )
+            except Exception as cluster_err:
+                logger.warning(f"Cluster offload attempt bypassed: {cluster_err}")
+
+            # If not offloaded or workers offline, execute locally on server threadpool
+            if not prediction_result:
+                prediction_result = await asyncio.to_thread(
+                    predict_crop_disease,
+                    effective_image_path,
+                    req.explainer_type or "gradcam++",
+                    **kwargs
+                )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"PyTorch inference error: {str(e)}"
             )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"PyTorch inference error: {str(e)}"
-        )
 
     confidence = float(prediction_result.get("confidence", 0.0))
     top_preds = prediction_result.get("top_predictions", [])
@@ -1808,16 +1848,17 @@ async def predict_pytorch_endpoint(
 
     # Computer Vision Foliar Morphology & Chewing Pest Detector (Auxiliary foliar health check)
     chewing_analysis = None
-    try:
-        from backend.app.services.image_preprocessor import detect_chewing_pest_damage
-        chewing_analysis = detect_chewing_pest_damage(effective_image_path)
-    except Exception as chew_ex:
-        logger.debug(f"Chewing pest analysis exception: {chew_ex}")
+    if not is_image_unsuitable:
+        try:
+            from backend.app.services.image_preprocessor import detect_chewing_pest_damage
+            chewing_analysis = detect_chewing_pest_damage(effective_image_path)
+        except Exception as chew_ex:
+            logger.debug(f"Chewing pest analysis exception: {chew_ex}")
 
     # Identify non-crop botanical classes, weeds, insect pests, or unverified model anomalies
     from backend.services.pytorch.taxonomy import TaxonomyManager
     label_to_check = raw_label or (top_preds[0].get("class_name") if top_preds else "") or prediction_result.get("disease_name", "")
-    if label_to_check:
+    if label_to_check and not is_image_unsuitable:
         is_non_crop_label = not TaxonomyManager.is_valid_crop_candidate(label_to_check) or (
             prediction_result.get("crop_name") in ["Wild Flora", "Agricultural Pest", "Agricultural Weed", "Plant Nutrient", "Produce Quality", "Unknown", "Therioaphis", "General Plant", "Acrobasis", "Lytta", "Spodoptera"] or
             label_to_check.startswith(("Therioaphis", "Lytta", "Acrobasis", "General_Plant"))
@@ -1837,7 +1878,7 @@ async def predict_pytorch_endpoint(
 
     # Auxiliary Chewing Defoliation Check (Only applied to known caterpillar host crops when chewing holes are physically detected)
     final_crop_low = (user_crop_filter or prediction_result.get("crop_name", "")).lower()
-    if is_ood and confidence < 0.50 and chewing_analysis and chewing_analysis.get("detected"):
+    if not is_image_unsuitable and is_ood and confidence < 0.50 and chewing_analysis and chewing_analysis.get("detected"):
         final_crop = user_crop_filter.title() if user_crop_filter else prediction_result.get("crop_name", "Crop")
         if final_crop_low not in ["chilli", "pepper", "capsicum"]:
             pest_name = "Spodoptera litura (Tobacco Caterpillar) / Cutworm Infestation"
@@ -1863,7 +1904,7 @@ async def predict_pytorch_endpoint(
     ensemble_provider = None
     ensemble_notes = None
 
-    if is_ambiguous or confidence < 0.75 or is_ood or has_multipart_scan:
+    if not is_image_unsuitable and (is_ambiguous or confidence < 0.75 or is_ood or has_multipart_scan):
         try:
             from backend.app.services.gemini_vision import cross_verify_disease_with_vision
             vision_opinion = await cross_verify_disease_with_vision(
@@ -1940,7 +1981,7 @@ async def predict_pytorch_endpoint(
 
 
     # Post-ensemble Safety Gates: Only reject if BOTH local model and Gemini Vision could not identify the image
-    if not ensemble_used:
+    if not ensemble_used and not is_image_unsuitable:
         if is_ood or prediction_result.get("raw_label") == "OOD":
             if user_crop_filter:
                 prediction_result["crop_name"] = user_crop_filter.title()
@@ -1957,8 +1998,11 @@ async def predict_pytorch_endpoint(
 
         elif confidence < 0.40:
             if user_crop_filter:
-                prediction_result["confidence"] = max(confidence, 0.70)
                 prediction_result["crop_name"] = user_crop_filter.title()
+                prediction_result["disease_name"] = "Unrecognized or uncertain"
+                prediction_result["prediction_status"] = "unsupported"
+                prediction_result["diagnosis_status"] = "uncertain"
+                prediction_result["requires_secondary_review"] = True
             else:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -2008,7 +2052,8 @@ async def predict_pytorch_endpoint(
         prediction_result["dual_model_consensus"] = True
         prediction_result["consensus_details"] = "High Precision Neural Alignment (>85% Model Confidence)"
 
-    if (is_ambiguous or (0.40 <= confidence < 0.85)) and top_preds:
+    # NIM/LLM Refinement: only runs on valid candidates with 0.40 <= confidence < 0.85 (never on OOD, uncertain, or unsuitable)
+    if not is_image_unsuitable and not is_ood and prediction_result.get("diagnosis_status") not in ["uncertain", "unsupported", "image_unsuitable"] and (0.40 <= confidence < 0.85) and top_preds:
         try:
             from backend.app.services.nvidia_service import nvidia_service
             from backend.app.services.farm_profile_service import FarmProfileService
@@ -2501,6 +2546,7 @@ async def predict_pytorch_endpoint(
         "prediction_date": now.strftime("%Y-%m-%d"),
         "prediction_time": now.strftime("%H:%M:%S"),
         "prediction_status": prediction_result.get("prediction_status", "diseased"),
+        "diagnosis_status": prediction_result.get("diagnosis_status", "confirmed_local"),
         "created_at": now,
         "top_predictions": prediction_result.get("top_predictions", []),
         "prediction_time_ms": float(prediction_result.get("prediction_time_ms", 0.0)),
@@ -2564,14 +2610,23 @@ async def predict_pytorch_endpoint(
         disease = prediction_result.get("disease_name", "Unknown condition")
         confidence = round(float(prediction_result.get("confidence", 0)) * 100, 1)
         pred_status = (prediction_result.get("prediction_status") or "").lower()
-        is_healthy = "healthy" in disease.lower() or pred_status == "healthy"
+        diag_status = (prediction_result.get("diagnosis_status") or "").lower()
+        is_healthy = ("healthy" in disease.lower() or pred_status == "healthy") and diag_status != "image_unsuitable"
 
         try:
             target_lang = (current_user.get("preferred_language") or "en").lower()[:2] if current_user else "en"
             loc_crop = get_farmer_crop_translation(crop, target_lang) or crop
             loc_disease = get_farmer_disease_translation(disease, target_lang) or disease
 
-            if target_lang == "te":
+            if diag_status == "image_unsuitable":
+                if target_lang == "te":
+                    title = "⚠️ ఫోటో సరిపోలేదు (Image Unsuitable)"
+                    message = "అప్‌లోడ్ చేసిన ఫోటో పంట వ్యాధి విశ్లేషణకు సరిపోలేదు. దయచేసి స్పష్టమైన, మంచి వెలుతురులో ఉన్న ఆకు ఫోటోను అప్‌లోడ్ చేయండి."
+                else:
+                    title = "⚠️ Image Unsuitable for Analysis"
+                    message = "The uploaded photo could not be reliably analyzed. Please upload a clear photo of the crop leaf."
+                priority = "Low"
+            elif target_lang == "te":
                 if is_healthy:
                     title = f"🌱 ఆరోగ్యకరమైన పంట: {loc_crop}"
                     message = f"AI పంట నిర్ధారణ పూర్తయింది: మీ {loc_crop} పంట ఆకులు {confidence}% ఖచ్చితత్వంతో సంపూర్ణ ఆరోగ్యంగా ఉన్నాయి. సాధారణ నీటిపారుదల & ఎరువుల షెడ్యూల్ కొనసాగించండి."
@@ -2609,7 +2664,7 @@ async def predict_pytorch_endpoint(
         # --- Neighborhood Outbreak Alert Trigger ---
         is_contagious = any(k in disease.lower() for k in ["blight", "blast", "rust", "canker", "smut", "rot"])
         is_severe = severity.lower() in ["high", "critical", "emergency", "medium", "moderate"]
-        if is_contagious and is_severe:
+        if is_contagious and is_severe and diag_status != "image_unsuitable":
             try:
                 from backend.app.services.farm_profile_service import FarmProfileService
                 active_farm = await FarmProfileService.get_active_farm(db, str(current_user["id"]))
