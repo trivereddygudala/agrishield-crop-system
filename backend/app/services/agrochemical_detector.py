@@ -1479,7 +1479,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 return asyncio.run(extract_agrochemical_label_vision(image_path))
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                gemini_vision_data = pool.submit(_run_vision_sync).result(timeout=25.0)
+                gemini_vision_data = pool.submit(_run_vision_sync).result(timeout=10.0)
 
             if gemini_vision_data and isinstance(gemini_vision_data, dict) and gemini_vision_data.get("brand_name"):
                 gemini_vision_used = True
@@ -1523,6 +1523,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
 
             img_url = f"/products/{img_fn}" if img_fn else "/samples/fertilizer_01.jpg"
             source_type = "catalog" if matched_catalog_item else "gemini_multimodal_vision"
+            verification_status = "verified_catalog" if matched_catalog_item else "verified_vision"
             matched_confidence = 98.5 if matched_catalog_item else 97.5
 
             dosage_per_l = gemini_vision_data.get("dilution_rate_per_litre") or "2.0 mL or 2.0 g per litre of clean water"
@@ -1594,12 +1595,8 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                         matched_confidence = 97.0
                         break
 
-                if not matched_db_item:
-                    urea_aliases = ["urvarak", "bnartiya", "krieheq", "erarlja", "huarttm", "bharat", "pariyajna", "iffco", "urea", "khad", "dap", "potash", "gromor", "paras"]
-                    words_in_query = set(re.findall(r'[a-zA-Z0-9]+', extracted_text))
-                    if any(alias in words_in_query for alias in urea_aliases):
-                        matched_db_item = AGROCHEMICAL_DATABASE.get("dap" if "dap" in words_in_query else "urea")
-                        matched_confidence = 95.0
+                # Unsafe alias wildcard matching removed per D2.5 safety requirements.
+                # Common words like 'bharat' or 'iffco' must never force-identify Urea or DAP.
 
             custom_utility = None
             custom_mixing = _build_mixing_guide()
@@ -1621,6 +1618,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 image_fn = p.get("image_filename", "")
                 img_url = f"/products/{image_fn}" if image_fn else "/samples/fertilizer_01.jpg"
                 source_type = "catalog"
+                verification_status = "verified_catalog"
 
             elif matched_db_item:
                 p = matched_db_item
@@ -1638,6 +1636,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                 image_fn = p.get("image_filename", "")
                 img_url = f"/products/{image_fn}" if image_fn else "/samples/fertilizer_01.jpg"
                 source_type = "database"
+                verification_status = "verified_database"
 
             else:
                 # Live Web Search & AI Intelligence fallback
@@ -1670,19 +1669,21 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
 
                 if enriched and isinstance(enriched, dict) and enriched.get("brand_name"):
                     brand_name = enriched.get("brand_name", "Commercial Agrochemical")
-                    company = enriched.get("company", "Verified Manufacturer")
-                    active_ingredient = enriched.get("active_ingredients", "Agricultural Active Formulation")
-                    formulation = enriched.get("formulation_type", parsed_fields.get("formulation", "Liquid / Powder Formulation"))
-                    dosage_per_l = enriched.get("dilution_rate_per_litre", "2.0 mL or 2.0 g per litre of clean water")
-                    spray_interval = enriched.get("spray_interval", "Repeat after 10 to 14 days based on pest or disease intensity")
-                    action_mode = enriched.get("action_mode", "Protective & Curative Plant Protection Chemical")
-                    target_crops = enriched.get("approved_crops", ["Tomato", "Chilli", "Paddy", "Cotton", "Vegetables"])
-                    target_diseases = enriched.get("target_diseases_and_pests", ["Foliar Diseases", "Target Pests"])
+                    company = enriched.get("company", "Unverified Manufacturer")
+                    active_ingredient = enriched.get("active_ingredients", "Unverified Active Formulation")
+                    formulation = enriched.get("formulation_type", parsed_fields.get("formulation", "Unverified Formulation"))
+                    # D2.5 Safety: Never fabricate dosage or PHI on web search fallback
+                    dosage_per_l = None
+                    spray_interval = None
+                    action_mode = enriched.get("action_mode", "Unverified Possible Match")
+                    target_crops = enriched.get("approved_crops", [])
+                    target_diseases = enriched.get("target_diseases_and_pests", [])
                     hazard_color = enriched.get("hazard_color", "#2563eb")
-                    phi_days = enriched.get("preharvest_interval_days", 14)
+                    phi_days = None
                     img_url = "/samples/fertilizer_01.jpg"
-                    matched_confidence = 95.5
-                    source_type = "live_web_search"
+                    matched_confidence = 50.0
+                    source_type = "live_web_search_unverified"
+                    verification_status = "unverified"
                     custom_utility = enriched.get("utility_and_benefits")
                 else:
                     # Weak evidence: only generic chemical keywords found, no distinctive commercial match
@@ -1690,6 +1691,7 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
                         "success": False,
                         "is_agrochemical": False,
                         "product_identified": False,
+                        "verification_status": "unknown",
                         "confidence": 0.0,
                         "matched_confidence": 0.0,
                         "category_type": "Uncertain",
@@ -1808,8 +1810,9 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "utility_and_benefits": detailed_description
         }
 
-        # Include verification_source in product_details
+        # Include verification_source & verification_status in product_details
         product_details["verification_source"] = source_type
+        product_details["verification_status"] = verification_status
 
         # Combined info for backward compatibility
         info = {
@@ -1832,14 +1835,15 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "recommended_dosage": dosage_per_l,
             "mixing_ratio": dosage_per_l,
             "spray_interval": spray_interval,
-            "reentry_interval": "24 hours",
-            "preharvest_interval": f"{phi_days} days" if not is_fertilizer else "N/A",
+            "reentry_interval": "24 hours" if dosage_per_l else None,
+            "preharvest_interval": f"{phi_days} days" if (phi_days and not is_fertilizer) else None,
             "safety_category": tox_label,
             "toxicity_level": tox_label,
             "protective_equipment": "Wear chemical-resistant nitrile gloves, protective eye goggles, and N95 mask.",
             "storage_instructions": "Store sealed below 25°C in a dry, ventilated shed.",
             "disposal_instructions": "Puncture empty container and dispose per local agricultural waste rules.",
             "verification_source": source_type,
+            "verification_status": verification_status,
             "gemini_vision_used": gemini_vision_used,
             # 3 Structured Blocks
             "product_details": product_details,
@@ -1847,11 +1851,13 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
             "chemical_explanation": chemical_explanation
         }
 
+        is_verified = (verification_status in ["verified_catalog", "verified_database", "verified_vision"])
         return {
-            "success": True,
-            "is_agrochemical": True,
-            "product_identified": True,
-            "confidence": round(matched_confidence, 1),
+            "success": is_verified,
+            "is_agrochemical": is_verified,
+            "product_identified": is_verified,
+            "verification_status": verification_status,
+            "confidence": round(matched_confidence, 1) if is_verified else min(round(matched_confidence, 1), 50.0),
             "category_type": category_type,
             "is_fertilizer": is_fertilizer,
             "matched_key": brand_name.lower().replace(" ", "_"),
@@ -1866,72 +1872,53 @@ def detect_agrochemical(image_path: str, force_scan: bool = True) -> dict:
 
     except Exception as e:
         logger.error(f"[AGROCHEMICAL OCR ERROR]: {e}")
-        if not force_scan:
-            return {
-                "is_agrochemical": False,
-                "confidence": 0.0,
-                "extracted_text": ""
-            }
-
-        fallback_desc = _build_detailed_description("Agricultural Crop Protection Product", "Certified Agricultural Manufacturer", "Standard Crop Protection Formulation", "Pesticide", "Broad Spectrum Crop Protection & Nutrient Supplement")
-        fallback_product_details = {
-            "brand_name": "Agricultural Crop Protection Product",
-            "company": "Certified Agricultural Manufacturer",
-            "active_ingredient": "Standard Crop Protection Active Formulation",
-            "category_type": "Pesticide",
-            "is_fertilizer": False,
-            "detailed_description": fallback_desc,
-            "formulation": "Wettable Powder / Liquid Formulation",
-            "batch_number": "Verified Authentic Batch",
-            "mfg_date": "Recent Production",
-            "exp_date": "Best before 24 months",
-            "net_quantity": "Standard Commercial Pack",
-            "registration_number": "CIR-Verified",
-            "hazard_color": "#16a34a",
-            "toxicity_class": "Class IV - Green Triangle (Caution / Safe)",
-            "image_url": "/samples/fertilizer_01.jpg"
-        }
-        fallback_user_instructions = {
-            "dilution_rate_per_litre": "2.0 mL or 2.5 g per liter of clean water",
-            "mixing_guide": _build_mixing_guide(),
-            "best_spray_timing": "Early morning (6:00 AM – 9:00 AM) or late afternoon / evening (4:30 PM – 6:30 PM).",
-            "spray_interval": "Repeat after 10 to 14 days if needed.",
-            "ppe_precautions": _build_ppe_guidelines(),
-            "is_fertilizer": False
-        }
-        fallback_chemical_explanation = {
-            "category_type": "Pesticide",
-            "is_fertilizer": False,
-            "fertilizer_growth_stages": None,
-            "detailed_description": fallback_desc,
-            "action_mode": "Broad Spectrum Crop Protection & Nutrient Supplement",
-            "approved_crops": ["Tomato", "Chilli", "Paddy", "Cotton", "Vegetables"],
-            "target_diseases_and_pests": ["Foliar Spots", "Blights", "Sucking Pests"],
-            "preharvest_interval": "14 days waiting period before harvest.",
-            "utility_and_benefits": fallback_desc
-        }
-
+        is_to = "timeout" in str(e).lower()
+        stat = "timeout" if is_to else "unverified"
         return {
-            "success": True,
-            "is_agrochemical": True,
-            "confidence": 75.0,
-            "matched_key": "generic_fallback",
-            "category_type": "Pesticide",
-            "is_fertilizer": False,
-            "product_details": fallback_product_details,
-            "user_instructions": fallback_user_instructions,
-            "chemical_explanation": fallback_chemical_explanation,
+            "success": False,
+            "is_agrochemical": False,
+            "product_identified": False,
+            "verification_status": stat,
+            "confidence": 0.0,
+            "error": "SCAN_TIMEOUT" if is_to else "SCAN_ERROR",
+            "message": "Scanner request timed out. Please try again with a clear photo." if is_to else "Could not verify product label.",
+            "source": stat,
             "info": {
-                "product_name": "Agricultural Crop Protection Product",
-                "brand": "Certified Agricultural Manufacturer",
-                "active_ingredients": "Standard Crop Protection Formulation",
-                "category_type": "Pesticide",
+                "product_name": "Unverified or Unknown Product",
+                "brand": "Unknown",
+                "active_ingredients": None,
+                "recommended_dosage": None,
+                "phi_days": None,
+                "verification_status": stat
+            },
+            "product_details": {
+                "brand_name": "Unverified Product",
+                "company": "Unknown",
+                "active_ingredient": "Unverified",
+                "category_type": "Uncertain",
                 "is_fertilizer": False,
-                "detailed_description": fallback_desc,
-                "recommended_dosage": "2.0 mL or 2.5 g per liter of clean water",
-                "product_details": fallback_product_details,
-                "user_instructions": fallback_user_instructions,
-                "chemical_explanation": fallback_chemical_explanation
+                "primary_function": "Product label could not be verified.",
+                "verification_source": stat,
+                "verification_status": stat
+            },
+            "user_instructions": {
+                "dilution_rate_per_litre": None,
+                "mixing_guide": _build_mixing_guide(),
+                "best_spray_timing": "Do not spray without verified product instructions.",
+                "spray_interval": None,
+                "ppe_precautions": _build_ppe_guidelines(),
+                "is_fertilizer": False
+            },
+            "chemical_explanation": {
+                "category_type": "Uncertain",
+                "is_fertilizer": False,
+                "fertilizer_growth_stages": None,
+                "detailed_description": "Label analysis failed or timed out.",
+                "action_mode": "Unverified",
+                "approved_crops": [],
+                "target_diseases_and_pests": [],
+                "preharvest_interval": None,
+                "utility_and_benefits": "No verified product instructions."
             },
             "extracted_text": ""
         }

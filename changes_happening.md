@@ -2,6 +2,32 @@
 
 *This file automatically tracks all major code, architecture, and configuration updates to prevent work loss.*
 
+## 2026-10-07 (v395) - D2.4.3 + D2.5: Agronomic Safety Gate & AI Triple-System Safety Hardening
+- **Summary:**
+  1. 🌿 **D2.4.3 Agronomic Approval Gate Verification:**
+     - Verified all 14 agronomic audit items (A01–A14). Zero explicit qualified expert approvals recorded.
+     - Per protocol, all 14 items kept 100% FROZEN (0 approved, 14 frozen). No pesticide active ingredients, formulations, dosages, PHIs, REIs, or PPE weakened or modified.
+  2. 🔍 **Plant Identification Safety Fixes (RC04, RC05, RC06):**
+     - Completely removed filename-based plant species identification in `LocalPlantIdentifier` (`identifier.py`); filenames like `tomato_leaf.jpg` no longer dictate plant identity.
+     - Eliminated artificial confidence clamping (`max(round(cls_prob * 100, 1), 96.5)`); reports true model confidence or `None` for unidentifiable plants.
+     - Replaced NVIDIA text LLM stub with safe `None` return in `online_provider.py` so text-only models cannot claim visual plant identification without image pixels.
+  3. 🧪 **Agrochemical Scanner Safety Hardening (RC07, RC08, RC10):**
+     - Removed unsafe `urea_aliases` loop in `agrochemical_detector.py` that falsely mapped generic packaging tokens (`"bharat"`, `"iffco"`) onto Urea and DAP.
+     - Completely eliminated fabricated dosages (`2.0 mL/L`, `2.0 g/L`) and arbitrary PHI (`14 days`) fallbacks on unverified web search matches.
+     - Introduced explicit `verification_status` states (`"verified_catalog"`, `"verified_database"`, `"verified_vision"`, `"unverified"`, `"timeout"`, `"unknown"`).
+     - Hardened exception handling to return safe unverified/timeout contracts rather than fabricated chemical advice.
+     - Lowered sequential timeout limits to 10s to prevent gateway timeout accumulation.
+  4. 🛡️ **Disease Diagnosis Confidence & Chemical Safety (RC01, RC02, RC03):**
+     - Hardened crop-filtered subset normalization in `model/predict_pytorch.py`: raised `MIN_CROP_MASS_THRESHOLD` to 0.15 (15%) and bound reported confidence to prevent low residual probability mass (e.g. 5–10%) from inflating to 90%+ confidence.
+     - Stripped ungrounded Gemini Vision `chemical_remedies` from writing directly into `prediction_result["chemical_treatment"]` in `backend/app/routers/farmer/predict.py`.
+  5. 🌐 **Cross-Worker Image Transfer Decoupling (RC09):**
+     - Added secure Base64 data URL decoding, magic bytes verification, size bounds (<=15MB), and local disk caching to `backend/app/services/image_resolver.py`.
+     - Enabled seamless cross-worker image resolution across isolated Render filesystems in `predict.py`, `plant_id.py`, and `agrochemical.py` via `image_data_url` fallback.
+  6. 🧪 **Comprehensive Regression & Safety Test Suite:**
+     - Created `backend/tests/test_d2_5_safety.py` covering P1–P5, D1–D5, A1–A6, and cross-worker transfer (15/15 passed).
+     - Verified existing safety suites: `test_b31_ai_reliability.py` (15/15 passed), `test_b33_safety_fixes.py` (9/9 passed), `test_d2_4_1_safety.py` (5/5 passed). Total 44/44 passed (100%).
+- **Files modified:** `model/predict_pytorch.py`, `backend/app/routers/farmer/predict.py`, `backend/app/routers/farmer/plant_id.py`, `backend/app/routers/farmer/agrochemical.py`, `backend/app/services/image_resolver.py`, `backend/app/services/plant_identifier/identifier.py`, `backend/app/services/plant_identifier/online_provider.py`, `backend/app/services/agrochemical_detector.py`, `backend/tests/test_d2_5_safety.py`, `changes_happening.md`.
+
 ## 2026-10-06 (v394) - D2.4.1: Restore Frontend Agronomic Safety Boundaries
 - **Summary:**
   1. 🛡️ **Cross-Pathology Alias Removal (`diseaseAdvisoryData.js`):**

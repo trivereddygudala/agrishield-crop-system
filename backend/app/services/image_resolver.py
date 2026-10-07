@@ -12,16 +12,62 @@ import logging
 from typing import Optional
 from backend.app.core.config import settings
 
+import base64
+import hashlib
+
 logger = logging.getLogger("agrishield.image_resolver")
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
+def _decode_base64_image(b64_str: str) -> Optional[str]:
+    """
+    Safely decodes and validates a base64 or data-URL image payload.
+    Caches the decoded image in canonical_upload_dir and returns the local path.
+    Enforces maximum size (15MB) and strict magic-byte validation.
+    """
+    try:
+        if "," in b64_str:
+            _, b64_data = b64_str.split(",", 1)
+        else:
+            b64_data = b64_str
+
+        raw_bytes = base64.b64decode(b64_data.strip())
+        if not raw_bytes or len(raw_bytes) < 32 or len(raw_bytes) > 15 * 1024 * 1024:
+            logger.warning("[IMAGE RESOLVER] Base64 payload invalid size.")
+            return None
+
+        ext = None
+        if raw_bytes.startswith(b"\xff\xd8\xff"):
+            ext = ".jpg"
+        elif raw_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+            ext = ".png"
+        elif raw_bytes.startswith(b"RIFF") and len(raw_bytes) >= 12 and raw_bytes[8:12] == b"WEBP":
+            ext = ".webp"
+        else:
+            logger.warning("[IMAGE RESOLVER] Base64 image payload failed magic bytes validation.")
+            return None
+
+        h = hashlib.sha256(raw_bytes).hexdigest()[:16]
+        filename = f"b64_{h}{ext}"
+        canonical_dir = settings.canonical_upload_dir
+        os.makedirs(canonical_dir, exist_ok=True)
+        local_path = os.path.join(canonical_dir, filename)
+        if not os.path.exists(local_path):
+            with open(local_path, "wb") as f:
+                f.write(raw_bytes)
+            logger.info(f"[IMAGE RESOLVER] Decoded and cached cross-worker base64 payload to {local_path} ({len(raw_bytes)} bytes)")
+        return local_path
+    except Exception as e:
+        logger.warning(f"[IMAGE RESOLVER] Failed to decode base64 image: {e}")
+        return None
+
 def resolve_image_path(image_path: str) -> Optional[str]:
     """
     Resolves the absolute filesystem path for an image.
-    1. Checks the canonical upload directory (backend/uploads/).
-    2. Checks legacy local paths (backend/app/uploads/ and repo-relative paths).
-    3. If running in a distributed cluster and the file is missing locally,
+    1. Checks if payload is base64 data URL and caches it locally.
+    2. Checks the canonical upload directory (backend/uploads/).
+    3. Checks legacy local paths (backend/app/uploads/ and repo-relative paths).
+    4. If running in a distributed cluster and the file is missing locally,
        safely streams the image from Worker 1, Worker 3, or Main Backend
        and caches it in the canonical upload directory.
     """
@@ -30,8 +76,14 @@ def resolve_image_path(image_path: str) -> Optional[str]:
 
     path_lower = image_path.lower().strip()
 
+    # D2.5 RC09: Cross-worker base64 image resolution
+    if path_lower.startswith("data:image/") or path_lower.startswith("data:application/octet-stream;base64,"):
+        return _decode_base64_image(image_path)
+    if path_lower.startswith("/9j/") or path_lower.startswith("ivborw") or path_lower.startswith("uklgr"):
+        return _decode_base64_image(image_path)
+
     # Reject dangerous / unsupported URL schemes (B10.2 Security)
-    unsupported_schemes = ("file:", "ftp:", "javascript:", "data:", "http:")
+    unsupported_schemes = ("file:", "ftp:", "javascript:", "http:")
     for scheme in unsupported_schemes:
         if path_lower.startswith(scheme):
             logger.warning(f"[IMAGE RESOLVER SECURITY] Rejected unsupported scheme: {image_path}")

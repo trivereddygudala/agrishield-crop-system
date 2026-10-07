@@ -38,6 +38,8 @@ async def agrochemical_scan_endpoint(
     """
     from backend.app.services.image_resolver import resolve_image_path
     full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
+    if not full_image_path and getattr(req, "image_data_url", None):
+        full_image_path = await asyncio.to_thread(resolve_image_path, req.image_data_url)
 
     if not full_image_path:
         raise HTTPException(

@@ -1706,6 +1706,8 @@ async def predict_pytorch_endpoint(
     """
     _req_start_t = time.perf_counter()
     full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
+    if not full_image_path and getattr(req, "image_data_url", None):
+        full_image_path = await asyncio.to_thread(resolve_image_path, req.image_data_url)
     if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -2019,9 +2021,9 @@ async def predict_pytorch_endpoint(
                             v_org = vision_opinion["organic_remedies"]
                             prediction_result["organic_treatment"] = "\n".join([f"• {r}" for r in v_org]) if isinstance(v_org, list) else str(v_org)
 
-                        if vision_opinion.get("chemical_remedies"):
-                            v_chem = vision_opinion["chemical_remedies"]
-                            prediction_result["chemical_treatment"] = "\n".join([f"• {c}" for c in v_chem]) if isinstance(v_chem, list) else str(v_chem)
+                        # D2.5 RC03: Gemini Vision is for visual interpretation only; do NOT allow arbitrary Gemini text
+                        # to directly write chemical recommendations without validated agronomic advisory / database gating.
+                        prediction_result["chemical_treatment"] = None
 
                         if vision_opinion.get("prevention_steps"):
                             v_prev = vision_opinion["prevention_steps"]
@@ -3067,8 +3069,8 @@ async def predict_batch_endpoint(
                         conf = round(float(v_op.get("confidence", 0.92)) * 100, 1)
                         if v_op.get("is_healthy") is not None:
                             res["prediction_status"] = "healthy" if v_op["is_healthy"] else "diseased"
-                        if v_op.get("chemical_remedies") and isinstance(v_op["chemical_remedies"], list):
-                            res["chemical_treatment"] = " • ".join(v_op["chemical_remedies"])
+                        # D2.5 RC03: Do not write ungrounded chemical remedies directly from Gemini vision opinion
+                        res["chemical_treatment"] = None
                 except Exception:
                     pass
 

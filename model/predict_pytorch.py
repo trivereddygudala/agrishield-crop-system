@@ -479,6 +479,7 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
     is_ood = False
     raw_crop_mass = 0.0
     crop_evidence_sufficient = True
+    candidate_probs = None
 
     if effective_crop_filter:
         mask_arr = np.array([TaxonomyManager.matches_crop_filter(cls, effective_crop_filter) for cls in classes], dtype=bool)
@@ -487,17 +488,19 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
             sum_probs = float(np.sum(filtered_probs))
             raw_crop_mass = sum_probs
 
-            # B31 Crop-Filter OOD Guard:
-            # Conservative minimum global probability mass required for the selected crop family.
-            # Prevents negligible raw probability mass (e.g. 0.005) from being blown up to 90%+ confidence after subset normalization.
-            # (Engineering OOD threshold; does not claim calibrated model accuracy).
-            MIN_CROP_MASS_THRESHOLD = 0.035
+            # D2.5 RC01/RC02: Crop-Filter OOD Guard & Subset Normalization Guard:
+            # Conservative minimum global probability mass required for the selected crop family (15%).
+            # Prevents negligible raw probability mass (e.g. 0.005 or 0.05) from being blown up to 90%+ confidence after subset normalization.
+            MIN_CROP_MASS_THRESHOLD = 0.15
 
             if sum_probs < MIN_CROP_MASS_THRESHOLD:
                 crop_evidence_sufficient = False
                 is_ood = True
             else:
-                probs = filtered_probs / sum_probs
+                # Retain candidate relative probability for candidate ranking,
+                # while preserving absolute model confidence to prevent subset inflation.
+                candidate_probs = filtered_probs / sum_probs
+                probs = filtered_probs
         else:
             is_ood = True
             crop_evidence_sufficient = False
@@ -520,18 +523,22 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
             prediction_time_ms=(time.time() - start_time) * 1000.0
         )
 
-    top_indices = np.argsort(probs)[-3:][::-1]
+    ranking_probs = candidate_probs if candidate_probs is not None else probs
+    top_indices = np.argsort(ranking_probs)[-3:][::-1]
     top_predictions = []
     for idx in top_indices:
         lbl = classes[idx]
         conf = float(probs[idx])
         c_name, d_name, _ = parse_class_label(lbl)
-        top_predictions.append({
+        pred_item = {
             "class_name": lbl,
             "crop_name": c_name,
             "disease_name": d_name,
             "confidence": conf
-        })
+        }
+        if candidate_probs is not None:
+            pred_item["candidate_probability"] = float(candidate_probs[idx])
+        top_predictions.append(pred_item)
         
     best_idx = int(top_indices[0])
     if explainer_type:
@@ -600,6 +607,8 @@ def predict_crop_disease(image_path: str, explainer_type="gradcam++", crop_filte
         "crop_name": crop_name,
         "disease_name": disease_name,
         "confidence": float(probs[best_idx]),
+        "candidate_probability": float(candidate_probs[best_idx]) if candidate_probs is not None else float(probs[best_idx]),
+        "crop_evidence_mass": float(raw_crop_mass) if effective_crop_filter else None,
         "prediction_status": prediction_status,
         "diagnosis_status": "confirmed_local",
         "requires_secondary_review": False,
