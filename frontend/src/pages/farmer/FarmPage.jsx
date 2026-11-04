@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Sprout, MapPin, Droplets, Cpu, Bell, Save, Navigation,
   Check, AlertCircle, RefreshCw, ShieldCheck, Thermometer, Radio, Archive, Layers,
   Calendar, Leaf, ScanLine, Clock, ChevronRight, ChevronLeft, Sun, CloudRain, TrendingUp, Eye, Maximize2,
-  Plus, Trash2, Settings
+  Plus, Trash2, Settings, Camera, Activity, CheckCircle2, Sparkles, Share2, Compass, Shield
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useFarm } from '../../context/FarmContext';
@@ -26,6 +26,8 @@ import CropGrowthTimeline from '../../components/farm/CropGrowthTimeline';
 import SmartIrrigationScheduler from '../../components/farm/SmartIrrigationScheduler';
 import FarmInventoryManager from '../../components/farm/FarmInventoryManager';
 import HarvestSeasonManager from '../../components/farm/HarvestSeasonManager';
+import SmartFarmerActionCenter from '../../components/farm/SmartFarmerActionCenter';
+import WidgetErrorBoundary from '../../components/WidgetErrorBoundary';
 
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
@@ -36,8 +38,21 @@ const FarmPage = () => {
     activeFarm, farms, archivedFarms, createFarm,
     updateFarm: saveFarmEdit, deleteFarm, unarchiveFarm,
     setActiveFarm: selectActiveFarm,
-    loading: contextLoading
+    loading: contextLoading,
+    refreshFarms
   } = useFarm();
+
+  const fetchFarmData = useCallback(async () => {
+    if (refreshFarms) {
+      await refreshFarms();
+    }
+  }, [refreshFarms]);
+
+  useEffect(() => {
+    if (refreshFarms) {
+      refreshFarms();
+    }
+  }, [refreshFarms]);
 
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -49,34 +64,46 @@ const FarmPage = () => {
     'my-fields',
     'field-setup',
     'soil-npk',
+    'smart-actions',
     'crop-lifecycle',
     'harvest-season',
     'farm-khata',
     'farm-inventory',
     'farm-intelligence',
     'government-schemes',
-    'whatsapp-diagnosis'
-  ];
+    'whatsapp-diagnosis'];
 
   const FARM_NAV_TABS = [
     { id: 'modules', labelEn: 'Overview', labelTe: 'అవలోకనం', icon: '📋' },
-    { id: 'my-fields', labelEn: 'My Fields', labelTe: 'నా పొలాలు', icon: '🌾' },
-    { id: 'field-setup', labelEn: 'Field Setup', labelTe: 'పొలం సెటప్', icon: '⚙️' },
-    { id: 'soil-npk', labelEn: 'Fertilizer & NPK', labelTe: 'NPK ఎరువులు', icon: '💊' },
+    { id: 'smart-actions', labelEn: 'Field Actions', labelTe: 'పనుల జాబితా', icon: '⚡' },
     { id: 'crop-lifecycle', labelEn: 'Crop Timeline', labelTe: 'పంట దశలు', icon: '🌱' },
-    { id: 'harvest-season', labelEn: 'Harvest & Seasons', labelTe: 'దిగుబడి & సీజన్', icon: '🧺' },
+    { id: 'soil-npk', labelEn: 'Fertilizer & Soil', labelTe: 'NPK ఎరువులు', icon: '💊' },
     { id: 'farm-khata', labelEn: 'Farm Khata', labelTe: 'డిజిటల్ ఖాతా', icon: '💰' },
-    { id: 'farm-inventory', labelEn: 'Inventory', labelTe: 'ఇన్వెంటరీ', icon: '📦' },
-    { id: 'farm-intelligence', labelEn: 'Rain & Spray', labelTe: 'వర్షం & స్ప్రే', icon: '🌦️' },
-    { id: 'government-schemes', labelEn: 'Govt Schemes', labelTe: 'పథకాలు', icon: '🏛️' },
-    { id: 'whatsapp-diagnosis', labelEn: 'WhatsApp Bot', labelTe: 'వాట్సాప్ బాట్', icon: '📱' },
   ];
+
+  const SUBTAB_METAS = {
+    'my-fields': { labelEn: 'My Fields', labelTe: 'నా పొలాలు', icon: '🌾' },
+    'field-setup': { labelEn: 'Field Setup', labelTe: 'క్షేత్ర వివరాలు', icon: '📍' },
+    'harvest-season': { labelEn: 'Harvest & Yield', labelTe: 'దిగుబడి & సీజన్', icon: '🧺' },
+    'farm-inventory': { labelEn: 'Stock & Inventory', labelTe: 'స్టాక్ ఇన్వెంటరీ', icon: '📦' },
+    'government-schemes': { labelEn: 'Govt Schemes', labelTe: 'ప్రభుత్వ పథకాలు', icon: '🏛️' },
+    'whatsapp-diagnosis': { labelEn: 'WhatsApp Bot', labelTe: 'వాట్సాప్ బాట్', icon: '💬' },
+    'farm-intelligence': { labelEn: 'Irrigation & Weather', labelTe: 'నీటి పారుదల & వాతావరణం', icon: '💧' },
+  };
 
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab') || 'modules';
   const initialValidTab = VALID_FARM_TABS.includes(urlTab) ? urlTab : 'modules';
   const [activeTab, setActiveTabState] = useState(initialValidTab);
   const tabRefs = useRef({});
+
+  const displayNavTabs = useMemo(() => {
+    const isStandardTab = FARM_NAV_TABS.some(t => t.id === activeTab);
+    if (!isStandardTab && SUBTAB_METAS[activeTab]) {
+      return [...FARM_NAV_TABS, { id: activeTab, ...SUBTAB_METAS[activeTab] }];
+    }
+    return FARM_NAV_TABS;
+  }, [activeTab]);
 
   // Auto-scroll the active tab into view in horizontal strip
   useEffect(() => {
@@ -302,26 +329,58 @@ const FarmPage = () => {
     }
   };
 
-  const FIELD_MODULES = [
+    const AGRONOMIC_MODULES = [
+    {
+      id: 'smart-actions',
+      title: t('farm_tools.nav_actions', 'Field Operations & Tasks'),
+      subtitle: t('farm_tools.desc_actions', 'Daily action items, urgent crop checks, irrigation & weather tasks'),
+      icon: '⚡',
+      badge: t('farm_tools.badge_actions', 'Active Schedule'),
+      badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/40',
+      borderHover: 'hover:border-emerald-500',
+      bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+    },
+    {
+      id: 'crop-lifecycle',
+      title: t('farm_tools.nav_timeline', 'Crop Timeline & Milestones'),
+      subtitle: t('farm_tools.desc_timeline', 'Days after sowing (DAS), stage milestones & weekly actionable tasks'),
+      icon: '🌱',
+      badge: activeFarm?.growth_stage ? `${activeFarm.growth_stage}` : t('farm_tools.badge_timeline', 'Growth Stage'),
+      badgeCls: 'bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-300 border-lime-300/40',
+      borderHover: 'hover:border-lime-500',
+      bg: 'bg-lime-500/10 text-lime-600 dark:text-lime-400'
+    },
+    {
+      id: 'soil-npk',
+      title: t('farm_tools.nav_npk', 'Fertilizer & NPK Calculator'),
+      subtitle: t('farm_tools.desc_npk', 'Exact Urea, DAP & Potash bag recommendations tailored for your acres'),
+      icon: '💊',
+      badge: t('farm_tools.badge_npk', 'Custom Bags'),
+      badgeCls: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-300/40',
+      borderHover: 'hover:border-purple-500',
+      bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+    },
     {
       id: 'my-fields',
       title: t('farm_tools.nav_fields', 'My Fields & Sectors'),
       subtitle: t('farm_tools.desc_fields', { count: farms.length, defaultValue: `Switch between & manage all ${farms.length} registered field sectors or add a new field` }),
       icon: '🌾',
-      bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-    },
-    {
-      id: 'field-setup',
-      title: t('farm_tools.nav_setup', 'Field Setup & Crops'),
-      subtitle: t('farm_tools.desc_setup', 'Crop variety, planting date, acreage, soil classification & irrigation source'),
-      icon: '⚙️',
-      bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-    },
+      badge: `${farms.length} ${farms.length === 1 ? t('farm_tools.badge_field', 'Field') : t('farm_tools.badge_fields', 'Fields')}`,
+      badgeCls: 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300/40',
+      borderHover: 'hover:border-teal-500',
+      bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+    }
+  ];
+
+  const COMMERCE_MODULES = [
     {
       id: 'farm-khata',
       title: t('farm_tools.nav_khata', 'Digital Farm Khata'),
       subtitle: t('farm_tools.desc_khata', 'Track cultivation expenses, harvest sales & net profit per acre with WhatsApp ledger'),
       icon: '💰',
+      badge: t('farm_tools.badge_khata', '₹ Profit & Loss'),
+      badgeCls: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300/40',
+      borderHover: 'hover:border-blue-500',
       bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
     },
     {
@@ -329,44 +388,34 @@ const FarmPage = () => {
       title: t('farm_tools.nav_inventory', 'Farm Stock & Inventory'),
       subtitle: t('farm_tools.desc_inventory', 'Track seed bags, fertilizers, sprays, tools, low-stock & expiry alerts'),
       icon: '📦',
+      badge: t('farm_tools.badge_inventory', 'Stock Tracker'),
+      badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/40',
+      borderHover: 'hover:border-emerald-500',
       bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     },
     {
-      id: 'soil-npk',
-      title: t('farm_tools.nav_npk', 'Fertilizer & NPK Calculator'),
-      subtitle: t('farm_tools.desc_npk', 'Exact Urea, DAP & Potash bag recommendations tailored for your acres'),
-      icon: '💊',
-      bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
-    },
-    {
-      id: 'crop-lifecycle',
-      title: t('farm_tools.nav_timeline', 'Crop Timeline & Tasks'),
-      subtitle: t('farm_tools.desc_timeline', 'Days after sowing (DAS), stage milestones & weekly actionable tasks'),
-      icon: '🌱',
-      bg: 'bg-lime-500/10 text-lime-600 dark:text-lime-400'
-    },
-    {
-      id: 'farm-intelligence',
-      title: t('farm_tools.nav_irrigation', 'Smart Irrigation & Weather'),
-      subtitle: t('farm_tools.desc_irrigation', 'Live soil moisture, rain forecast & precision motor run duration scheduler'),
-      icon: '💧',
-      bg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+      id: 'field-setup',
+      title: t('farm_tools.nav_setup', 'Field Setup & Crops'),
+      subtitle: t('farm_tools.desc_setup', 'Crop variety, planting date, acreage, soil classification & irrigation source'),
+      icon: '⚙️',
+      badge: activeFarm?.village ? activeFarm.village : t('farm_tools.badge_setup', 'Settings'),
+      badgeCls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300/40',
+      borderHover: 'hover:border-amber-500',
+      bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
     },
     {
       id: 'government-schemes',
       title: t('farm_tools.nav_schemes', 'Govt Schemes & Subsidies'),
       subtitle: t('farm_tools.desc_schemes', 'Direct links, PM-Kisan status, 90% drip subsidy eligibility & crop insurance'),
       icon: '🏛️',
+      badge: t('farm_tools.badge_schemes', 'PM-Kisan & Drip'),
+      badgeCls: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border-orange-300/40',
+      borderHover: 'hover:border-orange-500',
       bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
-    },
-    {
-      id: 'whatsapp-diagnosis',
-      title: t('farm_tools.nav_bot', 'WhatsApp Crop Doctor'),
-      subtitle: t('farm_tools.desc_bot', 'Send crop leaf photo on WhatsApp for instant AI diagnosis and voice note'),
-      icon: '📱',
-      bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
     }
   ];
+
+  const FIELD_MODULES = [...AGRONOMIC_MODULES, ...COMMERCE_MODULES];
 
   if (contextLoading && farms.length === 0) {
     return (
@@ -391,9 +440,9 @@ const FarmPage = () => {
         <div
           role="tablist"
           aria-label="Farm Management Tabs"
-          className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-x-auto scrollbar-none overscroll-x-contain"
+          className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-x-auto scrollbar-none overscroll-x-contain"
         >
-          {FARM_NAV_TABS.map((tab) => {
+          {displayNavTabs.map((tab) => {
             const isTabActive = activeTab === tab.id;
             return (
               <button
@@ -403,8 +452,8 @@ const FarmPage = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer select-none ${
                   isTabActive
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/25 font-black'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 font-bold'
                 }`}
                 aria-selected={isTabActive}
                 role="tab"
@@ -419,18 +468,18 @@ const FarmPage = () => {
 
       {/* Dedicated Fresh Page Header for Sub-Tabs */}
       {activeTab !== 'modules' && (
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4 mb-2">
           <button
             type="button"
             onClick={() => setActiveTab('modules')}
-            className="flex items-center gap-2 text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors py-1 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 hover:text-emerald-700 dark:hover:text-emerald-400 transition-all cursor-pointer w-fit"
           >
-            <ChevronLeft className="w-5 h-5" />
-            <span>{t('farm_tools.back_to_overview', '← Back to Field Overview')}</span>
+            <ChevronLeft className="w-4 h-4" />
+            <span>{t('farm_tools.back_to_overview', 'Back to Overview')}</span>
           </button>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[11px] font-bold">
-              {activeFarm?.farm_name || 'My Farm'}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className="text-[11px] font-bold px-2.5 py-1 bg-white/70 dark:bg-slate-900/70 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+              🌱 {activeFarm?.farm_name || 'My Farm'}
             </Badge>
             {(activeTab === 'field-setup' || activeTab === 'crop-lifecycle') && (
               <Button size="sm" onClick={handleSaveFarm} isLoading={loading} leftIcon={<Save className="w-3.5 h-3.5" />}>
@@ -499,8 +548,47 @@ const FarmPage = () => {
       )}
 
       {/* ═══════ PREMIUM FARM HERO BANNER — Only on Overview Tab ═══════ */}
-      {activeTab === 'modules' && activeFarm && (() => {
-        const plantDate = activeFarm.planting_date ? new Date(activeFarm.planting_date) : null;
+      {activeTab === 'modules' && (() => {
+        const displayFarm = activeFarm || (farms && farms.length > 0 ? farms[0] : null);
+
+        if (!displayFarm) {
+          if (contextLoading) {
+            return (
+              <div className="rounded-3xl p-6 bg-slate-100 dark:bg-slate-800 animate-pulse border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-300 dark:bg-slate-700" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded w-1/3" />
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-1/4" />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="rounded-3xl p-6 bg-gradient-to-br from-emerald-600/10 via-teal-600/10 to-slate-100 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-slate-900 border border-emerald-500/20 shadow-sm text-center">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/15 flex items-center justify-center text-3xl">
+                🌾
+              </div>
+              <h3 className="text-base font-black text-slate-900 dark:text-slate-100 mb-1">
+                {t('farm_tools.welcome_title', 'Welcome to Your Farm Hub')}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
+                {t('farm_tools.welcome_desc', 'Register your field sector to access AI disease detection, growth timeline tracking, fertilizer calculators, and farm ledger.')}
+              </p>
+              <button
+                type="button"
+                onClick={() => setActiveTab('field-setup')}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition-all cursor-pointer"
+              >
+                <span>+ {t('farm_tools.register_field_btn', 'Register First Field Sector')}</span>
+              </button>
+            </div>
+          );
+        }
+
+        const plantDate = displayFarm.planting_date ? new Date(displayFarm.planting_date) : null;
         const today = new Date();
         const daysSincePlanting = plantDate ? Math.max(0, Math.floor((today - plantDate) / (1000 * 60 * 60 * 24))) : 0;
         const cropEmoji = {
@@ -508,9 +596,9 @@ const FarmPage = () => {
           'Cotton': '🧶', 'Chilli': '🌶️', 'Sugarcane': '🎋', 'Soybean': '🫘',
           'Onion': '🧅', 'Grape': '🍇', 'Apple': '🍎', 'Mango': '🥭', 'Banana': '🍌',
           'Citrus': '🍊', 'Strawberry': '🍓', 'Peach': '🍑', 'Cucumber': '🥒'
-        }[activeFarm.crop_name] || '🌱';
+        }[displayFarm.crop_name] || '🌱';
         const growthPercent = plantDate ? Math.min(100, Math.round((daysSincePlanting / 120) * 100)) : 0;
-        const soilLabel = activeFarm.soil_type ? getLocalizedSoilName(activeFarm.soil_type, i18n.language) : t('farm_tools.soil_red_loamy', 'Red Loamy');
+        const soilLabel = displayFarm.soil_type ? getLocalizedSoilName(displayFarm.soil_type, i18n.language) : t('farm_tools.soil_red_loamy', 'Red Loamy');
 
         return (
           <motion.div
@@ -532,10 +620,10 @@ const FarmPage = () => {
                     </div>
                     <div>
                       <h2 className="text-lg font-black text-white leading-tight">
-                        {activeFarm.farm_name || t('farm_tools.my_farm_default', 'My Farm')}
+                        {displayFarm.farm_name || t('farm_tools.my_farm_default', 'My Farm')}
                       </h2>
                       <p className="text-xs text-white/70 font-medium mt-0.5">
-                        {activeFarm.village && `${activeFarm.village}, `}{activeFarm.district || ''}
+                        {displayFarm.village && `${displayFarm.village}, `}{displayFarm.district || ''}
                       </p>
                     </div>
                   </div>
@@ -568,7 +656,7 @@ const FarmPage = () => {
                     </div>
                     <div className="flex justify-between text-[9px] font-semibold text-white/50 mt-1">
                       <span>{t('farm_tools.planted', 'Planted')}</span>
-                      <span className="text-white/70">{activeFarm.growth_stage || 'Vegetative'}</span>
+                      <span className="text-white/70">{displayFarm.growth_stage || 'Vegetative'}</span>
                       <span>{t('farm_tools.harvest', 'Harvest')}</span>
                     </div>
                   </div>
@@ -589,11 +677,11 @@ const FarmPage = () => {
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-snug truncate">
-                    {translateCrop(activeFarm.crop_name || 'Tomato', i18n.language)}
+                    {translateCrop(displayFarm.crop_name || 'Tomato', i18n.language)}
                   </p>
                   <div className="mt-1 flex items-center min-h-[20px]">
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
-                      {activeFarm.crop_variety || 'Standard'}
+                      {displayFarm.crop_variety || 'Standard'}
                     </span>
                   </div>
                 </div>
@@ -610,7 +698,7 @@ const FarmPage = () => {
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-snug truncate">
-                    {activeFarm.growth_stage || 'Vegetative'}
+                    {displayFarm.growth_stage || 'Vegetative'}
                   </p>
                   <div className="mt-1 flex items-center min-h-[20px]">
                     <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
@@ -631,7 +719,7 @@ const FarmPage = () => {
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-snug truncate">
-                    {activeFarm.farm_size || '1'} {activeFarm.farm_unit || 'Acres'}
+                    {displayFarm.farm_size || '1'} {displayFarm.farm_unit || 'Acres'}
                   </p>
                   <div className="mt-1 flex items-center min-h-[20px]">
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
@@ -673,56 +761,158 @@ const FarmPage = () => {
         );
       })()}
 
-      {/* ═══════ FIELD MODULES — Clean 2-Column Boxes (Picture 1 Style) ═══════ */}
+      {/* ═══════ FIELD MODULES — Thematic 2-Section Responsive Grid with Live Status Badges ═══════ */}
       {activeTab === 'modules' && (
-        <div className="space-y-3 pt-1">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100">
-              {t('farm_tools.field_tools_modules', 'Field Tools & Agronomic Modules')}
-            </h3>
-            <span className="text-[11px] font-bold text-slate-400">
-              {FIELD_MODULES.length} {t('farm_tools.modules_count', 'Modules')}
-            </span>
+        <div className="space-y-6 pt-1">
+          {/* Section 1: Active Field & Agronomic Operations */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🌾</span>
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  {t('farm_tools.section_agronomy', 'Field Operations & Agronomy')}
+                </h3>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">
+                {AGRONOMIC_MODULES.length} {t('farm_tools.tools_count', 'Tools')}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {AGRONOMIC_MODULES.map((mod, idx) => (
+                <motion.button
+                  key={mod.id}
+                  type="button"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: idx * 0.04 }}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab(mod.id)}
+                  className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md ${mod.borderHover} transition-all text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-xs shrink-0 ${mod.bg}`}>
+                        {mod.icon}
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${mod.badgeCls}`}>
+                        {mod.badge}
+                      </span>
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950 transition-colors">
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+                      {mod.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed font-medium">
+                      {mod.subtitle}
+                    </p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-            {FIELD_MODULES.map((mod, idx) => (
-              <motion.button
-                key={mod.id}
-                type="button"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveTab(mod.id)}
-                className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-600 transition-all text-left flex flex-col justify-between group cursor-pointer min-h-[140px]"
-              >
-                <div className="flex items-center justify-between w-full mb-3">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${mod.bg}`}>
-                    {mod.icon}
+          {/* Section 2: Farm Commerce, Stock & Support */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-base">💼</span>
+                <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                  {t('farm_tools.section_commerce', 'Farm Business, Stock & Subsidies')}
+                </h3>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">
+                {COMMERCE_MODULES.length} {t('farm_tools.tools_count', 'Tools')}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {COMMERCE_MODULES.map((mod, idx) => (
+                <motion.button
+                  key={mod.id}
+                  type="button"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: 0.15 + idx * 0.04 }}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab(mod.id)}
+                  className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md ${mod.borderHover} transition-all text-left flex flex-col justify-between group cursor-pointer relative overflow-hidden`}
+                >
+                  <div className="flex items-center justify-between w-full mb-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-xs shrink-0 ${mod.bg}`}>
+                        {mod.icon}
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${mod.badgeCls}`}>
+                        {mod.badge}
+                      </span>
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950 transition-colors">
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                    </div>
                   </div>
-                  <div className="w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950 transition-colors">
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                  <div>
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+                      {mod.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed font-medium">
+                      {mod.subtitle}
+                    </p>
                   </div>
-                </div>
-                <div>
-                  <h4 className="text-base font-black text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
-                    {mod.title}
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed font-medium">
-                    {mod.subtitle}
-                  </p>
-                </div>
-              </motion.button>
-            ))}
+                </motion.button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* ═══════ DRILL: My Fields & Sectors ═══════ */}
+            {/* ═══════ DRILL: My Fields & Sectors ═══════ */}
       {activeTab === 'my-fields' && (
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-5">
+          {/* Farm Portfolio KPI Banner */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block">
+                {t('farm_tools.total_fields', 'Total Fields')}
+              </span>
+              <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5">
+                {farms.length} <span className="text-xs font-bold text-slate-400">Sectors</span>
+              </p>
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider block">
+                {t('farm_tools.total_acreage', 'Total Cultivated')}
+              </span>
+              <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                {farms.reduce((sum, f) => sum + (parseFloat(f.farm_size) || 0), 0).toFixed(1)}{' '}
+                <span className="text-xs font-bold text-slate-400">Acres</span>
+              </p>
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <span className="text-[10px] font-black uppercase text-sky-600 dark:text-sky-400 tracking-wider block">
+                {t('farm_tools.primary_crops', 'Active Crops')}
+              </span>
+              <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-0.5 truncate">
+                {Array.from(new Set(farms.map(f => f.crop_name).filter(Boolean))).join(', ') || 'Tomato'}
+              </p>
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+              <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">
+                {t('farm_tools.monitoring_mode', 'AI Telemetry')}
+              </span>
+              <p className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-1 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Live Monitored
+              </p>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
             <div>
               <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -834,42 +1024,102 @@ const FarmPage = () => {
                     </div>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!isActive && selectActiveFarm) {
-                          await selectActiveFarm(farm.id);
-                        }
-                        setActiveTab('field-setup');
-                      }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                    >
-                      <Settings className="w-3.5 h-3.5" />
-                      <span>{t('farm_tools.setup_gps', 'Setup & GPS')}</span>
-                    </button>
-                    {farms.length > 1 && (
+                  {/* Field Health & Vigor Telemetry Badge */}
+                  <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 text-[11px] mb-2.5">
+                    <span className="flex items-center gap-1.5 font-bold text-slate-600 dark:text-slate-300">
+                      <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                      {t('farm_tools.field_vigor', 'Crop Health Vigor')}
+                    </span>
+                    <span className="font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                      95% Optimal
+                    </span>
+                  </div>
+
+                  {/* Field Quick Action Shortcuts */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="grid grid-cols-4 gap-1.5">
                       <button
                         type="button"
                         onClick={async () => {
-                          if (window.confirm(t('farm_tools.delete_confirm', { name: farm.farm_name, defaultValue: `Are you sure you want to delete "${farm.farm_name}"?` }))) {
-                            try {
-                              await deleteFarm(farm.id);
-                              setToastMsg(t('farm_tools.field_deleted', 'Field deleted.'));
-                              setTimeout(() => setToastMsg(''), 3000);
-                            } catch (e) {
-                              console.error(e);
-                              setErrorMsg('Failed to delete farm');
-                            }
-                          }
+                          if (!isActive && selectActiveFarm) await selectActiveFarm(farm.id);
+                          setActiveTab('farm-khata');
                         }}
-                        className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        title={t('farm_tools.delete', 'Delete')}
+                        className="py-1.5 px-1.5 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors text-center"
+                        title="Digital Khata"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        💰 Khata
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!isActive && selectActiveFarm) await selectActiveFarm(farm.id);
+                          setActiveTab('soil-npk');
+                        }}
+                        className="py-1.5 px-1.5 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600 dark:hover:text-purple-400 transition-colors text-center"
+                        title="Fertilizer NPK"
+                      >
+                        💊 NPK
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!isActive && selectActiveFarm) await selectActiveFarm(farm.id);
+                          setActiveTab('crop-lifecycle');
+                        }}
+                        className="py-1.5 px-1.5 rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-lime-50 dark:hover:bg-lime-950/40 hover:text-lime-600 dark:hover:text-lime-400 transition-colors text-center"
+                        title="Growth Timeline"
+                      >
+                        🌱 Stages
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(`/upload?crop=${encodeURIComponent(farm.crop_name || 'Tomato')}&field=${farm.id}`);
+                        }}
+                        className="py-1.5 px-1.5 rounded-xl text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors text-center shadow-xs flex items-center justify-center gap-1"
+                        title="Scan Crop Disease"
+                      >
+                        <Camera className="w-3 h-3" />
+                        <span>Scan</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!isActive && selectActiveFarm) {
+                            await selectActiveFarm(farm.id);
+                          }
+                          setActiveTab('field-setup');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                        <span>{t('farm_tools.setup_gps', 'Setup & GPS')}</span>
+                      </button>
+                      {farms.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (window.confirm(t('farm_tools.delete_confirm', { name: farm.farm_name, defaultValue: `Are you sure you want to delete "${farm.farm_name}"?` }))) {
+                              try {
+                                await deleteFarm(farm.id);
+                                setToastMsg(t('farm_tools.field_deleted', 'Field deleted.'));
+                                setTimeout(() => setToastMsg(''), 3000);
+                              } catch (e) {
+                                console.error(e);
+                                setErrorMsg('Failed to delete farm');
+                              }
+                            }
+                          }}
+                          className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title={t('farm_tools.delete', 'Delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </Card>
               );
@@ -1169,6 +1419,39 @@ const FarmPage = () => {
                     { value: 'River', label: t('farm_page.info.water.river', 'River / Reservoir') }
                   ]} />
               </div>
+
+              {/* Water Efficiency & Soil Health Agronomic Insights Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
+                    <Droplets className="w-4 h-4" />
+                    Hydrology & Irrigation Efficiency
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    {irrigationMethod === 'Drip' ? '92% High Efficiency' : irrigationMethod === 'Sprinkler' ? '75% Medium Efficiency' : '45% Standard Furrow'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 border border-emerald-500/15">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">Water Savings</span>
+                    <strong className="text-slate-800 dark:text-slate-100 font-black">
+                      {irrigationMethod === 'Drip' ? 'Saves up to 60% Water' : irrigationMethod === 'Sprinkler' ? 'Saves ~30% Water' : 'Standard Field Loss'}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 border border-emerald-500/15">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">Foliar Wetness Risk</span>
+                    <strong className="text-slate-800 dark:text-slate-100 font-black">
+                      {irrigationMethod === 'Drip' ? 'Zero Splash (Fungal Safe)' : irrigationMethod === 'Sprinkler' ? 'Moderate (Spray Early)' : 'High Soil Humidity'}
+                    </strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/60 border border-emerald-500/15">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">Fertigation Ready</span>
+                    <strong className="text-slate-800 dark:text-slate-100 font-black">
+                      {irrigationMethod === 'Drip' ? 'Venturi / Drip Ready' : 'Direct Soil Placement'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
             </Card>
 
             <div className="flex justify-end pt-1">
@@ -1181,18 +1464,7 @@ const FarmPage = () => {
       )}
 
 
-      {/* ═══════ DRILL: Farm Intelligence & Routine ═══════ */}
-      {activeTab === 'farm-intelligence' && (
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="lg:col-span-2">
-              <FarmRoutineWidget />
-            </div>
-            <LiveWeatherWidget />
-            <SprayAdvisorWidget />
-          </div>
-        </motion.div>
-      )}
+
 
       {/* ═══════ DRILL: Crop Lifecycle & Spray Calendar ═══════ */}
       {activeTab === 'crop-lifecycle' && (
@@ -1285,6 +1557,18 @@ const FarmPage = () => {
         </motion.div>
       )}
 
+            {/* ═══════ DRILL: Smart Farmer Action Center ═══════ */}
+      {activeTab === 'smart-actions' && (
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <WidgetErrorBoundary name="Field Actions">
+            <SmartFarmerActionCenter
+              farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
+              onActionComplete={fetchFarmData}
+            />
+          </WidgetErrorBoundary>
+        </motion.div>
+      )}
+
       {/* ═══════ DRILL: B24 Harvest & Season Management ═══════ */}
       {activeTab === 'harvest-season' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
@@ -1356,6 +1640,7 @@ const FarmPage = () => {
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
           <SoilNPKCalculatorModal
             isOpen={true}
+            embedded={true}
             onClose={() => setActiveTab('modules')}
             initialCrop={cropName || 'Tomato'}
             initialAcres={parseFloat(farmSize) || 2.0}
@@ -1365,7 +1650,7 @@ const FarmPage = () => {
 
       {/* ═══════ DRILL: Smart Irrigation & Weather Intelligence ═══════ */}
       {activeTab === 'farm-intelligence' && (
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
           <SmartIrrigationScheduler
             farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
@@ -1379,6 +1664,14 @@ const FarmPage = () => {
             village={village || activeFarm?.village || 'Pasupugallu'}
             onClose={() => setActiveTab('modules')}
           />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+            <div className="lg:col-span-2">
+              <FarmRoutineWidget />
+            </div>
+            <LiveWeatherWidget />
+            <SprayAdvisorWidget />
+          </div>
         </motion.div>
       )}
     </div>

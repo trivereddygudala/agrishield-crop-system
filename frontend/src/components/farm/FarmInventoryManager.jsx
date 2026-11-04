@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import API from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Package, Plus, Minus, AlertTriangle, Clock, CheckCircle2,
+  Package, Plus, Minus, AlertTriangle, Clock, CheckCircle2, PhoneCall, Shield,
   Calendar, Tag, Layers, RefreshCw, Trash2, ArrowUpRight,
   TrendingDown, Search, Filter, ShieldAlert, Sparkles,
   ChevronRight, X, DollarSign, Sprout, Droplets, Wrench,
@@ -365,17 +365,17 @@ export default function FarmInventoryManager({
     <div className="space-y-6">
 
       {/* Top Banner / Breadcrumb */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-3xl bg-gradient-to-br from-emerald-950/40 via-slate-900/60 to-slate-950 border border-emerald-500/20 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-3xl bg-gradient-to-br from-emerald-50 via-teal-50 to-slate-50 dark:from-emerald-950/40 dark:via-slate-900/60 dark:to-slate-950 border border-emerald-200 dark:border-emerald-500/20 shadow-md">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+            <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
               <Package className="w-5 h-5" />
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
               {isTe ? 'వ్యవసాయ స్టాక్ & ఇన్వెంటరీ మేనేజర్' : 'Smart Farm Inventory Manager'}
             </h2>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {isTe ? `${farmName} కొరకు విత్తనాలు, ఎరువులు, స్ప్రేలు & పనిముట్ల ప్రత్యక్ష నిల్వ` : `Physical material stock, low-stock alerts & Khata link for ${farmName}`}
           </p>
         </div>
@@ -386,7 +386,7 @@ export default function FarmInventoryManager({
             size="sm"
             onClick={fetchInventory}
             disabled={loading}
-            className="border-slate-700 text-slate-300 hover:text-white cursor-pointer"
+            className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer bg-white dark:bg-transparent"
           >
             <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
             <span>{isTe ? 'రిఫ్రెష్' : 'Refresh'}</span>
@@ -406,17 +406,17 @@ export default function FarmInventoryManager({
 
       {/* Notifications / Alerts */}
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
-          <button onClick={() => setErrorMsg('')} className="p-1 hover:text-white cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+          <button onClick={() => setErrorMsg('')} className="p-1 hover:text-slate-900 dark:hover:text-white cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
       {successToast && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center gap-2">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{successToast}</span>
         </div>
@@ -425,12 +425,12 @@ export default function FarmInventoryManager({
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Items */}
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-md">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
             <span>{isTe ? 'మొత్తం వస్తువులు' : 'Total Items'}</span>
-            <Package className="w-4 h-4 text-emerald-400" />
+            <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="text-2xl font-black text-white">
+          <div className="text-2xl font-black text-slate-900 dark:text-white">
             {summary ? summary.total_items : items.length}
           </div>
           <div className="text-[10px] text-slate-400 mt-1">
@@ -439,12 +439,12 @@ export default function FarmInventoryManager({
         </div>
 
         {/* Low Stock Warning */}
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-md">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
             <span>{isTe ? 'తక్కువ నిల్వ' : 'Low Stock'}</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
           </div>
-          <div className="text-2xl font-black text-amber-400">
+          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
             {summary ? summary.low_stock_count : items.filter(i => i.status === 'low_stock').length}
           </div>
           <div className="text-[10px] text-slate-400 mt-1">
@@ -453,12 +453,12 @@ export default function FarmInventoryManager({
         </div>
 
         {/* Expired / Expiring */}
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-md">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
             <span>{isTe ? 'గడువు హెచ్చరికలు' : 'Expiry Alerts'}</span>
-            <Clock className="w-4 h-4 text-rose-400" />
+            <Clock className="w-4 h-4 text-rose-500 dark:text-rose-400" />
           </div>
-          <div className="text-2xl font-black text-rose-400">
+          <div className="text-2xl font-black text-rose-600 dark:text-rose-400">
             {(summary?.expired_count || 0) + (summary?.expiring_soon_count || 0)}
           </div>
           <div className="text-[10px] text-slate-400 mt-1">
@@ -467,12 +467,12 @@ export default function FarmInventoryManager({
         </div>
 
         {/* Total Stock Value */}
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-md">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold mb-1">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold mb-1">
             <span>{isTe ? 'నిల్వ విలువ' : 'Remaining Stock Value'}</span>
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+            <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="text-2xl font-black text-emerald-400">
+          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
             {formatINR(summary ? summary.total_stock_value : 0)}
           </div>
           <div className="text-[10px] text-slate-400 mt-1">
@@ -481,28 +481,85 @@ export default function FarmInventoryManager({
         </div>
       </div>
 
+      {/* Seasonal Input Requirement Estimator & Agronomic Benchmark */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/25 space-y-3 shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{isTe ? 'సీజనల్ వ్యవసాయ పెట్టుబడి అంచనా & నిల్వ ప్రణాళిక' : 'Seasonal Input Requirement Estimator'}</span>
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+            ICAR Benchmark
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+          <div className="p-3 rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-500/15 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">{isTe ? 'విత్తనాలు / నారు అవసరం' : 'Recommended Seed Stock'}</span>
+            <strong className="text-slate-800 dark:text-slate-100 font-black text-sm block">
+              {isTe ? 'సర్టిఫైడ్ హైబ్రిడ్ ప్యాకెట్లు' : 'Certified Hybrid Seeds'}
+            </strong>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              {isTe ? 'విత్తే ముందు ట్రైకోడెర్మా విరిడేతో విత్తన శుద్ధి చేయాలి.' : 'Ensure bio-fungicide seed treatment before nursery sowing.'}
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-500/15 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">{isTe ? 'ఎరువుల బస్తాల నిల్వ' : 'Basal Fertilizer Reserve'}</span>
+            <strong className="text-slate-800 dark:text-slate-100 font-black text-sm block">
+              {isTe ? 'యూరియా, DAP & MOP బస్తాలు' : 'Urea, DAP & MOP Stocks'}
+            </strong>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              {isTe ? 'దుక్కి ఎరువులను డ్యాంప్ లేని చెక్క పలకలపై భద్రపరచాలి.' : 'Store dry on wooden pallets away from ground dampness.'}
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-500/15 space-y-1">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">{isTe ? 'రక్షణ & బయో-స్ప్రేలు' : 'Crop Protection Buffer'}</span>
+            <strong className="text-slate-800 dark:text-slate-100 font-black text-sm block">
+              {isTe ? 'వేపనూనె 10,000 ppm & స్ప్రేలు' : 'Neem Oil & Contact Sprays'}
+            </strong>
+            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              {isTe ? 'పురుగు దాడి ప్రారంభంలోనే పిచికారీ చేయడానికి సిద్ధంగా ఉంచండి.' : 'Keep 1 preventative spray bottle ready for early infestation.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Agrochemical Safe Storage & Triple-Rinse Guide */}
+      <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/[0.08] border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="space-y-0.5">
+            <strong className="text-amber-900 dark:text-amber-300 font-bold block">
+              {isTe ? 'పురుగు మందుల సురక్షిత నిల్వ & ఖాళీ డబ్బాల నియంత్రణ' : 'Agrochemical Safe Storage & Triple-Rinse Protocol'}
+            </strong>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300">
+              {isTe ? 'మందులను పశువుల మేత, ఆహార ధాన్యాలకు దూరంగా తాళం వేసిన పెట్టెలో ఉంచండి. వాడిన సీసాలను 3 సార్లు కడిగి పంప్ ట్యాంకులో వేసి, డబ్బాను రంధ్రం చేసి పూడ్చండి.' : 'Store chemicals locked away from livestock feed and grain. Triple-rinse empty pesticide containers into the spray tank, puncture, and bury safely.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-3">
+      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-3">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Search */}
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder={isTe ? "మందు లేదా విత్తనం పేరును వెతకండి..." : "Search material, chemical, or brand..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500/50"
             />
           </div>
 
           {/* Status Filter */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">{isTe ? 'స్థితి:' : 'Status:'}</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0">{isTe ? 'స్థితి:' : 'Status:'}</span>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+              className="px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer"
             >
               <option value="all">{isTe ? 'అన్ని స్థితులు' : 'All Statuses'}</option>
               <option value="in_stock">{isTe ? 'లభ్యత ఉంది' : 'In Stock'}</option>
@@ -521,8 +578,8 @@ export default function FarmInventoryManager({
             onClick={() => setSelectedCategory('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
               selectedCategory === 'all'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             {isTe ? 'అన్ని కేటగిరీలు' : 'All Materials'} ({items.length})
@@ -537,8 +594,8 @@ export default function FarmInventoryManager({
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <span>{cat.icon}</span>
@@ -557,12 +614,12 @@ export default function FarmInventoryManager({
           <span>{isTe ? 'ఇన్వెంటరీ లోడ్ అవుతోంది...' : 'Loading farm inventory...'}</span>
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="p-12 rounded-3xl bg-slate-900/40 border border-slate-800 text-center space-y-3">
-          <Package className="w-10 h-10 mx-auto text-slate-600" />
-          <h3 className="text-sm font-bold text-white">
+        <div className="p-12 rounded-3xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-center space-y-3">
+          <Package className="w-10 h-10 mx-auto text-slate-400 dark:text-slate-600" />
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             {isTe ? 'ఎటువంటి స్టాక్ ఐటమ్స్ కనుగొనబడలేదు' : 'No inventory items found'}
           </h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
             {isTe ? 'మీ పొలం కోసం కొత్త విత్తనాలు, ఎరువులు లేదా రసాయనాల స్టాక్‌ను నమోదు చేయండి.' : 'Record your farm inputs, seeds, fertilizers, or scan bottles to keep track of physical stock.'}
           </p>
           <Button
@@ -587,7 +644,7 @@ export default function FarmInventoryManager({
             return (
               <div
                 key={item.id}
-                className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3 shadow-md"
+                className="p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between space-y-3 shadow-xs"
               >
                 <div>
                   {/* Top Bar: Category & Status */}
@@ -601,27 +658,27 @@ export default function FarmInventoryManager({
 
                   {/* Item Name & Brand */}
                   <div>
-                    <h4 className="text-sm font-black text-white leading-tight">
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
                       {item.item_name}
                     </h4>
                     {item.brand && (
-                      <p className="text-[11px] text-slate-400 font-medium">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                         {item.brand}
                       </p>
                     )}
                   </div>
 
                   {/* Quantity Display */}
-                  <div className="mt-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 flex items-center justify-between">
+                  <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                         {isTe ? 'లభ్యమైన పరిమాణం' : 'Available Stock'}
                       </span>
                       <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className={`text-xl font-black ${isZero ? 'text-slate-500' : 'text-emerald-400'}`}>
+                        <span className={`text-xl font-black ${isZero ? 'text-slate-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                           {item.quantity}
                         </span>
-                        <span className="text-xs text-slate-400 font-bold">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
                           {item.unit}
                         </span>
                       </div>
@@ -632,11 +689,11 @@ export default function FarmInventoryManager({
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                           {isTe ? 'విలువ' : 'Stock Value'}
                         </span>
-                        <span className="text-xs font-black text-slate-200 mt-0.5 block">
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 mt-0.5 block">
                           {formatINR(item.remaining_stock_value)}
                         </span>
                         {item.cost_per_unit && (
-                          <span className="text-[9px] text-slate-500">
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500">
                             @ ₹{item.cost_per_unit}/{item.unit}
                           </span>
                         )}
@@ -651,7 +708,7 @@ export default function FarmInventoryManager({
                         <span>{isTe ? 'కనీస నిల్వ:' : 'Min Threshold:'} {minQty} {item.unit}</span>
                         <span>{progress}%</span>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
                             progress <= 50 ? 'bg-rose-500' : progress <= 100 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -663,29 +720,45 @@ export default function FarmInventoryManager({
                   )}
 
                   {/* Details / Metas */}
-                  <div className="mt-3 space-y-1 text-[11px] text-slate-400 border-t border-slate-800/60 pt-2">
+                  <div className="mt-3 space-y-1 text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/60 pt-2">
                     {item.active_ingredient && (
-                      <div className="flex items-center gap-1 text-[10px] text-amber-400/90 truncate">
+                      <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400/90 truncate">
                         <span className="font-semibold text-slate-500">{isTe ? 'రసాయనం:' : 'Active:'}</span>
                         <span className="truncate">{item.active_ingredient}</span>
                       </div>
                     )}
                     {item.expiry_date && (
                       <div className="flex items-center gap-1 text-[10px]">
-                        <Calendar className="w-3 h-3 text-slate-500" />
+                        <Calendar className="w-3 h-3 text-slate-400" />
                         <span className="text-slate-500">{isTe ? 'గడువు:' : 'Expiry:'}</span>
-                        <span className={item.status === 'expired' ? 'text-rose-400 font-bold' : item.status === 'expiring_soon' ? 'text-amber-400 font-bold' : 'text-slate-300'}>
+                        <span className={item.status === 'expired' ? 'text-rose-600 dark:text-rose-400 font-bold' : item.status === 'expiring_soon' ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-slate-700 dark:text-slate-300'}>
                           {item.expiry_date}
                         </span>
                       </div>
                     )}
                     {item.vendor && (
-                      <div className="text-[10px] text-slate-500 truncate">
-                        <span>{isTe ? 'డీలర్:' : 'Vendor:'} {item.vendor}</span>
+                      <div className="text-[10px] text-slate-500 flex items-center justify-between gap-1">
+                        <span className="truncate">{isTe ? 'డీలర్:' : 'Vendor:'} {item.vendor}</span>
+                        <a
+                          href="tel:18001801551"
+                          className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold flex items-center gap-1 hover:underline shrink-0"
+                          title="Call Dealer / Kisan Call Center"
+                        >
+                          <PhoneCall className="w-2.5 h-2.5" />
+                          <span>Call</span>
+                        </a>
+                      </div>
+                    )}
+                    {item.category === 'pesticide' && (
+                      <div className="flex items-center justify-between text-[10px] pt-1">
+                        <span className="font-bold text-slate-500">CIBRC Hazard:</span>
+                        <span className="px-1.5 py-0.5 rounded font-black text-[9px] bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200">
+                          🟡 Blue/Yellow Triangle (PPE Required)
+                        </span>
                       </div>
                     )}
                     {item.khata_tx_id && (
-                      <div className="flex items-center gap-1 text-[10px] text-blue-400 font-bold">
+                      <div className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 font-bold">
                         <CheckCircle2 className="w-3 h-3" />
                         <span>{isTe ? 'ఖాతాలో నమోదు చేయబడింది' : 'Recorded in Farm Khata'}</span>
                       </div>
@@ -694,7 +767,7 @@ export default function FarmInventoryManager({
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-1">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1">
                     <Button
                       variant="outline"
@@ -705,7 +778,7 @@ export default function FarmInventoryManager({
                         setUseData(prev => ({ ...prev, quantity_used: '' }));
                         setShowUseModal(true);
                       }}
-                      className="px-2.5 py-1 text-xs font-bold border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                      className="px-2.5 py-1 text-xs font-bold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
                     >
                       <Minus className="w-3 h-3 mr-1" />
                       <span>{isTe ? 'వాడుక' : 'Use'}</span>
@@ -719,7 +792,7 @@ export default function FarmInventoryManager({
                         setRestockData(prev => ({ ...prev, quantity: '' }));
                         setShowRestockModal(true);
                       }}
-                      className="px-2.5 py-1 text-xs font-bold border-blue-500/30 text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+                      className="px-2.5 py-1 text-xs font-bold border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
                     >
                       <Plus className="w-3 h-3 mr-1" />
                       <span>{isTe ? 'స్టాక్ +' : '+ Add'}</span>
@@ -734,7 +807,7 @@ export default function FarmInventoryManager({
                         setActiveItem(item);
                         setShowHistoryModal(true);
                       }}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     >
                       <Clock className="w-3.5 h-3.5" />
                     </button>

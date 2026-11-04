@@ -98,6 +98,51 @@ const SCHEMES_DATABASE = [
     descriptionTe: 'సకాలంలో తిరిగి చెల్లిస్తే కేవలం 4% వడ్డీకే లభించే పంట సాగు పెట్టుబడి రుణం.',
     portalUrl: 'https://www.myscheme.gov.in',
     docs: ['Pattadar Passbook', 'Aadhaar Card', 'No-Dues Certificate from local banks']
+  },
+  {
+    id: 'pm-kusum-solar',
+    nameEn: 'PM-KUSUM Solar Irrigation Pump Subsidy',
+    nameTe: 'పీఎం కుసుమ్ సౌర వ్యవసాయ పంపుల సబ్సిడీ (90%)',
+    sponsor: 'Central & State MNRE',
+    benefitEn: 'Up to 90% Subsidy on 3HP – 7.5HP Solar Pumps',
+    benefitTe: '3HP నుండి 7.5HP సోలార్ మోటార్ పంపులపై 90% వరకు రాయితీ',
+    category: 'all',
+    maxAcreage: 50,
+    tags: ['90% Subsidy', 'Zero Electricity Bill', 'Daytime Irrigation'],
+    descriptionEn: 'Replace costly diesel or grid pumps with high-efficiency standalone solar water pumping systems.',
+    descriptionTe: 'డీజిల్ మరియు విద్యుత్ బిల్లుల భారం లేకుండా పగటిపూటే సమృద్ధిగా నీటి పారుదల అందించే సౌర విద్యుత్ పంపులు.',
+    portalUrl: 'https://pmkusum.mnre.gov.in',
+    docs: ['Aadhaar Card', 'Land Revenue 1B Record', 'Water Source / Borewell NOC', 'Bank Passbook']
+  },
+  {
+    id: 'smam-machinery',
+    nameEn: 'SMAM Agricultural Mechanization Subsidy',
+    nameTe: 'రైతు వ్యవసాయ పనిముట్లు & యంత్రాల సబ్సిడీ (SMAM)',
+    sponsor: 'Central & State Dept',
+    benefitEn: '40% – 50% Subsidy on Tillers, Sprayers & Drones',
+    benefitTe: 'పవర్ టిల్లర్లు, రొటవేటర్లు, బ్యాటరీ స్ప్రేయర్లు & డ్రోన్లపై 40-50% సబ్సిడీ',
+    category: 'all',
+    maxAcreage: 100,
+    tags: ['40-50% Grant', 'Custom Hiring Centers', 'Drudgery Reduction'],
+    descriptionEn: 'Financial assistance for purchasing power tillers, rotavators, weeders, tractor implements, and sprayers.',
+    descriptionTe: 'రైతులు ఆధునిక వ్యవసాయ పరికరాలు మరియు డ్రోన్లను సగం ధరకే కొనుగోలు చేయడానికి అందించే ప్రభుత్వ రాయితీ.',
+    portalUrl: 'https://agrimachinery.nic.in',
+    docs: ['Pattadar Passbook', 'Aadhaar Card', 'Bank Account Details', 'Quotation from Authorized Dealer']
+  },
+  {
+    id: 'pkvy-organic',
+    nameEn: 'PKVY Paramparagat Krishi Vikas Yojana',
+    nameTe: 'పరంపరాగత్ కృషి వికాస్ యోజన (సేంద్రీయ సాగు సాయం)',
+    sponsor: 'Central Govt',
+    benefitEn: '₹50,000 / Hectare Assistance for Organic Clusters',
+    benefitTe: 'హెక్టారుకు ₹50,000 ఆర్థిక సాయం & ఉచిత సేంద్రీయ సర్టిఫికేషన్',
+    category: 'all',
+    maxAcreage: 20,
+    tags: ['₹50,000 / ha', 'Free Organic Certification', 'Bio-Inputs Assistance'],
+    descriptionEn: 'Direct assistance for organic farming certification, PGS India registration, and vermicompost input creation.',
+    descriptionTe: 'రసాయన రహిత ప్రకృతి వ్యవసాయం చేసే రైతులకు ఉచిత సర్టిఫికేషన్, జీవామృతం & వర్మీకంపోస్ట్ తయారీకి ప్రోత్సాహకం.',
+    portalUrl: 'https://pgsindia-ncof.gov.in',
+    docs: ['Aadhaar Card', 'Village Cluster Member List', 'Land Passbook Copy']
   }
 ];
 
@@ -114,7 +159,17 @@ export default function GovernmentSchemeNavigator({
   const isTe = currentLang === 'te';
 
   const [selectedFarmerCategory, setSelectedFarmerCategory] = useState('small_marginal'); // 'small_marginal', 'tenant', 'all'
-  const [selectedScheme, setSelectedScheme] = useState(SCHEMES_DATABASE[2]); // Default to APMIP Drip 90% Subsidy
+  const [selectedScheme, setSelectedScheme] = useState(SCHEMES_DATABASE[2]);
+  const [checkedDocs, setCheckedDocs] = useState({
+    aadhaar: true,
+    passbook: true,
+    bank: true,
+    ecrop: false
+  });
+
+  const toggleDoc = (k) => setCheckedDocs(prev => ({ ...prev, [k]: !prev[k] }));
+  const docScore = Math.round((Object.values(checkedDocs).filter(Boolean).length / 4) * 100);
+ // Default to APMIP Drip 90% Subsidy
 
   // Compute eligible schemes based on acreage & category
   const eligibleSchemes = useMemo(() => {
@@ -156,26 +211,26 @@ export default function GovernmentSchemeNavigator({
   };
 
   return (
-    <div className="rounded-3xl bg-[#060c14] border border-amber-500/25 p-4 sm:p-6 space-y-6 shadow-2xl relative overflow-hidden">
+    <div className="rounded-3xl bg-white dark:bg-[#060c14] border border-slate-200/90 dark:border-amber-500/25 p-4 sm:p-6 space-y-6 shadow-xl relative overflow-hidden text-slate-800 dark:text-slate-100">
       {/* Background Atmosphere Glow */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
+          <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 shrink-0">
             <Landmark className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
                 {isTe ? 'కేంద్ర & రాష్ట్ర ప్రభుత్వ సంక్షేమం' : 'Central & State Agri Schemes'}
               </span>
-              <span className="text-[10px] text-white/50 font-mono">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 font-mono">
                 {district} District · {acreage} Acres
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-black text-white mt-0.5">
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">
               {isTe ? 'ప్రభుత్వ పథకాలు & రాయితీల నావిగేటర్' : 'Government Scheme & Subsidy Navigator'}
             </h2>
           </div>
@@ -184,36 +239,103 @@ export default function GovernmentSchemeNavigator({
         {/* Share Button */}
         <button
           onClick={handleShareWhatsApp}
-          className="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto justify-center"
+          className="px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 dark:bg-emerald-600/20 dark:hover:bg-emerald-600/30 border border-emerald-500/30 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer w-full sm:w-auto justify-center"
         >
-          <Share2 className="w-4 h-4 text-emerald-400" />
+          <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>{isTe ? 'వాట్సాప్ నివేదిక' : 'Share WhatsApp'}</span>
         </button>
       </div>
 
       {/* Total Financial Benefit Highlights */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-emerald-950/40 border border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-emerald-50 dark:from-amber-950/40 dark:via-amber-900/20 dark:to-emerald-950/40 border border-amber-200 dark:border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4" />
+          <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             {isTe ? 'మీ పొలానికి అర్హత గల వార్షిక ప్రభుత్వ లబ్ధి' : 'Total Eligible Annual Support for Your Farm'}
           </span>
-          <p className="text-2xl sm:text-3xl font-black text-white">
-            ₹{totalAnnualSupport.total.toLocaleString('en-IN')} <span className="text-xs font-normal text-white/60">{isTe ? '(ఆర్థిక సాయం + డ్రిప్ సబ్సిడీ ఆదా)' : '(Direct Cash + Drip Subsidy Value)'}</span>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+            ₹{totalAnnualSupport.total.toLocaleString('en-IN')} <span className="text-xs font-normal text-slate-600 dark:text-white/60">{isTe ? '(ఆర్థిక సాయం + డ్రిప్ సబ్సిడీ ఆదా)' : '(Direct Cash + Drip Subsidy Value)'}</span>
           </p>
-          <p className="text-xs text-white/70">
+          <p className="text-xs text-slate-600 dark:text-white/70">
             {isTe 
               ? `పీఎం కిసాన్ (₹6,000) + రైతు భరోసా (₹13,500) + 90% డ్రిప్ సబ్సిడీ (₹${totalAnnualSupport.dripSavings.toLocaleString('en-IN')})`
               : `PM-Kisan (₹6,000) + Rythu Bharosa (₹13,500) + 90% Drip Savings (₹${totalAnnualSupport.dripSavings.toLocaleString('en-IN')})`}
           </p>
         </div>
 
-        <div className="px-4 py-2.5 rounded-xl bg-black/40 border border-amber-500/30 text-xs space-y-1 shrink-0">
-          <p className="font-bold text-white flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-amber-300 dark:border-amber-500/30 text-xs space-y-1 shrink-0 shadow-xs">
+          <p className="font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             {isTe ? 'ధ్రువీకరణ పత్రాలు సిద్ధం చేసుకోండి:' : 'Keep Key Documents Ready:'}
           </p>
-          <p className="text-white/60">Aadhaar · 1B Pattadar Passbook · Bank IFSC</p>
+          <p className="text-slate-500 dark:text-white/60">Aadhaar · 1B Pattadar Passbook · Bank IFSC</p>
+        </div>
+      </div>
+
+            {/* Interactive Document Readiness & DBT Verification Tracker */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/25 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="text-xs font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wider flex items-center gap-1.5">
+            <Shield className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{isTe ? 'ప్రభుత్వ సబ్సిడీ ధ్రువీకరణ పత్రాల సంసిద్ధత' : 'Govt Subsidy Document Readiness & DBT Status'}</span>
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 w-fit">
+            {docScore}% {isTe ? 'సిద్ధంగా ఉంది' : 'Ready'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => toggleDoc('aadhaar')}
+            className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left cursor-pointer ${
+              checkedDocs.aadhaar ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-900 dark:text-emerald-200' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-500'
+            }`}
+          >
+            <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.aadhaar ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
+              {checkedDocs.aadhaar ? '✓' : ''}
+            </span>
+            <span className="font-bold text-[11px]">Aadhaar e-KYC Linked</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => toggleDoc('passbook')}
+            className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left cursor-pointer ${
+              checkedDocs.passbook ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-900 dark:text-emerald-200' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-500'
+            }`}
+          >
+            <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.passbook ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
+              {checkedDocs.passbook ? '✓' : ''}
+            </span>
+            <span className="font-bold text-[11px]">Pattadar Passbook / 1B</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => toggleDoc('bank')}
+            className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left cursor-pointer ${
+              checkedDocs.bank ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-900 dark:text-emerald-200' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-500'
+            }`}
+          >
+            <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.bank ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
+              {checkedDocs.bank ? '✓' : ''}
+            </span>
+            <span className="font-bold text-[11px]">NPCI Active Bank Account</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => toggleDoc('ecrop')}
+            className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left cursor-pointer ${
+              checkedDocs.ecrop ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-900 dark:text-emerald-200' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/10 text-slate-500'
+            }`}
+          >
+            <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.ecrop ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
+              {checkedDocs.ecrop ? '✓' : ''}
+            </span>
+            <span className="font-bold text-[11px]">e-Crop (e-Panta) Sowing Entry</span>
+          </button>
         </div>
       </div>
 
@@ -221,7 +343,7 @@ export default function GovernmentSchemeNavigator({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Schemes Directory */}
         <div className="lg:col-span-5 space-y-2.5">
-          <span className="text-xs font-bold text-white/70 uppercase tracking-wider block">
+          <span className="text-xs font-bold text-slate-600 dark:text-white/70 uppercase tracking-wider block">
             {isTe ? 'క్రియాశీల ప్రభుత్వ పథకాలు (6 పథకాలు)' : 'Available Welfare Schemes (6 Programs)'}
           </span>
 
@@ -234,22 +356,22 @@ export default function GovernmentSchemeNavigator({
                   onClick={() => setSelectedScheme(sch)}
                   className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                     isSelected
-                      ? 'bg-amber-500/15 border-amber-500/50 shadow-lg shadow-amber-950/40 text-white'
-                      : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] text-white/80'
+                      ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-400 dark:border-amber-500/50 shadow-md text-slate-900 dark:text-white'
+                      : 'bg-slate-50/70 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 hover:border-amber-300 dark:hover:bg-white/[0.06] text-slate-700 dark:text-white/80'
                   }`}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300">
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-400/20 text-amber-800 dark:text-amber-300">
                         {sch.sponsor}
                       </span>
                       <h4 className="text-xs font-black truncate">{isTe ? sch.nameTe : sch.nameEn}</h4>
                     </div>
-                    <p className="text-[11px] font-bold text-emerald-400">
+                    <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                       {isTe ? sch.benefitTe : sch.benefitEn}
                     </p>
                   </div>
-                  <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'text-amber-400 translate-x-1' : 'text-white/30'}`} />
+                  <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${isSelected ? 'text-amber-600 dark:text-amber-400 translate-x-1' : 'text-slate-400 dark:text-white/30'}`} />
                 </div>
               );
             })}
@@ -258,13 +380,13 @@ export default function GovernmentSchemeNavigator({
 
         {/* Right: Selected Scheme Detail & Application Hub */}
         {selectedScheme && (
-          <div className="lg:col-span-7 p-5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
-            <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="lg:col-span-7 p-5 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 space-y-4 shadow-xs">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
               <div>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
                   {selectedScheme.sponsor}
                 </span>
-                <h3 className="text-base font-black text-white mt-1">
+                <h3 className="text-base font-black text-slate-900 dark:text-white mt-1">
                   {isTe ? selectedScheme.nameTe : selectedScheme.nameEn}
                 </h3>
               </div>
@@ -272,7 +394,7 @@ export default function GovernmentSchemeNavigator({
                 href={selectedScheme.portalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all"
+                className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all"
               >
                 <span>{isTe ? 'అధికారిక పోర్టల్' : 'Official Portal'}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -280,14 +402,14 @@ export default function GovernmentSchemeNavigator({
             </div>
 
             {/* Benefit Banner */}
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-1">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+            <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 space-y-1">
+              <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">
                 {isTe ? 'రైతుకు లభించే మొత్తం ప్రయోజనం' : 'Direct Financial Benefit'}
               </span>
-              <p className="text-lg font-black text-emerald-300">
+              <p className="text-lg font-black text-emerald-800 dark:text-emerald-300">
                 {isTe ? selectedScheme.benefitTe : selectedScheme.benefitEn}
               </p>
-              <p className="text-xs text-white/70">
+              <p className="text-xs text-slate-600 dark:text-white/70">
                 {isTe ? selectedScheme.descriptionTe : selectedScheme.descriptionEn}
               </p>
             </div>
@@ -295,21 +417,21 @@ export default function GovernmentSchemeNavigator({
             {/* Scheme Feature Highlights */}
             <div className="flex flex-wrap gap-1.5">
               {selectedScheme.tags.map((tag, idx) => (
-                <span key={idx} className="text-[10px] px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 text-white/80 font-medium">
+                <span key={idx} className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white/80 font-medium">
                   ✓ {tag}
                 </span>
               ))}
             </div>
 
             {/* Required Documents Checklist */}
-            <div className="space-y-2 pt-2 border-t border-white/10">
-              <span className="text-xs font-bold text-white/80 block">
+            <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-white/10">
+              <span className="text-xs font-bold text-slate-800 dark:text-white/80 block">
                 {isTe ? 'దరఖాస్తుకు అవసరమైన ధ్రువీకరణ పత్రాలు (Checklist):' : 'Mandatory Application Documents:'}
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {selectedScheme.docs.map((doc, idx) => (
-                  <div key={idx} className="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center gap-2 text-xs text-white/90">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div key={idx} className="p-2.5 rounded-xl bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/5 flex items-center gap-2 text-xs text-slate-800 dark:text-white/90">
+                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>{doc}</span>
                   </div>
                 ))}
@@ -317,7 +439,7 @@ export default function GovernmentSchemeNavigator({
             </div>
 
             {/* RSK Guidance Note */}
-            <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-500/20 text-xs text-sky-200 flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-500/20 text-xs text-sky-900 dark:text-sky-200 flex items-center gap-2">
               <Building2 className="w-4 h-4 text-sky-400 shrink-0" />
               <span>
                 {isTe 
@@ -327,6 +449,57 @@ export default function GovernmentSchemeNavigator({
             </div>
           </div>
         )}
+      </div>
+
+      {/* 4-Step Village RSK / RBK Claim Process */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 space-y-3 shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
+            <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{isTe ? 'రైతు సేవా కేంద్రం (RSK) వద్ద లబ్ధి పొందే 4 దశల విధానం' : '4-Step Village RSK Application Process'}</span>
+          </span>
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+            Village Level Direct Service
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 font-black text-emerald-600 dark:text-emerald-400">
+              <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-[11px] flex items-center justify-center">1</span>
+              <span>{isTe ? 'ఇ-పంట నమోదు' : 'e-Crop Booking'}</span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-white/70">
+              {isTe ? 'గ్రామ వ్యవసాయ సహాయకుడి (VAA) ద్వారా మీ సర్వే నంబర్ల పరిధిలో పంట ఫోటో జియో-ట్యాగింగ్ చేయించాలి.' : 'Ensure VAA geo-tags your field photos and enters crop details into the official e-Panta portal.'}
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 font-black text-sky-600 dark:text-sky-400">
+              <span className="w-5 h-5 rounded-full bg-sky-500/20 text-[11px] flex items-center justify-center">2</span>
+              <span>{isTe ? 'ఆధార్ e-KYC' : 'Aadhaar e-KYC'}</span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-white/70">
+              {isTe ? 'RSK వద్ద బయోమెట్రిక్ వేలిముద్ర లేదా ఐరిస్ స్కాన్ ద్వారా e-KYC ధ్రువీకరణను పూర్తి చేయాలి.' : 'Complete biometric fingerprint or IRIS e-KYC verification at your village RSK centre.'}
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 font-black text-amber-600 dark:text-amber-400">
+              <span className="w-5 h-5 rounded-full bg-amber-500/20 text-[11px] flex items-center justify-center">3</span>
+              <span>{isTe ? 'కౌలు రైతు CCRC' : 'Tenant CCRC Card'}</span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-white/70">
+              {isTe ? 'కౌలు రైతులు 11 నెలల పంట సాగు హక్కు పత్రం (CCRC) తీసుకొని రైతు భరోసాకు నమోదు చేసుకోవచ్చు.' : 'Tenant cultivators can obtain an 11-month CCRC agreement card from VRO for full subsidy benefits.'}
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 font-black text-teal-600 dark:text-teal-400">
+              <span className="w-5 h-5 rounded-full bg-teal-500/20 text-[11px] flex items-center justify-center">4</span>
+              <span>{isTe ? 'DBT ఖాతా జమ' : 'Direct Bank DBT'}</span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-white/70">
+              {isTe ? 'మీ ఆధార్ లింక్ అయిన బ్యాంక్ ఖాతాకు మధ్యవర్తులు లేకుండా నేరుగా నగదు లేదా రాయితీ చేరుతుంది.' : 'Zero intermediaries; subsidies and relief funds credit directly to your NPCI Aadhaar-seeded bank account.'}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

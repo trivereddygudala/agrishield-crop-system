@@ -338,6 +338,50 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
         </div>
       </div>
 
+            {/* Cold Storage & Post-Harvest Preservation Radar */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-500/10 via-teal-500/5 to-emerald-500/10 border border-sky-500/25 space-y-3 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="text-xs font-black uppercase text-sky-800 dark:text-sky-300 tracking-wider flex items-center gap-1.5">
+            <span>❄️</span>
+            <span>{isTe ? 'కోత అనంతర నిల్వ & కోల్డ్ స్టోరేజ్ మార్గదర్శకాలు' : 'Post-Harvest Loss Mitigation & Cold Storage Radar'}</span>
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 dark:text-sky-300 w-fit">
+            {isTe ? 'రైతు మార్కెట్ భద్రత' : 'Distress Sale Prevention'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-sky-500/20">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
+              {isTe ? 'అనుకూల నిల్వ ఉష్ణోగ్రత' : 'Optimal Storage Temp'}
+            </span>
+            <strong className="text-slate-900 dark:text-slate-100 font-black">
+              {cropName === 'Tomato' ? '10°C - 13°C (85-90% RH)' : cropName === 'Potato' ? '3°C - 4°C (95% RH)' : '15°C - 18°C (Dry Storage)'}
+            </strong>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-sky-500/20">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
+              {isTe ? 'దిగుబడి రక్షణ సమయం' : 'Storage Shelf Extension'}
+            </span>
+            <strong className="text-emerald-600 dark:text-emerald-400 font-black">
+              {cropName === 'Tomato' ? 'Up to 21 Days (3x Normal)' : 'Up to 6 Months in Cold Chain'}
+            </strong>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-sky-500/20 flex flex-col justify-between">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
+              {isTe ? 'కోత యంత్రాలు & రవాణా' : 'Harvest Equipment Rental'}
+            </span>
+            <a
+              href="/equipment-booking?category=harvester"
+              className="mt-1 inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 hover:underline"
+            >
+              <span>🚜 {isTe ? 'హార్వెస్టర్ బుక్ చేయండి' : 'Book Harvester Machinery'}</span>
+              <span>→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Navigation Sub-Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto no-scrollbar">
         <button

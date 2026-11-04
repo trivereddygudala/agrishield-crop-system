@@ -5,7 +5,7 @@ import {
   Sparkles, CheckCircle2, AlertTriangle, Droplets,
   Calendar, ShieldAlert, ShoppingBag, CreditCard,
   Truck, ArrowRight, Check, X, RefreshCw, ChevronDown,
-  ChevronUp, ExternalLink, Radio, Cloud, Info, RotateCcw, Clock
+  ChevronUp, ExternalLink, Radio, Cloud, Info, RotateCcw, Clock, Volume2, Share2
 } from 'lucide-react';
 import { Card, Badge, Button, Skeleton } from '../ui/index';
 import API from '../../services/api';
@@ -65,6 +65,7 @@ const ACTION_TYPE_ICONS = {
 export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(null);
@@ -196,6 +197,27 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
     );
   }
 
+  // Voice audio synthesis for hands-free farmer assistance
+  const handleSpeakTask = (action) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const textToSpeak = `${action.title || action.action_title || ''}. ${action.description || action.action_desc || ''}`;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = isTe ? 'te-IN' : 'en-IN';
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  // 1-Click WhatsApp Task Sharing with Farm Labour & Family
+  const handleShareWhatsAppTasks = () => {
+    const list = visibleActions.map((a, i) => `${i + 1}. [${a.priority}] ${a.title || a.action_title} - ${a.description || a.action_desc}`).join('\n');
+    const msg = isTe
+      ? `📋 *అగ్రిషీల్డ్ పొలం రోజువారీ పనుల జాబితా*\n📅 తేదీ: ${new Date().toLocaleDateString('te-IN')}\n\n${list}\n\nAgriShield AI ద్వారా సర్టిఫై చేయబడింది.`
+      : `📋 *AgriShield Daily Farm Action Tasks*\n📅 Date: ${new Date().toLocaleDateString()}\n\n${list}\n\nVerified via AgriShield Smart Operations.`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   const isIoT = data?.operating_mode === 'smart_iot';
 
   return (
@@ -237,6 +259,19 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
             </div>
           )}
 
+          {/* 1-Click WhatsApp Dispatch Button */}
+          {visibleActions.length > 0 && (
+            <button
+              type="button"
+              onClick={handleShareWhatsAppTasks}
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Share task list on WhatsApp"
+            >
+              <Share2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">{isTe ? 'వాట్సాప్ పనులు' : 'Share WhatsApp'}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => fetchActions(true)}
@@ -246,6 +281,41 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-500' : ''}`} />
           </button>
+        </div>
+      </div>
+
+      {/* ─── Weekly Agronomic Priority Radar ─── */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-lime-500/10 border border-emerald-500/25 space-y-3 shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{isTe ? 'వారపు వ్యవసాయ ప్రాధాన్యతలు & కార్యాచరణ రాడార్' : 'Weekly Agronomic Priority Radar'}</span>
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+            Smart Operations
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+          <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-500/15">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">{isTe ? '1. నీటి పారుదల సమయం' : '1. Irrigation Timing'}</span>
+            <strong className="text-slate-800 dark:text-slate-100 font-bold block mt-0.5">06:00 AM – 09:30 AM</strong>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">{isTe ? 'ఆవిరి నష్టాలు తక్కువ' : 'Minimal evaporation loss'}</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-500/15">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">{isTe ? '2. మందుల పిచికారీ' : '2. Foliar Spraying'}</span>
+            <strong className="text-slate-800 dark:text-slate-100 font-bold block mt-0.5">{isTe ? 'శాంతమైన గాలి వేళ' : 'Wind < 12 km/h'}</strong>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">{isTe ? 'డ్రిఫ్ట్ లేకుండా రక్షణ' : 'Avoid high drift'}</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-500/15">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">{isTe ? '3. తెగుళ్ల స్కౌటింగ్' : '3. Pest Scouting'}</span>
+            <strong className="text-slate-800 dark:text-slate-100 font-bold block mt-0.5">{isTe ? 'ఆకుల అడుగు భాగం' : 'Underside of Leaves'}</strong>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">{isTe ? 'జిగురు అట్టలు పరిశీలన' : 'Check sticky traps'}</span>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-500/15">
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block">{isTe ? '4. ఎరువుల యాజమాన్యం' : '4. Top-Dressing'}</span>
+            <strong className="text-slate-800 dark:text-slate-100 font-bold block mt-0.5">{isTe ? 'తేమ ఉన్నప్పుడు' : 'Moist Soil Only'}</strong>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400">{isTe ? 'వేర్లు సులభంగా గ్రహిస్తాయి' : 'Optimal root absorption'}</span>
+          </div>
         </div>
       </div>
 
@@ -366,18 +436,30 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
                         )}
                       </div>
 
-                      {/* Dismiss (X) */}
-                      {!isCompletedTab && action.priority !== 'P0' && (
+                      <div className="flex items-center gap-1">
+                        {/* Voice Listen Button */}
                         <button
                           type="button"
-                          onClick={() => handleDismissAction(action)}
-                          disabled={isWorking}
-                          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                          title={t('dashboard.smart_actions.dismiss_action', 'Dismiss')}
+                          onClick={() => handleSpeakTask(action)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white/70 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                          title="Listen to task"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <Volume2 className="w-3.5 h-3.5" />
                         </button>
-                      )}
+
+                        {/* Dismiss (X) */}
+                        {!isCompletedTab && action.priority !== 'P0' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDismissAction(action)}
+                            disabled={isWorking}
+                            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                            title={t('dashboard.smart_actions.dismiss_action', 'Dismiss')}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* FIELD & CROP CONTEXT BADGES */}
