@@ -1,0 +1,37 @@
+{
+  "crop": "cardamom",
+  "crop_name": "Cardamom / Yalakulu (యాలకులు / ஏலக்காய்)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Cardamom_Mosaic_Katte",
+      "display_name": "Cardamom Mosaic Katte",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cardamom_mosaic_katte.jpg"
+    },
+    {
+      "class_name": "Capsule_Rot_Azhukal",
+      "display_name": "Capsule Rot Azhukal",
+      "has_sample_image": true,
+      "sample_image_path": "samples/capsule_rot_azhukal.jpg"
+    },
+    {
+      "class_name": "Clump_Rot_Rhizome",
+      "display_name": "Clump Rot Rhizome",
+      "has_sample_image": true,
+      "sample_image_path": "samples/clump_rot_rhizome.jpg"
+    },
+    {
+      "class_name": "Thrips_Scars",
+      "display_name": "Thrips Scars",
+      "has_sample_image": true,
+      "sample_image_path": "samples/thrips_scars.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "crop": "amaranthus_thotakura",
+  "crop_name": "Amaranthus / Thotakura (\u0c24\u0c4b\u0c1f\u0c15\u0c42\u0c30 / \u0ba4\u0ba3\u0bcd\u0b9f\u0bc1\u0b95\u0bcd\u0b95\u0bc0\u0bb0\u0bc8)",
+  "category": "Leafy Vegetable",
+  "classes": [
+    "White_Rust_Albugo",
+    "Leaf_Blight",
+    "Leaf_Webber_Caterpillar",
+    "Healthy"
+  ],
+  "num_classes": 4
+}

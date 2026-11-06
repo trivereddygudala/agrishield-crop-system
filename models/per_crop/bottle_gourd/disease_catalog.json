@@ -1,0 +1,37 @@
+{
+  "crop": "bottle_gourd",
+  "crop_name": "Bottle Gourd / Sorakaya (సొరకాయ / சுரைக்காய்)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Anthracnose",
+      "display_name": "Anthracnose",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose.jpg"
+    },
+    {
+      "class_name": "Gummy_Stem_Blight",
+      "display_name": "Gummy Stem Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/gummy_stem_blight.jpg"
+    },
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Cucumber_Mosaic",
+      "display_name": "Cucumber Mosaic",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cucumber_mosaic.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

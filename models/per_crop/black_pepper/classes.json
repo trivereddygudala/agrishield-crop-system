@@ -1,0 +1,13 @@
+{
+  "crop": "black_pepper",
+  "crop_name": "Black Pepper / Miriyalu (\u0c2e\u0c3f\u0c30\u0c3f\u0c2f\u0c3e\u0c32\u0c41 / \u0bae\u0bbf\u0bb3\u0b95\u0bc1)",
+  "category": "Spice Vine",
+  "classes": [
+    "Quick_Wilt_Phytophthora",
+    "Slow_Decline_Nematodes",
+    "Anthracnose_Pollu_Disease",
+    "Stunt_Virus",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

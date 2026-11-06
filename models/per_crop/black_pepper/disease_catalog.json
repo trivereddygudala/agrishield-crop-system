@@ -1,0 +1,37 @@
+{
+  "crop": "black_pepper",
+  "crop_name": "Black Pepper / Miriyalu (మిరియాలు / மிளகு)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Quick_Wilt_Phytophthora",
+      "display_name": "Quick Wilt Phytophthora",
+      "has_sample_image": true,
+      "sample_image_path": "samples/quick_wilt_phytophthora.jpg"
+    },
+    {
+      "class_name": "Slow_Decline_Nematodes",
+      "display_name": "Slow Decline Nematodes",
+      "has_sample_image": true,
+      "sample_image_path": "samples/slow_decline_nematodes.jpg"
+    },
+    {
+      "class_name": "Anthracnose_Pollu_Disease",
+      "display_name": "Anthracnose Pollu Disease",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose_pollu_disease.jpg"
+    },
+    {
+      "class_name": "Stunt_Virus",
+      "display_name": "Stunt Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/stunt_virus.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

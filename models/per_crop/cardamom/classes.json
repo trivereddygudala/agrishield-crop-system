@@ -1,0 +1,13 @@
+{
+  "crop": "cardamom",
+  "crop_name": "Cardamom / Yalakulu (\u0c2f\u0c3e\u0c32\u0c15\u0c41\u0c32\u0c41 / \u0b8f\u0bb2\u0b95\u0bcd\u0b95\u0bbe\u0baf\u0bcd)",
+  "category": "Spice Crop",
+  "classes": [
+    "Cardamom_Mosaic_Katte",
+    "Capsule_Rot_Azhukal",
+    "Clump_Rot_Rhizome",
+    "Thrips_Scars",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

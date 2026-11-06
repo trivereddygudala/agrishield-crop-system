@@ -1,0 +1,13 @@
+{
+  "crop": "black_gram",
+  "crop_name": "Black Gram / Urad (\u0c2e\u0c3f\u0c28\u0c41\u0c2e\u0c41\u0c32\u0c41 / \u0b89\u0bb3\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1)",
+  "category": "Pulse Crop",
+  "classes": [
+    "Yellow_Mosaic_Virus",
+    "Powdery_Mildew",
+    "Cercospora_Leaf_Spot",
+    "Root_Rot",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

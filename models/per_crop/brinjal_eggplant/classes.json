@@ -1,0 +1,14 @@
+{
+  "crop": "brinjal_eggplant",
+  "crop_name": "Brinjal / Eggplant (\u0c35\u0c02\u0c15\u0c3e\u0c2f / \u0b95\u0ba4\u0bcd\u0ba4\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bbe\u0baf\u0bcd)",
+  "category": "Vegetable",
+  "classes": [
+    "Shoot_and_Fruit_Borer",
+    "Little_Leaf_Phytoplasma",
+    "Bacterial_Wilt",
+    "Cercospora_Leaf_Spot",
+    "Phomopsis_Blight",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

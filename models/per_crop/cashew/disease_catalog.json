@@ -1,0 +1,37 @@
+{
+  "crop": "cashew",
+  "crop_name": "Cashew (జీడిమామిడి / முந்திரி)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Tea_Mosquito_Bug_Damage",
+      "display_name": "Tea Mosquito Bug Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/tea_mosquito_bug_damage.jpg"
+    },
+    {
+      "class_name": "Anthracnose_Foliage",
+      "display_name": "Anthracnose Foliage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose_foliage.jpg"
+    },
+    {
+      "class_name": "Gummosis_Stem",
+      "display_name": "Gummosis Stem",
+      "has_sample_image": true,
+      "sample_image_path": "samples/gummosis_stem.jpg"
+    },
+    {
+      "class_name": "Red_Rust",
+      "display_name": "Red Rust",
+      "has_sample_image": true,
+      "sample_image_path": "samples/red_rust.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

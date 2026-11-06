@@ -1,0 +1,14 @@
+{
+  "crop": "banana",
+  "crop_name": "Banana / Plantain (\u0c05\u0c30\u0c1f\u0c3f / \u0bb5\u0bbe\u0bb4\u0bc8)",
+  "category": "Fruit / Plantation",
+  "classes": [
+    "Black_Sigatoka",
+    "Yellow_Sigatoka",
+    "Panama_Wilt_TR4",
+    "Bract_Mosaic_Virus",
+    "Bunchy_Top_Virus",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

@@ -1,0 +1,43 @@
+{
+  "crop": "citrus",
+  "crop_name": "Citrus / Acid Lime / Mosambi (నిమ్మ / எலுமிச்சை)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Citrus_Canker",
+      "display_name": "Citrus Canker",
+      "has_sample_image": true,
+      "sample_image_path": "samples/citrus_canker.jpg"
+    },
+    {
+      "class_name": "Greening_Huanglongbing",
+      "display_name": "Greening Huanglongbing",
+      "has_sample_image": true,
+      "sample_image_path": "samples/greening_huanglongbing.jpg"
+    },
+    {
+      "class_name": "Citrus_Tristeza_Virus",
+      "display_name": "Citrus Tristeza Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/citrus_tristeza_virus.jpg"
+    },
+    {
+      "class_name": "Black_Spot",
+      "display_name": "Black Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/black_spot.jpg"
+    },
+    {
+      "class_name": "Red_Spider_Mite",
+      "display_name": "Red Spider Mite",
+      "has_sample_image": true,
+      "sample_image_path": "samples/red_spider_mite.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

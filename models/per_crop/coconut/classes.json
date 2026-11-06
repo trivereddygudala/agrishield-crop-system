@@ -1,0 +1,14 @@
+{
+  "crop": "coconut",
+  "crop_name": "Coconut (\u0c15\u0c4a\u0c2c\u0c4d\u0c2c\u0c30\u0c3f / \u0ba4\u0bc6\u0ba9\u0bcd\u0ba9\u0bc8)",
+  "category": "Plantation Crop",
+  "classes": [
+    "Rugose_Spiralling_Whitefly",
+    "Root_Wilt_Disease",
+    "Bud_Rot_Phytophthora",
+    "Stem_Bleeding",
+    "Rhinoceros_Beetle_Damage",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

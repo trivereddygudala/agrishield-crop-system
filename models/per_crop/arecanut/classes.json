@@ -1,0 +1,13 @@
+{
+  "crop": "arecanut",
+  "crop_name": "Arecanut / Betel Nut (\u0c2a\u0c4b\u0c15\u0c1a\u0c46\u0c15\u0c4d\u0c15 / \u0baa\u0bbe\u0b95\u0bcd\u0b95\u0bc1)",
+  "category": "Plantation Crop",
+  "classes": [
+    "Koleroga_Fruit_Rot",
+    "Anabe_Roga_Foot_Rot",
+    "Yellow_Leaf_Disease",
+    "Bud_Rot",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

@@ -1,0 +1,43 @@
+{
+  "crop": "banana",
+  "crop_name": "Banana / Plantain (అరటి / வாழை)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Black_Sigatoka",
+      "display_name": "Black Sigatoka",
+      "has_sample_image": true,
+      "sample_image_path": "samples/black_sigatoka.jpg"
+    },
+    {
+      "class_name": "Yellow_Sigatoka",
+      "display_name": "Yellow Sigatoka",
+      "has_sample_image": true,
+      "sample_image_path": "samples/yellow_sigatoka.jpg"
+    },
+    {
+      "class_name": "Panama_Wilt_TR4",
+      "display_name": "Panama Wilt TR4",
+      "has_sample_image": true,
+      "sample_image_path": "samples/panama_wilt_tr4.jpg"
+    },
+    {
+      "class_name": "Bract_Mosaic_Virus",
+      "display_name": "Bract Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bract_mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Bunchy_Top_Virus",
+      "display_name": "Bunchy Top Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bunchy_top_virus.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

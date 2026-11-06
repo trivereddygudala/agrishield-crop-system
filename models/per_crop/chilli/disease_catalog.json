@@ -1,0 +1,55 @@
+{
+  "crop": "chilli",
+  "crop_name": "Chilli / Mirapa (మిరప / மிளகாய்)",
+  "num_classes": 8,
+  "classes": [
+    {
+      "class_name": "Anthracnose_Fruit_Rot",
+      "display_name": "Anthracnose Fruit Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose_fruit_rot.jpg"
+    },
+    {
+      "class_name": "Black_Thrips_Damage",
+      "display_name": "Black Thrips Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/black_thrips_damage.jpg"
+    },
+    {
+      "class_name": "Bacterial_Spot",
+      "display_name": "Bacterial Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_spot.jpg"
+    },
+    {
+      "class_name": "Damping_Off",
+      "display_name": "Damping Off",
+      "has_sample_image": true,
+      "sample_image_path": "samples/damping_off.jpg"
+    },
+    {
+      "class_name": "Leaf_Curl_Virus",
+      "display_name": "Leaf Curl Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_curl_virus.jpg"
+    },
+    {
+      "class_name": "Veinal_Mottle",
+      "display_name": "Veinal Mottle",
+      "has_sample_image": true,
+      "sample_image_path": "samples/veinal_mottle.jpg"
+    },
+    {
+      "class_name": "Whitefly",
+      "display_name": "Whitefly",
+      "has_sample_image": true,
+      "sample_image_path": "samples/whitefly.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

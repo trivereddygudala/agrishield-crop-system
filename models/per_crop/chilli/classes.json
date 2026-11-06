@@ -1,0 +1,16 @@
+{
+  "crop": "chilli",
+  "crop_name": "Chilli / Mirapa (\u0c2e\u0c3f\u0c30\u0c2a / \u0bae\u0bbf\u0bb3\u0b95\u0bbe\u0baf\u0bcd)",
+  "category": "Spice / Vegetable",
+  "classes": [
+    "Anthracnose_Fruit_Rot",
+    "Black_Thrips_Damage",
+    "Bacterial_Spot",
+    "Damping_Off",
+    "Leaf_Curl_Virus",
+    "Veinal_Mottle",
+    "Whitefly",
+    "Healthy"
+  ],
+  "num_classes": 8
+}

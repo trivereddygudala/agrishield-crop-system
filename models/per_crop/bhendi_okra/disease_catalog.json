@@ -1,0 +1,43 @@
+{
+  "crop": "bhendi_okra",
+  "crop_name": "Bhendi / Okra (బెండకాయ / வெண்டைக்காய்)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Yellow_Vein_Mosaic_Virus",
+      "display_name": "Yellow Vein Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/yellow_vein_mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Enation_Leaf_Curl",
+      "display_name": "Enation Leaf Curl",
+      "has_sample_image": true,
+      "sample_image_path": "samples/enation_leaf_curl.jpg"
+    },
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Fruit_Borer",
+      "display_name": "Fruit Borer",
+      "has_sample_image": true,
+      "sample_image_path": "samples/fruit_borer.jpg"
+    },
+    {
+      "class_name": "Cercospora_Blight",
+      "display_name": "Cercospora Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cercospora_blight.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "crop": "cashew",
+  "crop_name": "Cashew (\u0c1c\u0c40\u0c21\u0c3f\u0c2e\u0c3e\u0c2e\u0c3f\u0c21\u0c3f / \u0bae\u0bc1\u0ba8\u0bcd\u0ba4\u0bbf\u0bb0\u0bbf)",
+  "category": "Nut Orchard",
+  "classes": [
+    "Tea_Mosquito_Bug_Damage",
+    "Anthracnose_Foliage",
+    "Gummosis_Stem",
+    "Red_Rust",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

@@ -1,0 +1,14 @@
+{
+  "crop": "bhendi_okra",
+  "crop_name": "Bhendi / Okra (\u0c2c\u0c46\u0c02\u0c21\u0c15\u0c3e\u0c2f / \u0bb5\u0bc6\u0ba3\u0bcd\u0b9f\u0bc8\u0b95\u0bcd\u0b95\u0bbe\u0baf\u0bcd)",
+  "category": "Vegetable",
+  "classes": [
+    "Yellow_Vein_Mosaic_Virus",
+    "Enation_Leaf_Curl",
+    "Powdery_Mildew",
+    "Fruit_Borer",
+    "Cercospora_Blight",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

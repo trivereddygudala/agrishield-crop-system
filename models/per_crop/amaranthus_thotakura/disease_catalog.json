@@ -1,0 +1,31 @@
+{
+  "crop": "amaranthus_thotakura",
+  "crop_name": "Amaranthus / Thotakura (తోటకూర / தண்டுக்கீரை)",
+  "num_classes": 4,
+  "classes": [
+    {
+      "class_name": "White_Rust_Albugo",
+      "display_name": "White Rust Albugo",
+      "has_sample_image": true,
+      "sample_image_path": "samples/white_rust_albugo.jpg"
+    },
+    {
+      "class_name": "Leaf_Blight",
+      "display_name": "Leaf Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_blight.jpg"
+    },
+    {
+      "class_name": "Leaf_Webber_Caterpillar",
+      "display_name": "Leaf Webber Caterpillar",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_webber_caterpillar.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

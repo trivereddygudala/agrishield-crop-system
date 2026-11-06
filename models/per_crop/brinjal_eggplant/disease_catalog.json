@@ -1,0 +1,43 @@
+{
+  "crop": "brinjal_eggplant",
+  "crop_name": "Brinjal / Eggplant (వంకాయ / கத்தரிக்காய்)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Shoot_and_Fruit_Borer",
+      "display_name": "Shoot and Fruit Borer",
+      "has_sample_image": true,
+      "sample_image_path": "samples/shoot_and_fruit_borer.jpg"
+    },
+    {
+      "class_name": "Little_Leaf_Phytoplasma",
+      "display_name": "Little Leaf Phytoplasma",
+      "has_sample_image": true,
+      "sample_image_path": "samples/little_leaf_phytoplasma.jpg"
+    },
+    {
+      "class_name": "Bacterial_Wilt",
+      "display_name": "Bacterial Wilt",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_wilt.jpg"
+    },
+    {
+      "class_name": "Cercospora_Leaf_Spot",
+      "display_name": "Cercospora Leaf Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cercospora_leaf_spot.jpg"
+    },
+    {
+      "class_name": "Phomopsis_Blight",
+      "display_name": "Phomopsis Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/phomopsis_blight.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

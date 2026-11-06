@@ -1,0 +1,37 @@
+{
+  "crop": "bitter_gourd",
+  "crop_name": "Bitter Gourd / Kakara (కాకరకాయ / பாகற்காய்)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Downy_Mildew",
+      "display_name": "Downy Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/downy_mildew.jpg"
+    },
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Fruit_Fly_Damage",
+      "display_name": "Fruit Fly Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/fruit_fly_damage.jpg"
+    },
+    {
+      "class_name": "Mosaic_Virus",
+      "display_name": "Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

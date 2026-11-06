@@ -1,0 +1,13 @@
+{
+  "crop": "bitter_gourd",
+  "crop_name": "Bitter Gourd / Kakara (\u0c15\u0c3e\u0c15\u0c30\u0c15\u0c3e\u0c2f / \u0baa\u0bbe\u0b95\u0bb1\u0bcd\u0b95\u0bbe\u0baf\u0bcd)",
+  "category": "Cucurbit Vegetable",
+  "classes": [
+    "Downy_Mildew",
+    "Powdery_Mildew",
+    "Fruit_Fly_Damage",
+    "Mosaic_Virus",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

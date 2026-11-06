@@ -1,0 +1,37 @@
+{
+  "crop": "arecanut",
+  "crop_name": "Arecanut / Betel Nut (పోకచెక్క / பாக்கு)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Koleroga_Fruit_Rot",
+      "display_name": "Koleroga Fruit Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/koleroga_fruit_rot.jpg"
+    },
+    {
+      "class_name": "Anabe_Roga_Foot_Rot",
+      "display_name": "Anabe Roga Foot Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anabe_roga_foot_rot.jpg"
+    },
+    {
+      "class_name": "Yellow_Leaf_Disease",
+      "display_name": "Yellow Leaf Disease",
+      "has_sample_image": true,
+      "sample_image_path": "samples/yellow_leaf_disease.jpg"
+    },
+    {
+      "class_name": "Bud_Rot",
+      "display_name": "Bud Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bud_rot.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

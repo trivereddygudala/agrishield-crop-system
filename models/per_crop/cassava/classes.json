@@ -1,0 +1,12 @@
+{
+  "crop": "cassava",
+  "crop_name": "Cassava / Tapioca (\u0c15\u0c30\u0c4d\u0c30\u0c2a\u0c46\u0c02\u0c21\u0c32\u0c02)",
+  "classes": [
+    "Cassava_Bacterial_Blight",
+    "Cassava_Brown_Streak",
+    "Cassava_Green_Mottle",
+    "Cassava_Mosaic_Disease",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

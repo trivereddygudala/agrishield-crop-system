@@ -1,0 +1,37 @@
+{
+  "crop": "black_gram",
+  "crop_name": "Black Gram / Urad (మినుములు / உளுந்து)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Yellow_Mosaic_Virus",
+      "display_name": "Yellow Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/yellow_mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Cercospora_Leaf_Spot",
+      "display_name": "Cercospora Leaf Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cercospora_leaf_spot.jpg"
+    },
+    {
+      "class_name": "Root_Rot",
+      "display_name": "Root Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/root_rot.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}
