@@ -1,0 +1,37 @@
+{
+  "crop": "rubber",
+  "crop_name": "Rubber (రబ్బర్ / ரப்பர்)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Abnormal_Leaf_Fall_Phytophthora",
+      "display_name": "Abnormal Leaf Fall Phytophthora",
+      "has_sample_image": true,
+      "sample_image_path": "samples/abnormal_leaf_fall_phytophthora.jpg"
+    },
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Corynespora_Leaf_Spot",
+      "display_name": "Corynespora Leaf Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/corynespora_leaf_spot.jpg"
+    },
+    {
+      "class_name": "Pink_Disease",
+      "display_name": "Pink Disease",
+      "has_sample_image": true,
+      "sample_image_path": "samples/pink_disease.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "crop": "potato",
+  "crop_name": "Potato (బంగాళాదుంప / உருளைக்கிழங்கு)",
+  "num_classes": 3,
+  "classes": [
+    {
+      "class_name": "Early_Blight",
+      "display_name": "Early Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/early_blight.jpg"
+    },
+    {
+      "class_name": "Late_Blight",
+      "display_name": "Late Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/late_blight.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

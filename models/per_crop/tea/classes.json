@@ -1,0 +1,13 @@
+{
+  "crop": "tea",
+  "crop_name": "Tea (\u0c1f\u0c40 / \u0ba4\u0bc7\u0baf\u0bbf\u0bb2\u0bc8)",
+  "category": "Plantation Beverage",
+  "classes": [
+    "Blister_Blight",
+    "Red_Spider_Mite",
+    "Grey_Blight",
+    "Black_Rot",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

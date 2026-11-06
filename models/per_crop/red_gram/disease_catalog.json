@@ -1,0 +1,37 @@
+{
+  "crop": "red_gram",
+  "crop_name": "Red Gram / Pigeonpea (కందిపప్పు / துவரை)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Sterility_Mosaic_Disease",
+      "display_name": "Sterility Mosaic Disease",
+      "has_sample_image": true,
+      "sample_image_path": "samples/sterility_mosaic_disease.jpg"
+    },
+    {
+      "class_name": "Fusarium_Wilt",
+      "display_name": "Fusarium Wilt",
+      "has_sample_image": true,
+      "sample_image_path": "samples/fusarium_wilt.jpg"
+    },
+    {
+      "class_name": "Pod_Borer_Helicoverpa",
+      "display_name": "Pod Borer Helicoverpa",
+      "has_sample_image": true,
+      "sample_image_path": "samples/pod_borer_helicoverpa.jpg"
+    },
+    {
+      "class_name": "Phytophthora_Blight",
+      "display_name": "Phytophthora Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/phytophthora_blight.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

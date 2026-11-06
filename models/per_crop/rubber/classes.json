@@ -1,0 +1,13 @@
+{
+  "crop": "rubber",
+  "crop_name": "Rubber (\u0c30\u0c2c\u0c4d\u0c2c\u0c30\u0c4d / \u0bb0\u0baa\u0bcd\u0baa\u0bb0\u0bcd)",
+  "category": "Commercial Plantation",
+  "classes": [
+    "Abnormal_Leaf_Fall_Phytophthora",
+    "Powdery_Mildew",
+    "Corynespora_Leaf_Spot",
+    "Pink_Disease",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

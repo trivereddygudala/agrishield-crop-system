@@ -1,0 +1,55 @@
+{
+  "crop": "rice",
+  "crop_name": "Rice / Paddy (వరి / நெல்)",
+  "num_classes": 8,
+  "classes": [
+    {
+      "class_name": "Bacterial_Leaf_Blight",
+      "display_name": "Bacterial Leaf Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_leaf_blight.jpg"
+    },
+    {
+      "class_name": "Brown_Spot",
+      "display_name": "Brown Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/brown_spot.jpg"
+    },
+    {
+      "class_name": "Leaf_Blast",
+      "display_name": "Leaf Blast",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_blast.jpg"
+    },
+    {
+      "class_name": "Neck_Blast",
+      "display_name": "Neck Blast",
+      "has_sample_image": true,
+      "sample_image_path": "samples/neck_blast.jpg"
+    },
+    {
+      "class_name": "Leaf_Smut",
+      "display_name": "Leaf Smut",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_smut.jpg"
+    },
+    {
+      "class_name": "Rice_Hispa",
+      "display_name": "Rice Hispa",
+      "has_sample_image": true,
+      "sample_image_path": "samples/rice_hispa.jpg"
+    },
+    {
+      "class_name": "Sheath_Rot",
+      "display_name": "Sheath Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/sheath_rot.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

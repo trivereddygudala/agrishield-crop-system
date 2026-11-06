@@ -1,0 +1,37 @@
+{
+  "crop": "tapioca_cassava",
+  "crop_name": "Tapioca / Cassava (కర్రపెండలం / மரவள்ளிக்கிழங்கு)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Cassava_Mosaic_Disease",
+      "display_name": "Cassava Mosaic Disease",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cassava_mosaic_disease.jpg"
+    },
+    {
+      "class_name": "Cassava_Brown_Streak",
+      "display_name": "Cassava Brown Streak",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cassava_brown_streak.jpg"
+    },
+    {
+      "class_name": "Bacterial_Blight",
+      "display_name": "Bacterial Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_blight.jpg"
+    },
+    {
+      "class_name": "Green_Mite_Damage",
+      "display_name": "Green Mite Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/green_mite_damage.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

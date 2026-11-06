@@ -1,0 +1,43 @@
+{
+  "crop": "sugarcane",
+  "crop_name": "Sugarcane (చెరకు / கரும்பு)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Mosaic_Virus",
+      "display_name": "Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Red_Rot",
+      "display_name": "Red Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/red_rot.jpg"
+    },
+    {
+      "class_name": "Rust",
+      "display_name": "Rust",
+      "has_sample_image": true,
+      "sample_image_path": "samples/rust.jpg"
+    },
+    {
+      "class_name": "Yellow_Leaf_Disease",
+      "display_name": "Yellow Leaf Disease",
+      "has_sample_image": true,
+      "sample_image_path": "samples/yellow_leaf_disease.jpg"
+    },
+    {
+      "class_name": "Smut",
+      "display_name": "Smut",
+      "has_sample_image": true,
+      "sample_image_path": "samples/smut.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

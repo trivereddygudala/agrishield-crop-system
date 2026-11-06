@@ -1,0 +1,37 @@
+{
+  "crop": "onion",
+  "crop_name": "Onion / Ullipaya (ఉల్లిపాయ / வெங்காயம்)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Purple_Blotch",
+      "display_name": "Purple Blotch",
+      "has_sample_image": true,
+      "sample_image_path": "samples/purple_blotch.jpg"
+    },
+    {
+      "class_name": "Stemphylium_Blight",
+      "display_name": "Stemphylium Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/stemphylium_blight.jpg"
+    },
+    {
+      "class_name": "Thrips_Damage",
+      "display_name": "Thrips Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/thrips_damage.jpg"
+    },
+    {
+      "class_name": "Basal_Rot_Fusarium",
+      "display_name": "Basal Rot Fusarium",
+      "has_sample_image": true,
+      "sample_image_path": "samples/basal_rot_fusarium.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

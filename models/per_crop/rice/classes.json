@@ -1,0 +1,16 @@
+{
+  "crop": "rice",
+  "crop_name": "Rice / Paddy (\u0c35\u0c30\u0c3f / \u0ba8\u0bc6\u0bb2\u0bcd)",
+  "category": "Cereal Grain",
+  "classes": [
+    "Bacterial_Leaf_Blight",
+    "Brown_Spot",
+    "Leaf_Blast",
+    "Neck_Blast",
+    "Leaf_Smut",
+    "Rice_Hispa",
+    "Sheath_Rot",
+    "Healthy"
+  ],
+  "num_classes": 8
+}

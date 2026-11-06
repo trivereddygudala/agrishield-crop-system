@@ -1,0 +1,13 @@
+{
+  "crop": "onion",
+  "crop_name": "Onion / Ullipaya (\u0c09\u0c32\u0c4d\u0c32\u0c3f\u0c2a\u0c3e\u0c2f / \u0bb5\u0bc6\u0b99\u0bcd\u0b95\u0bbe\u0baf\u0bae\u0bcd)",
+  "category": "Bulb Vegetable",
+  "classes": [
+    "Purple_Blotch",
+    "Stemphylium_Blight",
+    "Thrips_Damage",
+    "Basal_Rot_Fusarium",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

@@ -1,0 +1,14 @@
+{
+  "crop": "sugarcane",
+  "crop_name": "Sugarcane (\u0c1a\u0c46\u0c30\u0c15\u0c41 / \u0b95\u0bb0\u0bc1\u0bae\u0bcd\u0baa\u0bc1)",
+  "category": "Commercial Crop",
+  "classes": [
+    "Mosaic_Virus",
+    "Red_Rot",
+    "Rust",
+    "Yellow_Leaf_Disease",
+    "Smut",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

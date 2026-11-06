@@ -1,0 +1,18 @@
+{
+  "crop": "tomato",
+  "crop_name": "Tomato (\u0c1f\u0c2e\u0c3e\u0c1f / \u0ba4\u0b95\u0bcd\u0b95\u0bbe\u0bb3\u0bbf)",
+  "category": "Solanaceous Vegetable",
+  "classes": [
+    "Bacterial_Spot",
+    "Early_Blight",
+    "Late_Blight",
+    "Leaf_Mold",
+    "Septoria_Leaf_Spot",
+    "Spider_Mites",
+    "Target_Spot",
+    "Yellow_Leaf_Curl_Virus",
+    "Mosaic_Virus",
+    "Healthy"
+  ],
+  "num_classes": 10
+}

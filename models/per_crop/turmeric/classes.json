@@ -1,0 +1,13 @@
+{
+  "crop": "turmeric",
+  "crop_name": "Turmeric / Pasupu (\u0c2a\u0c38\u0c41\u0c2a\u0c41 / \u0bae\u0b9e\u0bcd\u0b9a\u0bb3\u0bcd)",
+  "category": "Spice Crop",
+  "classes": [
+    "Leaf_Blotch_Taphrina",
+    "Leaf_Spot_Colletotrichum",
+    "Rhizome_Rot_Pythium",
+    "Shoot_Borer",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

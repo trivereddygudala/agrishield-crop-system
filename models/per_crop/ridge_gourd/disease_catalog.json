@@ -1,0 +1,37 @@
+{
+  "crop": "ridge_gourd",
+  "crop_name": "Ridge Gourd / Beera (బీరకాయ / பீர்க்கங்காய்)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Downy_Mildew",
+      "display_name": "Downy Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/downy_mildew.jpg"
+    },
+    {
+      "class_name": "Anthracnose",
+      "display_name": "Anthracnose",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose.jpg"
+    },
+    {
+      "class_name": "Mosaic_Virus",
+      "display_name": "Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Fruit_Fly_Rot",
+      "display_name": "Fruit Fly Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/fruit_fly_rot.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

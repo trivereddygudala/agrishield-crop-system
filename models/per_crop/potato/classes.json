@@ -1,0 +1,11 @@
+{
+  "crop": "potato",
+  "crop_name": "Potato (\u0c2c\u0c02\u0c17\u0c3e\u0c33\u0c3e\u0c26\u0c41\u0c02\u0c2a / \u0b89\u0bb0\u0bc1\u0bb3\u0bc8\u0b95\u0bcd\u0b95\u0bbf\u0bb4\u0b99\u0bcd\u0b95\u0bc1)",
+  "category": "Tuber Vegetable",
+  "classes": [
+    "Early_Blight",
+    "Late_Blight",
+    "Healthy"
+  ],
+  "num_classes": 3
+}

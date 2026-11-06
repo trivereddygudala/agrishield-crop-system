@@ -1,0 +1,13 @@
+{
+  "crop": "tapioca_cassava",
+  "crop_name": "Tapioca / Cassava (\u0c15\u0c30\u0c4d\u0c30\u0c2a\u0c46\u0c02\u0c21\u0c32\u0c02 / \u0bae\u0bb0\u0bb5\u0bb3\u0bcd\u0bb3\u0bbf\u0b95\u0bcd\u0b95\u0bbf\u0bb4\u0b99\u0bcd\u0b95\u0bc1)",
+  "category": "Tuber Plantation",
+  "classes": [
+    "Cassava_Mosaic_Disease",
+    "Cassava_Brown_Streak",
+    "Bacterial_Blight",
+    "Green_Mite_Damage",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

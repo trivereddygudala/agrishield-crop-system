@@ -1,0 +1,37 @@
+{
+  "crop": "ragi_finger_millet",
+  "crop_name": "Ragi / Finger Millet (రాగులు / கேழ்வரகு)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Finger_Blast",
+      "display_name": "Finger Blast",
+      "has_sample_image": true,
+      "sample_image_path": "samples/finger_blast.jpg"
+    },
+    {
+      "class_name": "Neck_Blast",
+      "display_name": "Neck Blast",
+      "has_sample_image": true,
+      "sample_image_path": "samples/neck_blast.jpg"
+    },
+    {
+      "class_name": "Foot_Rot",
+      "display_name": "Foot Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/foot_rot.jpg"
+    },
+    {
+      "class_name": "Brown_Spot",
+      "display_name": "Brown Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/brown_spot.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "crop": "pomegranate",
+  "crop_name": "Pomegranate (దానిమ్మ / மாதுளை)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Bacterial_Blight_Nodal",
+      "display_name": "Bacterial Blight Nodal",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_blight_nodal.jpg"
+    },
+    {
+      "class_name": "Anthracnose_Fruit",
+      "display_name": "Anthracnose Fruit",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose_fruit.jpg"
+    },
+    {
+      "class_name": "Cercospora_Spot",
+      "display_name": "Cercospora Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cercospora_spot.jpg"
+    },
+    {
+      "class_name": "Wilt_Ceratocystis",
+      "display_name": "Wilt Ceratocystis",
+      "has_sample_image": true,
+      "sample_image_path": "samples/wilt_ceratocystis.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

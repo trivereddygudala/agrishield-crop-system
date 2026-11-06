@@ -1,0 +1,37 @@
+{
+  "crop": "tea",
+  "crop_name": "Tea (టీ / தேயிலை)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Blister_Blight",
+      "display_name": "Blister Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/blister_blight.jpg"
+    },
+    {
+      "class_name": "Red_Spider_Mite",
+      "display_name": "Red Spider Mite",
+      "has_sample_image": true,
+      "sample_image_path": "samples/red_spider_mite.jpg"
+    },
+    {
+      "class_name": "Grey_Blight",
+      "display_name": "Grey Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/grey_blight.jpg"
+    },
+    {
+      "class_name": "Black_Rot",
+      "display_name": "Black Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/black_rot.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

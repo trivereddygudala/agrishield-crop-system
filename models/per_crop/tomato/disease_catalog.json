@@ -1,0 +1,67 @@
+{
+  "crop": "tomato",
+  "crop_name": "Tomato (టమాట / தக்காளி)",
+  "num_classes": 10,
+  "classes": [
+    {
+      "class_name": "Bacterial_Spot",
+      "display_name": "Bacterial Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_spot.jpg"
+    },
+    {
+      "class_name": "Early_Blight",
+      "display_name": "Early Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/early_blight.jpg"
+    },
+    {
+      "class_name": "Late_Blight",
+      "display_name": "Late Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/late_blight.jpg"
+    },
+    {
+      "class_name": "Leaf_Mold",
+      "display_name": "Leaf Mold",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_mold.jpg"
+    },
+    {
+      "class_name": "Septoria_Leaf_Spot",
+      "display_name": "Septoria Leaf Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/septoria_leaf_spot.jpg"
+    },
+    {
+      "class_name": "Spider_Mites",
+      "display_name": "Spider Mites",
+      "has_sample_image": true,
+      "sample_image_path": "samples/spider_mites.jpg"
+    },
+    {
+      "class_name": "Target_Spot",
+      "display_name": "Target Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/target_spot.jpg"
+    },
+    {
+      "class_name": "Yellow_Leaf_Curl_Virus",
+      "display_name": "Yellow Leaf Curl Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/yellow_leaf_curl_virus.jpg"
+    },
+    {
+      "class_name": "Mosaic_Virus",
+      "display_name": "Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

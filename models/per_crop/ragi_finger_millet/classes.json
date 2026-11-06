@@ -1,0 +1,13 @@
+{
+  "crop": "ragi_finger_millet",
+  "crop_name": "Ragi / Finger Millet (\u0c30\u0c3e\u0c17\u0c41\u0c32\u0c41 / \u0b95\u0bc7\u0bb4\u0bcd\u0bb5\u0bb0\u0b95\u0bc1)",
+  "category": "Nutri-Cereal",
+  "classes": [
+    "Finger_Blast",
+    "Neck_Blast",
+    "Foot_Rot",
+    "Brown_Spot",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

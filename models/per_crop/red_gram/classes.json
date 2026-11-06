@@ -1,0 +1,13 @@
+{
+  "crop": "red_gram",
+  "crop_name": "Red Gram / Pigeonpea (\u0c15\u0c02\u0c26\u0c3f\u0c2a\u0c2a\u0c4d\u0c2a\u0c41 / \u0ba4\u0bc1\u0bb5\u0bb0\u0bc8)",
+  "category": "Pulse Crop",
+  "classes": [
+    "Sterility_Mosaic_Disease",
+    "Fusarium_Wilt",
+    "Pod_Borer_Helicoverpa",
+    "Phytophthora_Blight",
+    "Healthy"
+  ],
+  "num_classes": 5
+}
