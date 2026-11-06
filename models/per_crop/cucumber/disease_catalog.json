@@ -1,0 +1,43 @@
+{
+  "crop": "cucumber",
+  "crop_name": "Cucumber / Dosakaya (దోసకాయ / வெள்ளரிக்காய்)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Downy_Mildew",
+      "display_name": "Downy Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/downy_mildew.jpg"
+    },
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Bacterial_Wilt",
+      "display_name": "Bacterial Wilt",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_wilt.jpg"
+    },
+    {
+      "class_name": "Anthracnose",
+      "display_name": "Anthracnose",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose.jpg"
+    },
+    {
+      "class_name": "Mosaic_Virus",
+      "display_name": "Mosaic Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/mosaic_virus.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

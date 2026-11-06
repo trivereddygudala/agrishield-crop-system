@@ -1,0 +1,43 @@
+{
+  "crop": "groundnut",
+  "crop_name": "Groundnut / Peanut (వేరుశనగ / நிலக்கடலை)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Alternaria_Leaf_Spot",
+      "display_name": "Alternaria Leaf Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/alternaria_leaf_spot.jpg"
+    },
+    {
+      "class_name": "Early_Tikka_Spot",
+      "display_name": "Early Tikka Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/early_tikka_spot.jpg"
+    },
+    {
+      "class_name": "Late_Tikka_Spot",
+      "display_name": "Late Tikka Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/late_tikka_spot.jpg"
+    },
+    {
+      "class_name": "Rust",
+      "display_name": "Rust",
+      "has_sample_image": true,
+      "sample_image_path": "samples/rust.jpg"
+    },
+    {
+      "class_name": "Rosette_Virus",
+      "display_name": "Rosette Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/rosette_virus.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

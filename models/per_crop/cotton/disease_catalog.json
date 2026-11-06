@@ -1,0 +1,43 @@
+{
+  "crop": "cotton",
+  "crop_name": "Cotton (పత్తి / பருத்தி)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Bacterial_Blight",
+      "display_name": "Bacterial Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_blight.jpg"
+    },
+    {
+      "class_name": "Curl_Virus",
+      "display_name": "Curl Virus",
+      "has_sample_image": true,
+      "sample_image_path": "samples/curl_virus.jpg"
+    },
+    {
+      "class_name": "Fusarium_Wilt",
+      "display_name": "Fusarium Wilt",
+      "has_sample_image": true,
+      "sample_image_path": "samples/fusarium_wilt.jpg"
+    },
+    {
+      "class_name": "Pink_Bollworm_Damage",
+      "display_name": "Pink Bollworm Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/pink_bollworm_damage.jpg"
+    },
+    {
+      "class_name": "Target_Spot",
+      "display_name": "Target Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/target_spot.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

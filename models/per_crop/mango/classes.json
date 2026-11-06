@@ -1,0 +1,14 @@
+{
+  "crop": "mango",
+  "crop_name": "Mango (\u0c2e\u0c3e\u0c2e\u0c3f\u0c21\u0c3f / \u0bae\u0bbe\u0bae\u0bcd\u0baa\u0bb4\u0bae\u0bcd)",
+  "category": "Fruit Orchard",
+  "classes": [
+    "Anthracnose",
+    "Powdery_Mildew",
+    "Bacterial_Canker",
+    "Tip_Borer_Damage",
+    "Sooty_Mould",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

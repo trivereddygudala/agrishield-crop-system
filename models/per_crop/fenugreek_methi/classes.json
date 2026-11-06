@@ -1,0 +1,13 @@
+{
+  "crop": "fenugreek_methi",
+  "crop_name": "Fenugreek / Methi (\u0c2e\u0c46\u0c02\u0c24\u0c3f\u0c15\u0c42\u0c30 / \u0bb5\u0bc6\u0ba8\u0bcd\u0ba4\u0baf\u0b95\u0bcd\u0b95\u0bc0\u0bb0\u0bc8)",
+  "category": "Leafy Vegetable",
+  "classes": [
+    "Powdery_Mildew",
+    "Downy_Mildew",
+    "Cercospora_Spot",
+    "Damping_Off",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

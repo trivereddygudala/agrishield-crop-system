@@ -1,0 +1,13 @@
+{
+  "crop": "coriander",
+  "crop_name": "Coriander / Kothimeera (\u0c15\u0c4a\u0c24\u0c4d\u0c24\u0c3f\u0c2e\u0c40\u0c30 / \u0b95\u0bca\u0ba4\u0bcd\u0ba4\u0bae\u0bb2\u0bcd\u0bb2\u0bbf)",
+  "category": "Leafy Herb",
+  "classes": [
+    "Powdery_Mildew",
+    "Stem_Gall",
+    "Fusarium_Wilt",
+    "Alternaria_Blight",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

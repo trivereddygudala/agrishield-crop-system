@@ -1,0 +1,13 @@
+{
+  "crop": "gongura",
+  "crop_name": "Gongura / Sorrel Leaves (\u0c17\u0c4b\u0c02\u0c17\u0c42\u0c30 / \u0baa\u0bc1\u0bb3\u0bbf\u0b9a\u0bcd\u0b9a\u0b95\u0bcd\u0b95\u0bc0\u0bb0\u0bc8)",
+  "category": "Leafy Vegetable",
+  "classes": [
+    "Cercospora_Leaf_Spot",
+    "Rust",
+    "Flea_Beetle_Pest",
+    "Yellow_Vein_Mosaic",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

@@ -1,0 +1,37 @@
+{
+  "crop": "grape",
+  "crop_name": "Grape (ద్రాక్ష)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Black_Rot",
+      "display_name": "Black Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/black_rot.jpg"
+    },
+    {
+      "class_name": "Esca_Black_Measles",
+      "display_name": "Esca Black Measles",
+      "has_sample_image": true,
+      "sample_image_path": "samples/esca_black_measles.jpg"
+    },
+    {
+      "class_name": "Leaf_Blight_Isariopsis",
+      "display_name": "Leaf Blight Isariopsis",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_blight_isariopsis.jpg"
+    },
+    {
+      "class_name": "Downy_Mildew",
+      "display_name": "Downy Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/downy_mildew.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

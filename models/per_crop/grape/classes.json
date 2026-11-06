@@ -1,0 +1,12 @@
+{
+  "crop": "grape",
+  "crop_name": "Grape (\u0c26\u0c4d\u0c30\u0c3e\u0c15\u0c4d\u0c37)",
+  "classes": [
+    "Black_Rot",
+    "Esca_Black_Measles",
+    "Leaf_Blight_Isariopsis",
+    "Downy_Mildew",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

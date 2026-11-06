@@ -1,0 +1,37 @@
+{
+  "crop": "coriander",
+  "crop_name": "Coriander / Kothimeera (కొత్తిమీర / கொத்தமல்லி)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Stem_Gall",
+      "display_name": "Stem Gall",
+      "has_sample_image": true,
+      "sample_image_path": "samples/stem_gall.jpg"
+    },
+    {
+      "class_name": "Fusarium_Wilt",
+      "display_name": "Fusarium Wilt",
+      "has_sample_image": true,
+      "sample_image_path": "samples/fusarium_wilt.jpg"
+    },
+    {
+      "class_name": "Alternaria_Blight",
+      "display_name": "Alternaria Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/alternaria_blight.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

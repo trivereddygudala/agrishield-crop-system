@@ -1,0 +1,14 @@
+{
+  "crop": "cucumber",
+  "crop_name": "Cucumber / Dosakaya (\u0c26\u0c4b\u0c38\u0c15\u0c3e\u0c2f / \u0bb5\u0bc6\u0bb3\u0bcd\u0bb3\u0bb0\u0bbf\u0b95\u0bcd\u0b95\u0bbe\u0baf\u0bcd)",
+  "category": "Cucurbit Vegetable",
+  "classes": [
+    "Downy_Mildew",
+    "Powdery_Mildew",
+    "Bacterial_Wilt",
+    "Anthracnose",
+    "Mosaic_Virus",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

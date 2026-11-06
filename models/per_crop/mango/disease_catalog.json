@@ -1,0 +1,43 @@
+{
+  "crop": "mango",
+  "crop_name": "Mango (మామిడి / மாம்பழம்)",
+  "num_classes": 6,
+  "classes": [
+    {
+      "class_name": "Anthracnose",
+      "display_name": "Anthracnose",
+      "has_sample_image": true,
+      "sample_image_path": "samples/anthracnose.jpg"
+    },
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Bacterial_Canker",
+      "display_name": "Bacterial Canker",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_canker.jpg"
+    },
+    {
+      "class_name": "Tip_Borer_Damage",
+      "display_name": "Tip Borer Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/tip_borer_damage.jpg"
+    },
+    {
+      "class_name": "Sooty_Mould",
+      "display_name": "Sooty Mould",
+      "has_sample_image": true,
+      "sample_image_path": "samples/sooty_mould.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

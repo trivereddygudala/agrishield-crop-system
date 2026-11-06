@@ -1,0 +1,14 @@
+{
+  "crop": "cotton",
+  "crop_name": "Cotton (\u0c2a\u0c24\u0c4d\u0c24\u0c3f / \u0baa\u0bb0\u0bc1\u0ba4\u0bcd\u0ba4\u0bbf)",
+  "category": "Fiber Cash Crop",
+  "classes": [
+    "Bacterial_Blight",
+    "Curl_Virus",
+    "Fusarium_Wilt",
+    "Pink_Bollworm_Damage",
+    "Target_Spot",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

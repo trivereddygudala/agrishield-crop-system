@@ -1,0 +1,14 @@
+{
+  "crop": "groundnut",
+  "crop_name": "Groundnut / Peanut (\u0c35\u0c47\u0c30\u0c41\u0c36\u0c28\u0c17 / \u0ba8\u0bbf\u0bb2\u0b95\u0bcd\u0b95\u0b9f\u0bb2\u0bc8)",
+  "category": "Oilseed / Legume",
+  "classes": [
+    "Alternaria_Leaf_Spot",
+    "Early_Tikka_Spot",
+    "Late_Tikka_Spot",
+    "Rust",
+    "Rosette_Virus",
+    "Healthy"
+  ],
+  "num_classes": 6
+}

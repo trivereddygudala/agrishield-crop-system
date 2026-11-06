@@ -1,0 +1,13 @@
+{
+  "crop": "coffee",
+  "crop_name": "Coffee (\u0c15\u0c3e\u0c2b\u0c40 / \u0b95\u0bbe\u0baa\u0bbf)",
+  "category": "Plantation Beverage",
+  "classes": [
+    "Coffee_Leaf_Rust_Hemileia",
+    "Coffee_Berry_Borer",
+    "Black_Rot_Koleroga",
+    "Anthracnose_Die_Back",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

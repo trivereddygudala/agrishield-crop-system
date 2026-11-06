@@ -1,0 +1,37 @@
+{
+  "crop": "ginger",
+  "crop_name": "Ginger / Allam (అల్లం / இஞ்சி)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Soft_Rot_Rhizome",
+      "display_name": "Soft Rot Rhizome",
+      "has_sample_image": true,
+      "sample_image_path": "samples/soft_rot_rhizome.jpg"
+    },
+    {
+      "class_name": "Bacterial_Wilt",
+      "display_name": "Bacterial Wilt",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bacterial_wilt.jpg"
+    },
+    {
+      "class_name": "Leaf_Spot_Phyllosticta",
+      "display_name": "Leaf Spot Phyllosticta",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_spot_phyllosticta.jpg"
+    },
+    {
+      "class_name": "Shoot_Borer",
+      "display_name": "Shoot Borer",
+      "has_sample_image": true,
+      "sample_image_path": "samples/shoot_borer.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

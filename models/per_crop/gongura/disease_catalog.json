@@ -1,0 +1,37 @@
+{
+  "crop": "gongura",
+  "crop_name": "Gongura / Sorrel Leaves (గోంగూర / புளிச்சக்கீரை)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Cercospora_Leaf_Spot",
+      "display_name": "Cercospora Leaf Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cercospora_leaf_spot.jpg"
+    },
+    {
+      "class_name": "Rust",
+      "display_name": "Rust",
+      "has_sample_image": true,
+      "sample_image_path": "samples/rust.jpg"
+    },
+    {
+      "class_name": "Flea_Beetle_Pest",
+      "display_name": "Flea Beetle Pest",
+      "has_sample_image": true,
+      "sample_image_path": "samples/flea_beetle_pest.jpg"
+    },
+    {
+      "class_name": "Yellow_Vein_Mosaic",
+      "display_name": "Yellow Vein Mosaic",
+      "has_sample_image": true,
+      "sample_image_path": "samples/yellow_vein_mosaic.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

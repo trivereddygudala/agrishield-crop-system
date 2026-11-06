@@ -1,0 +1,37 @@
+{
+  "crop": "mint_pudina",
+  "crop_name": "Mint / Pudina (పుదీనా / புதினா)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Mint_Rust",
+      "display_name": "Mint Rust",
+      "has_sample_image": true,
+      "sample_image_path": "samples/mint_rust.jpg"
+    },
+    {
+      "class_name": "Verticillium_Wilt",
+      "display_name": "Verticillium Wilt",
+      "has_sample_image": true,
+      "sample_image_path": "samples/verticillium_wilt.jpg"
+    },
+    {
+      "class_name": "Leaf_Blight",
+      "display_name": "Leaf Blight",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_blight.jpg"
+    },
+    {
+      "class_name": "Spider_Mite_Damage",
+      "display_name": "Spider Mite Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/spider_mite_damage.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "crop": "fenugreek_methi",
+  "crop_name": "Fenugreek / Methi (మెంతికూర / வெந்தயக்கீரை)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Powdery_Mildew",
+      "display_name": "Powdery Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/powdery_mildew.jpg"
+    },
+    {
+      "class_name": "Downy_Mildew",
+      "display_name": "Downy Mildew",
+      "has_sample_image": true,
+      "sample_image_path": "samples/downy_mildew.jpg"
+    },
+    {
+      "class_name": "Cercospora_Spot",
+      "display_name": "Cercospora Spot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/cercospora_spot.jpg"
+    },
+    {
+      "class_name": "Damping_Off",
+      "display_name": "Damping Off",
+      "has_sample_image": true,
+      "sample_image_path": "samples/damping_off.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

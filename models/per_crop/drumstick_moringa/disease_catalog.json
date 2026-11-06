@@ -1,0 +1,37 @@
+{
+  "crop": "drumstick_moringa",
+  "crop_name": "Drumstick / Moringa (మునగకాయ / முருங்கை)",
+  "num_classes": 5,
+  "classes": [
+    {
+      "class_name": "Bud_Worm_Damage",
+      "display_name": "Bud Worm Damage",
+      "has_sample_image": true,
+      "sample_image_path": "samples/bud_worm_damage.jpg"
+    },
+    {
+      "class_name": "Leaf_Spot_Cercospora",
+      "display_name": "Leaf Spot Cercospora",
+      "has_sample_image": true,
+      "sample_image_path": "samples/leaf_spot_cercospora.jpg"
+    },
+    {
+      "class_name": "Pod_Fly_Rot",
+      "display_name": "Pod Fly Rot",
+      "has_sample_image": true,
+      "sample_image_path": "samples/pod_fly_rot.jpg"
+    },
+    {
+      "class_name": "Twig_Canker",
+      "display_name": "Twig Canker",
+      "has_sample_image": true,
+      "sample_image_path": "samples/twig_canker.jpg"
+    },
+    {
+      "class_name": "Healthy",
+      "display_name": "Healthy",
+      "has_sample_image": true,
+      "sample_image_path": "samples/healthy.jpg"
+    }
+  ]
+}

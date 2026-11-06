@@ -1,0 +1,13 @@
+{
+  "crop": "mint_pudina",
+  "crop_name": "Mint / Pudina (\u0c2a\u0c41\u0c26\u0c40\u0c28\u0c3e / \u0baa\u0bc1\u0ba4\u0bbf\u0ba9\u0bbe)",
+  "category": "Leafy Herb",
+  "classes": [
+    "Mint_Rust",
+    "Verticillium_Wilt",
+    "Leaf_Blight",
+    "Spider_Mite_Damage",
+    "Healthy"
+  ],
+  "num_classes": 5
+}

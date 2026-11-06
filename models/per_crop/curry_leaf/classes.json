@@ -1,0 +1,13 @@
+{
+  "crop": "curry_leaf",
+  "crop_name": "Curry Leaves / Karivepaku (\u0c15\u0c30\u0c3f\u0c35\u0c47\u0c2a\u0c3e\u0c15\u0c41 / \u0b95\u0bb1\u0bbf\u0bb5\u0bc7\u0baa\u0bcd\u0baa\u0bbf\u0bb2\u0bc8)",
+  "category": "Aromatic Herb",
+  "classes": [
+    "Leaf_Spot_Phoma",
+    "Collar_Rot_Rhizoctonia",
+    "Psyllid_Pest_Damage",
+    "Iron_Chlorosis_Yellowing",
+    "Healthy"
+  ],
+  "num_classes": 5
+}
