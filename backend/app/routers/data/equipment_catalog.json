@@ -1,0 +1,15 @@
+[
+  {
+    "id": "EQ-15078",
+    "title": "Public Farmer Tractor",
+    "category": "tractor",
+    "village": "Prakasam",
+    "providerId": "6ac3c007e99515afbdd5b95c",
+    "owner_id": "6ac3c007e99515afbdd5b95c",
+    "providerName": "Public Provider",
+    "phone": "9848011223",
+    "available": true,
+    "createdAt": "2026-10-05T20:49:35.078764",
+    "updatedAt": "2026-10-05T20:49:35.078773"
+  }
+]

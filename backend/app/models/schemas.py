@@ -216,6 +216,13 @@ class PredictionResponse(PredictionBase):
     ensemble_provider: Optional[str] = None
     ensemble_notes: Optional[str] = None
     multipart_scan_used: Optional[bool] = False
+    canonical_crop_name: Optional[str] = None
+    canonical_disease_name: Optional[str] = None
+    original_crop_name: Optional[str] = None
+    original_disease_name: Optional[str] = None
+    sample_reference_image: Optional[str] = None
+    reference_comparison_images: Optional[List[Dict[str, Any]]] = None
+    translations: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True, extra="allow", arbitrary_types_allowed=True)
 

@@ -1020,6 +1020,7 @@ const UploadImagePage = () => {
                   {activeTab === 'plant-id' && (
                     <PlantIdResults 
                       liveResult={liveResult}
+                      previewUrl={previewUrl}
                       onScanAnother={clearSelection}
                       onCheckDisease={handleSwitchToDisease}
                     />
@@ -1038,6 +1039,7 @@ const UploadImagePage = () => {
                   {activeTab === 'agro-scan' && (
                     <AgrochemicalResults 
                       data={liveResult}
+                      previewUrl={previewUrl}
                       onScanAnother={clearSelection}
                     />
                   )}

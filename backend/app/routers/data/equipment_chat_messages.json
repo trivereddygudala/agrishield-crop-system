@@ -1,0 +1,108 @@
+{
+  "BK-TEST-H1": [
+    {
+      "id": "msg_spoof_1",
+      "sender": "farmer",
+      "sender_id": "6abb5082446dbe79e1d1dbc5",
+      "senderName": "Ramu Farmer",
+      "type": "text",
+      "text": "Hello I am provider discounting price",
+      "original_text": "Hello I am provider discounting price",
+      "source_language": "en",
+      "translations": {},
+      "translated_text": "Hello I am provider discounting price",
+      "time": "11:15 AM",
+      "timestamp": "2026-09-29T11:15:38.931091",
+      "status": "sent"
+    }
+  ],
+  "BK-TEST-H2-DEL": [
+    {
+      "id": "msg_prov_del",
+      "sender": "provider",
+      "sender_id": "6abb5082446dbe79e1d1dbcb",
+      "senderName": "Kiran Provider",
+      "type": "text",
+      "text": "Provider contractual statement",
+      "original_text": "Provider contractual statement",
+      "source_language": "en",
+      "translations": {},
+      "translated_text": "Provider contractual statement",
+      "time": "11:15 AM",
+      "timestamp": "2026-09-29T11:15:38.942341",
+      "status": "sent"
+    }
+  ],
+  "BK-TEST-H2-EDIT": [
+    {
+      "id": "msg_farmer_edit",
+      "sender": "farmer",
+      "sender_id": "6abb5082446dbe79e1d1dbcf",
+      "senderName": "Ramu Farmer",
+      "type": "text",
+      "text": "Original farmer agreement",
+      "original_text": "Original farmer agreement",
+      "source_language": "en",
+      "translations": {},
+      "translated_text": "Original farmer agreement",
+      "time": "11:15 AM",
+      "timestamp": "2026-09-29T11:15:38.976964",
+      "status": "sent"
+    }
+  ],
+  "BK-TEST-H2-OWN": [],
+  "BK-TEST-H2-ADMIN": [],
+  "BK-CHAT-F2P": [
+    {
+      "id": "msg_f2p_1",
+      "sender": "admin",
+      "sender_id": "admin_1",
+      "senderName": "Farmer",
+      "type": "text",
+      "text": "నేను రేపు ఉదయం 8 గంటలకు వస్తాను",
+      "original_text": "నేను రేపు ఉదయం 8 గంటలకు వస్తాను",
+      "source_language": "te",
+      "translations": {
+        "en": "I will come tomorrow at 8 AM"
+      },
+      "translated_text": "I will come tomorrow at 8 AM",
+      "time": "08:03 AM",
+      "timestamp": "2026-10-02T08:03:31.862720",
+      "status": "sent"
+    }
+  ],
+  "BK-CHAT-P2F": [
+    {
+      "id": "msg_p2f_1",
+      "sender": "admin",
+      "sender_id": "admin_1",
+      "senderName": "Farmer",
+      "type": "text",
+      "text": "ट्रैक्टर तैयार है",
+      "original_text": "ट्रैक्टर तैयार है",
+      "source_language": "hi",
+      "translations": {},
+      "translated_text": "ट्रैक्टर तैयार है",
+      "time": "08:03 AM",
+      "timestamp": "2026-10-02T08:03:31.983523",
+      "status": "sent"
+    }
+  ],
+  "BK-9922": [
+    {
+      "id": "msg_chat_ws_1",
+      "sender": "admin",
+      "sender_id": "admin_1",
+      "senderName": "Farmer",
+      "type": "text",
+      "text": "Please deliver the tractor by 7 AM",
+      "original_text": "Please deliver the tractor by 7 AM",
+      "source_language": "en",
+      "translations": {},
+      "translated_text": null,
+      "time": "08:03 AM",
+      "timestamp": "2026-10-02T08:03:33.689048",
+      "status": "sent"
+    }
+  ]
+}

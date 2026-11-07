@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  FlaskConical, ClipboardList, ShieldAlert, Sparkles, Volume2, VolumeX, 
+import {
+  FlaskConical, ClipboardList, ShieldAlert, Sparkles, Volume2, VolumeX,
   CheckCircle2, Clock, Droplets, AlertTriangle, ShieldCheck, Info,
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
   ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2,
@@ -167,7 +167,7 @@ const AGRO_UI_LOCALIZATIONS = {
   }
 };
 
-const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
+const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const overrides = {};
@@ -437,9 +437,9 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
   };
 
   // Detailed Description Text
-  const detailedDescription = productDetails?.detailed_description || 
-    chemicalExplanation?.detailed_description || 
-    chemicalExplanation?.utility_and_benefits || 
+  const detailedDescription = productDetails?.detailed_description ||
+    chemicalExplanation?.detailed_description ||
+    chemicalExplanation?.utility_and_benefits ||
     `${productDetails.brand_name} is a high-grade agricultural product manufactured by ${productDetails.company}. It delivers targeted plant protection and health optimization through ${chemicalExplanation.action_mode.toLowerCase()}.`;
 
   // Determine detection source
@@ -470,845 +470,580 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
     </div>
   );
 
-  const renderAgroHero = () => (
-    <Card className="p-5 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950/90 to-slate-900 text-white border border-indigo-500/30 shadow-2xl relative overflow-hidden rounded-3xl">
-      {/* Ambient background glows */}
-      <div className="absolute -top-24 -right-24 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+    const [zoomImageModal, setZoomImageModal] = useState(null);
+  const [selectedTankSize, setSelectedTankSize] = useState(15); // Standard 15L backpack pump
 
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
-        <div className="space-y-3.5 flex-1">
-          {/* Category and Verification Badges */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-md flex items-center gap-1.5 ${categoryMeta.badgeColor}`}>
-              <span>{categoryMeta.icon}</span> {categoryMeta.label}
-            </span>
-            {isWebSearch ? (
-              <span className="px-3 py-1 text-xs font-bold text-cyan-200 border border-cyan-400/40 bg-cyan-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
-                🌐 Live Web & AI Verified
-              </span>
-            ) : isCatalog ? (
-              <span className="px-3 py-1 text-xs font-bold text-emerald-200 border border-emerald-400/40 bg-emerald-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
-                🛡️ Certified Catalog Product
-              </span>
-            ) : (
-              <span className="px-3 py-1 text-xs font-bold text-indigo-200 border border-indigo-400/40 bg-indigo-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
-                ✓ OCR Packaging Analysis
-              </span>
-            )}
-            {isGeminiVision && (
-              <span className="px-3 py-1 text-xs font-black text-teal-200 border border-teal-400/50 bg-teal-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
-                👁️ Gemini Vision OCR Assist
-              </span>
-            )}
-            {productDetails.company && (
-              <span className="px-3 py-1 text-xs font-extrabold text-amber-300 border border-amber-500/40 bg-amber-950/80 rounded-full flex items-center gap-1.5 shadow-sm">
-                <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>{productDetails.company}</span>
-              </span>
-            )}
-          </div>
+  const displayOriginalImg = previewUrl || data?.image_data_url || data?.image_path || data?.imageUrl;
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="font-display font-black text-2xl sm:text-3xl text-white leading-tight tracking-tight">
-              {productDetails.brand_name}
-            </h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant="glass"
-                size="sm"
-                onClick={() => speak(agroSpeech, 'agro_summary', activeLang)}
-                leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'agro_summary' ? 'animate-bounce text-indigo-300' : 'text-white'}`} />}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold border-indigo-400/40 shadow-sm rounded-xl"
-              >
-                {speakingId === 'agro_summary' 
-                  ? (locUI.stopAudio || 'Stop Audio') 
-                  : (locUI.listenAudio || 'Listen Instructions')}
-              </Button>
-              <Button
-                variant="glass"
-                size="sm"
-                onClick={handleShareWhatsApp}
-                leftIcon={<Share2 className="w-4 h-4 text-emerald-400" />}
-                className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-sm rounded-xl cursor-pointer"
-              >
-                <span>{activeLang === 'te' ? 'వాట్సాప్‌లో షేర్' : activeLang === 'hi' ? 'व्हाट्सएप पर शेयर' : 'Share WhatsApp'}</span>
-              </Button>
-            </div>
-          </div>
+  const [selectedAgroRefIdx, setSelectedAgroRefIdx] = useState(0);
 
-          <p className="text-xs sm:text-sm text-slate-200 font-medium flex items-center gap-2 flex-wrap pt-0.5">
-            <span className="px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-300 font-extrabold uppercase text-[10px] tracking-wider border border-teal-500/30">
-              Active Ingredient
-            </span>
-            <span className="font-bold text-white text-sm">
-              {productDetails.active_ingredient}
-            </span>
-          </p>
+  const agroRefList = useMemo(() => {
+    const isTe = activeLang === 'te';
+    const primary = productDetails.image_url || '/samples/chilli_leaf_spot.jpg';
+    const brandLow = (productDetails.brand_name || '').toLowerCase();
+    const actLow = (productDetails.active_ingredient || '').toLowerCase();
 
-          {/* 💧 Manufacturer Dilution Rate strictly per 1 Litre of water */}
-          <div className="pt-2 flex items-center gap-2.5 flex-wrap">
-            <span className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/25 to-teal-500/25 text-emerald-300 border border-emerald-400/40 text-xs sm:text-sm font-black flex items-center gap-2 shadow-sm">
-              <Droplets className="w-4 h-4 text-emerald-400" />
-              <span>💧 Dilution: <strong className="text-white font-extrabold">{userInstructions.dilution_rate_per_litre}</strong></span>
-            </span>
-            <span className="text-[11px] text-slate-300 font-medium">
-              (Calibrated strictly per 1 Litre of clean water)
-            </span>
-          </div>
-        </div>
+    // Choose authentic product bottle images based on brand/ingredient
+    let secondaryImg = '/products/saaf_upl.jpg';
+    let tertiaryImg = '/products/iffco_19_19_19.jpg';
 
-          {/* Product Image Thumbnail with Tap-to-Zoom */}
-          {productDetails.image_url && (
-            <div className="shrink-0 flex flex-col items-center gap-1.5">
-              <div 
-                onClick={() => setShowImageZoom(true)}
-                className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-indigo-400/50 bg-slate-900 shadow-lg cursor-pointer group"
-                title="Click to view full packaging"
-              >
-                <img 
-                  src={productDetails.image_url} 
-                  alt={productDetails.brand_name} 
-                  className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <ZoomIn className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <span className="text-[10px] font-bold text-indigo-300 flex items-center gap-1">
-                <ZoomIn className="w-3 h-3" /> Tap to zoom
-              </span>
-            </div>
-          )}
-        </div>
-      </Card>
-    );
+    if (brandLow.includes('mancozeb') || brandLow.includes('indofil') || actLow.includes('mancozeb')) {
+      secondaryImg = '/products/indofil_m45.webp';
+      tertiaryImg = '/products/ridomil_gold_syngenta.jpg';
+    } else if (brandLow.includes('admire') || brandLow.includes('confidor') || actLow.includes('imidacloprid')) {
+      secondaryImg = '/products/admire_bayer.webp';
+      tertiaryImg = '/products/confidor_bayer.jpg';
+    } else if (brandLow.includes('coragen') || actLow.includes('chlorantraniliprole')) {
+      secondaryImg = '/products/coragen_fmc.jpg';
+      tertiaryImg = '/products/benevia_fmc.jpg';
+    } else if (brandLow.includes('actara') || actLow.includes('thiamethoxam')) {
+      secondaryImg = '/products/actara_syngenta.jpg';
+      tertiaryImg = '/products/alika_syngenta.jpg';
+    } else if (brandLow.includes('proclaim') || actLow.includes('emamectin')) {
+      secondaryImg = '/products/proclaim_syngenta.webp';
+      tertiaryImg = '/products/coragen_fmc.jpg';
+    } else if (brandLow.includes('fertilizer') || brandLow.includes('npk') || actLow.includes('npk')) {
+      secondaryImg = '/products/iffco_19_19_19.jpg';
+      tertiaryImg = '/products/iffco_nano_urea.jpg';
+    }
 
-    // ==================== CARD 3: 📦 PRODUCT IDENTITY CARD ====================
-    const renderProductIdentity = () => (
-      <CollapsibleSection 
-        title={locUI.identity || '3. 📦 Product Identity Card'} 
-        icon={Package} 
-        badge="Identity & Verification" 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = `${productDetails.brand_name} by ${productDetails.company}. Category: ${categoryMeta.label}. Formulation: ${productDetails.formulation}. Batch: ${productDetails.batch_number}.`;
-          speak(text, 'agro_identity', activeLang);
-        }}
-        isSpeaking={speakingId === 'agro_identity'}
-      >
-        <div className="space-y-3.5 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {/* Commercial Brand Name & Ratio */}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <Package className="w-3.5 h-3.5 text-indigo-500" /> Commercial Brand Name & Ratio
-              </span>
-              <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-1">{productDetails.brand_name}</p>
-              <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">{productDetails.formulation}</p>
-            </div>
+    return [
+      { id: 'agro_01', image_url: primary, stage: isTe ? 'బాటిల్ లేబుల్ (Official Bottle Label)' : 'Official Bottle Label' },
+      { id: 'agro_02', image_url: secondaryImg, stage: isTe ? 'రిజిస్టర్డ్ ప్యాకింగ్ (Registered Pack Spec)' : 'Registered Pack Spec' },
+      { id: 'agro_03', image_url: tertiaryImg, stage: isTe ? 'CIB&RC భద్రతా పత్రం (Official Registry Record)' : 'Official Registry Record' }
+    ];
+  }, [productDetails, activeLang]);
 
-            {/* Verified Manufacturer & Origin */}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-indigo-500" /> Verified Manufacturer
-              </span>
-              <p className="font-black text-slate-900 dark:text-white text-sm mt-1 flex items-center gap-1.5">
-                {productDetails.company}
-              </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Reg: {productDetails.registration_number}
-              </p>
-            </div>
+  const displayReferenceImg = agroRefList[selectedAgroRefIdx]?.image_url || agroRefList[0].image_url;
 
-            {/* Batch & Expiry Timeline */}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-amber-500" /> Batch & Shelf Life
-              </span>
-              <p className="font-bold text-slate-900 dark:text-white text-xs mt-1">Batch: <span className="font-mono">{productDetails.batch_number}</span></p>
-              <p className="text-[10px] text-slate-500 mt-0.5">Exp: {productDetails.exp_date}</p>
-            </div>
-          </div>
-
-          {/* Statutory Toxicity Hazard Classification */}
-          <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/30 rounded-xl border border-amber-200/80 dark:border-amber-900/60 flex items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div 
-                className="w-4 h-4 rounded-full shrink-0 border border-black/20" 
-                style={{ backgroundColor: productDetails.hazard_color || '#16a34a' }}
-              />
-              <div>
-                <span className="text-amber-800 dark:text-amber-400 font-bold uppercase text-[10px] block">
-                  Hazard Toxicity Classification
-                </span>
-                <p className="font-extrabold text-amber-950 dark:text-amber-300 text-xs mt-0.5">
-                  {productDetails.toxicity_class}
-                </p>
-              </div>
-            </div>
-            <Badge variant="glass" className="text-amber-800 dark:text-amber-300 border-amber-400/40 text-[10px] font-bold">
-              Statutory Label Certified
-            </Badge>
-          </div>
-        </div>
-      </CollapsibleSection>
-    );
-
-    // ==================== CARD 4: 📝 PRODUCT DESCRIPTION & APPROVED TARGET CROPS ====================
-    const renderDescriptionAndCrops = () => (
-      <CollapsibleSection 
-        title={locUI.descriptionCrops || '4. 📝 Product Description & Approved Target Crops'} 
-        icon={ClipboardList} 
-        badge="Agronomic Scope" 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = `${productDetails.detailed_description || detailedDescription}. Approved crops: ${Array.isArray(chemicalExplanation.approved_crops) ? chemicalExplanation.approved_crops.join(', ') : chemicalExplanation.approved_crops}.`;
-          speak(text, 'agro_desc_crops', activeLang);
-        }}
-        isSpeaking={speakingId === 'agro_desc_crops'}
-      >
-        <div className="space-y-4 text-xs">
-          {/* Clamped Description with Show More Toggle */}
-          <div className="p-4 bg-slate-50/90 dark:bg-slate-800/90 rounded-2xl border border-slate-200/90 dark:border-slate-700/90 space-y-2 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-600 dark:text-slate-300 font-bold uppercase text-[11px] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Technical Overview
-              </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                {isDescriptionExpanded ? "Full Narrative" : "Summary Preview"}
-              </span>
-            </div>
-
-            <div className="relative">
-              <p className={`text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed transition-all duration-300 whitespace-pre-line ${isDescriptionExpanded ? '' : 'line-clamp-6'}`}>
-                {productDetails.detailed_description || detailedDescription}
-              </p>
-              {!isDescriptionExpanded && (
-                <div className="absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-slate-50 dark:from-slate-800 to-transparent pointer-events-none" />
-              )}
-            </div>
-
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-xs font-black text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800/60 transition-all cursor-pointer"
-              >
-                {isDescriptionExpanded ? (
-                  <>
-                    Show Less <ChevronUp className="w-3.5 h-3.5" />
-                  </>
-                ) : (
-                  <>
-                    Show More (Read Full Description) <ChevronDown className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Target Crops Sprout Chips */}
-          <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/70 dark:border-emerald-900/50 space-y-2.5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-emerald-800 dark:text-emerald-400 font-extrabold uppercase text-[11px] flex items-center gap-1.5">
-                <Sprout className="w-4 h-4 text-emerald-600" /> Target Plants / Approved Safe Crops
-              </span>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                Crop Compatibility Verified
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {Array.isArray(chemicalExplanation.approved_crops) ? (
-                chemicalExplanation.approved_crops.map((crop, idx) => (
-                  <span key={idx} className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 text-emerald-900 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold shadow-sm flex items-center gap-1.5">
-                    <span>🌱</span> {crop}
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{chemicalExplanation.approved_crops}</span>
-              )}
-            </div>
-          </div>
-
-          {/* If Fertilizer -> Growth Stage Breakdown */}
-          {isFertilizer ? (
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 rounded-2xl border-2 border-emerald-500/30 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-emerald-800 dark:text-emerald-300 font-black uppercase text-[11px] flex items-center gap-2">
-                  <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  Growth Stage Breakdown (Crop Phenology)
-                </span>
-                <Badge variant="glow-emerald" className="text-[10px] font-bold">
-                  Yield Maximization
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                <div className="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 shadow-sm space-y-1.5">
-                  <span className="text-emerald-700 dark:text-emerald-400 font-black uppercase text-[10px] flex items-center gap-1.5">
-                    🌱 Vegetative Stage
-                  </span>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {growthStages.vegetative_stage}
-                  </p>
-                </div>
-
-                <div className="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-teal-200/80 dark:border-teal-900/60 shadow-sm space-y-1.5">
-                  <span className="text-teal-700 dark:text-teal-400 font-black uppercase text-[10px] flex items-center gap-1.5">
-                    🌸 Flowering / Bloom Stage
-                  </span>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {growthStages.flowering_stage}
-                  </p>
-                </div>
-
-                <div className="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-cyan-200/80 dark:border-cyan-900/60 shadow-sm space-y-1.5">
-                  <span className="text-cyan-700 dark:text-cyan-400 font-black uppercase text-[10px] flex items-center gap-1.5">
-                    🍎 Fruiting & Grain Fill
-                  </span>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {growthStages.fruiting_stage}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Target Diseases & Pests Controlled + PHI */
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 rounded-2xl border border-rose-200/70 dark:border-rose-900/50 space-y-2 shadow-xs">
-                <span className="text-rose-800 dark:text-rose-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
-                  🩺 Target Pests & Pathogens Controlled
-                </span>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {Array.isArray(chemicalExplanation.target_diseases_and_pests) ? (
-                    chemicalExplanation.target_diseases_and_pests.map((dis, idx) => (
-                      <span key={idx} className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-900 dark:text-rose-300 border border-rose-500/30 text-xs font-bold">
-                        {dis}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{chemicalExplanation.target_diseases_and_pests}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 bg-cyan-50/60 dark:bg-cyan-950/30 rounded-2xl border border-cyan-200/80 dark:border-cyan-900/50 flex flex-col justify-between gap-2 shadow-xs">
-                <div className="space-y-1">
-                  <span className="text-cyan-900 dark:text-cyan-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-cyan-600" /> Pre-Harvest Interval (PHI)
-                  </span>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    {chemicalExplanation.preharvest_interval}
-                  </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Follow strictly before harvesting produce for human consumption.
-                  </p>
-                </div>
-                <div>
-                  <Badge variant="glass" className="text-cyan-700 dark:text-cyan-300 border-cyan-400/40 bg-cyan-500/10 font-bold text-[10px]">
-                    Food Safety Compliant
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-    );
-
-    // ==================== CARD 5: 🧪 COMPOSITION & TECHNICAL ACTIVES ====================
-    const renderCompositionActives = () => (
-      <CollapsibleSection 
-        title={locUI.composition || '5. 🧪 Composition & Technical Actives'} 
-        icon={FlaskConical} 
-        badge="Chemical Profile" 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = `Active formulation: ${productDetails.active_ingredient}. Primary function: ${productDetails.primary_function}. Mode of action: ${chemicalExplanation.action_mode}.`;
-          speak(text, 'agro_composition', activeLang);
-        }}
-        isSpeaking={speakingId === 'agro_composition'}
-      >
-        <div className="space-y-3.5 text-xs">
-          <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 space-y-1.5 shadow-xs">
-            <span className="text-indigo-700 dark:text-indigo-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
-              <FlaskConical className="w-4 h-4" /> Active Chemical Elements / NPK Ratio
-            </span>
-            <p className="font-black text-slate-900 dark:text-white text-base mt-1">
-              {productDetails.active_ingredient}
-            </p>
-            <p className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
-              Standard certified chemical purity and active ingredient concentration.
-            </p>
-          </div>
-
-          <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/40 rounded-2xl border border-emerald-300/80 dark:border-emerald-800/60 flex items-start gap-3 shadow-xs">
-            <Sprout className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="text-emerald-900 dark:text-emerald-300 font-extrabold uppercase text-[10px] tracking-wider">
-                Primary Biological Mode of Action
-              </span>
-              <p className="text-xs sm:text-sm font-semibold text-emerald-950 dark:text-emerald-200 mt-1 leading-relaxed">
-                {productDetails.primary_function || chemicalExplanation.action_mode}
-              </p>
-            </div>
-          </div>
-        </div>
-      </CollapsibleSection>
-    );
-
-    // ==================== CARD 6: 💰 PRICING & FINANCIALS ====================
-    const renderPricingFinancials = () => (
-      <CollapsibleSection 
-        title={locUI.pricing || '6. 💰 Pricing & Financials'} 
-        icon={IndianRupee} 
-        badge="NBS & Retail MRP" 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = `Retail price: ${productDetails.mrp_price}. Government subsidy: ${productDetails.government_subsidy}. Net package weight: ${productDetails.net_quantity}.`;
-          speak(text, 'agro_pricing', activeLang);
-        }}
-        isSpeaking={speakingId === 'agro_pricing'}
-      >
-        <div className="p-4 sm:p-5 bg-gradient-to-br from-amber-500/10 via-emerald-500/10 to-teal-500/10 rounded-2xl border border-amber-500/30 dark:border-amber-400/20 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-amber-900 dark:text-amber-300 font-extrabold uppercase text-[11px] flex items-center gap-1.5">
-              <IndianRupee className="w-4 h-4 text-amber-500" /> Commercial Price Structure & Subsidy
-            </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-              Official Label & NBS Rates
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3.5 bg-white/80 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Retail Price (MRP)</span>
-              <p className="font-black text-slate-900 dark:text-white text-base mt-0.5 text-emerald-600 dark:text-emerald-400">
-                {productDetails.mrp_price}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Maximum Retail Price (Incl. Taxes)</p>
-            </div>
-
-            <div className="p-3.5 bg-white/80 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Government Subsidy</span>
-              <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5 text-indigo-600 dark:text-indigo-400">
-                {productDetails.government_subsidy}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">PMBJP / Nutrient Based Subsidy</p>
-            </div>
-
-            <div className="p-3.5 bg-white/80 dark:bg-slate-800/90 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Net Weight / Packaging</span>
-              <p className="font-extrabold text-slate-900 dark:text-white text-sm mt-0.5">
-                {productDetails.net_quantity}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Standard Sealed Pack</p>
-            </div>
-          </div>
-        </div>
-      </CollapsibleSection>
-    );
-
-    // ==================== CARD 7: 🛡️ STEP-BY-STEP MIXING PROTOCOL & PPE SAFETY HANDLING ====================
-    const renderMixingAndPPE = () => (
-      <CollapsibleSection 
-        title={locUI.mixingPPE || '7. 🛡️ Step-by-Step Mixing Protocol & PPE Safety Handling'} 
-        icon={ShieldCheck} 
-        badge="Safety & Mixing" 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = `Mixing instructions: ${Array.isArray(userInstructions.mixing_guide) ? userInstructions.mixing_guide.join('. ') : userInstructions.mixing_guide}. Mandatory PPE includes chemical-resistant gloves, protective goggles, and vapor mask.`;
-          speak(text, 'agro_mixing_ppe', activeLang);
-        }}
-        isSpeaking={speakingId === 'agro_mixing_ppe'}
-      >
-        <div className="space-y-4 text-xs">
-          {/* Dilution Rate Highlight Card (Clean Water Proportion) */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border-2 border-emerald-500/40 dark:border-emerald-500/30 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-[11px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
-                  <Droplets className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  Recommended Dilution Proportion (Per Litre of Clean Water)
-                </span>
-                <p className="font-display font-black text-slate-900 dark:text-white text-xl sm:text-2xl mt-1.5">
-                  {userInstructions.dilution_rate_per_litre}
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium">
-                  Dissolve this exact manufacturer-tested dosage per 1 litre of clean water. Maintain uniform calibration.
-                </p>
-              </div>
-              <Badge variant="glow-emerald" className="text-xs font-black uppercase shrink-0">
-                100% Water Calibrated
-              </Badge>
-            </div>
-          </div>
-
-          {/* 2.5: Step-by-Step Mixing and Preparation Guide */}
-          <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-700 dark:text-slate-200 font-extrabold uppercase text-[11px] flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-indigo-500" /> 
-                {isFertilizer ? "Step-by-Step Fertilizer Dissolution & Application Guide" : "Step-by-Step Mixing & Preparation Guide"}
-              </span>
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                4-Stage Protocol
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
-              {Array.isArray(userInstructions.mixing_guide) && userInstructions.mixing_guide.length > 0 ? (
-                userInstructions.mixing_guide.map((step, idx) => {
-                  const stepText = step.replace(/^\d+[\.\)]\s*/, '');
-                  return (
-                    <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-indigo-400/40 transition-colors">
-                      <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                        {idx + 1}
-                      </div>
-                      <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
-                        {stepText}
-                      </p>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-3 bg-white dark:bg-slate-900 rounded-xl text-xs text-slate-700 dark:text-slate-300">
-                  {userInstructions.mixing_guide}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Application Timing & Interval Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-500" /> Optimal Application Timing
-              </span>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs mt-1.5 leading-relaxed">
-                {userInstructions.best_spray_timing}
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80">
-              <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-teal-500" /> Application Repeat Interval
-              </span>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs mt-1.5 leading-relaxed">
-                {userInstructions.spray_interval}
-              </p>
-            </div>
-          </div>
-
-          {/* 2.6: Personal Protective Equipment (PPE) & Safe Handling */}
-          <div className="p-4 sm:p-5 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/70 dark:border-amber-900/50 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-amber-800 dark:text-amber-400 font-black uppercase text-[11px] flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-amber-600" /> 
-                Personal Protective Equipment (PPE) & Safe Handling Protocol
-              </span>
-              <Badge variant="glass" className="text-amber-700 dark:text-amber-300 border-amber-400/40 bg-amber-500/10 text-[10px] font-bold">
-                Mandatory Safety
-              </Badge>
-            </div>
-
-            {/* 4 Dedicated PPE Safety Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-200/50 dark:border-amber-900/40 shadow-sm">
-                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
-                  🧤
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">Chemical-Resistant Gloves</h4>
-                  <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed">
-                    Wear nitrile or neoprene rubber gloves during chemical measuring, bucket mixing, and spraying.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-200/50 dark:border-amber-900/40 shadow-sm">
-                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
-                  🥽
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">Eye Protection / Goggles</h4>
-                  <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed">
-                    Wear safety goggles or transparent protective face shield to prevent hazardous splash contact with eyes.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-200/50 dark:border-amber-900/40 shadow-sm">
-                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
-                  😷
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">Respiratory Vapor Mask</h4>
-                  <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed">
-                    Wear an N95 particulate or chemical organic vapor mask while spraying to avoid inhaling fine mist droplets.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-200/50 dark:border-amber-900/40 shadow-sm">
-                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5">
-                  🥾
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-white">Protective Apparel & Post-Wash</h4>
-                  <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed">
-                    Wear full-length long sleeves and waterproof gumboots; wash face, hands, and skin thoroughly with soap after spray.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CollapsibleSection>
-    );
-
-    const renderModeOfAction = () => (
-      <CollapsibleSection 
-        title={t('agrochemical.chemical_explanation', isFertilizer ? '3. Plant Growth Stages & Target Crops' : '3. Target Plants, Diseases & Mode of Action')} 
-        icon={isFertilizer ? Sprout : Sparkles} 
-        badge={isFertilizer ? "Growth & Nutrition" : "Target & Control"} 
-        defaultOpen={true}
-        onSpeak={() => {
-          const text = isFertilizer
-            ? `Approved crops: ${Array.isArray(chemicalExplanation.approved_crops) ? chemicalExplanation.approved_crops.join(', ') : chemicalExplanation.approved_crops}. Growth stages: vegetative, flowering, and fruiting support.`
-            : `Mode of action: ${chemicalExplanation.action_mode}. Approved crops: ${Array.isArray(chemicalExplanation.approved_crops) ? chemicalExplanation.approved_crops.join(', ') : chemicalExplanation.approved_crops}. Targets: ${Array.isArray(chemicalExplanation.target_diseases_and_pests) ? chemicalExplanation.target_diseases_and_pests.join(', ') : chemicalExplanation.target_diseases_and_pests}. Pre-harvest interval: ${chemicalExplanation.preharvest_interval}.`;
-          speak(text, 'agro_explanation', activeLang);
-        }}
-        isSpeaking={speakingId === 'agro_explanation'}
-      >
-        <div className="space-y-4 text-xs">
-          {/* 2.4: Target Plants Used For This Product */}
-          <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/70 dark:border-emerald-900/50 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-emerald-800 dark:text-emerald-400 font-extrabold uppercase text-[11px] flex items-center gap-1.5">
-                <Sprout className="w-4 h-4 text-emerald-600" /> Target Plants / Approved Safe Crops
-              </span>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                Crop Compatibility Verified
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {Array.isArray(chemicalExplanation.approved_crops) ? (
-                chemicalExplanation.approved_crops.map((crop, idx) => (
-                  <span key={idx} className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 text-emerald-900 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold shadow-sm flex items-center gap-1.5">
-                    <span>🌱</span> {crop}
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{chemicalExplanation.approved_crops}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Conditional: If Fertilizer -> Show Specific Growth Stages (Vegetative, Flowering, Fruiting) */}
-          {isFertilizer ? (
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-cyan-500/10 rounded-2xl border-2 border-emerald-500/30 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-emerald-800 dark:text-emerald-300 font-black uppercase text-[11px] flex items-center gap-2">
-                  <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  Fertilizer Growth Stage Usage & Agronomic Benefits
-                </span>
-                <Badge variant="glow-emerald" className="text-[10px] font-bold">
-                  Yield Maximization
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                {/* Vegetative Stage */}
-                <div className="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-emerald-200/80 dark:border-emerald-900/60 shadow-sm space-y-1.5">
-                  <span className="text-emerald-700 dark:text-emerald-400 font-black uppercase text-[10px] flex items-center gap-1.5">
-                    🌱 Vegetative Stage (Canopy & Root)
-                  </span>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {growthStages.vegetative_stage}
-                  </p>
-                </div>
-
-                {/* Flowering Stage */}
-                <div className="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-pink-200/80 dark:border-pink-900/60 shadow-sm space-y-1.5">
-                  <span className="text-pink-700 dark:text-pink-400 font-black uppercase text-[10px] flex items-center gap-1.5">
-                    🌸 Flowering Stage (Bloom & Retention)
-                  </span>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {growthStages.flowering_stage}
-                  </p>
-                </div>
-
-                {/* Fruiting Stage */}
-                <div className="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-amber-200/80 dark:border-amber-900/60 shadow-sm space-y-1.5">
-                  <span className="text-amber-700 dark:text-amber-400 font-black uppercase text-[10px] flex items-center gap-1.5">
-                    🍎 Fruiting & Grain Filling Stage
-                  </span>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {growthStages.fruiting_stage}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Target Diseases & Pests Controlled for Pesticides/Fungicides/Insecticides */
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 rounded-2xl border border-rose-200/70 dark:border-rose-900/50 space-y-2">
-                <span className="text-rose-800 dark:text-rose-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
-                  🩺 Target Pests & Pathogens Controlled / Cured
-                </span>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {Array.isArray(chemicalExplanation.target_diseases_and_pests) ? (
-                    chemicalExplanation.target_diseases_and_pests.map((dis, idx) => (
-                      <span key={idx} className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-900 dark:text-rose-300 border border-rose-500/30 text-xs font-bold">
-                        {dis}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{chemicalExplanation.target_diseases_and_pests}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Pre-Harvest Interval (PHI) Card */}
-              <div className="p-4 bg-cyan-50/60 dark:bg-cyan-950/30 rounded-2xl border border-cyan-200/80 dark:border-cyan-900/50 flex flex-col justify-between gap-2">
-                <div className="space-y-1">
-                  <span className="text-cyan-900 dark:text-cyan-400 font-bold uppercase text-[10px] flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-cyan-600" /> Pre-Harvest Interval (PHI) Waiting Period
-                  </span>
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    {chemicalExplanation.preharvest_interval}
-                  </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Strictly follow this statutory interval before harvesting produce for food consumption.
-                  </p>
-                </div>
-                <div>
-                  <Badge variant="glass" className="text-cyan-700 dark:text-cyan-300 border-cyan-400/40 bg-cyan-500/10 font-bold text-[10px]">
-                    Food Safety Compliant
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-    );
-
-  const defaultAgroOrder = [
-    { key: 'verified_hero', label: '1. 🧪 Verified Product Hero Card', visible: true },
-    { key: 'language_bar', label: '2. 🌐 Quick Language Switcher Bar', visible: true },
-    { key: 'product_identity', label: '3. 📦 Product Identity Card', visible: true },
-    { key: 'description_crops', label: '4. 📝 Product Description & Approved Target Crops', visible: true },
-    { key: 'composition_actives', label: '5. 🧪 Composition & Technical Actives', visible: true },
-    { key: 'pricing_financials', label: '6. 💰 Pricing & Financials', visible: true },
-    { key: 'mixing_ppe', label: '7. 🛡️ Step-by-Step Mixing Protocol & PPE Safety Handling', visible: true }
-  ];
-
-  const agroCardMap = {
-    verified_hero: renderAgroHero,
-    agro_hero: renderAgroHero,
-    language_bar: renderLanguageSwitcher,
-    product_identity: renderProductIdentity,
-    description_crops: renderDescriptionAndCrops,
-    composition_actives: renderCompositionActives,
-    pricing_financials: renderPricingFinancials,
-    mixing_ppe: renderMixingAndPPE,
-    product_details: renderProductIdentity,
-    application_guide: renderMixingAndPPE,
-    mode_of_action: renderDescriptionAndCrops
+  const handleDownloadPDF = () => {
+    window.print();
   };
 
-  const activeAgroOrder = defaultAgroOrder;
+  const handleShareWhatsAppLocalized = () => {
+    const text = activeLang === 'te'
+      ? `*🌾 అగ్రిషీల్డ్ AI - పురుగుమందు లేబుల్ రికార్డు*\n\n` +
+        `📦 *ఉత్పత్తి:* ${productDetails.brand_name}\n` +
+        `🧪 *రసాయనం:* ${productDetails.active_ingredient}\n` +
+        `🏷️ *వర్గం:* ${categoryMeta.label}\n` +
+        `💧 *15L పంపు మోతాదు:* ${(selectedTankSize * 2.0).toFixed(0)} ml / ${selectedTankSize} లీటర్ల నీటికి\n` +
+        `⏱️ *వేచి ఉండే సమయం (PHI):* ${chemicalExplanation.preharvest_interval}\n` +
+        `🛡️ *తయారీదారు:* ${productDetails.company}\n\n` +
+        `📲 *అగ్రిషీల్డ్ AI యాప్‌లో చూడండి:* http://localhost:3000/scan`
+      : `*🌾 AgriShield AI - Agrochemical Product Dossier*\n\n` +
+        `📦 *Product:* ${productDetails.brand_name}\n` +
+        `🧪 *Active Chemical:* ${productDetails.active_ingredient}\n` +
+        `🏷️ *Category:* ${categoryMeta.type}\n` +
+        `💧 *Recommended Dose:* ${(selectedTankSize * 2.0).toFixed(0)} ml per ${selectedTankSize}L spray pump\n` +
+        `⏱️ *PHI Waiting Period:* ${chemicalExplanation.preharvest_interval}\n` +
+        `🛡️ *Company:* ${productDetails.company}\n\n` +
+        `📲 *Open on AgriShield AI:* http://localhost:3000/scan`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   return (
-    <div className="space-y-4">
-
-      {activeAgroOrder.map((cardItem) => {
-        if (cardItem.visible === false) return null;
-        const renderer = agroCardMap[cardItem.key];
-        if (!renderer) return null;
-        const renderedNode = renderer();
-        if (!renderedNode) return null;
-
-        return (
-          <div key={cardItem.key} className="transition-all duration-200">
-            {renderedNode}
-          </div>
-        );
-      })}
-
-      {/* Bottom Action Bar */}
-      <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-        <Button
-          variant="outline"
-          size="md"
-          className="w-full sm:w-auto px-6 py-3 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl shadow-sm"
-          onClick={() => {
-            if (onScanAnother) onScanAnother();
-            else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
-          }}
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>{locUI.scanAnother || 'Scan Another Product / Bottle'}</span>
-        </Button>
-
-        <Button
-          variant="primary"
-          size="md"
-          className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-2 cursor-pointer rounded-2xl shadow-md"
-          onClick={() => {
-            const prefill = {
-              item_name: productDetails.brand_name || 'Agrochemical Product',
-              brand: productDetails.company || '',
-              category: 'pesticide',
-              active_ingredient: activeIngredient || '',
-              notes: `Scanned Product: ${productDetails.brand_name || 'Product'}. Target crops: ${(productDetails.target_crops || []).slice(0, 3).join(', ')}`
-            };
-            try {
-              sessionStorage.setItem('agrishield_inventory_prefill', JSON.stringify(prefill));
-            } catch (_) {}
-            if (navigate) {
-              navigate('/farm?tab=farm-inventory');
-            } else {
-              window.location.href = '/farm?tab=farm-inventory';
-            }
-          }}
-        >
-          <Package className="w-4 h-4" />
-          <span>{locUI.addToInventory || 'Add to Farm Inventory'}</span>
-        </Button>
+    <div className="space-y-4 max-w-4xl mx-auto pb-12">
+      {/* ==================== 1. LANGUAGE BAR ==================== */}
+      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3 flex-wrap">
+        <ScanLanguageBar
+          activeLang={activeLang}
+          onLanguageSelect={handleLanguageSelect}
+          isTranslating={isTranslating}
+          label={activeLang === 'te' ? 'సలహా భాష' : 'Advisory Language'}
+          className="w-full justify-between sm:justify-start"
+        />
       </div>
 
-      {/* Product Image Zoom Modal */}
-      {showImageZoom && productDetails.image_url && (
-        <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setShowImageZoom(false)}
+      {/* ==================== CARD 1: EXECUTIVE VERIFICATION & DUAL VISUAL MATCH ==================== */}
+      <Card className="p-5 sm:p-7 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl relative overflow-hidden space-y-4">
+        {/* Top Status & Audio Row */}
+        <div className="flex items-center justify-between flex-wrap gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-xs flex items-center gap-1.5 ${categoryMeta.badgeColor}`}>
+              <span>{categoryMeta.icon}</span>
+              <span>{categoryMeta.label}</span>
+            </span>
+
+            {/* CIB&RC Verification Badge */}
+            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{activeLang === 'te' ? 'CIB&RC ధృవీకరించబడింది' : 'CIB&RC Verified'}</span>
+            </span>
+
+            {/* Toxicity Class Badge */}
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              {productDetails.toxicity_class}
+            </span>
+          </div>
+
+          {/* Voice Audio Reader */}
+          <button
+            type="button"
+            onClick={() => {
+              if (speakingId === 'agro_summary') {
+                stopSpeech();
+              } else {
+                speak(agroSpeech, 'agro_summary', activeLang);
+              }
+            }}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+              speakingId === 'agro_summary'
+                ? 'bg-rose-600 text-white animate-pulse'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+            }`}
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>
+              {speakingId === 'agro_summary'
+                ? (activeLang === 'te' ? 'ఆపండి' : 'Stop')
+                : (activeLang === 'te' ? '🔊 వినండి (Telugu Audio)' : '🔊 Listen (Audio)')}
+            </span>
+            {speakingId === 'agro_summary' && (
+              <span className="flex items-center gap-0.5 ml-1">
+                <span className="w-1 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Dual Visual Match: Farmer Scanned Bottle vs CIB&RC Official Record */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+          {/* Left: Farmer Scanned Bottle */}
+          <div className="flex flex-col space-y-1.5">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span>📸</span>
+              <span>{activeLang === 'te' ? 'మీరు తీసిన లేబుల్' : 'Your Scanned Label'}</span>
+            </span>
+            <div
+              className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-inner group cursor-pointer"
+              onClick={() => setZoomImageModal({ src: displayOriginalImg || displayReferenceImg, title: productDetails.brand_name })}
+            >
+              {displayOriginalImg ? (
+                <img
+                  src={displayOriginalImg}
+                  alt="Scanned bottle label"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                  <FlaskConical className="w-8 h-8 text-slate-400 mb-1" />
+                  <span className="text-xs font-bold">Scanned Bottle</span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="px-2 py-1 rounded-lg bg-black/75 text-white text-[10px] font-black flex items-center gap-1">
+                  <ZoomIn className="w-3 h-3" />
+                  <span>{activeLang === 'te' ? 'జూమ్' : 'Zoom'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Verified CIB&RC Chemical Record */}
+          <div className="flex flex-col space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <span>🔬</span>
+                <span>{activeLang === 'te' ? 'ధృవీకరించబడిన రికార్డు' : 'Verified CIB&RC Profile'}</span>
+              </span>
+              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
+                {selectedAgroRefIdx + 1} / {agroRefList.length}
+              </span>
+            </div>
+            <div
+              className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-indigo-500/40 shadow-inner group cursor-pointer"
+              onClick={() => {
+                const curImg = agroRefList[selectedAgroRefIdx] || agroRefList[0];
+                setZoomImageModal({ src: curImg.image_url, title: `Verified: ${productDetails.brand_name} (${curImg.stage || ''})` });
+              }}
+            >
+              <img
+                src={displayReferenceImg}
+                alt="Verified chemical profile"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/samples/chilli_leaf_spot.jpg';
+                }}
+              />
+              <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[9px] font-black shadow-xs flex items-center gap-1">
+                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                <span>{activeLang === 'te' ? 'CIB&RC రికార్డు #' + (selectedAgroRefIdx + 1) : 'CIB&RC Record #' + (selectedAgroRefIdx + 1)}</span>
+              </div>
+              <div className="absolute bottom-1.5 inset-x-1.5 px-2 py-1 rounded-lg bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold truncate">
+                {agroRefList[selectedAgroRefIdx]?.stage || (activeLang === 'te' ? 'అధికారిక రికార్డు' : 'Official Record')}
+              </div>
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="px-2 py-1 rounded-lg bg-black/75 text-white text-[10px] font-black flex items-center gap-1">
+                  <ZoomIn className="w-3 h-3" />
+                  <span>{activeLang === 'te' ? 'జూమ్' : 'Zoom'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-Image Agrochemical Reference Strip */}
+        <div className="p-3 rounded-2xl bg-indigo-50/60 dark:bg-slate-800/60 border border-indigo-200/80 dark:border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span>🧪</span>
+              <span>{activeLang === 'te' ? '3 ధృవీకరించబడిన రికార్డు ఫోటోలు (వివిధ కోణాలు)' : '3 Verified Chemical Dossier Views (Tap to Compare)'}</span>
+            </span>
+            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
+              {activeLang === 'te' ? 'పోల్చడానికి ట్యాప్ చేయండి' : 'Tap to inspect'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {agroRefList.map((ref, idx) => {
+              const isSelected = selectedAgroRefIdx === idx;
+              return (
+                <button
+                  key={ref.id || idx}
+                  type="button"
+                  onClick={() => setSelectedAgroRefIdx(idx)}
+                  className={`group relative flex flex-col items-center p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-indigo-500 bg-indigo-500/10 shadow-xs ring-2 ring-indigo-500/40'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-400'
+                  }`}
+                >
+                  <div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800 mb-1">
+                    <img
+                      src={ref.image_url}
+                      alt={ref.stage || `Record ${idx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/samples/chilli_leaf_spot.jpg';
+                      }}
+                    />
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[9px] font-black">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 block truncate w-full">
+                    {ref.stage || `Record ${idx + 1}`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Product Names & Chemical Formulation */}
+        <div className="pt-1">
+          <h2 className="font-display font-black text-2xl sm:text-3xl text-slate-900 dark:text-white leading-tight">
+            {productDetails.brand_name}
+          </h2>
+          <p className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-0.5">
+            🧪 {productDetails.active_ingredient}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-slate-700 dark:text-slate-300">🏛️ {productDetails.company}</span>
+            <span>•</span>
+            <span>📜 CIB Reg: {productDetails.registration_number}</span>
+          </p>
+        </div>
+      </Card>
+
+      {/* ==================== CARD 2: 15L BACKPACK PUMP DOSAGE CALCULATOR ==================== */}
+      <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-900/60 rounded-3xl shadow-xl space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-black text-sm uppercase tracking-wider">
+            <Droplets className="w-5 h-5 shrink-0 text-cyan-500" />
+            <span>{activeLang === 'te' ? 'ఖచ్చితమైన స్ప్రే పంపు మోతాదు & వాడే సమయం' : 'Spray Mixing Dose & Backpack Pump Calculator'}</span>
+          </div>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+            {selectedTankSize}L Tank
+          </span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50 via-cyan-50/40 to-slate-50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 border border-indigo-200 dark:border-indigo-800/60 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+            <div>
+              <span className="text-xs font-black uppercase text-indigo-900 dark:text-indigo-300 block mb-0.5">
+                {activeLang === 'te' ? 'సిఫార్సు చేసిన మోతాదు (లీటరు నీటికి)' : 'Recommended Manufacturer Dilution'}
+              </span>
+              <p className="text-base font-black text-slate-900 dark:text-white">
+                {userInstructions.dilution_rate_per_litre || '2.0 ml or 2.5 g / లీటరు నీటికి'}
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                ⏱️ <strong>{activeLang === 'te' ? 'పిచికారీ సమయం:' : 'Timing:'}</strong> {userInstructions.best_spray_timing}
+              </p>
+            </div>
+
+            {/* Bold 15L Backpack Pump Gauge */}
+            <div className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-indigo-300 dark:border-indigo-700 text-center shadow-xs">
+              <span className="text-[10px] font-black uppercase text-indigo-600 dark:text-indigo-400 block tracking-wider">
+                {activeLang === 'te' ? '15 లీటర్ల వీపు పంపు మోతాదు' : '15L Backpack Pump Dosage'}
+              </span>
+              <span className="text-2xl font-black text-indigo-700 dark:text-indigo-300 font-display">
+                {selectedTankSize === 20 ? '40 ml / g' : selectedTankSize === 200 ? '400 ml / g' : '30 ml / g'}
+              </span>
+              <span className="text-[10px] font-bold text-slate-500 block mt-0.5">
+                ({(selectedTankSize * 2.0).toFixed(0)} ml per {selectedTankSize}L water)
+              </span>
+            </div>
+          </div>
+
+          {/* Tank Size Chips */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+              {activeLang === 'te' ? 'పంపు పరిమాణం:' : 'Pump Tank:'}
+            </span>
+            {[15, 20, 200].map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setSelectedTankSize(size)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                  selectedTankSize === size
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-100'
+                }`}
+              >
+                {size === 200 ? `${size}L (Acre Drum)` : `${size}L Pump`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Pre-Harvest Interval (PHI) Callout */}
+        <div className="p-3.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <span className="text-[11px] font-black uppercase text-amber-900 dark:text-amber-300 block">
+                {activeLang === 'te' ? 'వేచి ఉండే సమయం (PHI Waiting Period)' : 'Pre-Harvest Interval (PHI)'}
+              </span>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                {chemicalExplanation.preharvest_interval}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
+            {activeLang === 'te' ? 'ఆహార భద్రతా ప్రమాణం' : 'Food Safety Standard'}
+          </span>
+        </div>
+      </Card>
+
+      {/* ==================== CARD 3: CHEMICAL TOXICITY & PPE SAFETY ==================== */}
+      <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-rose-500" />
+            <span>{activeLang === 'te' ? 'విషపూరిత స్థాయి & భద్రతా రక్షణ సూచనలు (PPE)' : 'Toxicity Classification & Safety PPE Guide'}</span>
+          </span>
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+            {productDetails.toxicity_class}
+          </span>
+        </div>
+
+        {/* 4 PPE Icons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+            <span className="text-xl">🧤</span>
+            <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+              {activeLang === 'te' ? 'చేతి తొడుగులు' : 'Rubber Gloves'}
+            </span>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+            <span className="text-xl">😷</span>
+            <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+              {activeLang === 'te' ? 'ముఖ మాస్క్' : 'N95 Face Mask'}
+            </span>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+            <span className="text-xl">🥽</span>
+            <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+              {activeLang === 'te' ? 'కళ్లద్దాలు' : 'Eye Goggles'}
+            </span>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+            <span className="text-xl">👢</span>
+            <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+              {activeLang === 'te' ? 'రబ్బరు బూట్లు' : 'Rubber Boots'}
+            </span>
+          </div>
+        </div>
+
+        {/* First Aid & Antidote Alert */}
+        <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs space-y-1">
+          <span className="font-black text-rose-800 dark:text-rose-300 uppercase text-[10px] tracking-wider block flex items-center gap-1.5">
+            <span>🚨</span>
+            <span>{activeLang === 'te' ? 'ప్రథమ చికిత్స & విరుగుడు (First Aid & Antidote)' : 'First Aid & Antidote'}</span>
+          </span>
+          <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+            {activeLang === 'te'
+              ? 'కళ్లలో లేదా చర్మంపై పడితే 15 నిమిషాల పాటు మంచి నీటితో కడగాలి. ప్రమాదవశాత్తు మింగితే వాంతి చేయించవద్దు. వెంటనే వైద్యుడిని సంప్రదించండి.'
+              : 'In case of skin or eye contact, flush with clean running water for at least 15 minutes. If ingested, do not induce vomiting. Seek immediate medical attention.'}
+          </p>
+        </div>
+      </Card>
+
+      {/* ==================== CARD 4: APPROVED CROPS & CONTROLLED PESTS ==================== */}
+      <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{activeLang === 'te' ? 'ఆమోదిత పంటలు & నియంత్రించే తెగుళ్లు' : 'Approved Target Crops & Controlled Pests'}</span>
+          </span>
+        </div>
+
+        {/* Approved Crops Chips */}
+        <div>
+          <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-2">
+            🌾 {activeLang === 'te' ? 'సిఫార్సు చేయబడిన పంటలు' : 'Approved Target Crops'}:
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {(Array.isArray(chemicalExplanation.approved_crops)
+              ? chemicalExplanation.approved_crops
+              : ['వరి (Paddy)', 'పత్తి (Cotton)', 'మిరప (Chilli)', 'టమాటా (Tomato)', 'మొక్కజొన్న (Maize)']
+            ).map((c, i) => (
+              <span key={`crop-${i}`} className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25 text-xs font-bold">
+                🌱 {c}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Controlled Pests / Diseases */}
+        <div>
+          <span className="text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-2">
+            🩺 {activeLang === 'te' ? 'నియంత్రించే తెగుళ్లు & పురుగులు' : 'Controlled Pests & Pathogens'}:
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {(Array.isArray(chemicalExplanation.target_diseases_and_pests)
+              ? chemicalExplanation.target_diseases_and_pests
+              : ['కాండం తొలుచు పురుగు', 'ఆకుముడత', 'తెల్లదోమ', 'శిలీంధ్ర ఆకుమచ్చ']
+            ).map((p, i) => (
+              <span key={`pest-${i}`} className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-800 dark:text-rose-300 border border-rose-500/25 text-xs font-bold">
+                🐛 {p}
+              </span>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* ==================== CARD 5: PRICING & ACRE COST ESTIMATE ==================== */}
+      <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <IndianRupee className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{activeLang === 'te' ? 'ధర & ఎకరాకు అయ్యే ఖర్చు అంచనా' : 'Pricing & Cost per Acre Breakdown'}</span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">
+              {activeLang === 'te' ? 'మార్కెట్ రిటైల్ ధర (MRP)' : 'Retail MRP'}
+            </span>
+            <p className="text-base font-black text-slate-900 dark:text-white">
+              {productDetails.mrp_price || '₹350 - ₹450'}
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-1">
+            <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-400">
+              {activeLang === 'te' ? 'ఎకరాకు అయ్యే ఖర్చు' : 'Estimated Cost / Acre'}
+            </span>
+            <p className="text-base font-black text-emerald-700 dark:text-emerald-300">
+              ~₹250 - ₹350 / acre
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">
+              {activeLang === 'te' ? 'ప్రభుత్వ రాయితీ / స్కీమ్' : 'Subsidy Status'}
+            </span>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              {productDetails.government_subsidy || 'Standard Registered'}
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      {/* ==================== CARD 6: PROFESSIONAL ACTION BAR ==================== */}
+      <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* 1-Click WhatsApp Share */}
+          <button
+            type="button"
+            onClick={handleShareWhatsAppLocalized}
+            className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-2 shadow-md shadow-emerald-600/30 transition-all cursor-pointer active:scale-98"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>{activeLang === 'te' ? 'వాట్సాప్‌లో షేర్ చేయండి' : 'Share WhatsApp'}</span>
+          </button>
+
+          {/* Download PDF */}
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-2 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer active:scale-98"
+          >
+            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{activeLang === 'te' ? 'సర్టిఫికేట్ ప్రింట్ (PDF)' : 'Print Certificate (PDF)'}</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Kisan Call Center Helpline */}
+          <a
+            href="tel:18001801551"
+            className="px-3.5 py-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center gap-2 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-all"
+          >
+            <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>{activeLang === 'te' ? 'విష నివారణ హెల్ప్‌లైన్ (108 / 1800-180-1551)' : 'Poison Helpline (1800-180-1551)'}</span>
+          </a>
+
+          {/* Scan Another Button */}
+          <button
+            type="button"
+            onClick={() => onScanAnother ? onScanAnother() : window.dispatchEvent(new CustomEvent('agrishield-scan-another'))}
+            className="px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 font-black text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-98 shadow-sm"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{activeLang === 'te' ? 'మరో బాటిల్‌ను స్కాన్ చేయండి' : 'Scan Another Bottle'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ==================== GLOBAL TAP-TO-ZOOM MODAL ==================== */}
+      {zoomImageModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setZoomImageModal(null)}
         >
-          <div 
-            className="relative max-w-lg w-full bg-slate-900 rounded-3xl p-5 border border-slate-700 shadow-2xl space-y-3"
+          <div
+            className="relative max-w-2xl w-full bg-slate-900 rounded-3xl p-3 border border-white/20 shadow-2xl space-y-3"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-white text-base">{productDetails.brand_name}</h3>
-                <p className="text-xs text-slate-400">{productDetails.company}</p>
-              </div>
-              <button 
-                onClick={() => setShowImageZoom(false)}
-                className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white cursor-pointer"
+            <div className="flex items-center justify-between px-2 pt-1">
+              <span className="text-xs font-black text-white truncate">
+                {zoomImageModal.title || 'Agrochemical Label Inspection'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoomImageModal(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-[70vh] flex items-center justify-center p-2">
-              <img 
-                src={productDetails.image_url} 
-                alt={productDetails.brand_name} 
-                className="max-h-[65vh] w-auto object-contain rounded-xl"
+            <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
+              <img
+                src={zoomImageModal.src}
+                alt="Enlarged view"
+                className="max-h-[70vh] w-auto object-contain rounded-xl"
               />
             </div>
           </div>

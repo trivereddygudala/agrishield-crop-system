@@ -1,29 +1,39 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Sprout, 
-  BookOpen, 
-  Sun, 
-  FlaskConical, 
-  Volume2, 
-  VolumeX, 
-  Droplets, 
-  Thermometer, 
-  ShieldAlert, 
-  Bug, 
-  ArrowRight, 
-  RotateCcw, 
-  Sparkles, 
-  Globe, 
-  ChevronDown, 
-  ChevronUp, 
-  Layers, 
+import {
+  Sprout,
+  BookOpen,
+  Sun,
+  FlaskConical,
+  Volume2,
+  VolumeX,
+  Droplets,
+  Thermometer,
+  ShieldAlert,
+  Bug,
+  ArrowRight,
+  RotateCcw,
+  Sparkles,
+  Globe,
+  ChevronDown,
+  ChevronUp,
+  Layers,
   CheckCircle2,
   Copy,
-  Check
+  Check,
+  Share2,
+  FileText,
+  Phone,
+  ZoomIn,
+  X,
+  Landmark,
+  Award,
+  ShieldCheck,
+  Clock,
+  Activity
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
-import { Card, Button } from '../ui/index';
+import { Card, Button, Badge } from '../ui/index';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { buildPlantSpeech } from '../../utils/regionalLocale';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
@@ -585,8 +595,8 @@ const getPlantDetails = (liveResult) => {
   // Structured API output from /api/identify-plant
   if (liveResult && liveResult.plant) {
     const p = liveResult.plant;
-    const conf = liveResult.confidence 
-      ? (liveResult.confidence <= 1.0 ? (liveResult.confidence * 100).toFixed(1) : Number(liveResult.confidence).toFixed(1)) + "%" 
+    const conf = liveResult.confidence
+      ? (liveResult.confidence <= 1.0 ? (liveResult.confidence * 100).toFixed(1) : Number(liveResult.confidence).toFixed(1)) + "%"
       : "98.2%";
     const sciName = p.scientific_name || "";
     const sciLower = sciName.toLowerCase();
@@ -697,7 +707,7 @@ const getPlantDetails = (liveResult) => {
     cropTitle = "Bell Pepper";
   }
 
-  const confidenceStr = liveResult.confidence 
+  const confidenceStr = liveResult.confidence
     ? (liveResult.confidence <= 1.0 ? liveResult.confidence * 100 : liveResult.confidence).toFixed(1) + "%"
     : "97.8%";
 
@@ -739,7 +749,7 @@ const getPlantDetails = (liveResult) => {
   };
 };
 
-const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => {
+const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDisease }) => {
   const { t, i18n } = useTranslation();
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
 
@@ -771,9 +781,12 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     window.addEventListener('agrishield-preferred-languages-updated', handleUpdate);
     return () => window.removeEventListener('agrishield-preferred-languages-updated', handleUpdate);
   }, [activeLang]);
+
   const [translatedCache, setTranslatedCache] = useState({});
   const [isTranslating, setIsTranslating] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [zoomImageModal, setZoomImageModal] = useState(null);
+  const [selectedTankSize, setSelectedTankSize] = useState(15); // Standard 15L backpack pump
 
   const rawInfo = useMemo(() => data || getPlantDetails(liveResult), [data, liveResult]);
 
@@ -804,7 +817,7 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
           }));
         }
       } catch (err) {
-        console.warn("On-demand plant translation failed:", err);
+        console.warn('On-demand plant translation failed:', err);
       } finally {
         if (isMounted) setIsTranslating(false);
       }
@@ -852,9 +865,137 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     };
   }, [rawInfo, translatedCache, activeLang]);
 
-  // Localized UI strings
-  const locDict = AGRONOMIC_LOCALIZATIONS[activeLang] || AGRONOMIC_LOCALIZATIONS.en || AGRONOMIC_LOCALIZATIONS.te;
-  const locUI = locDict?.ui || {};
+  // Resolve user scanned image
+  const displayOriginalImg = previewUrl || liveResult?.image_data_url || liveResult?.image_path || liveResult?.imageUrl;
+
+  // 3-Specimen Authentic Botanical Comparison List (Species-Exact High Resolution Matching)
+  const [selectedBotRefIdx, setSelectedBotRefIdx] = useState(0);
+
+  const botanicalRefList = useMemo(() => {
+    const isTe = activeLang === 'te';
+    const nameLow = (info.commonName || '').toLowerCase();
+    const sciLow = (info.scientificName || '').toLowerCase();
+    const catLow = (info.category || '').toLowerCase();
+    const fullSpec = `${nameLow} ${sciLow} ${catLow}`;
+
+    // 1. Parthenium Weed (Parthenium hysterophorus / కాంగ్రెస్ గడ్డి)
+    if (fullSpec.includes('parthenium') || fullSpec.includes('కాంగ్రెస్') || fullSpec.includes('hysterophorus')) {
+      return [
+        { id: 'par_01', image_url: '/samples/botanical/parthenium_01.jpg', stage: isTe ? 'ఆకు స్వరూపం (Leaf Rosette)' : 'Basal Leaf Rosette' },
+        { id: 'par_02', image_url: '/samples/botanical/parthenium_02.jpg', stage: isTe ? 'పుష్పించే దశ (Flowering Heads)' : 'Flowering Heads' },
+        { id: 'par_03', image_url: '/samples/botanical/parthenium_03.jpg', stage: isTe ? 'పూర్తి కలుపు పొద (Full Weed Shrub)' : 'Full Weed Shrub' }
+      ];
+    }
+
+    // 2. Lantana Weed (Lantana camara / ఉన్ని మొక్క)
+    if (fullSpec.includes('lantana') || fullSpec.includes('ఉన్ని') || fullSpec.includes('camara')) {
+      return [
+        { id: 'lan_01', image_url: '/samples/botanical/lantana_01.jpg', stage: isTe ? 'ఆకు అంచుల అమరిక (Serrated Foliage)' : 'Serrated Foliage' },
+        { id: 'lan_02', image_url: '/samples/botanical/lantana_02.jpg', stage: isTe ? 'పూత గుత్తి (Flower Cluster)' : 'Flower Cluster' },
+        { id: 'lan_03', image_url: '/samples/botanical/lantana_03.jpg', stage: isTe ? 'కలుపు పొద స్వరూపం (Full Shrub Habit)' : 'Full Shrub Habit' }
+      ];
+    }
+
+    // 3. Grasses / Sedges (Cyperus rotundus / Cynodon dactylon / తుంగ / గరిక / Wild Grass)
+    if (fullSpec.includes('grass') || fullSpec.includes('గడ్డి') || fullSpec.includes('cyperus') || fullSpec.includes('cynodon') || fullSpec.includes('తుంగ') || fullSpec.includes('గరిక') || fullSpec.includes('sedge')) {
+      return [
+        { id: 'grs_01', image_url: '/samples/botanical/wild_grass_01.png', stage: isTe ? 'మొక్కల మొలక (Grass Seedling)' : 'Grass Seedling' },
+        { id: 'grs_02', image_url: '/samples/botanical/wild_grass_02.png', stage: isTe ? 'గడ్డి ఆకు పొడవు (Blade Elongation)' : 'Blade Elongation' },
+        { id: 'grs_03', image_url: '/samples/botanical/wild_grass_03.png', stage: isTe ? 'తుంగ గడ్డి దుబ్బు (Sedge Tiller Cluster)' : 'Sedge Tiller Cluster' }
+      ];
+    }
+
+    // 4. Tomato (Solanum lycopersicum / టమాటా)
+    if (fullSpec.includes('tomato') || fullSpec.includes('టమాటా') || fullSpec.includes('టమోటా') || fullSpec.includes('lycopersicum')) {
+      return [
+        { id: 'tom_01', image_url: '/samples/botanical/tomato_plant.jpg', stage: isTe ? 'ఆరోగ్యకరమైన ఆకు (Foliar Anatomy)' : 'Foliar Anatomy' },
+        { id: 'tom_02', image_url: '/samples/dataset/tomato/tomato_healthy_leaf_01.jpg', stage: isTe ? 'పూత గుత్తి దశ (Flowering Cluster)' : 'Flowering Cluster' },
+        { id: 'tom_03', image_url: '/samples/dataset/tomato/tomato_healthy_leaf_02.jpg', stage: isTe ? 'మొక్క పందిరి (Canopy Habit)' : 'Canopy Habit' }
+      ];
+    }
+
+    // 5. Chilli / Pepper (Capsicum / మిరప)
+    if (fullSpec.includes('chilli') || fullSpec.includes('chili') || fullSpec.includes('pepper') || fullSpec.includes('capsicum') || fullSpec.includes('మిరప')) {
+      return [
+        { id: 'chi_01', image_url: '/samples/botanical/chilli_plant.jpg', stage: isTe ? 'మిరప ఆకు అమరిక (Leaf Anatomy)' : 'Leaf Anatomy' },
+        { id: 'chi_02', image_url: '/samples/chilli_healthy.jpg', stage: isTe ? 'కొమ్మల కణుపులు (Branching Nodes)' : 'Branching Nodes' },
+        { id: 'chi_03', image_url: '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg', stage: isTe ? 'మొక్క సమగ్ర రూపం (Full Shrub Habit)' : 'Full Shrub Habit' }
+      ];
+    }
+
+    // 6. Corn / Maize (Zea mays / మొక్కజొన్న)
+    if (fullSpec.includes('corn') || fullSpec.includes('maize') || fullSpec.includes('మొక్కజొన్న') || fullSpec.includes('mays')) {
+      return [
+        { id: 'crn_01', image_url: '/samples/dataset/corn/corn_healthy_corn_leaf_01.jpg', stage: isTe ? 'ఆకు నిర్మాణం (Leaf Blade)' : 'Leaf Blade' },
+        { id: 'crn_02', image_url: '/samples/dataset/corn/corn_healthy_corn_leaf_02.jpg', stage: isTe ? 'కంకి & జుట్టు దశ (Tassel & Ear)' : 'Tassel & Ear Stage' },
+        { id: 'crn_03', image_url: '/samples/dataset/corn/corn_healthy_corn_leaf_03.jpg', stage: isTe ? 'మొక్క కాండం (Stem Architecture)' : 'Stem Architecture' }
+      ];
+    }
+
+    // 7. Cotton (Gossypium / పత్తి)
+    if (fullSpec.includes('cotton') || fullSpec.includes('పత్తి') || fullSpec.includes('gossypium')) {
+      return [
+        { id: 'cot_01', image_url: '/samples/botanical/cotton_01.jpg', stage: isTe ? 'ఆకు స్వరూపం (Palmate Leaf Blade)' : 'Palmate Leaf Blade' },
+        { id: 'cot_02', image_url: '/samples/botanical/cotton_02.jpg', stage: isTe ? 'పూత పిందె దశ (Square & Flower Bract)' : 'Square & Flower Bract' },
+        { id: 'cot_03', image_url: '/samples/botanical/cotton_03.jpg', stage: isTe ? 'పత్తి మొక్క రూపం (Full Canopy Habit)' : 'Full Canopy Habit' }
+      ];
+    }
+
+    // 8. Citrus / Lemon (Citrus limon / నిమ్మ)
+    if (fullSpec.includes('citrus') || fullSpec.includes('lemon') || fullSpec.includes('నిమ్మ') || fullSpec.includes('limon')) {
+      return [
+        { id: 'cit_01', image_url: '/samples/botanical/citrus_01.jpg', stage: isTe ? 'నిమ్మ ఆకు స్వరూపం (Citrus Foliage)' : 'Citrus Foliage' },
+        { id: 'cit_02', image_url: '/samples/botanical/citrus_02.jpg', stage: isTe ? 'ఆకు నూనె గ్రంథులు (Oil Glands & Veins)' : 'Oil Glands & Veins' },
+        { id: 'cit_03', image_url: '/samples/botanical/citrus_03.jpg', stage: isTe ? 'చెట్టు కొమ్మ ఆకృతి (Tree Canopy Branch)' : 'Tree Canopy Branch' }
+      ];
+    }
+
+    // 9. Potato (Solanum tuberosum / బంగాళాదుంప)
+    if (fullSpec.includes('potato') || fullSpec.includes('బంగాళాదుంప') || fullSpec.includes('tuberosum')) {
+      return [
+        { id: 'pot_01', image_url: '/samples/dataset/potato/potato_healthy_leaf_01.jpg', stage: isTe ? 'ఆకు నిర్మాణం (Compound Foliage)' : 'Compound Foliage' },
+        { id: 'pot_02', image_url: '/samples/dataset/potato/potato_healthy_leaf_02.jpg', stage: isTe ? 'మొక్క పందిరి (Canopy Architecture)' : 'Canopy Architecture' },
+        { id: 'pot_03', image_url: '/samples/dataset/potato/potato_healthy_leaf_03.jpg', stage: isTe ? 'దుంప మొక్క రూపం (Tuberous Shrub Form)' : 'Tuberous Shrub Form' }
+      ];
+    }
+
+    // 10. Banana (Musa / అరటి)
+    if (fullSpec.includes('banana') || fullSpec.includes('అరటి') || fullSpec.includes('musa')) {
+      return [
+        { id: 'ban_01', image_url: '/samples/dataset/banana/banana_healthy_banana_leaf_01.jpg', stage: isTe ? 'అరటి ఆకు నిర్మాణం (Giant Leaf Blade)' : 'Giant Leaf Blade' },
+        { id: 'ban_02', image_url: '/samples/dataset/banana/banana_healthy_banana_leaf_02.jpg', stage: isTe ? 'మట్ట అమరిక (Pseudostem Foliage)' : 'Pseudostem Foliage' },
+        { id: 'ban_03', image_url: '/samples/dataset/banana/banana_healthy_banana_leaf_03.jpg', stage: isTe ? 'చెట్టు సమగ్ర రూపం (Banana Specimen Form)' : 'Banana Specimen Form' }
+      ];
+    }
+
+    // 11. Sugarcane (Saccharum / చెరకు)
+    if (fullSpec.includes('sugarcane') || fullSpec.includes('చెరకు') || fullSpec.includes('saccharum')) {
+      return [
+        { id: 'sug_01', image_url: '/samples/dataset/sugarcane/sugarcane_healthy_sugarcane_foliage_01.jpg', stage: isTe ? 'ఆకు ఈనె అమరిక (Ribbed Foliage)' : 'Ribbed Foliage' },
+        { id: 'sug_02', image_url: '/samples/dataset/sugarcane/sugarcane_healthy_sugarcane_foliage_02.jpg', stage: isTe ? 'గెడ ఆకృతి (Cane Stalk Foliage)' : 'Cane Stalk Foliage' },
+        { id: 'sug_03', image_url: '/samples/dataset/sugarcane/sugarcane_healthy_sugarcane_foliage_03.jpg', stage: isTe ? 'చెరకు దుబ్బు (Stool Canopy Form)' : 'Stool Canopy Form' }
+      ];
+    }
+
+    // 12. Generic Weed fallback (If marked as weed)
+    if (info.isWeed || catLow.includes('weed') || nameLow.includes('కలుపు')) {
+      return [
+        { id: 'gen_weed_01', image_url: '/samples/botanical/parthenium_01.jpg', stage: isTe ? 'కలుపు ఆకు లక్షణం (Weed Leaf Rosette)' : 'Weed Leaf Rosette' },
+        { id: 'gen_weed_02', image_url: '/samples/botanical/parthenium_02.jpg', stage: isTe ? 'పుష్పించే దశ (Flowering Stage)' : 'Flowering Stage' },
+        { id: 'gen_weed_03', image_url: '/samples/botanical/parthenium_03.jpg', stage: isTe ? 'కలుపు సమగ్ర రూపం (Full Weed Habit)' : 'Full Weed Habit' }
+      ];
+    }
+
+    // 13. Universal Botanical Specimen Fallback
+    const primary = info.referenceImage || info.imageUrl || info.image_url || '/samples/botanical/tomato_plant.jpg';
+    return [
+      { id: 'uni_01', image_url: primary, stage: isTe ? 'ఆకు స్వరూపం (Leaf Blade Anatomy)' : 'Leaf Blade Anatomy' },
+      { id: 'uni_02', image_url: '/samples/dataset/tomato/tomato_healthy_leaf_01.jpg', stage: isTe ? 'పూత దశ (Flowering Stage)' : 'Flowering Stage' },
+      { id: 'uni_03', image_url: '/samples/dataset/tomato/tomato_healthy_leaf_02.jpg', stage: isTe ? 'మొక్క సమగ్ర రూపం (Full Plant Canopy)' : 'Full Plant Canopy' }
+    ];
+  }, [info, activeLang]);
+
+  const displayReferenceImg = botanicalRefList[selectedBotRefIdx]?.image_url || botanicalRefList[0].image_url;
 
   // Speech reader helper
   const speechInfo = { ...info, commonName: info.commonName };
@@ -864,7 +1005,6 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     const clean = (langCode || 'en').split('-')[0].toLowerCase();
     setActiveLang(clean);
     sessionStorage.setItem('agrishield_tab_lang_plant', clean);
-    // Explicitly isolated to Plant ID tab: does NOT mutate global website i18n
   };
 
   const handleScanAnother = () => {
@@ -875,557 +1015,578 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     }
   };
 
-  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const handleShareWhatsApp = () => {
+    const isWeedType = Boolean(info.isWeed);
+    const typeLabel = isWeedType
+      ? (activeLang === 'te' ? '🚨 కలుపు మొక్క గుర్తింపు & నివారణ' : '🚨 Weed Threat & Control')
+      : (activeLang === 'te' ? '🌿 మొక్కల జాతి విశ్లేషణ' : '🌿 Plant Identification');
 
-  const generateMarkdownReport = () => {
-    const identifiedType = info.identifiedType || (info.isWeed ? 'Weed' : (info.isTree ? 'Tree' : 'Crop'));
-    const commonName = info.commonName || 'Plant Specimen';
-    const botanicalName = info.scientificName || 'Botanical classification';
-    const family = info.family || 'Botanical Family';
-    const description = info.description || `${commonName} is a botanical specimen belonging to the ${family} family.`;
-    const primaryUse = info.primaryUseImpact || (info.isWeed ? 'An invasive agricultural weed requiring active field management and eradication.' : 'Cultivated agricultural food crop and beneficial economic plant.');
-    const suitableSoil = info.suitableSoilType || info.soilpH || 'Well-drained fertile loamy soil (pH 6.0 - 7.0)';
-    const idealWeather = info.idealWeatherClimate || `${info.temperature || '20°C - 35°C'}, Full Sun (6 to 8 hours daily)`;
+    const text = activeLang === 'te'
+      ? `*🌾 అగ్రిషీల్డ్ AI - ${typeLabel}*\n\n` +
+        `🌱 *పేరు:* ${info.commonName}\n` +
+        `🔬 *శాస్త్రీయ నామం:* _${info.scientificName || 'N/A'}_\n` +
+        `🏷️ *రకం:* ${info.identifiedType || (isWeedType ? 'హానికరమైన కలుపు' : 'వ్యవసాయ పంట')}\n` +
+        `📊 *కచ్చితత్వం:* ${info.confidence || '98.4%'}\n\n` +
+        (isWeedType
+          ? `⚠️ *కలుపు నివారణ పంపు మోతాదు:* 100ml / 15 లీటర్ల వీపు పంపుకు (గ్లైఫోసేట్ 41% SL లేదా 2,4-D)\n`
+          : `🪴 *అనుకూల నేల:* ${info.suitableSoilType || info.soilpH || 'సారవంతమైన నేల'}\n` +
+            `☀️ *వాతావరణం:* ${info.idealWeatherClimate || info.temperature || '22°C - 35°C'}\n` +
+            `💧 *నీటి తడి:* ${info.waterNeed || 'మధ్యస్థ తడి'}\n`) +
+        `\n📲 *అగ్రిషీల్డ్ AI యాప్‌లో చూడండి:* http://localhost:3000/scan`
+      : `*🌾 AgriShield AI - ${typeLabel}*\n\n` +
+        `🌱 *Specimen:* ${info.commonName}\n` +
+        `🔬 *Botanical:* _${info.scientificName || 'N/A'}_\n` +
+        `🏷️ *Category:* ${info.identifiedType || (isWeedType ? 'Invasive Weed' : 'Agricultural Crop')}\n` +
+        `📊 *Accuracy:* ${info.confidence || '98.4%'}\n\n` +
+        (isWeedType
+          ? `⚠️ *15L Backpack Pump Dosage:* 100ml per 15L spray tank (Glyphosate 41% SL or 2,4-D)\n`
+          : `🪴 *Soil:* ${info.suitableSoilType || info.soilpH || 'Well-drained loam'}\n` +
+            `☀️ *Climate:* ${info.idealWeatherClimate || info.temperature || '22°C - 35°C'}\n` +
+            `💧 *Irrigation:* ${info.waterNeed || 'Moderate moisture'}\n`) +
+        `\n📲 *Open on AgriShield AI:* http://localhost:3000/scan`;
 
-    return `### 🌿 Plant Classification
-- **Identified Type**: ${identifiedType}
-- **Common Name**: ${commonName}
-- **Botanical Name**: *${botanicalName}*
-- **Family**: ${family}
-
-### 📝 Description & Key Details
-- **Description**: ${description}
-- **Primary Use / Impact**: ${primaryUse}
-
-### 🪵 Environmental Conditions
-- **Suitable Soil Type**: ${suitableSoil}
-- **Ideal Weather & Climate**: ${idealWeather}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const handleCopyMarkdown = async () => {
-    try {
-      const md = generateMarkdownReport();
-      await navigator.clipboard.writeText(md);
-      setCopiedMarkdown(true);
-      setTimeout(() => setCopiedMarkdown(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy markdown report:', err);
-    }
+  const handleDownloadPDF = () => {
+    window.print();
   };
 
-  // ==================== CARD 1: HERO SPECIMEN BANNER ====================
-  const renderSpecimenHero = () => (
-    <Card className="p-6 sm:p-8 bg-gradient-to-r from-teal-950 via-slate-900 to-slate-900 text-white border border-teal-500/20 shadow-2xl relative overflow-hidden rounded-3xl">
-      <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+  const isWeed = Boolean(info.isWeed || info.category?.toLowerCase().includes('weed') || info.commonName?.toLowerCase().includes('weed') || info.commonName?.toLowerCase().includes('గడ్డి') || info.commonName?.toLowerCase().includes('కలుపు'));
+  const isMedicinal = Boolean(info.category?.toLowerCase().includes('medicinal') || info.primaryUseImpact?.toLowerCase().includes('medicinal') || (info.commonName || '').toLowerCase().includes('neem') || (info.commonName || '').toLowerCase().includes('tulsi') || (info.commonName || '').toLowerCase().includes('తులసి') || (info.commonName || '').toLowerCase().includes('వేప'));
+  const isTree = Boolean(info.isTree || info.category?.toLowerCase().includes('tree') || (info.commonName || '').toLowerCase().includes('tree') || (info.commonName || '').toLowerCase().includes('చెట్టు') || liveResult?.plant_type === 'tree');
 
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-        <div className="space-y-3 flex-1">
-          {/* Top Badges Row */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-teal-500/20 text-teal-300 border border-teal-400/30 flex items-center gap-1.5 shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-              {locUI.speciesMatch || 'Species Match'}
+  return (
+    <div className="space-y-4 max-w-4xl mx-auto pb-12">
+      {/* ==================== 1. LANGUAGE BAR ==================== */}
+      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3 flex-wrap">
+        <ScanLanguageBar
+          activeLang={activeLang}
+          onLanguageSelect={handleLanguageSelect}
+          isTranslating={isTranslating}
+          label={activeLang === 'te' ? 'జాతి వివరణ భాష' : 'Identification Language'}
+          className="w-full justify-between sm:justify-start"
+        />
+      </div>
+
+      {/* ==================== CARD 1: EXECUTIVE SPECIMEN & DUAL VISUAL MATCH ==================== */}
+      <Card className="p-5 sm:p-7 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl relative overflow-hidden space-y-4">
+        {/* Top Status & Audio Row */}
+        <div className="flex items-center justify-between flex-wrap gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs ${
+              isWeed
+                ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                : isMedicinal
+                ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30'
+                : isTree
+                ? 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30'
+                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${isWeed ? 'bg-rose-500 animate-pulse' : isMedicinal ? 'bg-cyan-500' : 'bg-emerald-500'}`} />
+              <span>
+                {isWeed
+                  ? (activeLang === 'te' ? '🚨 హానికరమైన కలుపు (Invasive Weed)' : '🚨 Invasive Weed')
+                  : isMedicinal
+                  ? (activeLang === 'te' ? '💊 ఔషధ మొక్క (Medicinal)' : '💊 Medicinal Flora')
+                  : isTree
+                  ? (activeLang === 'te' ? '🌳 వృక్ష జాతి (Tree Species)' : '🌳 Tree Species')
+                  : (activeLang === 'te' ? '🌿 వ్యవసాయ పంట (Crop Specimen)' : '🌿 Agricultural Crop')}
+              </span>
             </span>
 
-            {/* Strict Identified Type Badge */}
-            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5 shadow-sm">
-              <span>🌿</span>
-              <span>{info.identifiedType || 'Crop'}</span>
+            <span className="text-xs font-black text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
+              {info.confidence || '98.4%'} {activeLang === 'te' ? 'కచ్చితత్వం' : 'Accuracy'}
             </span>
-
-            {/* Category Badges (Crop / Tree / Weed / Medicinal) */}
-            {info.isWeed ? (
-              <span className="text-xs font-black text-rose-200 bg-rose-950/90 px-3 py-1 rounded-full border border-rose-500/50 flex items-center gap-1.5 shadow-sm animate-pulse">
-                <span>🚨</span>
-                <span>{locDict?.categories?.weed || 'Agricultural Weed'}</span>
-              </span>
-            ) : (info.category?.toLowerCase().includes('medicinal') || info.primaryUseImpact?.toLowerCase().includes('medicinal') || info.commonName?.toLowerCase().includes('neem') || info.commonName?.toLowerCase().includes('tulsi')) ? (
-              <span className="text-xs font-black text-cyan-200 bg-cyan-950/90 px-3 py-1 rounded-full border border-cyan-500/50 flex items-center gap-1.5 shadow-sm">
-                <span>💊</span>
-                <span>Medicinal Plant</span>
-              </span>
-            ) : (info.isTree || info.category?.toLowerCase().includes('tree') || info.commonName?.toLowerCase().includes('tree') || liveResult?.plant_type === 'tree') ? (
-              <span className="text-xs font-black text-emerald-300 bg-emerald-950/90 px-3 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
-                <span>🌳</span>
-                <span>{locDict?.categories?.tree || 'Tree Species'}</span>
-              </span>
-            ) : (
-              <span className="text-xs font-black text-amber-300 bg-amber-950/90 px-3 py-1 rounded-full border border-amber-500/40 flex items-center gap-1.5 shadow-sm">
-                <span>🌾</span>
-                <span>{locDict?.categories?.crop || 'Crop / Botanical Flora'}</span>
-              </span>
-            )}
           </div>
 
-          {/* Specimen Titles */}
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight leading-tight">
-                {info.commonName}
-              </h2>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  variant="glass"
-                  size="sm"
-                  onClick={() => speak(fullSpeciesSummary, 'plant_summary', activeLang)}
-                  leftIcon={<Volume2 className={`w-4 h-4 ${speakingId === 'plant_summary' ? 'animate-bounce text-teal-300' : 'text-white'}`} />}
-                  className="bg-teal-600/80 hover:bg-teal-500 text-white font-bold border-teal-400/40 shadow-sm rounded-xl cursor-pointer"
+          {/* Voice Doctor Audio Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (speakingId === 'plant_summary') {
+                stopSpeech();
+              } else {
+                speak(fullSpeciesSummary, 'plant_summary', activeLang);
+              }
+            }}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+              speakingId === 'plant_summary'
+                ? 'bg-rose-600 text-white animate-pulse'
+                : 'bg-teal-600 hover:bg-teal-500 text-white'
+            }`}
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>
+              {speakingId === 'plant_summary'
+                ? (activeLang === 'te' ? 'ఆపండి' : 'Stop')
+                : (activeLang === 'te' ? '🔊 వినండి (Telugu Audio)' : '🔊 Listen (Audio)')}
+            </span>
+            {speakingId === 'plant_summary' && (
+              <span className="flex items-center gap-0.5 ml-1">
+                <span className="w-1 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Dual Visual Match: Farmer Photo vs Verified Botanical Reference */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+          {/* Left: Farmer Leaf / Plant */}
+          <div className="flex flex-col space-y-1.5">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span>📸</span>
+              <span>{activeLang === 'te' ? 'మీరు తీసిన ఫోటో' : 'Your Scanned Photo'}</span>
+            </span>
+            <div
+              className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-inner group cursor-pointer"
+              onClick={() => setZoomImageModal({ src: displayOriginalImg, title: info.commonName })}
+            >
+              {displayOriginalImg ? (
+                <img
+                  src={displayOriginalImg}
+                  alt="Scanned specimen"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold">
+                  No Photo
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="px-2 py-1 rounded-lg bg-black/75 text-white text-[10px] font-black flex items-center gap-1">
+                  <ZoomIn className="w-3 h-3" />
+                  <span>{activeLang === 'te' ? 'జూమ్' : 'Zoom'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Verified Botanical Reference Specimen */}
+          <div className="flex flex-col space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1">
+                <span>🔬</span>
+                <span>{activeLang === 'te' ? 'ధృవీకరించబడిన బొటానికల్ పోలిక' : 'Verified Botanical Reference'}</span>
+              </span>
+              <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">
+                {selectedBotRefIdx + 1} / {botanicalRefList.length}
+              </span>
+            </div>
+            <div
+              className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-teal-500/40 shadow-inner group cursor-pointer"
+              onClick={() => {
+                const curImg = botanicalRefList[selectedBotRefIdx] || botanicalRefList[0];
+                setZoomImageModal({ src: curImg.image_url, title: `Verified: ${info.commonName} (${curImg.stage || ''})` });
+              }}
+            >
+              <img
+                src={displayReferenceImg}
+                alt="Botanical reference"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/samples/chilli_healthy.jpg';
+                }}
+              />
+              <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md bg-teal-600 text-white text-[9px] font-black shadow-xs flex items-center gap-1">
+                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                <span>{activeLang === 'te' ? 'బొటానికల్ పోలిక #' + (selectedBotRefIdx + 1) : 'Botanical Match #' + (selectedBotRefIdx + 1)}</span>
+              </div>
+              <div className="absolute bottom-1.5 inset-x-1.5 px-2 py-1 rounded-lg bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold truncate">
+                {botanicalRefList[selectedBotRefIdx]?.stage || (activeLang === 'te' ? 'ధృవీకరించబడిన నమూనా' : 'Verified Specimen')}
+              </div>
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="px-2 py-1 rounded-lg bg-black/75 text-white text-[10px] font-black flex items-center gap-1">
+                  <ZoomIn className="w-3 h-3" />
+                  <span>{activeLang === 'te' ? 'జూమ్' : 'Zoom'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-Image Botanical Reference Gallery Strip */}
+        <div className="p-3 rounded-2xl bg-teal-50/60 dark:bg-slate-800/60 border border-teal-200/80 dark:border-slate-800 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span>🌿</span>
+              <span>{activeLang === 'te' ? '3 ధృవీకరించబడిన బొటానికల్ ఫోటోలు (వివిధ కోణాలు)' : '3 Verified Botanical Reference Views (Tap to Compare)'}</span>
+            </span>
+            <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">
+              {activeLang === 'te' ? 'పోల్చడానికి ట్యాప్ చేయండి' : 'Tap to inspect'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {botanicalRefList.map((ref, idx) => {
+              const isSelected = selectedBotRefIdx === idx;
+              return (
+                <button
+                  key={ref.id || idx}
+                  type="button"
+                  onClick={() => setSelectedBotRefIdx(idx)}
+                  className={`group relative flex flex-col items-center p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-teal-500 bg-teal-500/10 shadow-xs ring-2 ring-teal-500/40'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-teal-400'
+                  }`}
                 >
-                  {speakingId === 'plant_summary' ? (locUI.stopVoice || 'Stop Voice') : (locUI.listenVoice || 'Listen Summary')}
-                </Button>
-                {onCheckDisease && !info.isWeed && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => onCheckDisease(info.commonName)}
-                    leftIcon={<Bug className="w-4 h-4 text-white" />}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-md shadow-emerald-600/30 rounded-xl cursor-pointer"
-                  >
-                    <span>{locUI.checkDisease || (activeLang === 'te' ? 'ఈ పంట తెగుళ్ల పరీక్ష' : 'Check for Diseases')}</span>
-                  </Button>
-                )}
+                  <div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800 mb-1">
+                    <img
+                      src={ref.image_url}
+                      alt={ref.stage || `Specimen ${idx + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/samples/chilli_healthy.jpg';
+                      }}
+                    />
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-teal-600 text-white flex items-center justify-center text-[9px] font-black">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 block truncate w-full">
+                    {ref.stage || `Specimen ${idx + 1}`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Specimen Names & Classification */}
+        <div className="pt-1">
+          <h2 className="font-display font-black text-2xl sm:text-3xl text-slate-900 dark:text-white leading-tight">
+            {info.commonName}
+          </h2>
+          {info.scientificName && (
+            <p className="text-sm font-bold italic text-teal-600 dark:text-teal-400 mt-0.5">
+              {info.scientificName}
+            </p>
+          )}
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-slate-700 dark:text-slate-300">🏛️ {info.family || 'Botanical Family'}</span>
+            <span>•</span>
+            <span>🌍 {info.nativeRegion || 'South Asia'}</span>
+          </p>
+        </div>
+      </Card>
+
+      {/* ==================== CARD 2: WEED ERADICATION (IF WEED) OR AGRONOMIC MATRIX ==================== */}
+      {isWeed ? (
+        <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-3xl shadow-xl space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-black text-sm uppercase tracking-wider">
+              <ShieldAlert className="w-5 h-5 shrink-0" />
+              <span>{activeLang === 'te' ? 'హానికరమైన కలుపు ముప్పు & నివారణ ప్రణాళిక' : 'Invasive Weed Impact & Eradication Guide'}</span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+              {activeLang === 'te' ? '20-40% దిగుబడి తగ్గే ప్రమాదం' : '20-40% Yield Loss Risk'}
+            </span>
+          </div>
+
+          {/* 15L Backpack Spray Pump Herbicide Calculator */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-50 via-amber-50/50 to-slate-50 dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900 border border-rose-200 dark:border-rose-800/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
+                <span>🧪</span>
+                <span>{activeLang === 'te' ? 'సిఫార్సు చేసిన రసాయన కలుపు మందు' : 'Recommended Chemical Herbicide'}</span>
+              </span>
+              <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400">
+                {selectedTankSize}L Tank
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              <div>
+                <p className="text-base font-black text-slate-900 dark:text-white">
+                  {activeLang === 'te' ? 'గ్లైఫోసేట్ 41% SL లేదా 2,4-D ఈథైల్ ఈస్టర్' : 'Glyphosate 41% SL or 2,4-D Ethyl Ester'}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  {activeLang === 'te'
+                    ? 'ఎంపిక చేయని దైహిక కలుపు నాశిని (Systemic Post-Emergence Herbicide)'
+                    : 'Systemic foliar herbicide for broadleaf and perennial grasses'}
+                </p>
+              </div>
+
+              {/* Exact 15L Backpack Pump Gauge */}
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 text-center shadow-xs">
+                <span className="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 block tracking-wider">
+                  {activeLang === 'te' ? '15 లీటర్ల వీపు పంపు మోతాదు' : '15L Backpack Pump Dosage'}
+                </span>
+                <span className="text-2xl font-black text-rose-700 dark:text-rose-300 font-display">
+                  {selectedTankSize === 20 ? '130 ml' : selectedTankSize === 200 ? '1.3 Litres' : '100 ml'}
+                </span>
+                <span className="text-[10px] font-bold text-slate-500 block mt-0.5">
+                  ({(selectedTankSize * 6.5).toFixed(0)} ml total / {selectedTankSize}L water)
+                </span>
               </div>
             </div>
 
-            {info.scientificName && (
-              <p className="text-sm font-bold italic text-emerald-300 tracking-wide mt-1">
-                {info.scientificName}
+            {/* Tank Size Selector */}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                {activeLang === 'te' ? 'పంపు పరిమాణం:' : 'Pump Tank:'}
+              </span>
+              {[15, 20, 200].map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setSelectedTankSize(size)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                    selectedTankSize === size
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-100'
+                  }`}
+                >
+                  {size === 200 ? `${size}L (Acre Drum)` : `${size}L Pump`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cultural & Manual Control Methods */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
+              <span className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-wider block flex items-center gap-1.5">
+                <span>🧑‍🌾</span>
+                <span>{activeLang === 'te' ? 'చేతితో లేదా గుంటుకతో నివారణ' : 'Manual / Cultural Weeding'}</span>
+              </span>
+              <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                {activeLang === 'te'
+                  ? 'కలుపు మొక్క పూత పూయక ముందే చేతితో లేదా గుంటుకతో వేళ్ళతో సహా తొలగించండి. విత్తనాలు నేలలో పడకుండా నియంత్రించండి.'
+                  : 'Hand-weed or shallow inter-cultivate prior to flowering. Eliminate weeds before seeds drop into the soil seed bank.'}
               </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
+              <span className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-wider block flex items-center gap-1.5">
+                <span>🌾</span>
+                <span>{activeLang === 'te' ? 'ప్రభావిత పంటలు & మల్చింగ్' : 'Affected Crops & Mulching'}</span>
+              </span>
+              <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                {activeLang === 'te'
+                  ? 'వరి, మొక్కజొన్న, పత్తి, వేరుశనగ మరియు కూరగాయల సాళ్ల మధ్యలో సేంద్రీయ గడ్డితో మల్చింగ్ చేసి కలుపు రాకుండా అడ్డుకోండి.'
+                  : 'Paddy, Maize, Cotton, Groundnut & Vegetables. Apply paddy straw mulch to suppress sunlight and weed germination.'}
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        /* Agronomic Growth & Care Window (For Crops & Trees) */
+        <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-black text-sm uppercase tracking-wider">
+              <Sun className="w-5 h-5 shrink-0 text-amber-500" />
+              <span>{activeLang === 'te' ? 'పర్యావరణ అనుకూలతలు & సాగు పద్ధతులు' : 'Agronomic Growth Matrix & Cultivation Care'}</span>
+            </div>
+            {onCheckDisease && (
+              <button
+                type="button"
+                onClick={() => onCheckDisease(info.commonName)}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
+              >
+                <Bug className="w-3.5 h-3.5" />
+                <span>{activeLang === 'te' ? '🔍 ఈ పంట తెగుళ్ల పరీక్ష' : 'Check Crop for Diseases'}</span>
+              </button>
             )}
           </div>
 
-          <p className="text-xs sm:text-sm text-slate-300 font-medium">
-            <span className="font-bold text-teal-200">{info.family}</span> • {info.nativeRegion}
-          </p>
-
-          {/* Confidence Progress Meter */}
-          <div className="pt-2 max-w-md">
-            <div className="flex justify-between items-center text-xs font-bold mb-1">
-              <span className="text-slate-300 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                {locUI.confidence || 'Identification Confidence'}
+          {/* 4-Grid Agronomic Growth Parameters */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Suitable Soil Type */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-1">
+              <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-400 flex items-center justify-between">
+                <span>{activeLang === 'te' ? '🪴 నేల రకం' : 'Suitable Soil'}</span>
+                <Sprout className="w-3.5 h-3.5" />
               </span>
-              <span className="text-emerald-400 font-extrabold">{info.confidence || "98.4%"}</span>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                {info.suitableSoilType || info.soilpH || (activeLang === 'te' ? 'సారవంతమైన ఒండ్రు నేలలు (pH 6.0 - 7.5)' : 'Fertile loamy soils (pH 6.0 - 7.5)')}
+              </p>
             </div>
-            <div className="w-full bg-slate-800/80 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-700" 
-                style={{ width: info.confidence || "98.4%" }}
+
+            {/* Climate & Weather */}
+            <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-1">
+              <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-400 flex items-center justify-between">
+                <span>{activeLang === 'te' ? '☀️ వాతావరణం' : 'Ideal Climate'}</span>
+                <Sun className="w-3.5 h-3.5" />
+              </span>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                {info.idealWeatherClimate || `${info.temperature || '22°C - 34°C'}, Full Sun`}
+              </p>
+            </div>
+
+            {/* Irrigation / Water */}
+            <div className="p-3.5 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/60 space-y-1">
+              <span className="text-[10px] font-black uppercase text-cyan-800 dark:text-cyan-400 flex items-center justify-between">
+                <span>{activeLang === 'te' ? '💧 నీటి తడి' : 'Water Need'}</span>
+                <Droplets className="w-3.5 h-3.5" />
+              </span>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                {info.waterNeed || (activeLang === 'te' ? 'మధ్యస్థ తడి, మురుగు నీరు పోయేలా' : 'Moderate agricultural irrigation')}
+              </p>
+            </div>
+
+            {/* Fertilization / Nutrients */}
+            <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 space-y-1">
+              <span className="text-[10px] font-black uppercase text-indigo-800 dark:text-indigo-400 flex items-center justify-between">
+                <span>{activeLang === 'te' ? '🧪 ఎరువులు' : 'Nutrients & NPK'}</span>
+                <FlaskConical className="w-3.5 h-3.5" />
+              </span>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                {info.fertilizer || (activeLang === 'te' ? 'సమతుల్య NPK ఎరువులు & జింక్ సల్ఫేట్' : 'Balanced NPK & Zinc Sulfate')}
+              </p>
+            </div>
+          </div>
+
+          {/* Vulnerable Pests & Diseases Watch */}
+          {((info.commonDiseases && info.commonDiseases.length > 0) || (info.commonPests && info.commonPests.length > 0)) && (
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+              <span className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
+                <span>{activeLang === 'te' ? 'తెగుళ్లు & పురుగుల పర్యవేక్షణ' : 'Pest & Disease Watch'}</span>
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {info.commonDiseases?.map((d, i) => (
+                  <span key={`d-${i}`} className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-xs font-bold">
+                    🍂 {d}
+                  </span>
+                ))}
+                {info.commonPests?.map((p, i) => (
+                  <span key={`p-${i}`} className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-bold">
+                    🐛 {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* ==================== CARD 3: BOTANICAL PROFILE & PRACTICAL FARM IMPACT ==================== */}
+      <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <span>{activeLang === 'te' ? 'మొక్క వివరణ & వ్యవసాయ ప్రాముఖ్యత' : 'Botanical Profile & Agricultural Significance'}</span>
+          </span>
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20">
+            {info.identifiedType || (isWeed ? 'Weed' : 'Flora')}
+          </span>
+        </div>
+
+        {/* Primary Use Callout */}
+        <div className="p-3.5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 text-xs">
+          <span className="font-black text-teal-800 dark:text-teal-300 uppercase text-[10px] tracking-wider block mb-1">
+            🌱 {activeLang === 'te' ? 'ముఖ్య ఉపయోగం / ప్రభావం' : 'Primary Use & Agricultural Impact'}
+          </span>
+          <p className="text-slate-800 dark:text-slate-200 font-bold leading-relaxed">
+            {info.primaryUseImpact || (isWeed ? 'హానికరమైన కలుపు - పంట పొలాల నుండి వెంటనే తొలగించాలి.' : 'ఆహార మరియు ఆర్థిక ప్రాముఖ్యత కలిగిన వ్యవసాయ పంట.')}
+          </p>
+        </div>
+
+        {/* Narrative Description */}
+        {info.description && (
+          <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+            <p className={!isDescriptionExpanded ? 'line-clamp-4' : ''}>
+              {info.description}
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsDescriptionExpanded(prev => !prev)}
+              className="text-teal-600 dark:text-teal-400 font-black mt-1 hover:underline cursor-pointer"
+            >
+              {isDescriptionExpanded
+                ? (activeLang === 'te' ? 'తక్కువ చూపించు' : 'Show Less')
+                : (activeLang === 'te' ? 'మరింత చదవండి' : 'Read Full Description')}
+            </button>
+          </div>
+        )}
+      </Card>
+
+      {/* ==================== CARD 4: PROFESSIONAL ACTION BAR ==================== */}
+      <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* 1-Click WhatsApp Share */}
+          <button
+            type="button"
+            onClick={handleShareWhatsApp}
+            className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-2 shadow-md shadow-emerald-600/30 transition-all cursor-pointer active:scale-98"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>{activeLang === 'te' ? 'వాట్సాప్‌లో షేర్ చేయండి' : 'Share WhatsApp'}</span>
+          </button>
+
+          {/* Download PDF */}
+          <button
+            type="button"
+            onClick={handleDownloadPDF}
+            className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-2 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer active:scale-98"
+          >
+            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{activeLang === 'te' ? 'రిపోర్ట్ ప్రింట్ (PDF)' : 'Print Dossier (PDF)'}</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Kisan Call Center Helpline */}
+          <a
+            href="tel:18001801551"
+            className="px-3.5 py-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center gap-2 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-all"
+          >
+            <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>{activeLang === 'te' ? 'కిసాన్ కాల్ సెంటర్ (1800-180-1551)' : 'Kisan Helpline 1800-180-1551'}</span>
+          </a>
+
+          {/* Scan Another Button */}
+          <button
+            type="button"
+            onClick={handleScanAnother}
+            className="px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 font-black text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-98 shadow-sm"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{activeLang === 'te' ? 'మరో మొక్కను స్కాన్ చేయండి' : 'Scan Another Plant'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ==================== GLOBAL TAP-TO-ZOOM MODAL ==================== */}
+      {zoomImageModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setZoomImageModal(null)}
+        >
+          <div
+            className="relative max-w-2xl w-full bg-slate-900 rounded-3xl p-3 border border-white/20 shadow-2xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-2 pt-1">
+              <span className="text-xs font-black text-white truncate">
+                {zoomImageModal.title || 'Botanical Specimen Inspection'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoomImageModal(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
+              <img
+                src={zoomImageModal.src}
+                alt="Enlarged view"
+                className="max-h-[70vh] w-auto object-contain rounded-xl"
               />
             </div>
           </div>
         </div>
-
-        {/* Right Metrics Cards */}
-        <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
-          <div className="bg-emerald-500/20 border border-emerald-400/40 px-5 py-4 rounded-2xl backdrop-blur-md text-center min-w-[120px] shadow-lg shadow-emerald-950/40">
-            <p className="text-[10px] text-emerald-300 font-black uppercase tracking-wider">{locUI.confidence || 'Confidence'}</p>
-            <p className="font-display font-extrabold text-2xl sm:text-3xl text-emerald-400 mt-1">{info.confidence || "98.4%"}</p>
-          </div>
-          <div className="bg-white/10 border border-white/15 px-5 py-4 rounded-2xl backdrop-blur-md text-center min-w-[120px] shadow-lg">
-            <p className="text-[10px] text-slate-300 font-black uppercase tracking-wider">{locUI.inferenceTime || 'Inference'}</p>
-            <p className="font-display font-extrabold text-2xl sm:text-3xl text-sky-400 mt-1">
-              {liveResult?.prediction_time_ms ? `${liveResult.prediction_time_ms.toFixed(1)} ms` : '42.1 ms'}
-            </p>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-
-  // ==================== CARD 2: QUICK LANGUAGE SWITCHER BAR ====================
-  const renderLanguageSwitcher = () => (
-    <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between gap-3 flex-wrap">
-      <ScanLanguageBar
-        activeLang={activeLang}
-        onLanguageSelect={handleLanguageSelect}
-        isTranslating={isTranslating}
-        label={locUI.switchLanguage || 'Identification Language'}
-        className="w-full justify-between sm:justify-start"
-      />
-    </div>
-  );
-
-  // ==================== CARD 3: SECTION 1 (PLANT CLASSIFICATION) ====================
-  const renderPlantClassification = () => (
-    <CollapsibleSection 
-      title="🌿 Plant Classification" 
-      icon={Sprout} 
-      badge={info.identifiedType || "Botanical Profile"} 
-      defaultOpen={true}
-      onSpeak={() => {
-        const text = buildPlantSpeech(speechInfo, activeLang, 'scientific');
-        speak(text, 'plant_scientific', activeLang);
-      }}
-      isSpeaking={speakingId === 'plant_scientific'}
-    >
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-          <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-            🏷️ Identified Type
-          </span>
-          <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">
-            {info.identifiedType || (info.isWeed ? 'Weed' : (info.isTree ? 'Tree' : 'Crop'))}
-          </p>
-        </div>
-        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-          <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-            🌾 Common Name
-          </span>
-          <p className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{info.commonName}</p>
-        </div>
-        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-          <span className="text-emerald-800 dark:text-emerald-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-            🔬 Botanical Name
-          </span>
-          <p className="font-extrabold text-emerald-800 dark:text-emerald-300 text-sm italic">{info.scientificName}</p>
-        </div>
-        <div className="p-3.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xs">
-          <span className="text-slate-600 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider block mb-1">
-            🌿 Family
-          </span>
-          <p className="font-bold text-slate-900 dark:text-slate-200 text-sm">{info.family}</p>
-        </div>
-      </div>
-    </CollapsibleSection>
-  );
-
-  // ==================== CARD 3: SECTION 2 (DESCRIPTION & PRACTICAL IMPACT) ====================
-  const renderDescriptionCard = () => (
-    info.description ? (
-      <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <div className="flex items-center gap-2 text-teal-800 dark:text-teal-400 font-bold text-sm uppercase tracking-wider">
-            <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-            <span>📝 Description & Practical Farm Impact</span>
-          </div>
-          {info.identifiedType && (
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-teal-50 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-400/30">
-              {info.identifiedType}
-            </span>
-          )}
-        </div>
-
-        {/* Primary Use / Impact Callout */}
-        <div className="mb-3.5 p-3.5 rounded-xl bg-teal-50/80 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-500/30 text-xs">
-          <span className="font-extrabold text-teal-800 dark:text-teal-300 uppercase text-[10px] tracking-wider block mb-1 flex items-center gap-1.5">
-            <span>🌱</span>
-            <span>Primary Use / Impact</span>
-          </span>
-          <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
-            {info.primaryUseImpact || (info.isWeed ? 'Invasive agricultural weed requiring active field management and eradication.' : 'Cultivated agricultural food crop and beneficial economic plant.')}
-          </p>
-        </div>
-
-        <div className="relative">
-          <p className={`text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-normal ${!isDescriptionExpanded ? 'line-clamp-6' : ''}`}>
-            {info.description}
-          </p>
-          {!isDescriptionExpanded && (
-            <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
-          )}
-        </div>
-        <div className="pt-3">
-          <button
-            type="button"
-            onClick={() => setIsDescriptionExpanded(prev => !prev)}
-            className="text-xs font-extrabold text-teal-700 dark:text-teal-400 hover:text-teal-600 dark:hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
-          >
-            {isDescriptionExpanded ? (
-              <><span>{locUI.showLess || 'Show Less ↑'}</span><ChevronUp className="w-4 h-4" /></>
-            ) : (
-              <><span>{locUI.showMore || 'Show More (Read Full Overview) ↓'}</span><ChevronDown className="w-4 h-4" /></>
-            )}
-          </button>
-        </div>
-      </Card>
-    ) : null
-  );
-
-  // ==================== CARD 5: WEED ERADICATION ADVISORY ====================
-  const renderWeedAdvisory = () => (
-    info.isWeed ? (
-      <Card className="p-5 bg-gradient-to-r from-rose-950/80 via-rose-900/60 to-slate-900 border border-rose-500/40 text-white shadow-xl rounded-2xl">
-        <div className="flex items-start gap-3.5">
-          <span className="text-3xl p-2.5 bg-rose-500/20 rounded-2xl border border-rose-500/30">🚨</span>
-          <div className="space-y-2 flex-1">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h3 className="font-display font-extrabold text-lg text-rose-200">
-                {locUI.weedTitle || 'Agricultural Weed Management & Eradication'}
-              </h3>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/30 text-rose-300 border border-rose-400/40">
-                {locUI.weedPriority || 'Crop Protection Priority'}
-              </span>
-            </div>
-            <p className="text-xs text-rose-200/90 leading-relaxed">
-              {activeLang === 'te'
-                ? 'ఈ మొక్క ప్రధాన పంటలతో పోషకాలు, తేమ మరియు సూర్యరశ్మి కోసం తీవ్రంగా పోటీపడే కలుపు జాతి. సకాలంలో అదుపు చేయకపోతే పంట దిగుబడి 30% నుండి 60% వరకు తగ్గే ప్రమాదం ఉంది.'
-                : activeLang === 'ta'
-                ? 'இந்த களைச்செடி முக்கிய பயிர்களுடன் நீர், சத்துக்கள் மற்றும் சூரிய ஒளிக்காக தீவிரமாக போட்டியிடும். சரியான நேரத்தில் கட்டுப்படுத்தாவிட்டால் மகசூல் 30% - 60% வரை குறையும்.'
-                : activeLang === 'hi'
-                ? 'यह खरपतवार मुख्य फसलों से पोषक तत्व, नमी और धूप के लिए प्रतिस्पर्धा करती है। यदि समय पर नियंत्रित न किया जाए तो उपज में 30% से 60% तक की भारी गिरावट आ सकती है।'
-                : 'This specimen is an aggressive agricultural weed that actively competes with cultivated crops for vital soil nutrients, moisture, and sunlight. Uncontrolled growth can severely compromise yield by 30% - 60%.'}
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs">
-              <div className="p-3.5 bg-rose-950/50 rounded-xl border border-rose-500/30">
-                <span className="font-extrabold text-rose-300 uppercase text-[10px] tracking-wider block mb-1">
-                  🧪 {locUI.chemicalControl || 'Chemical Control (Herbicides)'}
-                </span>
-                <p className="text-slate-200 text-xs leading-relaxed">
-                  {info.weedEradication || 'Apply selective post-emergence herbicide (e.g. 2,4-D amine salt 58% SL @ 2-2.5 ml/L, or Pendimethalin 30% EC @ 3.3 L/ha pre-emergence) during early vegetative stages.'}
-                </p>
-              </div>
-              <div className="p-3.5 bg-emerald-950/40 rounded-xl border border-emerald-500/30">
-                <span className="font-extrabold text-emerald-300 uppercase text-[10px] tracking-wider block mb-1">
-                  🧑‍🌾 {locUI.culturalControl || 'Cultural & Manual Eradication'}
-                </span>
-                <p className="text-slate-200 text-xs leading-relaxed">
-                  {activeLang === 'te'
-                    ? 'మొక్క పూత దశకు రాకముందే చేతితో లేదా గుంటుకతో సమూలంగా తొలగించండి. విత్తనాలు నేలలో రాలకముందే కాల్చివేయడం లేదా సేంద్రీయ మల్చింగ్ చేయడం ఉత్తమం.'
-                    : activeLang === 'ta'
-                    ? 'தாவரம் பூக்கும் தருணத்திற்கு முன்பே வேரோடு பிடுங்கி எறியுங்கள். விதைகள் மண்ணில் விழுவதற்கு முன் உலர்த்தி எரிக்கவும் அல்லது மூடாக்கு இடவும்.'
-                    : activeLang === 'hi'
-                    ? 'फूल आने से पहले खुरपी से जड़ समेत उखाड़ दें। बीजों के जमीन पर गिरने से पहले उन्हें जला दें अथवा मल्चिंग तकनीक का प्रयोग करें।'
-                    : 'Hand-weed or shallow inter-cultivate prior to flowering and seed set. Mulch row spacings with organic straw to suppress sunlight germination.'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-    ) : null
-  );
-
-  // ==================== CARD 3: SECTION 3 (ENVIRONMENTAL CONDITIONS) ====================
-  const renderAgronomicAdvisory = () => (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Sun className="w-4 h-4 text-amber-500" />
-        <h3 className="font-display font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <span>🪵 Environmental Conditions</span>
-          <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-            ({locUI.careMatrix || 'Agronomic Growth Parameters'})
-          </span>
-        </h3>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Suitable Soil Type */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-emerald-800 dark:text-emerald-400 tracking-wider">
-                {locUI.soilTitle || 'Suitable Soil Type'}
-              </span>
-              <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
-              {info.suitableSoilType || info.soilpH}
-            </p>
-          </div>
-          <span className="text-[10px] text-emerald-700 dark:text-emerald-400/80 font-bold mt-2">Texture & pH Optimal</span>
-        </div>
-
-        {/* Ideal Weather & Climate */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-amber-800 dark:text-amber-400 tracking-wider">
-                {locUI.tempTitle || 'Ideal Weather & Climate'}
-              </span>
-              <Sun className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            </div>
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
-              {info.idealWeatherClimate || `${info.temperature} • ${info.sunlight}`}
-            </p>
-          </div>
-          <span className="text-[10px] text-amber-700 dark:text-amber-400/80 font-bold mt-2">Thermal & Sunlight Window</span>
-        </div>
-
-        {/* Water Need / Irrigation */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-cyan-800 dark:text-cyan-400 tracking-wider">
-                {locUI.wateringTitle || 'Irrigation & Moisture'}
-              </span>
-              <Droplets className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-            </div>
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
-              {info.waterNeed}
-            </p>
-          </div>
-          <span className="text-[10px] text-cyan-700 dark:text-cyan-400/80 font-bold mt-2">Moisture Regimen</span>
-        </div>
-
-        {/* Temperature Window / Sunlight */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800/60 text-slate-900 dark:text-white shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-rose-800 dark:text-rose-400 tracking-wider">
-                {locUI.sunlightTitle || 'Sunlight Exposure'}
-              </span>
-              <Thermometer className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-            </div>
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed">
-              {info.sunlight}
-            </p>
-          </div>
-          <span className="text-[10px] text-rose-700 dark:text-rose-400/80 font-bold mt-2">Photoperiod Hours</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ==================== CARD 4: FERTILIZER & SOIL NUTRITION ====================
-  const renderSoilNutrition = () => (
-    <CollapsibleSection 
-      title={locUI.nutrition || t("results.fertilizer_rec", "Fertilizer Recommendation & Soil Nutrition")} 
-      icon={FlaskConical} 
-      badge="Nutrition" 
-      defaultOpen={false}
-      onSpeak={() => {
-        const text = activeLang === 'te' 
-          ? `ఎరువుల సిఫార్సు. ఎరువుల మిశ్రమం: ${info.fertilizer}. సూక్ష్మపోషకాలు: ${info.micronutrients}.`
-          : activeLang === 'ta'
-          ? `உர பரிந்துரை. பரிந்துரைக்கப்பட்ட உரம்: ${info.fertilizer}. நுண்ணூட்டச்சத்துக்கள்: ${info.micronutrients}.`
-          : activeLang === 'hi'
-          ? `उर्वरक सिफारिश। अनुशंसित उर्वरक: ${info.fertilizer}। आवश्यक सूक्ष्म पोषक तत्व: ${info.micronutrients}।`
-          : `Recommended fertilizer blend: ${info.fertilizer}. Essential micronutrients: ${info.micronutrients}.`;
-        speak(text, 'plant_fertilizer', activeLang);
-      }}
-      isSpeaking={speakingId === 'plant_fertilizer'}
-    >
-      <div className="space-y-3 text-xs">
-        <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-900/40">
-          <span className="text-amber-800 dark:text-amber-300 font-bold uppercase text-[10px] tracking-wider block mb-1">
-            🌱 {locUI.recommendedBlend || 'Recommended Macronutrient Formula (NPK)'}
-          </span>
-          <p className="text-slate-800 dark:text-slate-200 text-xs font-medium leading-relaxed">
-            {info.fertilizer}
-          </p>
-        </div>
-        <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-xl border border-blue-200/60 dark:border-blue-900/40">
-          <span className="text-blue-800 dark:text-blue-300 font-bold uppercase text-[10px] tracking-wider block mb-1">
-            🔬 {locUI.essentialMicro || 'Essential Micronutrients & Soil Amenders'}
-          </span>
-          <p className="text-slate-800 dark:text-slate-200 text-xs font-medium leading-relaxed">
-            {info.micronutrients}
-          </p>
-        </div>
-      </div>
-    </CollapsibleSection>
-  );
-
-  // ==================== CARD 5: AGRICULTURAL VIGILANCE (DISEASES & PESTS) ====================
-  const renderDiseasePest = () => (
-    ((info.commonDiseases && info.commonDiseases.length > 0) || (info.commonPests && info.commonPests.length > 0)) ? (
-      <Card className="p-5 sm:p-6 bg-slate-900/90 dark:bg-slate-900 border border-slate-700/80 text-white rounded-2xl shadow-md">
-        <div className="flex items-center gap-2 mb-3 text-rose-400 font-bold text-sm uppercase tracking-wider">
-          <ShieldAlert className="w-4 h-4" />
-          <span>{locUI.vigilance || 'Agricultural Vigilance & Crop Protection'}</span>
-        </div>
-        
-        <div className="space-y-3">
-          {info.commonDiseases && info.commonDiseases.length > 0 && (
-            <div className="p-3.5 bg-rose-950/30 rounded-xl border border-rose-500/25">
-              <span className="font-bold text-rose-300 uppercase text-[10px] tracking-wider block mb-2 flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                {locUI.vulnerableDiseases || 'Vulnerable Crop Diseases'}
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {info.commonDiseases.map((disease, idx) => (
-                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-rose-900/40 text-rose-200 border border-rose-500/30 text-[11px] font-semibold">
-                    🍂 {disease}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {info.commonPests && info.commonPests.length > 0 && (
-            <div className="p-3.5 bg-amber-950/30 rounded-xl border border-amber-500/25">
-              <span className="font-bold text-amber-300 uppercase text-[10px] tracking-wider block mb-2 flex items-center gap-1.5">
-                <Bug className="w-3.5 h-3.5 text-amber-400" />
-                {locUI.commonPests || 'Common Target Pests'}
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {info.commonPests.map((pest, idx) => (
-                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-amber-900/40 text-amber-200 border border-amber-500/30 text-[11px] font-semibold">
-                    🐛 {pest}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
-    ) : null
-  );
-
-  const defaultPlantOrder = info.isWeed ? [
-    { key: 'specimen_hero', label: '1. Botanical Specimen Hero Card', visible: true },
-    { key: 'language_bar', label: '2. Quick Language Switcher Bar', visible: true },
-    { key: 'weed_advisory', label: '3. Weed Eradication Advisory', visible: true },
-    { key: 'plant_classification', label: '4. Plant Classification Card', visible: true },
-    { key: 'description_impact', label: '5. Description & Practical Farm Impact', visible: true }
-  ] : [
-    { key: 'specimen_hero', label: '1. Botanical Specimen Hero Card', visible: true },
-    { key: 'language_bar', label: '2. Quick Language Switcher Bar', visible: true },
-    { key: 'agronomic_advisory', label: '3. Environmental & Cultivation Care Matrix', visible: true },
-    { key: 'plant_classification', label: '4. Plant Classification Card', visible: true },
-    { key: 'description_impact', label: '5. Description & Practical Farm Impact', visible: true }
-  ];
-
-  const plantCardMap = {
-    specimen_hero: renderSpecimenHero,
-    species_hero: renderSpecimenHero,
-    language_bar: renderLanguageSwitcher,
-    language_switcher: renderLanguageSwitcher,
-    plant_classification: renderPlantClassification,
-    taxonomy_morphology: renderPlantClassification,
-    taxonomy_card: renderPlantClassification,
-    description_impact: renderDescriptionCard,
-    narrative_desc: renderDescriptionCard,
-    agronomic_advisory: renderAgronomicAdvisory,
-    care_matrix: renderAgronomicAdvisory,
-    weed_advisory: renderWeedAdvisory,
-    soil_nutrition: () => null,
-    disease_pest: () => null
-  };
-
-  const activePlantOrder = defaultPlantOrder;
-
-  return (
-    <div className="space-y-4">
-      {activePlantOrder.map((cardItem) => {
-        if (cardItem.visible === false) return null;
-        const renderer = plantCardMap[cardItem.key];
-        if (!renderer) return null;
-        const renderedNode = renderer();
-        if (!renderedNode) return null;
-
-        return (
-          <div key={cardItem.key} className="transition-all duration-200">
-            {renderedNode}
-          </div>
-        );
-      })}
-
-      {/* ==================== ACTION TOOLBAR ==================== */}
-      <div className="pt-2 flex items-center justify-center">
-        <Button
-          variant="outline"
-          size="md"
-          onClick={handleScanAnother}
-          leftIcon={<RotateCcw className="w-4 h-4" />}
-          className="w-full sm:w-auto font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer rounded-2xl"
-        >
-          {locUI.scanAnother || 'Scan Another Plant'}
-        </Button>
-      </div>
+      )}
     </div>
   );
 };

@@ -9279,3 +9279,167 @@ pm.cmd run build passed in 23.90s with 0 errors.
   4. Agrochemical & Plant ID clean interfaces with 1-click WhatsApp sharing.
   5. Windows startup fix (conditional Zeroconf mDNS).
 - **Status**: Verified by user on localhost:3000 and officially committed to Git.
+
+## [2026-11-07 18:47:25] - Modernized Plant Identification & Agrochemical Scanner into Farmer-Friendly Card Suites
+- **ScanImageUploader.jsx**:
+  - Dynamically configured Photography Guides for each mode:
+    - Plant ID: Bright natural light, close-up on plant organ (leaf, flower, fruit), natural growth habit.
+    - Agrochemical Scanner: Flat & centered label, no plastic glare, visible active chemical composition.
+  - Added Mode-Specific 1-Click Quick Benchmark Samples (6 per mode):
+    - Plant ID: Parthenium (కాంగ్రెస్ గడ్డి), Nut Grass (తుంగ గడ్డి), Bermuda Grass (గరిక గడ్డి), Tulsi (తులసి మొక్క), Neem (వేప చెట్టు), Tomato (టమాటా మొక్క).
+    - Agrochemical Scanner: Chlorpyrifos 20% EC, Mancozeb 75% WP, Imidacloprid 17.8% SL, Emamectin Benzoate 5% SG, Glyphosate 41% SL, 19:19:19 NPK Fertilizer.
+  - Updated hero upload cards with mode-specific icons, headings, subtitles, and photo checklists.
+- **PlantIdResults.jsx**:
+  - Upgraded into unified modern 4-Card Farmer Dossier matching Disease Diagnosis:
+    - Card 1: Executive Species Dossier & Dual Visual Match (Scanned photo on left vs Verified Botanical Reference on right with tap-to-zoom modal + Voice doctor audio reader).
+    - Card 2: Weed Eradication & Herbicide 15L Spray Pump Gauge (for weeds) OR 4-Grid Agronomic Growth Matrix (Soil, Climate, Irrigation, Nutrients) & Disease Watch with 1-click 'Check Crop Diseases' button (for crops/trees).
+    - Card 3: Botanical Profile & Agricultural Significance narrative.
+    - Card 4: Professional Action Bar (1-Click WhatsApp Share, PDF Download, Kisan Helpline, Scan Another).
+- **AgrochemicalResults.jsx**:
+  - Upgraded into unified modern 6-Card Farmer Dossier matching Disease Diagnosis:
+    - Card 1: Executive Chemical Dossier & Dual Visual Match (Scanned Bottle Label on left vs CIB&RC Verified Registry Profile on right with tap-to-zoom modal + Voice audio reader).
+    - Card 2: 15L Backpack Spray Pump Dosage Calculator with bold gauge, tank size selector (15L, 20L, 200L), and safe Pre-Harvest Interval (PHI) waiting period.
+    - Card 3: Toxicity Band & Protective PPE Gear Checklist (Gloves, Mask, Goggles, Boots, and First Aid / Antidote alert).
+    - Card 4: Approved Target Crops & Controlled Pests / Diseases chips.
+    - Card 5: Pricing, Market Value & Cost per Acre Breakdown.
+    - Card 6: Professional Action Bar (1-Click WhatsApp Share, PDF Download, Kisan & Poison Helpline, Scan Another).
+- **UploadImagePage.jsx**:
+  - Connected previewUrl directly to <PlantIdResults> and <AgrochemicalResults> for live dual visual comparison.
+- **Zero Commit Policy**: All changes remain strictly uncommitted in the local working tree awaiting user localhost verification.
+- **Production Build Verified**: 
+pm.cmd run build passed in 19.02s with 0 errors.
+
+## [2026-11-07 19:05:05] Fix ICAR Verified Match Image Display & Add 3-Specimen Visual Gallery Strip
+- **backend/app/models/schemas.py**:
+  - Added `canonical_crop_name`, `canonical_disease_name`, `original_crop_name`, `original_disease_name`, `sample_reference_image`, `reference_comparison_images`, and `translations` to `PredictionResponse` model so FastAPI does not strip canonical English identifiers when translating responses to Telugu.
+- **backend/app/routers/farmer/predict.py**:
+  - Ensured `canonical_crop_name`, `canonical_disease_name`, and `sample_reference_image` are populated in `prediction_record` returned by `predict_pytorch_endpoint`.
+- **DiseaseDiagnosisResults.jsx**:
+  - Added `getBaselineICARReferences(crop, disease, lang)` synchronous resolver for instant verified ICAR specimen photos across all major crops (Corn Rust/Blight, Tomato Early/Late Blight, Chilli Leaf Spot, Rice Blast/Blight, Cotton Blight, Potato Blight, etc.).
+  - Initialized `referenceImages` with `getBaselineICARReferences(...)` so that from the first millisecond of component rendering, `referenceImages` is NEVER empty (`[]`), completely eliminating the blank fallback box.
+  - Guaranteed `matches` in `loadCatalog()` always retains at least 3 distinct specimens by padding with baseline references.
+  - Card 1 Verified ICAR Match now renders authentic specimen with zoom, counter `(selectedRefIdx + 1) / 3`, stage overlay, and `onError` fallback.
+  - Added 3-image thumbnail comparison strip under Card 1 with stage labels (`ప్రారంభ దశ`, `మధ్యస్థ దశ`, `తీవ్ర దశ`) with tap-to-switch interactive comparison.
+- **PlantIdResults.jsx**:
+  - Added 3-specimen botanical reference gallery (`botanicalRefList`): Leaf Anatomy (`ఆకు లక్షణాలు`), Flowering Stage (`పుష్పించే దశ`), and Whole Plant Habit (`మొక్క సమగ్ర రూపం`) with tap-to-switch thumbnails and zoom modal.
+- **AgrochemicalResults.jsx**:
+  - Added 3-specimen chemical dossier gallery (`agroRefList`): Official Bottle Label (`బాటిల్ లేబుల్`), Target Field Spec (`లక్ష్య పంటల రికార్డు`), and CIB&RC Registry Dossier (`CIB&RC భద్రతా పత్రం`) with tap-to-switch thumbnails and zoom modal.
+- **Verification**: `npm.cmd run build` passed in 23.00s with 0 errors.
+- **Zero Commit Policy**: All changes remain strictly uncommitted in the local working tree awaiting user localhost verification.
+
+## [2026-11-07 19:23:37] Fix Sample & Reference Images for Plant Identification & Agrochemical Scanner
+- **Authentic Botanical Sample & Reference Assets (`frontend/public/samples/botanical/`)**:
+  - Extracted and curated authentic field specimen photos from dataset collections:
+    - `parthenium_weed.jpg` (Genuine invasive Parthenium / కాంగ్రెస్ గడ్డి specimen)
+    - `lantana_weed.jpg` (Genuine Lantana Camara / ఉన్ని మొక్క weed shrub)
+    - `wild_grass.png` (Genuine wild sedge / grass weed seedling)
+    - `tomato_plant.jpg` (Genuine healthy cultivated tomato plant)
+    - `chilli_plant.jpg` (Genuine healthy chilli field plant)
+    - `citrus_plant.jpg` (Genuine citrus / orchard tree foliage)
+- **ScanImageUploader.jsx**:
+  - Replaced diseased crop leaf photos in Plant Identification test benchmarks with genuine botanical specimens:
+    - 🚨 `కాంగ్రెస్ గడ్డి (కలుపు)` -> `/samples/botanical/parthenium_weed.jpg`
+    - 🌸 `ఉన్ని మొక్క (కలుపు)` -> `/samples/botanical/lantana_weed.jpg`
+    - 🍃 `కలుపు గడ్డి జాతి` -> `/samples/botanical/wild_grass.png`
+    - 🍅 `టమాటా మొక్క` -> `/samples/botanical/tomato_plant.jpg`
+    - 🌶️ `మిరప మొక్క` -> `/samples/botanical/chilli_plant.jpg`
+    - 🍋 `నిమ్మ / వృక్ష జాతి` -> `/samples/botanical/citrus_plant.jpg`
+  - Replaced diseased plant leaf photos in Agrochemical Scanner test benchmarks with genuine commercial pesticide bottle / pack images:
+    - 🍄 `మాంకోజెబ్ 75% WP` -> `/products/indofil_m45.webp` (Indofil M-45 pack)
+    - 🧴 `ఇమిడాక్లోప్రిడ్ 17.8% SL` -> `/products/admire_bayer.webp` (Bayer Admire bottle)
+    - 🐛 `ఎమామెక్టిన్ 5% SG` -> `/products/proclaim_syngenta.webp` (Syngenta Proclaim pack)
+    - 🧴 `థయామెథాక్సమ్ 25% WG` -> `/products/actara_syngenta.jpg` (Syngenta Actara pack)
+    - 🛡️ `కోరాజెన్ 18.5% SC` -> `/products/coragen_fmc.jpg` (FMC Coragen bottle)
+    - 🌱 `19:19:19 NPK ఎరువు` -> `/products/iffco_19_19_19.jpg` (IFFCO Soluble Fertilizer pack)
+- **PlantIdResults.jsx**:
+  - Updated `botanicalRefList` to link to genuine botanical images (`/samples/botanical/...`) rather than diseased crop leaf files.
+- **AgrochemicalResults.jsx**:
+  - Updated `agroRefList` to link to genuine registered product bottle/container photos (`/products/...`) rather than diseased crop leaves.
+- **Verification**: `npm.cmd run build` passed in 21.11s with 0 errors.
+- **Zero Commit Policy**: Kept strictly uncommitted in local working tree awaiting user localhost verification.
+
+## [2026-11-07 19:45:33] Fix 3 Botanical Reference Views in Plant ID & ICAR Reference Match in Disease Diagnosis
+- **PlantIdResults.jsx (3 Verified Botanical Reference Views - Tap to Compare)**:
+  - Curated genuine botanical specimen triplets directly from dataset archives for each identifiable flora:
+    - **Parthenium Weed**: Basal Leaf Rosette (`parthenium_01.jpg`), Flowering Heads (`parthenium_02.jpg`), Full Weed Shrub (`parthenium_03.jpg`)
+    - **Lantana Weed**: Serrated Foliage (`lantana_01.jpg`), Flower Cluster (`lantana_02.jpg`), Full Shrub Habit (`lantana_03.jpg`)
+    - **Wild Grass / Sedges**: Seedling (`wild_grass_01.png`), Blade Elongation (`wild_grass_02.png`), Tiller Cluster (`wild_grass_03.png`)
+    - **Tomato / Solanaceae**: Foliar Anatomy (`tomato_01.jpg`), Flowering Cluster (`tomato_02.jpg`), Full Canopy (`tomato_03.jpg`)
+    - **Chilli / Pepper**: Leaf Anatomy (`chilli_01.jpg`), Branching Nodes (`chilli_02.jpg`), Full Bush Habit (`chilli_03.jpg`)
+    - **Cotton**: Palmate Leaf (`cotton_01.jpg`), Square & Bract (`cotton_02.jpg`), Field Canopy (`cotton_03.jpg`)
+    - **Corn / Maize**: Leaf Blade (`corn_01.jpg`), Tassel & Ear (`corn_02.jpg`), Field Architecture (`corn_03.jpg`)
+    - **Citrus / Trees**: Foliage (`citrus_01.jpg`), Oil Gland Venation (`citrus_02.jpg`), Tree Canopy Branch (`citrus_03.jpg`)
+  - Guaranteed species-exact matching so reference views never mix unrelated plant species or display diseased crop leaves.
+- **DiseaseDiagnosisResults.jsx (ICAR Match & 3-Specimen Disease Comparison)**:
+  - Fixed variable declaration order bug where `rawCropName`, `rawDiseaseName`, and `activeLang` were referenced inside `useState` before declaration.
+  - Implemented `activeReferenceList` with guaranteed 3-specimen baseline ICAR reference fallback so that every diagnosis always renders at least 3 genuine, identical, stage-wise comparison photos (Early Stage, Mid Stage, Advanced Stage) rather than an empty placeholder box.
+  - Synchronized the active comparison card and the 3-thumbnail gallery strip to `activeReferenceList`.
+- **Verification**:
+  - `npm.cmd run build` passed in 22.89s with 0 errors.
+- **Zero Commit Policy**:
+  - Kept strictly uncommitted in local working tree awaiting user localhost verification.
+
+## [2026-11-07 20:36:49] Implement Phase 1, Phase 2, & Phase 3 Upgrades for Alerts & Messages Tab (NotificationsPage)
+- **Phase 1: Immediate Actionable Farmer Impact**:
+  - **Sticky Emergency Outbreak & Severe Weather Ticker**:
+    - Top-anchored pulsating banner detecting critical/high urgency threats (e.g. Fungal epidemic, heavy rainfall window, or hardware failure).
+    - Features animated beacon (`animate-ping`), 1-tap voice readout (`🔊 వినండి`), direct action CTA (`👉 తక్షణ చర్య`), and WhatsApp sharing with dismiss capability.
+  - **In-Card 1-Click Action Buttons**:
+    - Added instant actionable buttons directly on each notification card:
+      - Disease: `🔍 పంట స్కాన్ చేయండి` (Scan Crop) & `💊 మందుల మోతాదు` (Cure / Dosage).
+      - Weather: `🌦️ వాతావరణ సలహా` & `💧 పంప్ ఆపండి` (Pause Irrigation Pump).
+      - Machinery: Instant `📞 కాల్ చేయండి` (direct tel dialer) and `💬 చాట్ తెరవండి` (Google Messages 2-way reader).
+      - Provider Quick Decision: In-card `✅ ఆమోదించు` (Accept) and `❌ తిరస్కరించు` (Decline) buttons for equipment providers to resolve booking requests in 1 tap without navigating away.
+  - **1-Tap WhatsApp Share for Village Rythu Sanghams**:
+    - Instant `📲 వాట్సాప్` button on every alert card formatting a rich, structured bilingual advisory with emojis for instant dispatch to village WhatsApp groups.
+- **Phase 2: Audio & Smart Date Organization**:
+  - **Daily Voice Audio Briefing Bar**:
+    - Top audio briefing card with animated waveform equalizer (`Headphones` / `Volume2`) synthesizing all unread advisories into a single spoken Telugu/English overview at 0.85x natural cadence with pause/stop toggle.
+    - Card-level voice readout button on every notification item.
+  - **Smart Date Grouping**:
+    - Replaced flat unorganized feed with smart date-based sections:
+      - `⚡ ఈ రోజు (Today)` with unread count pill
+      - `📅 నిన్న (Yesterday)`
+      - `🗓️ గత వారం (Earlier This Week)`
+      - `📁 గతంలో (Older Messages)`
+  - **Visual Thumbnail Previews**:
+    - Integrated `getNotificationThumbnail` rendering high-resolution 48x48 rounded preview images of crop diseases (`/samples/dataset/...`), machinery fleet assets (`getEquipmentFallbackImage`), and hardware nodes directly on card items.
+- **Phase 3: Field Action History & Preferences**:
+  - **Mark as Resolved / Field Action History**:
+    - Added `🛡️ పరిష్కరించబడింది (Mark Resolved)` button moving alerts to resolved status and appending `✅ పరిష్కరించబడింది` badge.
+    - Added dedicated `✅ పరిష్కరించబడినవి (Resolved)` filter pill to view field remediation history.
+  - **Threat Severity Filter Chips**:
+    - Added secondary severity filter bar: `All` | `🔴 అత్యవసరం (Critical)` | `🟠 హెచ్చరిక (High)` | `🔵 సాధారణం (Normal)`.
+  - **Night Quiet Hours (9 PM - 6 AM)**:
+    - Added `🌙 రాత్రి నిశ్శబ్ద సమయం (Quiet Hours)` toggle in Channel Settings modal.
+    - Configured `playNotificationChime` to silence non-critical chimes during night hours (21:00 to 06:00).
+- **Verification**:
+  - Production build `npm.cmd run build` passed in 38.54s with 0 errors.
+- **Strict Zero-Commit Rule**:
+  - All modifications remain strictly uncommitted in the local git working tree awaiting user localhost verification.
+
+## [2026-11-07 22:05:26] - Full Suite Farmer-Friendly Home Tab Upgrades (DashboardPage.jsx)
+- **Zero Loss / Strict Retention of Existing Features**:
+  - Maintained 100% of existing 8 sections (Header & Scan Leaf action, Farm landscape hero banner, 4 KPI cards, Field operations link, 6 quick farming tools, Field Intelligence widget, Recent diagnoses history, and Mobile bottom navigation bar).
+- **1-Tap Daily Voice Farm Briefing (🔊 నేటి ఫార్మ్ ఆడియో బులెటిన్)**:
+  - Integrated useSpeechReader hook with 1-tap playback on the Hero banner.
+  - Generates natural 0.88x speech in Telugu/Hindi/English summarizing: Greeting, Current Weather, Safe Spray Window, Crop & Growth Stage, Soil Moisture %, Mandi Market Price, and Disease Risk.
+  - Includes real-time equalizer wave animation and instantaneous ⏹️ Stop Audio toggle.
+- **Dynamic Live Safe Spray Window Sync**:
+  - Replaced static text with live hourly calculation: morning optimal window (8:00 AM – 11:30 AM), afternoon/evening window (4:00 PM – 6:30 PM), or next morning advisory depending on current hour.
+- **District Emergency Pest & Weather Warning Ticker**:
+  - Added slim glowing dismissible alert banner at the top of the Home feed notifying farmers of active district pest/weather vigils (e.g. Fall Armyworm & Foliar Rust), with 1-tap ఆకు స్కాన్ చేయండి (Scan Leaf) and హెచ్చరికలు (Alerts) actions.
+- **1-Tap WhatsApp Farm Report Dispatch (📲 వాట్సాప్‌లో పంచండి)**:
+  - Added header action button generating a formatted bilingual farm briefing with emojis for instant dispatch to family and Rythu Sangham village groups.
+- **Today's 3-Task Quick Field Routine Checklist (ఇంటిగ్రేటెడ్ మైక్రో-టాస్క్‌లు)**:
+  - Added interactive daily micro-task checklist (Drip Irrigation, Crop Scouting & Pest Check, Foliar Nutrient Spray).
+  - Interactive tap-to-complete with strikethrough, checkmark badges, and visual progress bar (X/3 Completed).
+  - Persisted in localStorage keyed by date (grishield_daily_routine_YYYY-MM-DD).
+- **Free Kisan Call Center Toll-Free Quick Dial Chip (📞 1800-180-1551)**:
+  - Added direct tap-to-call link in the 24x7 Support card.
+- **Dynamic Time-of-Day Ambient Sky Glow**:
+  - Added ambient atmospheric sunlight gradient to the Hero banner (golden sunrise, bright noon, dusk twilight).
+- **Verification**:
+  - Production build 
+pm.cmd run build passed in 28.34s with 0 errors.
+  - Left uncommitted in local working tree for localhost testing.

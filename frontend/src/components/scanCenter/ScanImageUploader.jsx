@@ -3,18 +3,18 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  UploadCloud, 
-  Camera, 
-  Image as ImageIcon, 
-  X, 
-  Sparkles, 
-  AlertTriangle, 
-  Bug, 
-  Sprout, 
-  FlaskConical, 
-  CheckCircle2, 
-  Cpu, 
+import {
+  UploadCloud,
+  Camera,
+  Image as ImageIcon,
+  X,
+  Sparkles,
+  AlertTriangle,
+  Bug,
+  Sprout,
+  FlaskConical,
+  CheckCircle2,
+  Cpu,
   RefreshCw,
   Focus,
   Maximize2,
@@ -296,7 +296,7 @@ const ScanImageUploader = ({
   const analyzeLiveFrame = useCallback(() => {
     if (!videoRef.current || !cameraModalOpen) return;
     const video = videoRef.current;
-    
+
     if (video.readyState < 2 || video.videoWidth === 0) return;
 
     if (!hudCanvasRef.current) {
@@ -418,7 +418,7 @@ const ScanImageUploader = ({
   useEffect(() => {
     const handlePaste = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      
+
       const items = e.clipboardData?.items;
       if (items) {
         for (let i = 0; i < items.length; i++) {
@@ -458,7 +458,7 @@ const ScanImageUploader = ({
 
     try {
       let imageUrl = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('URL');
-      
+
       if (!imageUrl) {
         const html = e.dataTransfer.getData('text/html');
         if (html) {
@@ -492,7 +492,7 @@ const ScanImageUploader = ({
     const deviceIndex = typeof rawIndex === 'number' ? rawIndex : 0;
     try {
       setCameraModalOpen(true);
-      
+
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
@@ -588,7 +588,7 @@ const ScanImageUploader = ({
   const isOptimal = framingStatus === 'optimal';
   const isNoLeaf = framingStatus === 'no_leaf';
   const isLightingIssue = framingStatus === 'too_dark' || framingStatus === 'too_bright';
-  
+
   let reticleColor = 'border-slate-500/50 shadow-none';
   let guidanceBadgeBg = 'bg-slate-900/90 text-slate-200 border-white/10';
 
@@ -607,7 +607,7 @@ const ScanImageUploader = ({
 
   return (
     <Card glass className="p-5 sm:p-7 relative overflow-hidden border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md rounded-3xl">
-      
+
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5">
         <div className="flex items-center gap-3 min-w-0">
@@ -625,10 +625,10 @@ const ScanImageUploader = ({
         </div>
 
         {tabId === 'disease-diag' && (
-          <Button 
-            variant="glass" 
-            size="sm" 
-            onClick={() => onLoadSample?.('/samples/chilli_leaf_spot.jpg', 'Chilli')} 
+          <Button
+            variant="glass"
+            size="sm"
+            onClick={() => onLoadSample?.('/samples/chilli_leaf_spot.jpg', 'Chilli')}
             leftIcon={<Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />}
             className="border border-slate-200 dark:border-white/10 shrink-0 self-start sm:self-auto text-xs py-1.5 px-3"
           >
@@ -796,54 +796,89 @@ const ScanImageUploader = ({
           )}
 
           {/* Professional Photography Guide Banner */}
-          {tabId === 'disease-diag' && (
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <span>📸</span>
-                  <span>{isTelugu ? 'ఖచ్చితమైన స్కాన్ కోసం ఫోటో తీసే విధానం' : 'How to Take an Accurate Leaf Scan'}</span>
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <span>📸</span>
+                <span>
+                  {tabId === 'disease-diag'
+                    ? (isTelugu ? 'ఖచ్చితమైన స్కాన్ కోసం ఫోటో తీసే విధానం' : 'How to Take an Accurate Leaf Scan')
+                    : tabId === 'plant-id'
+                    ? (isTelugu ? 'మొక్క జాతి & కలుపు ఖచ్చితమైన గుర్తింపు గైడ్' : 'How to Take an Accurate Plant / Weed Photo')
+                    : (isTelugu ? 'మందు డబ్బా లేబుల్ స్కాన్ గైడ్' : 'How to Scan Agrochemical Bottle Label')}
                 </span>
-                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  ⚡ 43 AI Micro-Models Online
+              </span>
+              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                {tabId === 'disease-diag'
+                  ? '⚡ 43 AI Micro-Models Online'
+                  : tabId === 'plant-id'
+                  ? '🌿 Pl@ntNet & AI Flora Engine'
+                  : '🔍 OCR Chemical Reader'}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
+              <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                <span className="text-sm">
+                  {tabId === 'agro-scan' ? '🏷️' : '☀️'}
                 </span>
+                <div>
+                  <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+                    {tabId === 'agro-scan'
+                      ? (isTelugu ? 'లేబుల్ టెక్స్ట్ సమాంతరంగా' : 'Flat & Centered Label')
+                      : (isTelugu ? 'పగటి సహజ వెలుతురు' : 'Bright Natural Light')}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {tabId === 'agro-scan'
+                      ? (isTelugu ? 'డబ్బా లేదా ప్యాకెట్ ముడతలు లేకుండా నేరుగా ఉంచండి' : 'Keep bottle or packet flat without wrinkles')
+                      : (isTelugu ? 'నీడలు లేదా ఫ్లాష్ లైట్ లేకుండా తీయండి' : 'Avoid dark shadows or harsh torch glare')}
+                  </span>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
-                <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-sm">☀️</span>
-                  <div>
-                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
-                      {isTelugu ? 'పగటి సహజ వెలుతురు' : 'Bright Natural Light'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      {isTelugu ? 'నీడలు లేదా ఫ్లాష్ లైట్ లేకుండా తీయండి' : 'Avoid dark shadows or harsh torch glare'}
-                    </span>
-                  </div>
+              <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                <span className="text-sm">
+                  {tabId === 'agro-scan' ? '💡' : '🔍'}
+                </span>
+                <div>
+                  <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+                    {tabId === 'agro-scan'
+                      ? (isTelugu ? 'ప్లాస్టిక్ మెరుపు లేకుండా' : 'No Plastic Glare')
+                      : tabId === 'plant-id'
+                      ? (isTelugu ? 'ఆకు, పువ్వు లేదా కాయ' : 'Close-up on Plant Part')
+                      : (isTelugu ? '10-15 సెం.మీ దగ్గరగా' : 'Close-Up Focus (10-15cm)')}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {tabId === 'agro-scan'
+                      ? (isTelugu ? 'సీసాపై కాంతి మెరుపు పడకుండా చూడండి' : 'Angle bottle to avoid light reflections on plastic')
+                      : tabId === 'plant-id'
+                      ? (isTelugu ? 'ఆకు లేదా పువ్వును దగ్గరగా ఫోకస్ చేయండి' : 'Focus closely on distinct leaf or flower features')
+                      : (isTelugu ? 'వ్యాధి మచ్చపై కెమెరా పెట్టండి' : 'Focus directly on lesion or spots')}
+                  </span>
                 </div>
-                <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-sm">🔍</span>
-                  <div>
-                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
-                      {isTelugu ? '10-15 సెం.మీ దగ్గరగా' : 'Close-Up Focus (10-15cm)'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      {isTelugu ? 'వ్యాధి మచ్చపై కెమెరా పెట్టండి' : 'Focus directly on lesion or spots'}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-sm">🍃</span>
-                  <div>
-                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
-                      {isTelugu ? 'ఒకే ఆకుపై దృష్టి' : 'Single Flat Leaf'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      {isTelugu ? 'చేతులు లేదా ఇతర ఆకులు లేకుండా' : 'Keep leaf flat without blocking symptoms'}
-                    </span>
-                  </div>
+              </div>
+              <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                <span className="text-sm">
+                  {tabId === 'agro-scan' ? '🧪' : '🍃'}
+                </span>
+                <div>
+                  <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+                    {tabId === 'agro-scan'
+                      ? (isTelugu ? 'రసాయనం & CIB వివరాలు' : 'Visible Chemical & CIB')
+                      : tabId === 'plant-id'
+                      ? (isTelugu ? 'మొక్క సహజ రూపం' : 'Natural Plant Habit')
+                      : (isTelugu ? 'ఒకే ఆకుపై దృష్టి' : 'Single Flat Leaf')}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {tabId === 'agro-scan'
+                      ? (isTelugu ? 'క్రియాశీల రసాయనం పేరు & మోతాదు భాగం తీయండి' : 'Ensure chemical formulation and dosage text is visible')
+                      : tabId === 'plant-id'
+                      ? (isTelugu ? 'కలుపు వేళ్ళు, కాండం లేదా మొక్క తీరు కనిపించాలి' : 'Capture clear growth habit, leaves or weed roots')
+                      : (isTelugu ? 'చేతులు లేదా ఇతర ఆకులు లేకుండా' : 'Keep leaf flat without blocking symptoms')}
+                  </span>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+
           {/* Farmer-Friendly Upload Card */}
           <div
             onDragEnter={handleDrag}
@@ -856,19 +891,43 @@ const ScanImageUploader = ({
                 : 'border-slate-200 dark:border-slate-800'
             }`}
           >
-            {/* Friendly Green Leaf Icon */}
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 border border-emerald-500/30 shadow-xs">
-              <Camera className="w-8 h-8" />
+            {/* Friendly Primary Icon */}
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-3 border shadow-xs ${
+              tabId === 'agro-scan'
+                ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30'
+                : tabId === 'plant-id'
+                ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/30'
+                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+            }`}>
+              {tabId === 'agro-scan' ? (
+                <FlaskConical className="w-8 h-8" />
+              ) : tabId === 'plant-id' ? (
+                <Sprout className="w-8 h-8" />
+              ) : (
+                <Camera className="w-8 h-8" />
+              )}
             </div>
 
             <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1">
-              {isTelugu ? 'ఆకు ఫోటో తీయండి లేదా గ్యాలరీ నుండి ఎంచుకోండి' : 'Take a Leaf Photo or Choose from Gallery'}
+              {tabId === 'plant-id'
+                ? (isTelugu ? 'మొక్క లేదా కలుపు ఫోటో తీయండి లేదా గ్యాలరీ నుండి ఎంచుకోండి' : 'Take Plant / Weed Photo or Choose from Gallery')
+                : tabId === 'agro-scan'
+                ? (isTelugu ? 'మందు డబ్బా లేబుల్ ఫోటో తీయండి లేదా గ్యాలరీ నుండి ఎంచుకోండి' : 'Take Agrochemical Bottle Label Photo or Choose from Gallery')
+                : (isTelugu ? 'ఆకు ఫోటో తీయండి లేదా గ్యాలరీ నుండి ఎంచుకోండి' : 'Take a Leaf Photo or Choose from Gallery')}
             </h3>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mb-5 font-medium">
-              {isTelugu 
-                ? 'కేవలం 1 సెకనులో తెగులు గుర్తింపు & 15 లీటర్ల పంపు మందుల మోతాదు లభిస్తుంది' 
-                : 'Instant 1-second disease diagnosis with exact 15L backpack spray pump dosage'}
+              {tabId === 'plant-id'
+                ? (isTelugu
+                    ? 'కేవలం 1 సెకనులో జాతి పేరు, కలుపు వర్గీకరణ & సమగ్ర నివారణ పద్ధతులు లభిస్తాయి'
+                    : 'Instant botanical species name, weed classification & management advisory in 1 second')
+                : tabId === 'agro-scan'
+                ? (isTelugu
+                    ? 'రసాయన కూర్పు, సరైన 15L పంపు మోతాదు & భద్రతా నియమాలు క్షణాల్లో తెలుసుకోండి'
+                    : 'Instant OCR reading of active chemicals, 15L spray pump dosage & safety instructions')
+                : (isTelugu
+                    ? 'కేవలం 1 సెకనులో తెగులు గుర్తింపు & 15 లీటర్ల పంపు మందుల మోతాదు లభిస్తుంది'
+                    : 'Instant 1-second disease diagnosis with exact 15L backpack spray pump dosage')}
             </p>
 
             {/* Two Clear, Large Touch Buttons for Farmers */}
@@ -877,10 +936,22 @@ const ScanImageUploader = ({
               <button
                 type="button"
                 onClick={() => nativeCameraInputRef.current?.click()}
-                className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer active:scale-98"
+                className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 text-white shadow-lg transition-all cursor-pointer active:scale-98 ${
+                  tabId === 'agro-scan'
+                    ? 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/30'
+                    : tabId === 'plant-id'
+                    ? 'bg-teal-600 hover:bg-teal-500 shadow-teal-600/30'
+                    : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+                }`}
               >
                 <Camera className="w-5 h-5" />
-                <span>{isTelugu ? 'ఫోటో తీయండి (Camera)' : 'Take Photo (Camera)'}</span>
+                <span>
+                  {tabId === 'agro-scan'
+                    ? (isTelugu ? 'లేబుల్ ఫోటో తీయండి' : 'Scan Bottle Label')
+                    : tabId === 'plant-id'
+                    ? (isTelugu ? 'మొక్క ఫోటో తీయండి' : 'Take Plant Photo')
+                    : (isTelugu ? 'ఫోటో తీయండి (Camera)' : 'Take Photo (Camera)')}
+                </span>
               </button>
 
               {/* Secondary: Pick from phone gallery */}
@@ -898,65 +969,94 @@ const ScanImageUploader = ({
             <div className="flex flex-wrap items-center justify-center gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
-                {isTelugu ? 'ఆకు మచ్చ దగ్గరగా ఉండాలి' : 'Close-up on leaf spots'}
+                {tabId === 'agro-scan'
+                  ? (isTelugu ? 'లేబుల్ టెక్స్ట్ స్పష్టంగా ఉండాలి' : 'Label text must be clearly visible')
+                  : tabId === 'plant-id'
+                  ? (isTelugu ? 'ఆకు లేదా పువ్వు దగ్గరగా ఉండాలి' : 'Close-up on distinct leaf or flower')
+                  : (isTelugu ? 'ఆకు మచ్చ దగ్గరగా ఉండాలి' : 'Close-up on leaf spots')}
               </span>
               <span className="flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
-                {isTelugu ? 'మంచి వెలుతురులో తీయండి' : 'Bright natural daylight'}
+                {tabId === 'agro-scan'
+                  ? (isTelugu ? 'మెరుపు లేదా నీడలు లేకుండా' : 'No reflections or harsh shadows')
+                  : (isTelugu ? 'మంచి వెలుతురులో తీయండి' : 'Bright natural daylight')}
               </span>
             </div>
           </div>
 
-          {/* Quick Demo Benchmark Samples - Only displayed for Disease Diagnosis */}
-          {tabId === 'disease-diag' && (
-            <div className="pt-2">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  {t('uploader.benchmark_samples', 'Quick Test Benchmark Samples')}
+          {/* Quick Demo Benchmark Samples for All Modes */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-white/50 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>
+                  {tabId === 'plant-id'
+                    ? (isTelugu ? 'నమూనా మొక్కలు & కలుపు లైవ్ టెస్ట్' : 'Plant & Weed Benchmark Samples')
+                    : tabId === 'agro-scan'
+                    ? (isTelugu ? 'నమూనా పురుగుమందుల డబ్బాల టెస్ట్' : 'Agrochemical Benchmark Samples')
+                    : (isTelugu ? 'నమూనా ఆకుల లైవ్ టెస్ట్' : 'Quick Test Benchmark Samples')}
                 </span>
-                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-extrabold tracking-wide">
-                  ⚡ 1-Click Live Test
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                {[
-                  { title: isTelugu ? 'టమాటా ఆకుమచ్చ' : 'Tomato Early Blight', path: '/samples/dataset/tomato/tomato_early_blight_01.jpg', crop: 'Tomato', icon: '🍅', desc: 'Alternaria solani' },
-                  { title: isTelugu ? 'వరి ఎండ్రిక తెగులు' : 'Paddy Leaf Blight', path: '/samples/dataset/rice/rice_bacterial_leaf_blight_01.jpg', crop: 'Rice', icon: '🌾', desc: 'Xanthomonas oryzae' },
-                  { title: isTelugu ? 'మిరప ఆకుమచ్చ' : 'Chilli Leaf Spot', path: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli', icon: '🌶️', desc: 'Cercospora capsici' },
-                  { title: isTelugu ? 'బంగాళాదుంప బ్లైట్' : 'Potato Late Blight', path: '/samples/dataset/potato/potato_late_blight_01.jpg', crop: 'Potato', icon: '🥔', desc: 'Phytophthora infestans' },
-                  { title: isTelugu ? 'మొక్కజొన్న ఆకుమాడు' : 'Maize Blight', path: '/samples/corn_leaf_blight.jpg', crop: 'Maize', icon: '🌽', desc: 'Exserohilum turcicum' },
-                  { title: isTelugu ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Leaf', path: '/samples/chilli_healthy.jpg', crop: 'Chilli', icon: '🌿', desc: 'ఆరోగ్యకరమైన పంట' }
-                ].map((sample, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onLoadSample?.(sample.path, sample.crop)}
-                    className="group relative flex flex-col items-start p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.03] hover:border-emerald-500/50 hover:bg-emerald-500/[0.04] transition-all text-left shadow-xs hover:shadow-md cursor-pointer active:scale-98"
-                  >
-                    <div className="w-full h-20 rounded-xl overflow-hidden mb-2 bg-slate-200 dark:bg-slate-800 relative">
-                      <img
-                        src={sample.path}
-                        alt={sample.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[10px] font-extrabold text-white shadow-xs">
-                        {sample.icon} {sample.crop}
-                      </span>
-                    </div>
-                    <span className="text-xs font-black text-slate-800 dark:text-white truncate w-full block">
-                      {sample.title}
-                    </span>
-                    <span className="text-[10px] text-slate-500 dark:text-white/40 truncate w-full block mt-0.5 font-medium">
-                      {sample.desc}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              </span>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-extrabold tracking-wide">
+                ⚡ 1-Click Live Test
+              </span>
             </div>
-          )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              {(tabId === 'plant-id'
+                ? [
+                    { title: isTelugu ? 'కాంగ్రెస్ గడ్డి (కలుపు)' : 'Parthenium Weed', path: '/samples/botanical/parthenium_weed.jpg', crop: 'Parthenium', icon: '🚨', desc: isTelugu ? 'హానికరమైన విష కలుపు' : 'Invasive Hazard Weed' },
+                    { title: isTelugu ? 'ఉన్ని మొక్క (కలుపు)' : 'Lantana Weed', path: '/samples/botanical/lantana_weed.jpg', crop: 'Lantana', icon: '🌸', desc: isTelugu ? 'పొలాల కలుపు పొద' : 'Wild Scrub Weed' },
+                    { title: isTelugu ? 'కలుపు గడ్డి జాతి' : 'Wild Grass / Sedge', path: '/samples/botanical/wild_grass.png', crop: 'Cynodon', icon: '🍃', desc: isTelugu ? 'పొలాల కలుపు గడ్డి' : 'Field Grass Weed' },
+                    { title: isTelugu ? 'టమాటా మొక్క' : 'Tomato Plant', path: '/samples/botanical/tomato_plant.jpg', crop: 'Tomato', icon: '🍅', desc: isTelugu ? 'సాగు కూరగాయ పైరు' : 'Cultivated Vegetable' },
+                    { title: isTelugu ? 'మిరప మొక్క' : 'Chilli Plant', path: '/samples/botanical/chilli_plant.jpg', crop: 'Chilli', icon: '🌶️', desc: isTelugu ? 'ఆరోగ్యకరమైన పంట' : 'Field Crop Flora' },
+                    { title: isTelugu ? 'నిమ్మ / వృక్ష జాతి' : 'Citrus / Tree Flora', path: '/samples/botanical/citrus_plant.jpg', crop: 'Citrus', icon: '🍋', desc: isTelugu ? 'తోట పంట వృక్ష జాతి' : 'Orchard Foliage' }
+                  ]
+                : tabId === 'agro-scan'
+                ? [
+                    { title: isTelugu ? 'మాంకోజెబ్ 75% WP' : 'Mancozeb 75% WP', path: '/products/indofil_m45.webp', crop: 'Mancozeb', icon: '🍄', desc: isTelugu ? 'శిలీంధ్ర నాశిని ప్యాకెట్' : 'Contact Fungicide' },
+                    { title: isTelugu ? 'ఇమిడాక్లోప్రిడ్ 17.8%' : 'Imidacloprid 17.8%', path: '/products/admire_bayer.webp', crop: 'Imidacloprid', icon: '🧴', desc: isTelugu ? 'రసం పీల్చే పురుగుల బాటిల్' : 'Systemic Insecticide' },
+                    { title: isTelugu ? 'ఎమామెక్టిన్ 5% SG' : 'Emamectin Benzoate', path: '/products/proclaim_syngenta.webp', crop: 'Emamectin', icon: '🐛', desc: isTelugu ? 'లద్దెపురుగు నివారిణి ప్యాక్' : 'Caterpillar Control' },
+                    { title: isTelugu ? 'థయామెథాక్సమ్ (ఆక్టారా)' : 'Actara Thiamethoxam', path: '/products/actara_syngenta.jpg', crop: 'Thiamethoxam', icon: '🧴', desc: isTelugu ? 'తెల్లదోమ & పేనుబంక' : 'Sucking Pest Pack' },
+                    { title: isTelugu ? 'కోరాజెన్ 18.5% SC' : 'Coragen Insecticide', path: '/products/coragen_fmc.jpg', crop: 'Coragen', icon: '🛡️', desc: isTelugu ? 'కాండం తొలుచు పురుగు' : 'Stem Borer Bottle' },
+                    { title: isTelugu ? '19:19:19 NPK ఎరువు' : '19:19:19 NPK Fertilizer', path: '/products/iffco_19_19_19.jpg', crop: 'NPK Fertilizer', icon: '🌱', desc: isTelugu ? 'నీటిలో కరిగే ఎరువు సంచి' : 'Soluble Fertilizer' }
+                  ]
+                : [
+                    { title: isTelugu ? 'టమాటా ఆకుమచ్చ' : 'Tomato Early Blight', path: '/samples/dataset/tomato/tomato_early_blight_01.jpg', crop: 'Tomato', icon: '🍅', desc: 'Alternaria solani' },
+                    { title: isTelugu ? 'వరి ఎండ్రిక తెగులు' : 'Paddy Leaf Blight', path: '/samples/dataset/rice/rice_bacterial_leaf_blight_01.jpg', crop: 'Rice', icon: '🌾', desc: 'Xanthomonas oryzae' },
+                    { title: isTelugu ? 'మిరప ఆకుమచ్చ' : 'Chilli Leaf Spot', path: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli', icon: '🌶️', desc: 'Cercospora capsici' },
+                    { title: isTelugu ? 'బంగాళాదుంప బ్లైట్' : 'Potato Late Blight', path: '/samples/dataset/potato/potato_late_blight_01.jpg', crop: 'Potato', icon: '🥔', desc: 'Phytophthora infestans' },
+                    { title: isTelugu ? 'మొక్కజొన్న ఆకుమాడు' : 'Maize Blight', path: '/samples/corn_leaf_blight.jpg', crop: 'Maize', icon: '🌽', desc: 'Exserohilum turcicum' },
+                    { title: isTelugu ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Leaf', path: '/samples/chilli_healthy.jpg', crop: 'Chilli', icon: '🌿', desc: isTelugu ? 'ఆరోగ్యకరమైన పంట' : 'Healthy Plant' }
+                  ]
+              ).map((sample, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => onLoadSample?.(sample.path, sample.crop)}
+                  className="group relative flex flex-col items-start p-2.5 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/60 dark:bg-white/[0.03] hover:border-emerald-500/50 hover:bg-emerald-500/[0.04] transition-all text-left shadow-xs hover:shadow-md cursor-pointer active:scale-98"
+                >
+                  <div className="w-full h-20 rounded-xl overflow-hidden mb-2 bg-slate-200 dark:bg-slate-800 relative">
+                    <img
+                      src={sample.path}
+                      alt={sample.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[10px] font-extrabold text-white shadow-xs">
+                      {sample.icon} {sample.crop}
+                    </span>
+                  </div>
+                  <span className="text-xs font-black text-slate-800 dark:text-white truncate w-full block">
+                    {sample.title}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-white/40 truncate w-full block mt-0.5 font-medium">
+                    {sample.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         /* Image Selected / Preview Card */
@@ -979,8 +1079,8 @@ const ScanImageUploader = ({
                   type="button"
                   onClick={(e) => { e.preventDefault(); setShowGradcam(!showGradcam); }}
                   className={`h-8 px-3 text-xs font-extrabold rounded-full transition-all border shadow-xs flex items-center gap-1.5 cursor-pointer ${
-                    showGradcam 
-                      ? 'bg-rose-500 text-white border-rose-400 hover:bg-rose-600' 
+                    showGradcam
+                      ? 'bg-rose-500 text-white border-rose-400 hover:bg-rose-600'
                       : 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 border-slate-200 dark:border-white/10 hover:bg-slate-50'
                   }`}
                   title="Toggle Heatmap"
@@ -1125,19 +1225,19 @@ const ScanImageUploader = ({
                   </span>
                 </div>
                 <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 font-medium leading-relaxed">
-                  {t('uploader.plant_id_autodetect_subtitle', isTelugu 
-                    ? 'మీరు ఎలాంటి రకాన్ని మాన్యువల్‌గా ఎంచుకోనవసరం లేదు! డ్యూయల్-AI (Pl@ntNet + Google Gemini) పంటలు, కూరగాయలు, ఉద్యానవన చెట్లు మరియు కలుపు మొక్కలను ఫోటో ద్వారా స్వయంచాలకంగా గుర్తిస్తుంది.' 
+                  {t('uploader.plant_id_autodetect_subtitle', isTelugu
+                    ? 'మీరు ఎలాంటి రకాన్ని మాన్యువల్‌గా ఎంచుకోనవసరం లేదు! డ్యూయల్-AI (Pl@ntNet + Google Gemini) పంటలు, కూరగాయలు, ఉద్యానవన చెట్లు మరియు కలుపు మొక్కలను ఫోటో ద్వారా స్వయంచాలకంగా గుర్తిస్తుంది.'
                     : 'No manual selection required! Dual-AI (Pl@ntNet + Google Gemini Vision) automatically recognizes field crops, horticulture trees, vegetables, and invasive weeds directly from your photo.')}
                 </p>
               </div>
             </div>
-            
+
             <button
               type="button"
               onClick={() => setShowSpeciesInfo(prev => !prev)}
               className={`p-1.5 rounded-xl transition-all cursor-pointer shrink-0 ${
-                showSpeciesInfo 
-                  ? 'bg-emerald-600 text-white shadow-xs' 
+                showSpeciesInfo
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900 border border-emerald-500/20'
               }`}
               title="View Flora & Weed Coverage"
@@ -1568,12 +1668,12 @@ const ScanImageUploader = ({
               style={{ height: '100dvh', width: '100vw', touchAction: 'none' }}
             >
               {/* Full-Screen Video Background */}
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                className="absolute inset-0 w-full h-full object-cover" 
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="absolute inset-0 w-full h-full object-cover"
               />
               <canvas ref={canvasRef} className="hidden" />
               <canvas ref={hudCanvasRef} className="hidden" />
@@ -1619,14 +1719,14 @@ const ScanImageUploader = ({
               </div>
 
               {/* CENTER: Optical Targeting Reticle & Real-Time Leaf HUD */}
-              <div 
+              <div
                 className="relative z-20 flex-1 flex flex-col items-center justify-center px-6 cursor-pointer"
                 onClick={captureCameraPhoto}
                 title="Tap anywhere to capture photo"
               >
                 {/* Reticle Frame */}
                 <div className={`relative w-full max-w-sm aspect-square rounded-3xl border-2 border-dashed ${reticleColor} flex items-center justify-center transition-colors duration-300 shadow-2xl`}>
-                  
+
                   {/* 4 Corner Crosshairs */}
                   <div className={`absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 ${isOptimal ? 'border-emerald-400 shadow-[0_0_12px_#10b981]' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-tl-2xl transition-colors duration-300`} />
                   <div className={`absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 ${isOptimal ? 'border-emerald-400 shadow-[0_0_12px_#10b981]' : (!isNoLeaf ? 'border-amber-400' : 'border-slate-500')} rounded-tr-2xl transition-colors duration-300`} />
@@ -1648,8 +1748,8 @@ const ScanImageUploader = ({
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-black text-white">{leafRatio}%</span>
                           <div className="w-14 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full transition-all duration-300 ${isOptimal ? 'bg-emerald-400' : (leafRatio > 0 ? 'bg-amber-400' : 'bg-slate-600')}`} 
+                            <div
+                              className={`h-full transition-all duration-300 ${isOptimal ? 'bg-emerald-400' : (leafRatio > 0 ? 'bg-amber-400' : 'bg-slate-600')}`}
                               style={{ width: `${leafRatio}%` }}
                             />
                           </div>
@@ -1665,7 +1765,7 @@ const ScanImageUploader = ({
                 </div>
 
                 {/* Guidance Toast Floating Below Reticle */}
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`mt-4 px-4 py-2 rounded-2xl text-xs font-black backdrop-blur-md shadow-2xl border flex items-center gap-2 pointer-events-none ${guidanceBadgeBg}`}
@@ -1681,7 +1781,7 @@ const ScanImageUploader = ({
 
               {/* BOTTOM BAR: Native Shutter Button & Controls (Guaranteed visible above navigation) */}
               <div className="relative z-30 w-full px-6 pt-4 pb-12 bg-gradient-to-t from-black via-black/85 to-transparent flex items-center justify-around">
-                
+
                 {/* Cancel Button */}
                 <button
                   type="button"
@@ -1733,5 +1833,4 @@ const ScanImageUploader = ({
 };
 
 export default ScanImageUploader;
-
 

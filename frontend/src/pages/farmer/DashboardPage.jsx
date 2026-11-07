@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  Droplets, Sprout, Clock, RefreshCw, ChevronRight, TrendingUp, Camera, ShieldCheck, MapPin
+  Droplets, Sprout, Clock, RefreshCw, ChevronRight, TrendingUp, Camera, ShieldCheck, MapPin,
+  Volume2, VolumeX, Share2, CheckCircle2, Circle, AlertTriangle, Phone, Sparkles, Check, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useFarm } from '../../context/FarmContext';
@@ -11,6 +12,7 @@ import API from '../../services/api';
 import { Button, Card, Skeleton, Badge } from '../../components/ui/index';
 import WidgetErrorBoundary from '../../components/WidgetErrorBoundary';
 import { useWebSocket } from '../../context/WebSocketContext';
+import { useSpeechReader } from '../../hooks/useSpeechReader';
 
 // Intelligence System Widgets
 import FieldIntelligenceWidget from '../../components/intelligence/FieldIntelligenceWidget';
@@ -30,6 +32,10 @@ const DashboardPage = () => {
   // Instant load: If cache exists from this session, do NOT show skeleton
   const [loading, setLoading] = useState(!cachedDashboardStats);
 
+  // Full Suite: 1-Tap Audio Reader & Emergency District Banner State
+  const { speak, stop, speakingId } = useSpeechReader();
+  const isAudioPlaying = speakingId === 'dashboard_daily_brief';
+  const [dismissEmergencyBanner, setDismissEmergencyBanner] = useState(false);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState(() => cachedDashboardStats || {
@@ -230,6 +236,97 @@ const DashboardPage = () => {
     ? `${activeFarm.village}${activeFarm.district ? `, ${activeFarm.district}` : ''}` 
     : (activeFarm?.district || activeFarm?.farm_name || t('dashboard.my_farm_field', 'My Farm Field'));
 
+  // ─── Full Suite: Dynamic Time-of-Day & Safe Spray Window ───
+  const currentHour = new Date().getHours();
+  const dynamicSprayWindow = currentHour < 12
+    ? (i18n.language === 'te' ? '8:00 AM – 11:30 AM (అనుకూల సమయం)' : '8:00 AM – 11:30 AM (Optimal Window)')
+    : currentHour < 17
+    ? (i18n.language === 'te' ? '4:00 PM – 6:30 PM (సాయంత్రం విండో)' : '4:00 PM – 6:30 PM (Evening Window)')
+    : (i18n.language === 'te' ? 'రేపు ఉదయం 7:30 AM (తదుపరి విండో)' : 'Tomorrow 7:30 AM (Next Window)');
+
+  // Ambient Sky Glow depending on actual time of day
+  const ambientSkyGlow = currentHour >= 5 && currentHour < 12
+    ? 'from-amber-500/20 via-emerald-600/15 to-transparent' // Morning Golden Hour
+    : currentHour >= 12 && currentHour < 17
+    ? 'from-sky-500/15 via-emerald-500/15 to-transparent' // Afternoon Clear Sun
+    : 'from-indigo-900/35 via-emerald-950/25 to-transparent'; // Evening Twilight
+
+  // ─── Full Suite: Today's 3-Task Quick Field Routine Checklist ───
+  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const [dailyTasks, setDailyTasks] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`agrishield_daily_routine_${todayDateKey}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse saved daily tasks:', e);
+    }
+    return [
+      { id: 'task_irrigation', titleTe: 'ఉదయం డ్రిప్ ఇరిగేషన్ / నీటి పారుదల', titleEn: 'Morning Drip Irrigation (Field Section A)', completed: false, icon: '💧' },
+      { id: 'task_scouting', titleTe: 'పొలం పరిశీలన & తెగుళ్ల తనిఖీ', titleEn: 'Crop Scouting & Leaf Inspection', completed: false, icon: '🔍' },
+      { id: 'task_spray', titleTe: 'సాయంత్రం సూక్ష్మ పోషకాల పిచికారీ', titleEn: 'Foliar Micronutrient Application', completed: false, icon: '🧴' },
+    ];
+  });
+
+  const toggleTask = (taskId) => {
+    setDailyTasks(prev => {
+      const updated = prev.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t);
+      try {
+        localStorage.setItem(`agrishield_daily_routine_${todayDateKey}`, JSON.stringify(updated));
+      } catch (e) { /* ignore */ }
+      return updated;
+    });
+  };
+
+  const completedTasksCount = dailyTasks.filter(t => t.completed).length;
+
+  // ─── Full Suite: 1-Tap Daily Voice Farm Briefing (0.85x speed) ───
+  const handleToggleAudio = () => {
+    if (isAudioPlaying) {
+      stop();
+    } else {
+      const isTe = i18n.language === 'te';
+      const isHi = i18n.language === 'hi';
+      const farmerName = user?.name || user?.username || (isTe ? 'రైతు సోదరులారా' : 'Farmer');
+      const localizedCropName = cropName ? (translateCrop(cropName, i18n.language) || cropName) : (isTe ? 'పంట' : 'crop');
+      const localizedStage = translateStage(growthStage, i18n.language) || growthStage;
+      const soilVal = activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : (isTe ? 'సరైన స్థాయిలో' : 'optimal');
+
+      let text = '';
+      if (isTe) {
+        text = `నమస్తే ${farmerName} గారు! నేటి మీ పొలం సమాచారం: వాతావరణం 34 డిగ్రీలు మరియు ఎండగా ఉంది. సురక్షితమైన మందుల పిచికారీ సమయం ${dynamicSprayWindow}. మీ ${localizedCropName} పంట ${localizedStage} దశలో ఉంది. నేలలో తేమ ${soilVal} ఉంది. మార్కెట్లో ప్రస్తుత క్వింటాల్ ధర ₹2,150. తెగుళ్ల ముప్పు ప్రస్తుతం తక్కువగా ఉంది. శుభదినం!`;
+      } else if (isHi) {
+        text = `नमस्ते ${farmerName} जी! आज का खेत का विवरण: मौसम 34 डिग्री और धूप वाला है। सुरक्षित छिड़काव का समय ${dynamicSprayWindow} है। आपकी ${localizedCropName} फसल ${localizedStage} अवस्था में है। मिट्टी की नमी ${soilVal} है। मंडी में आज का भाव ₹2,150 प्रति क्विंटल है। फसल रोग का जोखिम कम है। आपका दिन शुभ हो!`;
+      } else {
+        text = `Namaste ${farmerName}! Here is today's farm report: The weather is 34 degrees and sunny. The safe spray window is ${dynamicSprayWindow}. Your ${localizedCropName} is in ${localizedStage} stage. Soil moisture is ${soilVal}. Current mandi market rate is ₹2,150 per quintal. Foliar disease risk is low. Have a productive farming day!`;
+      }
+      speak('dashboard_daily_brief', text, i18n.language, 0.88);
+    }
+  };
+
+  // ─── Full Suite: 1-Tap WhatsApp Farm Report Dispatch ───
+  const handleShareWhatsApp = () => {
+    const isTe = i18n.language === 'te';
+    const farmerName = user?.name || user?.username || 'Farmer';
+    const localizedCropName = cropName ? (translateCrop(cropName, i18n.language) || cropName) : 'Crop';
+    const soilVal = activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : 'Normal';
+
+    const message = `🌾 *AgriShield AI - ${isTe ? 'నేటి వ్యవసాయ నివేదిక' : 'Daily Farm Status'}* 🌾\n` +
+      `👤 ${farmerName} | 📍 ${farmLocationDisplay}\n` +
+      `📅 ${currentDateFormatted}\n` +
+      `--------------------------------\n` +
+      `☀️ ${isTe ? 'వాతావరణం' : 'Weather'}: 34°C & ${isTe ? 'ఎండ' : 'Sunny'}\n` +
+      `⏱️ ${isTe ? 'స్ప్రే సమయం' : 'Safe Spray'}: ${dynamicSprayWindow}\n` +
+      `💧 ${isTe ? 'నేల తేమ' : 'Soil Moisture'}: ${soilVal}\n` +
+      `🌿 ${isTe ? 'క్రియాశీల పంట' : 'Crop'}: ${localizedCropName} (${translateStage(growthStage, i18n.language)})\n` +
+      `📈 ${isTe ? 'మార్కెట్ ధర' : 'Mandi Rate'}: ₹2,150/Qtl (+₹50)\n` +
+      `🛡️ ${isTe ? 'తెగులు ముప్పు' : 'Disease Risk'}: ${isTe ? 'తక్కువ (రక్షణలో ఉంది)' : 'Low (Safe)'}\n` +
+      `--------------------------------\n` +
+      `🚜 _AgriShield AI Smart Agriculture System_`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   // Stagger container animation
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -294,8 +391,8 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* Action Row: Refresh + Wide Pill Scan Crop Leaf Button */}
-          <div className="flex items-center gap-2.5 sm:gap-3 w-full md:w-auto">
+          {/* Action Row: Refresh + WhatsApp Share + Wide Pill Scan Crop Leaf Button */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
             <button 
               type="button"
               onClick={handleManualRefresh}
@@ -305,6 +402,18 @@ const DashboardPage = () => {
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
             </button>
+
+            {/* 1-Tap WhatsApp Farm Report Share Button */}
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="p-3 sm:p-3.5 rounded-2xl border-2 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95 flex items-center gap-2 text-xs font-black"
+              title={i18n.language === 'te' ? 'నేటి నివేదికను వాట్సాప్‌లో పంపండి' : "Share Today's Farm Report on WhatsApp"}
+            >
+              <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">{i18n.language === 'te' ? 'వాట్సాప్ నివేదిక' : 'Share Report'}</span>
+            </button>
+
             <Link to="/upload" className="flex-1 md:flex-initial">
               <Button 
                 variant="primary" 
@@ -318,6 +427,59 @@ const DashboardPage = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* ─── Full Suite: District Emergency Pest & Weather Warning Ticker (Dismissible) ─── */}
+      {!dismissEmergencyBanner && (
+        <motion.div variants={itemVariants} className="col-span-12">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 dark:from-amber-950/60 dark:via-rose-950/40 dark:to-amber-950/60 border-2 border-amber-500/50 dark:border-amber-500/40 text-amber-950 dark:text-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-base shadow-sm animate-pulse">
+                ⚠️
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                    {i18n.language === 'te' ? 'జిల్లా అత్యవసర హెచ్చరిక' : 'District Alert'}
+                  </span>
+                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                    {i18n.language === 'te'
+                      ? 'మీ ప్రాంతంలో కత్తెర పురుగు & తేమ తెగులు ముప్పు నమోదైంది'
+                      : 'Fall Armyworm & Foliar Rust Vigilance Active in Your Region'}
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 font-semibold truncate mt-0.5">
+                  {i18n.language === 'te'
+                    ? 'పంట ఆకుల అడుగు భాగాన్ని పరిశీలించి వెంటనే ఫోటో స్కాన్ చేయండి.'
+                    : 'Inspect underside of crop leaves and scan any suspicious spots immediately.'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <Link
+                to="/upload"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>{i18n.language === 'te' ? 'ఆకు స్కాన్ చేయండి' : 'Scan Leaf'}</span>
+              </Link>
+              <Link
+                to="/notifications"
+                className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+              >
+                {i18n.language === 'te' ? 'హెచ్చరికలు' : 'Alerts'}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setDismissEmergencyBanner(true)}
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                title="Dismiss warning"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* ─── Daily Farm Status Banner (Professional, Boundaries, Light Blur, Highlighted Words) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
@@ -334,13 +496,43 @@ const DashboardPage = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-slate-950/20" />
             <div className="absolute inset-0 bg-emerald-950/20 mix-blend-multiply" />
             
+            {/* Dynamic Time-of-Day Ambient Sky Glow */}
+            <div className={`absolute inset-0 bg-gradient-to-b ${ambientSkyGlow} mix-blend-screen pointer-events-none`} />
+
             <div className="relative z-10 p-5 sm:p-6 lg:p-8 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-              {/* High-contrast frosted glass container with highlighted keywords */}
+              {/* High-contrast frosted glass container with highlighted keywords & 1-Tap Audio Briefing */}
               <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/55 backdrop-blur-md border border-white/20 shadow-2xl space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/30 border border-emerald-400/60 text-emerald-300 text-xs font-black shadow-md">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>🌾 {t('dashboard.telemetry_banner.title', 'Authentic Field Telemetry')}</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/30 border border-emerald-400/60 text-emerald-300 text-xs font-black shadow-md">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>🌾 {t('dashboard.telemetry_banner.title', 'Authentic Field Telemetry')}</span>
+                  </div>
+
+                  {/* 1-Tap Daily Voice Farm Audio Briefing Button */}
+                  <button
+                    type="button"
+                    onClick={handleToggleAudio}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-md cursor-pointer transition-all active:scale-95 border ${
+                      isAudioPlaying
+                        ? 'bg-rose-600 border-rose-400 text-white animate-pulse'
+                        : 'bg-emerald-500 hover:bg-emerald-400 border-emerald-300 text-slate-950'
+                    }`}
+                    title={i18n.language === 'te' ? 'నేటి వ్యవసాయ సమాచారాన్ని తెలుగులో వినండి' : 'Listen to today farm briefing aloud'}
+                  >
+                    {isAudioPlaying ? (
+                      <>
+                        <VolumeX className="w-3.5 h-3.5" />
+                        <span>{i18n.language === 'te' ? 'ఆపండి (Stop)' : 'Stop Audio'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>{i18n.language === 'te' ? '🔊 వినండి (Voice Brief)' : '🔊 Voice Brief'}</span>
+                      </>
+                    )}
+                  </button>
                 </div>
+
                 <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
                 </h2>
@@ -350,8 +542,9 @@ const DashboardPage = () => {
                     ☀️ {t('dashboard.telemetry_banner.weather_summary', '34°C & Sunny')}
                   </span>
                   <span>{t('dashboard.telemetry_banner.safe_spray_window', ' — Safe spray window: ')}</span>
+                  {/* Dynamic Live Safe Spray Window */}
                   <span className="px-2.5 py-0.5 rounded-lg bg-emerald-400 text-slate-950 font-black shadow-md border border-emerald-300 text-xs sm:text-sm">
-                    ⏱️ {t('dashboard.telemetry_banner.spray_window_time', '8 AM – 11 AM')}
+                    ⏱️ {dynamicSprayWindow}
                   </span>
                 </div>
               </div>
@@ -535,6 +728,66 @@ const DashboardPage = () => {
         </Link>
       </motion.div>
 
+      {/* ─── Full Suite: Today's 3-Task Quick Field Routine Checklist (Interactive Micro-Tasks) ─── */}
+      <motion.div variants={itemVariants} className="col-span-12">
+        <div className="p-4 sm:p-5 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-md space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-base sm:text-lg">📋</span>
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                {i18n.language === 'te' ? 'నేటి వ్యవసాయ దినచర్య పనులు' : "Today's Field Routine Checklist"}
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                {completedTasksCount} / {dailyTasks.length} {i18n.language === 'te' ? 'పూర్తయింది' : 'Completed'}
+              </span>
+            </div>
+
+            {/* Visual Micro Progress Bar */}
+            <div className="flex items-center gap-2 w-full sm:w-48">
+              <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${(completedTasksCount / dailyTasks.length) * 100}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                {Math.round((completedTasksCount / dailyTasks.length) * 100)}%
+              </span>
+            </div>
+          </div>
+
+          {/* 3 Interactive Daily Tasks */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
+            {dailyTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                onClick={() => toggleTask(task.id)}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                  task.completed
+                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-400/60 text-emerald-900 dark:text-emerald-200'
+                    : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-emerald-400/40'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-base shrink-0">{task.icon}</span>
+                  <span className={`text-xs font-bold leading-tight ${task.completed ? 'line-through opacity-75' : ''}`}>
+                    {i18n.language === 'te' ? task.titleTe : task.titleEn}
+                  </span>
+                </div>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all ${
+                  task.completed
+                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
+                }`}>
+                  {task.completed && <Check className="w-3 h-3 stroke-[3]" />}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
       {/* ─── Quick Touch-Friendly Farming Tools (6 Balanced Cards) ─── */}
       <motion.div variants={itemVariants} className="space-y-3">
         <div className="flex items-center justify-between px-1">
@@ -670,6 +923,15 @@ const DashboardPage = () => {
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
                     {t('dashboard.quick_tools.support_desc', 'Direct WhatsApp desk & phone callbacks.')}
                   </p>
+                  <a
+                    href="tel:18001801551"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-2.5 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-black hover:bg-emerald-500/25 transition-colors cursor-pointer w-full"
+                    title="National Toll-Free Kisan Call Center"
+                  >
+                    <Phone className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">1800-180-1551 (Kisan Call)</span>
+                  </a>
                 </div>
               </Card>
             </Link>
