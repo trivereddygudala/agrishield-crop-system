@@ -5,7 +5,7 @@ import {
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
   ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2,
   Award, UserCheck, PenSquare, SlidersHorizontal, IndianRupee, Copy, Check, Banknote, Building2,
-  RotateCcw
+  RotateCcw, Share2, FileText, Phone
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
