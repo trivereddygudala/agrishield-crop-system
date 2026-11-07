@@ -14,7 +14,6 @@ import { useWebSocket } from '../../context/WebSocketContext';
 
 // Intelligence System Widgets
 import FieldIntelligenceWidget from '../../components/intelligence/FieldIntelligenceWidget';
-import SmartFarmerActionCenter from '../../components/farm/SmartFarmerActionCenter';
 import { translateCrop, translateStage, translateDisease } from '../../utils/diseaseAdvisoryData';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
@@ -48,7 +47,7 @@ const DashboardPage = () => {
     if (activeFarm && activeFarm.latitude && activeFarm.longitude) {
       return { lat: activeFarm.latitude, lon: activeFarm.longitude };
     }
-    return { lat: 28.6139, lon: 77.2090 };
+    return { lat: 16.5062, lon: 80.6480 };
   });
 
   useEffect(() => {
@@ -381,18 +380,6 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── B19: Smart Farmer Action Center ("What should I do today?") ─── */}
-      <motion.div variants={itemVariants} className="col-span-12">
-        <WidgetErrorBoundary name="Smart Farmer Action Center">
-          <SmartFarmerActionCenter
-            farmId={activeFarm?.id || activeFarm?._id}
-            onActionComplete={() => {
-              fetchDashboardData(true, true);
-            }}
-          />
-        </WidgetErrorBoundary>
-      </motion.div>
-
       {/* ─── Essential Farmer KPIs (4 Spacious, High-Contrast Cards) ─── */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* KPI 1: Active Crop */}
@@ -515,6 +502,39 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
+      {/* ─── Field Operations & Action Tasks Banner (Clean Link to Polished Field Actions) ─── */}
+      <motion.div variants={itemVariants} className="col-span-12">
+        <Link 
+          to="/farm?tab=smart-actions" 
+          className="group block p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-slate-900/40 border border-emerald-500/30 hover:border-emerald-500/60 shadow-xs hover:shadow-md transition-all"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg sm:text-xl shrink-0">
+                ⚡
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                    {t('dashboard.action_hub_title', 'Field Tasks & Daily Operations')}
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                    {t('dashboard.action_hub_badge', 'Active Schedule')}
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-semibold truncate mt-0.5">
+                  {t('dashboard.action_hub_desc', 'View prioritized daily crop routines, weather alerts & task timeline in My Field')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:translate-x-1 transition-transform">
+              <span className="hidden sm:inline">{t('dashboard.action_hub_cta', 'Open Field Actions')}</span>
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+
       {/* ─── Quick Touch-Friendly Farming Tools (6 Balanced Cards) ─── */}
       <motion.div variants={itemVariants} className="space-y-3">
         <div className="flex items-center justify-between px-1">
@@ -623,10 +643,10 @@ const DashboardPage = () => {
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.machinery', 'Farm Machinery, Drone & Pump Rental')}
+                    {t('dashboard.quick_tools.machinery', 'Equipment Rental')}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.machinery_desc', 'Book nearby tractors, spraying drones & pumps.')}
+                    {t('dashboard.quick_tools.machinery_desc', 'Book tractors, spraying drones & pumps nearby.')}
                   </p>
                 </div>
               </Card>
@@ -645,10 +665,10 @@ const DashboardPage = () => {
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.support', 'Help & Support Team')}
+                    {t('dashboard.quick_tools.support', '24×7 Support')}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.support_desc', '24×7 WhatsApp desk & 15-min phone callback.')}
+                    {t('dashboard.quick_tools.support_desc', 'Direct WhatsApp desk & phone callbacks.')}
                   </p>
                 </div>
               </Card>

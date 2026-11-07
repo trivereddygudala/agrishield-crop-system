@@ -22,7 +22,9 @@ class FarmProfileBase(BaseModel):
     longitude: Optional[float] = Field(default=None, ge=-180.0, le=180.0)
     device_id: Optional[str] = Field(default=None, max_length=100)
     boundary_coordinates: Optional[List[Any]] = Field(default=None, description="Array of [lat, lng] boundary pin coordinates")
-    timeline_tasks: Optional[Dict[str, bool]] = Field(default=None, description="Map of task IDs to completed boolean")
+    timeline_tasks: Optional[Dict[str, Any]] = Field(default=None, description="Map of task IDs to completed boolean or metadata dict")
+    action_center_state: Optional[Dict[str, Any]] = Field(default=None, description="Action center state map")
+    current_season_id: Optional[str] = Field(default=None, description="Current season ID")
     is_archived: bool = Field(default=False, description="Soft delete flag")
 
 class FarmProfileCreate(FarmProfileBase):
@@ -48,7 +50,9 @@ class FarmProfileUpdate(BaseModel):
     longitude: Optional[float] = Field(None, ge=-180.0, le=180.0)
     boundary_coordinates: Optional[List[Any]] = Field(None, description="Array of [lat, lng] boundary pin coordinates")
     device_id: Optional[str] = Field(None, max_length=100)
-    timeline_tasks: Optional[Dict[str, bool]] = Field(None, description="Map of task IDs to completed boolean")
+    timeline_tasks: Optional[Dict[str, Any]] = Field(None, description="Map of task IDs to completed boolean or metadata dict")
+    action_center_state: Optional[Dict[str, Any]] = Field(None, description="Action center state map")
+    current_season_id: Optional[str] = Field(None, description="Current season ID")
 
 class FarmProfileResponse(FarmProfileBase):
     id: str

@@ -1,3 +1,12 @@
+import sys
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import time
 from datetime import timezone
 import os
@@ -78,9 +87,9 @@ async def init_background_services():
             is_prediction_worker = is_ai_worker_node()
             if not is_prediction_worker:
                 start_scheduler(db_instance.db)
-                print("🚀 [Startup] Background Scheduler initialized on Main Backend node.")
+                print("  [Startup] Background Scheduler initialized on Main Backend node.")
             else:
-                print("ℹ️ [Startup] Dedicated AI Worker node: Background Scheduler omitted.")
+                print("   [Startup] Dedicated AI Worker node: Background Scheduler omitted.")
             try:
                 await db_instance.db["weather_cache"].delete_many({})
             except Exception:
@@ -89,10 +98,10 @@ async def init_background_services():
                 from backend.app.core.security_walls import sync_banned_ips_from_db
                 await sync_banned_ips_from_db()
             except Exception as e:
-                print(f"⚠️ [Startup] Security Walls sync notice: {e}")
-            print("🚀 [Startup] MongoDB, Security Walls initialized successfully.")
+                print(f"   [Startup] Security Walls sync notice: {e}")
+            print("  [Startup] MongoDB, Security Walls initialized successfully.")
     except Exception as e:
-        print(f"⚠️ [Startup] MongoDB / Scheduler initialization notice: {e}")
+        print(f"   [Startup] MongoDB / Scheduler initialization notice: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -122,9 +131,9 @@ async def lifespan(app: FastAPI):
                 server="agrishield-api.local.",
             )
             zc.register_service(zc_info)
-            print(f"\n🌐 [mDNS] Auto-Discovery Broadcasting on IP: {ip} as agrishield-api.local")
+            print(f"\n[mDNS] Auto-Discovery Broadcasting on IP: {ip} as agrishield-api.local")
         except Exception as e:
-            print(f"\n⚠️  [WARNING] mDNS Broadcaster skipped: {e}")
+            print(f"\n[WARNING] mDNS Broadcaster skipped: {e}")
         
     # Yield immediately so Uvicorn binds and opens the HTTP port within 10 milliseconds
     yield
@@ -234,6 +243,11 @@ app.add_middleware(
 
 # Serve uploads folder statically
 app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+
+# Serve per-crop models and reference pathology images statically
+models_static_dir = os.path.join(BASE_DIR, "models")
+if os.path.exists(models_static_dir):
+    app.mount("/models", StaticFiles(directory=models_static_dir), name="models")
 
 from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment, plant_id, agrochemical, sync
 

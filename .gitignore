@@ -95,6 +95,9 @@ scratch/
 TODAY_CHAT_HISTORY*.md
 chat by user.md
 chats_by_user.md
+chat_by_user_restored.md
+synthetic_test_leaf.jpg
+heatmap_result.jpg
 check_steps.py
 
 # Local Benchmark Harvest Images

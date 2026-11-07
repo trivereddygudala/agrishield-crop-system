@@ -48,17 +48,22 @@ export const AuthProvider = ({ children }) => {
       if (savedToken && savedUser) {
         try {
           const parsedUser = JSON.parse(savedUser);
-          // 1. Optimistic Auth: set state immediately so the user never sees login screen
-          setToken(savedToken);
-          setUser(parsedUser);
-          
-          if (parsedUser.preferred_language) {
-            i18n.changeLanguage(parsedUser.preferred_language);
-          }
-          if (parsedUser.farmer_mode) {
-            document.body.classList.add('farmer-mode');
+          if (parsedUser && typeof parsedUser === 'object') {
+            // 1. Optimistic Auth: set state immediately so the user never sees login screen
+            setToken(savedToken);
+            setUser(parsedUser);
+            
+            if (parsedUser.preferred_language) {
+              try { i18n.changeLanguage(parsedUser.preferred_language); } catch (_) {}
+            }
+            if (parsedUser.farmer_mode) {
+              document.body.classList.add('farmer-mode');
+            } else {
+              document.body.classList.remove('farmer-mode');
+            }
           } else {
-            document.body.classList.remove('farmer-mode');
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
           }
 
           // Always ensure persisted in localStorage so closing the browser never logs the user out

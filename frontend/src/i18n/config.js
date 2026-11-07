@@ -7,7 +7,7 @@ import { extendedResources } from './extendedTranslations';
 // Merge official 7-language extended resources into translations
 if (extendedResources && typeof extendedResources === 'object') {
   for (const [lang, domains] of Object.entries(extendedResources)) {
-    if (resources[lang] && resources[lang].translation) {
+    if (resources && resources[lang] && resources[lang].translation) {
       Object.assign(resources[lang].translation, domains);
     }
   }
@@ -17,8 +17,12 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
+    resources: resources || {},
     fallbackLng: 'en',
+    load: 'languageOnly',
+    cleanCode: true,
+    supportedLngs: ['en', 'te', 'hi', 'ta', 'kn', 'ml', 'or'],
+    nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false, // React already safes from xss
     },

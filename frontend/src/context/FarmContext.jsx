@@ -25,13 +25,36 @@ export const FarmProvider = ({ children }) => {
     try {
       // Parallel fetch all farms, archived farms, and active farm
       const [listRes, archivedRes, activeRes] = await Promise.all([
-        API.get('/api/farms'),
-        API.get('/api/farms/archived'),
-        API.get('/api/farms/current')
+        API.get('/api/farms').catch(err => {
+          console.warn('/api/farms fetch warning:', err?.message);
+          return { data: [] };
+        }),
+        API.get('/api/farms/archived').catch(err => {
+          console.warn('/api/farms/archived fetch warning:', err?.message);
+          return { data: [] };
+        }),
+        API.get('/api/farms/current').catch(err => {
+          console.warn('/api/farms/current fetch warning:', err?.message);
+          return { data: null };
+        })
       ]);
-      setFarms(listRes.data || []);
-      setArchivedFarms(archivedRes.data || []);
-      setActiveFarmState(activeRes.data || null);
+
+      const farmList = Array.isArray(listRes?.data) ? listRes.data : [];
+      const archivedList = Array.isArray(archivedRes?.data) ? archivedRes.data : [];
+      let currentActive = activeRes?.data || null;
+
+      // Smart Fallback: if activeFarm is null or not found, but farms exist, select the first farm
+      if (!currentActive && farmList.length > 0) {
+        currentActive = farmList[0];
+        const primaryId = currentActive.id || currentActive._id;
+        if (primaryId) {
+          API.post(`/api/farms/${primaryId}/select`).catch(() => {});
+        }
+      }
+
+      setFarms(farmList);
+      setArchivedFarms(archivedList);
+      setActiveFarmState(currentActive);
     } catch (error) {
       console.error("Error refreshing farms context:", error);
     } finally {
@@ -52,7 +75,7 @@ export const FarmProvider = ({ children }) => {
     try {
       const res = await API.post(`/api/farms/${farmId}/select`);
       // Update local active farm state
-      const farmDoc = farms.find(f => f.id === farmId);
+      const farmDoc = farms.find(f => (f.id === farmId || f._id === farmId));
       if (farmDoc) {
         setActiveFarmState(farmDoc);
         // Force refresh user context to update farm_profile_completed if needed
@@ -79,7 +102,7 @@ export const FarmProvider = ({ children }) => {
       
       // Update user auth profile context
       if (user) {
-        await updateProfile({ farm_profile_completed: true, active_farm_id: newFarm.id });
+        await updateProfile({ farm_profile_completed: true, active_farm_id: newFarm.id || newFarm._id });
       }
       return newFarm;
     } catch (error) {
@@ -95,8 +118,8 @@ export const FarmProvider = ({ children }) => {
     try {
       const res = await API.put(`/api/farms/${farmId}`, farmData);
       const updatedFarm = res.data;
-      setFarms(prev => prev.map(f => f.id === farmId ? updatedFarm : f));
-      if (activeFarm && activeFarm.id === farmId) {
+      setFarms(prev => prev.map(f => (f.id === farmId || f._id === farmId) ? updatedFarm : f));
+      if (activeFarm && (activeFarm.id === farmId || activeFarm._id === farmId)) {
         setActiveFarmState(updatedFarm);
       }
       return updatedFarm;
@@ -112,15 +135,15 @@ export const FarmProvider = ({ children }) => {
     setLoading(true);
     try {
       await API.delete(`/api/farms/${farmId}`);
-      setFarms(prev => prev.filter(f => f.id !== farmId));
+      setFarms(prev => prev.filter(f => f.id !== farmId && f._id !== farmId));
       
       // If deleted farm was active, set active to another or clear it
-      if (activeFarm && activeFarm.id === farmId) {
-        const remaining = farms.filter(f => f.id !== farmId);
+      if (activeFarm && (activeFarm.id === farmId || activeFarm._id === farmId)) {
+        const remaining = farms.filter(f => f.id !== farmId && f._id !== farmId);
         if (remaining.length > 0) {
           setActiveFarmState(remaining[0]);
           if (user) {
-            await updateProfile({ active_farm_id: remaining[0].id });
+            await updateProfile({ active_farm_id: remaining[0].id || remaining[0]._id });
           }
         } else {
           setActiveFarmState(null);

@@ -1833,12 +1833,29 @@ async def predict_pytorch_endpoint(
 
             # If not offloaded or workers offline, execute locally on server threadpool
             if not prediction_result:
-                prediction_result = await asyncio.to_thread(
-                    predict_crop_disease,
-                    effective_image_path,
-                    req.explainer_type or "gradcam++",
-                    **kwargs
-                )
+                # 1. Check for dedicated per-crop micro-model (43 supported crops)
+                if active_crop_filter:
+                    try:
+                        from backend.app.services.crop_micro_model_service import is_crop_supported, run_crop_micro_inference
+                        if is_crop_supported(active_crop_filter):
+                            prediction_result = await asyncio.to_thread(
+                                run_crop_micro_inference,
+                                active_crop_filter,
+                                effective_image_path
+                            )
+                            if prediction_result:
+                                logger.info(f"Specialized micro-model executed for '{active_crop_filter}'")
+                    except Exception as mm_err:
+                        logger.warning(f"Crop micro-model fallback to generic model: {mm_err}")
+
+                # 2. General 1252-Class PyTorch Pipeline Fallback
+                if not prediction_result:
+                    prediction_result = await asyncio.to_thread(
+                        predict_crop_disease,
+                        effective_image_path,
+                        req.explainer_type or "gradcam++",
+                        **kwargs
+                    )
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -1861,8 +1878,9 @@ async def predict_pytorch_endpoint(
 
     # Identify non-crop botanical classes, weeds, insect pests, or unverified model anomalies
     from backend.services.pytorch.taxonomy import TaxonomyManager
+    is_micro_model_active = bool(prediction_result.get("is_micro_model"))
     label_to_check = raw_label or (top_preds[0].get("class_name") if top_preds else "") or prediction_result.get("disease_name", "")
-    if label_to_check and not is_image_unsuitable:
+    if label_to_check and not is_image_unsuitable and not is_micro_model_active:
         is_non_crop_label = not TaxonomyManager.is_valid_crop_candidate(label_to_check) or (
             prediction_result.get("crop_name") in ["Wild Flora", "Agricultural Pest", "Agricultural Weed", "Plant Nutrient", "Produce Quality", "Unknown", "Therioaphis", "General Plant", "Acrobasis", "Lytta", "Spodoptera"] or
             label_to_check.startswith(("Therioaphis", "Lytta", "Acrobasis", "General_Plant"))
@@ -3223,7 +3241,11 @@ async def get_history(
         if user_id:
             query["user_id"] = user_id
     else:
-        query["user_id"] = str(current_user["id"])
+        user_id_val = str(current_user["id"])
+        if ObjectId.is_valid(user_id_val):
+            query["user_id"] = {"$in": [user_id_val, ObjectId(user_id_val)]}
+        else:
+            query["user_id"] = user_id_val
 
     if search:
         query["$or"] = [

@@ -26,8 +26,8 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
     if (bypassCache) setRefreshing(true);
     try {
       const activeCoords = customCoords || (useLiveGps ? liveGpsCoords : null);
-      const queryLat = activeCoords ? activeCoords.lat : lat;
-      const queryLon = activeCoords ? activeCoords.lon : lon;
+      const queryLat = activeCoords ? activeCoords.lat : (activeFarm?.latitude ? Number(activeFarm.latitude) : (lat && lat !== 28.6139 ? lat : 16.5062));
+      const queryLon = activeCoords ? activeCoords.lon : (activeFarm?.longitude ? Number(activeFarm.longitude) : (lon && lon !== 77.209 ? lon : 80.6480));
 
       const targetId = activeCoords ? 'live_device_gps' : (farmId || activeFarm?.id || 'default');
       let query = `farm_id=${targetId}`;

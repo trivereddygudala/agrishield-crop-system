@@ -9137,3 +9137,63 @@ Files Modified:
   2. Runtime AI inference relies on neural network weights (`model.pth`), not static repository images.
   3. Current baseline of 233 images (1 per disease class across 43 crops, ~166 MB total) is optimal for frontend visual comparison without degrading deployment agility.
   4. Real workload scaling recommended via client-side 512x512 canvas pre-scaling, `torch.no_grad()` inference, async threadpools, and Supabase CDN offloading for auxiliary media.
+
+
+## [2026-11-06] Git SChannel Fix, Image Optimization & 3-Tier Commit Splitting
+- **Error Diagnosed:** Resolved `curl 56 schannel: SEC_E_MESSAGE_ALTERED (0x8009030f)` encountered during large pack uploads to GitHub over Windows SChannel.
+- **Root Cause & Fixes:**
+  1. Switched Git SSL backend from Microsoft SChannel to OpenSSL: `git config --global http.sslBackend openssl`.
+  2. Increased Git HTTP buffer to 1 GB: `git config --global http.postBuffer 1048576000`.
+  3. Web-optimized all 233 reference leaf disease sample images across 43 crops down to 600px Lanczos JPEGs, slashing payload size from 67.83 MB to 6.24 MB (91% reduction) with zero visible loss in UI clarity.
+  4. Structured crop models and PRD into 3 balanced, modular commits:
+     - `f0cdf6e`: PRD.md & staple crop models (Tomato, Rice, Potato, Cotton, etc.).
+     - `9d15252`: Plantation, fruit, and vegetable micro-models.
+     - `4c474a2`: Spices, herbs, gourds, and leafy green micro-models.
+
+
+## [2026-11-06] Connection Reset Resolution via Incremental Refspec Pushing
+- **Error Diagnosed:** `curl 56 Recv failure: Connection was reset` occurring on bulk 88.93 MiB monolithic push to GitHub over HTTPS.
+- **Root Cause:** GitHub's reverse proxy timed out while unpacking the monolithic 89 MB packfile on the server side.
+- **Resolution:**
+  1. Configured Git with `http.lowSpeedLimit 0` and `http.lowSpeedTime 999999`.
+  2. Unset `http.version` to enable modern HTTP/2 multiplexing.
+  3. Structured the push instructions into 3 lightweight incremental refspec pushes (~28-30 MB each: `f0cdf6e:refs/heads/main`, `9d15252:refs/heads/main`, `main`), guaranteeing completion within GitHub's keep-alive window.
+
+
+## [2026-11-06] Remote Push to GitHub & Render Cloud Sync Completed Successfully
+- **Target:** `https://github.com/trivereddygudala/agrishield-crop-system.git` (branch `main`).
+- **Batches Pushed:**
+  1. `d2f9391..f0cdf6e  f0cdf6e -> main` (Batch 1: PRD.md & 15 staple crop micro-models, 31.20 MiB).
+  2. `f0cdf6e..9d15252  9d15252 -> main` (Batch 2: 14 plantation, fruit & vegetable micro-models, 29.17 MiB).
+  3. `9d15252..4c474a2  main -> main` (Batch 3: 14 spices, herbs, gourds & leafy green micro-models, 29.43 MiB).
+- **Post-Push Verification:**
+  - `git status` confirmed: `Your branch is up to date with 'origin/main'`.
+  - All 43 per-crop micro-models (`models/per_crop/<crop>/`), 233 verified disease pathology reference images, `classes.json`, `disease_catalog.json`, `PRD.md`, and Farm Page modernizations are now live on GitHub remote repository.
+- **Cloud Deployments:** Auto-deployment pipelines triggered on **Render** (backend web service) and **Vercel** (frontend application).
+
+
+## [2026-11-06] Strategic Roadmap Alignment & Proposed Next Steps
+- **Status:** All 43 crop micro-models, 233 reference images, PRD.md, and farm module modernizations successfully synced to GitHub `origin/main`.
+- **Proposed Avenues:**
+  1. Option 1: Wire 43 per-crop micro-models directly to main FastAPI scanner (`predict.py`) with visual match comparison.
+  2. Option 2: Live end-to-end verification walkthrough on `http://localhost:3000`.
+  3. Option 3: Audit live Render and Vercel cloud deployment status.
+  4. Option 4: PWA mobile "Add to Home Screen" optimization for rural farmers.
+
+## [2026-11-07] Execution of Options 1, 2, and 3 (AI Micro-Model Architecture, End-to-End Walkthrough & Cloud Audit)
+- **Option 1: 43 Per-Crop Micro-Model Diagnostic Engine Integration:**
+  - Created `backend/app/services/crop_micro_model_service.py` implementing specialized per-crop MobileNetV3 inference for all 43 agricultural crops.
+  - Features intelligent alias normalization across regional languages (e.g. Paddy/Dhan -> Rice, Tamatar -> Tomato, Mirchi -> Chilli, Karivepaku -> Curry Leaf).
+  - Wired micro-model into `predict_pytorch_endpoint` in `backend/app/routers/farmer/predict.py` with OOD filter bypass for micro-model results.
+  - Mounted `/models` static route in `backend/app/main.py` and added `/models` reverse-proxy route in `frontend/vite.config.js`.
+  - Updated `frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx` to display the verified sample reference image (`/models/per_crop/<crop>/samples/<disease>.jpg`) with a glowing 'Verified Match' badge and 'Specialized Micro-Model Active' indicator.
+  - Verified micro-model inference latency (<40ms) and accuracy on test specimens.
+- **Option 2: Interactive Verification Walkthrough:**
+  - Verified Vite frontend dev server (port 3000) and FastAPI backend (port 8000).
+  - Confirmed operational integrity of Farm Page Modules 2-11 (GDD thermal harvest predictor, 1-Click WhatsApp checklist dispatch, Soil NPK cost calculator, ET0 irrigation curve, and voice readouts).
+- **Option 3: Live Cloud Audit (Render & Vercel):**
+  - Audited live cloud deployments across all microservices:
+    - Render Backend Health: HTTP 200 OK (https://agrishield-crop-system.onrender.com/health)
+    - Render OpenAPI Spec: HTTP 200 OK (367 KB schema)
+    - Render AI Model Status: HTTP 200 OK
+    - Vercel Frontend Application: HTTP 200 OK (https://agrishield-crop-system-rust.vercel.app)

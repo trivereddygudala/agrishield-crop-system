@@ -79,6 +79,7 @@ const FarmerWelcomeModal = () => {
   const [stage, setStage] = useState('language'); // 'language' | 'tutorial'
   const [selectedLang, setSelectedLang] = useState('te');
   const [slideIdx, setSlideIdx] = useState(0);
+  const isTe = selectedLang === 'te' || (i18n.language && i18n.language.startsWith('te'));
 
   useEffect(() => {
     // Show on first visit, or when explicitly requested via custom event

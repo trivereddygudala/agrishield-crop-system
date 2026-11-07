@@ -11,24 +11,49 @@
     
     <title>AgriShield AI — Crop Disease Detection & Smart Farming Platform</title>
     
-    <!-- Preconnect & Google Fonts with display=swap for Lighthouse -->
+    <!-- Preconnect & Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script>
-      // Aggressive cache buster & service worker purge for live mobile testing
+      // 1. Evict any stuck legacy Service Worker caches (causes white screen on Chrome/PWA)
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (let registration of registrations) {
-            registration.unregister();
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var i = 0; i < registrations.length; i++) {
+            registrations[i].unregister();
           }
         });
       }
       if ('caches' in window) {
-        caches.keys().then((names) => {
-          names.forEach((name) => caches.delete(name));
+        caches.keys().then(function(names) {
+          for (var i = 0; i < names.length; i++) {
+            caches.delete(names[i]);
+          }
         });
       }
+
+      // 2. Global Runtime Error Catcher - Never leave the screen completely blank
+      window.addEventListener('error', function(event) {
+        console.error('[AgriShield Global Error]:', event.error || event.message);
+        var root = document.getElementById('root');
+        if (root && (!root.innerHTML || root.innerHTML.trim() === '')) {
+          var errDiv = document.getElementById('global-error-card');
+          if (!errDiv) {
+            errDiv = document.createElement('div');
+            errDiv.id = 'global-error-card';
+            errDiv.style = 'position:fixed;inset:0;background:#090d16;color:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif;z-index:99999;';
+            errDiv.innerHTML = '<div style="background:#111827;border:1px solid #1f293d;padding:28px;border-radius:16px;max-width:480px;box-shadow:0 10px 30px rgba(0,0,0,0.5);">' +
+              '<h2 style="color:#ef4444;font-size:1.3rem;margin-bottom:8px;font-weight:700;">⚠️ App Reload Required</h2>' +
+              '<p style="color:#94a3b8;font-size:0.9rem;margin-bottom:18px;">Cached service assets were refreshed. Tap below to launch the live interface.</p>' +
+              '<button onclick="localStorage.clear();sessionStorage.clear();window.location.reload(true);" style="background:#10b981;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.95rem;">' +
+              '🔄 Hard Refresh App' +
+              '</button>' +
+              '</div>';
+            document.body.appendChild(errDiv);
+          }
+        }
+      });
     </script>
   </head>
   <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans min-h-screen">

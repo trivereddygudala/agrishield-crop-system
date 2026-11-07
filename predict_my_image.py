@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from model.predict import predict_crop_disease, initialize_and_validate
+from model.predict_pytorch import predict_crop_disease, initialize_and_validate
 
 def predict_custom_image(image_path: str):
     if not os.path.exists(image_path):

@@ -24,20 +24,24 @@ async function pingBackend() {
       ? import.meta.env.VITE_API_URL.replace(/\/+$/, '')
       : '';
 
+    let signal = undefined;
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      try {
+        signal = AbortSignal.timeout(8000);
+      } catch (_) {}
+    }
+
     const res = await fetch(`${baseUrl}${HEALTH_ENDPOINT}`, {
       method: 'GET',
       cache: 'no-store',
-      signal: AbortSignal.timeout(8000), // 8s timeout – avoid hanging
+      signal: signal,
     });
 
     if (import.meta.env.DEV) {
-      console.debug(`[KeepAlive] ✅ Backend is warm — status: ${res.status}`);
+      console.debug(`[KeepAlive] Backend status: ${res.status}`);
     }
   } catch {
-    // Silently ignore – user is likely offline or backend is starting up
-    if (import.meta.env.DEV) {
-      console.debug('[KeepAlive] ⚠️ Ping failed (backend may be waking up)');
-    }
+    // Silently ignore - user is likely offline or backend is starting up
   }
 }
 
@@ -56,10 +60,6 @@ export function startKeepAlive() {
 
   // Then keep pinging on interval
   intervalId = setInterval(pingBackend, PING_INTERVAL_MS);
-
-  if (import.meta.env.DEV) {
-    console.debug(`[KeepAlive] 🚀 Started — pinging every ${PING_INTERVAL_MS / 60000} minutes`);
-  }
 }
 
 /**

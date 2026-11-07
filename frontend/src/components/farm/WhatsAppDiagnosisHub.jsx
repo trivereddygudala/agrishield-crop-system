@@ -105,27 +105,27 @@ export default function WhatsAppDiagnosisHub({
   };
 
   return (
-    <div className="rounded-3xl bg-[#060c14] border border-emerald-500/25 p-4 sm:p-6 space-y-6 shadow-2xl relative overflow-hidden">
+    <div className="rounded-3xl bg-white dark:bg-[#060c14] border border-slate-200/90 dark:border-emerald-500/25 p-4 sm:p-6 space-y-6 shadow-xl relative overflow-hidden text-slate-800 dark:text-slate-100">
       {/* Background Atmosphere Glow */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+          <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shrink-0">
             <MessageSquare className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 24/7 AI WhatsApp Bot
               </span>
-              <span className="text-[10px] text-white/50 font-mono">
+              <span className="text-[10px] text-slate-500 dark:text-white/50 font-mono">
                 Direct Mobile Diagnosis
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-black text-white mt-0.5">
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">
               {isTe ? 'వాట్సాప్ ఫోటో వ్యాధి నిర్ధారణ & లైవ్ బాట్' : 'Direct WhatsApp Bot Photo Diagnosis'}
             </h2>
           </div>
@@ -134,7 +134,7 @@ export default function WhatsAppDiagnosisHub({
         {/* 1-Tap Real WhatsApp Launch Button */}
         <button
           onClick={handleOpenRealWhatsApp}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer w-full sm:w-auto justify-center"
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/20 dark:shadow-emerald-950/40 transition-all cursor-pointer w-full sm:w-auto justify-center"
         >
           <MessageSquare className="w-4 h-4 fill-white" />
           <span>{isTe ? 'వాట్సాప్‌లో మాట్లాడండి' : 'Chat on WhatsApp Bot'}</span>
@@ -143,13 +143,13 @@ export default function WhatsAppDiagnosisHub({
       </div>
 
       {/* Value Explanation Banner */}
-      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4" />
+          <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             {isTe ? 'రైతులకు అత్యంత సులభమైన పద్ధతి — వెబ్‌సైట్ తెరవాల్సిన అవసరం లేదు!' : 'Easiest Way for Farmers — No Website Login Needed!'}
           </span>
-          <p className="text-xs text-white/80">
+          <p className="text-xs text-slate-600 dark:text-white/80">
             {isTe 
               ? 'మీ వాట్సాప్ నుండి ఆకు ఫోటో తీసి అగ్రిషీల్డ్ నంబర్‌కు పంపండి. వెంటనే తెలుగులో వాయిస్ నోట్ ఆడియో మరియు సరైన పురుగు మందుల మోతాదు కార్డు వస్తుంది.'
               : 'Farmers can simply snap a leaf photo and send it to AgriShield on WhatsApp. They receive an instant regional voice note and treatment prescription.'}
@@ -157,7 +157,7 @@ export default function WhatsAppDiagnosisHub({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
+          <span className="text-xs px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-mono font-bold border border-emerald-500/30">
             📞 +91 98765 43210
           </span>
         </div>
@@ -167,7 +167,7 @@ export default function WhatsAppDiagnosisHub({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: Sample Scenario Selectors */}
         <div className="lg:col-span-4 space-y-3">
-          <span className="text-xs font-bold text-white/70 uppercase tracking-wider block">
+          <span className="text-xs font-bold text-slate-600 dark:text-white/70 uppercase tracking-wider block">
             {isTe ? 'లైవ్ వాట్సాప్ పరీక్ష దృశ్యాలు (Click to Test):' : 'Interactive Test Scenarios:'}
           </span>
 
@@ -180,21 +180,21 @@ export default function WhatsAppDiagnosisHub({
                   onClick={() => handleSelectSimulation(sim)}
                   className={`p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1 ${
                     isSelected
-                      ? 'bg-emerald-500/15 border-emerald-500/50 shadow-lg text-white'
-                      : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] text-white/70'
+                      ? 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-400 dark:border-emerald-500/50 shadow-md text-slate-900 dark:text-white'
+                      : 'bg-slate-50/70 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 hover:border-emerald-300 dark:hover:bg-white/[0.06] text-slate-700 dark:text-white/70'
                   }`}
                 >
                   <p className="text-xs font-black">{isTe ? sim.labelTe : sim.labelEn}</p>
-                  <p className="text-[11px] text-white/50 truncate">"{sim.userMessage}"</p>
+                  <p className="text-[11px] text-slate-500 dark:text-white/50 truncate">"{sim.userMessage}"</p>
                 </div>
               );
             })}
           </div>
 
           {/* 3 Step Instruction Card */}
-          <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-xs text-white/70">
-            <p className="font-bold text-white flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 space-y-2 text-xs text-slate-600 dark:text-white/70 shadow-xs">
+            <p className="font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               {isTe ? 'రైతు ఎలా ఉపయోగించాలి?' : 'How Farmers Use WhatsApp Bot:'}
             </p>
             <p>1. {isTe ? 'నెంబర్ +91 98765 43210 సేవ్ చేసుకోండి.' : 'Save AgriShield contact on phone.'}</p>

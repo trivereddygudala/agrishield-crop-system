@@ -236,20 +236,22 @@ function AppRoutesWithBoundary() {
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeInitializer>
-        <FarmProvider>
-          <WebSocketProvider>
-            <ToastProvider>
-              <BrowserRouter>
-                <FarmerWelcomeModal />
-                <AppRoutesWithBoundary />
-              </BrowserRouter>
-            </ToastProvider>
-          </WebSocketProvider>
-        </FarmProvider>
-      </ThemeInitializer>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeInitializer>
+          <FarmProvider>
+            <WebSocketProvider>
+              <ToastProvider>
+                <BrowserRouter>
+                  <FarmerWelcomeModal />
+                  <AppRoutesWithBoundary />
+                </BrowserRouter>
+              </ToastProvider>
+            </WebSocketProvider>
+          </FarmProvider>
+        </ThemeInitializer>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

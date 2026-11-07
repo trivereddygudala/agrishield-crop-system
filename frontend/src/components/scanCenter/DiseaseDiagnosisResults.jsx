@@ -111,10 +111,23 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     speak(fullAudioText, 'plantix_symptoms_audio', getSpeechLocale(activeLang), 0.8);
   };
 
-  // Load matching authentic pathology comparison photos from dataset catalog
+  // Load matching authentic pathology comparison photos from dataset catalog or micro-model
   useEffect(() => {
     let isMounted = true;
     const loadCatalog = async () => {
+      // 1. Prioritize verified micro-model reference photo if returned by backend
+      if (liveResult?.sample_reference_image) {
+        if (isMounted) {
+          setReferenceImages([{
+            image_url: liveResult.sample_reference_image,
+            disease: liveResult.disease_name || rawDiseaseName,
+            crop: liveResult.crop_name || rawCropName,
+            is_micro_model: true
+          }]);
+        }
+        return;
+      }
+
       try {
         const res = await fetch('/samples/dataset_catalog.json');
         if (!res.ok) return;
@@ -152,7 +165,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     };
     loadCatalog();
     return () => { isMounted = false; };
-  }, [rawCropName, rawDiseaseName]);
+  }, [rawCropName, rawDiseaseName, liveResult?.sample_reference_image]);
 
   // B30-B33 Safety State Classification & Boundary Enforcement
   const predStatus = (liveResult?.prediction_status || '').toLowerCase();
@@ -349,6 +362,13 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                   <span>{activeLang === 'te' ? 'మల్టీ-పార్ట్ తనిఖీ: ఆకు + వేరు / కాండం నిర్ధారణ' : 'Multi-Part Inspection: Foliage + Root/Stem Confirmed'}</span>
                 </div>
               )}
+
+              {liveResult?.is_micro_model && (
+                <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-400 dark:border-blue-700 text-blue-800 dark:text-blue-300 text-xs font-black shadow-xs">
+                  <span>🎯</span>
+                  <span>{activeLang === 'te' ? `${localizedCrop} మైక్రో-మోడల్ ద్వారా ధృవీకరించబడింది` : `Specialized ${localizedCrop} Micro-Model Active`}</span>
+                </div>
+              )}
             </div>
 
             {/* Specimen Comparison Gallery (Plantix Multi-Photo Swipe) */}
@@ -413,8 +433,11 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
                         }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-semibold backdrop-blur-xs">
-                        {activeLang === 'te' ? `నమూనా ${idx + 1}` : `Sample ${idx + 1}`}
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-semibold backdrop-blur-xs flex items-center gap-1">
+                        {refImg.is_micro_model && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                        {refImg.is_micro_model 
+                          ? (activeLang === 'te' ? 'నిర్ధారణ నమూనా' : 'Verified Match')
+                          : (activeLang === 'te' ? `నమూనా ${idx + 1}` : `Sample ${idx + 1}`)}
                       </div>
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <ZoomIn className="w-5 h-5 text-white" />

@@ -6,9 +6,13 @@ import urllib.error
 import json
 from datetime import datetime
 
-# Force unbuffered output so logs appear instantly in npm concurrently
+# Force unbuffered UTF-8 output so logs appear instantly without Windows charmap crashes
 import sys
-sys.stdout.reconfigure(line_buffering=True)
+try:
+    sys.stdout.reconfigure(line_buffering=True, encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(line_buffering=True, encoding='utf-8', errors='replace')
+except Exception:
+    pass
 # ANSI Colors for Rich Terminal Display
 GREEN = "\033[92m"
 YELLOW = "\033[93m"

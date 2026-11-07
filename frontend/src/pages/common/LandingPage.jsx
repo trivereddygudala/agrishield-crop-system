@@ -9,7 +9,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import DemoModal from '../../components/DemoModal';
-import PreLoginFeatureShowcase from '../../components/common/PreLoginFeatureShowcase';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
 /* ─── Animated Counter ──────────────────────────────────── */
@@ -185,7 +184,7 @@ const LandingPage = () => {
           <div className="hidden md:flex items-center gap-8">
             {[
               { key: 'features', label: t('landing.nav_features', 'Features') },
-              { key: 'technology', label: t('landing.nav_technology', 'Technology') }
+              { key: 'how-it-works', label: t('landing.nav_how_it_works', 'How It Works') }
             ].map(item => (
               <a key={item.key} href={`#${item.key}`} className="text-sm text-white/50 hover:text-white transition-colors duration-200 font-medium">
                 {item.label}
@@ -226,7 +225,7 @@ const LandingPage = () => {
               <div className="px-4 py-5 space-y-2">
                 {[
                   { key: 'features', label: t('landing.nav_features', 'Features') },
-                  { key: 'technology', label: t('landing.nav_technology', 'Technology') }
+                  { key: 'how-it-works', label: t('landing.nav_how_it_works', 'How It Works') }
                 ].map(item => (
                   <a key={item.key} href={`#${item.key}`} onClick={() => setMobileMenuOpen(false)}
                     className="block text-sm font-medium text-white/50 hover:text-white py-2.5 border-b border-white/5">
@@ -508,12 +507,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ── System Overview & Architecture Showcase (Embedded Neatly in Main Page) ── */}
-      <section className="relative py-14 px-4 sm:px-6 bg-[#030a06]/70 border-b border-white/5">
-        <div className="max-w-6xl mx-auto">
-          <PreLoginFeatureShowcase />
-        </div>
-      </section>
+
 
       {/* ── Features ──────────────────────────── */}
       <section id="features" className="relative py-24 px-4 sm:px-6">
@@ -542,76 +536,70 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ── Technology Strip ──────────────────────────── */}
-      <section id="technology" className="relative py-20 px-4 sm:px-6 border-t border-white/5">
-        <div className="max-w-7xl mx-auto">
-          <div className="rounded-3xl bg-gradient-to-br from-emerald-500/8 via-white/[0.02] to-sky-500/8 border border-white/8 p-8 sm:p-12">
-            <div className="flex flex-col lg:flex-row items-center gap-12">
-              <div className="flex-1 space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/40 tracking-widest">
-                  <Zap className="h-3.5 w-3.5 text-amber-400" /> {t('landing.technology_stack', 'TECHNOLOGY STACK')}
-                </div>
-                <h2 className="font-extrabold text-white text-3xl sm:text-4xl leading-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                  {t('landing.tech_heading_1', 'Enterprise-Grade AI')}<br />
-                  <span className="text-emerald-400">{t('landing.tech_heading_2', 'for the Farm')}</span>
-                </h2>
-                <p className="text-white/35 text-sm sm:text-base leading-relaxed max-w-md">
-                  {t('landing.tech_desc', 'Powered by state-of-the-art deep learning, real-time ESP32 hardware integration, and cloud-synced intelligence — built to scale.')}
-                </p>
-                <div className="flex flex-col gap-3">
-                  {[
-                    { label: t('landing.tech_item_1', 'PyTorch EfficientNetV2-S neural network'), icon: '🧠', cls: 'bg-violet-500/10 border-violet-500/20 text-violet-300' },
-                    { label: t('landing.tech_item_2', 'ESP32 multi-node sensor telemetry'), icon: '📡', cls: 'bg-amber-500/10 border-amber-500/20 text-amber-300' },
-                    { label: t('landing.tech_item_3', 'NVIDIA NIM LLM multilingual advisory'), icon: '💬', cls: 'bg-sky-500/10 border-sky-500/20 text-sky-300' },
-                    { label: t('landing.tech_item_4', 'Grad-CAM visual explainability heatmaps'), icon: '🔥', cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' },
-                  ].map(({ label, icon, cls }, i) => (
-                    <motion.div key={label} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }} transition={{ delay: i * 0.08, duration: 0.4 }}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${cls}`}>
-                      <span className="text-base shrink-0">{icon}</span>
-                      <span>{label}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+      {/* ── 3-Step Simple Farmer Workflow (Farmer-First & High Impact) ── */}
+      <section id="how-it-works" className="relative py-20 px-4 sm:px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-xs font-bold text-emerald-400 tracking-widest">
+              <Sparkles className="h-3.5 w-3.5" /> {t('landing.simple_steps', 'SIMPLE 3-STEP PROCESS')}
+            </div>
+            <h2 className="font-extrabold text-white text-3xl sm:text-5xl leading-tight tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+              {t('landing.how_it_works_title', 'How AgriShield Works for You')}
+            </h2>
+            <p className="text-white/45 text-sm sm:text-base">
+              {t('landing.how_it_works_sub', 'Zero complicated setup. Built specifically for farmers to save crops and stop disease before yield loss.')}
+            </p>
+          </div>
 
-              {/* ESP32 node preview */}
-              <div className="flex-1 w-full max-w-sm mx-auto lg:mx-0">
-                <div className="rounded-2xl bg-[#060a10]/80 border border-white/8 p-4 space-y-3 backdrop-blur-xl">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-white/50">{t('landing.esp32_nodes', 'ESP32 Field Nodes')}</span>
-                    <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">{t('landing.live', 'LIVE')}</span>
-                  </div>
-                  {[
-                    { name: 'Node Alpha', temp: '31.2°C', hum: '68%', soil: '41%', on: true },
-                    { name: 'Node Beta', temp: '29.8°C', hum: '74%', soil: '55%', on: true },
-                    { name: 'Node Gamma', temp: '—', hum: '—', soil: '—', on: false },
-                  ].map((node) => (
-                    <div key={node.name} className={`flex items-center justify-between p-3 rounded-xl border ${node.on ? 'bg-white/[0.03] border-white/8' : 'bg-white/[0.01] border-white/4 opacity-35'}`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`h-2 w-2 rounded-full ${node.on ? 'bg-emerald-400' : 'bg-white/15'} shrink-0`} />
-                        <span className="text-xs font-bold text-white/75">{node.name}</span>
-                      </div>
-                      {node.on && (
-                        <div className="flex gap-3 text-[11px] text-white/35 font-medium">
-                          <span>🌡 {node.temp}</span>
-                          <span>💧 {node.hum}</span>
-                          <span>🌱 {node.soil}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  <div className="space-y-1.5 mt-1">
-                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                      <motion.div animate={{ width: ['0%', '73%'] }} transition={{ duration: 2, delay: 0.5, ease: 'easeOut' }}
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-white/25 font-medium">
-                      <span>{t('landing.system_health', 'System health')}</span>
-                      <span className="text-emerald-400 font-bold">{t('landing.health_optimal', '73% optimal')}</span>
-                    </div>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-7 rounded-3xl bg-white/[0.03] border border-white/8 hover:border-emerald-500/30 transition-all duration-300 relative group flex flex-col justify-between space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-2xl font-black">
+                📸
+              </div>
+              <div className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-400">{t('landing.step_1_tag', 'Step 1: Simple Capture')}</span>
+                <h3 className="text-xl font-extrabold text-white">{t('landing.step_1_title', 'Take a Leaf Photo')}</h3>
+                <p className="text-sm text-white/45 leading-relaxed">
+                  {t('landing.step_1_desc', 'Open your phone camera and snap a photo of any damaged leaf, discoloration, or crop pest in your field.')}
+                </p>
+              </div>
+              <div className="pt-2 text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t('landing.step_1_highlight', 'Works with Any Smartphone')}</span>
+              </div>
+            </div>
+
+            <div className="p-7 rounded-3xl bg-white/[0.03] border border-white/8 hover:border-teal-500/30 transition-all duration-300 relative group flex flex-col justify-between space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-teal-500/15 border border-teal-500/30 text-teal-400 flex items-center justify-center text-2xl font-black">
+                ⚡
+              </div>
+              <div className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-wider text-teal-400">{t('landing.step_2_tag', 'Step 2: Instant Prescription')}</span>
+                <h3 className="text-xl font-extrabold text-white">{t('landing.step_2_title', 'Get Exact Spray Dosage')}</h3>
+                <p className="text-sm text-white/45 leading-relaxed">
+                  {t('landing.step_2_desc', 'Receive government CIBRC verified chemical names, exact gram/ml per 20L sprayer tank math, and organic home remedies.')}
+                </p>
+              </div>
+              <div className="pt-2 text-xs font-bold text-teal-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t('landing.step_2_highlight', 'In Your Mother Tongue (Telugu, Tamil...)')}</span>
+              </div>
+            </div>
+
+            <div className="p-7 rounded-3xl bg-white/[0.03] border border-white/8 hover:border-sky-500/30 transition-all duration-300 relative group flex flex-col justify-between space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center text-2xl font-black">
+                🌾
+              </div>
+              <div className="space-y-2">
+                <span className="text-xs font-black uppercase tracking-wider text-sky-400">{t('landing.step_3_tag', 'Step 3: Yield Protection')}</span>
+                <h3 className="text-xl font-extrabold text-white">{t('landing.step_3_title', 'Protect Harvest & Maximize Profit')}</h3>
+                <p className="text-sm text-white/45 leading-relaxed">
+                  {t('landing.step_3_desc', 'Stay ahead of sudden rainstorms, spray drift, and soil dryouts with automatic local weather intelligence.')}
+                </p>
+              </div>
+              <div className="pt-2 text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{t('landing.step_3_highlight', 'Zero Guesswork for Farmers')}</span>
               </div>
             </div>
           </div>
@@ -663,7 +651,27 @@ const LandingPage = () => {
 
       {/* ── Footer ──────────────────────────────────── */}
       <footer className="border-t border-white/5 py-10 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Technical & Scientific Standards Accreditation (Discreet & Professional) */}
+        <div className="border-t border-white/5 pt-6 pb-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-[11px] text-white/35 font-medium">
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-emerald-400">🏛️</span>
+            <span>ICAR & CIBRC Certified</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-sky-400">🧠</span>
+            <span>PyTorch 1,254 Class AI</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-amber-400">📡</span>
+            <span>ESP32 Solar Telemetry</span>
+          </div>
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-purple-400">🗣️</span>
+            <span>11 Indian Regional Languages</span>
+          </div>
+        </div>
+
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center">
               <Leaf className="w-3 h-3 text-white" />
