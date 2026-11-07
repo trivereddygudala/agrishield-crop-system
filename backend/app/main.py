@@ -113,11 +113,10 @@ async def lifespan(app: FastAPI):
     # 1. Spawn DB connection & scheduler in background task
     bg_task = asyncio.create_task(init_background_services())
     
-    # 2. Start mDNS Auto-Discovery ONLY in local development (skip in Cloud/Render)
+    # 2. Start mDNS Auto-Discovery ONLY if explicitly enabled via environment
     zc = None
     zc_info = None
-    is_cloud = bool(os.environ.get("RENDER") or os.environ.get("PORT") or settings.ENV.lower() == "production")
-    if not is_cloud:
+    if os.environ.get("ENABLE_MDNS", "").lower() == "true":
         try:
             import socket
             from zeroconf import ServiceInfo, Zeroconf

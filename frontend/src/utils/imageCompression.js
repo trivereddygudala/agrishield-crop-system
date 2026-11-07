@@ -7,9 +7,9 @@
 
 export const compressImageForUpload = (file, options = {}) => {
   const {
-    maxDimension = 2560,
-    quality = 0.92,
-    maxSizeKB = 1800,
+    maxDimension = 1280,
+    quality = 0.85,
+    maxSizeKB = 500,
     outputType = 'image/jpeg'
   } = options;
 

@@ -1972,17 +1972,20 @@ async def predict_pytorch_endpoint(
     ensemble_notes = None
     was_initially_ood = bool(is_ood)
 
-    if not is_image_unsuitable and (is_ambiguous or confidence < 0.75 or is_ood or has_multipart_scan):
+    if not is_image_unsuitable and not is_micro_model_active and (is_ambiguous or confidence < 0.75 or is_ood or has_multipart_scan):
         try:
             from backend.app.services.gemini_vision import cross_verify_disease_with_vision
-            vision_opinion = await cross_verify_disease_with_vision(
-                image_path=effective_image_path,
-                crop_hint=active_crop_filter or user_crop_filter or (None if is_ood else prediction_result.get("crop_name")),
-                root_image_path=full_root_image_path,
-                stem_image_path=full_stem_image_path,
-                wilt_condition=getattr(req, "wilt_condition", None),
-                soil_condition=getattr(req, "soil_condition", None),
-                crop_stage=getattr(req, "crop_stage", None)
+            vision_opinion = await asyncio.wait_for(
+                cross_verify_disease_with_vision(
+                    image_path=effective_image_path,
+                    crop_hint=active_crop_filter or user_crop_filter or (None if is_ood else prediction_result.get("crop_name")),
+                    root_image_path=full_root_image_path,
+                    stem_image_path=full_stem_image_path,
+                    wilt_condition=getattr(req, "wilt_condition", None),
+                    soil_condition=getattr(req, "soil_condition", None),
+                    crop_stage=getattr(req, "crop_stage", None)
+                ),
+                timeout=3.5
             )
             if vision_opinion and isinstance(vision_opinion, dict):
                 v_dis = vision_opinion.get("disease_name")
@@ -2198,7 +2201,7 @@ async def predict_pytorch_endpoint(
         prediction_result["consensus_details"] = "High Precision Neural Alignment (>85% Model Confidence)"
 
     # NIM/LLM Refinement: only runs on valid confirmed disease candidates with 0.40 <= confidence < 0.85
-    if is_confirmed_disease and (0.40 <= confidence < 0.85) and top_preds:
+    if is_confirmed_disease and not is_micro_model_active and (0.40 <= confidence < 0.85) and top_preds:
         try:
             from backend.app.services.nvidia_service import nvidia_service
             from backend.app.services.farm_profile_service import FarmProfileService
@@ -2319,30 +2322,38 @@ async def predict_pytorch_endpoint(
         prediction_result["recommended_pesticides"] = []
         prediction_result["recommended_fertilizers"] = []
     else:
-        # Confirmed disease: Enrich with NVIDIA LLM agronomic advice
+        # Confirmed disease: Enrich with NVIDIA LLM agronomic advice (Instant ICAR lookup for micro-models)
         try:
             from backend.app.services.nvidia_service import nvidia_service
             from backend.app.services.farm_profile_service import FarmProfileService
             user_id_val = str(current_user["id"]) if current_user else "demo_user"
-            active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
-            if active_farm and "_id" in active_farm:
-                active_farm["_id"] = str(active_farm["_id"])
-            try:
-                llama_advice = await asyncio.wait_for(
-                    nvidia_service.generate_farming_advice(
-                        crop_name=prediction_result["crop_name"],
-                        disease_name=prediction_result["disease_name"],
-                        confidence=prediction_result["confidence"],
-                        farm_profile=active_farm
-                    ),
-                    timeout=2.5
-                )
-            except Exception as err:
-                logger.info(f"Advice generation fast-failover ({err}); using instant ICAR knowledge base.")
+            
+            if is_micro_model_active:
+                # Fast path: instant ICAR knowledge base (<1ms)
                 llama_advice = nvidia_service._generate_mock_advice(
                     prediction_result["crop_name"],
                     prediction_result["disease_name"]
                 )
+            else:
+                active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
+                if active_farm and "_id" in active_farm:
+                    active_farm["_id"] = str(active_farm["_id"])
+                try:
+                    llama_advice = await asyncio.wait_for(
+                        nvidia_service.generate_farming_advice(
+                            crop_name=prediction_result["crop_name"],
+                            disease_name=prediction_result["disease_name"],
+                            confidence=prediction_result["confidence"],
+                            farm_profile=active_farm
+                        ),
+                        timeout=1.2
+                    )
+                except Exception as err:
+                    logger.info(f"Advice generation fast-failover ({err}); using instant ICAR knowledge base.")
+                    llama_advice = nvidia_service._generate_mock_advice(
+                        prediction_result["crop_name"],
+                        prediction_result["disease_name"]
+                    )
             if llama_advice:
                 def force_str(val, depth=0):
                     if isinstance(val, str):

@@ -72,25 +72,23 @@ const TIMELINE_STEPS = [
 ];
 
 const AGRICULTURAL_CROPS = [
-  { value: '', label: 'All Crops (Auto-Detect)', icon: '🌱' },
-  { value: 'Tomato', label: 'Tomato', icon: '🍅' },
-  { value: 'Chilli', label: 'Chilli', icon: '🌶️' },
-  { value: 'Rice', label: 'Paddy (Rice)', icon: '🌾' },
-  { value: 'Cotton', label: 'Cotton', icon: '🌿' },
-  { value: 'Potato', label: 'Potato', icon: '🥔' },
-  { value: 'Maize', label: 'Maize (Corn)', icon: '🌽' },
-  { value: 'Groundnut', label: 'Groundnut (Peanut)', icon: '🥜' },
-  { value: 'Sugarcane', label: 'Sugarcane', icon: '🎋' },
-  { value: 'Mango', label: 'Mango', icon: '🥭' },
-  { value: 'Wheat', label: 'Wheat', icon: '🌾' },
-  { value: 'Apple', label: 'Apple', icon: '🍎' },
-  { value: 'Banana', label: 'Banana', icon: '🍌' },
-  { value: 'Grape', label: 'Grape', icon: '🍇' },
-  { value: 'Soybean', label: 'Soybean', icon: '🫘' },
-  { value: 'Pepper', label: 'Pepper (Capsicum)', icon: '🫑' },
-  { value: 'Orange', label: 'Orange (Citrus)', icon: '🍊' },
-  { value: 'Peach', label: 'Peach', icon: '🍑' },
-  { value: 'Strawberry', label: 'Strawberry', icon: '🍓' }
+  { value: '', label: 'అన్ని పంటలు (All Crops)', icon: '🌱' },
+  { value: 'Tomato', label: 'టమాటా (Tomato)', icon: '🍅' },
+  { value: 'Chilli', label: 'మిరప (Chilli)', icon: '🌶️' },
+  { value: 'Rice', label: 'వరి (Paddy / Rice)', icon: '🌾' },
+  { value: 'Cotton', label: 'పత్తి (Cotton)', icon: '🌿' },
+  { value: 'Potato', label: 'బంగాళాదుంప (Potato)', icon: '🥔' },
+  { value: 'Maize', label: 'మొక్కజొన్న (Maize)', icon: '🌽' },
+  { value: 'Groundnut', label: 'వేరుశనగ (Groundnut)', icon: '🥜' },
+  { value: 'Sugarcane', label: 'చెరకు (Sugarcane)', icon: '🎋' },
+  { value: 'Mango', label: 'మామిడి (Mango)', icon: '🥭' },
+  { value: 'Wheat', label: 'గోధుమ (Wheat)', icon: '🌾' },
+  { value: 'Banana', label: 'అరటి (Banana)', icon: '🍌' },
+  { value: 'Apple', label: 'యాపిల్ (Apple)', icon: '🍎' },
+  { value: 'Grape', label: 'ద్రాక్ష (Grape)', icon: '🍇' },
+  { value: 'Soybean', label: 'సోయాబీన్ (Soybean)', icon: '🫘' },
+  { value: 'Pepper', label: 'క్యాప్సికమ్ (Capsicum)', icon: '🫑' },
+  { value: 'Orange', label: 'బత్తాయి / నారింజ (Citrus)', icon: '🍊' }
 ];
 
 const ScanImageUploader = ({
@@ -796,63 +794,118 @@ const ScanImageUploader = ({
               )}
             </div>
           )}
-          <motion.div
+
+          {/* Professional Photography Guide Banner */}
+          {tabId === 'disease-diag' && (
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span>📸</span>
+                  <span>{isTelugu ? 'ఖచ్చితమైన స్కాన్ కోసం ఫోటో తీసే విధానం' : 'How to Take an Accurate Leaf Scan'}</span>
+                </span>
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  ⚡ 43 AI Micro-Models Online
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
+                <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                  <span className="text-sm">☀️</span>
+                  <div>
+                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+                      {isTelugu ? 'పగటి సహజ వెలుతురు' : 'Bright Natural Light'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {isTelugu ? 'నీడలు లేదా ఫ్లాష్ లైట్ లేకుండా తీయండి' : 'Avoid dark shadows or harsh torch glare'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                  <span className="text-sm">🔍</span>
+                  <div>
+                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+                      {isTelugu ? '10-15 సెం.మీ దగ్గరగా' : 'Close-Up Focus (10-15cm)'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {isTelugu ? 'వ్యాధి మచ్చపై కెమెరా పెట్టండి' : 'Focus directly on lesion or spots'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800">
+                  <span className="text-sm">🍃</span>
+                  <div>
+                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 block">
+                      {isTelugu ? 'ఒకే ఆకుపై దృష్టి' : 'Single Flat Leaf'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                      {isTelugu ? 'చేతులు లేదా ఇతర ఆకులు లేకుండా' : 'Keep leaf flat without blocking symptoms'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Farmer-Friendly Upload Card */}
+          <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            whileHover={{ scale: 1.005 }}
-            className={`relative flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
+            className={`relative flex flex-col items-center justify-center p-6 sm:p-8 text-center rounded-3xl border-2 transition-all duration-300 bg-white dark:bg-slate-900 shadow-xl ${
               dragActive
                 ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/5'
-                : 'border-slate-300 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.01] hover:border-emerald-500/60 hover:bg-emerald-50/10 dark:hover:bg-emerald-500/[0.02]'
+                : 'border-slate-200 dark:border-slate-800'
             }`}
           >
-            <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 mb-3 shadow-sm border border-emerald-500/20">
-              <UploadCloud className="w-8 h-8 sm:w-10 sm:h-10" />
+            {/* Friendly Green Leaf Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3 border border-emerald-500/30 shadow-xs">
+              <Camera className="w-8 h-8" />
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white mb-1">
-              {t('uploader.drag_drop', 'Drag & drop your leaf image here, or browse')}
+
+            <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1">
+              {isTelugu ? 'ఆకు ఫోటో తీయండి లేదా గ్యాలరీ నుండి ఎంచుకోండి' : 'Take a Leaf Photo or Choose from Gallery'}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 max-w-sm mb-5">
-              {t('uploader.supports', 'Supports JPG, PNG, WEBP with high-precision disease feature extraction')}
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mb-5 font-medium">
+              {isTelugu 
+                ? 'కేవలం 1 సెకనులో తెగులు గుర్తింపు & 15 లీటర్ల పంపు మందుల మోతాదు లభిస్తుంది' 
+                : 'Instant 1-second disease diagnosis with exact 15L backpack spray pump dosage'}
             </p>
 
-            {/* Upload Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-3" onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => fileInputRef.current?.click()}
-                leftIcon={<UploadCloud className="w-4 h-4" />}
-                className="shadow-md shadow-emerald-500/15"
-              >
-                {t('uploader.select_photo', 'Select Photo')}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="md"
+            {/* Two Clear, Large Touch Buttons for Farmers */}
+            <div className="w-full max-w-md grid grid-cols-1 sm:grid-cols-2 gap-3" onClick={(e) => e.stopPropagation()}>
+              {/* Primary: Open Camera directly */}
+              <button
+                type="button"
                 onClick={() => nativeCameraInputRef.current?.click()}
-                leftIcon={<Camera className="w-4 h-4 text-sky-500" />}
-                className="border border-sky-300 dark:border-sky-800 bg-sky-50/60 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 hover:bg-sky-100"
+                className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer active:scale-98"
               >
-                <span>Take Photo (Native)</span>
-              </Button>
+                <Camera className="w-5 h-5" />
+                <span>{isTelugu ? 'ఫోటో తీయండి (Camera)' : 'Take Photo (Camera)'}</span>
+              </button>
 
-              <Button
-                variant="gradient"
-                size="md"
-                onClick={() => startCamera(0)}
-                leftIcon={<Camera className="w-4 h-4 text-white" />}
-                className="shadow-md shadow-emerald-500/10 flex items-center gap-2"
+              {/* Secondary: Pick from phone gallery */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-3.5 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-black text-sm flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer active:scale-98"
               >
-                <span>{t('uploader.camera_capture', 'Live Camera Scan')}</span>
-                <span className="text-[10px] uppercase font-black px-1.5 py-0.5 rounded bg-white/20">AI HUD</span>
-              </Button>
+                <UploadCloud className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span>{isTelugu ? 'గ్యాలరీ నుండి (Gallery)' : 'Upload from Gallery'}</span>
+              </button>
             </div>
-          </motion.div>
+
+            {/* Quick Photo Rules Strip */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                {isTelugu ? 'ఆకు మచ్చ దగ్గరగా ఉండాలి' : 'Close-up on leaf spots'}
+              </span>
+              <span className="flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                {isTelugu ? 'మంచి వెలుతురులో తీయండి' : 'Bright natural daylight'}
+              </span>
+            </div>
+          </div>
 
           {/* Quick Demo Benchmark Samples - Only displayed for Disease Diagnosis */}
           {tabId === 'disease-diag' && (
@@ -867,12 +920,14 @@ const ScanImageUploader = ({
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 {[
-                  { title: 'Chilli Leaf Spot', path: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli', icon: '🌶️', desc: 'మిరప ఆకుమచ్చ తెగులు' },
-                  { title: 'Corn Blight', path: '/samples/corn_leaf_blight.jpg', crop: 'Maize', icon: '🌽', desc: 'మొక్కజొన్న మాడ తెగులు' },
-                  { title: 'Apple Scab', path: '/samples/apple_scab.jpg', crop: 'Apple', icon: '🍎', desc: 'యాపిల్ గజ్జి తెగులు' },
-                  { title: 'Healthy Foliage', path: '/samples/chilli_healthy.jpg', crop: 'Chilli', icon: '🌿', desc: 'ఆరోగ్యకరమైన పంట' }
+                  { title: isTelugu ? 'టమాటా ఆకుమచ్చ' : 'Tomato Early Blight', path: '/samples/dataset/tomato/tomato_early_blight_01.jpg', crop: 'Tomato', icon: '🍅', desc: 'Alternaria solani' },
+                  { title: isTelugu ? 'వరి ఎండ్రిక తెగులు' : 'Paddy Leaf Blight', path: '/samples/dataset/rice/rice_bacterial_leaf_blight_01.jpg', crop: 'Rice', icon: '🌾', desc: 'Xanthomonas oryzae' },
+                  { title: isTelugu ? 'మిరప ఆకుమచ్చ' : 'Chilli Leaf Spot', path: '/samples/chilli_leaf_spot.jpg', crop: 'Chilli', icon: '🌶️', desc: 'Cercospora capsici' },
+                  { title: isTelugu ? 'బంగాళాదుంప బ్లైట్' : 'Potato Late Blight', path: '/samples/dataset/potato/potato_late_blight_01.jpg', crop: 'Potato', icon: '🥔', desc: 'Phytophthora infestans' },
+                  { title: isTelugu ? 'మొక్కజొన్న ఆకుమాడు' : 'Maize Blight', path: '/samples/corn_leaf_blight.jpg', crop: 'Maize', icon: '🌽', desc: 'Exserohilum turcicum' },
+                  { title: isTelugu ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Leaf', path: '/samples/chilli_healthy.jpg', crop: 'Chilli', icon: '🌿', desc: 'ఆరోగ్యకరమైన పంట' }
                 ].map((sample, idx) => (
                   <button
                     key={idx}
@@ -1051,36 +1106,6 @@ const ScanImageUploader = ({
           ))}
         </div>
       </div>
-
-      {/* Crop Category Selector for Disease Diagnosis */}
-      {tabId === 'disease-diag' && (
-        <div className="mt-6 p-4 rounded-2xl bg-emerald-500/[0.04] border border-emerald-500/15">
-          <label className="block text-xs font-black text-emerald-800 dark:text-emerald-400 mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-            <span className="flex items-center gap-1.5">
-              <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
-              <span>{t('uploader.target_crop_category', 'Target Crop Category')}</span>
-              {selectedCropFilter && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[9px] font-black uppercase tracking-wide shadow-xs flex items-center gap-1">
-                  <span>{activeFarmCrop && activeFarmCrop.toLowerCase() === selectedCropFilter.toLowerCase() ? '🌾 Farm Crop:' : 'Active:'}</span>
-                  <span>{selectedCropFilter}</span>
-                </span>
-              )}
-            </span>
-            <span className="text-[10px] text-emerald-500/70 font-bold whitespace-nowrap">{t('uploader.boost_accuracy', 'Boosts Accuracy to 99.4%')}</span>
-          </label>
-          <select
-            value={selectedCropFilter}
-            onChange={(e) => onCropFilterChange && onCropFilterChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-800 dark:text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-colors appearance-none cursor-pointer"
-          >
-            {AGRICULTURAL_CROPS.map((crop) => (
-              <option className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" key={crop.value} value={crop.value}>
-                {crop.value ? t(`crops.${crop.value.toLowerCase()}`, crop.label) : t('crops.all', crop.label)}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* 100% Automated Dual-AI Identification Information Card for Plant Identification Tab */}
       {tabId === 'plant-id' && (

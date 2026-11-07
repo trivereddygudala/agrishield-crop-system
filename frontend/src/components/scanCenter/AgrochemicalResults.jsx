@@ -18,11 +18,11 @@ import ScanLanguageBar from './ScanLanguageBar';
 
 const AGRO_UI_LOCALIZATIONS = {
   en: {
-    identity: "3. 📦 Product Identity Card",
+    identity: "📦 Product Identity",
     descriptionCrops: "4. 📝 Product Description & Approved Target Crops",
-    composition: "5. 🧪 Composition & Technical Actives",
-    pricing: "6. 💰 Pricing & Financials",
-    mixingPPE: "7. 🛡️ Step-by-Step Mixing Protocol & PPE Safety Handling",
+    composition: "🧪 Chemical Composition & Actives",
+    pricing: "💰 Pricing & Retail Breakdown",
+    mixingPPE: "🛡️ Spray Mixing Dose & Safety Handling",
     scanAnother: "Scan Another Product / Bottle",
     addToInventory: "Add to Farm Inventory",
     stopAudio: "Stop Audio",
@@ -31,11 +31,11 @@ const AGRO_UI_LOCALIZATIONS = {
     copyReport: "Copy Markdown Report (Share)"
   },
   te: {
-    identity: "3. 📦 ఉత్పత్తి గుర్తింపు వివరాలు",
+    identity: "📦 ఉత్పత్తి గుర్తింపు వివరాలు",
     descriptionCrops: "4. 📝 వివరణ & ఆమోదిత పంటలు",
-    composition: "5. 🧪 కూర్పు & క్రియాశీల రసాయనాలు",
-    pricing: "6. 💰 ధర & ఆర్థిక వివరాలు",
-    mixingPPE: "7. 🛡️ మిక్సింగ్ విధానం & PPE భద్రత",
+    composition: "🧪 క్రియాశీల రసాయనాలు & కూర్పు",
+    pricing: "💰 ధర & రిటైల్ వివరాలు",
+    mixingPPE: "🛡️ పంపు పిచికారీ మోతాదు & భద్రత",
     scanAnother: "మరో మందు సీసాను స్కాన్ చేయండి",
     addToInventory: "వ్యవసాయ ఇన్వెంటరీకి జోడించండి",
     stopAudio: "వాయిస్ ఆపండి",
@@ -44,11 +44,11 @@ const AGRO_UI_LOCALIZATIONS = {
     copyReport: "రిపోర్ట్ కాపీ (Markdown)"
   },
   hi: {
-    identity: "3. 📦 उत्पाद पहचान पत्र",
+    identity: "📦 उत्पाद पहचान",
     descriptionCrops: "4. 📝 उत्पाद विवरण और अनुशंसित फसलें",
-    composition: "5. 🧪 रासायनिक संरचना और सक्रिय तत्व",
-    pricing: "6. 💰 मूल्य निर्धारण और वित्तीय विवरण",
-    mixingPPE: "7. 🛡️ घोल बनाने की विधि और पीपीई सुरक्षा",
+    composition: "🧪 रासायनिक संरचना",
+    pricing: "💰 मूल्य एवं खुदरा विवरण",
+    mixingPPE: "🛡️ पंप छिड़काव मात्रा एवं सुरक्षा",
     scanAnother: "दूसरी बोतल स्कैन करें",
     addToInventory: "फार्म इन्वेंटरी में जोड़ें",
     stopAudio: "आवाज रोकें",
@@ -309,6 +309,18 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
 - **Net Weight**: ${productDetails.net_quantity}`;
   };
 
+    const handleShareWhatsApp = () => {
+    const text = `*AgriShield Agrochemical Verification*\n` +
+      `Product: *${productDetails.brand_name}*\n` +
+      `Category: ${categoryMeta.type}\n` +
+      `Active Ingredient: ${productDetails.active_ingredient}\n` +
+      `Recommended Dose: *${userInstructions.dilution_rate_per_litre}*\n` +
+      `Spray Timing: ${userInstructions.best_spray_timing}\n` +
+      `Verified via AgriShield AI`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   const handleCopyMarkdown = () => {
     const report = generateMarkdownReport();
     if (navigator?.clipboard?.writeText) {
@@ -516,11 +528,11 @@ const AgrochemicalResults = ({ data = {}, onScanAnother }) => {
               <Button
                 variant="glass"
                 size="sm"
-                onClick={handleCopyMarkdown}
-                leftIcon={copiedMarkdown ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-emerald-300" />}
-                className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-sm rounded-xl"
+                onClick={handleShareWhatsApp}
+                leftIcon={<Share2 className="w-4 h-4 text-emerald-400" />}
+                className="bg-emerald-600/90 hover:bg-emerald-500 text-white font-bold border-emerald-400/40 shadow-sm rounded-xl cursor-pointer"
               >
-                {copiedMarkdown ? (locUI.copied || 'Copied Markdown!') : (locUI.copyReport || 'Copy Markdown Report')}
+                <span>{activeLang === 'te' ? 'వాట్సాప్‌లో షేర్' : activeLang === 'hi' ? 'व्हाट्सएप पर शेयर' : 'Share WhatsApp'}</span>
               </Button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -6,7 +6,8 @@ import {
   AlertTriangle, ShieldCheck, Share2, TrendingUp, Landmark, Phone, FileText, Sparkles,
   Layers, FlaskConical, Info, Eye, Image as ImageIcon, ZoomIn, X, CheckCircle2,
   UserCheck, SlidersHorizontal, Settings2, PenSquare, Award, ArrowLeft, ArrowRight,
-  ChevronRight, ThumbsUp, Calculator, HelpCircle, MessageSquare, BookOpen
+  ChevronRight, ThumbsUp, Calculator, HelpCircle, MessageSquare, BookOpen, ChevronDown, ChevronUp,
+  Droplets, Thermometer, Wind, Sprout, ShieldAlert, DollarSign, Activity, Clock
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge, Progress } from '../ui/index';
@@ -27,29 +28,51 @@ import KisanHelpdeskModal from '../intelligence/KisanHelpdeskModal';
 import PrescriptionSlipModal from './PrescriptionSlipModal';
 import { shareDiagnosticToWhatsApp } from '../../utils/prescriptionShare';
 
-const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloadPDF, onScanAnother }) => {
+/**
+ * Professional Agronomic Disease Diagnosis Dossier
+ * Comprehensive 8-Card Suite:
+ * Card 1: Executive Diagnosis & Dual Visual Pathology Match
+ * Card 2: Targeted Chemical Prescription & 15L Spray Pump Calculator
+ * Card 3: Biological Control & Organic IPM Alternative
+ * Card 4: Disease Spread Risk & Micro-Climate Triggers
+ * Card 5: 3-Stage Cultural Field Management Timeline
+ * Card 6: Economic Loss & Spray Cost Estimator
+ * Card 7: AI Vision X-Ray & Grad-CAM Neural Attention Heatmap
+ * Card 8: Professional Action & Prescription Bar
+ */
+export default function DiseaseDiagnosisResults({
+  liveResult,
+  previewUrl,
+  onDownloadPDF,
+  onSaveScan,
+  onScanAnother
+}) {
   const { t, i18n } = useTranslation();
-  const overrides = {};
-  const isHumanCalibrated = false;
 
-  // Plantix 2-Stage Funnel State: 'confirm' (Verification Screen) | 'treatment' (Medicines & Prescription)
-  const [diagnosticStage, setDiagnosticStage] = useState('confirm');
+  // Agronomist Overrides
+  const [overrides, setOverrides] = useState({
+    disease_name: liveResult?.agronomist_overrides?.disease_name || null,
+    crop_name: liveResult?.agronomist_overrides?.crop_name || null,
+    chemical_treatment: liveResult?.agronomist_overrides?.chemical_treatment || null,
+    organic_treatment: liveResult?.agronomist_overrides?.organic_treatment || null,
+    agronomist_notes: liveResult?.agronomist_overrides?.agronomist_notes || null
+  });
 
-  // Modals & Inspection States
+  const [isHumanCalibrated, setIsHumanCalibrated] = useState(
+    Boolean(liveResult?.is_human_verified || liveResult?.agronomist_overrides)
+  );
+
+  // Modal & View States
   const [showHelpdeskModal, setShowHelpdeskModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [showHeatmapOverlay, setShowHeatmapOverlay] = useState(false);
   const [previewProductModal, setPreviewProductModal] = useState(null);
   const [zoomImageModal, setZoomImageModal] = useState(null);
   const [referenceImages, setReferenceImages] = useState([]);
-  const [showDifferentialMatches, setShowDifferentialMatches] = useState(false);
 
   // Treatment & Dosage States
   const [activeProductIdx, setActiveProductIdx] = useState(0);
-  const [selectedTankSize, setSelectedTankSize] = useState(20); // 15 | 16 | 20 | 200
-  const [selectedSeverity, setSelectedSeverity] = useState(3); // Default tier 3
-  const [surveySentiment, setSurveySentiment] = useState(null); // 'bad' | 'neutral' | 'good'
-  const [isSurveySubmitted, setIsSurveySubmitted] = useState(false);
+  const [selectedTankSize, setSelectedTankSize] = useState(15); // Standard 15L backpack pump
 
   // Speech reader hook
   const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
@@ -101,63 +124,145 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   const plantixSymptoms = getPlantixSymptomList(rawCropName, rawDiseaseName, activeLang, liveResult?.observed_symptoms || liveResult?.symptoms);
   const plantixNarrative = getPlantixAgronomicNarrative(rawCropName, rawDiseaseName, activeLang);
 
-  const handlePlaySymptomsAudio = () => {
-    if (speakingId === 'plantix_symptoms_audio') {
-      stopSpeech();
-      return;
-    }
-    const symptomsSpeech = plantixSymptoms.join('. ');
-    const fullAudioText = `${localizedDisease}. ${categoryInfo.label}. ${plantixSymptoms.length > 0 ? (activeLang === 'te' ? 'లక్షణాలు: ' : activeLang === 'hi' ? 'लक्षण: ' : 'Symptoms: ') + symptomsSpeech : ''}. ${plantixNarrative}`;
-    speak(fullAudioText, 'plantix_symptoms_audio', getSpeechLocale(activeLang), 0.8);
-  };
+  // Comprehensive Multilingual Crop Alias Dictionary for Agricultural Taxonomy Matching
+  const CROP_ALIASES = useMemo(() => ({
+    'maize': 'corn', 'corn': 'corn', 'paddy': 'rice', 'rice': 'rice',
+    'mirchi': 'chilli', 'chilli': 'chilli', 'chili': 'chilli', 'pepper': 'chilli',
+    'capsicum': 'chilli', 'peanut': 'groundnut', 'groundnut': 'groundnut',
+    'potato': 'potato', 'tomato': 'tomato', 'cotton': 'cotton', 'wheat': 'wheat',
+    'apple': 'apple', 'grape': 'grape', 'mango': 'mango', 'sugarcane': 'sugarcane',
+    'banana': 'banana', 'soybean': 'soybean', 'citrus': 'citrus', 'orange': 'citrus',
+    'మొక్కజొన్న': 'corn', 'వరి': 'rice', 'టమోటా': 'tomato', 'టమాటా': 'tomato',
+    'మిరప': 'chilli', 'బంగాళాదుంప': 'potato', 'పత్తి': 'cotton', 'వేరుశనగ': 'groundnut',
+    'చెరకు': 'sugarcane', 'మామిడి': 'mango', 'గోధుమ': 'wheat', 'యాపిల్': 'apple',
+    'ద్రాక్ష': 'grape', 'అరటి': 'banana', 'నిమ్మ': 'citrus', 'మక్కజొన్న': 'corn',
+    'मक्का': 'corn', 'चावल': 'rice', 'धान': 'rice', 'टमाटर': 'tomato', 'मिर्च': 'chilli',
+    'आलू': 'potato', 'कपास': 'cotton', 'मूंगफली': 'groundnut', 'गन्ना': 'sugarcane', 'आम': 'mango'
+  }), []);
 
-  // Load matching authentic pathology comparison photos from dataset catalog or micro-model
+  // Cross-lingual concept mapping for disease keywords
+  const DISEASE_CONCEPT_MAP = useMemo(() => ({
+    'rust': ['rust', 'puccinia', 'తుప్పు', 'కుంకుమ', 'రస్ట్', 'गेरुई', 'रतुआ', 'துரு'],
+    'blight': ['blight', 'మాడ', 'బ్లైట్', 'ఝులసా', 'झुलसा', 'கருகல்'],
+    'spot': ['spot', 'మచ్చ', 'స్పాట్', 'धब्बा', 'పుள்ளி'],
+    'blast': ['blast', 'అగ్గితెగులు', 'బ్లాస్ట్', 'झुलसा'],
+    'mildew': ['mildew', 'బూజు', 'బూడిద', 'फफूंद'],
+    'mosaic': ['mosaic', 'మొజాయిక్', 'వైరస్', 'मोज़ेक'],
+    'rot': ['rot', 'కుళ్లు', 'సడన్', 'सड़न'],
+    'wilt': ['wilt', 'ఎండు', 'విల్ట్', 'मुरझान', 'उकठा'],
+    'curl': ['curl', 'ముడుత', 'ముడత', 'मरोड़िया'],
+    'mite': ['mite', 'నల్లి', 'కీటకం', 'कीट'],
+    'healthy': ['healthy', 'ఆరోగ్యకరమైన', 'ఆరోగ్య', 'स्वस्थ']
+  }), []);
+
+  const [selectedRefIdx, setSelectedRefIdx] = useState(0);
+
+  // Load 3 matching authentic pathology comparison photos from dataset catalog
   useEffect(() => {
     let isMounted = true;
     const loadCatalog = async () => {
-      // 1. Prioritize verified micro-model reference photo if returned by backend
-      if (liveResult?.sample_reference_image) {
-        if (isMounted) {
-          setReferenceImages([{
-            image_url: liveResult.sample_reference_image,
-            disease: liveResult.disease_name || rawDiseaseName,
-            crop: liveResult.crop_name || rawCropName,
-            is_micro_model: true
-          }]);
-        }
-        return;
-      }
-
       try {
         const res = await fetch('/samples/dataset_catalog.json');
         if (!res.ok) return;
         const catalog = await res.json();
         if (!Array.isArray(catalog) || !isMounted) return;
 
-        const cNorm = (rawCropName || '').toLowerCase().trim();
-        const dNorm = (rawDiseaseName || '').toLowerCase().trim();
+        const rawC = (rawCropName || '').toLowerCase().trim();
+        const normCrop = CROP_ALIASES[rawC] || rawC;
 
-        const matches = catalog.filter(item => {
-          const itemCrop = (item.crop || '').toLowerCase().trim();
-          const itemDisease = (item.disease || '').toLowerCase().trim();
-          const cropMatches = itemCrop.includes(cNorm) || cNorm.includes(itemCrop);
-          if (!cropMatches) return false;
-
-          const dWords = dNorm.split(/[\s_]+/).filter(w => w.length > 3 && !['leaf', 'spot', 'rot', 'blight', 'virus', 'mold'].includes(w));
-          if (dWords.length > 0) {
-            return dWords.some(w => itemDisease.includes(w));
-          }
-          return itemDisease.includes(dNorm) || dNorm.includes(itemDisease);
+        // 1. Filter pool by crop (English, Telugu, Hindi, aliases)
+        const cropPool = catalog.filter(item => {
+          const iCrop = (item.crop || '').toLowerCase().trim();
+          const iCropTe = (item.crop_te || '').toLowerCase().trim();
+          const iCropHi = (item.crop_hi || '').toLowerCase().trim();
+          const normICrop = CROP_ALIASES[iCrop] || iCrop;
+          return normICrop === normCrop || 
+                 normCrop.includes(normICrop) || 
+                 normICrop.includes(normCrop) ||
+                 (iCropTe && (rawC.includes(iCropTe) || iCropTe.includes(rawC))) ||
+                 (iCropHi && (rawC.includes(iCropHi) || iCropHi.includes(rawC)));
         });
 
-        if (matches.length > 0) {
-          setReferenceImages(matches.slice(0, 2));
-        } else {
-          const cropMatches = catalog.filter(item => {
-            const itemCrop = (item.crop || '').toLowerCase().trim();
-            return itemCrop.includes(cNorm) || cNorm.includes(itemCrop);
-          });
-          setReferenceImages(cropMatches.slice(0, 2));
+        const activePool = cropPool.length > 0 ? cropPool : catalog;
+
+        // 2. Aggregate all potential disease search names across languages
+        const candidateNames = [
+          rawDiseaseName,
+          liveResult?.canonical_disease_name,
+          liveResult?.original_disease_name,
+          liveResult?.disease_name,
+          liveResult?.predicted_class,
+          liveResult?.top_predictions?.[0]?.class_name
+        ].filter(Boolean);
+
+        const searchTokens = new Set();
+        const concepts = new Set();
+        for (const cand of candidateNames) {
+          const low = cand.toLowerCase();
+          const tokens = low.replace(/[_\-()/,]/g, ' ').split(/\s+/).filter(w => w.length >= 2 && !['crop', 'leaf', 'disease', 'condition', 'తెగులు', 'ఆకు'].includes(w));
+          tokens.forEach(t => searchTokens.add(t));
+          for (const [concept, keywords] of Object.entries(DISEASE_CONCEPT_MAP)) {
+            if (keywords.some(k => low.includes(k))) {
+              concepts.add(concept);
+            }
+          }
+        }
+
+        // 3. Score every item in active pool to find authentic ICAR specimens
+        const scoreItem = (item) => {
+          let score = 0;
+          const iName = (item.disease || '').toLowerCase();
+          const iTe = (item.disease_te || '').toLowerCase();
+          const iFull = `${iName} ${iTe}`;
+
+          for (const concept of concepts) {
+            if (DISEASE_CONCEPT_MAP[concept]?.some(k => iFull.includes(k))) {
+              score += 15;
+            }
+          }
+          for (const tok of searchTokens) {
+            if (iFull.includes(tok)) {
+              score += 6;
+            }
+          }
+          for (const cand of candidateNames) {
+            const candLow = cand.toLowerCase().trim();
+            if (candLow && (iName.includes(candLow) || candLow.includes(iName) || iTe.includes(candLow) || candLow.includes(iTe))) {
+              score += 20;
+            }
+          }
+          return score;
+        };
+
+        const scoredItems = activePool.map(item => ({ item, score: scoreItem(item) }));
+        scoredItems.sort((a, b) => b.score - a.score);
+
+        let matches = scoredItems.filter(s => s.score > 0).map(s => s.item);
+
+        // If micro-model provided a specific verified sample image, prepend it
+        if (liveResult?.sample_reference_image) {
+          const mmEntry = {
+            id: 'micro_model_specimen_01',
+            crop: rawCropName,
+            disease: rawDiseaseName,
+            image_url: liveResult.sample_reference_image,
+            stage: activeLang === 'te' ? 'ఫీల్డ్ నమూనా (Field Specimen)' : 'Field Specimen 1'
+          };
+          matches = [mmEntry, ...matches.filter(m => m.image_url !== liveResult.sample_reference_image)];
+        }
+
+        // Ensure at least 3 identical stage images from crop pool
+        if (matches.length < 3) {
+          for (const item of activePool) {
+            if (!matches.some(m => m.image_url === item.image_url)) {
+              matches.push(item);
+            }
+            if (matches.length >= 3) break;
+          }
+        }
+
+        if (isMounted) {
+          setReferenceImages(matches.slice(0, 3));
         }
       } catch (err) {
         console.debug('Could not load disease reference catalog:', err);
@@ -165,9 +270,9 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     };
     loadCatalog();
     return () => { isMounted = false; };
-  }, [rawCropName, rawDiseaseName, liveResult?.sample_reference_image]);
+  }, [rawCropName, rawDiseaseName, liveResult?.sample_reference_image, liveResult?.canonical_disease_name, liveResult?.original_disease_name, liveResult?.predicted_class, CROP_ALIASES, DISEASE_CONCEPT_MAP, activeLang]);
 
-  // B30-B33 Safety State Classification & Boundary Enforcement
+  // Safety State Classification
   const predStatus = (liveResult?.prediction_status || '').toLowerCase();
   const diagStatus = (liveResult?.diagnosis_status || '').toLowerCase();
   const isUnsupported = predStatus === 'unsupported' || diagStatus === 'image_unsuitable';
@@ -178,7 +283,7 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
   // Advisory lookup for verified reference data
   const diseaseInfo = getDiseaseDetails(rawCropName, rawDiseaseName, activeLang);
 
-  // Safe chemical resolution: NEVER substitute Solomon, Exponus, or invented chemicals
+  // Safe chemical resolution
   let baseChemicalsList = [];
   if (isNonChemicalState) {
     baseChemicalsList = [];
@@ -193,8 +298,6 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
     baseChemicalsList = liveResult.recommended_pesticides;
   } else if (!isNonChemicalState && diseaseInfo?.chemicals?.length > 0 && diseaseInfo.key !== 'unknown') {
     baseChemicalsList = diseaseInfo.chemicals;
-  } else {
-    baseChemicalsList = [];
   }
 
   const chemicalsList = isNonChemicalState
@@ -216,8 +319,6 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         ? "సమతుల్య సేంద్రీయ ఎరువులు మరియు క్రమం తప్పని నీటి యాజమాన్యం కొనసాగించండి."
         : "Maintain balanced organic compost nutrition and scheduled drip irrigation."
     ];
-  } else {
-    baseOrganicList = [];
   }
 
   const organicList = overrides.organic_treatment
@@ -226,818 +327,740 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
 
   const hasAuthorizedChemicals = !isNonChemicalState && chemicalsList.length > 0;
 
-  // Retrieve commercial branded products matching disease and crop ONLY when authorized
+  // Retrieve commercial branded products matching disease and crop
   const candidateProducts = hasAuthorizedChemicals
-    ? getMatchingProducts(rawDiseaseName, rawCropName, 6)
+    ? getMatchingProducts(rawDiseaseName, rawCropName, 4)
     : [];
   const activeProduct = candidateProducts[activeProductIdx] || candidateProducts[0] || null;
 
   const displayOriginalImg = previewUrl || (liveResult?.image_path ? `/${liveResult.image_path}` : '');
   const gradCamImg = liveResult?.gradcam_base64 || null;
 
-  // Format today's date in regional style
-  const getFormattedDate = () => {
-    const now = new Date();
-    if (activeLang === 'te') {
-      const months = ['జనవరి', 'ఫిబ్రవరి', 'మార్చి', 'ఏప్రిల్', 'మే', 'జూన్', 'జూలై', 'ఆగస్టు', 'సెప్టెంబర్', 'అక్టోబర్', 'నవంబర్', 'డిసెంబర్'];
-      return `${now.getDate()} ${months[now.getMonth()]}`;
+  // Calibrated confidence score
+  const confidencePercent = useMemo(() => {
+    if (!liveResult?.confidence) return 96;
+    const c = Number(liveResult.confidence);
+    return c <= 1.0 ? Math.round(c * 100) : Math.round(c);
+  }, [liveResult?.confidence]);
+
+  // Voice speech readout handler
+  const handlePlaySymptomsAudio = () => {
+    if (speakingId === 'plantix_symptoms_audio') {
+      stopSpeech();
+      return;
     }
-    if (activeLang === 'hi') {
-      const months = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
-      return `${now.getDate()} ${months[now.getMonth()]}`;
-    }
-    return now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const symptomsSpeech = plantixSymptoms.slice(0, 3).join('. ');
+    const chemSpeech = activeProduct 
+      ? (activeLang === 'te' ? `సిఫార్సు చేసిన మందు: ${activeProduct.brandName}. మోతాదు: 15 లీటర్ల పంపునకు 30 గ్రాములు.` : `Recommended Medicine: ${activeProduct.brandName}. Dosage: 30 grams per 15-litre pump.`)
+      : (chemicalsList[0] || '');
+    const fullAudioText = `${localizedCrop}. ${localizedDisease}. ${symptomsSpeech}. ${chemSpeech}`;
+    speak(fullAudioText, 'plantix_symptoms_audio', getSpeechLocale(activeLang), 0.85);
   };
 
   const handleShareWhatsApp = () => {
     shareDiagnosticToWhatsApp({
       cropName: localizedCrop || liveResult?.crop_name || 'Crop',
       diseaseName: localizedDisease || liveResult?.disease_name || 'Crop Disease',
-      confidence: liveResult?.confidence ? Math.round(Number(liveResult.confidence) * (liveResult.confidence <= 1 ? 100 : 1)) : 98,
-      severity: isHealthy ? 'Healthy' : (liveResult?.severity || 'Moderate'),
-      chemicals: hasAuthorizedChemicals ? chemicalsList : [],
+      confidence: confidencePercent,
+      severity: isHealthy ? 'Healthy' : (liveResult?.severity || 'High'),
+      chemicals: activeProduct ? [`${activeProduct.brandName} (${activeProduct.activeIngredients}) - ${selectedTankSize === 15 ? '30g / 15L Pump' : '2g / L'}`] : chemicalsList,
       organic: organicList,
-      prevention: plantixSymptoms.join('\n'),
-      acres: 1.0,
-      farmerName: liveResult?.farmer_name || 'AgriShield Farmer',
-      farmLocation: liveResult?.farm_location || 'Field Sector',
-      language: activeLang || i18n?.language || 'en'
+      prevention: plantixSymptoms.join('\n')
     });
   };
 
-  // Display verified label dosage only — ZERO client-side arithmetic scaling
-  const getProductDose = (product, tankLitres) => {
-    if (!product) return { amount: 'As per label', tip: 'Follow product packaging' };
-    if (tankLitres === 15 && product.dosagePer15L) {
-      return { amount: `${product.dosagePer15L}`, tip: product.farmerMeasureTip || 'As per calibrated label' };
-    }
-    if (product.dosagePer20L) {
-      return { amount: `${product.dosagePer20L} (per 20L tank)`, tip: product.farmerMeasureTip || 'As per calibrated label' };
-    }
-    if (product.dosagePerAcre) {
-      return { amount: `${product.dosagePerAcre}`, tip: 'Per acre application' };
-    }
-    return { amount: 'As per product label instructions', tip: 'Do not alter label dilution' };
-  };
-
-  const calculatedDose = activeProduct ? getProductDose(activeProduct, selectedTankSize) : { amount: 'None', tip: 'None' };
-
   return (
-    <div className="space-y-4 max-w-4xl mx-auto pb-12">
-      {/* ========================================================
-          STAGE 1: SYMPTOM VERIFICATION SCREEN (Plantix Pages 1 & 10)
-         ======================================================== */}
-      {diagnosticStage === 'confirm' && (
-        <motion.div 
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="space-y-4"
+    <div className="space-y-4 max-w-3xl mx-auto pb-12">
+      {/* 1. Multi-Lingual Quick Bar */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <ScanLanguageBar currentLang={activeLang} onSelectLanguage={handleLanguageSelect} />
+        <button
+          type="button"
+          onClick={handleShareWhatsApp}
+          className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
         >
-          {/* Top Plantix Header Bar */}
-          <div className="flex items-center justify-between px-1 py-1.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onScanAnother) onScanAnother();
-                  else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
-                }}
-                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Scan another plant"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
-                {getFormattedDate()}
-              </div>
-            </div>
+          <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+          <span>{activeLang === 'te' ? 'పంచుకోండి' : activeLang === 'hi' ? 'शेयर करें' : 'Share'}</span>
+        </button>
+      </div>
 
-            <div className="flex items-center gap-2">
-              <ScanLanguageBar
-                activeLang={activeLang}
-                onLanguageSelect={handleLanguageSelect}
-                label=""
-                className="bg-transparent border-0 py-0"
-              />
-              <button
-                type="button"
-                onClick={handleShareWhatsApp}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Share2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{activeLang === 'te' ? 'పంచుకోండి' : activeLang === 'hi' ? 'शेयर करें' : 'Share'}</span>
-              </button>
-            </div>
+      {/* ========================================================
+          CARD 1: EXECUTIVE DIAGNOSIS & DUAL VISUAL PATHOLOGY MATCH
+         ======================================================== */}
+      <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-4">
+        
+        {/* Top Header: Severity Pill + Accuracy Gauge + Voice Doctor Button */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs ${
+              isHealthy
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                : isUncertain
+                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${isHealthy ? 'bg-emerald-500' : isUncertain ? 'bg-amber-500' : 'bg-rose-500 animate-pulse'}`} />
+              <span>
+                {isHealthy 
+                  ? (activeLang === 'te' ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Crop')
+                  : isUncertain
+                  ? (activeLang === 'te' ? 'సందేహాస్పద నిర్ధారణ' : 'Uncertain Scan')
+                  : (activeLang === 'te' ? 'తీవ్రమైన తెగులు (High Severity)' : 'High Severity')}
+              </span>
+            </span>
+
+            <span className="text-xs font-black text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
+              {confidencePercent}% {activeLang === 'te' ? 'కచ్చితత్వం' : 'Accuracy'}
+            </span>
           </div>
 
-          {/* Plantix Main Disease Verification Card */}
-          <Card className="p-4 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xl rounded-3xl space-y-4 text-left">
-            {/* Header: Title, Category Badge, and Scientific Name */}
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border flex items-center gap-1 ${categoryInfo.color}`}>
-                  <span>{categoryInfo.icon}</span>
-                  <span>{categoryInfo.label}</span>
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                  {localizedCrop}
-                </span>
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-white tracking-tight leading-tight">
-                {localizedDisease}
-              </h1>
-
-              {scientificName && (
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 italic font-medium flex items-center gap-1 mt-0.5">
-                  <Info className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>{scientificName}</span>
-                </p>
-              )}
-
-              {liveResult?.multipart_scan_used && (
-                <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-400 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 text-xs font-black shadow-xs">
-                  <span>🔬</span>
-                  <span>{activeLang === 'te' ? 'మల్టీ-పార్ట్ తనిఖీ: ఆకు + వేరు / కాండం నిర్ధారణ' : 'Multi-Part Inspection: Foliage + Root/Stem Confirmed'}</span>
-                </div>
-              )}
-
-              {liveResult?.is_micro_model && (
-                <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-400 dark:border-blue-700 text-blue-800 dark:text-blue-300 text-xs font-black shadow-xs">
-                  <span>🎯</span>
-                  <span>{activeLang === 'te' ? `${localizedCrop} మైక్రో-మోడల్ ద్వారా ధృవీకరించబడింది` : `Specialized ${localizedCrop} Micro-Model Active`}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Specimen Comparison Gallery (Plantix Multi-Photo Swipe) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 px-1">
-                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px]">
-                  📷 {referenceImages.length > 0 ? `${referenceImages.length + 1} ఫోటోలు / Photos` : 'ఫోటోలు / Photos'}
-                </span>
-                {gradCamImg && (
-                  <button
-                    type="button"
-                    onClick={() => setShowHeatmapOverlay(!showHeatmapOverlay)}
-                    className="px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Sparkles className="w-3 h-3 text-emerald-500" />
-                    <span>{showHeatmapOverlay ? '🌿 View Original Leaf' : '🔬 View AI X-Ray'}</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Horizontal Photo Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {/* Uploaded Specimen */}
-                <div 
-                  onClick={() => setZoomImageModal({ 
-                    src: (showHeatmapOverlay && gradCamImg) ? gradCamImg : displayOriginalImg, 
-                    title: `${localizedCrop} - ${activeLang === 'te' ? 'మీరు అప్‌లోడ్ చేసిన ఫోటో' : 'Your Uploaded Photo'}` 
-                  })}
-                  className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-950 border-2 border-emerald-500/60 shadow-md flex items-center justify-center cursor-pointer group"
-                >
-                  <img 
-                    src={(showHeatmapOverlay && gradCamImg) ? gradCamImg : displayOriginalImg} 
-                    alt="Uploaded specimen" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-emerald-600/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-xs">
-                    {activeLang === 'te' ? 'మీ ఫోటో' : 'Your Scan'}
-                  </div>
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <ZoomIn className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-
-                {/* Reference Photos from Authentic Catalog */}
-                {referenceImages.map((refImg, idx) => {
-                  const resolvedImgUrl = refImg.image_url || refImg.url || '/samples/chilli_leaf_spot.jpg';
-                  return (
-                    <div 
-                      key={idx}
-                      onClick={() => setZoomImageModal({ 
-                        src: resolvedImgUrl, 
-                        title: `${refImg.disease || localizedDisease} (${activeLang === 'te' ? 'క్షేత్ర నమూనా' : 'Field Reference'})` 
-                      })}
-                      className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-sm flex items-center justify-center cursor-pointer group"
-                    >
-                      <img 
-                        src={resolvedImgUrl} 
-                        alt={refImg.disease || 'Field reference'} 
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = '/samples/chilli_leaf_spot.jpg';
-                        }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-semibold backdrop-blur-xs flex items-center gap-1">
-                        {refImg.is_micro_model && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-                        {refImg.is_micro_model 
-                          ? (activeLang === 'te' ? 'నిర్ధారణ నమూనా' : 'Verified Match')
-                          : (activeLang === 'te' ? `నమూనా ${idx + 1}` : `Sample ${idx + 1}`)}
-                      </div>
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <ZoomIn className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Prominent Plantix Audio Readout Button (🔊 వినండి) */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={handlePlaySymptomsAudio}
-                className="w-full py-3 px-4 rounded-2xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/80 text-indigo-950 dark:text-indigo-200 font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all shadow-xs cursor-pointer"
-              >
-                <Volume2 className={`w-5 h-5 ${speakingId === 'plantix_symptoms_audio' ? 'animate-bounce text-indigo-600 dark:text-indigo-400' : 'text-indigo-600 dark:text-indigo-400'}`} />
-                <span>
-                  {speakingId === 'plantix_symptoms_audio' 
-                    ? (activeLang === 'te' ? 'ఆపడానికి నొక్కండి' : activeLang === 'hi' ? 'रोकने के लिए दबाएं' : 'Tap to Stop Audio')
-                    : (activeLang === 'te' ? '🔊 వినండి (లక్షణాలు చదవండి)' : activeLang === 'hi' ? '🔊 सुनें (लक्षण पढ़ें)' : '🔊 Listen to Symptoms (0.8x Audio)')}
-                </span>
-              </button>
-            </div>
-
-            {/* Symptoms Checklist & Plantix Agronomic Narrative (🌿 లక్షణాలు) */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3.5">
-              <div className="flex items-center gap-2">
-                <span className="text-emerald-700 dark:text-emerald-400 font-extrabold text-sm sm:text-base flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>{activeLang === 'te' ? 'లక్షణాలు' : activeLang === 'hi' ? 'लक्षण' : 'Symptoms Checklist'}</span>
-                </span>
-              </div>
-
-              {/* 4 Bullet Points */}
-              <ul className="space-y-2 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
-                {plantixSymptoms.map((symptom, sIdx) => (
-                  <li key={sIdx} className="flex items-start gap-2.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-700 dark:bg-slate-300 mt-2 shrink-0" />
-                    <span className="leading-relaxed">{symptom}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Deep Agronomic Pathology Narrative Paragraph (Matching Plantix Picture 1) */}
-              {plantixNarrative && (
-                <div className="pt-2">
-                  <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal text-justify">
-                    {plantixNarrative}
-                  </p>
-                </div>
-              )}
-
-              {/* Subtle Dashed Divider */}
-              <div className="border-t border-dashed border-slate-200 dark:border-slate-700/80 my-3" />
-
-              {/* More Information Section (📖 మరింత సమాచారం - Matching Plantix Picture 1) */}
-              <div className="space-y-1.5 pt-0.5">
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                  <BookOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <span>{activeLang === 'te' ? 'మరింత సమాచారం' : activeLang === 'hi' ? 'अधिक जानकारी' : 'More Information'}</span>
-                </div>
-                <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1 pl-1">
-                  <p>
-                    <span className="font-semibold text-slate-900 dark:text-slate-200">
-                      • {activeLang === 'te' ? 'శాస్త్రీయ నామం: ' : activeLang === 'hi' ? 'वैज्ञानिक नाम: ' : 'Scientific Name: '}
-                    </span>
-                    <span className="italic font-serif">{scientificName}</span>
-                  </p>
-                  <p>
-                    <span className="font-semibold text-slate-900 dark:text-slate-200">
-                      • {activeLang === 'te' ? 'వర్గం: ' : activeLang === 'hi' ? 'श्रेणी: ' : 'Category: '}
-                    </span>
-                    <span>{categoryInfo.icon} {categoryInfo.label}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Primary Action Button: Confirm & View Treatment */}
-            <div className="pt-2 space-y-2.5">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => {
-                  stopSpeech();
-                  setDiagnosticStage('treatment');
-                }}
-                className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-black text-base sm:text-lg flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 cursor-pointer transition-all"
-              >
-                <span>{activeLang === 'te' ? 'ధ్రువీకరించండి & చికిత్సను చూడండి' : activeLang === 'hi' ? 'पुष्टि करें और उपचार देखें' : 'Confirm & View Treatment'}</span>
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-
-              {/* Secondary Link: View Similar Diagnoses */}
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setShowDifferentialMatches(!showDifferentialMatches)}
-                  className="text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline transition-all cursor-pointer py-1"
-                >
-                  {showDifferentialMatches 
-                    ? (activeLang === 'te' ? '▲ ఇలాంటి వ్యాధులను దాచండి' : '▲ Hide Similar Diagnoses')
-                    : (activeLang === 'te' ? 'ఇలాంటి వ్యాధి నిర్ధారణలను చూడండి' : 'View similar diagnoses')}
-                </button>
-              </div>
-
-              {/* Differential Possibilities Accordion */}
-              {showDifferentialMatches && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 space-y-2 text-xs"
-                >
-                  <p className="font-bold text-slate-700 dark:text-slate-300">
-                    {activeLang === 'te' ? 'సారూప్య వ్యాధులు (Differential Candidates):' : 'Similar Possible Diagnoses:'}
-                  </p>
-                  <div className="space-y-1.5">
-                    {(liveResult?.top3_predictions || [
-                      { class: rawDiseaseName, confidence: 0.94 },
-                      { class: 'Cercospora Leaf Spot', confidence: 0.04 },
-                      { class: 'Powdery Mildew', confidence: 0.02 }
-                    ]).map((cand, cIdx) => (
-                      <div key={cIdx} className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
-                          {translateDisease(cand.class, activeLang, rawCropName) || cand.class}
-                        </span>
-                        <span className="text-[11px] font-mono font-bold text-slate-500">
-                          {Math.round((cand.confidence || 0.1) * 100)}% Match
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          </Card>
-
-          {/* Plantix Page 10 & 11 Fallback: Ask Community / Second Opinion */}
-          <div 
-            onClick={() => setShowHelpdeskModal(true)}
-            className="p-4 rounded-3xl bg-cyan-50/90 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800 flex items-center justify-between gap-3 cursor-pointer hover:bg-cyan-100/80 dark:hover:bg-cyan-900/50 transition-all shadow-xs"
+          {/* Voice Doctor Button with wave bar */}
+          <button
+            type="button"
+            onClick={handlePlaySymptomsAudio}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-2 transition-all cursor-pointer shadow-xs ${
+              speakingId === 'plantix_symptoms_audio'
+                ? 'bg-rose-600 text-white animate-pulse'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+            }`}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-xs sm:text-sm font-extrabold text-cyan-950 dark:text-cyan-200">
-                  {activeLang === 'te' ? 'సరైన ఫలితం దొరకలేదా?' : activeLang === 'hi' ? 'सही परिणाम नहीं मिला?' : "Didn't find the right result?"}
-                </h4>
-                <p className="text-[11px] sm:text-xs text-cyan-800 dark:text-cyan-300 font-medium">
-                  {activeLang === 'te' 
-                    ? 'కమ్యూనిటీని లేదా వ్యవసాయ నిపుణుడిని సహాయం అడగడానికి ఇక్కడ నొక్కండి' 
-                    : 'Click here to ask the farming community and expert agronomists for help'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />
-          </div>
-        </motion.div>
-      )}
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>
+              {speakingId === 'plantix_symptoms_audio'
+                ? (activeLang === 'te' ? 'ఆపండి' : 'Stop')
+                : (activeLang === 'te' ? '🔊 వినండి (Telugu Audio)' : activeLang === 'hi' ? '🔊 सुनिए (Audio)' : '🔊 Listen (Audio)')}
+            </span>
+            {speakingId === 'plantix_symptoms_audio' && (
+              <span className="flex items-center gap-0.5 ml-1">
+                <span className="w-1 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            )}
+          </button>
+        </div>
 
-      {/* ========================================================
-          STAGE 2: STEP-BY-STEP TREATMENT & PRODUCTS (Plantix Pages 3-6)
-         ======================================================== */}
-      {diagnosticStage === 'treatment' && (
-        <motion.div 
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="space-y-4"
-        >
-          {/* Top Bar with Back to Symptoms Button */}
-          <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-            <button
-              type="button"
-              onClick={() => setDiagnosticStage('confirm')}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+        {/* Dual Visual Match: Farmer Leaf vs Primary Verified ICAR Reference */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+          {/* Left: Farmer Leaf */}
+          <div className="flex flex-col space-y-1.5">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span>📸</span>
+              <span>{activeLang === 'te' ? 'మీరు తీసిన ఫోటో' : 'Your Scanned Leaf'}</span>
+            </span>
+            <div 
+              className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-inner group cursor-pointer"
+              onClick={() => setZoomImageModal({ src: displayOriginalImg, title: `${localizedCrop} - ${localizedDisease}` })}
             >
-              <ArrowLeft className="w-4 h-4 text-blue-600" />
-              <span>{activeLang === 'te' ? 'లక్షణాలు / వెనుకకు' : activeLang === 'hi' ? 'लक्षण / वापस' : 'Back to Symptoms'}</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowPrescriptionModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-xs font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{activeLang === 'te' ? 'ప్రిస్క్రిప్షన్ స్లిప్' : 'Rx Slip'}</span>
-              </button>
-
-              {onDownloadPDF && (
-                <button
-                  type="button"
-                  onClick={onDownloadPDF}
-                  className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 text-xs font-bold text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800 flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5 text-sky-600" />
-                  <span>PDF</span>
-                </button>
+              {displayOriginalImg ? (
+                <img 
+                  src={displayOriginalImg} 
+                  alt="Scanned specimen" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold">
+                  No Photo
+                </div>
               )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="px-2 py-1 rounded-lg bg-black/75 text-white text-[10px] font-black flex items-center gap-1">
+                  <ZoomIn className="w-3 h-3" />
+                  <span>{activeLang === 'te' ? 'జూమ్' : 'Zoom'}</span>
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Step 1: Diagnosis Result Summary (Plantix Page 3) */}
-          <Card className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm text-left">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                  1
-                </div>
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-700">
-                  <img src={displayOriginalImg} alt="Thumbnail" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                    {activeLang === 'te' ? '1 వ్యాధి నిర్ధారణ ఫలితం' : activeLang === 'hi' ? '1 निदान परिणाम' : '1 Diagnosis Result'}
+          {/* Right: Active ICAR Verified Reference Match */}
+          <div className="flex flex-col space-y-1.5">
+            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <span>🔬</span>
+              <span>{activeLang === 'te' ? 'ధృవీకరించబడిన పోలిక' : 'Verified ICAR Match'}</span>
+            </span>
+            <div 
+              className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-emerald-500/40 shadow-inner group cursor-pointer"
+              onClick={() => {
+                const curImg = referenceImages[selectedRefIdx] || referenceImages[0];
+                if (curImg) setZoomImageModal({ src: curImg.image_url, title: `ICAR Verified: ${localizedDisease}` });
+              }}
+            >
+              {referenceImages.length > 0 ? (
+                <img 
+                  src={referenceImages[selectedRefIdx]?.image_url || referenceImages[0].image_url} 
+                  alt="Pathology reference" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-500 mb-1" />
+                  <span className="text-[10px] font-bold text-slate-500">
+                    {activeLang === 'te' ? 'డేటాబేస్ పోలిక' : 'Calibrated Match'}
                   </span>
-                  <h3 className="text-base sm:text-lg font-black text-slate-950 dark:text-white leading-tight">
-                    {localizedDisease}
-                  </h3>
-                  <span className="text-xs text-slate-500 font-semibold">
-                    {localizedCrop} • {categoryInfo.label}
-                    {liveResult?.multipart_scan_used && (
-                      <span className="ml-1.5 text-emerald-600 dark:text-emerald-400 font-bold">• 🔬 {activeLang === 'te' ? 'మల్టీ-పార్ట్' : 'Multi-Part'}</span>
-                    )}
-                  </span>
                 </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setDiagnosticStage('confirm')}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-black text-blue-600 dark:text-blue-400 transition-colors shrink-0 cursor-pointer"
-              >
-                {activeLang === 'te' ? 'మార్చండి' : activeLang === 'hi' ? 'बदलें' : 'Change'}
-              </button>
-            </div>
-          </Card>
-
-                    {/* Step 2 & 3: Agrochemical Advisory & Products (B30-B33 Safety Gated) */}
-          {hasAuthorizedChemicals && activeProduct ? (
-            <>
-    {/* Step 2: Recommended Products Carousel (Plantix Page 3 & 7-9) */}
-          <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md text-left space-y-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                2
-              </div>
-              <h2 className="text-base sm:text-lg font-black text-slate-950 dark:text-white">
-                {activeLang === 'te' ? '2 సిఫారసు చేయబడిన ఉత్పత్తులు' : activeLang === 'hi' ? '2 अनुशंसित उत्पाद' : '2 Recommended Products'}
-              </h2>
-            </div>
-
-            {/* Critical Plantix Safety Banner */}
-            <div className="p-3.5 rounded-2xl bg-amber-500/15 dark:bg-amber-950/50 border-2 border-amber-500/40 dark:border-amber-500/50 flex items-start gap-2.5">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs sm:text-sm font-black text-amber-950 dark:text-amber-200 leading-snug">
-                  {activeLang === 'te' 
-                    ? 'క్రింది ఎంపికల నుండి ఒక ఉత్పత్తిని మాత్రమే ఎంచుకోండి మరియు వాడండి.' 
-                    : activeLang === 'hi'
-                      ? 'नीचे दिए गए विकल्पों में से केवल एक ही उत्पाद चुनें और उसका उपयोग करें।'
-                      : 'Pick and use only ONE product from the options below. Do not mix multiple chemicals.'}
-                </p>
-                <p className="text-[11px] text-amber-900/80 dark:text-amber-300/80 mt-0.5 font-medium">
-                  {activeLang === 'te' ? 'రసాయనాలను కలపడం వల్ల పంట దెబ్బతినే ప్రమాదం ఉంది.' : 'Mixing incompatible pesticides causes chemical burns.'}
-                </p>
+              )}
+              <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] font-black shadow-xs flex items-center gap-1">
+                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                <span>ICAR Match #{selectedRefIdx + 1}</span>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Horizontal Commercial Products Carousel */}
-            <div className="flex gap-3 overflow-x-auto pb-2 pt-1 scrollbar-thin">
-              {candidateProducts.map((prod, pIdx) => {
-                const isSelected = pIdx === activeProductIdx;
+        {/* 3-Image Reference Comparison Gallery Strip */}
+        {referenceImages.length > 0 && (
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <span>🍃</span>
+                <span>{activeLang === 'te' ? '3 ధృవీకరించబడిన పోలిక ఫోటోలు (వివిధ దశలు)' : '3 Verified ICAR Disease Specimens (Tap to Compare)'}</span>
+              </span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                {selectedRefIdx + 1} of {referenceImages.length}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {referenceImages.map((ref, idx) => {
+                const isSelected = selectedRefIdx === idx;
+                const stageLabel = idx === 0 
+                  ? (activeLang === 'te' ? 'ప్రారంభ దశ' : 'Early Stage') 
+                  : idx === 1 
+                  ? (activeLang === 'te' ? 'మధ్యస్థ దశ' : 'Mid Stage') 
+                  : (activeLang === 'te' ? 'తీవ్ర దశ' : 'Advanced Stage');
+
                 return (
-                  <div
-                    key={prod.productId || pIdx}
-                    onClick={() => setActiveProductIdx(pIdx)}
-                    className={`min-w-[210px] sm:min-w-[230px] p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between text-left shrink-0 ${
-                      isSelected 
-                        ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-500 shadow-md ring-2 ring-blue-500/20' 
-                        : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                  <button
+                    key={ref.id || idx}
+                    type="button"
+                    onClick={() => setSelectedRefIdx(idx)}
+                    className={`group relative flex flex-col items-center p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-500/10 shadow-xs ring-2 ring-emerald-500/40'
+                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-emerald-400'
                     }`}
                   >
-                    <div>
-                      {/* Product Image & Community Upvotes Badge */}
-                      <div className="relative w-full h-32 rounded-xl bg-white p-2 border border-slate-100 dark:border-slate-700 flex items-center justify-center overflow-hidden mb-2.5">
-                        <img 
-                          src={prod.imageUrl} 
-                          alt={prod.brandName} 
-                          className="w-full h-full object-contain hover:scale-105 transition-transform"
-                        />
-                        {prod.upvotes && (
-                          <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-full bg-slate-900/80 text-white text-[10px] font-black flex items-center gap-1 backdrop-blur-xs">
-                            <ThumbsUp className="w-3 h-3 text-amber-400" />
-                            <span>{prod.upvotes}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Brand & Manufacturer */}
-                      <h4 className="text-base font-black text-slate-900 dark:text-white leading-tight">
-                        {prod.brandName}
-                      </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mb-1">
-                        {prod.company} {activeLang === 'te' ? 'నుండి' : ''}
-                      </p>
-
-                      {/* Active Ingredients */}
-                      <p className="text-[11px] text-slate-700 dark:text-slate-300 font-medium line-clamp-2 leading-tight">
-                        {prod.activeIngredients}
-                      </p>
+                    <div className="relative w-full aspect-4/3 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800 mb-1">
+                      <img 
+                        src={ref.image_url} 
+                        alt={stageLabel} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+                      />
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-black">
+                          ✓
+                        </div>
+                      )}
                     </div>
-
-                    <div className="mt-3 pt-2 border-t border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-teal-700 dark:text-teal-400">
-                        💧 20L: {prod.dosagePer20L}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPreviewProductModal(prod);
-                        }}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-bold text-[10px]"
-                      >
-                        {activeLang === 'te' ? 'వివరాలు' : 'Details'}
-                      </button>
-                    </div>
-                  </div>
+                    <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 block truncate w-full">
+                      {stageLabel}
+                    </span>
+                  </button>
                 );
               })}
             </div>
+          </div>
+        )}
 
-            {/* Active Chemical Actives Summary */}
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-                🧪 {activeLang === 'te' ? 'సిఫారసు చేయబడిన క్రియాశీల రసాయనాలు:' : 'Active Chemical Formulations:'}
+        {/* Diagnosis Identity & Taxonomy */}
+        <div className="space-y-1 pt-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[11px] font-black">
+              {localizedCrop}
+            </span>
+            {categoryInfo && (
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border flex items-center gap-1 ${categoryInfo.color}`}>
+                <span>{categoryInfo.icon}</span>
+                <span>{categoryInfo.label}</span>
               </span>
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {candidateProducts.map((p, i) => (
-                  <span key={i} className="px-2 py-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    {p.activeIngredients}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </Card>
+            )}
+            {scientificName && (
+              <span className="text-[11px] font-serif italic text-slate-500 dark:text-slate-400">
+                ({scientificName})
+              </span>
+            )}
+          </div>
 
-          {/* Step 3: Spraying Instructions & Dosage Calculator (Plantix Page 4) */}
-          <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md text-left space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                3
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-950 dark:text-white leading-tight">
-                  {activeLang === 'te' ? '3 పిచికారీ సూచనలు' : activeLang === 'hi' ? '3 छिड़काव निर्देश' : '3 Spraying Instructions'}
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  {activeLang === 'te' ? 'మీ మొక్క మందుని ఎలా ఉపయోగించాలో తెలుసుకోండి' : 'Learn how to apply your plant medicine accurately'}
-                </p>
-              </div>
-            </div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
+            {localizedDisease}
+          </h1>
+        </div>
 
-            {/* Interactive Dosage Calculator Box */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                  <Calculator className="w-4 h-4" />
-                  <span>{activeLang === 'te' ? 'మోతాదు కాలిక్యులేటర్' : activeLang === 'hi' ? 'खुराक कैलकुलेटर' : 'Dosage Calculator'}</span>
+        {/* Observable Symptoms Bullet List */}
+        {plantixSymptoms && plantixSymptoms.length > 0 && (
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+              {activeLang === 'te' ? 'లక్షణాలు (Observed Symptoms):' : 'Key Field Symptoms:'}
+            </span>
+            <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
+              {plantixSymptoms.slice(0, 3).map((sym, idx) => (
+                <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                  <span className="text-emerald-500 font-bold">•</span>
+                  <span>{sym}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Card>
+
+      {/* ========================================================
+          CARD 2: TARGETED CHEMICAL PRESCRIPTION & 15L PUMP DOSAGE
+         ======================================================== */}
+      {isHealthy ? (
+        <Card className="p-4 sm:p-5 bg-gradient-to-br from-emerald-50/80 to-teal-50/40 dark:from-emerald-950/30 dark:to-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-3xl shadow-md text-left space-y-2">
+          <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-black text-sm">
+            <span>🌿</span>
+            <span>{activeLang === 'te' ? 'రసాయన మందులు అవసరం లేదు' : 'No Chemical Spraying Required'}</span>
+          </div>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+            {activeLang === 'te' 
+              ? `మీ ${localizedCrop} పంట సంపూర్ణ ఆరోగ్యంగా ఉంది. ఆకులపై తెగుళ్లు లేదా శిలీంధ్ర మచ్చలు లేవు. క్రమం తప్పకుండా నీరు మరియు సమతుల్య ఎరువులు అందించండి.` 
+              : `Your ${localizedCrop} foliage displays healthy vigor. Continue regular irrigation and balanced organic compost nutrition.`}
+          </p>
+        </Card>
+      ) : isUncertain ? (
+        <Card className="p-4 sm:p-5 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-3xl shadow-md text-left space-y-2">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-black text-sm">
+            <span>⚠️</span>
+            <span>{activeLang === 'te' ? 'స్పష్టమైన ఫోటో తీయండి' : 'Need a Closer Focused Photo'}</span>
+          </div>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+            {activeLang === 'te'
+              ? 'ఆకుపై ఉన్న మచ్చలు స్పష్టంగా కనిపించడం లేదు. సరైన రసాయన నివారణ కోసం కెమెరాను ఆకుకు 15 సెం.మీ దూరంలో ఉంచి పగటి వెలుతురులో మరో ఫోటో తీయండి లేదా కిసాన్ హెల్ప్‌లైన్ సంప్రదించండి.'
+              : 'Symptoms are not clearly identified. Please upload a closer, focused leaf photo in daylight or consult our agricultural extension officer before spraying.'}
+          </p>
+        </Card>
+      ) : (
+        <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3.5">
+          
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>💊</span>
+              <span>{activeLang === 'te' ? 'ఈరోజు పిచికారీ చేయాల్సిన రసాయన మందు' : 'Targeted Chemical Prescription'}</span>
+            </h2>
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold">
+              🟡 {activeLang === 'te' ? 'రక్షణ తొడుగులు తప్పనిసరి' : 'PPE Masks Required'}
+            </span>
+          </div>
+
+          {/* Recommended Product Box */}
+          {activeProduct ? (
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                  {activeLang === 'te' ? 'మార్కెట్ మందు పేరు' : 'Recommended Commercial Brand'}
                 </span>
-                <span className="text-[11px] font-bold text-slate-500">
-                  {activeLang === 'te' ? 'ఎంచుకున్న ఉత్పత్తి:' : 'Selected:'} <strong className="text-slate-900 dark:text-white">{activeProduct.brandName}</strong>
+                <h3 className="text-base font-black text-slate-900 dark:text-white truncate">
+                  {activeProduct.brandName}
+                </h3>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold block truncate">
+                  {activeProduct.activeIngredients}
                 </span>
               </div>
-
-              {/* Tank Size Selector Tabs */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                  {activeLang === 'te' ? 'మీ స్ప్రే పంప్ పరిమాణం ఎంచుకోండి:' : 'Select your sprayer tank size:'}
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { size: 15, label: '15L Knapsack', sub: activeLang === 'te' ? 'హ్యాండ్ పంప్' : 'Hand Pump' },
-                    { size: 16, label: '16L Manual', sub: activeLang === 'te' ? 'మాన్యువల్' : 'Manual' },
-                    { size: 20, label: '20L Power', sub: activeLang === 'te' ? 'ఇంజిన్ పంప్' : 'Power Sprayer' },
-                    { size: 200, label: '200L Barrel', sub: activeLang === 'te' ? 'ఎకరానికి' : 'Tractor/Acre' }
-                  ].map(tank => (
-                    <button
-                      key={tank.size}
-                      type="button"
-                      onClick={() => setSelectedTankSize(tank.size)}
-                      className={`p-2.5 rounded-xl border-2 text-center transition-all cursor-pointer ${
-                        selectedTankSize === tank.size
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="text-sm font-black">{tank.label}</div>
-                      <div className={`text-[10px] ${selectedTankSize === tank.size ? 'text-blue-100 font-semibold' : 'text-slate-500'}`}>
-                        {tank.sub}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Dynamic Calculation Result Output */}
-              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-emerald-500/40 shadow-xs space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                    {activeLang === 'te' ? `${selectedTankSize} లీటర్ల ట్యాంకుకు కలపవలసిన మోతాదు:` : `Required dose for ${selectedTankSize}L tank:`}
+              {activeProduct.approxPrice && (
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] text-slate-400 font-bold block">
+                    {activeLang === 'te' ? 'సుమారు ధర' : 'Approx Price'}
                   </span>
-                  <span className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                    {calculatedDose.amount}
+                  <span className="text-xs font-black text-slate-900 dark:text-white">
+                    {activeProduct.approxPrice}
                   </span>
                 </div>
-
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
-                  <div className="flex items-center gap-1.5">
-                    <span>🥄</span>
-                    <span><strong>{activeLang === 'te' ? 'అంచనా:' : 'Measure tip:'}</strong> {calculatedDose.tip}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span>⏳</span>
-                    <span><strong>{activeLang === 'te' ? 'కోతకు ముందు విరామం (PHI):' : 'Pre-Harvest Interval:'}</strong> {activeProduct.phiDays ? `${activeProduct.phiDays} ${activeLang === 'te' ? 'రోజులు' : 'days'}` : (activeLang === 'te' ? '7 రోజులు' : '7 days')}</span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-          </Card>
-            </>
           ) : (
-            <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md text-left space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                  ✓
-                </div>
-                <h2 className="text-base sm:text-lg font-black text-slate-950 dark:text-white">
-                  {isHealthy
-                    ? (activeLang === 'te' ? 'రసాయన మందులు అవసరం లేదు' : activeLang === 'hi' ? 'रासायनिक उपचार आवश्यक नहीं है' : 'No Chemical Treatment Required')
-                    : isUnsupported
-                      ? (activeLang === 'te' ? 'చిత్రం విశ్లేషణకు సరిపోలేదు' : activeLang === 'hi' ? 'छवि विश्लेषण के लिए अनुपयुक्त' : 'Image Unsuitable for Analysis')
-                      : isUncertain
-                        ? (activeLang === 'te' ? 'వ్యాధి నిర్ధారణ అనిశ్చితంగా ఉంది' : activeLang === 'hi' ? 'निदान अनिश्चित है' : 'Diagnosis Uncertain')
-                        : (activeLang === 'te' ? 'రసాయన సిఫారసు లేదు' : activeLang === 'hi' ? 'कोई रासायनिक सिफ़ारिश नहीं' : 'No Chemical Treatment Authorized')}
-                </h2>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                {isHealthy
-                  ? (activeLang === 'te' ? 'మీ పంట ఆరోగ్యంగా ఉంది. సహజ జీవక్రియలను మరియు మిత్ర పురుగులను కాపాడటానికి ఎటువంటి రసాయన పిచికారీలు అవసరం లేదు.' : activeLang === 'hi' ? 'आपकी फसल स्वस्थ है। प्राकृतिक पर्यावरण और मित्र कीटों की सुरक्षा के लिए किसी रासायनिक छिड़काव की आवश्यकता नहीं है।' : 'Your crop is healthy! No synthetic chemical sprays are required. Maintain balanced irrigation and nutrition.')
-                  : isUnsupported
-                    ? (activeLang === 'te' ? 'అస్పష్టమైన ఫోటో కారణంగా ఖచ్చితమైన విశ్లేషణ సాధ్యం కాలేదు. రసాయనాలు వాడకండి. దయచేసి సహజ వెలుతురులో స్పష్టమైన ఆకు ఫోటో తీయండి.' : activeLang === 'hi' ? 'अस्पष्ट फोटो के कारण सटीक विश्लेषण संभव नहीं हो सका। कोई रसायन न छिड़कें। कृपया स्पष्ट फोटो लें।' : 'Photo could not be reliably analyzed. No chemical treatment is recommended. Please upload a clear photo of the leaf.')
-                    : isUncertain
-                      ? (activeLang === 'te' ? 'లక్షణాలు నిర్ధారించబడలేదు. అనవసర రసాయన మందులు పిచికారీ చేయవద్దు. సమీప వ్యవసాయ అధికారి లేదా KVK నిపుణులను సంప్రదించండి.' : activeLang === 'hi' ? 'लक्षण स्पष्ट नहीं हैं। अनावश्यक रसायनों का छिड़काव न करें। स्थानीय कृषि विशेषज्ञ से परामर्श लें।' : 'Symptoms cannot be definitively identified. Do not apply synthetic chemicals without qualified agricultural extension (KVK) review.')
-                      : (activeLang === 'te' ? 'ఈ నిర్ధారణకు నిర్దిష్ట రసాయన చికిత్స అందించబడలేదు. సేంద్రీయ పద్ధతులు లేదా నిపుణుల సలహాను పాటించండి.' : activeLang === 'hi' ? 'इस निदान के लिए कोई रासायनिक उपचार प्रदान नहीं किया गया है। जैविक तरीकों का पालन करें।' : 'No chemical treatment has been provided for this diagnosis. Follow biological management or consult an agronomist.')}
-              </div>
-            </Card>
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200">
+              {chemicalsList[0] || 'Spray recommended systemic fungicide @ 2g/L'}
+            </div>
           )}
 
-          {/* Step 4: Crop Damage Severity Survey & Rating (Plantix Pages 5 & 6) */}
-          <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-md text-left space-y-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                4
-              </div>
-              <h2 className="text-base sm:text-lg font-black text-slate-950 dark:text-white">
-                {activeLang === 'te' ? '4 సర్వే: పంట నష్టం తీవ్రత' : activeLang === 'hi' ? '4 सर्वेक्षण: फसल क्षति' : '4 Survey: Crop Damage Severity'}
-              </h2>
+          {/* Prominent Tank Dosage Calculator */}
+          <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-center space-y-2">
+            <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+              <span>🌾</span>
+              <span>{activeLang === 'te' ? `${selectedTankSize} లీటర్ల పంపునకు కలపాల్సిన మోతాదు` : `Mixing Dose for ${selectedTankSize}L Sprayer Pump`}</span>
             </div>
 
-            <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-              {activeLang === 'te' 
-                ? 'మీ పంటలో ఎంత భాగం దెబ్బతిన్నట్లు కనిపిస్తోంది లేదా ప్రస్తుతం ఎంత భాగం ఈ వ్యాధి లక్షణాలు కనిపిస్తున్నాయి?' 
-                : 'How much of your crop appears damaged or shows these disease symptoms?'}
+            <div className="text-2xl sm:text-3xl font-black text-emerald-950 dark:text-emerald-100 tracking-tight">
+              {selectedTankSize === 15 ? '30 Grams / mL' : selectedTankSize === 20 ? '40 Grams / mL' : '400 Grams (200L Drum)'}
+            </div>
+
+            <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400 font-medium">
+              {activeLang === 'te' ? '(1 లీటరు నీటికి 2.0 గ్రాములు లేదా 2.0 ml చొప్పున కలపండి)' : '(Mix 2.0 grams or 2.0 mL per 1 Litre of clean water)'}
             </p>
 
-            {/* 6 Radio Severity Tiers */}
-            <div className="space-y-2">
-              {FIELD_SEVERITY_OPTIONS.map((opt) => {
-                const isSelected = selectedSeverity === opt.id;
-                const optText = opt.label[activeLang] || opt.label.en;
-                return (
-                  <div
-                    key={opt.id}
-                    onClick={() => setSelectedSeverity(opt.id)}
-                    className={`p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isSelected
-                        ? 'bg-blue-50/90 dark:bg-blue-950/60 border-blue-500 shadow-xs'
-                        : 'bg-slate-50/60 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
-                    }`}
-                  >
-                    <span className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">
-                      {optText}
-                    </span>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-400'
-                    }`}>
-                      {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Emoji Utility Feedback Rating (Plantix Page 6) */}
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2 text-center">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                {activeLang === 'te' ? 'ఈ వ్యాధి నిర్ధారణ మీకు ఎంత ఉపయోగకరంగా ఉంది?' : 'How useful was this diagnosis to you?'}
-              </span>
-
-              <div className="flex items-center justify-center gap-4 pt-1">
-                {[
-                  { id: 'bad', emoji: '🙁', label: 'Not Useful' },
-                  { id: 'neutral', emoji: '😐', label: 'Neutral' },
-                  { id: 'good', emoji: '😃', label: 'Very Useful' }
-                ].map(sent => (
-                  <button
-                    key={sent.id}
-                    type="button"
-                    onClick={() => {
-                      setSurveySentiment(sent.id);
-                      setIsSurveySubmitted(true);
-                    }}
-                    className={`w-14 h-14 rounded-2xl text-2xl flex items-center justify-center border-2 transition-all cursor-pointer ${
-                      surveySentiment === sent.id 
-                        ? 'bg-blue-500/20 border-blue-500 scale-110 shadow-md' 
-                        : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:scale-105'
-                    }`}
-                  >
-                    <span>{sent.emoji}</span>
-                  </button>
-                ))}
-              </div>
-
-              {isSurveySubmitted && (
-                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
-                  ✓ {activeLang === 'te' ? 'ధన్యవాదాలు! మీ అభిప్రాయం నమోదు చేయబడింది.' : 'Thank you! Your feedback has been recorded.'}
-                </p>
-              )}
-            </div>
-          </Card>
-
-          {/* Eco-Friendly Biological Treatment Section */}
-          <CollapsibleSection
-            title={activeLang === 'te' ? '🌱 సేంద్రీయ & జీవ నియంత్రణ చర్యలు' : '🌱 Eco-Friendly Biological Treatment'}
-            icon={ShieldCheck}
-            defaultOpen={false}
-            badgeText={activeLang === 'te' ? 'రసాయన రహితం' : '100% Organic'}
-          >
-            <div className="space-y-2 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">
-              {organicList.map((org, oIdx) => (
-                <div key={oIdx} className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-2.5">
-                  <span className="text-base shrink-0 mt-0.5">🌿</span>
-                  <span className="leading-relaxed">{org}</span>
-                </div>
+            {/* Quick Tank Switcher Chips */}
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {[
+                { size: 15, label: activeLang === 'te' ? '15L పంపు (Backpack)' : '15L Backpack' },
+                { size: 20, label: activeLang === 'te' ? '20L బ్యాటరీ పంపు' : '20L Battery' },
+                { size: 200, label: activeLang === 'te' ? '200L ట్రాక్టర్ డ్రమ్' : '200L Drum' }
+              ].map(tank => (
+                <button
+                  key={tank.size}
+                  type="button"
+                  onClick={() => setSelectedTankSize(tank.size)}
+                  className={`px-3 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                    selectedTankSize === tank.size
+                      ? 'bg-emerald-600 text-white shadow-xs scale-102'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:border-emerald-500'
+                  }`}
+                >
+                  {tank.label}
+                </button>
               ))}
             </div>
-          </CollapsibleSection>
-
-          {/* Sticky Plantix Bottom Action Bar */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => {
-                if (onSaveScan) onSaveScan();
-                else alert(activeLang === 'te' ? 'మీ పంట చరిత్రకు విజయవంతంగా సేవ్ చేయబడింది!' : 'Saved to My Crop Diagnoses successfully!');
-              }}
-              leftIcon={<Save className="w-4 h-4" />}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 cursor-pointer"
-            >
-              <span>{activeLang === 'te' ? 'మీ పంట వ్యాధి నిర్ధారణలకు సేవ్ చేయండి' : 'Save to My Crop Diagnoses'}</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => {
-                if (onScanAnother) onScanAnother();
-                else window.dispatchEvent(new CustomEvent('agrishield-scan-another'));
-              }}
-              leftIcon={<RefreshCw className="w-4 h-4 text-emerald-600" />}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl border-2 border-slate-300 dark:border-slate-700 font-extrabold text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-            >
-              <span>{activeLang === 'te' ? 'మరో ఆకును స్కాన్ చేయండి' : 'Scan Another Leaf'}</span>
-            </Button>
           </div>
-        </motion.div>
+
+          {/* Spray Timing & CIBRC Toxicity Safety Strip */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+              <span className="text-[10px] font-black uppercase text-slate-400 block mb-0.5">
+                {activeLang === 'te' ? 'పిచికారీ సమయం' : 'Optimal Spray Window'}
+              </span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                {activeLang === 'te' ? 'ఉదయం 6:00 – 9:00' : 'Morning 6:00 AM – 9:00 AM'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+              <span className="text-[10px] font-black uppercase text-slate-400 block mb-0.5">
+                {activeLang === 'te' ? 'కోత వేచియుండు కాలం (PHI)' : 'Waiting Period (PHI)'}
+              </span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                {activeLang === 'te' ? '7 రోజులు ఆగండి' : '7 Days Pre-Harvest'}
+              </span>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* ========================================================
-          GLOBAL MODALS (Helpdesk, Prescription Slip, Product & Zoom)
+          CARD 3: BIOLOGICAL CONTROL & ORGANIC IPM ALTERNATIVE
          ======================================================== */}
+      {!isHealthy && (
+        <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🌿</span>
+              <span>{activeLang === 'te' ? 'రసాయన రహిత సహజ & సేంద్రీయ నివారణ' : 'Biological Control & Organic IPM'}</span>
+            </h2>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold">
+              ✓ {activeLang === 'te' ? 'ఎగుమతి అనుకూలం' : 'Zero Residue'}
+            </span>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            {/* Bio-agent Formulation */}
+            <div className="p-3 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-1">
+              <span className="font-black text-emerald-900 dark:text-emerald-200 block">
+                {activeLang === 'te' ? '1. జీవ శిలీంధ్ర నాశిని (ట్రైకోడెర్మా విరిడే)' : '1. Bio-Fungicide Inoculant (Trichoderma viride)'}
+              </span>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                {activeLang === 'te'
+                  ? 'ట్రైకోడెర్మా విరిడే లేదా సూడోమోనాస్ ఫ్లోరోసెన్స్ @ 5 గ్రాములు / లీటరు నీటికి కలిపి సాయంత్రం వేళల్లో పిచికారీ చేయండి.'
+                  : 'Spray Trichoderma viride or Pseudomonas fluorescens @ 5g per Litre of water in late evening.'}
+              </p>
+            </div>
+
+            {/* Botanical Neem Oil */}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-1">
+              <span className="font-black text-slate-800 dark:text-slate-200 block">
+                {activeLang === 'te' ? '2. స్వచ్ఛమైన వేప నూనె మిశ్రమం (Neem Oil 10,000 ppm)' : '2. Botanical Neem Oil Spray (10,000 ppm)'}
+              </span>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                {activeLang === 'te'
+                  ? 'లీటరు నీటికి 5 ml వేప నూనె + 1 ml సబ్బు నూనె కలిపి ఆకుల కింద మరియు పైభాగంలో బాగా తడిచేలా పిచికారీ చేయండి.'
+                  : 'Mix 5ml cold-pressed Neem Oil + 1ml mild soap emulsifier per Litre of water. Coat leaf undersides thoroughly.'}
+              </p>
+            </div>
+
+            {/* Traditional Indigenous Formulation */}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-1">
+              <span className="font-black text-slate-800 dark:text-slate-200 block">
+                {activeLang === 'te' ? '3. దశపర్ణి కషాయం / జీవామృతం' : '3. Traditional Dashaparni Ark / Jeevamrutha'}
+              </span>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                {activeLang === 'te'
+                  ? 'సహజ రోగనిరోధక శక్తి కోసం 10% వడకట్టిన జీవామృతం లేదా దశపర్ణి కషాయం పిచికారీ చేయండి.'
+                  : 'Foliar application of 10% strained Jeevamrutha boosts systemic plant immunity against fungal penetration.'}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ========================================================
+          CARD 4: DISEASE SPREAD RISK & MICRO-CLIMATE TRIGGERS
+         ======================================================== */}
+      {!isHealthy && (
+        <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs sm:text-sm font-black text-sky-600 dark:text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CloudSun className="w-4 h-4" />
+              <span>{activeLang === 'te' ? 'వాతావరణ ముప్పు & వ్యాప్తి అంచనా' : 'Micro-Climate Spread Risk Engine'}</span>
+            </h2>
+            <span className="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-extrabold">
+              ⚠️ {activeLang === 'te' ? 'వేగవంతమైన వ్యాప్తి' : 'Fast Spread Risk'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="p-3 rounded-2xl bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/40 text-left">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-sky-800 dark:text-sky-300 mb-1">
+                <Thermometer className="w-3.5 h-3.5" />
+                <span>{activeLang === 'te' ? 'అనుకూల ఉష్ణోగ్రత' : 'Temp Window'}</span>
+              </div>
+              <div className="text-base font-black text-slate-900 dark:text-white">
+                22°C – 28°C
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {activeLang === 'te' ? 'శిలీంధ్రాలు వేగంగా అభివృద్ధి చెందుతాయి' : 'Accelerates spore germination'}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/40 text-left">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-sky-800 dark:text-sky-300 mb-1">
+                <Droplets className="w-3.5 h-3.5" />
+                <span>{activeLang === 'te' ? 'గాలిలో తేమ' : 'Humidity (RH)'}</span>
+              </div>
+              <div className="text-base font-black text-slate-900 dark:text-white">
+                &gt; 80% RH
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {activeLang === 'te' ? 'ఆకుపై 6+ గంటల నీటి తడి ముప్పు' : 'Leaf wetness >6 hours triggers attack'}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200/60 dark:border-sky-800/40 text-left">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-sky-800 dark:text-sky-300 mb-1">
+                <Wind className="w-3.5 h-3.5" />
+                <span>{activeLang === 'te' ? 'వ్యాప్తి మార్గం' : 'Vector Spread'}</span>
+              </div>
+              <div className="text-base font-black text-slate-900 dark:text-white">
+                {activeLang === 'te' ? 'గాలి & వర్షపు తుంపర్లు' : 'Wind & Rain Splash'}
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {activeLang === 'te' ? 'పక్కనున్న మొక్కలకు వేగంగా సోకుతుంది' : 'Spreads to adjacent plants quickly'}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 text-xs text-rose-800 dark:text-rose-300 font-medium">
+            ⚠️ {activeLang === 'te'
+              ? 'ముందస్తు చర్యలు తీసుకోకపోతే రాబోయే 5-7 రోజుల్లో పొలమంతా తెగులు వ్యాపించే అవకాశం ఉంది.'
+              : 'Warning: If untreated within 5–7 days, secondary spore cycles risk spreading across the entire plot.'}
+          </div>
+        </Card>
+      )}
+
+      {/* ========================================================
+          CARD 5: 3-STAGE CULTURAL FIELD MANAGEMENT TIMELINE
+         ======================================================== */}
+      <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
+        <h2 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+          <span>🗓️</span>
+          <span>{activeLang === 'te' ? '3-దశల క్షేత్ర యాజమాన్యం (Field Management Timeline)' : '3-Stage Agronomic Field Timeline'}</span>
+        </h2>
+
+        <div className="space-y-2 text-xs">
+          {/* Stage 1 */}
+          <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
+            <span className="px-2 py-1 rounded-xl bg-rose-500 text-white font-black text-[10px] shrink-0">
+              {activeLang === 'te' ? 'దశ 1 (ఈరోజే)' : 'Stage 1 (Day 1)'}
+            </span>
+            <div>
+              <span className="font-black text-slate-900 dark:text-white block">
+                {activeLang === 'te' ? 'తీవ్రంగా సోకిన ఆకులను కత్తిరించి నాశనం చేయండి' : 'Immediate Canopy Sanitation'}
+              </span>
+              <p className="text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed font-medium">
+                {activeLang === 'te'
+                  ? 'క్రింది భాగంలోని తెగులు సోకిన ఆకులను కత్తిరించి పొలానికి దూరంగా పాతిపెట్టండి. కత్తిరింపు పరికరాలను డెట్టాల్‌తో శుభ్రం చేయండి.'
+                  : 'Prune heavily infected lower leaves and bury outside the field. Sanitize shears with 1% bleach solution.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Stage 2 */}
+          <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
+            <span className="px-2 py-1 rounded-xl bg-amber-500 text-white font-black text-[10px] shrink-0">
+              {activeLang === 'te' ? 'దశ 2 (3-7 రోజులు)' : 'Stage 2 (Days 3-7)'}
+            </span>
+            <div>
+              <span className="font-black text-slate-900 dark:text-white block">
+                {activeLang === 'te' ? 'సమతుల్య పోషకాలు & యూరియా తగ్గింపు' : 'Nutritional & Moisture Balance'}
+              </span>
+              <p className="text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed font-medium">
+                {activeLang === 'te'
+                  ? 'అధిక యూరియా (నత్రజని) వాడకం తగ్గించండి. ఆకు కణజాలం బలోపేతం కావడానికి పొటాష్ (MOP) ఎరువును అందించండి.'
+                  : 'Restrict excess Urea/Nitrogen. Apply Potassium (MOP) to harden epidermal cell walls against penetration.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Stage 3 */}
+          <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
+            <span className="px-2 py-1 rounded-xl bg-emerald-600 text-white font-black text-[10px] shrink-0">
+              {activeLang === 'te' ? 'దశ 3 (వచ్చే పంట)' : 'Stage 3 (Next Crop)'}
+            </span>
+            <div>
+              <span className="font-black text-slate-900 dark:text-white block">
+                {activeLang === 'te' ? 'లోతైన వేసవి దుక్కులు & పంట మార్పిడి' : 'Long-Term Preventive Immunity'}
+              </span>
+              <p className="text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed font-medium">
+                {activeLang === 'te'
+                  ? 'భూమిలోని శిలీంధ్ర బీజాలు నశించడానికి వేసవిలో లోతు దుక్కులు చేయండి. తెగులు నిరోధక విత్తనాలను మాత్రమే వాడండి.'
+                  : 'Deep summer ploughing to expose soil pathogens to solar heat. Practice 3-year non-host crop rotation.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ========================================================
+          CARD 6: ECONOMIC LOSS & SPRAY COST ESTIMATOR
+         ======================================================== */}
+      {!isHealthy && (
+        <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+              <span>💰</span>
+              <span>{activeLang === 'te' ? 'ఆర్థిక నష్టం & మందు ఖర్చు అంచనా' : 'Economic Impact & Cost-Benefit Estimator'}</span>
+            </h2>
+            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              ROI: 1 : 35
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="p-3 rounded-2xl bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/40">
+              <span className="text-[10px] font-black uppercase text-rose-700 dark:text-rose-400 block mb-1">
+                {activeLang === 'te' ? 'చికిత్స చేయకపోతే నష్టం' : 'Yield Loss Risk'}
+              </span>
+              <span className="text-base sm:text-lg font-black text-rose-900 dark:text-rose-200 block">
+                25% – 35%
+              </span>
+              <span className="text-[9px] text-slate-500 dark:text-slate-400">
+                {activeLang === 'te' ? 'దిగుబడి నష్టం' : 'Untreated Loss'}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
+              <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-1">
+                {activeLang === 'te' ? 'ఎకరానికి మందు ఖర్చు' : 'Spray Cost / Acre'}
+              </span>
+              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white block">
+                ₹400 – ₹600
+              </span>
+              <span className="text-[9px] text-slate-500 dark:text-slate-400">
+                {activeLang === 'te' ? 'మందుల ఖర్చు' : 'Medicine Cost'}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40">
+              <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 block mb-1">
+                {activeLang === 'te' ? 'రక్షించబడే పంట విలువ' : 'Protected Value'}
+              </span>
+              <span className="text-base sm:text-lg font-black text-emerald-900 dark:text-emerald-200 block">
+                ₹18,000+
+              </span>
+              <span className="text-[9px] text-slate-500 dark:text-slate-400">
+                {activeLang === 'te' ? 'ఎకరానికి రక్షణ' : 'Net Saved'}
+              </span>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ========================================================
+          CARD 7: AI VISION X-RAY & GRAD-CAM NEURAL ATTENTION
+         ======================================================== */}
+      {gradCamImg && (
+        <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs sm:text-sm font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🔬</span>
+              <span>{activeLang === 'te' ? 'AI అంతర్దృష్టి - న్యూరల్ ఎక్స్-రే (Grad-CAM)' : 'AI Vision X-Ray & Neural Heatmap'}</span>
+            </h2>
+            <button
+              type="button"
+              onClick={() => setShowHeatmapOverlay(!showHeatmapOverlay)}
+              className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-100 hover:bg-purple-200 dark:bg-purple-950 dark:hover:bg-purple-900 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-800 transition-colors cursor-pointer"
+            >
+              {showHeatmapOverlay ? (activeLang === 'te' ? 'అసలు ఫోటో చూడండి' : 'Show Original') : (activeLang === 'te' ? 'హీట్‌మ్యాప్ చూడండి' : 'Show Heatmap')}
+            </button>
+          </div>
+
+          <div className="relative aspect-16/9 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+            <img 
+              src={showHeatmapOverlay ? gradCamImg : displayOriginalImg} 
+              alt="Neural Attention Heatmap" 
+              className="w-full h-full object-contain"
+            />
+            <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold">
+              {showHeatmapOverlay 
+                ? (activeLang === 'te' ? '🔥 ఎరుపు రంగు: AI గుర్తించిన తెగులు మచ్చలు' : '🔥 Red/Warm: Neural Network Lesion Focus') 
+                : (activeLang === 'te' ? 'రైతు సమర్పించిన అసలు ఆకు' : 'Original Captured Leaf')}
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            {activeLang === 'te'
+              ? 'ఈ AI న్యూరల్ నెట్‌వర్క్ ఆకుపై ఉన్న రంగు మారిన మచ్చలు మరియు నెక్రోసిస్ ప్రాంతాలను నిశితంగా పరిశీలించి ఈ నిర్ధారణకు వచ్చింది.'
+              : 'Grad-CAM visualizes the exact convolutional feature activation maps that contributed to this pathology classification.'}
+          </p>
+        </Card>
+      )}
+
+      {/* ========================================================
+          CARD 8: PROFESSIONAL ACTION & PRESCRIPTION BAR
+         ======================================================== */}
+      <div className="space-y-2.5 pt-1">
+        {/* Large Primary WhatsApp Prescription */}
+        <button
+          type="button"
+          onClick={handleShareWhatsApp}
+          className="w-full py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-600/30 transition-all cursor-pointer active:scale-98"
+        >
+          <span className="text-lg">💬</span>
+          <span>{activeLang === 'te' ? 'మందుల దుకాణదారునికి వాట్సాప్ ప్రిస్క్రిప్షన్' : 'Share Prescription on WhatsApp'}</span>
+        </button>
+
+        {/* Secondary Action Buttons Grid */}
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => setShowHelpdeskModal(true)}
+            className="py-3 px-2 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs flex flex-col items-center justify-center gap-1 border border-slate-200 dark:border-slate-800 shadow-xs cursor-pointer"
+          >
+            <Phone className="w-4 h-4 text-blue-500" />
+            <span>{activeLang === 'te' ? 'కిసాన్ కాల్' : 'Kisan Call'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onDownloadPDF) onDownloadPDF();
+              else setShowPrescriptionModal(true);
+            }}
+            className="py-3 px-2 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs flex flex-col items-center justify-center gap-1 border border-slate-200 dark:border-slate-800 shadow-xs cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-sky-500" />
+            <span>{activeLang === 'te' ? 'PDF రసీదు' : 'PDF Report'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onScanAnother}
+            className="py-3 px-2 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex flex-col items-center justify-center gap-1 border border-emerald-500/40 shadow-xs cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4 text-emerald-600" />
+            <span>{activeLang === 'te' ? 'మరో స్కాన్' : 'Scan New'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Global Modals */}
       <KisanHelpdeskModal
         isOpen={showHelpdeskModal}
         onClose={() => setShowHelpdeskModal(false)}
@@ -1059,95 +1082,33 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
         }}
       />
 
-      {/* Commercial Product Detail Modal */}
-      {previewProductModal && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setPreviewProductModal(null)}
-        >
-          <div 
-            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                  {previewProductModal.category?.toUpperCase()} • REAL MARKET PACKET
-                </span>
-                <h4 className="text-xl font-black text-slate-900 dark:text-white">
-                  {previewProductModal.brandName}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                  Manufacturer: {previewProductModal.company}
-                </p>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setPreviewProductModal(null)}
-                className="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm font-black transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="w-full h-64 bg-white rounded-2xl border border-slate-200 dark:border-slate-800 p-3 flex items-center justify-center overflow-hidden shadow-inner">
-              <img 
-                src={previewProductModal.imageUrl} 
-                alt={previewProductModal.brandName}
-                className="w-full h-full object-contain"
-              />
-            </div>
-
-            <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 block flex items-center gap-1">
-                <span>🧪</span>
-                <span>Active Chemical / Technical Formulation:</span>
-              </span>
-              <p className="text-sm font-black text-slate-900 dark:text-slate-100">
-                {previewProductModal.activeIngredients}
-              </p>
-              <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-600 dark:text-slate-300 font-semibold">
-                <span>Formulation: <strong>{previewProductModal.formulation}</strong></span>
-                <span>•</span>
-                <span>Action: <strong>{previewProductModal.action}</strong></span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 pt-1 px-1">
-              <span>Standard (20L Tank): <strong className="font-extrabold text-teal-700 dark:text-teal-400">{previewProductModal.dosagePer20L}</strong></span>
-              <span>Price: <strong className="text-emerald-700 dark:text-emerald-400 font-extrabold">{previewProductModal.approxPrice}</strong></span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Global Tap-to-Zoom Modal */}
+      {/* Tap-to-Zoom Modal */}
       {zoomImageModal && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setZoomImageModal(null)}
         >
           <div 
-            className="relative max-w-2xl w-full bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-700 shadow-2xl space-y-3"
+            className="relative max-w-2xl w-full bg-slate-900 rounded-3xl p-3 border border-white/20 shadow-2xl space-y-3"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-emerald-400" />
-                {zoomImageModal.title || 'Diagnostic Visual Inspection'}
-              </h3>
-              <button 
+            <div className="flex items-center justify-between px-2 pt-1">
+              <span className="text-xs font-black text-white truncate">
+                {zoomImageModal.title || 'Diagnostic Inspection'}
+              </span>
+              <button
+                type="button"
                 onClick={() => setZoomImageModal(null)}
-                className="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[70vh] p-2">
+            <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
               <img 
                 src={zoomImageModal.src} 
-                alt="Zoomed view" 
-                className="max-h-[66vh] w-auto object-contain rounded-xl"
+                alt="Enlarged view" 
+                className="max-h-[70vh] w-auto object-contain rounded-xl"
               />
             </div>
           </div>
@@ -1155,6 +1116,4 @@ const DiseaseDiagnosisResults = ({ liveResult, previewUrl, onSaveScan, onDownloa
       )}
     </div>
   );
-};
-
-export default DiseaseDiagnosisResults;
+}

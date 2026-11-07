@@ -974,24 +974,17 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
                 >
                   {speakingId === 'plant_summary' ? (locUI.stopVoice || 'Stop Voice') : (locUI.listenVoice || 'Listen Summary')}
                 </Button>
-                <button
-                  type="button"
-                  onClick={handleCopyMarkdown}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                  title="Copy Strict Markdown Report"
-                >
-                  {copiedMarkdown ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-300 font-extrabold">Report Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-emerald-300" />
-                      <span>Copy Markdown Report</span>
-                    </>
-                  )}
-                </button>
+                {onCheckDisease && !info.isWeed && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => onCheckDisease(info.commonName)}
+                    leftIcon={<Bug className="w-4 h-4 text-white" />}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-md shadow-emerald-600/30 rounded-xl cursor-pointer"
+                  >
+                    <span>{locUI.checkDisease || (activeLang === 'te' ? 'ఈ పంట తెగుళ్ల పరీక్ష' : 'Check for Diseases')}</span>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -1372,13 +1365,18 @@ const PlantIdResults = ({ liveResult, data, onScanAnother, onCheckDisease }) => 
     ) : null
   );
 
-  const defaultPlantOrder = [
-    { key: 'specimen_hero', label: '1. 🌿 Botanical Specimen Hero Card', visible: true },
-    { key: 'language_bar', label: '2. 🌐 Quick Language Switcher Bar', visible: true },
-    { key: 'plant_classification', label: '3. 🌿 Plant Classification Card', visible: true },
-    { key: 'description_impact', label: '4. 📝 Description & Practical Farm Impact', visible: true },
-    { key: 'agronomic_advisory', label: '5. 🪵 Environmental & Cultivation Care Matrix (4-Grid)', visible: true },
-    { key: 'weed_advisory', label: '6. ⚠️ Weed Eradication Advisory', visible: true }
+  const defaultPlantOrder = info.isWeed ? [
+    { key: 'specimen_hero', label: '1. Botanical Specimen Hero Card', visible: true },
+    { key: 'language_bar', label: '2. Quick Language Switcher Bar', visible: true },
+    { key: 'weed_advisory', label: '3. Weed Eradication Advisory', visible: true },
+    { key: 'plant_classification', label: '4. Plant Classification Card', visible: true },
+    { key: 'description_impact', label: '5. Description & Practical Farm Impact', visible: true }
+  ] : [
+    { key: 'specimen_hero', label: '1. Botanical Specimen Hero Card', visible: true },
+    { key: 'language_bar', label: '2. Quick Language Switcher Bar', visible: true },
+    { key: 'agronomic_advisory', label: '3. Environmental & Cultivation Care Matrix', visible: true },
+    { key: 'plant_classification', label: '4. Plant Classification Card', visible: true },
+    { key: 'description_impact', label: '5. Description & Practical Farm Impact', visible: true }
   ];
 
   const plantCardMap = {
