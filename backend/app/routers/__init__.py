@@ -1,5 +1,5 @@
 # AgriShield Role-Based Routers Package
-from backend.app.routers.common import auth, notifications, support, intelligence, devices, iot, ai, sync
+from backend.app.routers.common import auth, notifications, support, intelligence, devices, iot, ai, sync, speech
 from backend.app.routers.farmer import predict, farm_profiles, market, agrochemical, plant_id, analytics, action_center
 from backend.app.routers.provider import equipment
 from backend.app.routers.admin import admin, firmware

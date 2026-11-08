@@ -9467,3 +9467,52 @@ pm.cmd run build passed in 21.88s with 0 errors.
 - **Verification**:
   - Production build 
 pm.cmd run build passed in 21.71s with 0 errors.
+
+## [2026-11-08 16:10:00] - 4-Phase System Upgrade: Studio Neural Voice, Automated Weather Alerts, Home Telemetry Sync & Speech Sanitizer
+- **Phase 1: Speech Sanitizer & Natural Cadence Calibration (`speechSanitizer.js`, `useSpeechReader.js`)**:
+  - Prevented regex erasure of operational spraying intervals (`8:00 AM – 11:30 AM` and `4:00 PM – 6:30 PM`).
+  - Added token-based native language time expansion (`formatTimeToken`, `formatSingleTime`) for Telugu (`ఉదయం 8 గంటల నుండి 11 గంటల 30 నిమిషాల వరకు`), Hindi (`सुबह 8 बजे से 11 बजकर 30 मिनट तक`), Tamil, and Kannada.
+  - Added native currency vocalization (`₹` / `Rs.` -> `రూపాయలు` in Telugu, `रुपये` in Hindi, `ரூபாய்` in Tamil).
+  - Preserved spray window ranges while stripping isolated chat metadata timestamps.
+  - Calibrated speech playback rate from 0.8x to natural 1.0x human conversational speed.
+- **Phase 2: Universal Studio-Quality Neural Voice Streaming (`edge-tts`, `speech.py`, `useSpeechReader.js`)**:
+  - Installed `edge-tts>=7.3.1` in python backend and added to `requirements.txt`.
+  - Created `/api/speech/synthesize` endpoint supporting Microsoft Indian Neural voices:
+    - Telugu: `te-IN-ShrutiNeural` / `te-IN-MohanNeural`
+    - Hindi: `hi-IN-SwaraNeural` / `hi-IN-MadhurNeural`
+    - Tamil, Kannada, Malayalam, Marathi, Gujarati, Bengali, Urdu, and Indian English.
+    - Integrated high-speed in-memory LRU audio caching.
+  - Upgraded frontend `useSpeechReader.js` to stream crystal-clear audio with zero required user phone settings or voice downloads (0 MB GitHub bloat).
+  - Maintained seamless local browser `window.speechSynthesis` offline fallback.
+- **Phase 3: Automated Regional Weather & Rainfall Notifications Engine (`notification_service.py`, `scheduler.py`, `NotificationsPage.jsx`)**:
+  - Triggered weather advisory when rain probability exceeds 70% with actionable farmer precautions:
+    1) పిచికారీ నిలిపివేయండి (Hold chemical/fertilizer sprays),
+    2) బోరు/డ్రిప్ మోటార్లు ఆపండి (Pause irrigation pumps),
+    3) మురుగు కాలువలు శుభ్రం చేయండి (Clear drainage trenches).
+  - Added High Wind Advisory (>18 km/h) to prevent spray drift and lodging.
+  - Added Extreme Heatwave Advisory (>38°C) recommending evening light irrigation.
+  - Integrated 2-hour regional weather evaluation loop in `scheduler.py` across registered farms.
+  - Added 1-tap direct action CTA `💧 పంప్ ఆపండి & వ్యవసాయ సలహా` in `/notifications` linking to `/farm?tab=farm-intelligence`.
+- **Phase 4: Home Tab Dynamic Telemetry Sync (`DashboardPage.jsx`)**:
+  - Bound top hero banner badge dynamically to live weather telemetry (`/api/intelligence/weather`).
+  - Synced 1-Tap Daily Voice Briefing to read real-time temperature and weather conditions.
+  - Synced 1-Tap WhatsApp Farm Report to include live weather telemetry.
+- **Verification**:
+  - Production build `npm.cmd run build` passed in 24.93s with 0 errors.
+  - Speech synthesis ASGI test passed with HTTP 200 (11.2 KB audio in <2s).
+
+## [2026-11-08 16:45:00] - Telugu Voice Clarity & Speed Acceleration Upgrades
+- **Voice Clarity & Sharp Pronunciation (`speech.py`)**:
+  - Switched default Telugu neural voice to `te-IN-MohanNeural` (male), which provides broadcast-standard clarity, crisp retroflex consonants, and resonant agricultural radio delivery.
+  - Retained `te-IN-ShrutiNeural` for female option.
+- **Speed Acceleration & Conversational Cadence (+18% to +20%)**:
+  - Accelerated speech playback rate from dragging `+0%` default to brisk, energetic `+18%` across `speech.py` backend and `useSpeechReader.js` frontend.
+  - Boosted diagnosis symptoms audio speed from sluggish `0.85` (-15%) to `1.18` (+18%) in `DiseaseDiagnosisResults.jsx`.
+- **Parameter Swapping Bug & Self-Healing Guard (`DashboardPage.jsx`, `useSpeechReader.js`)**:
+  - Corrected `speak(text, 'dashboard_daily_brief', i18n.language, 1.18)` in `DashboardPage.jsx` so the actual Telugu briefing text is vocalized instead of the English identifier string.
+  - Added self-healing parameter order guard in `useSpeechReader.js` that automatically detects when `(id, text, ...)` is passed in reverse order and swaps them back safely.
+- **Sanitizer Unit & Pronunciation Refinements (`speechSanitizer.js`)**:
+  - Expanded `15L pump` -> `15 లీటర్ల పంపు`.
+  - Expanded `/Qtl` / `Qtl` -> `క్వింటాలుకు` / `క్వింటా` for natural native Telugu flow.
+- **Verification**:
+  - Production build `npm.cmd run build` passed in 18.13s with 0 errors.

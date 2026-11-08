@@ -577,7 +577,7 @@ export default function DiseaseDiagnosisResults({
       ? (activeLang === 'te' ? `సిఫార్సు చేసిన మందు: ${activeProduct.brandName}. మోతాదు: 15 లీటర్ల పంపునకు 30 గ్రాములు.` : `Recommended Medicine: ${activeProduct.brandName}. Dosage: 30 grams per 15-litre pump.`)
       : (chemicalsList[0] || '');
     const fullAudioText = `${localizedCrop}. ${localizedDisease}. ${symptomsSpeech}. ${chemSpeech}`;
-    speak(fullAudioText, 'plantix_symptoms_audio', getSpeechLocale(activeLang), 0.85);
+    speak(fullAudioText, 'plantix_symptoms_audio', getSpeechLocale(activeLang), 1.18);
   };
 
   const handleShareWhatsApp = () => {

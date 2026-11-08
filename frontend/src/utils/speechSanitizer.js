@@ -32,11 +32,99 @@ export function sanitizeTextForSpeech(text, lang = 'en') {
   s = s.replace(/```[\s\S]*?```/g, ' ');
   s = s.replace(/`[^`]+`/g, ' ');
 
-  // 3. Strip UI timestamps (e.g. "09:43 AM", "9:43 pm", "10:30") so voice NEVER recites time stamps
-  s = s.replace(/\b\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?\b/g, ' ');
+  // 3. Operational Time Ranges & Spray Window Vocalization (BEFORE timestamp cleanup)
+  const formatTimeToken = (tStr, langCode) => {
+    const parts = (tStr || '').trim().split(':');
+    const h = parts[0];
+    const m = parts[1] ? parseInt(parts[1], 10) : 0;
+    if (langCode === 'te') return m > 0 ? `${h} గంటల ${m} నిమిషాల` : `${h} గంటల`;
+    if (langCode === 'hi') return m > 0 ? `${h} बजकर ${m} मिनट` : `${h} बजे`;
+    if (langCode === 'ta') return m > 0 ? `${h} மணி ${m} நிமிடம்` : `${h} மணி`;
+    if (langCode === 'kn') return m > 0 ? `${h} ಗಂಟೆ ${m} ನಿಮಿಷ` : `${h} ಗಂಟೆ`;
+    return m > 0 ? `${h}:${parts[1]}` : `${h}`;
+  };
+
+  const formatSingleTime = (tStr, langCode) => {
+    const parts = (tStr || '').trim().split(':');
+    const h = parts[0];
+    const m = parts[1] ? parseInt(parts[1], 10) : 0;
+    if (langCode === 'te') return m > 0 ? `${h} గంటల ${m} నిమిషాలకు` : `${h} గంటలకు`;
+    if (langCode === 'hi') return m > 0 ? `${h} बजकर ${m} मिनट पर` : `${h} बजे`;
+    if (langCode === 'ta') return m > 0 ? `${h} மணி ${m} நிமிடத்திற்கு` : `${h} மணிக்கு`;
+    if (langCode === 'kn') return m > 0 ? `${h} ಗಂಟೆ ${m} ನಿಮಿಷಕ್ಕೆ` : `${h} ಗಂಟೆಗೆ`;
+    return m > 0 ? `${h}:${parts[1]}` : `${h}`;
+  };
+
+  // Convert time ranges like "8:00 AM – 11:30 AM" or "8 to 11:30"
+  s = s.replace(/(\d{1,2}(?::\d{2})?)\s*(?:AM|am)?\s*[-–—to]\s*(\d{1,2}(?::\d{2})?)\s*(?:AM|am)?/gi, (match, t1, t2) => {
+    const f1 = formatTimeToken(t1, l);
+    const f2 = formatTimeToken(t2, l);
+    if (l === 'te') return `ఉదయం ${f1} నుండి ${f2} వరకు`;
+    if (l === 'hi') return `सुबह ${f1} से ${f2} तक`;
+    if (l === 'ta') return `காலை ${f1} முதல் ${f2} வரை`;
+    if (l === 'kn') return `ಬೆಳಿಗ್ಗೆ ${f1} ರಿಂದ ${f2} ರವರೆಗೆ`;
+    return `${t1} AM to ${t2} AM`;
+  });
+
+  // Convert afternoon/evening time ranges
+  s = s.replace(/(\d{1,2}(?::\d{2})?)\s*(?:PM|pm)?\s*[-–—to]\s*(\d{1,2}(?::\d{2})?)\s*(?:PM|pm)?/gi, (match, t1, t2) => {
+    const f1 = formatTimeToken(t1, l);
+    const f2 = formatTimeToken(t2, l);
+    if (l === 'te') return `సాయంత్రం ${f1} నుండి ${f2} వరకు`;
+    if (l === 'hi') return `शाम ${f1} से ${f2} तक`;
+    if (l === 'ta') return `மாலை ${f1} முதல் ${f2} வரை`;
+    if (l === 'kn') return `ಸಂಜೆ ${f1} ರಿಂದ ${f2} ರವರೆಗೆ`;
+    return `${t1} PM to ${t2} PM`;
+  });
+
+  // Convert standalone times e.g. "7:30 AM"
+  s = s.replace(/(\d{1,2}(?::\d{2})?)\s*(?:AM|am)\b/gi, (match, t1) => {
+    const f = formatSingleTime(t1, l);
+    if (l === 'te') return `ఉదయం ${f}`;
+    if (l === 'hi') return `सुबह ${f}`;
+    if (l === 'ta') return `காலை ${f}`;
+    if (l === 'kn') return `ಬೆಳಿಗ್ಗೆ ${f}`;
+    return `${t1} AM`;
+  });
+
+  // Convert standalone times e.g. "4:30 PM"
+  s = s.replace(/(\d{1,2}(?::\d{2})?)\s*(?:PM|pm)\b/gi, (match, t1) => {
+    const f = formatSingleTime(t1, l);
+    if (l === 'te') return `సాయంత్రం ${f}`;
+    if (l === 'hi') return `शाम ${f}`;
+    if (l === 'ta') return `மாலை ${f}`;
+    if (l === 'kn') return `ಸಂಜೆ ${f}`;
+    return `${t1} PM`;
+  });
+
+  // Collapse accidental duplicate time words
+  s = s.replace(/ఉదయం\s+ఉదయం/g, 'ఉదయం');
+  s = s.replace(/సాయంత్రం\s+సాయంత్రం/g, 'సాయంత్రం');
+  s = s.replace(/सुबह\s+सुबह/g, 'सुबह');
+  s = s.replace(/शाम\s+शाम/g, 'शाम');
+
+  // Strip standalone chat metadata timestamps (e.g. "sent at 10:15 AM" or isolated footer times)
+  s = s.replace(/(?:sent|posted|received)?\s*(?:at|on)?\s*\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\s*$/gmi, ' ');
 
   // 4. Strip UI control words if accidentally caught
   s = s.replace(/\b(Listen|Assistant speaking|Live Assistant|AgriShield Live)\b/gi, ' ');
+
+  // 4.1 Currency symbol normalization into native spoken words
+  if (l === 'te') {
+    s = s.replace(/(?:₹|Rs\.?|INR)\s*([\d,]+)/gi, '$1 రూపాయలు');
+  } else if (l === 'hi') {
+    s = s.replace(/(?:₹|Rs\.?|INR)\s*([\d,]+)/gi, '$1 रुपये');
+  } else if (l === 'ta') {
+    s = s.replace(/(?:₹|Rs\.?|INR)\s*([\d,]+)/gi, '$1 ரூபாய்');
+  } else if (l === 'kn') {
+    s = s.replace(/(?:₹|Rs\.?|INR)\s*([\d,]+)/gi, '$1 ರೂಪಾಯಿ');
+  } else if (l === 'ml') {
+    s = s.replace(/(?:₹|Rs\.?|INR)\s*([\d,]+)/gi, '$1 രൂപ');
+  } else if (l === 'or') {
+    s = s.replace(/(?:₹|Rs\.?|INR)\s*([\d,]+)/gi, '$1 ଟଙ୍କା');
+  } else {
+    s = s.replace(/(?:₹|Rs\.?|INR)\s*([\d,]+)/gi, '$1 Rupees');
+  }
 
   // 5. If regional language (te, hi, ta, kn, or), STRIP bracketed English translations
   // e.g. "(Verdict)", "(Not Safe to Spray)", "(Weather Reasons)", "(Light rain)"
@@ -66,8 +154,12 @@ export function sanitizeTextForSpeech(text, lang = 'en') {
     s = s.replace(/(\d+)\s*g(?:rams?)?\s*\/\s*L(?:iter)?/gi, '$1 గ్రాములు లీటరుకు');
     s = s.replace(/(\d+)\s*ml\s*\/\s*L(?:iter)?/gi, '$1 మిల్లీలీటర్లు లీటరుకు');
     s = s.replace(/(\d+)\s*kg\s*\/\s*acre/gi, '$1 కిలోలు ఎకరానికి');
+    s = s.replace(/15\s*L(?:\s*pump)?/gi, '15 లీటర్ల పంపు');
     s = s.replace(/16\s*L(?:\s*pump)?/gi, '16 లీటర్ల పంపు');
     s = s.replace(/20\s*L(?:\s*pump)?/gi, '20 లీటర్ల పంపు');
+    s = s.replace(/(?:\/|\bper\s*)Qtl\b/gi, ' క్వింటాలుకు');
+    s = s.replace(/\bQtl\b/gi, 'క్వింటాలు');
+    s = s.replace(/క్వింటాల్/g, 'క్వింటా');
     s = s.replace(/(\d+)\s*%/g, '$1 శాతం');
   } else if (l === 'hi') {
     s = s.replace(/(\d+)\s*g(?:rams?)?\s*\/\s*L(?:iter)?/gi, '$1 ग्राम प्रति लीटर');

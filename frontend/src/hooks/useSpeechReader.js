@@ -7,6 +7,7 @@ export const useSpeechReader = () => {
   const [isPaused, setIsPaused] = useState(false);
   const utteranceRef = useRef(null);
   const voicesRef = useRef([]);
+  const audioRef = useRef(null);
 
   // Load and cache voices when available
   useEffect(() => {
@@ -32,6 +33,10 @@ export const useSpeechReader = () => {
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
   }, []);
 
@@ -47,19 +52,24 @@ export const useSpeechReader = () => {
     const targetLocale = getSpeechLocale(langCode).toLowerCase();
     const primaryCode = (langCode || 'en').split('-')[0].toLowerCase();
 
-    // 1. Exact locale match (e.g. "te-IN", "hi-IN", "ta-IN")
-    let match = voices.find(v => v.lang && v.lang.toLowerCase() === targetLocale);
+    // 1. Natural / Neural / Online voices preferred (e.g. Edge Natural Telugu/Hindi)
+    let match = voices.find(v => (v.lang && v.lang.toLowerCase() === targetLocale) && 
+      (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online')));
     if (match) return match;
 
-    // 2. Exact match replacing _ with -
+    // 2. Exact locale match (e.g. "te-IN", "hi-IN", "ta-IN")
+    match = voices.find(v => v.lang && v.lang.toLowerCase() === targetLocale);
+    if (match) return match;
+
+    // 3. Exact match replacing _ with -
     match = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-') === targetLocale);
     if (match) return match;
 
-    // 3. Primary language code prefix (e.g. starts with "te", "hi", "ta")
+    // 4. Primary language code prefix (e.g. starts with "te", "hi", "ta")
     match = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(primaryCode));
     if (match) return match;
 
-    // 4. Voice name containing the language name (e.g. "Telugu", "Hindi", "Tamil")
+    // 5. Voice name containing the language name (e.g. "Telugu", "Hindi", "Tamil")
     const langNames = {
       te: 'telugu', hi: 'hindi', ta: 'tamil', kn: 'kannada',
       ml: 'malayalam', mr: 'marathi', gu: 'gujarati', pa: 'punjabi',
@@ -76,60 +86,36 @@ export const useSpeechReader = () => {
       return null;
     }
 
-    // 5. Fallback to an Indian English or local English voice if no regional voice exists
+    // 6. Fallback to an Indian English or local English voice if no regional voice exists
     match = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || v.name.toLowerCase().includes('india')));
     if (match) return match;
 
-    // 6. System default
+    // 7. System default
     return voices.find(v => v.default) || voices[0] || null;
   }, []);
 
-  const speak = useCallback((text, id = 'default', lang = 'en', rate = 0.8) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      alert('Voice readout (Text-to-Speech) is not supported on this browser.');
-      return;
-    }
-
+  const playBrowserSpeech = useCallback((cleanText, id, lang, rate = 1.18) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     const synth = window.speechSynthesis;
     const primaryCode = (lang || 'en').split('-')[0].toLowerCase();
-
-    // If clicking on current playing item, toggle stop
-    if (speakingId === id) {
-      synth.cancel();
-      setSpeakingId(null);
-      setIsPaused(false);
-      return;
-    }
-
-    synth.cancel();
-
-    // Clean formatting for natural speech without reading brackets, punctuation or symbols
-    const cleanText = sanitizeTextForSpeech(text, lang);
-
-    if (!cleanText) return;
-
     const matchedVoice = findBestVoice(lang);
 
     // Odia TTS Safety Check: If no native Odia voice exists on browser/OS, do not speak garbled phonemes
     if (primaryCode === 'or' && !matchedVoice) {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('agrishield-toast', {
-          detail: {
-            message: 'ଓଡ଼ିଆ ଭଏସ୍ ରିଡର୍ ଡିଭାଇସରେ ଉପଲବ୍ଧ ନାହିଁ। ଅନ-ସ୍କ୍ରିନ୍ ଟେକ୍ସଟ୍ ପ୍ରଦର୍ଶିତ ହେଉଛି।',
-            type: 'info'
-          }
-        }));
-      }
+      window.dispatchEvent(new CustomEvent('agrishield-toast', {
+        detail: {
+          message: 'ଓଡ଼ିଆ ଭଏସ୍ ରିଡର୍ ଡିଭାଇସରେ ଉପଲବ୍ଧ ନାହିଁ। ଅନ-ସ୍କ୍ରିନ୍ ଟେକ୍ସଟ୍ ପ୍ରଦର୍ଶିତ ହେଉଛି।',
+          type: 'info'
+        }
+      }));
       return;
     }
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utteranceRef.current = utterance;
-
     const targetLocale = getSpeechLocale(lang);
     utterance.lang = targetLocale;
-    // Calibrated to 0.8x speed for clear and relaxed rural farmer comprehension
-    utterance.rate = rate || 0.8;
+    utterance.rate = rate || 1.18;
     utterance.pitch = 1.0;
 
     if (matchedVoice) {
@@ -144,27 +130,18 @@ export const useSpeechReader = () => {
 
     utterance.onerror = (e) => {
       console.warn('Speech synthesis error:', e);
-      // For Odia, do not retry with en-IN
       if (primaryCode === 'or') {
         setSpeakingId(null);
         setIsPaused(false);
         return;
       }
-
-      // If the specific voice/language failed and was non-English, retry once with default voice
       if ((e.error === 'language-unavailable' || e.error === 'voice-unavailable' || e.error === 'synthesis-failed') && lang !== 'en') {
         try {
           const fallbackUtterance = new SpeechSynthesisUtterance(cleanText);
           fallbackUtterance.lang = 'en-IN';
-          fallbackUtterance.rate = rate || 1.0;
-          fallbackUtterance.onend = () => {
-            setSpeakingId(null);
-            setIsPaused(false);
-          };
-          fallbackUtterance.onerror = () => {
-            setSpeakingId(null);
-            setIsPaused(false);
-          };
+          fallbackUtterance.rate = rate || 1.18;
+          fallbackUtterance.onend = () => { setSpeakingId(null); setIsPaused(false); };
+          fallbackUtterance.onerror = () => { setSpeakingId(null); setIsPaused(false); };
           synth.speak(fallbackUtterance);
           return;
         } catch { /* silent */ }
@@ -176,26 +153,114 @@ export const useSpeechReader = () => {
     setSpeakingId(id);
     setIsPaused(false);
 
-    // Chrome bug workaround: small delay after cancel() ensures utterance is not dropped
     setTimeout(() => {
       try {
-        if (synth.paused) {
-          synth.resume();
-        }
+        if (synth.paused) synth.resume();
         synth.speak(utterance);
       } catch (err) {
         console.error('synth.speak failed:', err);
         setSpeakingId(null);
       }
     }, 40);
-  }, [speakingId, findBestVoice]);
+  }, [findBestVoice]);
 
-  const stop = useCallback(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+  const speak = useCallback((text, id = 'default', lang = 'en', rate = 1.18) => {
+    // 0. Intelligent Parameter Order Guard: Auto-detect if caller passed (id, text, ...) instead of (text, id, ...)
+    let targetText = text;
+    let targetId = id;
+    let targetLang = lang;
+    let targetRate = rate;
+
+    if (typeof text === 'string' && typeof id === 'string') {
+      const isTextAnId = (text.length < 40 && !text.includes(' ') && !/[\u0C00-\u0C7F\u0900-\u097F]/.test(text));
+      const isIdActualSentence = (id.includes(' ') || /[\u0C00-\u0C7F\u0900-\u097F]/.test(id) || id.length > 50);
+      if (isTextAnId && isIdActualSentence) {
+        targetText = id;
+        targetId = text;
+      }
+    }
+
+    // 1. If clicking on current playing item, toggle stop
+    if (speakingId === targetId) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
       setSpeakingId(null);
       setIsPaused(false);
+      return;
     }
+
+    // Stop any active audio before starting new playback
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    // Clean formatting for natural speech without reading brackets, punctuation or symbols
+    const cleanText = sanitizeTextForSpeech(targetText, targetLang);
+    if (!cleanText) return;
+
+    const primaryCode = (targetLang || 'en').split('-')[0].toLowerCase();
+
+    // Calculate natural speed percentage for edge-tts (default +18% to +20% for crisp Telugu articulation)
+    let rateStr = '+18%';
+    if (typeof targetRate === 'number' && !isNaN(targetRate)) {
+      const diff = Math.round((targetRate - 1.0) * 100);
+      rateStr = diff >= 0 ? `+${diff}%` : `${diff}%`;
+    } else if (typeof targetRate === 'string' && targetRate.includes('%')) {
+      rateStr = targetRate;
+    }
+
+    // 2. High-Fidelity Studio Neural Voice via Server-Side Streaming (Zero-download for farmer)
+    try {
+      const audioUrl = `/api/speech/synthesize?lang=${encodeURIComponent(primaryCode)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(rateStr)}`;
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onplay = () => {
+        setSpeakingId(targetId);
+        setIsPaused(false);
+      };
+
+      audio.onended = () => {
+        setSpeakingId(null);
+        setIsPaused(false);
+        audioRef.current = null;
+      };
+
+      audio.onerror = (err) => {
+        console.warn('Server neural voice stream unavailable, falling back to local speech:', err);
+        audioRef.current = null;
+        playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.18);
+      };
+
+      audio.play().catch((playErr) => {
+        console.warn('Audio play interrupted or blocked by browser autoplay policy, attempting browser fallback:', playErr);
+        audioRef.current = null;
+        playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.18);
+      });
+    } catch (err) {
+      playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.18);
+    }
+  }, [speakingId, playBrowserSpeech]);
+
+  const stop = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeakingId(null);
+    setIsPaused(false);
   }, []);
 
   return { speak, stop, speakingId, isPaused };

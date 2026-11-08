@@ -1,0 +1,98 @@
+{
+  "prediction:6ac3c006e99515afbdd5b917": {
+    "entity_type": "prediction",
+    "entity_id": "6ac3c006e99515afbdd5b917",
+    "deleted_at": "2026-10-05T15:19:34.252231+00:00",
+    "deleted_by": "6ac3c006e99515afbdd5b914",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac3c006e99515afbdd5b918": {
+    "entity_type": "prediction",
+    "entity_id": "6ac3c006e99515afbdd5b918",
+    "deleted_at": "2026-10-05T15:19:34.255630+00:00",
+    "deleted_by": "6ac3c006e99515afbdd5b916",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "booking:BK-DEL-PEND": {
+    "entity_type": "booking",
+    "entity_id": "BK-DEL-PEND",
+    "deleted_at": "2026-10-05T15:19:34.751737+00:00",
+    "deleted_by": "client_user",
+    "reason": "API delete_booking",
+    "metadata": {}
+  },
+  "booking:DEL-PEND": {
+    "entity_type": "booking",
+    "entity_id": "BK-DEL-PEND",
+    "deleted_at": "2026-10-05T15:19:34.751737+00:00",
+    "deleted_by": "client_user",
+    "reason": "API delete_booking",
+    "metadata": {}
+  },
+  "prediction:6ac4afc145f6e59d12ccd6ec": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4afc145f6e59d12ccd6ec",
+    "deleted_at": "2026-10-06T08:22:25.748596+00:00",
+    "deleted_by": "6ac4af9645f6e59d12ccd6eb",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac4b01197b0f1d78e9e7b13": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4b01197b0f1d78e9e7b13",
+    "deleted_at": "2026-10-06T08:23:45.453529+00:00",
+    "deleted_by": "6ac4b00297b0f1d78e9e7b12",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac4bd6d4163aa90cc5bc39b": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4bd6d4163aa90cc5bc39b",
+    "deleted_at": "2026-10-06T09:20:45.431085+00:00",
+    "deleted_by": "6ac4bd5c4163aa90cc5bc39a",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac4be75432b3a5daa9969cd": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4be75432b3a5daa9969cd",
+    "deleted_at": "2026-10-06T09:25:09.238591+00:00",
+    "deleted_by": "6ac4be66432b3a5daa9969cc",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac4c060e18232b0b33f06a0": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4c060e18232b0b33f06a0",
+    "deleted_at": "2026-10-06T09:33:20.815308+00:00",
+    "deleted_by": "6ac4c04ee18232b0b33f069f",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac4d00391dca9b12e943406": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4d00391dca9b12e943406",
+    "deleted_at": "2026-10-06T10:40:03.307984+00:00",
+    "deleted_by": "6ac4cff191dca9b12e943405",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac4dadc777e42db524a5c42": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4dadc777e42db524a5c42",
+    "deleted_at": "2026-10-06T11:26:20.108654+00:00",
+    "deleted_by": "6ac4dacc777e42db524a5c41",
+    "reason": "User deletion",
+    "metadata": {}
+  },
+  "prediction:6ac4df35fad46d01457a6881": {
+    "entity_type": "prediction",
+    "entity_id": "6ac4df35fad46d01457a6881",
+    "deleted_at": "2026-10-06T11:44:53.914028+00:00",
+    "deleted_by": "6ac4df2bfad46d01457a6880",
+    "reason": "User deletion",
+    "metadata": {}
+  }
+}

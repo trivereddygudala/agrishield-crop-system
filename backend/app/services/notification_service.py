@@ -70,7 +70,7 @@ class NotificationService:
         advisories = []
         current = weather_data.get("current") if isinstance(weather_data.get("current"), dict) else weather_data
 
-        # 1. Rain probability evaluation (>80%)
+        # 1. Rain probability evaluation (>70% or heavy precipitation)
         rain_prob = current.get("rain_probability")
         if rain_prob is None:
             rain_prob = current.get("pop")
@@ -78,7 +78,7 @@ class NotificationService:
                 rain_prob = rain_prob * 100
 
         # Also inspect forecast items if current rain probability is not severe
-        if (rain_prob is None or float(rain_prob) <= 80) and isinstance(weather_data.get("forecast"), list):
+        if (rain_prob is None or float(rain_prob) <= 70) and isinstance(weather_data.get("forecast"), list):
             for fc in weather_data.get("forecast", []):
                 if isinstance(fc, dict):
                     f_prob = fc.get("rain_probability")
@@ -86,28 +86,40 @@ class NotificationService:
                         f_prob = fc.get("pop")
                         if f_prob is not None and isinstance(f_prob, (int, float)) and f_prob <= 1.0:
                             f_prob = f_prob * 100
-                    if f_prob is not None and float(f_prob) > 80:
+                    if f_prob is not None and float(f_prob) > 70:
                         rain_prob = f_prob
                         break
 
-        if rain_prob is not None and float(rain_prob) > 80:
+        if rain_prob is not None and float(rain_prob) > 70:
             rain_priority = override_priority if override_priority is not None else "High"
+            prob_pct = int(float(rain_prob))
             advisories.append({
-                "title": "Heavy Rain Expected",
-                "message": "Heavy rain is expected soon. Consider delaying irrigation or foliar spraying.",
+                "title": "🌧️ భారీ వర్ష సూచన / Heavy Rain Expected",
+                "message": f"రాబోయే సమయంలో భారీ వర్షం (వర్ష సూచన: {prob_pct}%) కురిసే అవకాశం ఉంది. రైతులు చేపట్టవలసిన జాగ్రత్తలు: 1) పురుగు మందులు, ఎరువుల పిచికారీ నిలిపివేయండి. 2) బోరు/డ్రిప్ మోటార్లు ఆపండి. 3) పొలంలో మురుగు కాలువలు శుభ్రం చేయండి.",
                 "priority": rain_priority
             })
 
-        # 2. Temperature / Heatwave evaluation (>38°C)
+        # 2. Wind speed evaluation (>18 km/h)
+        wind_spd = current.get("wind_speed")
+        if wind_spd is not None and float(wind_spd) > 18.0:
+            w_spd_val = round(float(wind_spd), 1)
+            advisories.append({
+                "title": "💨 పెనుగాలుల హెచ్చరిక / High Wind Advisory",
+                "message": f"మీ ప్రాంతంలో బలమైన గాలులు ({w_spd_val} km/h) వీస్తున్నాయి. స్ప్రే డ్రిఫ్ట్ నష్టం జరగకుండా పిచికారీ ఆపండి మరియు బలహీనమైన పైర్లకు ఆధారం (Propping) కల్పించండి.",
+                "priority": "Medium"
+            })
+
+        # 3. Temperature / Heatwave evaluation (>38°C)
         temp = current.get("temperature")
         if temp is None:
             temp = current.get("temp")
 
         if temp is not None and float(temp) > 38.0:
+            t_val = round(float(temp), 1)
             heat_priority = override_priority if override_priority is not None else "Medium"
             advisories.append({
-                "title": "High Heat Advisory",
-                "message": "High temperatures are expected. Check your crop and irrigation plan.",
+                "title": "🌡️ తీవ్ర ఎండల హెచ్చరిక / High Heat Advisory",
+                "message": f"తీవ్ర ఎండలు ({t_val}°C) నమోదయ్యే అవకాశం ఉంది. పూత రాలకుండా సాయంత్రం వేళల్లో తేలికపాటి తడులు ఇవ్వండి. మధ్యాహ్నం 11 నుండి 4 వరకు స్ప్రే చేయవద్దు.",
                 "priority": heat_priority
             })
 

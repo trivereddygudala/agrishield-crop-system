@@ -70,6 +70,28 @@ const DashboardPage = () => {
     }
   }, [activeFarm]);
 
+  // Live Weather Telemetry for Dynamic Banner and Voice Sync
+  const [liveWeather, setLiveWeather] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadLiveWeather = async () => {
+      try {
+        const queryLat = coordinates?.lat || 16.5062;
+        const queryLon = coordinates?.lon || 80.6480;
+        const targetId = farmId || activeFarm?.id || 'default';
+        const res = await API.get(`/api/intelligence/weather?farm_id=${targetId}&lat=${queryLat}&lon=${queryLon}`);
+        if (res?.data && isMounted) {
+          setLiveWeather(res.data);
+        }
+      } catch (err) {
+        // Silent fallback
+      }
+    };
+    loadLiveWeather();
+    return () => { isMounted = false; };
+  }, [farmId, activeFarm, coordinates]);
+
   const { lastTelemetry, deviceStatusMap, connectionStatus } = useWebSocket();
 
   const fetchDashboardData = useCallback(async (isBackground = false, skipDeviceStatus = false) => {
@@ -291,30 +313,47 @@ const DashboardPage = () => {
       const localizedStage = translateStage(growthStage, i18n.language) || growthStage;
       const soilVal = activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : (isTe ? 'సరైన స్థాయిలో' : 'optimal');
 
+      const currentTemp = liveWeather?.current?.temperature != null 
+        ? Math.round(liveWeather.current.temperature) 
+        : 34;
+      const rainProb = liveWeather?.current?.rain_probability ?? 0;
+      const weatherCond = rainProb > 50 
+        ? (isTe ? 'వర్షం' : isHi ? 'बारिश' : 'Rainy') 
+        : (isTe ? 'ఎండ' : isHi ? 'धूप' : 'Sunny');
+
       let text = '';
       if (isTe) {
-        text = `నమస్తే ${farmerName} గారు! నేటి మీ పొలం సమాచారం: వాతావరణం 34 డిగ్రీలు మరియు ఎండగా ఉంది. సురక్షితమైన మందుల పిచికారీ సమయం ${dynamicSprayWindow}. మీ ${localizedCropName} పంట ${localizedStage} దశలో ఉంది. నేలలో తేమ ${soilVal} ఉంది. మార్కెట్లో ప్రస్తుత క్వింటాల్ ధర ₹2,150. తెగుళ్ల ముప్పు ప్రస్తుతం తక్కువగా ఉంది. శుభదినం!`;
+        text = `నమస్తే ${farmerName} గారు! నేటి మీ పొలం సమాచారం: వాతావరణం ${currentTemp} డిగ్రీలు మరియు ${weatherCond}గా ఉంది. సురక్షితమైన మందుల పిచికారీ సమయం ${dynamicSprayWindow}. మీ ${localizedCropName} పంట ${localizedStage} దశలో ఉంది. నేలలో తేమ ${soilVal} ఉంది. మార్కెట్లో ప్రస్తుత క్వింటాల్ ధర ₹2,150. తెగుళ్ల ముప్పు ప్రస్తుతం తక్కువగా ఉంది. శుభదినం!`;
       } else if (isHi) {
-        text = `नमस्ते ${farmerName} जी! आज का खेत का विवरण: मौसम 34 डिग्री और धूप वाला है। सुरक्षित छिड़काव का समय ${dynamicSprayWindow} है। आपकी ${localizedCropName} फसल ${localizedStage} अवस्था में है। मिट्टी की नमी ${soilVal} है। मंडी में आज का भाव ₹2,150 प्रति क्विंटल है। फसल रोग का जोखिम कम है। आपका दिन शुभ हो!`;
+        text = `नमस्ते ${farmerName} जी! आज का खेत का विवरण: मौसम ${currentTemp} डिग्री और ${weatherCond} है। सुरक्षित छिड़काव का समय ${dynamicSprayWindow} है। आपकी ${localizedCropName} फसल ${localizedStage} अवस्था में है। मिट्टी की नमी ${soilVal} है। मंडी में आज का भाव ₹2,150 प्रति क्विंटल है। फसल रोग का जोखिम कम है। आपका दिन शुभ हो!`;
       } else {
-        text = `Namaste ${farmerName}! Here is today's farm report: The weather is 34 degrees and sunny. The safe spray window is ${dynamicSprayWindow}. Your ${localizedCropName} is in ${localizedStage} stage. Soil moisture is ${soilVal}. Current mandi market rate is ₹2,150 per quintal. Foliar disease risk is low. Have a productive farming day!`;
+        text = `Namaste ${farmerName}! Here is today's farm report: The weather is ${currentTemp} degrees and ${weatherCond}. The safe spray window is ${dynamicSprayWindow}. Your ${localizedCropName} is in ${localizedStage} stage. Soil moisture is ${soilVal}. Current mandi market rate is ₹2,150 per quintal. Foliar disease risk is low. Have a productive farming day!`;
       }
-      speak('dashboard_daily_brief', text, i18n.language, 0.88);
+      speak(text, 'dashboard_daily_brief', i18n.language, 1.18);
     }
   };
 
   // ─── Full Suite: 1-Tap WhatsApp Farm Report Dispatch ───
   const handleShareWhatsApp = () => {
     const isTe = i18n.language === 'te';
+    const isHi = i18n.language === 'hi';
     const farmerName = user?.name || user?.username || 'Farmer';
     const localizedCropName = cropName ? (translateCrop(cropName, i18n.language) || cropName) : 'Crop';
     const soilVal = activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : 'Normal';
+    const currentTemp = liveWeather?.current?.temperature != null 
+      ? Math.round(liveWeather.current.temperature) 
+      : 34;
+    const rainProb = liveWeather?.current?.rain_probability ?? 0;
+    const weatherCond = rainProb > 50 
+      ? (isTe ? 'వర్షం' : isHi ? 'बारिश' : 'Rainy') 
+      : (isTe ? 'ఎండ' : isHi ? 'धूप' : 'Sunny');
+    const weatherEmoji = rainProb > 50 ? '🌧️' : (rainProb > 25 ? '⛅' : '☀️');
 
     const message = `🌾 *AgriShield AI - ${isTe ? 'నేటి వ్యవసాయ నివేదిక' : 'Daily Farm Status'}* 🌾\n` +
       `👤 ${farmerName} | 📍 ${farmLocationDisplay}\n` +
       `📅 ${currentDateFormatted}\n` +
       `--------------------------------\n` +
-      `☀️ ${isTe ? 'వాతావరణం' : 'Weather'}: 34°C & ${isTe ? 'ఎండ' : 'Sunny'}\n` +
+      `${weatherEmoji} ${isTe ? 'వాతావరణం' : 'Weather'}: ${currentTemp}°C & ${weatherCond}\n` +
       `⏱️ ${isTe ? 'స్ప్రే సమయం' : 'Safe Spray'}: ${dynamicSprayWindow}\n` +
       `💧 ${isTe ? 'నేల తేమ' : 'Soil Moisture'}: ${soilVal}\n` +
       `🌿 ${isTe ? 'క్రియాశీల పంట' : 'Crop'}: ${localizedCropName} (${translateStage(growthStage, i18n.language)})\n` +
@@ -539,7 +578,11 @@ const DashboardPage = () => {
                 <div className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] flex flex-wrap items-center gap-1.5 pt-0.5">
                   <span>{t('dashboard.telemetry_banner.today_is', 'Today is ')}</span>
                   <span className="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-black shadow-md border border-amber-300 text-xs sm:text-sm">
-                    ☀️ {t('dashboard.telemetry_banner.weather_summary', '34°C & Sunny')}
+                    {liveWeather?.current?.rain_probability > 50 ? '🌧️' : (liveWeather?.current?.rain_probability > 25 ? '⛅' : '☀️')}{' '}
+                    {liveWeather?.current?.temperature != null ? Math.round(liveWeather.current.temperature) : 34}°C &{' '}
+                    {liveWeather?.current?.rain_probability > 50 
+                      ? (i18n.language === 'te' ? 'వర్షం' : i18n.language === 'hi' ? 'बारिश' : 'Rainy') 
+                      : (i18n.language === 'te' ? 'ఎండ' : i18n.language === 'hi' ? 'धूप' : 'Sunny')}
                   </span>
                   <span>{t('dashboard.telemetry_banner.safe_spray_window', ' — Safe spray window: ')}</span>
                   {/* Dynamic Live Safe Spray Window */}

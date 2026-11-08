@@ -16,6 +16,7 @@ async def scheduler_loop(db):
     """Async scheduler running background telemetry and alert tasks every minute."""
     logger.info("Notification scheduler background loop checking active schedules...")
     last_cache_cleanup = 0.0
+    last_weather_check = 0.0
     while True:
         try:
             now = datetime.now(timezone.utc)
@@ -29,6 +30,31 @@ async def scheduler_loop(db):
                     await asyncio.to_thread(cleanup_local_inference_cache, 86400)
                 except Exception as cleanup_err:
                     logger.warning(f"[SCHEDULER] Inference cache cleanup notice: {cleanup_err}")
+
+            # Automated Regional Weather & Rainfall Advisory Dispatch (Evaluates every 2 hours)
+            if now_ts - last_weather_check > 7200:
+                last_weather_check = now_ts
+                try:
+                    from backend.app.services.weather import WeatherIntelligenceService
+                    w_svc = WeatherIntelligenceService()
+                    farms_cursor = db.farm_profiles.find({"is_active": {"$ne": False}}).limit(30)
+                    active_farms = await farms_cursor.to_list(length=30)
+                    for farm in active_farms:
+                        f_user_id = str(farm.get("user_id") or "")
+                        f_id = str(farm.get("_id") or "")
+                        f_lat = farm.get("latitude")
+                        f_lon = farm.get("longitude")
+                        if f_user_id and f_lat and f_lon:
+                            w_data = await w_svc.get_weather_for_farm(farm_id=f_id, lat=float(f_lat), lon=float(f_lon))
+                            if w_data:
+                                await NotificationService.trigger_weather_advisory(
+                                    db=db,
+                                    user_id=f_user_id,
+                                    weather_data=w_data,
+                                    farm_id=f_id
+                                )
+                except Exception as w_err:
+                    logger.warning(f"[SCHEDULER] Periodic weather advisory notice: {w_err}")
             
             # Query all enabled schedules whose next_run matches or is before the current time
             cursor = db.scheduled_notifications.find({

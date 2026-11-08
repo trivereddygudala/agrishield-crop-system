@@ -127,10 +127,13 @@ export function getActionCTA(item, isTe = false) {
     };
   }
 
-  // 2. Weather -> View Farm Operations
-  if (cat.includes('weather') || title.includes('weather') || title.includes('rain') || title.includes('heat')) {
+  // 2. Weather -> View Farm Operations & Pause Pump Shortcut
+  if (cat.includes('weather') || title.includes('weather') || title.includes('rain') || title.includes('heat') || title.includes('వర్ష')) {
+    const isRain = title.includes('rain') || title.includes('వర్ష');
     return {
-      label: isTe ? 'వ్యవసాయ పనుల వివరాలు చూడండి' : 'View Farm Operations',
+      label: isTe 
+        ? (isRain ? '💧 పంప్ ఆపండి & వ్యవసాయ సలహా' : 'వ్యవసాయ పనుల వివరాలు చూడండి') 
+        : (isRain ? '💧 Pause Pump & Spray Advice' : 'View Farm Operations'),
       url: cleanUrl || '/farm?tab=farm-intelligence'
     };
   }

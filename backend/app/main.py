@@ -248,7 +248,7 @@ models_static_dir = os.path.join(BASE_DIR, "models")
 if os.path.exists(models_static_dir):
     app.mount("/models", StaticFiles(directory=models_static_dir), name="models")
 
-from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment, plant_id, agrochemical, sync
+from backend.app.routers import auth, predict, ai, iot, devices, farm_profiles, notifications, analytics, intelligence, admin, firmware, market, support, equipment, plant_id, agrochemical, sync, speech
 
 # 1. Include core and AI routers
 app.include_router(auth.router)
@@ -267,6 +267,7 @@ app.include_router(analytics.router)
 app.include_router(intelligence.router)
 app.include_router(firmware.router)
 app.include_router(support.router)
+app.include_router(speech.router)
 
 # 3. Dual-Mount Dedicated Domain Routers (/api/v1/* AND /api/*) for Zero-Error Compatibility
 # Master Cross-Device Data Sync & Deletions Router
