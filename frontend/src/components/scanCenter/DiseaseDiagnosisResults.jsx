@@ -60,6 +60,38 @@ const getBaselineICARReferences = (crop, disease, lang = 'en') => {
     }));
   };
 
+  // 0. HEALTHY CROP NORMALIZATION (When no disease is detected)
+  const isHealthyCondition = dLow.includes('healthy') || dLow.includes('ఆరోగ్య') || dLow.includes('రక్షణ') || dLow.includes('స్వస్థ') || dLow.includes('సంపూర్ణ');
+  if (isHealthyCondition) {
+    let healthyImg1 = '/samples/botanical/tomato_01.jpg';
+    let healthyImg2 = '/samples/botanical/tomato_02.jpg';
+    let healthyImg3 = '/samples/botanical/tomato_03.jpg';
+
+    if (cLow.includes('corn') || cLow.includes('maize') || cLow.includes('మొక్కజొన్న')) {
+      healthyImg1 = '/samples/botanical/corn_01.jpg';
+      healthyImg2 = '/samples/botanical/corn_02.jpg';
+      healthyImg3 = '/samples/botanical/corn_03.jpg';
+    } else if (cLow.includes('cotton') || cLow.includes('పత్తి')) {
+      healthyImg1 = '/samples/botanical/cotton_01.jpg';
+      healthyImg2 = '/samples/botanical/cotton_02.jpg';
+      healthyImg3 = '/samples/botanical/cotton_03.jpg';
+    } else if (cLow.includes('chilli') || cLow.includes('మిరప')) {
+      healthyImg1 = '/samples/botanical/chilli_01.jpg';
+      healthyImg2 = '/samples/botanical/chilli_02.jpg';
+      healthyImg3 = '/samples/botanical/chilli_03.jpg';
+    } else if (cLow.includes('citrus') || cLow.includes('నిమ్మ')) {
+      healthyImg1 = '/samples/botanical/citrus_01.jpg';
+      healthyImg2 = '/samples/botanical/citrus_02.jpg';
+      healthyImg3 = '/samples/botanical/citrus_03.jpg';
+    }
+
+    return makeStages([
+      { id: 'healthy_01', crop: crop || 'Crop', disease: isTe ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Specimen', url: healthyImg1, stage: isTe ? 'ప్రారంభ పెరుగుదల (Healthy Growth)' : 'Early Healthy Growth' },
+      { id: 'healthy_02', crop: crop || 'Crop', disease: isTe ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Specimen', url: healthyImg2, stage: isTe ? 'క్రియాశీల వృద్ధి (Active Vegetative)' : 'Active Vegetative Vigor' },
+      { id: 'healthy_03', crop: crop || 'Crop', disease: isTe ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Specimen', url: healthyImg3, stage: isTe ? 'పరిపక్వ దశ (Full Canopy Maturity)' : 'Canopy Maturity' }
+    ]);
+  }
+
   // 1. CORN / MAIZE
   if (cLow.includes('corn') || cLow.includes('maize') || cLow.includes('మొక్కజొన్న') || cLow.includes('మక్కజొన్న') || cLow.includes('मक्का')) {
     if (dLow.includes('rust') || dLow.includes('తుప్పు') || dLow.includes('కుంకుమ') || dLow.includes('రస్ట్') || dLow.includes('గేరుయి') || dLow.includes('puccinia')) {
@@ -284,6 +316,13 @@ export default function DiseaseDiagnosisResults({
     sessionStorage.setItem('agrishield_tab_lang_disease', clean);
   };
 
+  // Safe State Variables & Speech Reader Hook (prevents ReferenceError)
+  const status = liveResult?.prediction_status || (liveResult?.is_healthy ? 'healthy' : 'disease');
+  const [selectedRefIdx, setSelectedRefIdx] = useState(0);
+  const [selectedTankSize, setSelectedTankSize] = useState(15);
+  const [activeProductIdx, setActiveProductIdx] = useState(0);
+  const { speak, stop: stopSpeech, speakingId } = useSpeechReader();
+
   const localizedCrop = translateCrop(rawCropName, activeLang) || rawCropName;
   const localizedDisease = translateDisease(rawDiseaseName, activeLang, rawCropName, status) || rawDiseaseName;
   const categoryInfo = getDiseaseCategory(rawCropName, rawDiseaseName, activeLang);
@@ -322,13 +361,19 @@ export default function DiseaseDiagnosisResults({
     'healthy': ['healthy', 'ఆరోగ్యకరమైన', 'ఆరోగ్య', 'स्वस्थ']
   }), []);
 
-  const [selectedRefIdx, setSelectedRefIdx] = useState(0);
-
   // Load 3 matching authentic pathology comparison photos from dataset catalog
   useEffect(() => {
     let isMounted = true;
     const loadCatalog = async () => {
       try {
+        // Fast-path: When crop is healthy, immediately mount authentic botanical healthy trio without network delay
+        const isHealthyScan = (rawDiseaseName || '').toLowerCase().includes('healthy') || status === 'healthy' || liveResult?.is_healthy;
+        if (isHealthyScan) {
+          const healthyBaseline = getBaselineICARReferences(rawCropName, 'healthy', activeLang);
+          if (isMounted) setReferenceImages(healthyBaseline);
+          return;
+        }
+
         const res = await fetch('/samples/dataset_catalog.json');
         if (!res.ok) return;
         const catalog = await res.json();
@@ -783,26 +828,50 @@ export default function DiseaseDiagnosisResults({
           </div>
 
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
-            {localizedDisease}
+            {isHealthy
+              ? (activeLang === 'te' ? 'ఆరోగ్యకరమైన పంట (తెగుళ్లు లేవు)' : 'Healthy & Disease-Free Crop')
+              : localizedDisease}
           </h1>
         </div>
 
-        {/* Observable Symptoms Bullet List */}
-        {plantixSymptoms && plantixSymptoms.length > 0 && (
-          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
-              {activeLang === 'te' ? 'లక్షణాలు (Observed Symptoms):' : 'Key Field Symptoms:'}
-            </span>
-            <ul className="space-y-1 text-xs text-slate-700 dark:text-slate-300">
-              {plantixSymptoms.slice(0, 3).map((sym, idx) => (
+        {/* Observable Symptoms Bullet List / Healthy Crop Field Indicators */}
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+            {isHealthy
+              ? (activeLang === 'te' ? 'ఆరోగ్యకరమైన సంకేతాలు (Healthy Field Indicators):' : 'Healthy Field Indicators:')
+              : (activeLang === 'te' ? 'లక్షణాలు (Observed Symptoms):' : 'Key Field Symptoms:')}
+          </span>
+          <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
+            {isHealthy ? (
+              <>
+                <li className="flex items-start gap-1.5 leading-snug">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>{activeLang === 'te' ? 'ఆకులు సహజమైన పచ్చదనం, దృఢత్వం మరియు ఆరోగ్యకరమైన కణజాలం కలిగి ఉన్నాయి.' : 'Leaves exhibit natural green vigor, cellular firmness, and robust chloroplast vitality.'}</span>
+                </li>
+                <li className="flex items-start gap-1.5 leading-snug">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>{activeLang === 'te' ? 'ఎలాంటి ఫంగల్ తెగులు మచ్చలు, రస్ట్ బొబ్బలు లేదా బాక్టీరియల్ మాపులు లేవు.' : 'Zero fungal pustules, necrotic blight lesions, or bacterial water-soaked margins detected.'}</span>
+                </li>
+                <li className="flex items-start gap-1.5 leading-snug">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>{activeLang === 'te' ? 'కిరణజన్య సంయోగ క్రియ సక్రమంగా జరుగుతోంది, పైరు పెరుగుదల సంపూర్ణంగా ఉంది.' : 'Optimal photosynthesis functioning normally with healthy vegetative crop growth.'}</span>
+                </li>
+              </>
+            ) : plantixSymptoms && plantixSymptoms.length > 0 ? (
+              plantixSymptoms.slice(0, 3).map((sym, idx) => (
                 <li key={idx} className="flex items-start gap-1.5 leading-snug">
                   <span className="text-emerald-500 font-bold">•</span>
                   <span>{sym}</span>
                 </li>
-              ))}
-            </ul>
-          </div>
-        )}
+              ))
+            ) : (
+              <li className="flex items-start gap-1.5 leading-snug">
+                <span className="text-emerald-500 font-bold">•</span>
+                <span>{activeLang === 'te' ? 'ఆకులపై వ్యాధి లక్షణాలు విశ్లేషించబడ్డాయి.' : 'Foliar pathology symptoms identified on leaf surface.'}</span>
+              </li>
+            )}
+          </ul>
+        </div>
       </Card>
 
       {/* ========================================================

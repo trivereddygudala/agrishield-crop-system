@@ -2541,30 +2541,32 @@ async def predict_pytorch_endpoint(
                 prediction_result["disease_name"] = fallback_dis
                 prediction_result["localized_crop"] = fallback_crop
                 prediction_result["localized_disease"] = fallback_dis
-                # Parallelize diagnostic text translations with strict timeout to prevent stalls
-                with ThreadPoolExecutor(max_workers=5) as pool:
-                    f_sym = pool.submit(safe_translate, symptoms)
-                    f_org = pool.submit(translate_with_english_chemicals, organic_treatment)
-                    f_chem = pool.submit(translate_with_english_chemicals, chemical_treatment)
-                    f_adv = pool.submit(safe_translate, farmer_friendly_advice)
-                    f_safe = pool.submit(translate_with_english_chemicals, prediction_result.get("safety_precautions", "None"))
-                    f_prev = pool.submit(parallel_translate_list, prevention_methods)
-                    f_caus = pool.submit(parallel_translate_list, possible_causes)
 
-                    try: symptoms = f_sym.result(timeout=2.5)
-                    except Exception: pass
-                    try: organic_treatment = f_org.result(timeout=2.5)
-                    except Exception: pass
-                    try: chemical_treatment = f_chem.result(timeout=2.5)
-                    except Exception: pass
-                    try: farmer_friendly_advice = f_adv.result(timeout=2.5)
-                    except Exception: pass
-                    try: prediction_result["safety_precautions"] = f_safe.result(timeout=2.5)
-                    except Exception: pass
-                    try: prevention_methods = f_prev.result(timeout=2.5)
-                    except Exception: pass
-                    try: possible_causes = f_caus.result(timeout=2.5)
-                    except Exception: pass
+                # Batched non-blocking translation with hard 1.8s timeout to eliminate 15s execution stalls
+                batch_to_translate = {
+                    "symptoms": symptoms,
+                    "organic_treatment": organic_treatment,
+                    "chemical_treatment": chemical_treatment,
+                    "farmer_friendly_advice": farmer_friendly_advice,
+                    "safety_precautions": prediction_result.get("safety_precautions", "None"),
+                    "prevention_methods": prevention_methods,
+                    "possible_causes": possible_causes
+                }
+                try:
+                    translated_batch = await asyncio.wait_for(
+                        _batch_translate_deep_fallback(batch_to_translate, target_lang[:2]),
+                        timeout=1.8
+                    )
+                    if translated_batch:
+                        if translated_batch.get("symptoms"): symptoms = translated_batch["symptoms"]
+                        if translated_batch.get("organic_treatment"): organic_treatment = translated_batch["organic_treatment"]
+                        if translated_batch.get("chemical_treatment"): chemical_treatment = translated_batch["chemical_treatment"]
+                        if translated_batch.get("farmer_friendly_advice"): farmer_friendly_advice = translated_batch["farmer_friendly_advice"]
+                        if translated_batch.get("safety_precautions"): prediction_result["safety_precautions"] = translated_batch["safety_precautions"]
+                        if translated_batch.get("prevention_methods"): prevention_methods = translated_batch["prevention_methods"]
+                        if translated_batch.get("possible_causes"): possible_causes = translated_batch["possible_causes"]
+                except Exception as b_ex:
+                    logger.debug(f"Fast batch translation fallback on timeout: {b_ex}")
             except Exception as ex:
                 print("Phase 4 deep-translator fallback failed:", ex)
                 pass
@@ -2631,55 +2633,43 @@ async def predict_pytorch_endpoint(
 
                 if not translated_advisor_via_nvidia:
                     try:
-                        from deep_translator import GoogleTranslator
-                        from concurrent.futures import ThreadPoolExecutor
-
                         organic_texts = advisor_data.get("treatment", {}).get("organic", [])
                         chemical_texts = advisor_data.get("treatment", {}).get("chemical", []) if is_confirmed_disease else []
                         prevention_texts = advisor_data.get("prevention", [])
                         tips_texts = advisor_data.get("tips", [])
+                        sev_level = advisor_data.get("severity", {}).get("level", "")
+                        sev_desc = advisor_data.get("severity", {}).get("description", "")
+                        spray_best = advisor_data.get("spray", {}).get("best_time", "")
+                        spray_wind = advisor_data.get("spray", {}).get("wind_warning", "")
 
-                        translator = GoogleTranslator(source='auto', target=target_lang[:2])
-
-                        def safe_adv_translate(text):
-                            if not text: return ""
-                            cache_key = f"{target_lang[:2]}:{str(text).strip()}"
-                            if cache_key in _TRANSLATION_CACHE:
-                                return _TRANSLATION_CACHE[cache_key]
-                            try:
-                                res = translator.translate(str(text))
-                                _TRANSLATION_CACHE[cache_key] = res
-                                return res
-                            except Exception:
-                                return text
-
-                        def parallel_translate_adv(arr):
-                            if not arr: return []
-                            uncached = [t for t in arr if t and f"{target_lang[:2]}:{str(t).strip()}" not in _TRANSLATION_CACHE]
-                            if uncached:
-                                with ThreadPoolExecutor(max_workers=min(len(uncached), 5)) as pool:
-                                    list(pool.map(safe_adv_translate, uncached))
-                            return [safe_adv_translate(t) for t in arr if t]
-
-                        if organic_texts:
-                            advisor_data["treatment"]["organic"] = parallel_translate_adv(organic_texts)
-                        if chemical_texts and is_confirmed_disease:
-                            advisor_data["treatment"]["chemical"] = parallel_translate_adv(chemical_texts)
-                        else:
-                            advisor_data["treatment"]["chemical"] = []
-                        if prevention_texts:
-                            advisor_data["prevention"] = parallel_translate_adv(prevention_texts)
-                        if tips_texts:
-                            advisor_data["tips"] = parallel_translate_adv(tips_texts)
-
-                        if "level" in advisor_data.get("severity", {}):
-                            advisor_data["severity"]["level"] = safe_adv_translate(advisor_data["severity"]["level"])
-                        if "description" in advisor_data.get("severity", {}):
-                            advisor_data["severity"]["description"] = safe_adv_translate(advisor_data["severity"]["description"])
-                        if "best_time" in advisor_data.get("spray", {}):
-                            advisor_data["spray"]["best_time"] = safe_adv_translate(advisor_data["spray"]["best_time"])
-                        if "wind_warning" in advisor_data.get("spray", {}):
-                            advisor_data["spray"]["wind_warning"] = safe_adv_translate(advisor_data["spray"]["wind_warning"])
+                        adv_batch = {
+                            "organic": organic_texts,
+                            "chemical": chemical_texts,
+                            "prevention": prevention_texts,
+                            "tips": tips_texts,
+                            "sev_level": sev_level,
+                            "sev_desc": sev_desc,
+                            "spray_best": spray_best,
+                            "spray_wind": spray_wind
+                        }
+                        translated_adv = await asyncio.wait_for(
+                            _batch_translate_deep_fallback(adv_batch, target_lang[:2]),
+                            timeout=1.5
+                        )
+                        if translated_adv:
+                            if translated_adv.get("organic"): advisor_data["treatment"]["organic"] = translated_adv["organic"]
+                            if translated_adv.get("chemical") and is_confirmed_disease: advisor_data["treatment"]["chemical"] = translated_adv["chemical"]
+                            else: advisor_data["treatment"]["chemical"] = []
+                            if translated_adv.get("prevention"): advisor_data["prevention"] = translated_adv["prevention"]
+                            if translated_adv.get("tips"): advisor_data["tips"] = translated_adv["tips"]
+                            if translated_adv.get("sev_level") and "level" in advisor_data.get("severity", {}):
+                                advisor_data["severity"]["level"] = translated_adv["sev_level"]
+                            if translated_adv.get("sev_desc") and "description" in advisor_data.get("severity", {}):
+                                advisor_data["severity"]["description"] = translated_adv["sev_desc"]
+                            if translated_adv.get("spray_best") and "best_time" in advisor_data.get("spray", {}):
+                                advisor_data["spray"]["best_time"] = translated_adv["spray_best"]
+                            if translated_adv.get("spray_wind") and "wind_warning" in advisor_data.get("spray", {}):
+                                advisor_data["spray"]["wind_warning"] = translated_adv["spray_wind"]
                     except Exception as ex:
                         print("Deep-translator fallback failed:", ex)
                         pass

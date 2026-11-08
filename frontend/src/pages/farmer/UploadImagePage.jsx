@@ -662,6 +662,12 @@ const UploadImagePage = () => {
 
   // Code-split dynamic PDF generation (loads jspdf and autotable only on demand with bulletproof fallback)
   const handleDownloadPDF = async () => {
+    const predStatus = (liveResult?.prediction_status || '').toLowerCase();
+    const diagStatus = (liveResult?.diagnosis_status || '').toLowerCase();
+    const isUnsupported = predStatus === 'unsupported' || diagStatus === 'image_unsuitable';
+    const isUncertain = liveResult?.requires_secondary_review === true || diagStatus === 'uncertain' || isUnsupported;
+    const isHealthy = predStatus === 'healthy' || ((liveResult?.canonical_disease_name || liveResult?.disease_name || '').toLowerCase().includes('healthy') && predStatus !== 'diseased');
+
     try {
       const jspdfModule = await import('jspdf');
       const jsPDF = jspdfModule.default || jspdfModule.jsPDF || jspdfModule;
@@ -683,12 +689,6 @@ const UploadImagePage = () => {
       const disease = liveResult?.disease_name || 'Crop Health Condition';
       const crop = liveResult?.crop_name || 'Agricultural Crop';
       const confidence = liveResult?.confidence ? (liveResult.confidence * 100).toFixed(1) + '%' : '99.4%';
-
-      const predStatus = (liveResult?.prediction_status || '').toLowerCase();
-      const diagStatus = (liveResult?.diagnosis_status || '').toLowerCase();
-      const isUnsupported = predStatus === 'unsupported' || diagStatus === 'image_unsuitable';
-      const isUncertain = liveResult?.requires_secondary_review === true || diagStatus === 'uncertain' || isUnsupported;
-      const isHealthy = predStatus === 'healthy' || ((liveResult?.canonical_disease_name || liveResult?.disease_name || '').toLowerCase().includes('healthy') && predStatus !== 'diseased');
 
       let safeChemText = 'No chemical treatment provided.';
       if (isUnsupported) {
