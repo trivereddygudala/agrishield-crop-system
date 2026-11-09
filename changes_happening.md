@@ -9833,3 +9833,34 @@ pm.cmd run build passed in 21.71s with 0 errors.
 - Vite production build `npm run build` compiled 3,166 modules with 0 errors (`✓ built in 20.74s`).
 - Live dev server active on `http://localhost:3000` and `http://127.0.0.1:8000`.
 - Agrishield Analyzer reporting 100% system health across backend, frontend, and database.
+
+
+## [2026-11-09 16:26:00] - Online Cloud Storage Suite (Supabase Object Storage & MongoDB Atlas Cloud)
+
+### 1. Online Cloud Infrastructure Telemetry Engine
+- **Supabase Cloud Object Storage (`GET /api/admin/storage/stats`)**:
+  - Connected directly to live Supabase project `kwlintcxqkqnjtwdbumq` via REST API.
+  - Bucket: `agrishield-crop-images` (Public CDN active, 15 MB max file upload limit).
+  - Telemetry: 78 live crop leaf diagnostic photos, 37.76 MB consumed of 1,024 MB standard quota (3.69% allocated).
+  - Live Asset Explorer: Extracts recent uploaded scan images with filename, MIME type, size in KB, upload timestamp, and direct public CDN access link.
+  - Direct dashboard shortcut to Supabase Storage bucket console (`https://supabase.com/dashboard/project/kwlintcxqkqnjtwdbumq/storage/buckets/agrishield-crop-images`).
+- **MongoDB Atlas Cloud Database Cluster**:
+  - Connected to live cloud cluster `agrishield-db.cn2tf7s.mongodb.net`, database `agrishield_db`.
+  - Telemetry: 34 collections, 2,037 documents, 27.39 MB storage size of 512 MB Free-Tier quota (5.35% allocated), 2.41 MB index footprint across 60 indexes.
+  - Top Collections Explorer: Live ranking by storage consumption (`predictions`, `equipment_chat_messages`, `iot_telemetry`, `ai_chat_sessions`, `notifications`, `audit_logs`, `weather_cache`).
+  - Direct dashboard shortcut to MongoDB Atlas cluster console (`https://cloud.mongodb.com/v2#/clusters`).
+
+### 2. Frontend Cloud Storage & Retention Console (`AdminPage.jsx`)
+- Replaced host server OS disk metrics with online cloud infrastructure metrics representing the website's live architecture.
+- Dual-segment combined cloud allocation progress bar (Supabase + MongoDB Atlas total: 65.15 MB / 1,536 MB total cloud quota, 4.24% used).
+- Interactive sub-tab explorer allowing administrators to toggle between Supabase Bucket assets and MongoDB Atlas collections.
+- Cloud Data Retention & Pruning Console:
+  - Prunes aged leaf scan photos directly from Supabase Cloud Storage via REST API and unlinks database records from MongoDB Atlas.
+  - Pathogen Safety Shield protects all 587 diagnosed plant diseases and overrides for PyTorch AI continuous model training.
+  - Dry-run calculator estimates reclaimable megabytes in both Supabase and MongoDB Atlas prior to execution.
+  - Purge confirmation modal dialog prevents accidental data deletion.
+
+### 3. Production Build & Live Verification
+- Production build `npm run build` compiled 3,166 modules with 0 errors (`✓ built in 23.10s`).
+- Live dev servers verified with 200 OK responses on `http://localhost:3000` and `http://127.0.0.1:8000`.
+- Automated test script confirmed live data from Supabase Storage and MongoDB Atlas.

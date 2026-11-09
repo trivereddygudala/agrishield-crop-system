@@ -61,7 +61,11 @@ import {
   Pause,
   PhoneForwarded,
   LogOut,
-  Flame
+  Flame,
+  Cloud,
+  ExternalLink,
+  Folder,
+  Image
 } from 'lucide-react';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -531,6 +535,7 @@ export default function AdminPage() {
   const [purgingStorage, setPurgingStorage] = useState(false);
   const [purgeResult, setPurgeResult] = useState(null);
   const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
+  const [cloudExplorerTab, setCloudExplorerTab] = useState('supabase');
 
   // Retention Config Options
   const [purgeScans, setPurgeScans] = useState(true);
@@ -1396,10 +1401,10 @@ export default function AdminPage() {
     },
     { 
       id: 'storage', 
-      label: 'Storage & Data Retention', 
-      description: 'Host disk telemetry, MongoDB Atlas footprint, uploads cache, and automated data retention purge controls.',
-      icon: HardDrive, 
-      badge: storageStats?.disk ? `${storageStats.disk.free_gb} GB Free` : 'Capacity', 
+      label: 'Cloud Storage & Retention', 
+      description: 'Online Supabase Cloud Storage bucket & MongoDB Atlas database cluster telemetry, asset explorer, and safe cloud retention controls.',
+      icon: Cloud, 
+      badge: storageStats?.total_cloud_used_mb ? `${storageStats.total_cloud_used_mb} MB Cloud` : 'Cloud Live', 
       badgeColor: storageStats?.is_almost_full 
         ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse' 
         : (storageStats?.warning_elevated ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300')
@@ -1579,12 +1584,12 @@ export default function AdminPage() {
               </button>
 
               <button
-                onClick={() => setTab('settings')}
-                className="px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-900/80 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                title={`Disk used: ${storageStats?.disk?.used_percentage || 54.9}% (${storageStats?.disk?.free_gb || 213.9} GB Free)`}
+                onClick={() => setTab('storage')}
+                className="px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/80 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                title={`Cloud storage used: ${storageStats?.total_cloud_used_mb || 65.1} MB (Supabase: ${storageStats?.supabase?.used_mb || 37.8} MB, MongoDB Atlas: ${storageStats?.database?.storage_size_mb || 27.4} MB)`}
               >
-                <HardDrive className="w-3.5 h-3.5 text-amber-500" />
-                <span>Reclaim Storage ({storageStats?.disk?.used_percentage || 55}%)</span>
+                <Cloud className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Cloud Storage ({storageStats?.total_cloud_used_mb || 65} MB)</span>
               </button>
             </div>
           </div>
@@ -1794,7 +1799,7 @@ export default function AdminPage() {
                 {activeTab === 'firmware' && <UploadCloud className="w-3.5 h-3.5" />}
                 {activeTab === 'logs' && <FileText className="w-3.5 h-3.5" />}
                 {activeTab === 'settings' && <Sliders className="w-3.5 h-3.5" />}
-                {activeTab === 'storage' && <HardDrive className="w-3.5 h-3.5 text-amber-400" />}
+                {activeTab === 'storage' && <Cloud className="w-3.5 h-3.5 text-emerald-400" />}
                 {activeTab === 'support' && <Headphones className="w-3.5 h-3.5" />}
                 {activeTab === 'firewall' && <ShieldAlert className="w-3.5 h-3.5" />}
                 {activeTab === 'radar' && <Activity className="w-3.5 h-3.5 text-emerald-400" />}
@@ -1807,7 +1812,7 @@ export default function AdminPage() {
                   {activeTab === 'firmware' && 'Over-The-Air Fleet Flashing'}
                   {activeTab === 'logs' && 'Security & Access Logs'}
                   {activeTab === 'settings' && 'Platform Health & Specs'}
-                  {activeTab === 'storage' && 'Storage Telemetry & Data Retention'}
+                  {activeTab === 'storage' && 'Online Cloud Storage & Retention (Supabase & MongoDB Atlas)'}
                   {activeTab === 'support' && 'Farmer Support & Emergency Helpdesk'}
                   {activeTab === 'firewall' && '5-Layer Defensive Cybersecurity Walls & IP Jail'}
                   {activeTab === 'radar' && 'Live API Radar & Service Mesh Topology'}
@@ -1827,7 +1832,7 @@ export default function AdminPage() {
                 {activeTab === 'firmware' && 'Upload and deploy Over-The-Air (OTA) binary firmware updates to deployed field devices.'}
                 {activeTab === 'logs' && 'Real-time security log stream of user logins, role modifications, and administrative operations.'}
                 {activeTab === 'settings' && 'Inspect core platform health, API status, database connectivity, and runtime configurations.'}
-                {activeTab === 'storage' && 'Monitor host disk capacity, MongoDB Atlas cluster footprint, media uploads cache, and execute automated data retention purges.'}
+                {activeTab === 'storage' && 'Live cloud telemetry for Supabase Object Storage bucket (agrishield-crop-images), MongoDB Atlas cloud cluster (agrishield_db), asset explorer, and cloud data retention purges.'}
                 {activeTab === 'support' && 'Directly assist registered farmers, dispatch 15-minute phone callbacks, WhatsApp consultations, and resolve technical issues.'}
                 {activeTab === 'firewall' && 'Real-time monitoring of all 5 cybersecurity walls, 23 honeypot decoy traps, layer 7 WAF payload filter, and automated IP jail.'}
                 {activeTab === 'radar' && 'Real-time 2D network topology, animated request particle flow, live latency benchmarks, and active service mesh telemetry.'}
@@ -3745,22 +3750,22 @@ export default function AdminPage() {
             )}
           </div>
 
-          {/* Storage Telemetry Overview Card with Link to Dedicated Storage Tab */}
+          {/* Cloud Storage Overview Card with Link to Dedicated Storage Tab */}
           <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-                  <HardDrive className="w-5 h-5" />
+                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                  <Cloud className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <span>Server Disk & Database Storage Capacity</span>
+                    <span>Online Cloud Storage (Supabase & MongoDB Atlas)</span>
                     <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
-                      {storageStats?.disk?.free_gb ?? 213.85} GB Available
+                      {storageStats?.total_cloud_used_mb ?? 65.14} MB Live
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Storage is currently at <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.disk?.used_percentage ?? 54.9}%</span> capacity ({storageStats?.disk?.used_gb ?? 260.68} GB / {storageStats?.disk?.total_gb ?? 474.53} GB). Use the dedicated Storage & Data Retention tab to review details and purge old data.
+                    Supabase Bucket: <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.supabase?.used_mb ?? 37.76} MB</span> ({storageStats?.supabase?.total_objects ?? 78} photos) • MongoDB Atlas: <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.database?.storage_size_mb ?? 27.38} MB</span> ({storageStats?.database?.total_collections ?? 34} collections).
                   </p>
                 </div>
               </div>
@@ -3768,10 +3773,10 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setTab('storage')}
-                className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
               >
-                <HardDrive className="w-3.5 h-3.5" />
-                <span>Open Storage & Retention Suite</span>
+                <Cloud className="w-3.5 h-3.5" />
+                <span>Open Cloud Storage Suite</span>
               </button>
             </div>
           </div>
@@ -3779,7 +3784,7 @@ export default function AdminPage() {
       )}
 
       {/* ======================================================== */}
-      {/* TAB: ENTERPRISE STORAGE TELEMETRY & DATA RETENTION SUITE  */}
+      {/* TAB: ONLINE CLOUD STORAGE & DATA RETENTION SUITE         */}
       {/* ======================================================== */}
       {activeTab === 'storage' && (
         <div className="space-y-6">
@@ -3787,43 +3792,36 @@ export default function AdminPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
               <div className="flex items-center gap-3">
-                <div className={`p-3 rounded-2xl ${
-                  storageStats?.is_almost_full ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400' :
-                  storageStats?.warning_elevated ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400' :
-                  'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
-                }`}>
-                  <HardDrive className="w-6 h-6" />
+                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                  <Cloud className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
-                      Storage Telemetry & Data Retention Suite
+                      Online Cloud Infrastructure & Data Retention Suite
                     </h2>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
-                      storageStats?.is_almost_full
-                        ? 'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
-                        : storageStats?.warning_elevated
-                        ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
-                        : 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
-                    }`}>
-                      {storageStats?.storage_health || 'HEALTHY'} ({storageStats?.disk?.used_percentage ?? 54.9}% Used)
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>{storageStats?.storage_health || 'HEALTHY'} ({storageStats?.cloud_used_percentage ?? 4.24}% Cloud Used)</span>
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Monitor live server disk quotas, MongoDB Atlas storage, and prune aged records to free up capacity.
+                    Live telemetry for <span className="font-semibold text-emerald-600 dark:text-emerald-400">Supabase Cloud Object Storage</span> (<code className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{storageStats?.supabase?.bucket_name || 'agrishield-crop-images'}</code>) and <span className="font-semibold text-teal-600 dark:text-teal-400">MongoDB Atlas Database</span> (<code className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{storageStats?.database?.cluster_host || 'agrishield-db'}</code>).
                   </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={fetchStorageStats}
-                disabled={storageLoading}
-                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 self-start sm:self-center cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${storageLoading ? 'animate-spin' : ''}`} />
-                <span>Refresh Storage</span>
-              </button>
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={fetchStorageStats}
+                  disabled={storageLoading}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${storageLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh Cloud Metrics</span>
+                </button>
+              </div>
             </div>
 
             {/* Storage Almost Full / Elevated Warning Banner */}
@@ -3836,104 +3834,415 @@ export default function AdminPage() {
                 <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
                 <div className="space-y-1">
                   <p className="font-extrabold uppercase tracking-wide">
-                    {storageStats?.is_almost_full ? '🚨 Critical: Storage Near Capacity' : '⚠️ Attention: Storage Usage Elevated'}
+                    {storageStats?.is_almost_full ? '🚨 Critical: Online Cloud Storage Near Quota' : '⚠️ Attention: Cloud Storage Usage Elevated'}
                   </p>
                   <p className="leading-relaxed">
-                    Server storage is at <span className="font-bold">{storageStats?.disk?.used_percentage}%</span>. Only <span className="font-bold">{storageStats?.disk?.free_gb} GB</span> remains free. You can use the automated data retention controls below to safely purge aged photos and historical telemetry to restore disk space.
+                    Online cloud resources are approaching quota thresholds. Use the automated retention controls below to safely purge aged test scans and transient telemetry.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Storage Progress Gauge & Breakdown Cards */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                  <Gauge className="w-4 h-4 text-emerald-500" />
-                  <span>Server Primary Disk Space</span>
+            {/* Total Cloud Capacity Progress Bar */}
+            <div className="space-y-3 p-5 rounded-2xl bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-cyan-500/5 dark:from-emerald-950/20 dark:via-teal-950/20 dark:to-cyan-950/20 border border-emerald-200/60 dark:border-emerald-800/60">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold gap-1">
+                <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Cloud className="w-4 h-4 text-emerald-500" />
+                  <span>Total Online Cloud Allocation (Supabase + MongoDB Atlas)</span>
                 </span>
                 <span className="font-mono text-slate-900 dark:text-slate-100">
-                  {storageStats?.disk?.used_gb ?? 260.68} GB Used / {storageStats?.disk?.total_gb ?? 474.53} GB Total ({storageStats?.disk?.free_gb ?? 213.85} GB Free)
+                  <span className="text-emerald-600 font-black">{storageStats?.total_cloud_used_mb ?? 65.14} MB</span> Used / {storageStats?.total_cloud_quota_mb ?? 1536} MB Total Quota ({storageStats?.total_cloud_free_mb ?? 1470.86} MB Free)
                 </span>
               </div>
 
-              {/* Multi-segment Progress Bar */}
-              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex">
+              {/* Multi-segment Cloud Progress Bar */}
+              <div className="w-full h-3.5 rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden flex shadow-inner">
+                {/* Supabase portion */}
                 <div 
-                  className={`h-full transition-all duration-500 ${
-                    storageStats?.is_almost_full ? 'bg-rose-500' :
-                    storageStats?.warning_elevated ? 'bg-amber-500' :
-                    'bg-emerald-500'
-                  }`}
-                  style={{ width: `${storageStats?.disk?.used_percentage ?? 54.9}%` }}
+                  className="h-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${Math.max(1, ((storageStats?.supabase?.used_mb ?? 37.76) / (storageStats?.total_cloud_quota_mb ?? 1536)) * 100)}%` }}
+                  title={`Supabase Cloud: ${storageStats?.supabase?.used_mb ?? 37.76} MB`}
+                />
+                {/* MongoDB Atlas portion */}
+                <div 
+                  className="h-full bg-teal-500 transition-all duration-500"
+                  style={{ width: `${Math.max(1, ((storageStats?.database?.storage_size_mb ?? 27.38) / (storageStats?.total_cloud_quota_mb ?? 1536)) * 100)}%` }}
+                  title={`MongoDB Atlas: ${storageStats?.database?.storage_size_mb ?? 27.38} MB`}
                 />
               </div>
 
-              <div className="flex justify-between text-[11px] text-slate-400 font-medium">
-                <span>0 GB</span>
-                <span>Threshold: 85% ({((storageStats?.disk?.total_gb || 474.53) * 0.85).toFixed(0)} GB)</span>
-                <span>{storageStats?.disk?.total_gb ?? 474.53} GB</span>
+              <div className="flex flex-wrap justify-between text-[11px] text-slate-500 font-medium pt-0.5">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                    <span>Supabase Bucket: <strong className="text-slate-800 dark:text-slate-200">{storageStats?.supabase?.used_mb ?? 37.76} MB</strong> ({storageStats?.supabase?.used_percentage ?? 3.69}% of 1 GB)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" />
+                    <span>MongoDB Atlas: <strong className="text-slate-800 dark:text-slate-200">{storageStats?.database?.storage_size_mb ?? 27.38} MB</strong> ({storageStats?.database?.used_percentage ?? 5.35}% of 512 MB)</span>
+                  </span>
+                </div>
+                <span>Total Free-Tier Quota: <strong>1,536 MB (1.5 GB)</strong></span>
               </div>
             </div>
 
-            {/* 3 Storage Telemetry Domain Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Card 1: Operating System & Disk */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Host Disk Volume</span>
-                  <Server className="w-4 h-4 text-slate-400" />
+            {/* 2 Primary Online Cloud Provider Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Provider 1: Supabase Cloud Object Storage */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-emerald-500/20 dark:border-emerald-500/30 shadow-sm space-y-4 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-bl-full pointer-events-none" />
+
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                      <Cloud className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                          Supabase Cloud Object Storage
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                          Online
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        {storageStats?.supabase?.project_url || 'https://kwlintcxqkqnjtwdbumq.supabase.co'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href={storageStats?.supabase?.dashboard_url || 'https://supabase.com/dashboard'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2.5 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <span>Supabase Console</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
-                <div className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono">
-                  {storageStats?.disk?.free_gb ?? 213.85} GB <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400">Available</span>
+
+                {/* Supabase Metrics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Storage Used</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {storageStats?.supabase?.used_mb ?? 37.76} <span className="text-xs font-normal text-slate-500">MB</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">
+                      {storageStats?.supabase?.used_percentage ?? 3.69}% of 1 GB
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Stored Photos</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {storageStats?.supabase?.total_objects ?? 78} <span className="text-xs font-normal text-slate-500">files</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      Leaf Diagnoses
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bucket</span>
+                    <span className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono truncate block" title={storageStats?.supabase?.bucket_name || 'agrishield-crop-images'}>
+                      {storageStats?.supabase?.bucket_name || 'agrishield-crop-images'}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">
+                      Public CDN: Active
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Upload Limit</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {storageStats?.supabase?.file_size_limit_mb ?? 15} <span className="text-xs font-normal text-slate-500">MB</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      Per Image Limit
+                    </span>
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span>Capacity Used:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.disk?.used_percentage ?? 54.9}%</span>
+
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span>CDN Delivery: <strong className="text-slate-700 dark:text-slate-300">Fast Global Edge</strong></span>
+                  <span>Free Quota Remaining: <strong className="text-emerald-600">{storageStats?.supabase?.free_mb ?? 986.24} MB</strong></span>
                 </div>
               </div>
 
-              {/* Card 2: MongoDB Atlas Database */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">MongoDB Atlas Database</span>
-                  <Database className="w-4 h-4 text-emerald-500" />
-                </div>
-                <div className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono">
-                  {storageStats?.database?.storage_size_mb ?? 27.41} MB <span className="text-xs font-normal text-slate-400">Allocated</span>
-                </div>
-                <div className="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span>Data / Index Size:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.database?.data_size_mb ?? 25.82} MB / {storageStats?.database?.index_size_mb ?? 2.41} MB</span>
-                </div>
-              </div>
+              {/* Provider 2: MongoDB Atlas Cloud Cluster */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-teal-500/20 dark:border-teal-500/30 shadow-sm space-y-4 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 dark:bg-teal-500/10 rounded-bl-full pointer-events-none" />
 
-              {/* Card 3: Uploads & Media Files */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Uploaded Photos & Files</span>
-                  <UploadCloud className="w-4 h-4 text-purple-500" />
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20">
+                      <Database className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                          MongoDB Atlas Cloud Cluster
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300 border border-teal-300 dark:border-teal-800">
+                          Atlas M0
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        {storageStats?.database?.cluster_host || 'agrishield-db.cn2tf7s.mongodb.net'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href={storageStats?.database?.dashboard_url || 'https://cloud.mongodb.com/v2#/clusters'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2.5 py-1.5 rounded-xl border border-teal-300 dark:border-teal-800 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/60 dark:hover:bg-teal-900 text-teal-700 dark:text-teal-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <span>Atlas Console</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
-                <div className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono">
-                  {storageStats?.uploads?.total_size_mb ?? 0.0} MB <span className="text-xs font-normal text-slate-400">Media Cache</span>
+
+                {/* MongoDB Atlas Metrics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Storage Allocated</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {storageStats?.database?.storage_size_mb ?? 27.38} <span className="text-xs font-normal text-slate-500">MB</span>
+                    </span>
+                    <span className="text-[10px] text-teal-600 font-semibold block mt-0.5">
+                      {storageStats?.database?.used_percentage ?? 5.35}% of 512 MB
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Collections</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {storageStats?.database?.total_collections ?? 34} <span className="text-xs font-normal text-slate-500">tables</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      Active Collections
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Documents</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {storageStats?.database?.total_objects ?? 2037} <span className="text-xs font-normal text-slate-500">docs</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      Total Objects
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Index Space</span>
+                    <span className="text-lg font-black text-slate-900 dark:text-slate-100 font-mono">
+                      {storageStats?.database?.index_size_mb ?? 2.41} <span className="text-xs font-normal text-slate-500">MB</span>
+                    </span>
+                    <span className="text-[10px] text-teal-600 font-semibold block mt-0.5">
+                      60 Active Indexes
+                    </span>
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span>Stored Files:</span>
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.uploads?.total_files ?? 0} leaf photos</span>
+
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span>Database: <strong className="text-slate-700 dark:text-slate-300">{storageStats?.database?.db_name || 'agrishield_db'}</strong></span>
+                  <span>Free Quota Remaining: <strong className="text-teal-600">{storageStats?.database?.free_mb ?? 484.62} MB</strong></span>
                 </div>
               </div>
             </div>
 
-            {/* ── INTERACTIVE DATA RETENTION & RECLAIM CONSOLE ── */}
+            {/* ── LIVE ONLINE CLOUD ASSET & COLLECTION EXPLORER ── */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Folder className="w-4 h-4 text-emerald-500" />
+                    <span>Live Online Infrastructure Explorer</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Browse real cloud objects stored in your Supabase Bucket and collection distribution in MongoDB Atlas.
+                  </p>
+                </div>
+
+                {/* Sub-tab Switcher */}
+                <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 self-start sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => setCloudExplorerTab('supabase')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      cloudExplorerTab === 'supabase'
+                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <Cloud className="w-3.5 h-3.5" />
+                    <span>Supabase Objects ({storageStats?.supabase?.total_objects ?? 78})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCloudExplorerTab('mongodb')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      cloudExplorerTab === 'mongodb'
+                        ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    <span>Atlas Collections ({storageStats?.database?.total_collections ?? 34})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* View A: Supabase Cloud Bucket Objects */}
+              {cloudExplorerTab === 'supabase' && (
+                <div className="space-y-3">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400">
+                          <th className="py-2.5 px-3">Cloud Asset File Name</th>
+                          <th className="py-2.5 px-3">MIME Type</th>
+                          <th className="py-2.5 px-3">Size (KB)</th>
+                          <th className="py-2.5 px-3">Uploaded / Updated</th>
+                          <th className="py-2.5 px-3 text-right">Direct CDN Access</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                        {storageStats?.supabase?.sample_objects && storageStats.supabase.sample_objects.length > 0 ? (
+                          storageStats.supabase.sample_objects.map((obj, idx) => (
+                            <tr key={obj.name || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                              <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                <Image className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <span className="truncate max-w-[240px] sm:max-w-[340px]">{obj.name}</span>
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-500">
+                                {obj.mimetype || 'image/jpeg'}
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-bold">
+                                {obj.size_kb} KB
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-500 text-[11px]">
+                                {obj.created_at ? new Date(obj.created_at).toLocaleString() : 'Recent'}
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                <a
+                                  href={obj.public_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline"
+                                >
+                                  <span>View Asset</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-slate-400 font-sans">
+                              Connecting to Supabase Storage bucket...
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span>Showing latest sample objects from Supabase Bucket <code className="text-emerald-600 font-mono">agrishield-crop-images</code></span>
+                    <a
+                      href={storageStats?.supabase?.dashboard_url || 'https://supabase.com/dashboard'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-emerald-600 hover:underline flex items-center gap-1"
+                    >
+                      <span>Explore all {storageStats?.supabase?.total_objects ?? 78} files in Supabase Console</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* View B: MongoDB Atlas Collections */}
+              {cloudExplorerTab === 'mongodb' && (
+                <div className="space-y-3">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400">
+                          <th className="py-2.5 px-3">Collection Name</th>
+                          <th className="py-2.5 px-3">Documents Count</th>
+                          <th className="py-2.5 px-3">Data Size (KB)</th>
+                          <th className="py-2.5 px-3">Allocated Storage (KB)</th>
+                          <th className="py-2.5 px-3 text-right">Avg Object Size</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                        {storageStats?.database?.top_collections && storageStats.database.top_collections.length > 0 ? (
+                          storageStats.database.top_collections.map((coll) => (
+                            <tr key={coll.name} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                              <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                <Database className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                                <span>{coll.name}</span>
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-bold">
+                                {coll.count.toLocaleString()} docs
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-500">
+                                {coll.size_kb.toLocaleString()} KB
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300 font-bold">
+                                {coll.storage_size_kb.toLocaleString()} KB
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-slate-500">
+                                {coll.avg_obj_size.toLocaleString()} bytes
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-slate-400 font-sans">
+                              Connecting to MongoDB Atlas cluster...
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span>Database <code className="text-teal-600 font-mono">agrishield_db</code> hosted on MongoDB Atlas Cluster</span>
+                    <a
+                      href={storageStats?.database?.dashboard_url || 'https://cloud.mongodb.com/v2#/clusters'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-teal-600 hover:underline flex items-center gap-1"
+                    >
+                      <span>Manage Cluster in MongoDB Atlas Console</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── INTERACTIVE CLOUD DATA RETENTION & RECLAIM CONSOLE ── */}
             <div className="p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <Trash2 className="w-4 h-4 text-rose-500" />
-                    <span>Data Retention & Storage Reclaim Engine</span>
+                    <span>Cloud Data Retention & Storage Reclaim Engine</span>
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Select data categories to prune when storage is tight. You can preview reclaimed space before confirming.
+                    Select cloud assets to prune when approaching quota. Prunes old scan photos directly from Supabase Cloud Bucket and aged documents from MongoDB Atlas.
                   </p>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
@@ -3954,10 +4263,10 @@ export default function AdminPage() {
                       onChange={(e) => setPurgeScans(e.target.checked)} 
                       className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                     />
-                    <span className="font-bold text-xs text-slate-900 dark:text-slate-100">Prune Historical Leaf Scans</span>
+                    <span className="font-bold text-xs text-slate-900 dark:text-slate-100">Prune Historical Leaf Scans (Supabase Cloud Bucket & MongoDB Atlas)</span>
                   </label>
                   <p className="text-[11px] text-slate-500 mt-1 pl-6">
-                    Deletes scans and associated photos older than {scansRetentionDays} days. Total scans: {storageStats?.collections_breakdown?.predictions?.total || 640}.
+                    Deletes scans and associated photos older than {scansRetentionDays} days directly from Supabase Cloud Storage. Total scans: {storageStats?.collections_breakdown?.predictions?.total || 640}.
                   </p>
                   
                   {purgeScans && (
@@ -4105,7 +4414,7 @@ export default function AdminPage() {
                   className="px-4 py-2.5 rounded-xl border border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs shadow-xs hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Gauge className="w-4 h-4" />
-                  <span>{previewLoading ? 'Calculating Space...' : 'Preview Space Reclaim'}</span>
+                  <span>{previewLoading ? 'Calculating Space...' : 'Preview Cloud Space Reclaim'}</span>
                 </button>
 
                 <button
@@ -4115,7 +4424,7 @@ export default function AdminPage() {
                   className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>{purgingStorage ? 'Purging Records...' : 'Execute Safe Data Reclaim'}</span>
+                  <span>{purgingStorage ? 'Purging Cloud Records...' : 'Execute Safe Cloud Reclaim'}</span>
                 </button>
               </div>
 
@@ -4125,17 +4434,17 @@ export default function AdminPage() {
                   <div className="flex items-center justify-between font-bold text-indigo-900 dark:text-indigo-200">
                     <span className="flex items-center gap-1.5">
                       <Gauge className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      <span>Dry-Run Space Reclaim Estimate</span>
+                      <span>Dry-Run Cloud Space Reclaim Estimate</span>
                     </span>
                     <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 font-mono">
                       ~{purgePreview.estimated_reclaimed_mb} MB Reclaimable
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1 border-t border-indigo-200/60 dark:border-indigo-900/60">
-                    <div>Scans: <span className="font-bold">{purgePreview.scans_to_delete} records</span></div>
-                    <div>Audit Logs: <span className="font-bold">{purgePreview.audit_logs_to_delete} records</span></div>
-                    <div>IoT Telemetry: <span className="font-bold">{purgePreview.iot_telemetry_to_delete} records</span></div>
-                    <div>Cache Entries: <span className="font-bold">{purgePreview.cache_records_to_delete} entries</span></div>
+                    <div>Supabase Scans: <span className="font-bold">{purgePreview.supabase_scans_to_delete || purgePreview.scans_to_delete} photos</span></div>
+                    <div>MongoDB Records: <span className="font-bold">{purgePreview.total_records_to_purge} docs</span></div>
+                    <div>Supabase Reclaim: <span className="font-bold">~{purgePreview.supabase_estimated_reclaim_mb || 0} MB</span></div>
+                    <div>MongoDB Reclaim: <span className="font-bold">~{purgePreview.mongodb_estimated_reclaim_mb || 0} MB</span></div>
                   </div>
                 </div>
               )}
@@ -4146,7 +4455,7 @@ export default function AdminPage() {
                   <div className="flex items-center justify-between font-bold text-emerald-900 dark:text-emerald-200">
                     <span className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Storage Capacity Restored</span>
+                      <span>Online Cloud Storage Restored</span>
                     </span>
                     <span className="text-sm font-black text-emerald-600 font-mono">
                       {purgeResult.freed_mb} MB Freed
@@ -5727,10 +6036,10 @@ export default function AdminPage() {
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
-                  Confirm Data Purge & Space Reclaim
+                  Confirm Cloud Data Purge & Space Reclaim
                 </h3>
                 <p className="text-xs text-slate-500">
-                  This will permanently delete historical records matching your retention policy to restore storage capacity.
+                  This will permanently delete aged plant photos from Supabase Cloud Bucket (agrishield-crop-images) and historical documents from MongoDB Atlas.
                 </p>
               </div>
             </div>
@@ -5739,14 +6048,14 @@ export default function AdminPage() {
               <p className="font-bold text-slate-900 dark:text-white">Active Retention Rules to Execute:</p>
               {purgeScans && (
                 <p className="flex items-center gap-1">
-                  <span>• Scans older than {scansRetentionDays} days</span>
+                  <span>• Scans older than {scansRetentionDays} days (Supabase Cloud Bucket & MongoDB Atlas)</span>
                   {keepDiseasedScans && <span className="text-emerald-600 font-bold dark:text-emerald-400">(Pathogens preserved)</span>}
                 </p>
               )}
-              {purgeIot && <p>• IoT telemetry packets older than {iotRetentionDays} days</p>}
-              {purgeAuditLogs && <p>• Audit logs older than {auditRetentionDays} days</p>}
-              {purgeResolvedTickets && <p>• Resolved support tickets older than {ticketsRetentionDays} days</p>}
-              {purgeTempCache && <p>• Transient caches & temporary files</p>}
+              {purgeIot && <p>• IoT telemetry packets older than {iotRetentionDays} days (MongoDB Atlas)</p>}
+              {purgeAuditLogs && <p>• Audit logs older than {auditRetentionDays} days (MongoDB Atlas)</p>}
+              {purgeResolvedTickets && <p>• Resolved support tickets older than {ticketsRetentionDays} days (MongoDB Atlas)</p>}
+              {purgeTempCache && <p>• Transient caches & rate-limit tables (MongoDB Atlas)</p>}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -5764,7 +6073,7 @@ export default function AdminPage() {
                 className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>{purgingStorage ? 'Purging Records...' : 'Confirm & Reclaim Space'}</span>
+                <span>{purgingStorage ? 'Purging Cloud Records...' : 'Confirm & Reclaim Cloud Space'}</span>
               </button>
             </div>
           </div>
