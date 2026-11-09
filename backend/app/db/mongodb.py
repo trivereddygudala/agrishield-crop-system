@@ -2,6 +2,22 @@ import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from backend.app.core.config import settings
 
+# Configure robust DNS resolver with public fallback (Google 8.8.8.8, Cloudflare 1.1.1.1)
+# to prevent dnspython SRV lookup timeout on restrictive ISP or local DNS networks
+try:
+    import dns.resolver
+    _dns_resolver = dns.resolver.Resolver()
+    _nameservers = ['8.8.8.8', '1.1.1.1', '8.8.4.4']
+    for _ns in list(_dns_resolver.nameservers):
+        if _ns not in _nameservers:
+            _nameservers.append(_ns)
+    _dns_resolver.nameservers = _nameservers
+    _dns_resolver.timeout = 3.0
+    _dns_resolver.lifetime = 6.0
+    dns.resolver.default_resolver = _dns_resolver
+except Exception as _dns_init_err:
+    pass
+
 try:
     import certifi
     ca_file = certifi.where()

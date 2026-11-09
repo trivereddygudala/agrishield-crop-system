@@ -87,6 +87,8 @@ backend/app/uploads/*
 !backend/app/uploads/.gitkeep
 backend/logs/*
 !backend/logs/.gitkeep
+backend/data/*
+!backend/data/.gitkeep
 plantix_extracted/
 
 # Scratch Scripts & Timestamps

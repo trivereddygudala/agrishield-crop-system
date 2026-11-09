@@ -583,6 +583,12 @@ const UploadImagePage = () => {
         loading: false
       });
 
+      // Instantly invalidate stale history cache and notify global components
+      try {
+        window._cachedPredictionHistory = null;
+        window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: predictRes.data }));
+      } catch (_) {}
+
       // B9.5A (B9.5-F01): Authoritative notification for completed crop prediction
       // is persisted by backend NotificationService and delivered via WebSocket broadcast.
       // Client-side synthesis removed to prevent duplicate cards, banners, and chimes.

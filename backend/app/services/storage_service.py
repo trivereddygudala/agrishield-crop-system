@@ -203,11 +203,10 @@ class StorageService:
 
     async def _upload_supabase(self, object_name: str, content_bytes: bytes, content_type: str) -> str:
         """
-        Uploads image bytes to Supabase Storage via REST API.
-        Enforces bounded timeout, secure headers, server-side key usage, and zero secret logging.
+        Uploads image bytes to Supabase Storage via REST API using native async httpx.
+        Zero-deadlock, non-blocking, with strict timeout.
         """
-        import asyncio
-        import requests
+        import httpx
 
         url = (settings.SUPABASE_URL or "").rstrip('/')
         bucket = settings.SUPABASE_BUCKET or settings.STORAGE_BUCKET_NAME or "agrishield-crop-images"
@@ -215,9 +214,15 @@ class StorageService:
         if not url or not key:
             raise ValueError("Supabase URL and API key must be configured for upload.")
 
-        connect_timeout = getattr(settings, "STORAGE_CONNECT_TIMEOUT_SECONDS", 5)
-        read_timeout = getattr(settings, "STORAGE_READ_TIMEOUT_SECONDS", 10)
-        timeout = (connect_timeout, read_timeout)
+        # Non-blocking host reachability check to prevent 30s DNS hang when offline
+        try:
+            from backend.app.services.translation_service import _is_online
+            host = url.split("://")[-1].split("/")[0]
+            if not _is_online(host, timeout=0.6):
+                raise RuntimeError(f"Supabase endpoint {host} unreachable or offline.")
+        except Exception as net_chk_err:
+            if "unreachable or offline" in str(net_chk_err):
+                raise
 
         upload_url = f"{url}/storage/v1/object/{bucket}/{object_name}"
         headers = {
@@ -227,19 +232,12 @@ class StorageService:
             "x-upsert": "true"
         }
 
-        def _do_post():
-            resp = requests.post(
-                upload_url,
-                headers=headers,
-                data=content_bytes,
-                timeout=timeout
-            )
+        timeout = httpx.Timeout(connect=2.5, write=6.0, read=6.0, pool=2.5)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(upload_url, headers=headers, content=content_bytes)
             if resp.status_code not in (200, 201):
-                # Never log credentials or binary payload; only status and truncated error message
                 raise RuntimeError(f"Supabase upload returned HTTP {resp.status_code}: {resp.text[:120]}")
-            return resp
 
-        await asyncio.to_thread(_do_post)
         return self.build_public_url(object_name)
 
     async def upload_image(
@@ -272,6 +270,8 @@ class StorageService:
             provider = self.get_provider()
             if provider == "supabase":
                 try:
+                    # Save a local cache copy so inference never has to re-download from cloud
+                    rel_path, local_path = self._save_local_file(content_bytes, object_name)
                     public_url = await self._upload_supabase(
                         object_name=object_name,
                         content_bytes=content_bytes,
@@ -284,7 +284,7 @@ class StorageService:
                         filename=object_name,
                         content_type=normalized_content_type,
                         size_bytes=size_bytes,
-                        local_path=None
+                        local_path=local_path
                     )
                 except Exception as cloud_err:
                     logger.error(
@@ -297,6 +297,8 @@ class StorageService:
                 if client is not None:
                     try:
                         import asyncio
+                        # Save local cache copy so inference never has to re-download from cloud
+                        rel_path, local_path = self._save_local_file(content_bytes, object_name)
                         # Run blocking boto3 upload in threadpool with bounded timeout
                         await asyncio.to_thread(
                             client.put_object,
@@ -313,7 +315,7 @@ class StorageService:
                             filename=object_name,
                             content_type=normalized_content_type,
                             size_bytes=size_bytes,
-                            local_path=None
+                            local_path=local_path
                         )
                     except Exception as cloud_err:
                         logger.error(

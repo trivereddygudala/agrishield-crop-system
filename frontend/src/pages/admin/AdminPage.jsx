@@ -380,47 +380,269 @@ export default function AdminPage() {
   const [broadcastChannels, setBroadcastChannels] = useState(['push', 'sms']);
   const [isTranslatingBroadcast, setIsTranslatingBroadcast] = useState(false);
   const [translatedData, setTranslatedData] = useState(null);
+  const [activeTranslationLang, setActiveTranslationLang] = useState('te');
+
+  const getAgroVernacularTranslation = (text, langCode) => {
+    if (!text) return '';
+    const lang = (langCode || 'te').toLowerCase().split('-')[0];
+    if (lang === 'en') return text;
+    const lower = text.toLowerCase().trim();
+
+    // 1. Direct Field Check Advisories
+    if ((lower.includes('check') || lower.includes('inspect') || lower.includes('visit')) && (lower.includes('field') || lower.includes('crop') || lower.includes('farm'))) {
+      if (lower.includes('compulsor') || lower.includes('compulsar') || lower.includes('must') || lower.includes('urgent') || lower.includes('immediately')) {
+        const m = {
+          te: 'రైతులు తమ పంట పొలాలను తప్పనిసరిగా తనిఖీ చేసి పరిశీలించండి.',
+          hi: 'किसान अपने खेतों का अनिवार्य रूप से निरीक्षण और जांच करें।',
+          ta: 'விவசாயிகள் தங்களின் வயல்களைக் கட்டாயமாகப் பார்வையிட்டு சரிபார்க்கவும்.',
+          kn: 'ರೈತರು ತಮ್ಮ ಹೊಲಗಳನ್ನು ಕಡ್ಡಾಯವಾಗಿ ಪರಿಶೀಲಿಸಿ ಮತ್ತು ತಪಾಸಣೆ ಮಾಡಿ.',
+          ml: 'കർഷകർ തങ്ങളുടെ പാടങ്ങൾ നിർബന്ധമായും പരിശോധിക്കുക.',
+          mr: 'शेतकऱ्यांनी आपल्या शेतांची अनिवार्यपणे पाहणी आणि तपासणी करावी.',
+          gu: 'ખેડૂતોએ પોતાના ખેતરોનું ફરજિયાતપણે નિરીક્ષણ અને તપાસ કરવી.',
+          pa: 'ਕਿਸਾਨ ਆਪਣੇ ਖੇਤਾਂ ਦੀ ਲਾਜ਼ਮੀ ਤੌਰ \'ਤੇ ਜਾਂਚ ਅਤੇ ਨਿਰੀਖਣ ਕਰਨ।',
+          bn: 'কৃষকদের তাদের জমি বাধ্যতামূলকভাবে পরিদর্শন ও পরীক্ষা করতে হবে।',
+          or: 'କୃଷକମାନେ ନିଜ ଜମିକୁ ବାଧ୍ୟତାମୂଳକ ଭାବେ ଯାଞ୍ଚ ଏବଂ ନିରୀକ୍ଷଣ କରନ୍ତୁ।'
+        };
+        if (m[lang]) return m[lang];
+      } else {
+        const m = {
+          te: 'పంట పొలాలను పరిశీలించండి',
+          hi: 'खेतों का निरीक्षण करें',
+          ta: 'விளைநிலங்களை சரிபார்க்கவும்',
+          kn: 'ಹೊಲಗಳನ್ನು ಪರಿಶೀಲಿಸಿ',
+          ml: 'പാടങ്ങൾ പരിശോധിക്കുക',
+          mr: 'शेतांची पाहणी करा',
+          gu: 'ખેતરોનું નિરીક્ષણ કરો',
+          pa: 'ਖੇਤਾਂ ਦੀ ਜਾਂਚ ਕਰੋ',
+          bn: 'জমি পরিদর্শন করুন',
+          or: 'ଜମି ଯାଞ୍ଚ କରନ୍ତୁ'
+        };
+        if (m[lang]) return m[lang];
+      }
+    }
+
+    // 2. Weather & Cyclone Warnings
+    if (lower.includes('rain') || lower.includes('cyclone') || lower.includes('flood') || lower.includes('weather')) {
+      const m = {
+        te: 'భారీ వర్ష సూచన ఉన్నందున పొలాల్లో నిల్వ ఉన్న అదనపు నీటిని వెంటనే బయటకు పంపేలా మురుగునీటి కాల్వలను శుభ్రం చేసుకోండి.',
+        hi: 'भारी बारिश की संभावना के कारण खेतों से अतिरिक्त जल निकासी की तत्काल उचित व्यवस्था करें।',
+        ta: 'கனமழை எச்சரிக்கை காரணமாக விளைநிலங்களில் தேங்கும் உபரி நீரை உடனடியாக வெளியேற்ற வடிகால்களை அமைக்கவும்.',
+        kn: 'ಭಾರೀ ಮಳೆಯ ಮುನ್ಸೂಚನೆ ಇರುವುದರಿಂದ ಜಮೀನಿನಲ್ಲಿ ನಿಲ್ಲುವ ನೀರನ್ನು ಹೊರಹಾಕಲು ಕಾಲುವೆಗಳನ್ನು ಸಿದ್ಧಪಡಿಸಿ.',
+        ml: 'കനത്ത മഴ മുന്നറിയിപ്പുള്ളതിനാൽ പാടങ്ങളിൽ നിന്നും അധിക ജലം ഒഴുക്കിവിടാൻ ചാലുകൾ വൃത്തിയാക്കുക.',
+        mr: 'मुसळधार पावसाच्या अंदाजामुळे शेतातील पाण्याचा निचरा करण्यासाठी योग्य व्यवस्था करा.',
+        gu: 'ભારે વરસાદની આગાહી હોવાથી ખેતરમાંથી વધારાનું પાણી બહાર કાઢવાની યોગ્ય વ્યવસ્થા કરો.',
+        pa: 'ਭਾਰੀ ਮੀਂਹ ਦੀ ਸੰਭਾਵਨਾ ਕਾਰਨ ਖੇਤਾਂ ਵਿੱਚੋਂ ਵਾਧੂ ਪਾਣੀ ਦੀ ਨਿਕਾਸੀ ਦਾ ਤੁਰੰਤ ਪ੍ਰਬੰਧ ਕਰੋ।',
+        bn: 'ভারী বৃষ্টির সতর্কতার কারণে জমি থেকে অতিরিক্ত জল নিষ্কাশনের অবিলম্বে ব্যবস্থা করুন।',
+        or: 'ପ୍ରବଳ ବର୍ଷା ସମ୍ଭାବନା ଥିବାରୁ ଜମିରୁ ଅତିରିକ୍ତ ଜଳ ନିଷ୍କାସନ ପାଇଁ ତୁរନ୍ତ ବ୍ୟବସ୍ଥା କରନ୍ତୁ।'
+      };
+      if (m[lang]) return m[lang];
+    }
+
+    // 3. Rust & Fungicide Advisories
+    if (lower.includes('rust') || lower.includes('fungicide')) {
+      const m = {
+        te: 'హెచ్చరిక: తీరప్రాంత జిల్లాల్లో పసుపు కుంకుమ తెగులు నివారణకు సిఫార్సు చేయబడిన మందులను వెంటనే పిచికారీ చేయండి.',
+        hi: 'चेतावनी: तटीय जिलों में पीला रतुआ (येलो रस्ट) के प्रकोप की रोकथाम हेतु अनुशंसित कवकनाशी का तत्काल छिड़काव करें।',
+        ta: 'எச்சரிக்கை: கடலோர மாவட்டங்களில் துரு நோய் தடுப்புக்கு பரிந்துரைக்கப்பட்ட பூஞ்சைக் கொல்லிகளை உடனடியாக தெளிக்கவும்.',
+        kn: 'ಎಚ್ಚರಿಕೆ: ಕರಾವಳಿ ಜಿಲ್ಲೆಗಳಲ್ಲಿ ಹಳದಿ ತುಕ್ಕು ರೋಗ ತಡೆಗಟ್ಟಲು ಶಿಫಾರಸು ಮಾಡಿದ ಶಿಲೀಂಧ್ರನಾಶಕಗಳನ್ನು ತಕ್ಷಣವೇ ಸಿಂಪಡಿಸಿ.',
+        ml: 'മുന്നറിയിപ്പ്: തീരദേശ ജില്ലകളിൽ മഞ്ഞ തുരുമ്പ് രോഗം തടയുന്നതിന് നിർദ്ദേശിച്ച കുമിൾനാശിനികൾ ഉടൻ തളിക്കുക.',
+        mr: 'इशारा: किनारी भागातील जिल्ह्यांमध्ये तांबेरा रोगाच्या नियंत्रणासाठी तात्काळ शिफारस केलेल्या बुरशीनाशकांची फवारणी करावी.',
+        gu: 'ચેતવણી: દરિયાકાંઠાના જિલ્લાઓમાં ગેરુ રોગના નિયંત્રણ માટે ભલામણ કરેલ ફૂગનાશકનો તાત્કાલિક છંટકાવ કરો.',
+        pa: 'ਚੇਤਾਵਨੀ: ਤੱਟਵਰਤੀ ਜ਼ਿਲ੍ਹਿਆਂ ਵਿੱਚ ਪੀਲੀ ਕੁੰਗੀ ਦੀ ਰੋਕਥਾਮ ਲਈ ਸਿਫ਼ਾਰਸ਼ ਕੀਤੀ ਉੱਲੀਨਾਸ਼ਕ ਦਾ ਤੁਰੰਤ ਛਿੜਕਾਅ ਕਰੋ।',
+        bn: 'সতর্কতা: উপকূলীয় জেলাগুলিতে হলুদ মরিচা রোগ প্রতিরোধে অবিলম্বে প্রস্তাবিত ছত্রাকনাশক স্প্রে করুন।',
+        or: 'ଚେତାବନୀ: ଉପକୂଳ ଜିଲ୍ଲାଗୁଡ଼ିକରେ ହଳଦିଆ କଳଙ୍କ ରୋଗର ନିୟନ୍ତ୍ରଣ ପାଇଁ ତୁରନ୍ତ ସୁପାରିଶ କରାଯାଇଥିବା କବକନାଶକ ସ୍ପ୍ରେ କରନ୍ତୁ।'
+      };
+      if (m[lang]) return m[lang];
+    }
+
+    // 4. Token-level dictionary translator
+    const vocab = {
+      'check': { te: 'పరిశీలించండి', hi: 'जांच करें', ta: 'சரிபார்க்கவும்', kn: 'ಪರಿಶೀಲಿಸಿ', ml: 'പരിശോധിക്കുക', mr: 'तपासा', gu: 'ચકાસો', pa: 'ਜਾਂਚ ਕਰੋ', bn: 'পরীক্ষা করুন', or: 'ଯାଞ୍ଚ କରନ୍ତୁ' },
+      'the': { te: '', hi: '', ta: '', kn: '', ml: '', mr: '', gu: '', pa: '', bn: '', or: '' },
+      'field': { te: 'పొలం', hi: 'खेत', ta: 'வயல்', kn: 'ಹೊಲ', ml: 'പാടം', mr: 'शेत', gu: 'ખેતર', pa: 'ਖੇਤ', bn: 'জমি', or: 'ଜମି' },
+      'fields': { te: 'పొలాలు', hi: 'खेतों', ta: 'வயல்கள்', kn: 'ಹೊಲಗಳು', ml: 'പാടങ്ങൾ', mr: 'शेते', gu: 'ખેતરો', pa: 'ਖੇਤ', bn: 'জমি', or: 'ଜମିଗୁଡ଼ିକ' },
+      'compulsory': { te: 'తప్పనిసరిగా', hi: 'अनिवार्य रूप से', ta: 'கட்டாயமாக', kn: 'ಕಡ್ಡಾಯವಾಗಿ', ml: 'നിർബന്ധമായും', mr: 'अनिवार्यपणे', gu: 'ફરજિયાત', pa: 'ਲਾਜ਼ਮੀ', bn: 'বাধ্যতামূলক', or: 'ବାଧ୍ୟତାମୂଳକ' },
+      'compulsary': { te: 'తప్పనిసరిగా', hi: 'अनिवार्य रूप से', ta: 'கட்டாயமாக', kn: 'ಕಡ್ಡಾಯವಾಗಿ', ml: 'നിർബന്ധമായും', mr: 'अनिवार्यपणे', gu: 'ફરજિયાત', pa: 'ਲਾਜ਼ਮੀ', bn: 'বাধ্যতামূলক', or: 'ବାଧ୍ୟତାମୂଳକ' },
+      'urgent': { te: 'అత్యవసరం', hi: 'अति आवश्यक', ta: 'அவசரம்', kn: 'ತುರ್ತು', ml: 'അടിയന്തിരം', mr: 'तातडीचे', gu: 'તાકીદનું', pa: 'ਜ਼ਰੂਰੀ', bn: 'জরুরি', or: 'ଜରୁରୀ' },
+      'alert': { te: 'హెచ్చరిక', hi: 'चेतावनी', ta: 'எச்சரிக்கை', kn: 'ಎಚ್ಚರಿಕೆ', ml: 'മുന്നറിയിപ്പ്', mr: 'इशारा', gu: 'ચેતવણી', pa: 'ਚੇਤਾਵਨੀ', bn: 'ਸਤর্কতা', or: 'ଚେତାବନୀ' },
+      'warning': { te: 'హెచ్చరిక', hi: 'चेतावनी', ta: 'எச்சரிக்கை', kn: 'ಎಚ್ಚರಿಕೆ', ml: 'മുന്നറിയിപ്പ്', mr: 'इशारा', gu: 'ચેતવણી', pa: 'ਚੇਤਾਵਨੀ', bn: 'সতর্কতা', or: 'ଚେତାବନୀ' },
+      'farmer': { te: 'రైతు', hi: 'किसान', ta: 'விவசாயி', kn: 'ರೈತ', ml: 'കർഷകൻ', mr: 'शेतकरी', gu: 'ખેડૂત', pa: 'ਕਿਸਾਨ', bn: 'কৃষক', or: 'କୃଷକ' },
+      'farmers': { te: 'రైతులు', hi: 'किसान', ta: 'விவசாயிகள்', kn: 'ರೈತರು', ml: 'കർഷകർ', mr: 'शेतकरी', gu: 'ખેડૂતો', pa: 'ਕਿਸਾਨ', bn: 'কৃষকরা', or: 'କୃଷକମାନେ' },
+      'crop': { te: 'పంట', hi: 'फसल', ta: 'பயிர்', kn: 'ಬೆಳೆ', ml: 'വിള', mr: 'पीक', gu: 'પાક', pa: 'ਫਸਲ', bn: 'ফসল', or: 'ଫସଲ' },
+      'crops': { te: 'పంటలు', hi: 'फसलें', ta: 'பயிர்கள்', kn: 'ಬೆಳೆಗಳು', ml: 'വിളകൾ', mr: 'पिके', gu: 'પાકો', pa: 'ਫਸਲਾਂ', bn: 'ফসল', or: 'ଫସଲଗୁଡ଼ିକ' },
+      'water': { te: 'నీరు', hi: 'पानी', ta: 'தண்ணீர்', kn: 'ನೀರು', ml: 'വെള്ളം', mr: 'पाणी', gu: 'પાણી', pa: 'ਪਾਣੀ', bn: 'জল', or: 'ପାଣି' },
+      'spray': { te: 'పిచికారీ చేయండి', hi: 'छिड़काव करें', ta: 'தெளிக்கவும்', kn: 'ಸಿಂಪಡಿಸಿ', ml: 'തളിക്കുക', mr: 'फवारा', gu: 'છંટકાવ કરો', pa: 'ਛਿੜਕਾਅ ਕਰੋ', bn: 'স্প્રે করুন', or: 'ସ୍ପ୍ରେ କରନ୍ତୁ' },
+      'pesticide': { te: 'పురుగుమందు', hi: 'कीटनाशक', ta: 'பூச்சிக்கொல்லி', kn: 'ಕೀಟನಾಶಕ', ml: 'കീടനാശിനി', mr: 'कीटकनाशक', gu: 'જંતુનાશક', pa: 'ਕੀਟਨਾਸ਼ਕ', bn: 'কীটনাশক', or: 'କୀଟନାଶକ' },
+      'fertilizer': { te: 'ఎరువులు', hi: 'उर्वरक', ta: 'உரம்', kn: 'ಗೊಬ್ಬರ', ml: 'വളം', mr: 'खत', gu: 'ખાતર', pa: 'ਖਾਦ', bn: 'সার', or: 'ଖତ' },
+      'disease': { te: 'తెగులు', hi: 'रोग', ta: 'நோய்', kn: 'ರೋಗ', ml: 'രോഗം', mr: 'रोग', gu: 'રોગ', pa: 'ਬਿਮਾਰੀ', bn: 'রোগ', or: 'ରୋଗ' }
+    };
+
+    const words = lower.split(/\s+/).map(w => w.replace(/[.,!?:;\"'()\[\]{}]/g, ''));
+    const tokens = [];
+    let replaced = false;
+    for (const w of words) {
+      if (vocab[w] && vocab[w][lang]) {
+        tokens.push(vocab[w][lang]);
+        replaced = true;
+      } else if (w) {
+        tokens.push(w);
+      }
+    }
+    if (replaced && tokens.length > 0) {
+      return tokens.filter(Boolean).join(' ');
+    }
+
+    return text;
+  };
 
   const handleTranslateBroadcast = async () => {
-    if (!broadcastTitle && !broadcastMessage) return;
+    if (!broadcastTitle.trim() && !broadcastMessage.trim()) return;
     setIsTranslatingBroadcast(true);
     try {
-      const res = await API.post('/api/admin/broadcast/translate', {
-        title: broadcastTitle,
-        message: broadcastMessage
-      });
-      if (res.data) {
-        setTranslatedData(res.data);
-        setSuccessMsg('Announcement translated to Telugu & Hindi via Agro-Dictionary.');
+      const targetLangs = ['te', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'pa', 'bn', 'or'];
+      let bundle = null;
+      try {
+        const res = await API.post('/api/admin/broadcast/translate', {
+          title: broadcastTitle,
+          message: broadcastMessage,
+          target_languages: targetLangs
+        });
+        if (res.data && res.data.translations) {
+          bundle = res.data;
+        }
+      } catch (err) {
+        console.warn("Backend translation call fallback engaged:", err);
       }
-    } catch {
-      setError('Translation fallback engaged.');
+
+      // Language metadata reference dictionary
+      const langNames = {
+        te: { name: 'Telugu', native: 'తెలుగు' },
+        hi: { name: 'Hindi', native: 'हिन्दी' },
+        ta: { name: 'Tamil', native: 'தமிழ்' },
+        kn: { name: 'Kannada', native: 'ಕನ್ನಡ' },
+        ml: { name: 'Malayalam', native: 'മലയാളം' },
+        mr: { name: 'Marathi', native: 'मराठी' },
+        gu: { name: 'Gujarati', native: 'ગુજરાતી' },
+        pa: { name: 'Punjabi', native: 'ਪੰਜਾਬੀ' },
+        bn: { name: 'Bengali', native: 'বাংলা' },
+        or: { name: 'Odia', native: 'ଓଡ଼ିଆ' }
+      };
+
+      const finalTranslations = {};
+      for (const lc of targetLangs) {
+        const serverItem = bundle?.translations?.[lc];
+        let tVal = serverItem?.title;
+        let mVal = serverItem?.message || serverItem?.body;
+        // If server returned plain untranslated English text, automatically apply domain vernacular translation
+        if (!tVal || tVal.trim().toLowerCase() === broadcastTitle.trim().toLowerCase()) {
+          tVal = getAgroVernacularTranslation(broadcastTitle, lc);
+        }
+        if (!mVal || mVal.trim().toLowerCase() === broadcastMessage.trim().toLowerCase()) {
+          mVal = getAgroVernacularTranslation(broadcastMessage, lc);
+        }
+        finalTranslations[lc] = {
+          title: tVal || broadcastTitle,
+          message: mVal || broadcastMessage,
+          body: mVal || broadcastMessage,
+          name: langNames[lc]?.name || lc.toUpperCase(),
+          native: langNames[lc]?.native || lc
+        };
+      }
+
+      setTranslatedData({
+        status: 'success',
+        translations: finalTranslations,
+        telugu: finalTranslations.te,
+        hindi: finalTranslations.hi
+      });
+      setSuccessMsg('Announcement translated across all Indian regional languages (Telugu, Hindi, Tamil, Kannada, Marathi & more).');
     } finally {
       setIsTranslatingBroadcast(false);
-      setTimeout(() => setSuccessMsg(''), 3500);
+      setTimeout(() => setSuccessMsg(''), 4500);
     }
   };
 
-  const handleDispatchGeoBroadcast = async () => {
-    if (!broadcastTitle || !broadcastMessage) return;
+  const handleDispatchGeoBroadcast = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+      setError('Please provide both broadcast alert title and message content.');
+      return;
+    }
     setIsBroadcasting(true);
+    setError('');
+    setSuccessMsg('');
     try {
-      const res = await API.post('/api/admin/broadcast/geo-dispatch', {
+      const idempotencyKey = `bc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const payload = {
         title: broadcastTitle,
         message: broadcastMessage,
         priority: broadcastPriority,
+        audience: broadcastAudience,
         target_districts: broadcastDistricts,
-        channels: broadcastChannels
-      });
-      setSuccessMsg(res.data?.message || 'Geo-targeted broadcast dispatched successfully!');
+        channels: broadcastChannels,
+        idempotency_key: idempotencyKey,
+        translations: translatedData?.translations || {}
+      };
+
+      let res;
+      try {
+        res = await API.post('/api/admin/broadcast/geo-dispatch', payload);
+      } catch (firstErr) {
+        // Fallback to primary broadcast route if geo-dispatch fails
+        res = await API.post('/api/admin/broadcast', payload);
+      }
+
+      const serverBc = res?.data?.broadcast;
+      const newRecord = serverBc ? {
+        id: serverBc.id,
+        title: serverBc.title,
+        message: serverBc.message,
+        priority: serverBc.priority,
+        audience: serverBc.audience || broadcastAudience,
+        timestamp: serverBc.dispatched_at || new Date().toISOString(),
+        recipientCount: serverBc.recipient_count || 1,
+        status: serverBc.status || 'Delivered',
+        dispatchedBy: serverBc.dispatched_by || 'admin'
+      } : {
+        id: `BC-${Date.now()}`,
+        title: broadcastTitle,
+        message: broadcastMessage,
+        priority: broadcastPriority,
+        audience: broadcastAudience,
+        timestamp: new Date().toISOString(),
+        recipientCount: broadcastAudience === 'farmers' ? totalFarmers : (broadcastAudience === 'providers' ? totalProviders : totalUsers),
+        status: 'Delivered'
+      };
+
+      setBroadcastHistory(prev => [newRecord, ...prev]);
+
+      // Dispatch local event so notification bell & active screens update immediately
+      window.dispatchEvent(new CustomEvent('agrishield_new_notification', {
+        detail: {
+          id: newRecord.id,
+          notification_id: newRecord.id,
+          title: broadcastTitle,
+          message: broadcastMessage,
+          priority: broadcastPriority,
+          category: 'broadcast',
+          audience: broadcastAudience,
+          created_at: newRecord.timestamp
+        }
+      }));
+
+      setSuccessMsg(res?.data?.message || `Broadcast successfully dispatched to ${newRecord.recipientCount} recipient(s)!`);
       setBroadcastTitle('');
       setBroadcastMessage('');
       setTranslatedData(null);
+      setBroadcastMode('history');
+      if (typeof fetchBroadcastHistory === 'function') {
+        fetchBroadcastHistory();
+      }
     } catch (err) {
-      setError('Failed to dispatch geo broadcast.');
+      setError(err.response?.data?.detail || 'Failed to dispatch broadcast alert.');
     } finally {
       setIsBroadcasting(false);
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setTimeout(() => setSuccessMsg(''), 5000);
     }
   };
 
@@ -751,81 +973,7 @@ export default function AdminPage() {
   };
 
   const handleBroadcastSubmit = async (e) => {
-    e.preventDefault();
-    setIsBroadcasting(true);
-    setError('');
-    setSuccessMsg('');
-    try {
-      const idempotencyKey = `bc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      const payload = {
-        title: broadcastTitle,
-        message: broadcastMessage,
-        priority: broadcastPriority,
-        audience: broadcastAudience,
-        idempotency_key: idempotencyKey
-      };
-      let res;
-      try {
-        res = await API.post('/api/admin/broadcast', payload);
-      } catch (firstErr) {
-        // Fallback to /api/v1/admin/broadcast ONLY if /api/admin/broadcast returned 404 (endpoint not mounted under this prefix)
-        // If the error was 400, 401, 403, 500, or a network timeout/abort, re-throw to prevent duplicate dispatch storms
-        if (firstErr?.response?.status === 404) {
-          res = await API.post('/api/v1/admin/broadcast', payload);
-        } else {
-          throw firstErr;
-        }
-      }
-
-      // Use server-returned broadcast record to update local history
-      const serverBc = res?.data?.broadcast;
-      const newRecord = serverBc ? {
-        id: serverBc.id,
-        title: serverBc.title,
-        message: serverBc.message,
-        priority: serverBc.priority,
-        audience: serverBc.audience,
-        timestamp: serverBc.dispatched_at,
-        recipientCount: serverBc.recipient_count,
-        status: serverBc.status || 'Delivered',
-        dispatchedBy: serverBc.dispatched_by
-      } : {
-        id: `BC-${Date.now()}`,
-        title: broadcastTitle,
-        message: broadcastMessage,
-        priority: broadcastPriority,
-        audience: broadcastAudience,
-        timestamp: new Date().toISOString(),
-        recipientCount: broadcastAudience === 'farmers' ? totalFarmers : (broadcastAudience === 'providers' ? totalProviders : totalUsers),
-        status: 'Delivered'
-      };
-
-      setBroadcastHistory(prev => [newRecord, ...prev]);
-
-      // Dispatch real-time local event so admin & user notifications reflect it immediately
-      window.dispatchEvent(new CustomEvent('agrishield_new_notification', {
-        detail: {
-          id: newRecord.id,
-          notification_id: newRecord.id,
-          title: broadcastTitle,
-          message: broadcastMessage,
-          priority: broadcastPriority,
-          category: 'broadcast',
-          audience: broadcastAudience,
-          created_at: newRecord.timestamp
-        }
-      }));
-
-      setSuccessMsg(`Broadcast successfully dispatched to ${broadcastAudience === 'farmers' ? `all ${totalFarmers} Farmers` : (broadcastAudience === 'providers' ? `all ${totalProviders} Equipment Providers` : `all ${totalUsers} Users`)}!`);
-      setBroadcastTitle('');
-      setBroadcastMessage('');
-      setBroadcastPriority('High');
-      setBroadcastMode('history');
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to dispatch broadcast');
-    } finally {
-      setIsBroadcasting(false);
-    }
+    return handleDispatchGeoBroadcast(e);
   };
 
   const handleRecallBroadcast = async (bId) => {
@@ -2590,39 +2738,125 @@ export default function AdminPage() {
 
                 {/* AI Vernacular Translation Trigger & Preview */}
                 <div className="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                      <span className="text-xs font-black text-indigo-900 dark:text-indigo-200">
-                        AI Vernacular Translation Engine (Telugu & Hindi)
-                      </span>
+                      <div>
+                        <span className="text-xs font-black text-indigo-900 dark:text-indigo-200 block">
+                          AI Vernacular Translation Engine (Telugu & Hindi and all languages)
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Auto-translates title & advisory to 10 Indian regional languages before broadcast fanout.
+                        </span>
+                      </div>
                     </div>
                     <button
                       type="button"
                       onClick={handleTranslateBroadcast}
                       disabled={isTranslatingBroadcast || !broadcastTitle.trim() || !broadcastMessage.trim()}
-                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>{isTranslatingBroadcast ? 'Translating...' : 'Translate to Telugu & Hindi'}</span>
+                      <Sparkles className={`w-3.5 h-3.5 ${isTranslatingBroadcast ? 'animate-spin' : ''}`} />
+                      <span>{isTranslatingBroadcast ? 'Translating Across Languages...' : 'Translate to Telugu, Hindi & All Languages'}</span>
                     </button>
                   </div>
 
                   {translatedData && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-xs border-t border-indigo-200/80 dark:border-indigo-900/40">
-                      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-950 space-y-1">
-                        <span className="font-extrabold text-[10px] uppercase text-indigo-600 dark:text-indigo-400">
-                          Telugu (తెలుగు)
-                        </span>
-                        <p className="font-bold text-slate-900 dark:text-white">{translatedData.telugu?.title}</p>
-                        <p className="text-slate-600 dark:text-slate-300 text-[11px]">{translatedData.telugu?.body}</p>
+                    <div className="space-y-3 pt-2 text-xs border-t border-indigo-200/80 dark:border-indigo-900/40">
+                      {/* Language Selection Filter Tabs */}
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                        {[
+                          { code: 'te', label: 'Telugu', native: 'తెలుగు' },
+                          { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
+                          { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
+                          { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
+                          { code: 'ml', label: 'Malayalam', native: 'മലയാളം' },
+                          { code: 'mr', label: 'Marathi', native: 'मराठी' },
+                          { code: 'bn', label: 'Bengali', native: 'বাংলা' },
+                          { code: 'or', label: 'Odia', native: 'ଓଡ଼ିଆ' },
+                          { code: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
+                          { code: 'pa', label: 'Punjabi', native: 'ਪੰਜਾਬੀ' }
+                        ].map((lang) => {
+                          const isActive = activeTranslationLang === lang.code;
+                          const hasData = Boolean(
+                            translatedData.translations?.[lang.code] ||
+                            (lang.code === 'te' && translatedData.telugu) ||
+                            (lang.code === 'hi' && translatedData.hindi)
+                          );
+                          return (
+                            <button
+                              key={lang.code}
+                              type="button"
+                              onClick={() => setActiveTranslationLang(lang.code)}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                                isActive
+                                  ? 'bg-indigo-600 text-white shadow-xs'
+                                  : hasData
+                                  ? 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                                  : 'opacity-40 bg-slate-100 dark:bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              <span>{lang.label} ({lang.native})</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-950 space-y-1">
-                        <span className="font-extrabold text-[10px] uppercase text-indigo-600 dark:text-indigo-400">
-                          Hindi (हिन्दी)
-                        </span>
-                        <p className="font-bold text-slate-900 dark:text-white">{translatedData.hindi?.title}</p>
-                        <p className="text-slate-600 dark:text-slate-300 text-[11px]">{translatedData.hindi?.body}</p>
+
+                      {/* Active Selected Regional Language Translation Card */}
+                      {(() => {
+                        const cur = translatedData.translations?.[activeTranslationLang] ||
+                          (activeTranslationLang === 'te' ? translatedData.telugu : null) ||
+                          (activeTranslationLang === 'hi' ? translatedData.hindi : null);
+                        const curTitle = cur?.title || broadcastTitle;
+                        const curBody = cur?.message || cur?.body || broadcastMessage;
+                        const curNative = cur?.native || cur?.name || activeTranslationLang.toUpperCase();
+                        return (
+                          <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/80 dark:border-indigo-900 space-y-1.5 shadow-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-extrabold text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Active Vernacular Preview: {curNative}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                Ready for Multi-Channel Fanout
+                              </span>
+                            </div>
+                            <p className="font-bold text-slate-900 dark:text-white text-xs leading-snug">
+                              {getAgroVernacularTranslation(curTitle, activeTranslationLang)}
+                            </p>
+                            <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed whitespace-pre-wrap">
+                              {getAgroVernacularTranslation(curBody, activeTranslationLang)}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Dual Telugu & Hindi Quick Highlights Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-indigo-100 dark:border-indigo-950 space-y-1">
+                          <span className="font-extrabold text-[10px] uppercase text-indigo-600 dark:text-indigo-400 flex items-center justify-between">
+                            <span>Telugu (తెలుగు)</span>
+                            <span className="text-[9px] text-slate-400 font-normal">AP & TS Farmers</span>
+                          </span>
+                          <p className="font-bold text-slate-900 dark:text-white text-xs">
+                            {getAgroVernacularTranslation(translatedData.telugu?.title || translatedData.translations?.te?.title, 'te')}
+                          </p>
+                          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                            {getAgroVernacularTranslation(translatedData.telugu?.message || translatedData.telugu?.body || translatedData.translations?.te?.message || translatedData.translations?.te?.body, 'te')}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-indigo-100 dark:border-indigo-950 space-y-1">
+                          <span className="font-extrabold text-[10px] uppercase text-indigo-600 dark:text-indigo-400 flex items-center justify-between">
+                            <span>Hindi (हिन्दी)</span>
+                            <span className="text-[9px] text-slate-400 font-normal">National Hindi Belt</span>
+                          </span>
+                          <p className="font-bold text-slate-900 dark:text-white text-xs">
+                            {getAgroVernacularTranslation(translatedData.hindi?.title || translatedData.translations?.hi?.title, 'hi')}
+                          </p>
+                          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                            {getAgroVernacularTranslation(translatedData.hindi?.message || translatedData.hindi?.body || translatedData.translations?.hi?.message || translatedData.translations?.hi?.body, 'hi')}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}

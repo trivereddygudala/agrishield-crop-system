@@ -273,6 +273,16 @@ const HistoryPage = () => {
     };
   }, [fetchData]);
 
+  // Real-time auto-refresh when new scan completes
+  useEffect(() => {
+    const handleNewScan = () => {
+      window._cachedPredictionHistory = null;
+      fetchData(true);
+    };
+    window.addEventListener('agrishield-new-scan', handleNewScan);
+    return () => window.removeEventListener('agrishield-new-scan', handleNewScan);
+  }, [fetchData]);
+
   // Real-time auto-refresh when ESP32 flushes its offline SD queue or live telemetry arrives
   useEffect(() => {
     if (!subscribe) return;

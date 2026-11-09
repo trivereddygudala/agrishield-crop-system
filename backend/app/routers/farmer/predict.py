@@ -1352,35 +1352,10 @@ async def upload_image(
 
     persisted_path = storage_res.image_path
 
-    # Fast ONNX Neural Crop Pre-Detection (<30ms)
+    # Fast Instant Upload Response (<150ms):
+    # Full neural classification executes during /predict endpoint to avoid double inference latency.
     detected_crop = ""
     conf = 0.95
-    temp_infer_file = None
-    try:
-        inference_path = storage_res.local_path
-        if not inference_path or not os.path.exists(inference_path):
-            temp_dir = os.path.join(settings.canonical_upload_dir, "cluster_temp")
-            os.makedirs(temp_dir, exist_ok=True)
-            temp_infer_file = os.path.join(temp_dir, f"infer_{storage_res.filename}")
-            with open(temp_infer_file, "wb") as f:
-                f.write(content_bytes)
-            inference_path = temp_infer_file
-
-        from model.predict_pytorch import load_resources, parse_class_label
-        loader, classes = load_resources()
-        py_res = loader.predict_image(inference_path, top_k=1, use_tta=False)
-        if py_res and py_res.get("top_predictions"):
-            top_cls = py_res["top_predictions"][0]["class_name"]
-            detected_crop, _, _ = parse_class_label(top_cls)
-            conf = float(py_res["top_predictions"][0]["confidence"])
-    except Exception as e:
-        print(f"[PRE-CLASSIFY WARNING] Fast neural pre-detection bypassed: {e}")
-    finally:
-        if temp_infer_file and os.path.exists(temp_infer_file):
-            try:
-                os.remove(temp_infer_file)
-            except Exception:
-                pass
 
     return {
         "image_path": persisted_path,
@@ -1705,9 +1680,9 @@ async def predict_pytorch_endpoint(
     Uses the main predict_crop_disease pipeline with full diagnostics and optional translation.
     """
     _req_start_t = time.perf_counter()
-    full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
+    full_image_path = resolve_image_path(req.image_path)
     if not full_image_path and getattr(req, "image_data_url", None):
-        full_image_path = await asyncio.to_thread(resolve_image_path, req.image_data_url)
+        full_image_path = resolve_image_path(req.image_data_url)
     if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1717,11 +1692,11 @@ async def predict_pytorch_endpoint(
     # Resolve optional multi-part photos (Root / Collar and Cut Fruit / Split Stem)
     full_root_image_path = None
     if getattr(req, "image_root_path", None):
-        full_root_image_path = await asyncio.to_thread(resolve_image_path, req.image_root_path)
+        full_root_image_path = resolve_image_path(req.image_root_path)
 
     full_stem_image_path = None
     if getattr(req, "image_stem_path", None):
-        full_stem_image_path = await asyncio.to_thread(resolve_image_path, req.image_stem_path)
+        full_stem_image_path = resolve_image_path(req.image_stem_path)
 
     has_multipart_scan = bool(
         full_root_image_path or full_stem_image_path or
@@ -2326,7 +2301,11 @@ async def predict_pytorch_endpoint(
         try:
             from backend.app.services.nvidia_service import nvidia_service
             from backend.app.services.farm_profile_service import FarmProfileService
-            user_id_val = str(current_user["id"]) if current_user else "demo_user"
+            user_id_val = (
+                str(current_user.get("id") or current_user.get("_id") or "demo_user")
+                if (current_user and isinstance(current_user, dict))
+                else (str(getattr(current_user, "id", "demo_user")) if current_user else "demo_user")
+            )
             
             if is_micro_model_active:
                 # Fast path: instant ICAR knowledge base (<1ms)
@@ -2833,6 +2812,13 @@ async def predict_pytorch_endpoint(
         prediction_record["id"] = str(uuid.uuid4())
         prediction_record["history_saved"] = False
 
+    # Always persist to local disk backup so zero scan is ever lost even during cloud database blips
+    try:
+        from backend.app.db.local_predictions_backup import save_local_prediction
+        save_local_prediction(prediction_record)
+    except Exception as _bk_err:
+        logger.debug(f"Local prediction backup note: {_bk_err}")
+
     if "_id" in prediction_record:
         del prediction_record["_id"]
 
@@ -3245,7 +3231,11 @@ async def get_history(
         if user_id:
             query["user_id"] = user_id
     else:
-        user_id_val = str(current_user["id"])
+        user_id_val = (
+            str(current_user.get("id") or current_user.get("_id") or current_user.get("user_id") or "demo_user")
+            if (current_user and isinstance(current_user, dict))
+            else (str(getattr(current_user, "id", "demo_user")) if current_user else "demo_user")
+        )
         if ObjectId.is_valid(user_id_val):
             query["user_id"] = {"$in": [user_id_val, ObjectId(user_id_val)]}
         else:
@@ -3260,15 +3250,36 @@ async def get_history(
     if status_filter:
         query["prediction_status"] = status_filter.lower()
 
-    # Total counts
-    total = await db.predictions.count_documents(query)
-    pages = (total + limit - 1) // limit if total > 0 else 1
+    # Total counts and fetch with resilient local fallback
+    records = []
+    total = 0
+    pages = 1
+    if db is not None:
+        try:
+            total = await db.predictions.count_documents(query)
+            pages = (total + limit - 1) // limit if total > 0 else 1
+            skip = (page - 1) * limit
+            projection = {"gradcam_base64": 0, "heatmap_base64": 0, "comparison_base64": 0}
+            cursor = db.predictions.find(query, projection).sort("created_at", -1).skip(skip).limit(limit)
+            records = await cursor.to_list(length=limit)
+        except Exception as db_q_err:
+            logger.warning(f"MongoDB history query degraded: {db_q_err}")
 
-    # Fetch and parse (project out heavy base64 images to prevent 10MB+ payload bloat)
-    skip = (page - 1) * limit
-    projection = {"gradcam_base64": 0, "heatmap_base64": 0, "comparison_base64": 0}
-    cursor = db.predictions.find(query, projection).sort("created_at", -1).skip(skip).limit(limit)
-    records = await cursor.to_list(length=limit)
+    # Merge local backup predictions so scans are ALWAYS displayed even during cloud database transitions
+    try:
+        from backend.app.db.local_predictions_backup import get_local_predictions
+        local_preds = get_local_predictions(
+            user_id=None if current_user.get("role", "").lower() == "admin" else user_id_val,
+            limit=limit
+        )
+        existing_ids = {str(r.get("id") or r.get("_id")) for r in records}
+        for lp in local_preds:
+            lp_id = str(lp.get("id") or lp.get("_id"))
+            if lp_id not in existing_ids:
+                records.insert(0, lp)
+                total += 1
+    except Exception as _lp_err:
+        pass
 
     # Fetch user details for admin view
     user_cache = {}

@@ -314,6 +314,13 @@ export default function DiseaseDiagnosisResults({
     const clean = (langCode || 'en').split('-')[0].toLowerCase();
     setActiveLang(clean);
     sessionStorage.setItem('agrishield_tab_lang_disease', clean);
+    try {
+      if (i18n && i18n.language !== clean) {
+        i18n.changeLanguage(clean);
+        localStorage.setItem('i18nextLng', clean);
+        window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: clean } }));
+      }
+    } catch (_) {}
   };
 
   // Safe State Variables & Speech Reader Hook (prevents ReferenceError)
@@ -596,14 +603,19 @@ export default function DiseaseDiagnosisResults({
     <div className="space-y-4 max-w-3xl mx-auto pb-12">
       {/* 1. Multi-Lingual Quick Bar */}
       <div className="flex items-center justify-between gap-2 px-1">
-        <ScanLanguageBar currentLang={activeLang} onSelectLanguage={handleLanguageSelect} />
+        <ScanLanguageBar 
+          activeLang={activeLang} 
+          currentLang={activeLang} 
+          onLanguageSelect={handleLanguageSelect} 
+          onSelectLanguage={handleLanguageSelect} 
+        />
         <button
           type="button"
           onClick={handleShareWhatsApp}
           className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
         >
           <Share2 className="w-3.5 h-3.5 text-emerald-600" />
-          <span>{activeLang === 'te' ? 'పంచుకోండి' : activeLang === 'hi' ? 'शेयर करें' : 'Share'}</span>
+          <span>{activeLang === 'te' ? 'పంచుకోండి' : activeLang === 'hi' ? 'शेयर करें' : activeLang === 'ta' ? 'பகிரவும்' : activeLang === 'kn' ? 'ಹಂಚಿಕೊಳ್ಳಿ' : activeLang === 'ml' ? 'പങ്കിടുക' : activeLang === 'or' ? 'ସେୟାର କରନ୍ତୁ' : 'Share'}</span>
         </button>
       </div>
 
@@ -625,15 +637,15 @@ export default function DiseaseDiagnosisResults({
               <span className={`w-2 h-2 rounded-full ${isHealthy ? 'bg-emerald-500' : isUncertain ? 'bg-amber-500' : 'bg-rose-500 animate-pulse'}`} />
               <span>
                 {isHealthy
-                  ? (activeLang === 'te' ? 'ఆరోగ్యకరమైన పైరు' : 'Healthy Crop')
+                  ? (activeLang === 'te' ? 'ఆరోగ్యకరమైన పైరు' : activeLang === 'hi' ? 'स्वस्थ फसल' : activeLang === 'ta' ? 'ஆரோக்கியமான பயிர்' : activeLang === 'kn' ? 'ಆರೋಗ್ಯಕರ ಬೆಳೆ' : activeLang === 'ml' ? 'ആരോഗ്യമുള്ള വിള' : activeLang === 'or' ? 'ସୁସ୍ଥ ଫସଲ' : 'Healthy Crop')
                   : isUncertain
-                  ? (activeLang === 'te' ? 'సందేహాస్పద నిర్ధారణ' : 'Uncertain Scan')
-                  : (activeLang === 'te' ? 'తీవ్రమైన తెగులు (High Severity)' : 'High Severity')}
+                  ? (activeLang === 'te' ? 'సందేహాస్పద నిర్ధారణ' : activeLang === 'hi' ? 'अनिश्चित स्कैन' : activeLang === 'ta' ? 'நிச்சயமற்ற ஸ்கேன்' : activeLang === 'kn' ? 'ಅನಿಶ್ಚಿತ ಸ್ಕ್ಯಾನ್' : activeLang === 'ml' ? 'അനിശ്ചിത സ്കാൻ' : activeLang === 'or' ? 'ଅନିଶ୍ଚିତ ସ୍କାନ୍' : 'Uncertain Scan')
+                  : (activeLang === 'te' ? 'తీవ్రమైన తెగులు (High Severity)' : activeLang === 'hi' ? 'गंभीर रोग (High Severity)' : activeLang === 'ta' ? 'தீவிர நோய் (High Severity)' : activeLang === 'kn' ? 'ತೀವ್ರ ರೋಗ (High Severity)' : activeLang === 'ml' ? 'തീവ്ര രോഗം' : activeLang === 'or' ? 'ଗୁରୁତର ରୋଗ' : 'High Severity')}
               </span>
             </span>
 
             <span className="text-xs font-black text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
-              {confidencePercent}% {activeLang === 'te' ? 'కచ్చితత్వం' : 'Accuracy'}
+              {confidencePercent}% {activeLang === 'te' ? 'కచ్చితత్వం' : activeLang === 'hi' ? 'सटीकता' : activeLang === 'ta' ? 'துல்லியம்' : activeLang === 'kn' ? 'ನಿಖರತೆ' : activeLang === 'ml' ? 'കൃത്യത' : activeLang === 'or' ? 'ସଠିକତା' : 'Accuracy'}
             </span>
           </div>
 
@@ -650,8 +662,8 @@ export default function DiseaseDiagnosisResults({
             <Volume2 className="w-3.5 h-3.5" />
             <span>
               {speakingId === 'plantix_symptoms_audio'
-                ? (activeLang === 'te' ? 'ఆపండి' : 'Stop')
-                : (activeLang === 'te' ? '🔊 వినండి (Telugu Audio)' : activeLang === 'hi' ? '🔊 सुनिए (Audio)' : '🔊 Listen (Audio)')}
+                ? (activeLang === 'te' ? 'ఆపండి' : activeLang === 'hi' ? 'रोकें' : 'Stop')
+                : (activeLang === 'te' ? '🔊 వినండి (Telugu Audio)' : activeLang === 'hi' ? '🔊 सुनिए (Hindi Audio)' : activeLang === 'ta' ? '🔊 கேளுங்கள் (Audio)' : activeLang === 'kn' ? '🔊 ಕೇಳಿ (Audio)' : activeLang === 'ml' ? '🔊 കേൾക്കുക (Audio)' : activeLang === 'or' ? '🔊 ଶୁଣନ୍ତୁ (Audio)' : '🔊 Listen (Audio)')}
             </span>
             {speakingId === 'plantix_symptoms_audio' && (
               <span className="flex items-center gap-0.5 ml-1">

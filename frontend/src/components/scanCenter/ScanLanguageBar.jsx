@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Globe, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { SUPPORTED_LANGUAGES } from '../../data/languages';
 
@@ -7,15 +8,22 @@ import { SUPPORTED_LANGUAGES } from '../../data/languages';
  * Reusable, clean, location-aware language selector bar for AI Scan Center.
  * Strictly renders ONLY the 1, 2, or 3 preferred languages configured by the farmer.
  * Zero unselected languages, zero "+ More" clutter, and harmonious adaptive colors.
+ * Supports both activeLang/currentLang and onLanguageSelect/onSelectLanguage props.
  */
 export default function ScanLanguageBar({
-  activeLang = 'en',
+  activeLang: propActiveLang,
+  currentLang,
   onLanguageSelect,
+  onSelectLanguage,
   isTranslating = false,
   label = '',
   className = ''
 }) {
-  const { user } = useAuth();
+  const { i18n } = useTranslation();
+  const { user, updateProfile } = useAuth();
+  
+  // Resolve active language code from props or global i18n
+  const resolvedCode = (propActiveLang || currentLang || i18n?.language || 'en').split('-')[0].toLowerCase();
 
   // Strict farmer-configured preferred languages (1, 2, or 3 languages)
   const [preferredCodes, setPreferredCodes] = useState(() => {
@@ -68,8 +76,26 @@ export default function ScanLanguageBar({
     return mapped;
   }, [preferredCodes]);
 
-  const handleSelect = (code) => {
-    onLanguageSelect?.(code);
+  const handleSelect = async (code) => {
+    const clean = (code || 'en').split('-')[0].toLowerCase();
+    
+    // Call both callback styles for complete backward compatibility
+    if (onLanguageSelect) onLanguageSelect(clean);
+    if (onSelectLanguage) onSelectLanguage(clean);
+
+    // Synchronously update global website i18n
+    try {
+      if (i18n && i18n.language !== clean) {
+        await i18n.changeLanguage(clean);
+        localStorage.setItem('i18nextLng', clean);
+        if (user && updateProfile) {
+          updateProfile({ preferred_language: clean }).catch(() => {});
+        }
+        window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: clean } }));
+      }
+    } catch (e) {
+      console.warn("ScanLanguageBar i18n sync:", e);
+    }
   };
 
   return (
@@ -91,7 +117,7 @@ export default function ScanLanguageBar({
 
       {/* Strictly the 1, 2, or 3 Preferred Language Pills */}
       {quickLanguages.map((lang) => {
-        const isSelected = (activeLang || '').toLowerCase().startsWith(lang.code.toLowerCase());
+        const isSelected = resolvedCode.startsWith(lang.code.toLowerCase());
 
         return (
           <button
@@ -103,7 +129,7 @@ export default function ScanLanguageBar({
             className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 select-none ${
               isSelected
                 ? 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black shadow-xs border border-emerald-400 scale-[1.02]'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-250 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700'
             }`}
           >
             <span>{lang.flag || '🌾'}</span>

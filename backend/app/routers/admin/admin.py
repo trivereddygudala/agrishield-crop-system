@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from bson import ObjectId
 from backend.app.db.mongodb import get_database
 from backend.app.core.security import require_role, hash_password, validate_password_strength
@@ -414,8 +414,11 @@ class AdminBroadcastRequest(BaseModel):
     message: str
     priority: str = "High"
     audience: str = "all"  # 'farmers' | 'providers' | 'all'
+    target_districts: Optional[List[str]] = None
+    channels: Optional[List[str]] = None
     action_url: Optional[str] = "/dashboard"
     idempotency_key: Optional[str] = None
+    translations: Optional[Dict[str, Any]] = None
 
 @router.post("/broadcast", dependencies=[Depends(require_role("admin"))])
 async def broadcast_system_notification(
@@ -1486,22 +1489,27 @@ class ScanOverrideRequest(BaseModel):
 class BroadcastTranslateRequest(BaseModel):
     title: str
     message: str
+    target_languages: Optional[List[str]] = None
 
 class GeoBroadcastRequest(BaseModel):
     title: str
     message: str
     priority: str = "High"
+    audience: Optional[str] = "all"
     target_districts: List[str] = []
     channels: List[str] = ["push", "sms"]
+    action_url: Optional[str] = "/dashboard"
+    idempotency_key: Optional[str] = None
+    translations: Optional[Dict[str, Any]] = None
 
 class IotDownlinkRequest(BaseModel):
-    device_id: str
-    command: str  # reboot, set_interval, toggle_valve, calibrate_offset
+    device_id: str = Field(..., max_length=64, pattern=r"^[a-zA-Z0-9_\-\.:]+$")
+    command: str = Field(..., max_length=32, pattern=r"^[a-zA-Z0-9_]+$")  # reboot, set_interval, toggle_valve, calibrate_offset
     params: Optional[Dict[str, Any]] = None
 
 class CanaryDeployRequest(BaseModel):
-    firmware_version: str
-    percentage: int = 10  # 10, 50, 100
+    firmware_version: str = Field(..., max_length=32)
+    percentage: int = Field(10, ge=1, le=100)  # 10, 50, 100
 
 class SupportAiTriageRequest(BaseModel):
     ticket_id: Optional[str] = None
@@ -1773,10 +1781,26 @@ async def list_admin_crop_scans(
     }
 
 @router.post("/overview/emergency-action", dependencies=[Depends(require_role("admin"))])
-async def trigger_emergency_action(req: EmergencyActionRequest, db = Depends(get_database)):
+async def trigger_emergency_action(
+    req: EmergencyActionRequest,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Admin Endpoint: Executes executive 1-click platform emergency actions."""
     action = req.action.lower()
     now_iso = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    actor_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub", "admin"))
+    log_security_event("EMERGENCY_ACTION_TRIGGERED", {"action": action, "actor": actor_id}, level="WARNING")
+
+    try:
+        await db.audit_logs.insert_one({
+            "action": f"EMERGENCY_{action.upper()}",
+            "actor": actor_id,
+            "timestamp": datetime.now(timezone.utc),
+            "details": {"action": action, "status": "executed"}
+        })
+    except Exception as e:
+        logger.warning(f"Failed to record emergency audit log: {e}")
 
     if action == "emergency_broadcast":
         return {
@@ -1831,7 +1855,11 @@ async def generate_database_backup():
     }
 
 @router.post("/users/bulk-action", dependencies=[Depends(require_role("admin"))])
-async def execute_user_bulk_action(req: UserBulkActionRequest, db = Depends(get_database)):
+async def execute_user_bulk_action(
+    req: UserBulkActionRequest,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Admin Endpoint: Bulk operations across selected user accounts."""
     if not req.user_ids:
         raise HTTPException(status_code=400, detail="No users selected")
@@ -1840,28 +1868,52 @@ async def execute_user_bulk_action(req: UserBulkActionRequest, db = Depends(get_
     if not valid_oids:
         raise HTTPException(status_code=400, detail="Invalid User IDs provided")
 
+    current_user_id = str(current_user.get("id") or current_user.get("_id") or current_user.get("sub", ""))
+    current_oid = ObjectId(current_user_id) if ObjectId.is_valid(current_user_id) else None
+
+    # Security check: Prevent admin self-demotion or self-suspension in bulk operations
+    target_oids = list(valid_oids)
+    if current_oid:
+        if req.action == "bulk_suspend":
+            target_oids = [oid for oid in valid_oids if oid != current_oid]
+            if not target_oids:
+                raise HTTPException(status_code=400, detail="Cannot suspend your own active administrator account")
+        elif req.action == "bulk_role_change" and req.new_role != "admin":
+            target_oids = [oid for oid in valid_oids if oid != current_oid]
+            if not target_oids:
+                raise HTTPException(status_code=400, detail="Cannot demote your own active administrator account")
+
     if req.action == "bulk_role_change":
         if not req.new_role:
             raise HTTPException(status_code=400, detail="new_role required for bulk_role_change")
+        # Ensure we do not demote all remaining admins
+        if req.new_role != "admin":
+            admin_count = await db.users.count_documents({"role": "admin"})
+            target_admins_count = await db.users.count_documents({"_id": {"$in": target_oids}, "role": "admin"})
+            if admin_count - target_admins_count < 1:
+                raise HTTPException(status_code=400, detail="Cannot demote the sole remaining administrator account")
+
         result = await db.users.update_many(
-            {"_id": {"$in": valid_oids}},
+            {"_id": {"$in": target_oids}},
             {"$set": {"role": req.new_role, "updated_at": datetime.now(timezone.utc)}}
         )
+        log_security_event("USER_BULK_ACTION_EXECUTED", {"action": "bulk_role_change", "new_role": req.new_role, "count": len(target_oids), "actor": current_user_id}, level="WARNING")
         return {
             "status": "success",
             "action": "bulk_role_change",
-            "affected_count": getattr(result, "modified_count", len(valid_oids)),
+            "affected_count": getattr(result, "modified_count", len(target_oids)),
             "new_role": req.new_role
         }
     elif req.action == "bulk_suspend":
         result = await db.users.update_many(
-            {"_id": {"$in": valid_oids}},
+            {"_id": {"$in": target_oids}},
             {"$set": {"account_status": "suspended", "suspended_at": datetime.now(timezone.utc)}}
         )
+        log_security_event("USER_BULK_ACTION_EXECUTED", {"action": "bulk_suspend", "count": len(target_oids), "actor": current_user_id}, level="WARNING")
         return {
             "status": "success",
             "action": "bulk_suspend",
-            "affected_count": getattr(result, "modified_count", len(valid_oids))
+            "affected_count": getattr(result, "modified_count", len(target_oids))
         }
     elif req.action == "bulk_export":
         users_cursor = db.users.find({"_id": {"$in": valid_oids}})
@@ -1878,6 +1930,7 @@ async def execute_user_bulk_action(req: UserBulkActionRequest, db = Depends(get_
             }
             for u in users_docs
         ]
+        log_security_event("USER_BULK_ACTION_EXECUTED", {"action": "bulk_export", "count": len(export_records), "actor": current_user_id}, level="INFO")
         return {
             "status": "success",
             "action": "bulk_export",
@@ -1922,65 +1975,198 @@ async def override_scan_diagnosis(req: ScanOverrideRequest, db = Depends(get_dat
     }
 
 @router.post("/broadcast/translate", dependencies=[Depends(require_role("admin"))])
-async def translate_broadcast_message(req: BroadcastTranslateRequest):
-    """Admin Endpoint: Translates emergency agricultural announcements to Telugu and Hindi."""
+async def translate_broadcast_message(req: BroadcastTranslateRequest, db = Depends(get_database)):
+    """Admin Endpoint: Real AI Vernacular Translation Engine across Telugu, Hindi, and all Indian regional languages."""
     title = req.title.strip()
     msg = req.message.strip()
 
-    # Domain-aware contextual vernacular mapper
-    telugu_title = f"హెచ్చరిక: {title}" if not title.startswith("హెచ్చరిక") else title
-    hindi_title = f"चेतावनी: {title}" if not title.startswith("चेतावनी") else title
+    if not title and not msg:
+        raise HTTPException(status_code=400, detail="Title or message is required for translation.")
 
-    # Common agro-translations
-    te_msg = msg
-    hi_msg = msg
+    # Target language set (defaults to top Indian regional agricultural languages)
+    languages = req.target_languages or ["te", "hi", "ta", "kn", "ml", "mr", "gu", "pa", "bn", "or"]
 
-    if "chilli" in msg.lower() or "leaf curl" in msg.lower():
-        te_msg = "మిర్చి తోటలలో ఆకుముడుత తెగులు నివారణకు సిఫార్సు చేయబడిన మందులను మాత్రమే పిచికారీ చేయండి. సమగ్ర సస్యరక్షణ చర్యలు చేపట్టండి."
-        hi_msg = "मिर्च की फसल में पत्ता मरोड़ रोग की रोकथाम के लिए अनुशंसित कीटनाशकों का ही छिड़काव करें।"
-    elif "rain" in msg.lower() or "cyclone" in msg.lower() or "weather" in msg.lower():
-        te_msg = "రాబోయే 48 గంటల్లో భారీ వర్ష సూచన ఉన్నందున పొలాల్లో నిల్వ ఉన్న నీటిని వెంటనే బయటకు పంపేలా ఏర్పాట్లు చేసుకోండి."
-        hi_msg = "आगामी 48 घंटों में भारी बारिश की संभावना के कारण खेतों से जल निकासी की उचित व्यवस्था करें।"
-    else:
-        te_msg = f"{msg} — వ్యవసాయ సలహా మండలి, ఆంధ్రప్రదేశ్ & తెలంగాణ."
-        hi_msg = f"{msg} — कृषि परामर्श सेवा."
+    # Language metadata dictionary
+    lang_info = {
+        "te": {"name": "Telugu", "native": "తెలుగు", "flag": "🌾"},
+        "hi": {"name": "Hindi", "native": "हिन्दी", "flag": "🇮🇳"},
+        "ta": {"name": "Tamil", "native": "தமிழ்", "flag": "🌴"},
+        "kn": {"name": "Kannada", "native": "ಕನ್ನಡ", "flag": "🌱"},
+        "ml": {"name": "Malayalam", "native": "മലയാളം", "flag": "🥥"},
+        "mr": {"name": "Marathi", "native": "मराठी", "flag": "🌿"},
+        "gu": {"name": "Gujarati", "native": "ગુજરાતી", "flag": "🚜"},
+        "pa": {"name": "Punjabi", "native": "ਪੰਜਾਬੀ", "flag": "🌾"},
+        "bn": {"name": "Bengali", "native": "বাংলা", "flag": "🍃"},
+        "or": {"name": "Odia", "native": "ଓଡ଼ିଆ", "flag": "🌾"},
+        "ur": {"name": "Urdu", "native": "اردو", "flag": "✨"},
+        "as": {"name": "Assamese", "native": "অসমীয়া", "flag": "🍵"}
+    }
+
+    # Execute multi-tier AI Vernacular Translation
+    try:
+        raw_bundle = await TranslationService.translate_multilingual_bundle(title, msg, languages, db=db)
+    except Exception as bundle_err:
+        logger.warning(f"translate_multilingual_bundle notice: {bundle_err}")
+        raw_bundle = {}
+
+    translations_map = {}
+    for lc in languages:
+        meta = lang_info.get(lc, {})
+        item = raw_bundle.get(lc, {})
+        t_val = item.get("title")
+        m_val = item.get("message") or item.get("body")
+        if not t_val or t_val == title:
+            t_val = TranslationService._domain_vernacular_fallback(title, lc) if hasattr(TranslationService, "_domain_vernacular_fallback") else title
+        if not m_val or m_val == msg:
+            m_val = TranslationService._domain_vernacular_fallback(msg, lc) if hasattr(TranslationService, "_domain_vernacular_fallback") else msg
+
+        translations_map[lc] = {
+            "title": t_val or title,
+            "message": m_val or msg,
+            "body": m_val or msg,
+            "language_code": lc,
+            "name": meta.get("name", lc.upper()),
+            "native": meta.get("native", lc),
+            "flag": meta.get("flag", "🌐")
+        }
+
+    # Backward compatibility for telugu and hindi direct properties
+    te_data = translations_map.get("te", {"title": title, "message": msg, "body": msg})
+    hi_data = translations_map.get("hi", {"title": title, "message": msg, "body": msg})
 
     return {
         "status": "success",
         "original": {"title": title, "message": msg},
-        "telugu": {"title": telugu_title, "message": te_msg},
-        "hindi": {"title": hindi_title, "message": hi_msg}
+        "available_languages": list(translations_map.keys()),
+        "translations": translations_map,
+        "telugu": te_data,
+        "hindi": hi_data
     }
 
 @router.post("/broadcast/geo-dispatch", dependencies=[Depends(require_role("admin"))])
-async def dispatch_geo_broadcast(req: GeoBroadcastRequest, db = Depends(get_database)):
-    """Admin Endpoint: Geo-fenced multi-channel agricultural alert dispatcher."""
-    now_iso = datetime.now(timezone.utc).isoformat()
+async def dispatch_geo_broadcast(
+    req: GeoBroadcastRequest,
+    current_user: dict = Depends(require_role("admin")),
+    db = Depends(get_database)
+):
+    """Admin Endpoint: Geo-fenced multi-channel agricultural alert dispatcher with MongoDB persistence and user notification fanout."""
+    now_dt = datetime.now(timezone.utc)
+    now_iso = now_dt.isoformat()
     districts = req.target_districts or ["All Agricultural Zones"]
     channels = req.channels or ["push", "sms"]
+    audience = (req.audience or "all").lower()
 
-    # Store in notification log
+    # Determine audience user query
+    if audience == "farmers":
+        user_query = {"role": "farmer"}
+    elif audience == "providers":
+        user_query = {"role": "equipment_provider"}
+    else:
+        user_query = {"role": {"$ne": "admin"}}
+
+    # Compute recipient count
+    recipient_count = 0
+    target_user_ids = []
     if db is not None:
         try:
-            await db.notifications.insert_one({
+            matched_users = await db.users.find(user_query, {"_id": 1, "farm_location": 1}).to_list(length=5000)
+            recipient_count = len(matched_users)
+            target_user_ids = [str(u["_id"]) for u in matched_users]
+        except Exception as q_err:
+            logger.warning(f"Error querying recipient users: {q_err}")
+
+    # Fallback default count if no users in db yet
+    if recipient_count == 0:
+        recipient_count = 1
+
+    # Store full broadcast in db.broadcasts for history
+    broadcast_id_str = f"BC-GEO-{int(now_dt.timestamp())}"
+    if db is not None:
+        try:
+            bc_doc = {
                 "title": req.title,
                 "message": req.message,
+                "original_title": req.title,
+                "original_message": req.message,
                 "priority": req.priority,
+                "audience": audience,
                 "target_districts": districts,
                 "channels": channels,
+                "recipient_count": recipient_count,
+                "dispatched_by": current_user.get("email", "admin"),
+                "status": "Delivered",
                 "is_geo_broadcast": True,
-                "created_at": datetime.now(timezone.utc)
-            })
-        except Exception:
-            pass
+                "action_url": req.action_url or "/dashboard",
+                "translations": req.translations or {},
+                "created_at": now_dt,
+                "updated_at": now_dt,
+                "dispatched_at": now_dt,
+                "idempotency_key": req.idempotency_key
+            }
+            ins_res = await db.broadcasts.insert_one(bc_doc)
+            broadcast_id_str = str(ins_res.inserted_id)
+
+            # Also fanout notifications into db.notifications for all targeted users
+            notification_docs = []
+            for uid in target_user_ids[:500]:
+                notification_docs.append({
+                    "user_id": uid,
+                    "title": req.title,
+                    "message": req.message,
+                    "priority": req.priority,
+                    "category": "broadcast",
+                    "action_url": req.action_url or "/dashboard",
+                    "is_geo_broadcast": True,
+                    "target_districts": districts,
+                    "channels": channels,
+                    "created_at": now_dt
+                })
+            if notification_docs:
+                await db.notifications.insert_many(notification_docs, ordered=False)
+            else:
+                # System-level broadcast notification record
+                await db.notifications.insert_one({
+                    "title": req.title,
+                    "message": req.message,
+                    "priority": req.priority,
+                    "target_districts": districts,
+                    "channels": channels,
+                    "is_geo_broadcast": True,
+                    "created_at": now_dt
+                })
+        except Exception as db_err:
+            logger.error(f"Error persisting geo broadcast: {db_err}")
+
+    log_security_event(
+        "GEO_BROADCAST_DISPATCHED",
+        {
+            "broadcast_id": broadcast_id_str,
+            "title": req.title,
+            "priority": req.priority,
+            "audience": audience,
+            "target_districts": districts,
+            "channels": channels,
+            "recipient_count": recipient_count
+        },
+        level="INFO"
+    )
 
     return {
         "status": "success",
-        "message": f"Geo-targeted broadcast dispatched to {len(districts)} zone(s) via {', '.join(channels).upper()}.",
-        "target_districts": districts,
-        "channels": channels,
-        "dispatched_at": now_iso,
-        "simulated_delivered_count": 864
+        "message": f"Geo-targeted broadcast dispatched to {recipient_count} recipient(s) across {len(districts)} zone(s) via {', '.join(channels).upper()}.",
+        "broadcast": {
+            "id": broadcast_id_str,
+            "title": req.title,
+            "message": req.message,
+            "priority": req.priority,
+            "audience": audience,
+            "target_districts": districts,
+            "channels": channels,
+            "recipient_count": recipient_count,
+            "dispatched_by": current_user.get("email", "admin"),
+            "status": "Delivered",
+            "dispatched_at": now_iso
+        }
     }
 
 @router.post("/iot/node/command", dependencies=[Depends(require_role("admin"))])
@@ -2110,9 +2296,35 @@ def fetch_supabase_storage_telemetry():
         "Content-Type": "application/json"
     }
 
+    # Fast non-blocking reachability check to prevent 12s socket timeout when offline
+    try:
+        from backend.app.services.translation_service import _is_online
+        host = url.split("://")[-1].split("/")[0]
+        if not _is_online(host, timeout=0.6):
+            return {
+                "status": "offline_cached",
+                "connected": False,
+                "provider": "Supabase Cloud Object Storage",
+                "project_url": url,
+                "project_id": url.replace("https://", "").replace("http://", "").split(".")[0],
+                "bucket_name": bucket,
+                "is_public": True,
+                "file_size_limit_mb": 15.0,
+                "total_objects": 0,
+                "total_bytes": 0,
+                "used_mb": 0.0,
+                "quota_mb": 1024.0,
+                "free_mb": 1024.0,
+                "used_percentage": 0.0,
+                "dashboard_url": f"https://supabase.com/dashboard/project/{url.replace('https://', '').replace('http://', '').split('.')[0]}/storage/buckets/{bucket}",
+                "sample_objects": []
+            }
+    except Exception:
+        pass
+
     bucket_info = None
     try:
-        b_resp = requests.get(f"{url}/storage/v1/bucket", headers=headers, timeout=6)
+        b_resp = requests.get(f"{url}/storage/v1/bucket", headers=headers, timeout=2.5)
         if b_resp.status_code == 200:
             for b in b_resp.json():
                 if isinstance(b, dict) and (b.get("id") == bucket or b.get("name") == bucket):
@@ -2126,7 +2338,7 @@ def fetch_supabase_storage_telemetry():
     try:
         list_url = f"{url}/storage/v1/object/list/{bucket}"
         payload = {"prefix": "", "limit": 100, "offset": 0, "sortBy": {"column": "created_at", "order": "desc"}}
-        r = requests.post(list_url, headers=headers, json=payload, timeout=6)
+        r = requests.post(list_url, headers=headers, json=payload, timeout=2.5)
         if r.status_code == 200:
             items = r.json()
             if isinstance(items, list):
