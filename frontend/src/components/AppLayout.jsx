@@ -1345,29 +1345,14 @@ export const BottomNav = () => {
   const { unreadCount } = useWebSocket() || {};
   const isAdmin = user?.role?.toLowerCase() === 'admin';
 
-  // Admin tabs vs Farmer tabs
+  // Admin tabs (Clean 4-tab dock: Dashboard, Alerts, AI Copilot, Settings)
   const adminTabs = [
     {
       key: 'dashboard',
-      label: t('nav.dashboard', 'Overview'),
+      label: t('nav.dashboard', 'Dashboard'),
       path: '/admin',
       Icon: LayoutDashboard,
       matchPaths: ['/admin'],
-    },
-    {
-      key: 'scans',
-      label: t('admin.module_scans_title', 'Scans'),
-      path: '/admin?tab=scans',
-      Icon: History,
-      matchPaths: ['/admin?tab=scans'],
-    },
-    {
-      key: 'radar',
-      label: 'API Radar',
-      path: '/admin?tab=radar',
-      Icon: Activity,
-      isCenter: true,
-      matchPaths: ['/admin?tab=radar'],
     },
     {
       key: 'alerts',
@@ -1378,11 +1363,19 @@ export const BottomNav = () => {
       badge: unreadCount > 0 ? unreadCount : null,
     },
     {
+      key: 'assistant',
+      label: t('nav.ai_copilot', 'AI Copilot'),
+      path: '/assistant',
+      Icon: Bot,
+      isCenter: true,
+      matchPaths: ['/assistant'],
+    },
+    {
       key: 'settings',
       label: t('nav.settings', 'Settings'),
-      path: '/admin?tab=settings',
+      path: '/settings',
       Icon: SettingsIcon,
-      matchPaths: ['/admin?tab=settings', '/settings', '/profile'],
+      matchPaths: ['/settings', '/more', '/profile'],
     },
   ];
 

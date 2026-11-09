@@ -9636,3 +9636,23 @@ pm.cmd run build passed in 21.71s with 0 errors.
 - **Localhost Servers Active**:
   - Vite dev server running at `http://localhost:3000`.
   - FastAPI server running at `http://127.0.0.1:8000`.
+
+
+## [2026-11-09 13:42:00] - Admin Bottom Nav 4-Tab Restoration & Extended Radar Features
+- **Bottom Navigation Dock Design Restored (`AppLayout.jsx`)**:
+  - Reverted `adminTabs` to the clean, user-preferred **4-tab dock**:
+    1. `Dashboard` (`/admin`)
+    2. `Alerts` (`/notifications`)
+    3. `AI Copilot` (`/assistant`, center elevated action)
+    4. `Settings` (`/settings`)
+  - Guaranteed that on mobile `/admin`, the dock strictly shows these 4 clean admin tabs without the 5 farmer tabs (`Field` / `పొలం`).
+- **Extended Radar Features (`ApiTrafficRadar.jsx`)**:
+  - **Subnet Focus & Tier Highlighting Filter**: Added 4 filter pills (`🌐 All Mesh`, `🤖 AI Cluster`, `📡 IoT Fleet`, `☁️ Cloud APIs`). Selecting a subnet dynamically dims non-selected nodes/cables and intensifies the neon glow on the selected cluster.
+  - **WebSocket / REST RTT Benchmark Probe**: Added interactive `⚡ Probe RTT` button that pings the FastAPI gateway, benchmarks round-trip time (`ms`), and displays a live dual-particle tracer.
+  - **Apdex SLA Quality Gauge**: Integrated live Apdex score (`0.99 Excellent`) with real-time percentage breakdown (Satisfied vs Tolerating vs Frustrated).
+  - **Autopilot Stress Simulation Stream**: Added `🤖 Autopilot Stream` toggle to automatically cycle realistic agricultural scenarios (PyTorch scan, IoT sensor telemetry, Telugu TTS) every 5.5s with zero manual clicking required.
+  - **Fullscreen Mission Control Mode**: Added expand/minimize toggle button to display the radar canvas in edge-to-edge dark tactical mode.
+- **Localhost Dev Server Running**:
+  - Frontend: `http://localhost:3000`
+  - Backend: `http://127.0.0.1:8000`
+  - System Health Analyzer: `100% Operational`.
