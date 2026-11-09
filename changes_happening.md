@@ -9814,3 +9814,22 @@ pm.cmd run build passed in 21.71s with 0 errors.
 - Production build `npm run build` compiled 3,166 modules with 0 errors (`✓ built in 22.61s`).
 - FastAPI backend verified with 200 OK responses on `http://127.0.0.1:8000/api/admin/storage/stats` and `http://127.0.0.1:8000/api/admin/storage/preview-purge`.
 - Full-stack dev servers running live and healthy on localhost ports 3000 and 8000.
+
+
+## [2026-11-09 16:10:00] - Dedicated Admin Tab for Enterprise Storage & Data Retention
+
+### 1. Standalone Tab in Admin Navigation & Module Grid
+- **Separate Tab Identity (`frontend/src/pages/admin/AdminPage.jsx`)**:
+  - Registered `storage` as a top-level module in `adminTabs` alongside Overview, User Directory, Diagnostics, Devices, Firmware, Logs, Platform Health, Radar, Helpdesk, and Cybersecurity Wall.
+  - Custom module card on the Overview (Home) tab featuring `HardDrive` icon, real-time dynamic badge displaying free gigabytes (`${storageStats.disk.free_gb} GB Free`), and color-coded status pills (Emerald for healthy, Amber for elevated, Rose for critical).
+  - Added dedicated navigation bar pill and breadcrumbs with a quick `<-- Return to Admin Modules` button to seamlessly return to the Overview hub.
+
+### 2. Standalone Module Workspace
+- Extracted storage capacity monitoring and data retention controls from the general settings block into its own dedicated full-page view (`activeTab === 'storage'`).
+- Retained a sleek summary card inside the Platform Health tab (`activeTab === 'settings'`) with a one-click transition button (`Open Storage & Retention Suite`) routing directly to `setTab('storage')`.
+- Overview hub's Executive Emergency Action Dock continues to provide quick one-click routing to the storage tab (`setTab('storage')`).
+
+### 3. Production Build & Live Verification
+- Vite production build `npm run build` compiled 3,166 modules with 0 errors (`✓ built in 20.74s`).
+- Live dev server active on `http://localhost:3000` and `http://127.0.0.1:8000`.
+- Agrishield Analyzer reporting 100% system health across backend, frontend, and database.

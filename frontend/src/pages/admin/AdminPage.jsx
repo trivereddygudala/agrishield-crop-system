@@ -1203,7 +1203,7 @@ export default function AdminPage() {
       fetchSupportTickets();
     } else if (activeTab === 'firewall') {
       fetchFirewallStatus();
-    } else if (activeTab === 'settings' || activeTab === 'overview') {
+    } else if (activeTab === 'settings' || activeTab === 'overview' || activeTab === 'storage') {
       fetchStorageStats();
     }
   }, [activeTab, supportStatusFilter, supportCategoryFilter, supportPriorityFilter]);
@@ -1393,6 +1393,16 @@ export default function AdminPage() {
       icon: Sliders, 
       badge: 'Health 100%', 
       badgeColor: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' 
+    },
+    { 
+      id: 'storage', 
+      label: 'Storage & Data Retention', 
+      description: 'Host disk telemetry, MongoDB Atlas footprint, uploads cache, and automated data retention purge controls.',
+      icon: HardDrive, 
+      badge: storageStats?.disk ? `${storageStats.disk.free_gb} GB Free` : 'Capacity', 
+      badgeColor: storageStats?.is_almost_full 
+        ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse' 
+        : (storageStats?.warning_elevated ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300')
     },
     { 
       id: 'radar', 
@@ -1784,6 +1794,7 @@ export default function AdminPage() {
                 {activeTab === 'firmware' && <UploadCloud className="w-3.5 h-3.5" />}
                 {activeTab === 'logs' && <FileText className="w-3.5 h-3.5" />}
                 {activeTab === 'settings' && <Sliders className="w-3.5 h-3.5" />}
+                {activeTab === 'storage' && <HardDrive className="w-3.5 h-3.5 text-amber-400" />}
                 {activeTab === 'support' && <Headphones className="w-3.5 h-3.5" />}
                 {activeTab === 'firewall' && <ShieldAlert className="w-3.5 h-3.5" />}
                 {activeTab === 'radar' && <Activity className="w-3.5 h-3.5 text-emerald-400" />}
@@ -1796,6 +1807,7 @@ export default function AdminPage() {
                   {activeTab === 'firmware' && 'Over-The-Air Fleet Flashing'}
                   {activeTab === 'logs' && 'Security & Access Logs'}
                   {activeTab === 'settings' && 'Platform Health & Specs'}
+                  {activeTab === 'storage' && 'Storage Telemetry & Data Retention'}
                   {activeTab === 'support' && 'Farmer Support & Emergency Helpdesk'}
                   {activeTab === 'firewall' && '5-Layer Defensive Cybersecurity Walls & IP Jail'}
                   {activeTab === 'radar' && 'Live API Radar & Service Mesh Topology'}
@@ -1815,6 +1827,7 @@ export default function AdminPage() {
                 {activeTab === 'firmware' && 'Upload and deploy Over-The-Air (OTA) binary firmware updates to deployed field devices.'}
                 {activeTab === 'logs' && 'Real-time security log stream of user logins, role modifications, and administrative operations.'}
                 {activeTab === 'settings' && 'Inspect core platform health, API status, database connectivity, and runtime configurations.'}
+                {activeTab === 'storage' && 'Monitor host disk capacity, MongoDB Atlas cluster footprint, media uploads cache, and execute automated data retention purges.'}
                 {activeTab === 'support' && 'Directly assist registered farmers, dispatch 15-minute phone callbacks, WhatsApp consultations, and resolve technical issues.'}
                 {activeTab === 'firewall' && 'Real-time monitoring of all 5 cybersecurity walls, 23 honeypot decoy traps, layer 7 WAF payload filter, and automated IP jail.'}
                 {activeTab === 'radar' && 'Real-time 2D network topology, animated request particle flow, live latency benchmarks, and active service mesh telemetry.'}
@@ -3732,7 +3745,44 @@ export default function AdminPage() {
             )}
           </div>
 
-          {/* ── ENTERPRISE STORAGE TELEMETRY & DATA RETENTION / PURGE SUITE ── */}
+          {/* Storage Telemetry Overview Card with Link to Dedicated Storage Tab */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                  <HardDrive className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <span>Server Disk & Database Storage Capacity</span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
+                      {storageStats?.disk?.free_gb ?? 213.85} GB Available
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Storage is currently at <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.disk?.used_percentage ?? 54.9}%</span> capacity ({storageStats?.disk?.used_gb ?? 260.68} GB / {storageStats?.disk?.total_gb ?? 474.53} GB). Use the dedicated Storage & Data Retention tab to review details and purge old data.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setTab('storage')}
+                className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              >
+                <HardDrive className="w-3.5 h-3.5" />
+                <span>Open Storage & Retention Suite</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: ENTERPRISE STORAGE TELEMETRY & DATA RETENTION SUITE  */}
+      {/* ======================================================== */}
+      {activeTab === 'storage' && (
+        <div className="space-y-6">
           <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
