@@ -8,8 +8,8 @@
     "dev:backend": ".\\.venv\\Scripts\\python.exe -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000",
     "analyzer": ".\\.venv\\Scripts\\python.exe scripts/agrishield_analyzer.py",
     "dev:tunnel": "node scripts/tunnel_service.js",
-    "dev:all": "npx concurrently -n \"FRONTEND,BACKEND,ANALYZER,TUNNEL\" -c \"cyan,green,yellow,magenta\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\" \"npm run dev:tunnel\"",
-    "dev": "npx concurrently -n \"FRONTEND,BACKEND,ANALYZER\" -c \"cyan,green,yellow\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\""
+    "dev:all": "concurrently -n \"FRONTEND,BACKEND,ANALYZER,TUNNEL\" -c \"cyan,green,yellow,magenta\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\" \"npm run dev:tunnel\"",
+    "dev": "concurrently -n \"FRONTEND,BACKEND,ANALYZER\" -c \"cyan,green,yellow\" \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run analyzer\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

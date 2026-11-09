@@ -27,6 +27,7 @@ let cachedActiveDevice = null;
 const DashboardPage = () => {
   const { user } = useAuth();
   const { activeFarm } = useFarm();
+  const farmId = activeFarm?.farm_id || activeFarm?.id;
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   // Instant load: If cache exists from this session, do NOT show skeleton
@@ -48,10 +49,14 @@ const DashboardPage = () => {
   const [devices, setDevices] = useState(() => cachedDashboardDevices || []);
   const [activeDevice, setActiveDevice] = useState(() => cachedActiveDevice || null);
 
-  // Default Delhi coordinates or active farm coordinates
+  // Default coordinates or active farm coordinates (safe numeric parsing)
   const [coordinates, setCoordinates] = useState(() => {
     if (activeFarm && activeFarm.latitude && activeFarm.longitude) {
-      return { lat: activeFarm.latitude, lon: activeFarm.longitude };
+      const lat = Number(activeFarm.latitude);
+      const lon = Number(activeFarm.longitude);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        return { lat, lon };
+      }
     }
     return { lat: 16.5062, lon: 80.6480 };
   });
@@ -66,7 +71,11 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (activeFarm && activeFarm.latitude && activeFarm.longitude) {
-      setCoordinates({ lat: activeFarm.latitude, lon: activeFarm.longitude });
+      const lat = Number(activeFarm.latitude);
+      const lon = Number(activeFarm.longitude);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        setCoordinates({ lat, lon });
+      }
     }
   }, [activeFarm]);
 
@@ -244,7 +253,6 @@ const DashboardPage = () => {
       : null
   };
 
-  const farmId = activeFarm?.farm_id || activeFarm?.id;
   const cropName = activeFarm?.crop_name || "Tomato";
   const growthStage = activeFarm?.growth_stage || "Vegetative";
   const farmSize = activeFarm?.farm_size || 1.0;
@@ -278,7 +286,10 @@ const DashboardPage = () => {
   const [dailyTasks, setDailyTasks] = useState(() => {
     try {
       const saved = localStorage.getItem(`agrishield_daily_routine_${todayDateKey}`);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch (e) {
       console.warn('Failed to parse saved daily tasks:', e);
     }
@@ -985,7 +996,7 @@ const DashboardPage = () => {
       {/* ─── Unified Field Intelligence (Weather, Safe Spray Window, Foliar Safety) ─── */}
       <motion.div variants={itemVariants} className="w-full max-w-full min-w-0">
         <WidgetErrorBoundary name="Field Intelligence">
-          <FieldIntelligenceWidget farmId={farmId} lat={coordinates.lat} lon={coordinates.lon} />
+          <FieldIntelligenceWidget farmId={farmId} lat={coordinates?.lat || 16.5062} lon={coordinates?.lon || 80.6480} />
         </WidgetErrorBoundary>
       </motion.div>
 
@@ -1026,7 +1037,14 @@ const DashboardPage = () => {
                         </span>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500">•</span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                          {scan.created_at ? new Date(scan.created_at).toLocaleDateString() : 'Recent'}
+                          {scan.created_at ? (() => {
+                            try {
+                              const d = new Date(scan.created_at);
+                              return isNaN(d.getTime()) ? 'Recent' : d.toLocaleDateString();
+                            } catch (e) {
+                              return 'Recent';
+                            }
+                          })() : 'Recent'}
                         </span>
                       </div>
                     </div>

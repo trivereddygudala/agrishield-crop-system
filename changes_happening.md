@@ -9516,3 +9516,57 @@ pm.cmd run build passed in 21.71s with 0 errors.
   - Expanded `/Qtl` / `Qtl` -> `క్వింటాలుకు` / `క్వింటా` for natural native Telugu flow.
 - **Verification**:
   - Production build `npm.cmd run build` passed in 18.13s with 0 errors.
+
+
+## [2026-11-08 17:15:00] - Dev Server & Localhost Startup Reliability Fixes
+- **Root Launcher & Concurrently Resolution (`package.json`)**:
+  - Replaced `npx concurrently` with direct `concurrently` in `dev` and `dev:all` scripts. Eliminates `npx` network registry checks, interactive confirmation prompts, and Windows PowerShell script execution policy blocks.
+- **Server Health Analyzer IPv4 Hardening (`scripts/agrishield_analyzer.py`)**:
+  - Pointed health check endpoints to `http://127.0.0.1:8000/api/v1/health` and `http://127.0.0.1:3000/` instead of `localhost`.
+  - Fixes false-alarm `Backend: DOWN (connection refused)` caused by Windows IPv6 (`::1`) loopback resolution when Uvicorn is bound to IPv4.
+- **Fail-safe Dev Launcher (`start_dev.bat`)**:
+  - Added working directory lock (`cd /d "%~dp0"`), automated Python virtual environment detection, and automatic `node_modules` installation check.
+  - Added helpful status banner with exact URLs (`http://localhost:3000` and `http://localhost:8000/docs`).
+  - Added PowerShell execution policy diagnostic hints on exit.
+- **Model Test Website Launcher (`start_model_test_website.bat` & `test_crop_model_server.py`)**:
+  - Added `cd /d "%~dp0"` and virtual environment check.
+  - Added Windows UTF-8 stdout reconfiguration (`sys.stdout.reconfigure(encoding="utf-8")`) to prevent `UnicodeEncodeError` crashes on Windows Command Prompt when displaying emojis and Telugu agronomy advisories.
+- **Verification**:
+  - Port availability check confirmed all ports (3000, 8000, 5050) are free.
+  - Vite frontend and FastAPI backend dev server successfully tested and ready.
+
+
+## [2026-11-08 17:16:00] - Full Stack Localhost Live Activation & Health 100%
+- **Host Network Live Daemon Activated**:
+  - Dev server launched in host mode (`npm.cmd run dev` on Windows host).
+  - Port 3000 (Vite Frontend) and Port 8000 (FastAPI Backend) actively listening on host loopback.
+  - Real-time analyzer confirms: `🟢 SYSTEM HEALTH 100% | Backend: 200 OK (5.71ms) | Frontend: 200 OK (10.93ms) | DB: Connected`.
+  - Resolved `ERR_CONNECTION_REFUSED` in browser; user can refresh `http://localhost:3000`.
+
+
+## [2026-11-08 17:19:30] - Dashboard Temporal Dead Zone Initialization Fix
+- **Fix ReferenceError in `DashboardPage.jsx`**:
+  - Moved `const farmId = activeFarm?.farm_id || activeFarm?.id;` to line 30 immediately after `useFarm()`.
+  - Removed duplicate declaration from line 248.
+  - Eliminated ES6 Temporal Dead Zone crash where `farmId` was passed into `useEffect` (line 82) before its `const` definition.
+- **Verification**:
+  - Vite HMR updated `DashboardPage.jsx` in real time.
+  - Full production build passed in 20.61s without errors.
+
+
+## [2026-11-09 12:15:00] - Production Vercel & Home Tab Full Audit & Rectification
+- **Root Cause of `ReferenceError: Cannot access 'ce' before initialization`**:
+  - The deployed Vercel site (`agrishield-crop-system-rust.vercel.app`) was running commit `ca7cd57` where `farmId` was minified to `ce`.
+  - In `DashboardPage.jsx`, `farmId` was passed into `useEffect` (line 82) before `const farmId = activeFarm?.farm_id || activeFarm?.id;` was declared at line 248, triggering an ES6 Temporal Dead Zone error in production minified bundles.
+- **Home Tab Comprehensive Audit & Hardening (`DashboardPage.jsx`)**:
+  - Hoisted `farmId` declaration to top of `DashboardPage` component (line 30), immediately after `useFarm()`.
+  - Removed redundant lower declaration.
+  - Safe coordinates numeric parsing: added `Number(activeFarm.latitude)` / `Number(activeFarm.longitude)` validation against `isNaN` with fallback to `16.5062, 80.6480`.
+  - Safe `FieldIntelligenceWidget` props: passed `coordinates?.lat || 16.5062` and `coordinates?.lon || 80.6480`.
+  - Safe `localStorage` parsing for `dailyTasks`: added strict `Array.isArray(parsed) && parsed.length > 0` validation to prevent corrupted client storage crashes.
+  - Safe date parsing for `stats.recent`: added `isNaN(d.getTime())` check before calling `toLocaleDateString()`.
+- **Local Dev Server Live Reconnection**:
+  - Re-verified and launched local server daemon (`http://localhost:3000` & `http://localhost:8000`).
+  - System health confirmed 100% active.
+- **Production Build Verification**:
+  - `npm.cmd --prefix frontend run build` compiled 3,164 modules cleanly in 21.37s with 0 errors.

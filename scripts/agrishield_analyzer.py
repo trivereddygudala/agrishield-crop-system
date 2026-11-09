@@ -56,13 +56,19 @@ def run_analysis_cycle(cycle_num):
     timestamp = datetime.now().strftime("%H:%M:%S")
     errors = []
 
-    # 1. Backend Server Check
-    backend_ok, backend_code, backend_ms, backend_err = check_endpoint("http://localhost:8000/api/v1/devices/status")
+    # 1. Backend Server Check - Prefer 127.0.0.1 to avoid Windows IPv6 (::1) connection refusal
+    backend_ok, backend_code, backend_ms, backend_err = check_endpoint("http://127.0.0.1:8000/api/v1/health")
     if not backend_ok and backend_code == 0:
-        backend_ok, backend_code, backend_ms, backend_err = check_endpoint("http://localhost:8000/")
+        backend_ok, backend_code, backend_ms, backend_err = check_endpoint("http://127.0.0.1:8000/health")
+    if not backend_ok and backend_code == 0:
+        backend_ok, backend_code, backend_ms, backend_err = check_endpoint("http://127.0.0.1:8000/")
+    if not backend_ok and backend_code == 0:
+        backend_ok, backend_code, backend_ms, backend_err = check_endpoint("http://localhost:8000/health")
 
-    # 2. Frontend Server Check
-    frontend_ok, frontend_code, frontend_ms, frontend_err = check_endpoint("http://localhost:3000/")
+    # 2. Frontend Server Check - Prefer 127.0.0.1 with localhost fallback
+    frontend_ok, frontend_code, frontend_ms, frontend_err = check_endpoint("http://127.0.0.1:3000/")
+    if not frontend_ok and frontend_code == 0:
+        frontend_ok, frontend_code, frontend_ms, frontend_err = check_endpoint("http://localhost:3000/")
 
     # Log assembly
     status_parts = []
