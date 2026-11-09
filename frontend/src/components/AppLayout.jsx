@@ -56,7 +56,9 @@ import {
   Radio,
   Clock,
   Truck,
-  Calendar
+  Calendar,
+  Headphones,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useFarm } from '../context/FarmContext';
@@ -634,6 +636,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 >
                   {(() => {
                     const path = location.pathname;
+                    if (path.startsWith('/admin')) return t('nav.admin_panel', 'Admin Control Panel');
                     if (path === '/dashboard') return t('nav.dashboard', 'Home');
                     if (path === '/upload' || path === '/result' || path.startsWith('/scan')) return t('nav.scan_crop', 'AI Crop Doctor');
                     if (path === '/history') return t('nav.scan_history', 'Scan History');
@@ -673,8 +676,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           {user && (
             <>
-              {/* Active Farm Switcher Dropdown */}
-              {profileCompleted && farms.length > 0 && (
+              {/* Active Farm Switcher Dropdown - STRICTLY HIDDEN ON ADMIN TO PREVENT FARM LEAKS */}
+              {profileCompleted && farms.length > 0 && !location.pathname.startsWith('/admin') && user?.role?.toLowerCase() !== 'admin' && (
                 <div className="relative hidden sm:block">
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -1124,16 +1127,19 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const navGroups = isAdmin ? [
     {
-      title: "Admin Dashboard & Operations",
+      title: "Admin Command & Operations",
       items: [
         { key: "nav.admin_users", path: "/admin?tab=users", icon: Users, label: "Registered Users" },
-        { key: "admin.nav_crop_scans", path: "/history", icon: History, label: "Crop Scan Audits" },
+        { key: "admin.nav_crop_scans", path: "/admin?tab=scans", icon: History, label: "Crop Scan Audits" },
+        { key: "nav.admin_radar", path: "/admin?tab=radar", icon: Activity, label: "Live API Radar & Mesh" },
         { key: "nav.admin_broadcast", path: "/admin?tab=broadcast", icon: Radio, label: "Global Broadcasts" },
         { key: "nav.admin_geography", path: "/admin?tab=geography", icon: Globe, label: "Farmer Geography" },
         { key: "nav.admin_iot", path: "/admin?tab=iot", icon: Cpu, label: "IoT Hardware Fleet" },
         { key: "nav.admin_firmware", path: "/admin?tab=firmware", icon: UploadCloud, label: "Firmware OTA" },
         { key: "nav.admin_logs", path: "/admin?tab=logs", icon: FileText, label: "Security Audit Logs" },
-        { key: "nav.admin_settings", path: "/admin?tab=settings", icon: Activity, label: "System Health & Specs" },
+        { key: "nav.admin_support", path: "/admin?tab=support", icon: Headphones, label: "Farmer Helpdesk" },
+        { key: "nav.admin_firewall", path: "/admin?tab=firewall", icon: ShieldAlert, label: "Defense Walls" },
+        { key: "nav.admin_settings", path: "/admin?tab=settings", icon: Sliders, label: "System Health & Specs" },
       ]
     },
     {
@@ -1343,10 +1349,25 @@ export const BottomNav = () => {
   const adminTabs = [
     {
       key: 'dashboard',
-      label: t('nav.dashboard', 'Dashboard'),
+      label: t('nav.dashboard', 'Overview'),
       path: '/admin',
       Icon: LayoutDashboard,
       matchPaths: ['/admin'],
+    },
+    {
+      key: 'scans',
+      label: t('admin.module_scans_title', 'Scans'),
+      path: '/admin?tab=scans',
+      Icon: History,
+      matchPaths: ['/admin?tab=scans'],
+    },
+    {
+      key: 'radar',
+      label: 'API Radar',
+      path: '/admin?tab=radar',
+      Icon: Activity,
+      isCenter: true,
+      matchPaths: ['/admin?tab=radar'],
     },
     {
       key: 'alerts',
@@ -1357,19 +1378,11 @@ export const BottomNav = () => {
       badge: unreadCount > 0 ? unreadCount : null,
     },
     {
-      key: 'assistant',
-      label: t('nav.ai_copilot', 'AI Copilot'),
-      path: '/assistant',
-      Icon: Bot,
-      isCenter: true,
-      matchPaths: ['/assistant'],
-    },
-    {
       key: 'settings',
       label: t('nav.settings', 'Settings'),
-      path: '/settings',
+      path: '/admin?tab=settings',
       Icon: SettingsIcon,
-      matchPaths: ['/settings', '/more', '/profile'],
+      matchPaths: ['/admin?tab=settings', '/settings', '/profile'],
     },
   ];
 
@@ -1410,7 +1423,7 @@ export const BottomNav = () => {
       label: t('nav.more_short', 'More'),
       path: '/more',
       Icon: SettingsIcon,
-      matchPaths: ['/more', '/settings', '/profile', '/admin', '/devices', '/node-control', '/sdcard', '/assistant', '/languages', '/support'],
+      matchPaths: ['/more', '/settings', '/profile', '/devices', '/node-control', '/sdcard', '/assistant', '/languages', '/support'],
     },
   ];
 
@@ -1449,7 +1462,7 @@ export const BottomNav = () => {
     },
   ];
 
-  const bottomTabs = isAdmin ? adminTabs : isEquipmentProvider ? providerTabs : farmerTabs;
+  const bottomTabs = (isAdmin || currentPath.startsWith('/admin')) ? adminTabs : isEquipmentProvider ? providerTabs : farmerTabs;
 
   return (
     <nav
@@ -1464,7 +1477,15 @@ export const BottomNav = () => {
           const tabParam = searchParams.get('tab');
 
           let isActive = false;
-          if (isEquipmentProvider) {
+          if (isAdmin || currentPath.startsWith('/admin')) {
+            if (tab.path.includes('?')) {
+              isActive = (location.pathname + location.search) === tab.path;
+            } else if (tab.path === '/admin') {
+              isActive = location.pathname === '/admin' && (!location.search || location.search === '?tab=overview');
+            } else {
+              isActive = tab.matchPaths?.some((p) => p === currentPath || currentPath.startsWith(p + '/')) ?? currentPath === tab.path;
+            }
+          } else if (isEquipmentProvider) {
             if (tab.key === 'copilot') {
               isActive = (location.pathname === '/provider/dashboard' && tabParam === 'copilot') || location.pathname === '/assistant';
             } else if (tab.key === 'hub') {

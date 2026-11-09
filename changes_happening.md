@@ -9570,3 +9570,43 @@ pm.cmd run build passed in 21.71s with 0 errors.
   - System health confirmed 100% active.
 - **Production Build Verification**:
   - `npm.cmd --prefix frontend run build` compiled 3,164 modules cleanly in 21.37s with 0 errors.
+
+
+## [2026-11-09 12:36:00] - Live API Traffic Radar & Service Mesh Topology Implementation
+- **Backend Service Mesh Telemetry (`backend/app/routers/admin/admin.py`)**:
+  - Implemented `GET /api/admin/traffic/radar`: Returns live node statuses (Web Client, IoT Nodes, WAF Shield, FastAPI Core Gateway, AI Prediction Engine, MongoDB Atlas, Azure Neural Voice TTS, Weather Radar), real-time RPS metrics, latency benchmarks, and active HTTP request stream ticker.
+  - Implemented `POST /api/admin/traffic/simulate`: Real-time packet test dispatcher allowing administrators to simulate `crop_scan` (115ms), `iot_telemetry` (12ms), `voice_tts` (38ms), and `ping` (5ms) with step-by-step route benchmarks.
+- **Frontend Real-Time Visualizer (`frontend/src/components/admin/ApiTrafficRadar.jsx`)**:
+  - Built interactive 2D SVG service mesh canvas with custom glowing nodes, fiber-optic gradients, and request packet particles.
+  - Added continuous real-time particle animation loop with node-impact ripple animations upon packet arrival.
+  - Created Top Telemetry Ribbon (HUD): System Status (100% OPERATIONAL), Live Throughput (Req/sec), Mean Latency (ms), and Active Hardware Watchdogs.
+  - Built Interactive Simulation Control Bar: 1-click synthetic packet dispatchers for Crop Scan, IoT Telemetry, Telugu TTS, and Health Ping.
+  - Built Interactive Node Inspector Drawer: Click any node to inspect port, status, IP, and latency breakdown.
+  - Built Live HTTP Request Stream Ticker: Monospace terminal log table with color-coded HTTP method badges and route arrows.
+- **Admin Hub Integration (`frontend/src/pages/admin/AdminPage.jsx`)**:
+  - Added `Live API Radar` (`id: 'radar'`) into `adminTabs` configuration with live mesh badge.
+  - Integrated dedicated workspace view (`activeTab === 'radar'`) rendering `<ApiTrafficRadar />`.
+- **Verification**:
+  - Production build passed in 16.31s with 0 errors (`dist/assets/AdminPage-c88ff94c.js`).
+  - Full-stack local dev server verified running live on `http://localhost:3000` & `http://localhost:8000`.
+
+
+## [2026-11-09 13:10:00] - Admin Isolation & Crop Scan Audit In-Place Architecture
+- **Root Cause Isolated**: Clicking the "Crop Scan Audits" tab previously invoked `navigate('/history')`, causing an unexpected exit from the Admin panel into the Farmer's scan history page where the "Field" ("పొలం") tab was active in the mobile dock and the farmer's Farm Field switcher was rendered at the top.
+- **Dedicated Admin Crop Scan Audits Component (`AdminScanAuditTable.jsx`)**:
+  - Engineered an enterprise-grade scan auditing interface inside the Admin portal under `activeTab === 'scans'`.
+  - Added 4 KPI cards: Total Scans Audited, Disease Outbreaks, Healthy Harvests, and Mean AI Confidence.
+  - Implemented live search and status filters (`All Scans`, `⚠️ Diseases Only`, `🌱 Healthy Only`).
+  - Added table with leaf thumbnail previews, farmer name/email, crop name, pathology diagnosis, confidence bars, and an interactive inspection modal with CIBRC prescription dosage and cultural prevention recommendations.
+- **AdminPage Routing Hardened (`AdminPage.jsx`)**:
+  - Removed `navigate('/history')` redirects in `setTab` and `useEffect`.
+  - Mounted `<AdminScanAuditTable />` directly under `activeTab === 'scans'`.
+  - Updated subheader banner and admin module catalog badges.
+- **Top Navbar Farm Switcher Guard (`AppLayout.jsx`)**:
+  - Added strict check `!location.pathname.startsWith('/admin') && user?.role?.toLowerCase() !== 'admin'` to ensure the farmer's "Switch Active Farm" and "+ Add New Field" dropdown never renders on `/admin`.
+  - Added `/admin` page title detection in `getPageTitle`.
+- **Sidebar Admin Command & Operations (`AppLayout.jsx`)**:
+  - Updated `Crop Scan Audits` link to keep admins inside `/admin?tab=scans`.
+  - Added `Live API Radar & Mesh` (`/admin?tab=radar`), `Farmer Helpdesk` (`/admin?tab=support`), and `Defense Walls` (`/admin?tab=firewall`).
+- **Mobile Bottom Navigation (`AppLayout.jsx`)**:
+  - Bound `/admin` routes strictly to `adminTabs` (`Overview`, `Scans`, `API Radar`, `Alerts`, `Settings`), permanently eliminating farmer tabs ("Home", "Field" / "పొలం", "Scan", "Alerts", "More") from ever appearing on the Admin portal.

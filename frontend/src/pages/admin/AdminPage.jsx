@@ -53,6 +53,8 @@ import { useTranslation } from 'react-i18next';
 import UserGeographyMap from '../../components/admin/UserGeographyMap';
 import SystemDiagnosticsTab from '../../components/admin/SystemDiagnosticsTab';
 import AdminAIChatbot from '../../components/admin/AdminAIChatbot';
+import ApiTrafficRadar from '../../components/admin/ApiTrafficRadar';
+import AdminScanAuditTable from '../../components/admin/AdminScanAuditTable';
 import { parseServerDate, formatDateTime, timeAgo } from '../../utils/dateUtils';
 
 export default function AdminPage() {
@@ -64,10 +66,6 @@ export default function AdminPage() {
   const activeTab = tabParam && tabParam !== 'overview' ? tabParam : 'overview';
 
   const setTab = (tabId) => {
-    if (tabId === 'scans') {
-      navigate('/history');
-      return;
-    }
     if (tabId === 'overview') {
       setSearchParams({});
     } else {
@@ -75,12 +73,6 @@ export default function AdminPage() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  useEffect(() => {
-    if (activeTab === 'scans') {
-      navigate('/history');
-    }
-  }, [activeTab, navigate]);
 
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -953,8 +945,7 @@ export default function AdminPage() {
       description: t('admin.module_scans_desc', 'Audit tenant crop diagnoses, verify AI confidence, inspect leaf scans, and manage prescription history.'),
       icon: History,
       badge: t('admin.scans_badge', 'Tenant Audits'),
-      badgeColor: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300',
-      path: '/history'
+      badgeColor: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300'
     },
     {
       id: 'broadcast', 
@@ -1027,6 +1018,14 @@ export default function AdminPage() {
       icon: Sliders, 
       badge: 'Health 100%', 
       badgeColor: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' 
+    },
+    { 
+      id: 'radar', 
+      label: 'Live API Radar', 
+      description: 'Real-time service mesh topology, request particle flow, latency gauges, and API traffic radar.',
+      icon: Radio, 
+      badge: 'Live Mesh', 
+      badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
   ];
 
@@ -1239,6 +1238,7 @@ export default function AdminPage() {
             <div className="space-y-2 relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
                 {activeTab === 'users' && <Users className="w-3.5 h-3.5" />}
+                {activeTab === 'scans' && <History className="w-3.5 h-3.5 text-teal-400" />}
                 {activeTab === 'broadcast' && <Radio className="w-3.5 h-3.5" />}
                 {activeTab === 'geography' && <Globe className="w-3.5 h-3.5" />}
                 {activeTab === 'iot' && <Cpu className="w-3.5 h-3.5" />}
@@ -1247,8 +1247,10 @@ export default function AdminPage() {
                 {activeTab === 'settings' && <Sliders className="w-3.5 h-3.5" />}
                 {activeTab === 'support' && <Headphones className="w-3.5 h-3.5" />}
                 {activeTab === 'firewall' && <ShieldAlert className="w-3.5 h-3.5" />}
+                {activeTab === 'radar' && <Activity className="w-3.5 h-3.5 text-emerald-400" />}
                 <span>
                   {activeTab === 'users' && 'Farmer Directory & Roles'}
+                  {activeTab === 'scans' && 'Tenant Crop Scan Audits & Pathology Diagnoses'}
                   {activeTab === 'broadcast' && 'Emergency Broadcasting Service'}
                   {activeTab === 'geography' && 'State & District Choropleth'}
                   {activeTab === 'iot' && 'ESP32 Device Telemetry'}
@@ -1257,6 +1259,7 @@ export default function AdminPage() {
                   {activeTab === 'settings' && 'Platform Health & Specs'}
                   {activeTab === 'support' && 'Farmer Support & Emergency Helpdesk'}
                   {activeTab === 'firewall' && '5-Layer Defensive Cybersecurity Walls & IP Jail'}
+                  {activeTab === 'radar' && 'Live API Radar & Service Mesh Topology'}
                 </span>
               </div>
               
@@ -1266,6 +1269,7 @@ export default function AdminPage() {
               
               <p className="text-sm text-slate-300 max-w-2xl mt-1">
                 {activeTab === 'users' && <span>Manage farmer accounts, roles, credentials, and locations in <code className="bg-emerald-950/80 px-1.5 py-0.5 rounded text-emerald-300">crop_disease_db.users</code></span>}
+                {activeTab === 'scans' && 'Inspect leaf scans submitted by farmers across all fields, verify PyTorch AI confidence, and audit prescription safety.'}
                 {activeTab === 'broadcast' && 'Dispatch real-time emergency disease outbreak alerts and system announcements to all farmers.'}
                 {activeTab === 'geography' && 'Visualize where your registered farmers and farm fields are located across Indian states.'}
                 {activeTab === 'iot' && 'Monitor all connected ESP32 field nodes, battery levels, signal strength, and live telemetry.'}
@@ -1274,6 +1278,7 @@ export default function AdminPage() {
                 {activeTab === 'settings' && 'Inspect core platform health, API status, database connectivity, and runtime configurations.'}
                 {activeTab === 'support' && 'Directly assist registered farmers, dispatch 15-minute phone callbacks, WhatsApp consultations, and resolve technical issues.'}
                 {activeTab === 'firewall' && 'Real-time monitoring of all 5 cybersecurity walls, 23 honeypot decoy traps, layer 7 WAF payload filter, and automated IP jail.'}
+                {activeTab === 'radar' && 'Real-time 2D network topology, animated request particle flow, live latency benchmarks, and active service mesh telemetry.'}
               </p>
             </div>
 
@@ -3814,6 +3819,20 @@ export default function AdminPage() {
       {/* ======================================================== */}
       {activeTab === 'diagnostics' && (
         <SystemDiagnosticsTab />
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: LIVE API RADAR & SERVICE MESH TOPOLOGY VISUALIZER    */}
+      {/* ======================================================== */}
+      {activeTab === 'radar' && (
+        <ApiTrafficRadar />
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB: TENANT CROP SCAN AUDITS & PATHOLOGY DIAGNOSES       */}
+      {/* ======================================================== */}
+      {activeTab === 'scans' && (
+        <AdminScanAuditTable />
       )}
 
       {/* Bottom Return Bar for dedicated module workspaces */}
