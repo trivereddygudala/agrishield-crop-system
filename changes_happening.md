@@ -9610,3 +9610,29 @@ pm.cmd run build passed in 21.71s with 0 errors.
   - Added `Live API Radar & Mesh` (`/admin?tab=radar`), `Farmer Helpdesk` (`/admin?tab=support`), and `Defense Walls` (`/admin?tab=firewall`).
 - **Mobile Bottom Navigation (`AppLayout.jsx`)**:
   - Bound `/admin` routes strictly to `adminTabs` (`Overview`, `Scans`, `API Radar`, `Alerts`, `Settings`), permanently eliminating farmer tabs ("Home", "Field" / "పొలం", "Scan", "Alerts", "More") from ever appearing on the Admin portal.
+
+
+## [2026-11-09 13:25:00] - Live API Radar & Service Mesh Topology (Phase 1 & Phase 2 Full Suite)
+- **Dual Visual Display Modes (`ApiTrafficRadar.jsx`)**:
+  - **Service Mesh Graph**: Interactive 2D graph with glowing optic lines, directional packet comet tails, and node arrival ripples.
+  - **Tactical Polar Sonar Scope**: 360° sweeping radar beam with green/amber phosphor trails, 4 concentric range rings, crosshairs, cardinal angle markings (`000°`, `090°`, `180°`, `270°`), and sweeping blip illumination.
+- **Native Web Audio API Sonar Feedback**:
+  - Synthesized tactical acoustic sonar pings on packet arrival and laser hums during simulation bursts (`880Hz -> 440Hz` sine wave with exponential decay), complete with top HUD Mute/Unmute toggle.
+- **Speed Multiplier & Flow Control**:
+  - Added packet speed controls: `1x Normal`, `2.5x Peak Hour`, and `5x Stress Storm`.
+- **Live Telemetry & Rolling Sparklines**:
+  - Rolling 60s SVG sparkline curve in the top HUD showing live RPS and latency fluctuations.
+  - Added Latency Percentiles meter (`p50`, `p95`, `p99`) and Inbound/Outbound Bandwidth Footprint meter.
+- **Chaos Engineering & Cybersecurity Simulator**:
+  - **DDoS / Rogue Botnet Burst**: Simulates 25 rapid requests hitting WAF, triggering rate-limit and dynamic IP jail (`HTTP 429 / IP 198.51.100.42 Jailed`).
+  - **Chaos Outage & Circuit Breaker**: Simulates upstream external weather API failure, tripping circuit breaker to `OPEN` and falling back gracefully to local offline cache.
+  - **Custom Route Injector**: Interactive console allowing admins to fire custom HTTP method, endpoint, and payload across the network mesh.
+- **Deep Packet Inspector Drawer & Enhanced Terminal**:
+  - Clicking any request opens latency waterfall breakdown, HTTP headers, and response payload JSON viewer.
+  - Terminal multi-filter bar (`All`, `GET`, `POST`, `2xx`, `4xx_5xx`), search bar, auto-scroll lock, and 1-click CSV/JSON export.
+- **Backend Telemetry Router Updates (`admin/admin.py`)**:
+  - Added support for `ddos_attack`, `chaos_outage`, and `custom_route` simulation scenarios in `/api/admin/traffic/simulate`.
+  - Added bandwidth throughput, percentiles, and rolling 30-point sparkline history buffer in `/api/admin/traffic/radar`.
+- **Localhost Servers Active**:
+  - Vite dev server running at `http://localhost:3000`.
+  - FastAPI server running at `http://127.0.0.1:8000`.

@@ -919,6 +919,8 @@ async def admin_unban_ip(
 class TrafficSimulateRequest(BaseModel):
     scenario: str = "crop_scan"
     crop: Optional[str] = "Tomato"
+    path: Optional[str] = None
+    method: Optional[str] = "GET"
     custom_params: Optional[Dict[str, Any]] = None
 
 @router.get("/traffic/radar", dependencies=[Depends(require_role("admin"))])
@@ -1045,17 +1047,40 @@ async def get_live_traffic_radar(
         {"id": "req-5", "time": now_iso, "method": "POST", "path": "/api/v1/speech/synthesize", "status": 200, "latency_ms": 34.6, "from": "client_web", "to": "cloud_voice"}
     ]
 
+    import random
+    # Rolling 60s Sparkline data buffer (RPS & Latency)
+    base_rps = 36.0 + random.uniform(-4.0, 6.0)
+    base_lat = 16.5 + random.uniform(-2.5, 4.0)
+    sparkline_history = [
+        {
+            "sec": i,
+            "rps": round(max(15.0, base_rps + random.uniform(-8.0, 8.0)), 1),
+            "latency": round(max(5.0, base_lat + random.uniform(-4.0, 6.0)), 1)
+        }
+        for i in range(30)
+    ]
+
     return {
         "status": "success",
         "timestamp": now_iso,
         "metrics": {
             "system_health": "100% OPERATIONAL",
-            "throughput_rps": 38.6,
-            "avg_latency_ms": 18.2,
+            "throughput_rps": round(base_rps, 1),
+            "avg_latency_ms": round(base_lat, 1),
             "error_rate_pct": 0.0,
             "active_websockets": 4,
-            "total_scans_processed": recent_scans_count
+            "total_scans_processed": recent_scans_count,
+            "bandwidth_kbps": {
+                "inbound": round(48.5 + random.uniform(-5.0, 12.0), 1),
+                "outbound": round(118.2 + random.uniform(-10.0, 20.0), 1)
+            },
+            "percentiles_ms": {
+                "p50": 8.4,
+                "p95": 112.5,
+                "p99": 164.8
+            }
         },
+        "sparkline_history": sparkline_history,
         "nodes": nodes,
         "recent_traffic": recent_traffic
     }
@@ -1072,7 +1097,73 @@ async def simulate_traffic_packet(
     scenario = req.scenario.lower()
     now_iso = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
 
-    if scenario == "crop_scan":
+    if scenario == "ddos_attack":
+        return {
+            "status": "blocked",
+            "scenario": "ddos_attack",
+            "packet_id": f"pkt-ddos-{int(datetime.now().timestamp())}",
+            "timestamp": now_iso,
+            "route": [
+                {"step": 1, "node": "client_web", "action": "Rogue Botnet Burst (25 Rapid Requests / Sec)", "latency_ms": 1.2},
+                {"step": 2, "node": "waf", "action": "Token Bucket Exhaustion & Rate-Limit Triggered", "latency_ms": 0.8},
+                {"step": 3, "node": "waf", "action": "Dynamic IP Jail Engaged -> IP 198.51.100.42 Jailed for 3600s", "latency_ms": 0.4},
+            ],
+            "total_latency_ms": 2.4,
+            "http_status": 429,
+            "details": {
+                "blocked_by": "Security WAF Layer 7 & Anti-Bot Shield",
+                "jailed_ip": "198.51.100.42",
+                "rule_violated": "HTTP_FLOOD_THRESHOLD_EXCEEDED",
+                "core_protected": True
+            }
+        }
+    elif scenario == "chaos_outage":
+        return {
+            "status": "degraded_fallback",
+            "scenario": "chaos_outage",
+            "packet_id": f"pkt-chaos-{int(datetime.now().timestamp())}",
+            "timestamp": now_iso,
+            "route": [
+                {"step": 1, "node": "client_web", "action": "Regional Agro-Weather Sync Request", "latency_ms": 1.0},
+                {"step": 2, "node": "waf", "action": "Rate Limiter Validation (Pass)", "latency_ms": 0.6},
+                {"step": 3, "node": "core_gateway", "action": "FastAPI Route Handler -> Attempt Upstream Call", "latency_ms": 2.5},
+                {"step": 4, "node": "cloud_weather", "action": "Simulated Gateway Timeout / Upstream Dropout (504)", "latency_ms": 45.0},
+                {"step": 5, "node": "core_gateway", "action": "Circuit Breaker Tripped (OPEN) -> Route Fallback Cache", "latency_ms": 1.8},
+                {"step": 6, "node": "client_web", "action": "Return Cached Satellite & Weather Telemetry (TTL 900s)", "latency_ms": 1.2}
+            ],
+            "total_latency_ms": 52.1,
+            "http_status": 200,
+            "details": {
+                "circuit_breaker": "TRIPPED_TO_CACHE",
+                "outage_node": "Regional Weather API",
+                "fallback_payload": "Local Cache Valid (Prakasam / Guntur Grid)",
+                "sla_impact": "Zero Farmer Interruption"
+            }
+        }
+    elif scenario == "custom_route":
+        path = req.path or "/api/v1/health"
+        method = (req.method or "GET").upper()
+        return {
+            "status": "success",
+            "scenario": "custom_route",
+            "packet_id": f"pkt-custom-{int(datetime.now().timestamp())}",
+            "timestamp": now_iso,
+            "route": [
+                {"step": 1, "node": "client_web", "action": f"Client Dispatch [{method}] {path}", "latency_ms": 1.1},
+                {"step": 2, "node": "waf", "action": "WAF Signature Inspection & Auth Verification", "latency_ms": 1.3},
+                {"step": 3, "node": "core_gateway", "action": f"FastAPI Route Matching & Controller Execution", "latency_ms": 3.8},
+                {"step": 4, "node": "db_mongodb", "action": "Async Storage / Collection Query Validation", "latency_ms": 4.2},
+                {"step": 5, "node": "client_web", "action": f"200 OK Response Stream Returned", "latency_ms": 1.5}
+            ],
+            "total_latency_ms": 11.9,
+            "http_status": 200,
+            "details": {
+                "custom_path": path,
+                "custom_method": method,
+                "payload_preview": req.custom_params or {"query": "live_test"}
+            }
+        }
+    elif scenario == "crop_scan":
         return {
             "status": "success",
             "scenario": "crop_scan",
