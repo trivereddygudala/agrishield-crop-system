@@ -22,6 +22,7 @@ import {
   Sparkles,
   Info,
   Check,
+  CheckCircle,
   ShieldCheck,
   Flame,
   Sliders
@@ -40,6 +41,9 @@ export default function AdminScanAuditTable() {
   const [pageSize] = useState(15);
   const [totalScans, setTotalScans] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [serverHealthyCount, setServerHealthyCount] = useState(null);
+  const [serverDiseasedCount, setServerDiseasedCount] = useState(null);
+  const [serverOverriddenCount, setServerOverriddenCount] = useState(null);
   const [selectedScan, setSelectedScan] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
 
@@ -121,14 +125,24 @@ export default function AdminScanAuditTable() {
         params.status = statusFilter;
       }
 
-      const res = await API.get('/api/history', { params });
+      let res;
+      try {
+        res = await API.get('/api/admin/scans', { params });
+      } catch (e1) {
+        res = await API.get('/api/history', { params });
+      }
       const rawPreds = res.data?.predictions || [];
-      const totalCount = res.data?.total || rawPreds.length;
+      const totalCount = res.data?.total !== undefined ? res.data.total : rawPreds.length;
       const totalPagesCount = res.data?.pages || Math.ceil(totalCount / pageSize) || 1;
 
       setScans(rawPreds);
       setTotalScans(totalCount);
       setTotalPages(totalPagesCount);
+      if (res.data?.healthy_count !== undefined) {
+        setServerHealthyCount(res.data.healthy_count);
+        setServerDiseasedCount(res.data.diseased_count);
+        setServerOverriddenCount(res.data.overridden_count);
+      }
 
       if (isManual) {
         setToastMsg('Scan audit logs refreshed successfully!');
@@ -162,22 +176,26 @@ export default function AdminScanAuditTable() {
   // KPI Calculations
   const stats = useMemo(() => {
     const total = totalScans || scans.length;
-    let healthyCount = 0;
-    let diseasedCount = 0;
+    let healthyCount = serverHealthyCount !== null ? serverHealthyCount : 0;
+    let diseasedCount = serverDiseasedCount !== null ? serverDiseasedCount : 0;
     let totalConfidence = 0;
 
-    scans.forEach((s) => {
-      const isHealthy = s.prediction_status === 'healthy' || s.disease_name?.toLowerCase().includes('healthy');
-      if (isHealthy) healthyCount++;
-      else diseasedCount++;
+    if (serverHealthyCount === null) {
+      scans.forEach((s) => {
+        const isHealthy = s.prediction_status === 'healthy' || s.disease_name?.toLowerCase().includes('healthy');
+        if (isHealthy) healthyCount++;
+        else diseasedCount++;
+      });
+    }
 
+    scans.forEach((s) => {
       const conf = parseFloat(s.confidence) || 0;
-      totalConfidence += conf;
+      totalConfidence += conf <= 1.0 ? conf * 100 : conf;
     });
 
     const avgConf = scans.length > 0 ? (totalConfidence / scans.length).toFixed(1) : '97.2';
-    const outbreakPct = scans.length > 0 ? Math.round((diseasedCount / scans.length) * 100) : 0;
-    const healthyPct = scans.length > 0 ? Math.round((healthyCount / scans.length) * 100) : 0;
+    const outbreakPct = total > 0 ? Math.round((diseasedCount / total) * 100) : 0;
+    const healthyPct = total > 0 ? Math.round((healthyCount / total) * 100) : 0;
 
     return {
       total,
@@ -187,7 +205,7 @@ export default function AdminScanAuditTable() {
       outbreakPct,
       healthyPct
     };
-  }, [scans, totalScans]);
+  }, [scans, totalScans, serverHealthyCount, serverDiseasedCount]);
 
   return (
     <div className="space-y-6">

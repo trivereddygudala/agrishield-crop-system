@@ -267,6 +267,8 @@ app.include_router(analytics.router)
 app.include_router(intelligence.router)
 app.include_router(firmware.router)
 app.include_router(support.router)
+if hasattr(support, "support_v1_router"):
+    app.include_router(support.support_v1_router)
 app.include_router(speech.router)
 
 # 3. Dual-Mount Dedicated Domain Routers (/api/v1/* AND /api/*) for Zero-Error Compatibility

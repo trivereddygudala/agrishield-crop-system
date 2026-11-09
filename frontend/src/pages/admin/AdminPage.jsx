@@ -372,14 +372,14 @@ export default function AdminPage() {
   };
 
   // 3. Broadcast Geo-Targeting & AI Vernacular Translation
-  const [geoDistricts, setGeoDistricts] = useState(['Guntur', 'Prakasam']);
+  const [broadcastDistricts, setBroadcastDistricts] = useState(['All Zones']);
   const [broadcastChannels, setBroadcastChannels] = useState(['push', 'sms']);
-  const [translatingBroadcast, setTranslatingBroadcast] = useState(false);
+  const [isTranslatingBroadcast, setIsTranslatingBroadcast] = useState(false);
   const [translatedData, setTranslatedData] = useState(null);
 
   const handleTranslateBroadcast = async () => {
     if (!broadcastTitle && !broadcastMessage) return;
-    setTranslatingBroadcast(true);
+    setIsTranslatingBroadcast(true);
     try {
       const res = await API.post('/api/admin/broadcast/translate', {
         title: broadcastTitle,
@@ -392,7 +392,7 @@ export default function AdminPage() {
     } catch {
       setError('Translation fallback engaged.');
     } finally {
-      setTranslatingBroadcast(false);
+      setIsTranslatingBroadcast(false);
       setTimeout(() => setSuccessMsg(''), 3500);
     }
   };
@@ -405,7 +405,7 @@ export default function AdminPage() {
         title: broadcastTitle,
         message: broadcastMessage,
         priority: broadcastPriority,
-        target_districts: geoDistricts,
+        target_districts: broadcastDistricts,
         channels: broadcastChannels
       });
       setSuccessMsg(res.data?.message || 'Geo-targeted broadcast dispatched successfully!');
@@ -449,17 +449,19 @@ export default function AdminPage() {
   };
 
   // 5. Firmware Canary Staged Rollout
-  const [canaryPct, setCanaryPct] = useState(10);
+  const [canaryPercentage, setCanaryPercentage] = useState(10);
   const [canaryDeploying, setCanaryDeploying] = useState(false);
 
   const handleCanaryDeploy = async (version, pct) => {
+    const targetPct = typeof pct === 'number' ? pct : canaryPercentage;
+    const targetVer = typeof version === 'string' ? version : (firmwareList[0]?.version || 'v2.5.0');
     setCanaryDeploying(true);
     try {
       const res = await API.post('/api/admin/firmware/canary-deploy', {
-        firmware_version: version,
-        percentage: pct
+        firmware_version: targetVer,
+        percentage: targetPct
       });
-      setSuccessMsg(res.data?.message || `Canary deployment (${pct}%) active.`);
+      setSuccessMsg(res.data?.message || `Canary deployment (${targetPct}%) active.`);
     } catch (err) {
       setError('Failed to launch canary staged rollout.');
     } finally {
@@ -469,22 +471,26 @@ export default function AdminPage() {
   };
 
   // 6. Support AI Copilot Diagnostic Triage
-  const [aiTriageLoading, setAiTriageLoading] = useState(null);
+  const [aiTriagingTicketId, setAiTriagingTicketId] = useState(null);
   const [aiTriageResults, setAiTriageResults] = useState({});
 
   const handleSupportAiTriage = async (ticket) => {
     const tId = ticket.id || ticket._id || 'TICK-TEMP';
-    setAiTriageLoading(tId);
+    setAiTriagingTicketId(tId);
     try {
       const res = await API.post('/api/admin/support/ai-triage', {
         ticket_id: String(tId),
-        farmer_name: ticket.user_name || 'Farmer',
+        farmer_name: ticket.farmer_name || ticket.user_name || 'Farmer',
         crop: ticket.crop || 'Tomato',
-        issue_description: ticket.message || ticket.subject || 'Crop disease assistance needed',
-        language: 'te'
+        issue_description: ticket.description || ticket.message || ticket.subject || 'Crop disease assistance needed',
+        language: ticket.language || 'te'
       });
       if (res.data) {
-        setAiTriageResults(prev => ({ ...prev, [tId]: res.data }));
+        setAiTriageResults(prev => ({
+          ...prev,
+          [tId]: res.data,
+          [ticket.id]: res.data
+        }));
         setTicketResolutionInputs(prev => ({
           ...prev,
           [tId]: res.data.draft_message || res.data.recommended_action
@@ -494,7 +500,7 @@ export default function AdminPage() {
     } catch {
       setError('AI Copilot triage fallback engaged.');
     } finally {
-      setAiTriageLoading(null);
+      setAiTriagingTicketId(null);
       setTimeout(() => setSuccessMsg(''), 3500);
     }
   };
@@ -529,13 +535,13 @@ export default function AdminPage() {
       let ticketsRes, statsRes;
       try {
         [ticketsRes, statsRes] = await Promise.all([
-          API.get('/api/v1/support/admin/tickets', { params }),
-          API.get('/api/v1/support/admin/stats')
+          API.get('/api/support/admin/tickets', { params }),
+          API.get('/api/support/admin/stats')
         ]);
       } catch (e1) {
         [ticketsRes, statsRes] = await Promise.all([
-          API.get('/api/support/admin/tickets', { params }),
-          API.get('/api/support/admin/stats')
+          API.get('/api/v1/support/admin/tickets', { params }),
+          API.get('/api/v1/support/admin/stats')
         ]);
       }
       setSupportTickets(ticketsRes.data?.tickets || []);
@@ -2662,17 +2668,21 @@ export default function AdminPage() {
       {/* ======================================================== */}
       {activeTab === 'iot' && (() => {
         const displayNodes = iotNodes.length > 0 ? iotNodes.map((dev, idx) => {
-          const isOnline = dev.status === "online";
+          const isOnline = dev.status === "online" || dev.status === "active";
           const telem = dev.latest_telemetry || {};
+          const batteryStr = telem.battery_voltage 
+            ? `${telem.battery_voltage.toFixed(2)}V (${Math.round(telem.battery_percentage ?? dev.battery ?? 0)}%)` 
+            : (dev.battery ? `${dev.battery}%` : (isOnline ? 'Standby' : 'Stored: Standby'));
+          const ipStr = dev.ip || telem.ip || dev.ip_address || (isOnline ? 'DHCP Dynamic' : 'Registered Device');
           return {
             device_id: dev.device_id || `ESP32-AGRI-NODE-${idx+1}`,
-            name: dev.device_name || `Field Telemetry Node #${idx+1}`,
+            name: dev.device_name || dev.device_id || `Field Telemetry Node #${idx+1}`,
             status: isOnline ? "ONLINE" : "OFFLINE",
             firmware_version: dev.firmware_version || "v2.5.0-production",
-            ip_address: isOnline ? (telem.ip || "10.54.220.146") : "OFFLINE",
+            ip_address: ipStr,
             mac_address: dev.mac_address || "A4:CF:12:8B:99:C1",
-            rssi: isOnline ? (telem.wifi_rssi || telem.rssi || -58) : null,
-            battery: isOnline ? `${telem.battery_voltage ? telem.battery_voltage.toFixed(2) : '3.95'}V (${Math.round(telem.battery_percentage || 88)}%)` : "0.00V",
+            rssi: telem.wifi_rssi ?? telem.rssi ?? dev.rssi ?? null,
+            battery: batteryStr,
             telemetry: telem,
             last_seen: dev.last_seen || dev.updated_at
           };
@@ -4238,27 +4248,32 @@ export default function AdminPage() {
                           <button
                             type="button"
                             onClick={() => handleSupportAiTriage(ticket)}
-                            disabled={aiTriagingTicketId === ticket.id}
+                            disabled={aiTriagingTicketId === (ticket.id || ticket._id)}
                             className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                           >
                             <Sparkles className="w-3 h-3" />
-                            <span>{aiTriagingTicketId === ticket.id ? 'Triaging...' : 'AI Diagnostic Triage'}</span>
+                            <span>{aiTriagingTicketId === (ticket.id || ticket._id) ? 'Triaging...' : 'AI Diagnostic Triage'}</span>
                           </button>
                         </div>
-                        {aiTriageResults[ticket.id] && (
-                          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900 text-xs space-y-1.5 animate-in fade-in">
-                            <p className="font-bold text-slate-800 dark:text-slate-100">
-                              Diagnostic Assessment: {aiTriageResults[ticket.id].diagnosis} ({(aiTriageResults[ticket.id].confidence * 100).toFixed(0)}% confidence)
-                            </p>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-300">
-                              Recommendation: {aiTriageResults[ticket.id].advice}
-                            </p>
-                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                              <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-0.5">Drafted Telugu Message (తెలుగు):</span>
-                              {aiTriageResults[ticket.id].draft_reply_telugu}
+                        {(aiTriageResults[ticket.id] || aiTriageResults[ticket._id]) && (() => {
+                          const triage = aiTriageResults[ticket.id] || aiTriageResults[ticket._id];
+                          return (
+                            <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900 text-xs space-y-1.5 animate-in fade-in">
+                              <p className="font-bold text-slate-800 dark:text-slate-100">
+                                Diagnostic Assessment: {triage.diagnosis} ({(Number(triage.confidence || 0.9) * 100).toFixed(0)}% confidence)
+                              </p>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                                Recommendation: {triage.advice || triage.recommended_action}
+                              </p>
+                              {(triage.draft_reply_telugu || triage.draft_message) && (
+                                <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                                  <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-0.5">Drafted Telugu Message (తెలుగు):</span>
+                                  {triage.draft_reply_telugu || triage.draft_message}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
 
                       {/* 1-Tap Quick Status Actions Bar */}

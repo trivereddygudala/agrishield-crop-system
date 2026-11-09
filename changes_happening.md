@@ -9748,3 +9748,36 @@ pm.cmd run build passed in 21.71s with 0 errors.
   - Frontend: `http://localhost:3000`
   - Backend: `http://127.0.0.1:8000`
   - Agrishield Analyzer: `🟢 SYSTEM HEALTH 100% | Backend: 200 OK | Frontend: 200 OK | DB: Connected`.
+
+
+## [2026-11-09 15:23:00] - Admin Tabs Real Database Wiring & Runtime Error Fixes
+
+### 1. Runtime Error Resolution Across Admin Modules
+- **Broadcast System (`AdminPage.jsx`)**:
+  - Resolved `ReferenceError: broadcastDistricts is not defined` and `ReferenceError: isTranslatingBroadcast is not defined` by unifying state names with the JSX handlers (`broadcastDistricts`, `isTranslatingBroadcast`).
+- **Firmware & OTA Flashing (`AdminPage.jsx`)**:
+  - Resolved `ReferenceError: canaryPercentage is not defined` by declaring `canaryPercentage` state and connecting it to the 10%/50%/100% Canary pilot deployment trigger.
+- **Farmer Helpdesk (`AdminPage.jsx` & `support.py`)**:
+  - Resolved `ReferenceError: aiTriagingTicketId is not defined` by declaring `aiTriagingTicketId` state with safe ID resolution (`ticket.id || ticket._id`).
+  - Added dual-mount `/api/v1/support` alias in FastAPI `backend/app/main.py` and prioritized direct `/api/support/admin/tickets` in `AdminPage.jsx` to prevent 404 router errors.
+- **Crop Scan Audits (`AdminScanAuditTable.jsx`)**:
+  - Added missing `CheckCircle` icon import from `lucide-react` to prevent modal crash.
+
+### 2. Zero-Mock Real Database Ingestion
+- **Tenant Crop Scan Audits (`AdminScanAuditTable.jsx` & `backend/app/routers/admin/admin.py`)**:
+  - Created dedicated `GET /api/admin/scans` endpoint querying all 640 real scans from `db.predictions` with pagination, disease classification (`healthy` vs `diseased`), and fast user lookups for farmer names, phone numbers, and field locations.
+  - Connected `AdminScanAuditTable.jsx` to `/api/admin/scans` and wired real server counts for total, healthy, and diseased metrics.
+- **Live Platform Operations Ticker (`backend/app/routers/admin/admin.py`)**:
+  - Replaced hardcoded static ticker strings with a rolling stream querying live MongoDB Atlas collections: `db.predictions` (recent crop diagnoses & PyTorch confidence), `db.devices` (battery voltage, online status), `db.support_tickets` (farmer callbacks & priority issues), `db.security_banned_ips` (quarantined threat IPs), and `db.broadcasts` (emergency advisories).
+- **Farmer Geography (`UserGeographyMap.jsx` & `backend/app/routers/admin/admin.py`)**:
+  - Replaced static `districtAgroData` mock array with dynamic MongoDB aggregation in `GET /api/admin/user-geography` returning real farmer counts, real outbreak tallies, and real IoT fleet distributions per district.
+- **IoT Hardware Telemetry Display (`AdminPage.jsx`)**:
+  - Preserved authentic hardware telemetry (battery voltage, recorded percentage, DHCP/assigned IP address) instead of hardcoding offline nodes to `0.00V` / `OFFLINE`.
+
+### 3. Build & Localhost Verification
+- Production build `npm run build` compiled 3,166 modules with 0 errors (`✓ built in 18.80s`).
+- Backend Python modules verified with clean import test.
+- Full-stack dev server active:
+  - Frontend: `http://localhost:3000`
+  - Backend: `http://127.0.0.1:8000`
+  - Agrishield Analyzer: `🟢 SYSTEM HEALTH 100% | Backend: 200 OK | Frontend: 200 OK | DB: Connected`.

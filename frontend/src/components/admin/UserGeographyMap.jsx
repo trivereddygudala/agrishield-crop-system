@@ -50,13 +50,15 @@ export default function UserGeographyMap() {
   const [activeMapLayer, setActiveMapLayer] = useState('farmers'); // 'farmers' | 'outbreaks' | 'iot'
   const [selectedDistrict, setSelectedDistrict] = useState(null);
 
-  const districtAgroData = [
-    { name: "Guntur (AP)", crops: "Chilli, Cotton, Tobacco", farmers: 840, outbreaks: "Chilli Leaf Curl (High)", iotNodes: 8, status: "Active Alert", riskColor: "rose" },
-    { name: "Prakasam (AP)", crops: "Tobacco, Bengal Gram, Chilli", farmers: 520, outbreaks: "Downy Mildew (Moderate)", iotNodes: 5, status: "Normal", riskColor: "emerald" },
-    { name: "East Godavari (AP)", crops: "Paddy / Rice, Coconut, Banana", farmers: 610, outbreaks: "Bacterial Leaf Blight (Watch)", iotNodes: 4, status: "Watchlist", riskColor: "amber" },
-    { name: "West Godavari (AP)", crops: "Paddy, Oil Palm, Sugarcane", farmers: 430, outbreaks: "Stem Rot (Low)", iotNodes: 3, status: "Normal", riskColor: "emerald" },
-    { name: "Warangal (TS)", crops: "Cotton, Chilli, Maize", farmers: 490, outbreaks: "Bollworm & Wilt (Moderate)", iotNodes: 4, status: "Watchlist", riskColor: "amber" }
-  ];
+  const districtAgroData = (userData?.district_clusters && userData.district_clusters.length > 0)
+    ? userData.district_clusters
+    : [
+        { name: "Guntur (AP)", crops: "Chilli, Cotton, Tobacco", farmers: userData?.locations?.find(l => l.state === "Andhra Pradesh")?.count || 1, outbreaks: "Chilli Leaf Curl", iotNodes: 2, status: "Normal", riskColor: "emerald" },
+        { name: "Prakasam (AP)", crops: "Tobacco, Bengal Gram, Chilli", farmers: 1, outbreaks: "Downy Mildew", iotNodes: 1, status: "Normal", riskColor: "emerald" },
+        { name: "East Godavari (AP)", crops: "Paddy / Rice, Coconut, Banana", farmers: 1, outbreaks: "Bacterial Leaf Blight", iotNodes: 1, status: "Normal", riskColor: "emerald" },
+        { name: "West Godavari (AP)", crops: "Paddy, Oil Palm, Sugarcane", farmers: 1, outbreaks: "Stem Rot", iotNodes: 1, status: "Normal", riskColor: "emerald" },
+        { name: "Warangal (TS)", crops: "Cotton, Chilli, Maize", farmers: userData?.locations?.find(l => l.state === "Telangana")?.count || 1, outbreaks: "Bollworm & Wilt", iotNodes: 1, status: "Normal", riskColor: "emerald" }
+      ];
 
   const fetchData = useCallback(async () => {
     setLoading(true);

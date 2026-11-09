@@ -472,3 +472,13 @@ async def update_support_config(
         "config": payload.dict()
     }
 
+# ─────────────────────────────────────────────────────────────
+# v1 Backward Compatibility Aliases (/api/v1/support/*)
+# ─────────────────────────────────────────────────────────────
+support_v1_router = APIRouter(prefix="/api/v1/support", tags=["Farmer Support & Helpdesk (v1 Alias)"])
+support_v1_router.add_api_route("/admin/tickets", list_admin_tickets, methods=["GET"], dependencies=[Depends(require_role("admin"))])
+support_v1_router.add_api_route("/admin/stats", get_admin_support_stats, methods=["GET"], dependencies=[Depends(require_role("admin"))])
+support_v1_router.add_api_route("/admin/tickets/{ticket_id}", update_ticket_status, methods=["PATCH", "PUT"], dependencies=[Depends(require_role("admin"))])
+support_v1_router.add_api_route("/admin/config", get_support_config, methods=["GET"], dependencies=[Depends(require_role("admin"))])
+support_v1_router.add_api_route("/admin/config", update_support_config, methods=["POST"], dependencies=[Depends(require_role("admin"))])
+
