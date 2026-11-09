@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
-import { Users, MapPin, TrendingUp, Globe, RefreshCw, Info, ChevronUp, ChevronDown } from 'lucide-react';
+import { Users, MapPin, TrendingUp, Globe, RefreshCw, Info, ChevronUp, ChevronDown, Layers, Flame, Radio, Cpu, Sparkles } from 'lucide-react';
 import API from '../../services/api';
 
 // India GeoJSON served locally from public folder (avoids CDN dependency)
@@ -47,6 +47,16 @@ export default function UserGeographyMap() {
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [sortOrder, setSortOrder] = useState('desc');
   const [position, setPosition] = useState({ coordinates: [82, 22], zoom: 1 });
+  const [activeMapLayer, setActiveMapLayer] = useState('farmers'); // 'farmers' | 'outbreaks' | 'iot'
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+
+  const districtAgroData = [
+    { name: "Guntur (AP)", crops: "Chilli, Cotton, Tobacco", farmers: 840, outbreaks: "Chilli Leaf Curl (High)", iotNodes: 8, status: "Active Alert", riskColor: "rose" },
+    { name: "Prakasam (AP)", crops: "Tobacco, Bengal Gram, Chilli", farmers: 520, outbreaks: "Downy Mildew (Moderate)", iotNodes: 5, status: "Normal", riskColor: "emerald" },
+    { name: "East Godavari (AP)", crops: "Paddy / Rice, Coconut, Banana", farmers: 610, outbreaks: "Bacterial Leaf Blight (Watch)", iotNodes: 4, status: "Watchlist", riskColor: "amber" },
+    { name: "West Godavari (AP)", crops: "Paddy, Oil Palm, Sugarcane", farmers: 430, outbreaks: "Stem Rot (Low)", iotNodes: 3, status: "Normal", riskColor: "emerald" },
+    { name: "Warangal (TS)", crops: "Cotton, Chilli, Maize", farmers: 490, outbreaks: "Bollworm & Wilt (Moderate)", iotNodes: 4, status: "Watchlist", riskColor: "amber" }
+  ];
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -146,18 +156,49 @@ export default function UserGeographyMap() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* India SVG Map */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-emerald-500" />
               <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100">India — User Distribution</h3>
             </div>
-            <button
-              onClick={fetchData}
-              className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
-              title="Refresh"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+
+            {/* Layer Switcher */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 self-start sm:self-auto">
+              <button
+                onClick={() => setActiveMapLayer('farmers')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeMapLayer === 'farmers' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                Farmers
+              </button>
+              <button
+                onClick={() => setActiveMapLayer('outbreaks')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  activeMapLayer === 'outbreaks' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Flame className="w-3 h-3" />
+                <span>Outbreaks</span>
+              </button>
+              <button
+                onClick={() => setActiveMapLayer('iot')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  activeMapLayer === 'iot' ? 'bg-cyan-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Radio className="w-3 h-3" />
+                <span>IoT Nodes</span>
+              </button>
+
+              <button
+                onClick={fetchData}
+                className="p-1 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors ml-1"
+                title="Refresh Map"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="relative w-full" style={{ height: '420px' }}>
@@ -334,6 +375,55 @@ export default function UserGeographyMap() {
               </p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── AP & Telangana District Agricultural Clusters Deck ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-500" />
+            <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+              Andhra Pradesh & Telangana Farming Zone Clusters
+            </h3>
+          </div>
+          <span className="text-[11px] font-bold text-slate-400">
+            District drilldown & local crop pathology monitors
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          {districtAgroData.map((d, i) => (
+            <div
+              key={i}
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                selectedDistrict === d.name
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30'
+                  : 'border-slate-200/80 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/40 hover:border-emerald-300'
+              }`}
+              onClick={() => setSelectedDistrict(selectedDistrict === d.name ? null : d.name)}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-black text-slate-900 dark:text-white text-xs">{d.name}</span>
+                <span className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                  d.riskColor === 'rose'
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 animate-pulse'
+                    : d.riskColor === 'amber'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                }`}>
+                  {d.status}
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500 font-medium truncate mb-2">
+                Crops: {d.crops}
+              </div>
+              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                <span>{d.farmers} Farmers</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{d.iotNodes} IoT Nodes</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

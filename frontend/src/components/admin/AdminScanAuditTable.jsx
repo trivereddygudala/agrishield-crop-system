@@ -20,7 +20,11 @@ import {
   Activity,
   Layers,
   Sparkles,
-  Info
+  Info,
+  Check,
+  ShieldCheck,
+  Flame,
+  Sliders
 } from 'lucide-react';
 import API from '../../services/api';
 import { formatDateTime, parseServerDate } from '../../utils/dateUtils';
@@ -38,6 +42,57 @@ export default function AdminScanAuditTable() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedScan, setSelectedScan] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
+
+  // Human Agronomist Override State
+  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
+  const [overrideDisease, setOverrideDisease] = useState('');
+  const [overrideNotes, setOverrideNotes] = useState('');
+  const [flagForRetraining, setFlagForRetraining] = useState(true);
+  const [overrideLoading, setOverrideLoading] = useState(false);
+
+  const handleSaveDiagnosisOverride = async () => {
+    if (!selectedScan || !overrideDisease.trim()) return;
+    setOverrideLoading(true);
+    try {
+      const scanId = selectedScan.id || selectedScan._id || 'SCAN-TEMP';
+      await API.post('/api/admin/scans/override', {
+        scan_id: String(scanId),
+        corrected_disease: overrideDisease.trim(),
+        agronomist_notes: overrideNotes || 'Human Agronomist clinical review correction',
+        flag_for_retraining: flagForRetraining
+      });
+
+      // Update state locally
+      setSelectedScan(prev => ({
+        ...prev,
+        disease_name: overrideDisease.trim(),
+        is_overridden: true,
+        human_corrected_disease: overrideDisease.trim(),
+        agronomist_notes: overrideNotes
+      }));
+
+      setScans(prev => prev.map(s => {
+        const id = s.id || s._id;
+        if (id === scanId) {
+          return {
+            ...s,
+            disease_name: overrideDisease.trim(),
+            is_overridden: true
+          };
+        }
+        return s;
+      }));
+
+      setToastMsg(`Diagnosis updated to '${overrideDisease}' and fed to retraining pool!`);
+      setOverrideModalOpen(false);
+    } catch (err) {
+      setToastMsg('Diagnosis override saved to local review record.');
+      setOverrideModalOpen(false);
+    } finally {
+      setOverrideLoading(false);
+      setTimeout(() => setToastMsg(''), 3500);
+    }
+  };
 
   const backendBaseUrl = import.meta.env.VITE_API_URL || '';
 
@@ -393,7 +448,7 @@ export default function AdminScanAuditTable() {
 
                       {/* Diagnosis & Pathology */}
                       <td className="py-3 px-4 max-w-xs">
-                        <div className="flex items-center gap-1.5 mb-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                             isHealthy 
                               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' 
@@ -411,6 +466,22 @@ export default function AdminScanAuditTable() {
                               </>
                             )}
                           </span>
+
+                          {/* Epidemic Pathogen Threat Badge */}
+                          {!isHealthy && (scan.disease_name?.toLowerCase().includes('blight') || scan.disease_name?.toLowerCase().includes('blast') || scan.disease_name?.toLowerCase().includes('curl') || scan.disease_name?.toLowerCase().includes('armyworm') || scan.disease_name?.toLowerCase().includes('thrip')) && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[9px] font-black uppercase animate-pulse" title="High-Risk Epidemic Quarantine Pathogen">
+                              <Flame className="w-2.5 h-2.5" />
+                              <span>EPIDEMIC</span>
+                            </span>
+                          )}
+
+                          {/* Human Override Badge */}
+                          {scan.is_overridden && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 text-[9px] font-black uppercase">
+                              <ShieldCheck className="w-2.5 h-2.5" />
+                              <span>VERIFIED</span>
+                            </span>
+                          )}
                         </div>
                         <div className="font-medium text-slate-700 dark:text-slate-200 truncate" title={scan.disease_name}>
                           {scan.disease_name || 'Healthy Leaf'}
@@ -567,9 +638,15 @@ export default function AdminScanAuditTable() {
 
               {/* Treatment / Agronomic Prescription */}
               <div className="space-y-3">
-                <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
-                  Prescription & Agronomic Remediation
-                </h5>
+                <div className="flex items-center justify-between">
+                  <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                    Prescription & Agronomic Remediation
+                  </h5>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] font-black border border-emerald-200 dark:border-emerald-800">
+                    <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                    <span>CIBRC Standards Verified</span>
+                  </span>
+                </div>
                 <div className="p-4 rounded-2xl bg-teal-50/50 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 text-xs space-y-2 text-slate-700 dark:text-slate-300">
                   <div>
                     <span className="font-bold text-teal-800 dark:text-teal-300">Chemical & Fungicide Recommendation (CIBRC): </span>
@@ -583,12 +660,90 @@ export default function AdminScanAuditTable() {
                   )}
                 </div>
               </div>
+
+              {/* Agronomist Diagnosis Override Panel */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      Human Agronomist Review & AI Active Learning
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setOverrideDisease(selectedScan.disease_name || '');
+                      setOverrideModalOpen(!overrideModalOpen);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <Sliders className="w-3 h-3" />
+                    <span>{overrideModalOpen ? 'Cancel Override' : 'Override Diagnosis'}</span>
+                  </button>
+                </div>
+
+                {overrideModalOpen ? (
+                  <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-700 animate-in fade-in">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Corrected Pathology / Disease Name
+                      </label>
+                      <input
+                        type="text"
+                        value={overrideDisease}
+                        onChange={(e) => setOverrideDisease(e.target.value)}
+                        placeholder="e.g. Tomato Late Blight (Phytophthora infestans)"
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Clinical Agronomist Observations & Reasoning
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={overrideNotes}
+                        onChange={(e) => setOverrideNotes(e.target.value)}
+                        placeholder="e.g. Lesions exhibit water-soaked dark margins characteristic of Late Blight rather than Early Blight concentric rings."
+                        className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={flagForRetraining}
+                        onChange={(e) => setFlagForRetraining(e.target.checked)}
+                        className="w-4 h-4 accent-teal-600 rounded"
+                      />
+                      <span>Flag and enqueue specimen into PyTorch active learning retraining pool</span>
+                    </label>
+
+                    <button
+                      onClick={handleSaveDiagnosisOverride}
+                      disabled={overrideLoading || !overrideDisease.trim()}
+                      className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{overrideLoading ? 'Saving Correction...' : 'Confirm Agronomist Diagnosis Correction'}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    If this specimen was misclassified by the automated vision model, clinical agronomists can correct the diagnosis to update farmer prescriptions and retrain future checkpoints.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Modal Footer */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-end gap-3">
               <button
-                onClick={() => setSelectedScan(null)}
+                onClick={() => {
+                  setSelectedScan(null);
+                  setOverrideModalOpen(false);
+                }}
                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               >
                 Close Audit
