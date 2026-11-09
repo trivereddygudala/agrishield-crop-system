@@ -9781,3 +9781,36 @@ pm.cmd run build passed in 21.71s with 0 errors.
   - Frontend: `http://localhost:3000`
   - Backend: `http://127.0.0.1:8000`
   - Agrishield Analyzer: `🟢 SYSTEM HEALTH 100% | Backend: 200 OK | Frontend: 200 OK | DB: Connected`.
+
+
+## [2026-11-09 15:52:00] - Admin Enterprise Storage Telemetry & Data Retention Suite
+
+### 1. Storage Capacity Monitoring & Near-Full Warning System
+- **Host Disk & Database Telemetry (`GET /api/admin/storage/stats`)**:
+  - Live OS server volume metrics: 474.53 GB Total, 260.73 GB Used, 213.80 GB Free (54.9% Used).
+  - MongoDB Atlas metrics: `agrishield_db`, 34 collections, 2,037 documents, 25.82 MB data size, 27.41 MB storage size.
+  - Uploads media cache footprint: file counts and megabytes consumed by leaf scan images.
+  - Multi-tier capacity warning thresholds: `< 70%` Healthy, `70% - 85%` Elevated Warning, `> 85%` Critical (Storage Near Capacity).
+  - Attention banner displayed automatically when disk capacity is elevated.
+
+### 2. Data Retention & Safe Storage Reclaim Console
+- **Interactive Retention Policies (`AdminPage.jsx`)**:
+  - Prune aged leaf scans with customizable age threshold (30, 60, 90, 180 days).
+  - **Pathogen Safety Shield**: Checkbox to safeguard diagnosed plant diseases and agronomist overrides so clinical dataset remains intact for PyTorch AI retraining; only healthy/test scans are pruned.
+  - Prune aged ESP32 IoT sensor telemetry packets (15, 30, 60 days).
+  - Prune historical security audit logs (30, 60, 90 days).
+  - Prune resolved/closed support tickets (60, 90, 180 days).
+  - Clear transient weather and rate-limiting caches.
+- **Dry-Run Preview (`POST /api/admin/storage/preview-purge`)**:
+  - Calculates exact record counts and estimated megabytes reclaimable before executing any deletion.
+- **Authoritative Purge Execution (`POST /api/admin/storage/purge`)**:
+  - Unlinks matching image files from server disk and permanently removes aged records from MongoDB.
+  - Logs `ADMIN_STORAGE_PURGE_EXECUTED` security audit event with actor, deleted counts, and freed bytes.
+  - Modal confirmation dialog prevents accidental data deletion.
+- **Executive Emergency Action Dock Integration**:
+  - Added direct `Reclaim Storage (55%)` action button on the Overview hub.
+
+### 3. Production Build & Verification
+- Production build `npm run build` compiled 3,166 modules with 0 errors (`✓ built in 22.61s`).
+- FastAPI backend verified with 200 OK responses on `http://127.0.0.1:8000/api/admin/storage/stats` and `http://127.0.0.1:8000/api/admin/storage/preview-purge`.
+- Full-stack dev servers running live and healthy on localhost ports 3000 and 8000.

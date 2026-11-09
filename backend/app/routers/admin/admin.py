@@ -2055,6 +2055,323 @@ async def generate_support_ai_triage(req: SupportAiTriageRequest):
         "confidence": 0.94
     }
 
+# ==============================================================================
+# ENTERPRISE STORAGE TELEMETRY & DATA RETENTION / PURGE SUITE
+# ==============================================================================
+
+class StoragePurgeRequest(BaseModel):
+    purge_scans: bool = False
+    scans_retention_days: int = 90
+    keep_diseased_scans: bool = True  # Safety Shield: Preserve diagnosed pathogens for AI retraining
+    purge_iot: bool = False
+    iot_retention_days: int = 30
+    purge_audit_logs: bool = False
+    audit_retention_days: int = 60
+    purge_resolved_tickets: bool = False
+    tickets_retention_days: int = 90
+    purge_temp_cache: bool = True
+
+@router.get("/storage/stats", dependencies=[Depends(require_role("admin"))])
+async def get_storage_telemetry(db = Depends(get_database)):
+    """
+    Admin Endpoint: Comprehensive disk, uploads, and MongoDB storage capacity telemetry.
+    Alerts administrators when storage capacity is almost full (>85%) or elevated (>70%).
+    """
+    import shutil
+    import os
+    from datetime import timedelta
+
+    # 1. Operating System & Server Disk Telemetry
+    total_bytes, used_bytes, free_bytes = shutil.disk_usage(".")
+    total_gb = round(total_bytes / (1024**3), 2)
+    used_gb = round(used_bytes / (1024**3), 2)
+    free_gb = round(free_bytes / (1024**3), 2)
+    used_pct = round((used_bytes / total_bytes) * 100, 1)
+
+    # 2. Uploads & Media Cache Footprint
+    uploads_path = os.path.join(os.getcwd(), "uploads")
+    total_upload_files = 0
+    total_upload_bytes = 0
+    if os.path.exists(uploads_path):
+        for r, d, files in os.walk(uploads_path):
+            total_upload_files += len(files)
+            for f in files:
+                try:
+                    total_upload_bytes += os.path.getsize(os.path.join(r, f))
+                except Exception:
+                    pass
+    uploads_mb = round(total_upload_bytes / (1024 * 1024), 2)
+
+    # 3. MongoDB Atlas Database Telemetry
+    db_data_mb = 0.0
+    db_storage_mb = 0.0
+    db_index_mb = 0.0
+    total_objects = 0
+    total_collections = 0
+    try:
+        s = await db.command("dbStats")
+        db_data_mb = round(s.get("dataSize", 0) / (1024 * 1024), 2)
+        db_storage_mb = round(s.get("storageSize", 0) / (1024 * 1024), 2)
+        db_index_mb = round(s.get("indexSize", 0) / (1024 * 1024), 2)
+        total_objects = s.get("objects", 0)
+        total_collections = s.get("collections", 0)
+    except Exception as e:
+        logger.warning(f"Error fetching MongoDB dbStats: {e}")
+
+    # 4. Collection Document Counts & Health
+    predictions_count = await db.predictions.count_documents({})
+    healthy_scans_count = await db.predictions.count_documents({
+        "$or": [
+            {"prediction_status": "healthy"},
+            {"disease_name": {"$regex": "healthy", "$options": "i"}}
+        ]
+    })
+    diseased_scans_count = max(0, predictions_count - healthy_scans_count)
+    audit_logs_count = await db.audit_logs.count_documents({})
+    support_tickets_count = await db.support_tickets.count_documents({})
+    resolved_tickets_count = await db.support_tickets.count_documents({"status": {"$in": ["resolved", "closed"]}})
+    devices_count = await db.devices.count_documents({})
+
+    # 5. Age Breakdown (Candidate records for pruning)
+    now = datetime.now(timezone.utc)
+    cutoff_90 = now - timedelta(days=90)
+    cutoff_60 = now - timedelta(days=60)
+    cutoff_30 = now - timedelta(days=30)
+
+    old_scans_90 = await db.predictions.count_documents({"created_at": {"$lt": cutoff_90}})
+    old_scans_60 = await db.predictions.count_documents({"created_at": {"$lt": cutoff_60}})
+    old_scans_30 = await db.predictions.count_documents({"created_at": {"$lt": cutoff_30}})
+    old_audits_60 = await db.audit_logs.count_documents({"timestamp": {"$lt": cutoff_60}})
+
+    # Capacity Threshold Assessment
+    is_almost_full = used_pct >= 85.0
+    warning_elevated = used_pct >= 70.0
+    status_label = "CRITICAL" if is_almost_full else ("WARNING" if warning_elevated else "HEALTHY")
+
+    return {
+        "status": "success",
+        "storage_health": status_label,
+        "is_almost_full": is_almost_full,
+        "warning_elevated": warning_elevated,
+        "threshold_pct": 85.0,
+        "disk": {
+            "total_gb": total_gb,
+            "used_gb": used_gb,
+            "free_gb": free_gb,
+            "used_percentage": used_pct,
+            "free_percentage": round(100.0 - used_pct, 1)
+        },
+        "database": {
+            "db_name": "agrishield_db",
+            "data_size_mb": db_data_mb,
+            "storage_size_mb": db_storage_mb,
+            "index_size_mb": db_index_mb,
+            "total_collections": total_collections,
+            "total_objects": total_objects
+        },
+        "uploads": {
+            "total_files": total_upload_files,
+            "total_size_mb": uploads_mb
+        },
+        "collections_breakdown": {
+            "predictions": {
+                "total": predictions_count,
+                "healthy": healthy_scans_count,
+                "diseased": diseased_scans_count,
+                "older_than_30d": old_scans_30,
+                "older_than_60d": old_scans_60,
+                "older_than_90d": old_scans_90
+            },
+            "audit_logs": {
+                "total": audit_logs_count,
+                "older_than_60d": old_audits_60
+            },
+            "support_tickets": {
+                "total": support_tickets_count,
+                "resolved_or_closed": resolved_tickets_count
+            },
+            "devices": {
+                "total": devices_count
+            }
+        }
+    }
+
+@router.post("/storage/preview-purge", dependencies=[Depends(require_role("admin"))])
+async def preview_storage_purge(req: StoragePurgeRequest, db = Depends(get_database)):
+    """
+    Admin Endpoint: Safe dry-run calculator that estimates records to be removed
+    and storage space to be reclaimed without modifying any data.
+    """
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+    
+    scans_to_delete = 0
+    estimated_images_bytes = 0
+    if req.purge_scans:
+        cutoff = now - timedelta(days=req.scans_retention_days)
+        scan_query = {"created_at": {"$lt": cutoff}}
+        if req.keep_diseased_scans:
+            scan_query["$or"] = [
+                {"prediction_status": "healthy"},
+                {"disease_name": {"$regex": "healthy", "$options": "i"}}
+            ]
+        scans_to_delete = await db.predictions.count_documents(scan_query)
+        # Average image size estimation: ~350 KB per scan record
+        estimated_images_bytes += scans_to_delete * 350 * 1024
+
+    iot_to_delete = 0
+    if req.purge_iot:
+        cutoff = now - timedelta(days=req.iot_retention_days)
+        if "iot_telemetry" in await db.list_collection_names():
+            iot_to_delete = await db.iot_telemetry.count_documents({"timestamp": {"$lt": cutoff}})
+
+    audit_logs_to_delete = 0
+    if req.purge_audit_logs:
+        cutoff = now - timedelta(days=req.audit_retention_days)
+        audit_logs_to_delete = await db.audit_logs.count_documents({"timestamp": {"$lt": cutoff}})
+
+    tickets_to_delete = 0
+    if req.purge_resolved_tickets:
+        cutoff = now - timedelta(days=req.tickets_retention_days)
+        tickets_to_delete = await db.support_tickets.count_documents({
+            "status": {"$in": ["resolved", "closed"]},
+            "updated_at": {"$lt": cutoff}
+        })
+
+    cache_records = 0
+    if req.purge_temp_cache:
+        if "weather_cache" in await db.list_collection_names():
+            cache_records += await db.weather_cache.count_documents({})
+        if "rate_limit_hits" in await db.list_collection_names():
+            cache_records += await db.rate_limit_hits.count_documents({})
+
+    total_records = scans_to_delete + iot_to_delete + audit_logs_to_delete + tickets_to_delete + cache_records
+    estimated_mb = round((total_records * 1.5 + (estimated_images_bytes / (1024 * 1024))), 2)
+
+    return {
+        "status": "success",
+        "dry_run": True,
+        "scans_to_delete": scans_to_delete,
+        "iot_telemetry_to_delete": iot_to_delete,
+        "audit_logs_to_delete": audit_logs_to_delete,
+        "resolved_tickets_to_delete": tickets_to_delete,
+        "cache_records_to_delete": cache_records,
+        "total_records_to_purge": total_records,
+        "estimated_reclaimed_mb": estimated_mb,
+        "retention_policy": {
+            "scans_retention_days": req.scans_retention_days,
+            "keep_diseased_scans": req.keep_diseased_scans,
+            "audit_retention_days": req.audit_retention_days,
+            "iot_retention_days": req.iot_retention_days
+        }
+    }
+
+@router.post("/storage/purge", dependencies=[Depends(require_role("admin"))])
+async def execute_storage_purge(
+    request: Request,
+    req: StoragePurgeRequest,
+    current_user: dict = Depends(require_role("admin")),
+    db = Depends(get_database)
+):
+    """
+    Admin Endpoint: Authoritative data retention & storage reclaim engine.
+    Permanently deletes aged records and disk artifacts to restore storage capacity.
+    """
+    import os
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+    deleted_counts = {}
+    files_removed = 0
+    freed_file_bytes = 0
+
+    # 1. Prune aged leaf scans
+    if req.purge_scans:
+        cutoff = now - timedelta(days=req.scans_retention_days)
+        scan_query = {"created_at": {"$lt": cutoff}}
+        if req.keep_diseased_scans:
+            scan_query["$or"] = [
+                {"prediction_status": "healthy"},
+                {"disease_name": {"$regex": "healthy", "$options": "i"}}
+            ]
+        
+        # Unlink associated files on disk
+        cursor = db.predictions.find(scan_query, {"image_path": 1})
+        async for doc in cursor:
+            img_path = doc.get("image_path")
+            if img_path and not img_path.startswith("http"):
+                clean = img_path.replace("\\", "/").lstrip("/")
+                full_p = os.path.join(os.getcwd(), clean)
+                if os.path.exists(full_p):
+                    try:
+                        freed_file_bytes += os.path.getsize(full_p)
+                        os.remove(full_p)
+                        files_removed += 1
+                    except Exception:
+                        pass
+        
+        res = await db.predictions.delete_many(scan_query)
+        deleted_counts["scans"] = getattr(res, "deleted_count", 0)
+
+    # 2. Prune old IoT telemetry
+    if req.purge_iot:
+        cutoff = now - timedelta(days=req.iot_retention_days)
+        if "iot_telemetry" in await db.list_collection_names():
+            res = await db.iot_telemetry.delete_many({"timestamp": {"$lt": cutoff}})
+            deleted_counts["iot_telemetry"] = getattr(res, "deleted_count", 0)
+
+    # 3. Prune old audit logs
+    if req.purge_audit_logs:
+        cutoff = now - timedelta(days=req.audit_retention_days)
+        res = await db.audit_logs.delete_many({"timestamp": {"$lt": cutoff}})
+        deleted_counts["audit_logs"] = getattr(res, "deleted_count", 0)
+
+    # 4. Prune resolved support tickets
+    if req.purge_resolved_tickets:
+        cutoff = now - timedelta(days=req.tickets_retention_days)
+        res = await db.support_tickets.delete_many({
+            "status": {"$in": ["resolved", "closed"]},
+            "updated_at": {"$lt": cutoff}
+        })
+        deleted_counts["resolved_tickets"] = getattr(res, "deleted_count", 0)
+
+    # 5. Purge transient cache
+    if req.purge_temp_cache:
+        c_count = 0
+        if "weather_cache" in await db.list_collection_names():
+            r = await db.weather_cache.delete_many({})
+            c_count += getattr(r, "deleted_count", 0)
+        if "rate_limit_hits" in await db.list_collection_names():
+            r = await db.rate_limit_hits.delete_many({})
+            c_count += getattr(r, "deleted_count", 0)
+        deleted_counts["cache_entries"] = c_count
+
+    total_records = sum(deleted_counts.values())
+    total_freed_mb = round((total_records * 0.002) + (freed_file_bytes / (1024 * 1024)), 2)
+
+    # Log security audit record
+    log_security_event(
+        event_type="ADMIN_STORAGE_PURGE_EXECUTED",
+        details={
+            "admin": current_user.get("email", "admin"),
+            "deleted_records": deleted_counts,
+            "files_removed": files_removed,
+            "freed_mb": total_freed_mb,
+            "keep_diseased_scans": req.keep_diseased_scans
+        },
+        level="WARNING",
+        client_ip=request.client.host if request.client else "127.0.0.1"
+    )
+
+    return {
+        "status": "success",
+        "message": f"Storage reclaim complete: {total_records} historical database records and {files_removed} files purged.",
+        "total_records_purged": total_records,
+        "files_removed": files_removed,
+        "freed_mb": total_freed_mb,
+        "breakdown": deleted_counts,
+        "purged_at": datetime.now(timezone.utc).isoformat()
+    }
+
 
 
 
