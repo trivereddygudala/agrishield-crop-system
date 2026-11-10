@@ -10093,3 +10093,21 @@ pm run build bundled 3,167 modules in 22.27s with 0 errors.
    - python -m py_compile validated mongodb.py, main.py, and dmin.py with 0 errors.
    - Vite frontend build (
 pm run build) succeeded in 20.67s with 0 errors.
+
+### [2026-11-10 22:54:30] - Global Maintenance Mode Connectivity Across Farmer & User Profiles
+1. **Public Status Endpoints & WebSocket Live Fanout**:
+   - Backend (ackend/app/routers/admin/admin.py & ackend/app/main.py):
+     - Added unauthenticated public endpoints GET /api/maintenance, GET /api/v1/maintenance, and GET /api/admin/maintenance/status so farmer portals, client browsers, and guests can read maintenance status without receiving 403 Forbidden.
+     - Added WebSocket broadcast (ws_manager.broadcast_all) emitting MAINTENANCE_MODE_UPDATED whenever an administrator toggles maintenance mode in the Admin Control Panel.
+     - Added platform_maintenance_middleware in ackend/app/main.py intercepting non-admin mutations (POST/PUT/DELETE) during maintenance with an informative 503 JSON response, while keeping read-only GET queries operational.
+2. **Global Frontend Top Banner & React Hook**:
+   - Created rontend/src/components/common/MaintenanceModeBanner.jsx:
+     - Built useMaintenanceMode() hook with automatic 8-second polling and window/WebSocket event subscriptions.
+     - Built <MaintenanceModeBanner /> rendering a high-visibility amber/rose banner across all dashboard views in App.jsx.
+3. **Farmer Profile & Farm Management Integration**:
+   - rontend/src/pages/common/ProfilePage.jsx: Added dedicated Maintenance Alert Card at top of the profile settings form and disabled save button during maintenance to protect credentials and data integrity.
+   - rontend/src/pages/farmer/FarmPage.jsx: Added Maintenance Alert Banner in farm field overview informing farmers that field adjustments and registrations are temporarily frozen.
+   - rontend/src/pages/admin/AdminPage.jsx: Dispatches instant custom events grishield-maintenance-updated on toggle for instantaneous zero-lag UI reaction.
+4. **Verification**:
+   - Backend syntax check: 0 errors across main.py and dmin.py.
+   - Frontend production build: 3,168 modules transformed in 22.52s with 0 errors.

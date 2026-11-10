@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PageSkeleton from './components/PageSkeleton';
 import { Sidebar, Navbar, BottomNav, Footer, Skeleton, ToastProvider } from './components/AppLayout';
 import OfflineStatusBar from './components/common/OfflineStatusBar';
+import MaintenanceModeBanner from './components/common/MaintenanceModeBanner';
 import { useColorTheme } from './hooks/useColorTheme';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { getApiBaseUrl } from './services/api';
@@ -83,6 +84,9 @@ const DashboardLayout = () => {
 
       {/* Top Navbar */}
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      
+      {/* Platform Maintenance Mode Alert Banner */}
+      <MaintenanceModeBanner />
       
       <div className="flex flex-1">
         {/* Left Navigation Sidebar */}

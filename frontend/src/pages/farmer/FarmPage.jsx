@@ -5,8 +5,9 @@ import {
   Sprout, MapPin, Droplets, Cpu, Bell, Save, Navigation,
   Check, AlertCircle, RefreshCw, ShieldCheck, Thermometer, Radio, Archive, Layers,
   Calendar, Leaf, ScanLine, Clock, ChevronRight, ChevronLeft, Sun, CloudRain, TrendingUp, Eye, Maximize2,
-  Plus, Trash2, Settings, Camera, Activity, CheckCircle2, Sparkles, Share2, Compass, Shield
+  Plus, Trash2, Settings, Camera, Activity, CheckCircle2, Sparkles, Share2, Compass, Shield, AlertTriangle
 } from 'lucide-react';
+import { useMaintenanceMode } from '../../components/common/MaintenanceModeBanner';
 import { useAuth } from '../../context/AuthContext';
 import { useFarm } from '../../context/FarmContext';
 import { Card, Button, Input, Select, Switch, Badge, Skeleton } from '../../components/ui/index';
@@ -58,6 +59,7 @@ export const CROP_STAGES = [
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
+  const { isMaintenanceMode, maintenanceMessage, estimatedMinutes } = useMaintenanceMode();
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
   const {
@@ -507,6 +509,23 @@ const FarmPage = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto w-full pb-28 sm:pb-16">
+
+      {/* Platform Maintenance Mode Alert Banner for Farm Page */}
+      {isMaintenanceMode && (
+        <div className="p-4 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start sm:items-center gap-3 shadow-xs">
+          <div className="p-2.5 rounded-2xl bg-amber-500 text-white shrink-0 animate-pulse">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="text-xs">
+            <p className="font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              Platform Maintenance Active (~{estimatedMinutes}m remaining)
+            </p>
+            <p className="text-slate-600 dark:text-slate-300 mt-0.5">
+              {maintenanceMessage || "Platform mutations, farm field registration, and IoT adjustments are temporarily frozen for scheduled system maintenance."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ═══════ P2: Horizontally Scrollable Mobile/Desktop Farm Tab Strip ═══════ */}
       <div className="relative w-full">

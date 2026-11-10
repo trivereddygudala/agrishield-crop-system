@@ -411,6 +411,8 @@ export default function AdminPage() {
       if (res.data?.maintenance) {
         setMaintenanceMode(res.data.maintenance);
         setSuccessMsg(res.data.message || `Maintenance mode ${nextState ? 'ENGAGED' : 'DISENGAGED'}`);
+        window.dispatchEvent(new CustomEvent('maintenance-updated', { detail: res.data.maintenance }));
+        window.dispatchEvent(new CustomEvent('agrishield-maintenance-updated', { detail: res.data.maintenance }));
       }
     } catch (e) {
       setError("Failed to update maintenance mode.");

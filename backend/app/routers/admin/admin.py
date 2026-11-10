@@ -2084,6 +2084,12 @@ async def export_retraining_dataset(db = Depends(get_database)):
         "samples": export_items
     }
 
+@router.get("/maintenance/public")
+@router.get("/maintenance/status")
+async def get_public_maintenance_status():
+    """Public Endpoint: Get current platform maintenance mode status without auth requirement."""
+    return {"status": "success", "maintenance": _maintenance_state}
+
 @router.get("/maintenance", dependencies=[Depends(require_role("admin"))])
 async def get_maintenance_status():
     """Admin Endpoint: Get current platform maintenance mode status."""
@@ -2111,6 +2117,15 @@ async def toggle_maintenance_mode(
         "actor": actor,
         "message": _maintenance_state["message"]
     }, level="WARNING")
+
+    try:
+        from backend.app.routers.common.notifications import ws_manager
+        await ws_manager.broadcast_all({
+            "type": "MAINTENANCE_MODE_UPDATED",
+            "maintenance": _maintenance_state
+        })
+    except Exception as ws_err:
+        logger.debug(f"WebSocket maintenance broadcast notice: {ws_err}")
 
     try:
         await db.audit_logs.insert_one({

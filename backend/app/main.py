@@ -239,6 +239,39 @@ else:
 
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+
+@app.middleware("http")
+async def platform_maintenance_middleware(request: Request, call_next):
+    """Production Maintenance Mode & Killswitch Barrier: Intercepts non-admin mutations when maintenance is active."""
+    from backend.app.routers.admin.admin import _maintenance_state
+    if _maintenance_state.get("enabled", False):
+        path = request.url.path
+        method = request.method
+        # Exempt admin portal, authentication, health checks, websockets, and read-only GET/HEAD/OPTIONS
+        is_exempt = (
+            path.startswith("/api/admin") or
+            path.startswith("/api/v1/admin") or
+            path.startswith("/api/auth") or
+            path.startswith("/api/v1/auth") or
+            path.startswith("/api/maintenance") or
+            path.startswith("/api/v1/maintenance") or
+            path.startswith("/api/system/maintenance") or
+            path.startswith("/ws") or
+            path in ["/health", "/api/v1/health", "/", "/docs", "/openapi.json"] or
+            method in ["GET", "HEAD", "OPTIONS"]
+        )
+        if not is_exempt:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "maintenance",
+                    "code": "MAINTENANCE_MODE_ACTIVE",
+                    "detail": _maintenance_state.get("message", "AgriShield AI is undergoing scheduled maintenance."),
+                    "maintenance": _maintenance_state
+                }
+            )
+    return await call_next(request)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -394,6 +427,13 @@ async def warmup_endpoint():
         "database": "connected" if is_db_connected else "disconnected",
         "process_uptime_seconds": uptime
     }
+
+@app.get("/api/maintenance", tags=["System Status"])
+@app.get("/api/v1/maintenance", tags=["System Status"])
+async def public_maintenance_status():
+    """Public Endpoint: Returns current platform maintenance mode status without requiring authentication."""
+    from backend.app.routers.admin.admin import _maintenance_state
+    return {"status": "success", "maintenance": _maintenance_state}
 
 @app.get("/weather/current")
 @app.get("/api/weather/current")

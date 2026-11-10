@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Mail, Calendar, MapPin, Save, AlertCircle, Check, Palette, Sparkles, Truck, Phone, Clock, Users, DollarSign, ShieldCheck, Sprout, ArrowRight, Globe, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Calendar, MapPin, Save, AlertCircle, AlertTriangle, Check, Palette, Sparkles, Truck, Phone, Clock, Users, DollarSign, ShieldCheck, Sprout, ArrowRight, Globe, CheckCircle2 } from 'lucide-react';
+import { useMaintenanceMode } from '../../components/common/MaintenanceModeBanner';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Input, Select, Badge } from '../../components/ui/index';
@@ -184,6 +185,7 @@ const ProfilePage = () => {
 
   const { lastTelemetry } = useWebSocket();
   const activeTelemetry = lastTelemetry?.telemetry || lastTelemetry || {};
+  const { isMaintenanceMode, maintenanceMessage, estimatedMinutes } = useMaintenanceMode();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -741,6 +743,23 @@ const ProfilePage = () => {
                         : t('profile_page.form.heading', 'Agronomic Profile Settings')}
                   </h3>
 
+                  {/* Platform Maintenance Mode Alert for Profile */}
+                  {isMaintenanceMode && (
+                    <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start sm:items-center gap-3 shadow-xs">
+                      <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0 animate-pulse">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                      <div className="text-xs">
+                        <p className="font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                          Platform Maintenance Mode Active (~{estimatedMinutes}m remaining)
+                        </p>
+                        <p className="text-slate-600 dark:text-slate-300 mt-0.5">
+                          {maintenanceMessage || "Profile updates, machinery settings, and password edits are temporarily paused during scheduled cloud maintenance."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {errorMsg && (
                     <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 shrink-0" />
@@ -1120,10 +1139,12 @@ const ProfilePage = () => {
                       size="md"
                       type="submit"
                       isLoading={loading}
+                      disabled={isMaintenanceMode}
                       leftIcon={<Save className="w-4 h-4" />}
-                      className="shadow-lg shadow-emerald-500/20"
+                      className={`shadow-lg shadow-emerald-500/20 ${isMaintenanceMode ? 'opacity-50 cursor-not-allowed bg-slate-500 hover:bg-slate-500' : ''}`}
+                      title={isMaintenanceMode ? 'Form updates paused during platform maintenance' : 'Save Profile Changes'}
                     >
-                      Save Profile Changes
+                      {isMaintenanceMode ? 'Maintenance Mode Active' : 'Save Profile Changes'}
                     </Button>
                   </div>
                 </form>
