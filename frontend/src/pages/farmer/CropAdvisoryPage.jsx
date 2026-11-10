@@ -21,7 +21,7 @@ const CropAdvisoryPage = () => {
   const { activeFarm } = useFarm();
 
   const farmId = activeFarm?.id || 1;
-  const cropName = activeFarm?.crop_type || 'Tomato';
+  const cropName = activeFarm?.crop_name || activeFarm?.crop_type || '';
   const growthStage = activeFarm?.growth_stage || 'Vegetative';
 
   return (

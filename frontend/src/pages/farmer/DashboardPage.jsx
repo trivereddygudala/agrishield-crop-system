@@ -253,7 +253,7 @@ const DashboardPage = () => {
       : null
   };
 
-  const cropName = activeFarm?.crop_name || "Tomato";
+  const cropName = activeFarm?.crop_name || "";
   const growthStage = activeFarm?.growth_stage || "Vegetative";
   const farmSize = activeFarm?.farm_size || 1.0;
 

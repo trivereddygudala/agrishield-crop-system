@@ -42,6 +42,182 @@ import { SUPPORTED_LANGUAGES } from '../../data/languages';
 import ScanLanguageBar from './ScanLanguageBar';
 import API from '../../services/api';
 
+const PLANT_UI_LOCALIZATIONS = {
+  en: {
+    weedImpact: "Invasive Weed Impact & Eradication Guide",
+    yieldLossRisk: "20-40% Yield Loss Risk",
+    recHerbicide: "Recommended Chemical Herbicide",
+    backpackDosage: "15L Backpack Pump Dosage",
+    manualWeeding: "Manual / Cultural Weeding",
+    affectedCrops: "Affected Crops & Mulching",
+    growthMatrix: "Agronomic Growth Matrix & Cultivation Care",
+    checkCropDisease: "Check Crop for Diseases",
+    botanicalProfile: "Botanical Profile & Agricultural Significance",
+    primaryUse: "Primary Use & Agricultural Impact",
+    shareWhatsApp: "Share WhatsApp",
+    printPdf: "Print Dossier (PDF)",
+    kisanHelpline: "Kisan Helpline (1800-180-1551)",
+    scanAnother: "Scan Another Plant",
+    suitableSoil: "Suitable Soil",
+    idealClimate: "Ideal Climate",
+    waterNeed: "Water Need",
+    nutrientsNPK: "Nutrients & NPK",
+    pestDiseaseWatch: "Pest & Disease Watch",
+    pumpSize: "Pump Tank:",
+    showLess: "Show Less",
+    readMore: "Read Full Description"
+  },
+  te: {
+    weedImpact: "హానికరమైన కలుపు ముప్పు & నివారణ ప్రణాళిక",
+    yieldLossRisk: "20-40% దిగుబడి తగ్గే ప్రమాదం",
+    recHerbicide: "సిఫార్సు చేసిన రసాయన కలుపు మందు",
+    backpackDosage: "15 లీటర్ల వీపు పంపు మోతాదు",
+    manualWeeding: "చేతితో లేదా గుంటుకతో నివారణ",
+    affectedCrops: "ప్రభావిత పంటలు & మల్చింగ్",
+    growthMatrix: "పర్యావరణ అనుకూలతలు & సాగు పద్ధతులు",
+    checkCropDisease: "ఈ పంట తెగుళ్ల పరీక్ష",
+    botanicalProfile: "మొక్క వివరణ & వ్యవసాయ ప్రాముఖ్యత",
+    primaryUse: "ముఖ్య ఉపయోగం / ప్రభావం",
+    shareWhatsApp: "వాట్సాప్‌లో షేర్ చేయండి",
+    printPdf: "రిపోర్ట్ ప్రింట్ (PDF)",
+    kisanHelpline: "కిసాన్ కాల్ సెంటర్ (1800-180-1551)",
+    scanAnother: "మరో మొక్కను స్కాన్ చేయండి",
+    suitableSoil: "నేల రకం",
+    idealClimate: "వాతావరణం",
+    waterNeed: "నీటి తడి",
+    nutrientsNPK: "ఎరువులు",
+    pestDiseaseWatch: "తెగుళ్లు & పురుగుల పర్యవేక్షణ",
+    pumpSize: "పంపు పరిమాణం:",
+    showLess: "తక్కువ చూపించు",
+    readMore: "మరింత చదవండి"
+  },
+  hi: {
+    weedImpact: "खरपतवार प्रभाव और उन्मूलन गाइड",
+    yieldLossRisk: "20-40% उपज हानि जोखिम",
+    recHerbicide: "अनुशंसित रासायनिक खरपतवार नाशक",
+    backpackDosage: "15L स्प्रे पंप मात्रा",
+    manualWeeding: "हाथ से निराई-गुड़ाई",
+    affectedCrops: "प्रभावित फसलें एवं मल्चिंग",
+    growthMatrix: "कृषि विकास मैट्रिक्स एवं फसल देखभाल",
+    checkCropDisease: "फसल रोग जांचें",
+    botanicalProfile: "वानस्पतिक विवरण एवं कृषि महत्व",
+    primaryUse: "मुख्य उपयोग एवं कृषि प्रभाव",
+    shareWhatsApp: "व्हाट्सएप पर शेयर करें",
+    printPdf: "रिपोर्ट प्रिंट करें (PDF)",
+    kisanHelpline: "किसान हेल्पलाइन (1800-180-1551)",
+    scanAnother: "दूसरा पौधा स्कैन करें",
+    suitableSoil: "उपयुक्त मिट्टी",
+    idealClimate: "आदर्श जलवायु",
+    waterNeed: "पानी की आवश्यकता",
+    nutrientsNPK: "उर्वरक एवं NPK",
+    pestDiseaseWatch: "कीट एवं रोग निगरानी",
+    pumpSize: "पंप क्षमता:",
+    showLess: "कम दिखाएं",
+    readMore: "विस्तार से पढ़ें"
+  },
+  ta: {
+    weedImpact: "களை தாக்கம் மற்றும் ஒழிப்பு வழிகாட்டி",
+    yieldLossRisk: "20-40% மகசூல் இழப்பு ஆபத்து",
+    recHerbicide: "பரிந்துரைக்கப்பட்ட இரசாயன களைக்கொல்லி",
+    backpackDosage: "15L ஸ்ப்ரே பம்ப் அளவு",
+    manualWeeding: "கைமுறை களையெடுப்பு",
+    affectedCrops: "பாதிக்கப்பட்ட பயிர்கள் & மூடாக்கு",
+    growthMatrix: "விவசாய வளர்ச்சி மற்றும் சாகுபடி பராமரிப்பு",
+    checkCropDisease: "பயிர் நோய் பரிசோதனை",
+    botanicalProfile: "தாவர சுயவிவரம் & விவசாய முக்கியத்துவம்",
+    primaryUse: "முக்கிய பயன்பாடு & விவசாய தாக்கம்",
+    shareWhatsApp: "வாட்ஸ்அப்பில் பகிரவும்",
+    printPdf: "அறிக்கை அச்சிடு (PDF)",
+    kisanHelpline: "கிசான் உதவி எண் (1800-180-1551)",
+    scanAnother: "மற்றொரு தாவரத்தை ஸ்கேன் செய்",
+    suitableSoil: "பொருத்தமான மண்",
+    idealClimate: "சிறந்த காலநிலை",
+    waterNeed: "நீர் தேவை",
+    nutrientsNPK: "உரங்கள் & NPK",
+    pestDiseaseWatch: "பூச்சி & நோய் கண்காணிப்பு",
+    pumpSize: "பம்ப் அளவு:",
+    showLess: "குறைத்துக் காட்டு",
+    readMore: "மேலும் படிக்க"
+  },
+  kn: {
+    weedImpact: "ಕಳೆ ಪ್ರಭಾವ ಮತ್ತು ನಿರ್ಮೂಲನ ಮಾರ್ಗದರ್ಶಿ",
+    yieldLossRisk: "20-40% ಇಳುವರಿ ನಷ್ಟದ ಅಪಾಯ",
+    recHerbicide: "ಶಿಫಾರಸು ಮಾಡಿದ ರಾಸಾಯನಿಕ ಕಳೆನಾಶಕ",
+    backpackDosage: "15L ಸಿಂಪರಣೆ ಪಂಪ್ ಡೋಸೇಜ್",
+    manualWeeding: "ಕೈಯಿಂದ ಕಳೆ ಕೀಳುವುದು",
+    affectedCrops: "ಬಾಧಿತ ಬೆಳೆಗಳು ಮತ್ತು ಹೊದಿಕೆ",
+    growthMatrix: "ಕೃಷಿ ಬೆಳವಣಿಗೆ ಮ್ಯಾಟ್ರಿಕ್ಸ್ ಮತ್ತು ಬೆಳೆ ನಿರ್ವಹಣೆ",
+    checkCropDisease: "ಬೆಳೆ ರೋಗ ಪರೀಕ್ಷೆ",
+    botanicalProfile: "ಸಸ್ಯ ವಿವರಣೆ ಮತ್ತು ಕೃಷಿ ಮಹತ್ವ",
+    primaryUse: "ಮುಖ್ಯ ಬಳಕೆ ಮತ್ತು ಕೃಷಿ ಪ್ರಭಾವ",
+    shareWhatsApp: "ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ",
+    printPdf: "ವರದಿ ಮುದ್ರಿಸಿ (PDF)",
+    kisanHelpline: "ಕಿಸಾನ್ ಸಹಾಯವಾಣಿ (1800-180-1551)",
+    scanAnother: "ಮತ್ತೊಂದು ಸಸ್ಯವನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+    suitableSoil: "ಸೂಕ್ತ ಮಣ್ಣು",
+    idealClimate: "ಆದರ್ಶ ಹವಾಮಾನ",
+    waterNeed: "ನೀರಿನ ಅಗತ್ಯತೆ",
+    nutrientsNPK: "ಗೊಬ್ಬರಗಳು & NPK",
+    pestDiseaseWatch: "ಕೀಟ ಮತ್ತು ರೋಗ ನಿಗಾ",
+    pumpSize: "ಪಂಪ್ ಗಾತ್ರ:",
+    showLess: "ಕಡಿಮೆ ತೋರಿಸಿ",
+    readMore: "ಪೂರ್ಣ ವಿವರ ಓದಿ"
+  },
+  ml: {
+    weedImpact: "കള നിയന്ത്രണവും നിർമാർജന മാർഗ്ഗരേഖയും",
+    yieldLossRisk: "20-40% വിളവ് നഷ്ട സാധ്യത",
+    recHerbicide: "ശുപാർശ ചെയ്ത കളനാശിനി",
+    backpackDosage: "15L സ്പ്രേ പമ്പ് അളവ്",
+    manualWeeding: "കൈകൊണ്ടുള്ള കളയെടുക്കൽ",
+    affectedCrops: "ബാധിച്ച വിളകളും പുതയിടലും",
+    growthMatrix: "കൃഷി വളർച്ചാ രീതികളും പരിപാലനവും",
+    checkCropDisease: "വിള രോഗ പരിശോധന",
+    botanicalProfile: "സസ്യ വിവരങ്ങളും കാർഷിക പ്രാധാന്യവും",
+    primaryUse: "പ്രധാന ഉപയോഗവും കാർഷിക സ്വാധീനവും",
+    shareWhatsApp: "വാട്ട്സ്ആപ്പിൽ ഷെയർ ചെയ്യുക",
+    printPdf: "റിപ്പോർട്ട് പ്രിന്റ് ചെയ്യുക (PDF)",
+    kisanHelpline: "കിസാൻ ഹെൽപ്പ് ലൈൻ (1800-180-1551)",
+    scanAnother: "മറ്റൊരു ചെടി സ്കാൻ ചെയ്യുക",
+    suitableSoil: "അനുയോജ്യമായ മണ്ണ്",
+    idealClimate: "അനുയോജ്യമായ കാലാവസ്ഥ",
+    waterNeed: "ജലാവശ്യകത",
+    nutrientsNPK: "വളങ്ങളും NPK യും",
+    pestDiseaseWatch: "കീട-രോഗ നിരീക്ഷണം",
+    pumpSize: "പമ്പ് അളവ്:",
+    showLess: "കുറച്ച് കാണിക്കുക",
+    readMore: "കൂടുതൽ വായിക്കുക"
+  },
+  mr: {
+    weedImpact: "तण नियंत्रण व निर्मूलन मार्गदर्शक",
+    yieldLossRisk: "20-40% उत्पन्न घट जोखीम",
+    recHerbicide: "शिफारस केलेले रासायनिक तणनाशक",
+    backpackDosage: "15L स्प्रे पंप प्रमाण",
+    manualWeeding: "खुरपणी व मशागत",
+    affectedCrops: "बाधित पिके व आच्छादन",
+    growthMatrix: "कृषी वाढ मॅट्रिक्स आणि पीक काळजी",
+    checkCropDisease: "पीक रोग तपासा",
+    botanicalProfile: "वनस्पती तपशील व शेती महत्व",
+    primaryUse: "प्रमुख उपयोग व कृषी प्रभाव",
+    shareWhatsApp: "व्हॉट्सॲपवर शेअर करा",
+    printPdf: "अहवाल मुद्रित करा (PDF)",
+    kisanHelpline: "किसान हेल्पलाइन (1800-180-1551)",
+    scanAnother: "दुसरी वनस्पती स्कॅन करा",
+    suitableSoil: "योग्य जमीन",
+    idealClimate: "योग्य हवामान",
+    waterNeed: "पाण्याची गरज",
+    nutrientsNPK: "खते आणि NPK",
+    pestDiseaseWatch: "कीड व रोग नियंत्रण",
+    pumpSize: "पंप आकार:",
+    showLess: "कमी दाखवा",
+    readMore: "सविस्तर वाचा"
+  }
+};
+
+const getPlantText = (key, lang = 'en') => {
+  const l = (lang || 'en').split('-')[0].toLowerCase();
+  return PLANT_UI_LOCALIZATIONS[l]?.[key] || PLANT_UI_LOCALIZATIONS.en[key] || key;
+};
+
 const BASE_CROPS_KNOWLEDGE = {
   rice: {
     commonName: "Rice / Paddy Crop",
@@ -1281,21 +1457,23 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
       {isWeed ? (
         <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-3xl shadow-xl space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-black text-sm uppercase tracking-wider">
-              <ShieldAlert className="w-5 h-5 shrink-0" />
-              <span>{activeLang === 'te' ? 'హానికరమైన కలుపు ముప్పు & నివారణ ప్రణాళిక' : 'Invasive Weed Impact & Eradication Guide'}</span>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-              {activeLang === 'te' ? '20-40% దిగుబడి తగ్గే ప్రమాదం' : '20-40% Yield Loss Risk'}
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">
+                <ShieldAlert className="w-4 h-4" />
+              </span>
+              <span>{getPlantText('weedImpact', activeLang)}</span>
+            </h2>
+            <span className="px-2.5 py-1 rounded-full text-xs font-black bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 shadow-xs">
+              {getPlantText('yieldLossRisk', activeLang)}
             </span>
           </div>
 
           {/* 15L Backpack Spray Pump Herbicide Calculator */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-50 via-amber-50/50 to-slate-50 dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900 border border-rose-200 dark:border-rose-800/60 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
+              <span className="text-xs font-black text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                 <span>🧪</span>
-                <span>{activeLang === 'te' ? 'సిఫార్సు చేసిన రసాయన కలుపు మందు' : 'Recommended Chemical Herbicide'}</span>
+                <span>{getPlantText('recHerbicide', activeLang)}</span>
               </span>
               <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400">
                 {selectedTankSize}L Tank
@@ -1317,7 +1495,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
               {/* Exact 15L Backpack Pump Gauge */}
               <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-700 text-center shadow-xs">
                 <span className="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 block tracking-wider">
-                  {activeLang === 'te' ? '15 లీటర్ల వీపు పంపు మోతాదు' : '15L Backpack Pump Dosage'}
+                  {getPlantText('backpackDosage', activeLang)}
                 </span>
                 <span className="text-2xl font-black text-rose-700 dark:text-rose-300 font-display">
                   {selectedTankSize === 20 ? '130 ml' : selectedTankSize === 200 ? '1.3 Litres' : '100 ml'}
@@ -1331,7 +1509,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             {/* Tank Size Selector */}
             <div className="flex items-center gap-2 pt-1">
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                {activeLang === 'te' ? 'పంపు పరిమాణం:' : 'Pump Tank:'}
+                {getPlantText('pumpSize', activeLang)}
               </span>
               {[15, 20, 200].map((size) => (
                 <button
@@ -1355,7 +1533,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
               <span className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-wider block flex items-center gap-1.5">
                 <span>🧑‍🌾</span>
-                <span>{activeLang === 'te' ? 'చేతితో లేదా గుంటుకతో నివారణ' : 'Manual / Cultural Weeding'}</span>
+                <span>{getPlantText('manualWeeding', activeLang)}</span>
               </span>
               <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                 {activeLang === 'te'
@@ -1367,7 +1545,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-1">
               <span className="font-black text-slate-800 dark:text-slate-200 uppercase text-[10px] tracking-wider block flex items-center gap-1.5">
                 <span>🌾</span>
-                <span>{activeLang === 'te' ? 'ప్రభావిత పంటలు & మల్చింగ్' : 'Affected Crops & Mulching'}</span>
+                <span>{getPlantText('affectedCrops', activeLang)}</span>
               </span>
               <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                 {activeLang === 'te'
@@ -1381,10 +1559,12 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
         /* Agronomic Growth & Care Window (For Crops & Trees) */
         <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-black text-sm uppercase tracking-wider">
-              <Sun className="w-5 h-5 shrink-0 text-amber-500" />
-              <span>{activeLang === 'te' ? 'పర్యావరణ అనుకూలతలు & సాగు పద్ధతులు' : 'Agronomic Growth Matrix & Cultivation Care'}</span>
-            </div>
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">
+                <Sun className="w-4 h-4 text-amber-500" />
+              </span>
+              <span>{getPlantText('growthMatrix', activeLang)}</span>
+            </h2>
             {onCheckDisease && (
               <button
                 type="button"
@@ -1392,7 +1572,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
                 className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all cursor-pointer"
               >
                 <Bug className="w-3.5 h-3.5" />
-                <span>{activeLang === 'te' ? '🔍 ఈ పంట తెగుళ్ల పరీక్ష' : 'Check Crop for Diseases'}</span>
+                <span>{getPlantText('checkCropDisease', activeLang)}</span>
               </button>
             )}
           </div>
@@ -1402,7 +1582,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             {/* Suitable Soil Type */}
             <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-1">
               <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-400 flex items-center justify-between">
-                <span>{activeLang === 'te' ? '🪴 నేల రకం' : 'Suitable Soil'}</span>
+                <span>🪴 {getPlantText('suitableSoil', activeLang)}</span>
                 <Sprout className="w-3.5 h-3.5" />
               </span>
               <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
@@ -1413,7 +1593,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             {/* Climate & Weather */}
             <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-1">
               <span className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-400 flex items-center justify-between">
-                <span>{activeLang === 'te' ? '☀️ వాతావరణం' : 'Ideal Climate'}</span>
+                <span>☀️ {getPlantText('idealClimate', activeLang)}</span>
                 <Sun className="w-3.5 h-3.5" />
               </span>
               <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
@@ -1424,7 +1604,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             {/* Irrigation / Water */}
             <div className="p-3.5 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/60 space-y-1">
               <span className="text-[10px] font-black uppercase text-cyan-800 dark:text-cyan-400 flex items-center justify-between">
-                <span>{activeLang === 'te' ? '💧 నీటి తడి' : 'Water Need'}</span>
+                <span>💧 {getPlantText('waterNeed', activeLang)}</span>
                 <Droplets className="w-3.5 h-3.5" />
               </span>
               <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
@@ -1435,7 +1615,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             {/* Fertilization / Nutrients */}
             <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 space-y-1">
               <span className="text-[10px] font-black uppercase text-indigo-800 dark:text-indigo-400 flex items-center justify-between">
-                <span>{activeLang === 'te' ? '🧪 ఎరువులు' : 'Nutrients & NPK'}</span>
+                <span>🧪 {getPlantText('nutrientsNPK', activeLang)}</span>
                 <FlaskConical className="w-3.5 h-3.5" />
               </span>
               <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">
@@ -1449,7 +1629,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
               <span className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
-                <span>{activeLang === 'te' ? 'తెగుళ్లు & పురుగుల పర్యవేక్షణ' : 'Pest & Disease Watch'}</span>
+                <span>{getPlantText('pestDiseaseWatch', activeLang)}</span>
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {info.commonDiseases?.map((d, i) => (
@@ -1471,10 +1651,12 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
       {/* ==================== CARD 3: BOTANICAL PROFILE & PRACTICAL FARM IMPACT ==================== */}
       <Card className="p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-            <span>{activeLang === 'te' ? 'మొక్క వివరణ & వ్యవసాయ ప్రాముఖ్యత' : 'Botanical Profile & Agricultural Significance'}</span>
-          </span>
+          <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">
+              <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            </span>
+            <span>{getPlantText('botanicalProfile', activeLang)}</span>
+          </h2>
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20">
             {info.identifiedType || (isWeed ? 'Weed' : 'Flora')}
           </span>
@@ -1483,7 +1665,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
         {/* Primary Use Callout */}
         <div className="p-3.5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 text-xs">
           <span className="font-black text-teal-800 dark:text-teal-300 uppercase text-[10px] tracking-wider block mb-1">
-            🌱 {activeLang === 'te' ? 'ముఖ్య ఉపయోగం / ప్రభావం' : 'Primary Use & Agricultural Impact'}
+            🌱 {getPlantText('primaryUse', activeLang)}
           </span>
           <p className="text-slate-800 dark:text-slate-200 font-bold leading-relaxed">
             {info.primaryUseImpact || (isWeed ? 'హానికరమైన కలుపు - పంట పొలాల నుండి వెంటనే తొలగించాలి.' : 'ఆహార మరియు ఆర్థిక ప్రాముఖ్యత కలిగిన వ్యవసాయ పంట.')}
@@ -1502,8 +1684,8 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
               className="text-teal-600 dark:text-teal-400 font-black mt-1 hover:underline cursor-pointer"
             >
               {isDescriptionExpanded
-                ? (activeLang === 'te' ? 'తక్కువ చూపించు' : 'Show Less')
-                : (activeLang === 'te' ? 'మరింత చదవండి' : 'Read Full Description')}
+                ? getPlantText('showLess', activeLang)
+                : getPlantText('readMore', activeLang)}
             </button>
           </div>
         )}
@@ -1519,7 +1701,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-2 shadow-md shadow-emerald-600/30 transition-all cursor-pointer active:scale-98"
           >
             <Share2 className="w-4 h-4" />
-            <span>{activeLang === 'te' ? 'వాట్సాప్‌లో షేర్ చేయండి' : 'Share WhatsApp'}</span>
+            <span>{getPlantText('shareWhatsApp', activeLang)}</span>
           </button>
 
           {/* Download PDF */}
@@ -1529,7 +1711,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-2 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer active:scale-98"
           >
             <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>{activeLang === 'te' ? 'రిపోర్ట్ ప్రింట్ (PDF)' : 'Print Dossier (PDF)'}</span>
+            <span>{getPlantText('printPdf', activeLang)}</span>
           </button>
         </div>
 
@@ -1540,7 +1722,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             className="px-3.5 py-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center gap-2 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-all"
           >
             <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>{activeLang === 'te' ? 'కిసాన్ కాల్ సెంటర్ (1800-180-1551)' : 'Kisan Helpline 1800-180-1551'}</span>
+            <span>{getPlantText('kisanHelpline', activeLang)}</span>
           </a>
 
           {/* Scan Another Button */}
@@ -1550,7 +1732,7 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             className="px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 font-black text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-98 shadow-sm"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>{activeLang === 'te' ? 'మరో మొక్కను స్కాన్ చేయండి' : 'Scan Another Plant'}</span>
+            <span>{getPlantText('scanAnother', activeLang)}</span>
           </button>
         </div>
       </div>

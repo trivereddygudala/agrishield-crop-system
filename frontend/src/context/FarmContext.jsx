@@ -43,6 +43,15 @@ export const FarmProvider = ({ children }) => {
       const archivedList = Array.isArray(archivedRes?.data) ? archivedRes.data : [];
       let currentActive = activeRes?.data || null;
 
+      // Check if localStorage has active farm ID
+      const savedActiveId = typeof localStorage !== 'undefined' ? localStorage.getItem('agrishield_active_farm_id') : null;
+      if (savedActiveId && farmList.length > 0) {
+        const found = farmList.find(f => String(f.id || f._id) === String(savedActiveId));
+        if (found) {
+          currentActive = found;
+        }
+      }
+
       // Smart Fallback: if activeFarm is null or not found, but farms exist, select the first farm
       if (!currentActive && farmList.length > 0) {
         currentActive = farmList[0];
@@ -55,6 +64,11 @@ export const FarmProvider = ({ children }) => {
       setFarms(farmList);
       setArchivedFarms(archivedList);
       setActiveFarmState(currentActive);
+      if (currentActive) {
+        try {
+          localStorage.setItem('agrishield_active_farm_id', String(currentActive.id || currentActive._id));
+        } catch (_) {}
+      }
     } catch (error) {
       console.error("Error refreshing farms context:", error);
     } finally {
@@ -78,6 +92,10 @@ export const FarmProvider = ({ children }) => {
       const farmDoc = farms.find(f => (f.id === farmId || f._id === farmId));
       if (farmDoc) {
         setActiveFarmState(farmDoc);
+        try {
+          localStorage.setItem('agrishield_active_farm_id', String(farmId));
+          window.dispatchEvent(new CustomEvent('agrishield-active-farm-changed', { detail: farmDoc }));
+        } catch (_) {}
         // Force refresh user context to update farm_profile_completed if needed
         if (user && !user.farm_profile_completed) {
           await updateProfile({ farm_profile_completed: true, active_farm_id: farmId });
@@ -121,6 +139,10 @@ export const FarmProvider = ({ children }) => {
       setFarms(prev => prev.map(f => (f.id === farmId || f._id === farmId) ? updatedFarm : f));
       if (activeFarm && (activeFarm.id === farmId || activeFarm._id === farmId)) {
         setActiveFarmState(updatedFarm);
+        try {
+          localStorage.setItem('agrishield_active_farm_id', String(farmId));
+          window.dispatchEvent(new CustomEvent('agrishield-active-farm-changed', { detail: updatedFarm }));
+        } catch (_) {}
       }
       return updatedFarm;
     } catch (error) {

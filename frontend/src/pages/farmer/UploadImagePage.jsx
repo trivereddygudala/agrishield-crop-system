@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
@@ -538,7 +538,9 @@ const UploadImagePage = () => {
 
       const payload = {
         image_path: imagePath,
-        language: activeLang
+        language: activeLang,
+        farm_id: activeFarm?.id || activeFarm?._id || undefined,
+        farm_name: activeFarm?.farm_name || undefined
       };
 
       if (activeTab === 'disease-diag') {
@@ -553,6 +555,8 @@ const UploadImagePage = () => {
         }
         if (multipartData.cropStage) {
           payload.crop_stage = multipartData.cropStage;
+        } else if (activeFarm?.growth_stage) {
+          payload.crop_stage = activeFarm.growth_stage;
         }
       }
 
@@ -916,7 +920,24 @@ const UploadImagePage = () => {
             </div>
           </div>
 
-
+          {/* Active Field Sector Tag Indicator */}
+          {activeFarm && (
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/40 text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-xs">
+              <span className="flex items-center gap-2 flex-wrap">
+                <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{t('scan_page.tagging_field_label', 'Linking Scan to Registered Sector:')}</span>
+                <strong className="text-emerald-950 dark:text-emerald-100 font-black">{activeFarm.farm_name}</strong>
+                {activeFarm.crop_name && (
+                  <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                    ({activeFarm.crop_name} • {activeFarm.growth_stage || 'Vegetative'})
+                  </span>
+                )}
+              </span>
+              <Link to="/farm?tab=my-fields" className="text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400 hover:underline shrink-0">
+                {t('scan_page.switch_field_link', 'Switch Sector →')}
+              </Link>
+            </div>
+          )}
 
           {/* Disease Diagnosis Mode Selector: Single Leaf vs Multi-Leaf Plot Inspection */}
           {activeTab === 'disease-diag' && (

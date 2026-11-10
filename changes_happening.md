@@ -10008,3 +10008,42 @@ pm.cmd run build passed in 21.71s with 0 errors.
   - Runtime strictly reads `os.getenv("GROQ_API_KEY", "")` (stored securely in gitignored `.env`).
 - **Amended Git Commit for Clean Remote Push**:
   - Rewrote unpushed commit `f2681cc` so that no secret exists in git history.
+
+## [2026-11-10 20:15:00] - Farmer Portal 10-Point Enhancement Suite
+- **Field Registration & Crop Growth Stage Tracking (`FarmPage.jsx`)**:
+  - Added visual 5-stage agronomic growth selector (`Sowing`, `Vegetative`, `Flowering`, `Fruiting`, `Maturity / Harvest`) with bilingual labels (English/Telugu) and descriptive field indicators.
+  - Added Planting Date picker with automated live days-elapsed calculation (`Days Since Sowing`).
+  - Added visual 15-regional-crop picker (`INDIAN_CROPS_LIST`) and variety text input.
+  - Rebuilt My Fields specification grid into a 4-column layout: Crop, Growth Stage, Area, Soil.
+- **Typography & High-Contrast Heading Polishing (`DiseaseDiagnosisResults.jsx`, `PlantIdResults.jsx`, `FarmPage.jsx`)**:
+  - Replaced tiny uppercase, low-contrast headings with high-contrast `text-base sm:text-lg font-black text-slate-900 dark:text-slate-100`.
+  - Added dedicated themed icon badge containers (`💊 Chemical`, `🌿 Organic`, `🌦️ Micro-Climate`, `🗓️ Cultural Timeline`, `💰 Economics`, `🔬 Grad-CAM X-Ray`).
+  - Replaced harsh neon text with readable solid dark/light headings.
+- **Diagnostic Result Card Audits & 7-Language Vernacular Engine (`AgrochemicalResults.jsx`, `PlantIdResults.jsx`)**:
+  - Cleaned up number prefixes ("3. ", "4. ") from chemical result headers.
+  - Integrated 1-click "Add to Farm Inventory" button in `AgrochemicalResults.jsx` wired to `/api/v1/inventory/items`.
+  - Added `PLANT_UI_LOCALIZATIONS` dictionary and `getPlantText` helper across 7 Indian languages (English, Telugu, Hindi, Tamil, Kannada, Malayalam, Marathi) in `PlantIdResults.jsx`.
+- **Eliminated Hardcoded 'Tomato' Fallbacks (`FarmPage.jsx`, `DashboardPage.jsx`, `CropAdvisoryPage.jsx`)**:
+  - Removed all hardcoded `'Tomato'` fallbacks across new farmer registrations and advisory dashboards.
+  - Ensured farmer-chosen regional crops persist permanently into localStorage and MongoDB.
+- **Active Field Selection Cross-Tab Real-Time Sync (`FarmContext.jsx`)**:
+  - Added `localStorage` active farm ID persistence (`agrishield_active_farm_id`).
+  - Added CustomEvent dispatching (`agrishield-active-farm-changed`) so selecting a field on the Field tab immediately updates the Home tab dedicated card and vice-versa.
+- **Field-Tagged Scans & Per-Sector Diagnostic History (`schemas.py`, `predict.py`, `UploadImagePage.jsx`)**:
+  - Updated `PredictRequest` and backend predictions to store `farm_id`, `farm_name`, and `crop_stage`.
+  - Added `farm_id` query parameter filter to `/api/v1/history`.
+  - Added active field sector indicator badge on leaf scan screen.
+- **Unified Field Setup & My Fields Sector Management (`FarmPage.jsx`)**:
+  - Added top Field Selector dropdown in Field Setup to easily switch between editing any registered field or registering a new sector.
+  - Linked "Setup & Edit" buttons on field cards directly to pre-fill and edit that specific field.
+- **Modernized Alerts & Advisories Tab UI/UX (`NotificationsPage.jsx`)**:
+  - Replaced drab gray `#f1f3f9` background with AgriShield's emerald, amber, and slate glassmorphic design.
+  - Renamed title to "🌾 Field Alerts & Advisories" with emerald unread counter badge.
+  - Modernized category filter pills for agricultural priorities (🚨 Crop Health, 🌦️ Weather, 🚜 Machinery, 📡 Sensors, 📢 Schemes).
+  - Modernized search bar and unread card borders.
+- **Reorganized More Tab for Farmers (`MorePage.jsx`)**:
+  - Prioritized essential daily farm tools at the top: Digital Farm Khata, Fertilizer & Soil NPK Calculator, PM-Kisan & Government Subsidies, WhatsApp AI Crop Doctor, Machinery Rental, Field Calculator, Mandi Rates, Audit Reports.
+  - Kept ESP32 IoT hardware tools collapsible under `hardwareMode`.
+- **Verification**:
+  - Production build: `vite build` completed in 15.94s with 3,167 modules and 0 errors.
+  - Python compilation: `py_compile` confirmed 0 errors across backend schemas and prediction routers.

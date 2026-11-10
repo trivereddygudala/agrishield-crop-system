@@ -27,7 +27,12 @@ import {
   Ruler,
   Headphones,
   Truck,
-  Calendar
+  Calendar,
+  FlaskConical,
+  Landmark,
+  BookOpen,
+  MessageSquare,
+  IndianRupee
 } from 'lucide-react';
 import LanguageSelectModal from '../../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../../data/languages';
@@ -65,6 +70,7 @@ const MenuCard = ({ icon: Icon, label, description, path, iconColor, iconBg, acc
 const MorePage = () => {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
+  const isTe = currentLang === 'te';
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { hardwareMode, setHardwareMode } = useHardwareMode();
@@ -77,6 +83,54 @@ const MorePage = () => {
   const currentLangObj = getLanguageByCode(i18n.language);
 
   const FARMING_TOOLS = [
+    {
+      icon: BookOpen,
+      label: isTe ? 'డిజిటల్ ఫార్మ్ ఖాతా & లెడ్జర్' : 'Digital Farm Khata & Ledger',
+      description: isTe
+        ? 'పంట రాబడి, ఎరువుల ఖర్చులు, వ్యాపారుల బకాయిలు & లాభాల గణన'
+        : 'Track crop revenue, fertilizer expenses, buyer credit reminders & profit',
+      path: '/farm?tab=farm-khata',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
+      accent: 'border-l-emerald-500',
+      badge: isTe ? 'ఖాతా' : '₹ Khata'
+    },
+    {
+      icon: FlaskConical,
+      label: isTe ? 'ఎరువులు & నేల NPK లెక్కింపు' : 'Fertilizer & Soil NPK Calculator',
+      description: isTe
+        ? 'యూరియా, డీఏపీ, పొటాష్ బస్తాల లెక్క & సబ్సిడీ ధరల వివరాలు'
+        : 'Exact Urea, DAP & MOP bags per acre with subsidized retail cost breakdown',
+      path: '/farm?tab=soil-npk',
+      iconColor: 'text-teal-600 dark:text-teal-400',
+      iconBg: 'bg-teal-100 dark:bg-teal-950/70 border border-teal-300 dark:border-teal-800',
+      accent: 'border-l-teal-500',
+      badge: 'NPK Bags'
+    },
+    {
+      icon: Landmark,
+      label: isTe ? 'పీఎం-కిసాన్ & ప్రభుత్వ రాయితీలు' : 'PM-Kisan & Government Schemes',
+      description: isTe
+        ? 'పీఎం-కిసాన్ ₹6,000 స్థితి, రైతు భరోసా, విత్తన రాయితీ & సోలార్ పంపులు'
+        : 'PM-Kisan ₹6,000 status, Rythu Bharosa, seed subsidies & solar pump DBT',
+      path: '/farm?tab=government-schemes',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
+      accent: 'border-l-indigo-500',
+      badge: 'DBT Direct'
+    },
+    {
+      icon: MessageSquare,
+      label: isTe ? 'వాట్సాప్ AI పంట వైద్యుడు' : 'WhatsApp AI Crop Doctor',
+      description: isTe
+        ? 'వాట్సాప్‌లో ఆకు ఫోటో పంపి క్షణాల్లో మందుల ప్రిస్క్రిప్షన్ పొందండి'
+        : 'Send leaf photos on WhatsApp for instant AI diagnosis and prescription',
+      path: '/farm?tab=whatsapp-diagnosis',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
+      accent: 'border-l-emerald-500',
+      badge: 'WhatsApp'
+    },
     {
       icon: Truck,
       label: t('more.machinery_rental', 'Farm Machinery, Drone & Pump Rental'),
@@ -92,19 +146,20 @@ const MorePage = () => {
       label: t('more.field_calculator', 'Field Area Calculator'),
       description: t('more.field_calculator_desc', 'GPS perimeter walk & map pin measuring for acres, cents & gunthas'),
       path: '/field-calculator',
-      iconColor: 'text-emerald-600 dark:text-emerald-400',
-      iconBg: 'bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800',
-      accent: 'border-l-emerald-500',
+      iconColor: 'text-cyan-600 dark:text-cyan-400',
+      iconBg: 'bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300 dark:border-cyan-800',
+      accent: 'border-l-cyan-500',
       badge: t('more.1m_gps', '1m GPS')
     },
     {
       icon: TrendingUp,
-      label: t('more.tools.mandi.label', 'Market'),
+      label: t('more.tools.mandi.label', 'Mandi & Market Prices'),
       description: t('more.tools.mandi.desc', 'Today’s market rates, commodity arrivals & trends'),
       path: '/market',
       iconColor: 'text-amber-600 dark:text-amber-400',
       iconBg: 'bg-amber-100 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-800',
-      accent: 'border-l-amber-500'
+      accent: 'border-l-amber-500',
+      badge: 'Mandi Rates'
     },
     {
       icon: Bot,
@@ -117,7 +172,7 @@ const MorePage = () => {
     },
     {
       icon: FileText,
-      label: t('more.tools.reports.label', 'Audit Reports'),
+      label: t('more.tools.reports.label', 'Audit Reports & Dossiers'),
       description: t('more.tools.reports.desc', 'Download PDF disease logs & telemetry reports'),
       path: '/reports',
       iconColor: 'text-purple-600 dark:text-purple-400',

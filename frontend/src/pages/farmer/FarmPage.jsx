@@ -29,6 +29,32 @@ import HarvestSeasonManager from '../../components/farm/HarvestSeasonManager';
 import SmartFarmerActionCenter from '../../components/farm/SmartFarmerActionCenter';
 import WidgetErrorBoundary from '../../components/WidgetErrorBoundary';
 
+export const INDIAN_CROPS_LIST = [
+  { id: 'Rice', name: 'Rice / Paddy', emoji: '🌾', duration: 120 },
+  { id: 'Cotton', name: 'Cotton', emoji: '🧶', duration: 160 },
+  { id: 'Chilli', name: 'Chilli / Mirchi', emoji: '🌶️', duration: 150 },
+  { id: 'Corn', name: 'Maize / Corn', emoji: '🌽', duration: 100 },
+  { id: 'Tomato', name: 'Tomato', emoji: '🍅', duration: 90 },
+  { id: 'Groundnut', name: 'Groundnut / Peanut', emoji: '🥜', duration: 110 },
+  { id: 'Sugarcane', name: 'Sugarcane', emoji: '🎋', duration: 330 },
+  { id: 'Wheat', name: 'Wheat', emoji: '🌾', duration: 120 },
+  { id: 'Mango', name: 'Mango', emoji: '🥭', duration: 180 },
+  { id: 'Onion', name: 'Onion', emoji: '🧅', duration: 120 },
+  { id: 'Potato', name: 'Potato', emoji: '🥔', duration: 100 },
+  { id: 'Soybean', name: 'Soybean', emoji: '🫘', duration: 95 },
+  { id: 'Banana', name: 'Banana', emoji: '🍌', duration: 300 },
+  { id: 'Citrus', name: 'Citrus / Lemon', emoji: '🍊', duration: 240 },
+  { id: 'Cucumber', name: 'Cucumber', emoji: '🥒', duration: 60 }
+];
+
+export const CROP_STAGES = [
+  { id: 'Sowing', labelEn: 'Sowing / Nursery', labelTe: 'విత్తనం / నారుమడి', icon: '🌱', descEn: 'Germination & seedling establishment (0–20 days)', descTe: 'మొలక దశ & నారు ఎదుగుదల' },
+  { id: 'Vegetative', labelEn: 'Vegetative / Branching', labelTe: 'శాకీయ / కొమ్మల పెరుగుదల', icon: '🌿', descEn: 'Active root & canopy foliage development (21–45 days)', descTe: 'వేర్లు & ఆకుల విస్తరణ' },
+  { id: 'Flowering', labelEn: 'Flowering / Bloom', labelTe: 'పూత దశ / పుష్పించడం', icon: '🌸', descEn: 'Flower bud initiation & pollination (46–70 days)', descTe: 'పూత & పరాగ సంపర్కం' },
+  { id: 'Fruiting', labelEn: 'Fruiting / Grain Fill', labelTe: 'కాయ / గింజ పాలుపోసుకునే దశ', icon: '🍅', descEn: 'Fruit setting, pod formation & grain filling (71–100 days)', descTe: 'కాయ ఎదుగుదల & పాలుపోసుకోవడం' },
+  { id: 'Maturity', labelEn: 'Maturity / Harvest Ready', labelTe: 'పక్వత / కోత దశ', icon: '🌾', descEn: 'Physiological ripening & ready for harvest (100+ days)', descTe: 'పంట కోతకు సిద్ధం' }
+];
+
 const FarmPage = () => {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
@@ -169,6 +195,19 @@ const FarmPage = () => {
   const [cropVariety, setCropVariety] = useState('');
   const [growthStage, setGrowthStage] = useState('Vegetative');
   const [plantingDate, setPlantingDate] = useState('');
+  const [editingFarmId, setEditingFarmId] = useState(activeFarm?.id || 'new');
+
+  // Calculate days since planting
+  const calculatedDaysOld = useMemo(() => {
+    if (!plantingDate) return 0;
+    try {
+      const p = new Date(plantingDate);
+      const t = new Date();
+      return Math.max(0, Math.floor((t - p) / (1000 * 60 * 60 * 24)));
+    } catch (_) {
+      return 0;
+    }
+  }, [plantingDate]);
 
   // IoT Hardware
   const [deviceId, setDeviceId] = useState('');
@@ -187,29 +226,47 @@ const FarmPage = () => {
     sms: true
   });
 
-  useEffect(() => {
-    if (activeFarm) {
-      setFarmName(activeFarm.farm_name || '');
-      setFarmSize(activeFarm.farm_size || '');
-      setFarmUnit(activeFarm.farm_unit || 'acres');
-      setFieldsCount(activeFarm.fields_count || 1);
-      setCropName(activeFarm.crop_name || '');
-      setCropVariety(activeFarm.crop_variety || '');
-      setGrowthStage(activeFarm.growth_stage || 'Vegetative');
-      setPlantingDate(activeFarm.planting_date || '');
-      const farmState = activeFarm.state || '';
-      const farmDist = activeFarm.district || '';
+  const loadFarmIntoForm = useCallback((farm) => {
+    if (!farm || farm === 'new') {
+      setFarmName(`Field Sector ${farms.length + 1}`);
+      setFarmSize('2.0');
+      setFarmUnit('acres');
+      setFieldsCount(1);
+      setCropName('');
+      setCropVariety('');
+      setGrowthStage('Vegetative');
+      setPlantingDate(new Date().toISOString().split('T')[0]);
+      setState(activeFarm?.state || 'Andhra Pradesh');
+      setDistrict(activeFarm?.district || '');
+      setMandal(activeFarm?.mandal || '');
+      setVillage(activeFarm?.village || '');
+      setLatitude(activeFarm?.latitude ? String(activeFarm.latitude) : '');
+      setLongitude(activeFarm?.longitude ? String(activeFarm.longitude) : '');
+      setIrrigationMethod('Drip');
+      setWaterSource('Borewell');
+      setSoilType('red_loamy');
+      setDeviceId('');
+      setBoundaryCoordinates([]);
+    } else {
+      setFarmName(farm.farm_name || '');
+      setFarmSize(farm.farm_size ? String(farm.farm_size) : '');
+      setFarmUnit(farm.farm_unit || 'acres');
+      setFieldsCount(farm.fields_count || 1);
+      setCropName(farm.crop_name || '');
+      setCropVariety(farm.crop_variety || '');
+      setGrowthStage(farm.growth_stage || 'Vegetative');
+      setPlantingDate(farm.planting_date || '');
+      const farmState = farm.state || '';
+      const farmDist = farm.district || '';
       setState(farmState);
       setDistrict(farmDist);
-      setMandal(activeFarm.mandal || '');
-      setVillage(activeFarm.village || '');
+      setMandal(farm.mandal || '');
+      setVillage(farm.village || '');
 
-      let initialLat = activeFarm.latitude !== undefined && activeFarm.latitude !== null ? activeFarm.latitude.toString() : '';
-      let initialLng = activeFarm.longitude !== undefined && activeFarm.longitude !== null ? activeFarm.longitude.toString() : '';
+      let initialLat = farm.latitude !== undefined && farm.latitude !== null ? farm.latitude.toString() : '';
+      let initialLng = farm.longitude !== undefined && farm.longitude !== null ? farm.longitude.toString() : '';
 
-      // If coordinates are missing or legacy default (16.5062, 80.6480) and district is not Vijayawada, map to actual district coords
-      const isLegacyDefault = initialLat && initialLng && Math.abs(parseFloat(initialLat) - 16.5062) < 0.001 && Math.abs(parseFloat(initialLng) - 80.6480) < 0.001;
-      if ((!initialLat || !initialLng || isLegacyDefault) && (farmDist || farmState)) {
+      if ((!initialLat || !initialLng) && (farmDist || farmState)) {
         if (farmDist !== 'NT R' && farmDist !== 'Krishna') {
           const [dLat, dLng] = getCoordinatesForLocation(farmState, farmDist);
           initialLat = dLat.toFixed(6);
@@ -219,13 +276,29 @@ const FarmPage = () => {
 
       setLatitude(initialLat);
       setLongitude(initialLng);
-      setIrrigationMethod(activeFarm.irrigation_method || 'Manual');
-      setWaterSource(activeFarm.water_source || 'Rain Water');
-      setSoilType(activeFarm.soil_type || 'red_loamy');
-      setDeviceId(activeFarm.device_id || '');
-      setBoundaryCoordinates(activeFarm.boundary_coordinates || []);
+      setIrrigationMethod(farm.irrigation_method || 'Manual');
+      setWaterSource(farm.water_source || 'Rain Water');
+      setSoilType(farm.soil_type || 'red_loamy');
+      setDeviceId(farm.device_id || '');
+      setBoundaryCoordinates(farm.boundary_coordinates || []);
     }
-  }, [activeFarm]);
+  }, [activeFarm, farms.length]);
+
+  // Synchronize form when editing target or active farm changes
+  useEffect(() => {
+    if (editingFarmId && editingFarmId !== 'new') {
+      const target = farms.find(f => (f.id === editingFarmId || f._id === editingFarmId));
+      if (target) {
+        loadFarmIntoForm(target);
+      }
+    } else if (editingFarmId === 'new') {
+      loadFarmIntoForm('new');
+    } else if (activeFarm) {
+      const fid = activeFarm.id || activeFarm._id;
+      setEditingFarmId(fid);
+      loadFarmIntoForm(activeFarm);
+    }
+  }, [editingFarmId, activeFarm, farms, loadFarmIntoForm]);
 
   useEffect(() => {
     const fetchDevices = async () => {
@@ -277,8 +350,8 @@ const FarmPage = () => {
         farm_size: parseFloat(farmSize) > 0 ? parseFloat(farmSize) : 1.0,
         farm_unit: farmUnit || 'acres',
         number_of_fields: parseInt(fieldsCount) || 1,
-        crop_name: cropName || 'Tomato',
-        crop_variety: cropVariety || 'Standard',
+        crop_name: cropName ? cropName.trim() : null,
+        crop_variety: cropVariety ? cropVariety.trim() : 'Standard',
         growth_stage: growthStage || 'Vegetative',
         planting_date: plantingDate || new Date().toISOString().split('T')[0],
         state: state || 'Andhra Pradesh',
@@ -294,10 +367,14 @@ const FarmPage = () => {
         boundary_coordinates: boundaryCoordinates && boundaryCoordinates.length >= 3 ? boundaryCoordinates : undefined
       };
 
-      if (activeFarm && activeFarm.id) {
-        await saveFarmEdit(activeFarm.id, payload);
+      if (editingFarmId && editingFarmId !== 'new') {
+        await saveFarmEdit(editingFarmId, payload);
       } else {
-        await createFarm(payload);
+        const created = await createFarm(payload);
+        if (created?.id) {
+          setEditingFarmId(created.id);
+          if (selectActiveFarm) await selectActiveFarm(created.id);
+        }
       }
 
       try {
@@ -677,7 +754,7 @@ const FarmPage = () => {
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-slate-100 leading-snug truncate">
-                    {translateCrop(displayFarm.crop_name || 'Tomato', i18n.language)}
+                    {displayFarm.crop_name ? translateCrop(displayFarm.crop_name, i18n.language) : t('farm_tools.no_crop_set', 'Crop Not Set')}
                   </p>
                   <div className="mt-1 flex items-center min-h-[20px]">
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
@@ -899,7 +976,7 @@ const FarmPage = () => {
                 {t('farm_tools.primary_crops', 'Active Crops')}
               </span>
               <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white mt-0.5 truncate">
-                {Array.from(new Set(farms.map(f => f.crop_name).filter(Boolean))).join(', ') || 'Tomato'}
+                {Array.from(new Set(farms.map(f => f.crop_name).filter(Boolean))).join(', ') || t('farm_tools.none_set', 'Not Set')}
               </p>
             </div>
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
@@ -927,22 +1004,13 @@ const FarmPage = () => {
               type="button"
               size="sm"
               leftIcon={<Plus className="w-4 h-4" />}
-              onClick={async () => {
-                try {
-                  await createFarm({
-                    farm_name: `${t('farm_page.new_farm_prefix', 'New Farm Sector')} ${farms.length + 1}`,
-                    soil_type: 'red_loamy'
-                  });
-                  setToastMsg(t('farm_tools.field_created', 'New field sector created!'));
-                  setTimeout(() => setToastMsg(''), 3000);
-                } catch (e) {
-                  console.error(e);
-                  setErrorMsg('Failed to create new field');
-                }
+              onClick={() => {
+                setEditingFarmId('new');
+                setActiveTab('field-setup');
               }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 cursor-pointer"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 cursor-pointer shadow-xs"
             >
-              {t('farm_tools.add_new_field', '+ Add New Field')}
+              {t('farm_tools.add_new_field', '+ Register New Field Sector')}
             </Button>
           </div>
 
@@ -1003,11 +1071,17 @@ const FarmPage = () => {
                   </div>
 
                   {/* Field Specs Grid */}
-                  <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-xs mb-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-xs mb-3">
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase block">{t('farm_tools.crop_label', 'Crop')}</span>
                       <span className="font-bold text-slate-700 dark:text-slate-200 truncate block">
-                        {farm.crop_name || 'Not set'}
+                        {farm.crop_name || t('farm_tools.no_crop_set', 'Not set')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">{t('farm_tools.stage_label', 'Stage')}</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 truncate block">
+                        {farm.growth_stage || 'Vegetative'}
                       </span>
                     </div>
                     <div>
@@ -1074,7 +1148,7 @@ const FarmPage = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          navigate(`/upload?crop=${encodeURIComponent(farm.crop_name || 'Tomato')}&field=${farm.id}`);
+                          navigate(`/upload?${farm.crop_name ? `crop=${encodeURIComponent(farm.crop_name)}&` : ''}field=${farm.id}`);
                         }}
                         className="py-1.5 px-1.5 rounded-xl text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors text-center shadow-xs flex items-center justify-center gap-1"
                         title="Scan Crop Disease"
@@ -1091,12 +1165,13 @@ const FarmPage = () => {
                           if (!isActive && selectActiveFarm) {
                             await selectActiveFarm(farm.id);
                           }
+                          setEditingFarmId(farm.id);
                           setActiveTab('field-setup');
                         }}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       >
-                        <Settings className="w-3.5 h-3.5" />
-                        <span>{t('farm_tools.setup_gps', 'Setup & GPS')}</span>
+                        <Settings className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>{t('farm_tools.setup_gps', 'Edit Field & GPS')}</span>
                       </button>
                       {farms.length > 1 && (
                         <button
@@ -1167,6 +1242,43 @@ const FarmPage = () => {
       {/* ═══════ DRILL: Field Setup & Location ═══════ */}
       {activeTab === 'field-setup' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          {/* Top Field Selector Dropdown Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div>
+              <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider block">
+                {t('farm_tools.editing_target_field', 'Selected Field to Setup / Edit')}
+              </span>
+              <h3 className="text-base font-black text-slate-900 dark:text-slate-100 mt-0.5">
+                {editingFarmId === 'new' ? t('farm_tools.creating_new_sector', 'Registering New Field Sector') : (farmName || t('farm_tools.active_field_sector', 'Field Sector'))}
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={editingFarmId || 'new'}
+                onChange={(e) => setEditingFarmId(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              >
+                <option value="new">+ {t('farm_tools.add_new_sector_option', 'Register New Sector')}</option>
+                {farms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.farm_name} ({f.crop_name || 'No Crop'} • {f.farm_size || '1'} {f.farm_unit || 'acres'})
+                  </option>
+                ))}
+              </select>
+              {editingFarmId !== 'new' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingFarmId('new')}
+                  className="shrink-0 text-xs"
+                >
+                  + {t('farm_tools.new_btn', 'New Field')}
+                </Button>
+              )}
+            </div>
+          </div>
+
           <form onSubmit={handleSaveFarm} className="space-y-5">
             <Card glass className="p-3.5 sm:p-5 space-y-5 w-full max-w-full min-w-0 overflow-hidden">
               <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">
@@ -1175,16 +1287,16 @@ const FarmPage = () => {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    {t('farm_tools.sector_gps_title', 'Farm Sector & GPS Coordinates')}
+                    {t('farm_tools.sector_gps_title', 'Farm Sector & Agronomic Setup')}
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {t('farm_tools.sector_gps_desc', 'Set registered farm sector details and precise coordinates.')}
+                    {t('farm_tools.sector_gps_desc', 'Set registered farm sector details, cultivated crop, stage, and precise coordinates.')}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label={t('farm_page.info.sector_name', 'Farm Sector Name')} placeholder={t('farm_page.info.sector_placeholder', 'e.g. Green Acre Tomato Sector')} value={farmName} onChange={(e) => setFarmName(e.target.value)} required />
+                <Input label={t('farm_page.info.sector_name', 'Farm Sector Name')} placeholder={t('farm_page.info.sector_placeholder', 'e.g. Green Acre Sector 1')} value={farmName} onChange={(e) => setFarmName(e.target.value)} required />
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <Input label={t('farm_page.info.total_area', 'Total Farm Area')} type="number" placeholder="e.g. 2.5" value={farmSize} onChange={(e) => setFarmSize(e.target.value)} />
@@ -1214,6 +1326,130 @@ const FarmPage = () => {
                         {preset.label}
                       </button>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Crop & Agronomic Growth Stage Selector */}
+              <div className="rounded-2xl border border-emerald-200/90 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sprout className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
+                      {t('farm_page.crop_agronomy_title', 'Crop Selection & Growth Stage')}
+                    </h3>
+                  </div>
+                  {cropName && (
+                    <Badge variant="glow-emerald" className="text-xs font-bold">
+                      {cropName} • {growthStage || 'Vegetative'}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Common Regional Crops Grid */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {t('farm_page.select_crop_label', 'Select Crop Cultivated in this Field')} <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                    {INDIAN_CROPS_LIST.map((crop) => {
+                      const isSelected = cropName?.toLowerCase() === crop.id.toLowerCase();
+                      return (
+                        <button
+                          key={crop.id}
+                          type="button"
+                          onClick={() => setCropName(crop.id)}
+                          className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-black'
+                              : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
+                          }`}
+                        >
+                          <span className="text-lg">{crop.emoji}</span>
+                          <span className="text-xs font-bold truncate">{crop.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Crop & Variety */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <Input
+                    label={t('farm_page.crop_name_manual', 'Crop Name (or specify other crop)')}
+                    placeholder="e.g. Mustard, Turmeric, Papaya, Sunflower"
+                    value={cropName}
+                    onChange={(e) => setCropName(e.target.value)}
+                  />
+                  <Input
+                    label={t('farm_page.crop_variety', 'Crop Variety / Hybrid Name')}
+                    placeholder="e.g. Sona Masoori, BT-Cotton 2, Hybrid 108"
+                    value={cropVariety}
+                    onChange={(e) => setCropVariety(e.target.value)}
+                  />
+                </div>
+
+                {/* 5-Stage Growth Stage Visual Cards */}
+                <div className="space-y-2 pt-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {t('farm_page.crop_stage_label', 'What is the Current Stage of Your Crop?')} <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                    {CROP_STAGES.map((stage) => {
+                      const isSelected = (growthStage || 'Vegetative').toLowerCase() === stage.id.toLowerCase();
+                      return (
+                        <button
+                          key={stage.id}
+                          type="button"
+                          onClick={() => setGrowthStage(stage.id)}
+                          className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                            isSelected
+                              ? 'bg-white dark:bg-slate-900 border-emerald-500 ring-2 ring-emerald-500/30 shadow-md'
+                              : 'bg-white/70 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-emerald-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xl">{stage.icon}</span>
+                            {isSelected ? (
+                              <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
+                            ) : (
+                              <span className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />
+                            )}
+                          </div>
+                          <div>
+                            <p className={`text-xs font-black ${isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                              {currentLang === 'te' ? stage.labelTe : stage.labelEn}
+                            </p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-tight">
+                              {currentLang === 'te' ? stage.descTe : stage.descEn}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Planting Date & Calculated Age Helper */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <Input
+                    label={t('farm_page.planting_date_label', 'Planting / Sowing Date')}
+                    type="date"
+                    value={plantingDate}
+                    onChange={(e) => setPlantingDate(e.target.value)}
+                  />
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">
+                        {t('farm_page.days_since_planting', 'Days Since Sowing')}
+                      </span>
+                      <strong className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                        {calculatedDaysOld} {t('farm_page.days_count', 'Days Old')}
+                      </strong>
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg">
+                      {growthStage || 'Vegetative'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1356,7 +1592,7 @@ const FarmPage = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="p-2 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400"><Layers className="w-4 h-4" /></div>
-                    <h3 className="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wider">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">
                       {t('farm_tools.soil_type_heading', `Regional Soil Classification (${state || 'India'})`)}
                     </h3>
                   </div>

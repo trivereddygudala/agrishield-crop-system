@@ -1427,13 +1427,13 @@ export default function NotificationsPage() {
       ];
     }
     return [
-      { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
-      { id: 'unread', label: isTe ? `చదవనివి (${unreadCount})` : `Unread (${unreadCount})`, isUnreadPill: true },
-      { id: 'crop_alerts', label: isTe ? '🌿 పంట హెచ్చరికలు' : '🌿 Crop Alerts' },
-      { id: 'weather', label: isTe ? '🌦️ వాతావరణం' : '🌦️ Weather' },
-      { id: 'provider', label: isTe ? '🚜 యంత్రాలు & బుకింగ్‌లు' : '🚜 Machinery Bookings' },
-      { id: 'device_battery', label: isTe ? '📡 పరికరాలు & బ్యాటరీ' : '📡 Device & Battery' },
-      { id: 'broadcasts', label: isTe ? '📢 ప్రకటనలు' : '📢 Announcements' },
+      { id: 'All', label: isTe ? '🌾 అన్నీ' : '🌾 All' },
+      { id: 'unread', label: isTe ? `🔔 చదవనివి (${unreadCount})` : `🔔 Unread (${unreadCount})`, isUnreadPill: true },
+      { id: 'crop_alerts', label: isTe ? '🚨 పంట తెగుళ్లు' : '🚨 Crop Health' },
+      { id: 'weather', label: isTe ? '🌦️ వాతావరణం & వర్షం' : '🌦️ Weather Advisory' },
+      { id: 'provider', label: isTe ? '🚜 యంత్రాలు & డ్రోన్లు' : '🚜 Machinery & Drones' },
+      { id: 'device_battery', label: isTe ? '📡 సెన్సార్లు & బ్యాటరీ' : '📡 Field Sensors' },
+      { id: 'broadcasts', label: isTe ? '📢 ప్రభుత్వ పథకాలు' : '📢 Govt & Advisory' },
       { id: 'resolved', label: isTe ? `✅ పరిష్కరించబడినవి (${resolvedCount})` : `✅ Resolved (${resolvedCount})` }
     ];
   }, [isTe, unreadCount, isEquipmentProvider, isAdmin, resolvedIds]);
@@ -1559,14 +1559,14 @@ export default function NotificationsPage() {
   // Loading skeleton - ONLY on initial mount when cache is empty (zero screen flicker during revalidation)
   if (loading && notifications.length === 0 && !hasLoadedOnceRef.current) {
     return (
-      <div className="min-h-screen bg-[#f1f3f9] dark:bg-[#111318] p-4 sm:p-6 max-w-3xl mx-auto space-y-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 max-w-3xl mx-auto space-y-4">
         <Skeleton className="h-14 w-full rounded-full bg-slate-200/80 dark:bg-slate-800" />
         <div className="flex gap-2">
           <Skeleton className="h-9 w-20 rounded-full bg-slate-200/80 dark:bg-slate-800" />
           <Skeleton className="h-9 w-28 rounded-full bg-slate-200/80 dark:bg-slate-800" />
           <Skeleton className="h-9 w-32 rounded-full bg-slate-200/80 dark:bg-slate-800" />
         </div>
-        <div className="bg-white dark:bg-[#1a1f26] rounded-3xl p-2 space-y-3 border border-slate-200/80 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-2 space-y-3 border border-slate-200/80 dark:border-slate-800">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-center gap-3 p-3">
               <Skeleton className="w-12 h-12 rounded-full shrink-0 bg-slate-200/80 dark:bg-slate-800" />
@@ -1589,7 +1589,7 @@ export default function NotificationsPage() {
       currentLang
     );
     return (
-      <div className="fixed inset-0 z-[9999] bg-[#f1f3f9] dark:bg-[#0d1117] flex flex-col w-full h-full overflow-hidden animate-fade-in">
+      <div className="fixed inset-0 z-[9999] bg-slate-50 dark:bg-slate-950 flex flex-col w-full h-full overflow-hidden animate-fade-in">
         <GoogleMessageReader
           message={selectedMessage}
           translatedTitle={transTitle}
@@ -1603,7 +1603,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f3f9] dark:bg-[#111318] text-slate-900 dark:text-slate-100 transition-colors duration-200 pb-32 pt-2 px-3 sm:px-6 max-w-3xl mx-auto space-y-3.5 animate-fade-in relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 pb-32 pt-2 px-3 sm:px-6 max-w-3xl mx-auto space-y-3.5 animate-fade-in relative">
 
       {/* Real-Time Floating Popup Toast for Incoming Notifications */}
       <AnimatePresence>
@@ -1664,12 +1664,13 @@ export default function NotificationsPage() {
       {/* ─── 1. TOP APP BAR / UTILITY CONTROLS ─── */}
       <div className="flex items-center justify-between px-1 pt-1">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            {isTe ? 'సందేశాలు & హెచ్చరికలు' : 'Messages'}
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <span>🌾</span>
+            <span>{isTe ? 'పొలం హెచ్చరికలు & సలహాలు' : 'Field Alerts & Advisories'}</span>
           </h1>
           {unreadCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-blue-600 text-white shadow-xs">
-              {unreadCount}
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-600 text-white shadow-xs">
+              {unreadCount} {isTe ? 'కొత్తవి' : 'new'}
             </span>
           )}
         </div>
@@ -1680,7 +1681,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={handleReadAll}
-              className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all shadow-xs cursor-pointer"
+              className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-xs cursor-pointer"
               title="Mark All Read"
             >
               <CheckCheck className="w-4 h-4" />
@@ -1798,7 +1799,7 @@ export default function NotificationsPage() {
       )}
 
       {/* ─── 2. GOOGLE MESSAGES ROUNDED PILL SEARCH BAR WITH LEAF EMBLEM & AVATAR ─── */}
-      <div className="relative w-full rounded-full bg-white dark:bg-[#1a1f26] border border-slate-200/90 dark:border-slate-800 shadow-sm px-3.5 py-2.5 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/60">
+      <div className="relative w-full rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm px-3.5 py-2.5 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500/60">
         <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300/60 dark:border-emerald-700/60 flex items-center justify-center shrink-0 shadow-xs">
           <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         </div>
@@ -1807,7 +1808,7 @@ export default function NotificationsPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={isTe ? "సందేశాలు & పంట హెచ్చరికలు శోధించండి..." : "Search messages & alerts..."}
+          placeholder={isTe ? "పంట తెగుళ్లు, వాతావరణం, సలహాలు శోధించండి..." : "Search field alerts, weather warnings, spray advice..."}
           className="flex-1 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
         />
 
@@ -1828,7 +1829,7 @@ export default function NotificationsPage() {
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-xs ring-2 ring-emerald-400/30 group-hover:scale-105 transition-transform">
             {userInitial}
           </div>
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1a1f26]" />
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
         </div>
       </div>
 
@@ -1901,8 +1902,8 @@ export default function NotificationsPage() {
               }}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border ${
                 isActive
-                  ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white shadow-sm scale-102'
-                  : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 dark:bg-[#1a1f26] dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800'
+                  ? 'bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 shadow-sm shadow-emerald-600/20 scale-102'
+                  : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800'
               }`}
             >
               <span>{pill.label}</span>
@@ -1965,7 +1966,7 @@ export default function NotificationsPage() {
               </div>
 
               {/* Group Items Card Container */}
-              <div className="bg-white dark:bg-[#1a1f26] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
                 <AnimatePresence>
                   {group.items.map((item) => {
                     const meta = getThreadMeta(item);
@@ -1994,7 +1995,7 @@ export default function NotificationsPage() {
                         }}
                         className={`flex flex-col gap-2.5 p-3.5 sm:p-4 cursor-pointer transition-colors relative group select-none ${
                           isUnread
-                            ? 'bg-[#eef4ff] dark:bg-blue-950/25 hover:bg-[#e6f0ff] dark:hover:bg-blue-950/40'
+                            ? 'bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/35 border-l-4 border-l-emerald-500'
                             : isResolved
                             ? 'bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50/40'
                             : 'hover:bg-slate-50/90 dark:hover:bg-white/[0.02]'
@@ -2027,7 +2028,7 @@ export default function NotificationsPage() {
 
                             {/* Pulsing Dot on unread avatar */}
                             {isUnread && (
-                              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#1a1f26] animate-pulse" />
+                              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
                             )}
                           </div>
 

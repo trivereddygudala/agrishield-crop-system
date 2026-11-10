@@ -1411,6 +1411,8 @@ async def agrochemical_scan_endpoint(
             "prediction_date": now.strftime("%Y-%m-%d"),
             "prediction_time": now.strftime("%H:%M:%S"),
             "prediction_status": "agrochemical",
+            "farm_id": getattr(req, "farm_id", None),
+            "farm_name": getattr(req, "farm_name", None),
             "created_at": now,
             "brand": info.get("brand", "AgriShield Certified"),
             "product_type": info.get("product_type", "Agrochemical"),
@@ -2758,6 +2760,9 @@ async def predict_pytorch_endpoint(
         "prediction_date": now.strftime("%Y-%m-%d"),
         "prediction_time": now.strftime("%H:%M:%S"),
         "prediction_status": prediction_result.get("prediction_status", "diseased"),
+        "farm_id": getattr(req, "farm_id", None) or prediction_result.get("farm_id"),
+        "farm_name": getattr(req, "farm_name", None) or prediction_result.get("farm_name"),
+        "crop_stage": getattr(req, "crop_stage", None) or prediction_result.get("crop_stage"),
         "diagnosis_status": prediction_result.get("diagnosis_status", "confirmed_local"),
         "requires_secondary_review": bool(prediction_result.get("requires_secondary_review", False)),
         "created_at": now,
@@ -3221,12 +3226,15 @@ async def get_history(
     limit: int = Query(10, ge=1, le=500),
     search: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
+    farm_id: Optional[str] = Query(None, description="Filter history by registered farm sector ID"),
     user_id: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Fetch prediction history for current user with filters, search, and pagination. Admins can view all."""
     query = {}
+    if farm_id:
+        query["farm_id"] = farm_id
     if current_user.get("role", "").lower() == "admin":
         if user_id:
             query["user_id"] = user_id

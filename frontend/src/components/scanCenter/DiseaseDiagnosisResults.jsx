@@ -917,11 +917,11 @@ export default function DiseaseDiagnosisResults({
         <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3.5">
 
           <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>💊</span>
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">💊</span>
               <span>{activeLang === 'te' ? 'ఈరోజు పిచికారీ చేయాల్సిన రసాయన మందు' : 'Targeted Chemical Prescription'}</span>
             </h2>
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold">
+            <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-extrabold flex items-center gap-1 shadow-xs">
               🟡 {activeLang === 'te' ? 'రక్షణ తొడుగులు తప్పనిసరి' : 'PPE Masks Required'}
             </span>
           </div>
@@ -1023,11 +1023,11 @@ export default function DiseaseDiagnosisResults({
       {!isHealthy && (
         <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🌿</span>
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">🌿</span>
               <span>{activeLang === 'te' ? 'రసాయన రహిత సహజ & సేంద్రీయ నివారణ' : 'Biological Control & Organic IPM'}</span>
             </h2>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold">
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold flex items-center gap-1 shadow-xs">
               ✓ {activeLang === 'te' ? 'ఎగుమతి అనుకూలం' : 'Zero Residue'}
             </span>
           </div>
@@ -1078,11 +1078,13 @@ export default function DiseaseDiagnosisResults({
       {!isHealthy && (
         <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black text-sky-600 dark:text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
-              <CloudSun className="w-4 h-4" />
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">
+                <CloudSun className="w-4 h-4" />
+              </span>
               <span>{activeLang === 'te' ? 'వాతావరణ ముప్పు & వ్యాప్తి అంచనా' : 'Micro-Climate Spread Risk Engine'}</span>
             </h2>
-            <span className="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-extrabold">
+            <span className="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30 text-[10px] font-extrabold flex items-center gap-1 shadow-xs">
               ⚠️ {activeLang === 'te' ? 'వేగవంతమైన వ్యాప్తి' : 'Fast Spread Risk'}
             </span>
           </div>
@@ -1140,8 +1142,8 @@ export default function DiseaseDiagnosisResults({
           CARD 5: 3-STAGE CULTURAL FIELD MANAGEMENT TIMELINE
          ======================================================== */}
       <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
-        <h2 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-          <span>🗓️</span>
+        <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <span className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-sm shrink-0 shadow-xs">🗓️</span>
           <span>{activeLang === 'te' ? '3-దశల క్షేత్ర యాజమాన్యం (Field Management Timeline)' : '3-Stage Agronomic Field Timeline'}</span>
         </h2>
 
@@ -1205,8 +1207,8 @@ export default function DiseaseDiagnosisResults({
       {!isHealthy && (
         <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <span>💰</span>
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">💰</span>
               <span>{activeLang === 'te' ? 'ఆర్థిక నష్టం & మందు ఖర్చు అంచనా' : 'Economic Impact & Cost-Benefit Estimator'}</span>
             </h2>
             <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -1260,8 +1262,8 @@ export default function DiseaseDiagnosisResults({
       {gradCamImg && (
         <Card className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-xl text-left space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>🔬</span>
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center text-sm shrink-0 shadow-xs">🔬</span>
               <span>{activeLang === 'te' ? 'AI అంతర్దృష్టి - న్యూరల్ ఎక్స్-రే (Grad-CAM)' : 'AI Vision X-Ray & Neural Heatmap'}</span>
             </h2>
             <button

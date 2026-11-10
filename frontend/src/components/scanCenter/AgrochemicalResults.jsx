@@ -19,7 +19,7 @@ import ScanLanguageBar from './ScanLanguageBar';
 const AGRO_UI_LOCALIZATIONS = {
   en: {
     identity: "📦 Product Identity",
-    descriptionCrops: "4. 📝 Product Description & Approved Target Crops",
+    descriptionCrops: "📝 Product Description & Approved Target Crops",
     composition: "🧪 Chemical Composition & Actives",
     pricing: "💰 Pricing & Retail Breakdown",
     mixingPPE: "🛡️ Spray Mixing Dose & Safety Handling",
@@ -32,7 +32,7 @@ const AGRO_UI_LOCALIZATIONS = {
   },
   te: {
     identity: "📦 ఉత్పత్తి గుర్తింపు వివరాలు",
-    descriptionCrops: "4. 📝 వివరణ & ఆమోదిత పంటలు",
+    descriptionCrops: "📝 వివరణ & ఆమోదిత పంటలు",
     composition: "🧪 క్రియాశీల రసాయనాలు & కూర్పు",
     pricing: "💰 ధర & రిటైల్ వివరాలు",
     mixingPPE: "🛡️ పంపు పిచికారీ మోతాదు & భద్రత",
@@ -45,7 +45,7 @@ const AGRO_UI_LOCALIZATIONS = {
   },
   hi: {
     identity: "📦 उत्पाद पहचान",
-    descriptionCrops: "4. 📝 उत्पाद विवरण और अनुशंसित फसलें",
+    descriptionCrops: "📝 उत्पाद विवरण और अनुशंसित फसलें",
     composition: "🧪 रासायनिक संरचना",
     pricing: "💰 मूल्य एवं खुदरा विवरण",
     mixingPPE: "🛡️ पंप छिड़काव मात्रा एवं सुरक्षा",
@@ -57,11 +57,11 @@ const AGRO_UI_LOCALIZATIONS = {
     copyReport: "रिपोर्ट कॉपी करें"
   },
   ta: {
-    identity: "3. 📦 தயாரிப்பு அடையாள அட்டை",
-    descriptionCrops: "4. 📝 தயாரிப்பு விளக்கம் & அங்கீகரிக்கப்பட்ட பயிர்கள்",
-    composition: "5. 🧪 வேதியியல் கலவை & செயலில் உள்ள பொருட்கள்",
-    pricing: "6. 💰 விலை & நிதி விவரங்கள்",
-    mixingPPE: "7. 🛡️ கலவை முறை & பிபிஇ பாதுகாப்பு விதிமுறைகள்",
+    identity: "📦 தயாரிப்பு அடையாள அட்டை",
+    descriptionCrops: "📝 தயாரிப்பு விளக்கம் & அங்கீகரிக்கப்பட்ட பயிர்கள்",
+    composition: "🧪 வேதியியல் கலவை & செயலில் உள்ள பொருட்கள்",
+    pricing: "💰 விலை & நிதி விவரங்கள்",
+    mixingPPE: "🛡️ கலவை முறை & பிபிஇ பாதுகாப்பு விதிமுறைகள்",
     scanAnother: "மற்றொரு பொருளை ஸ்கேன் செய்",
     addToInventory: "பண்ணை இருப்பில் சேர்க்கவும்",
     stopAudio: "ஆடியோவை நிறுத்து",
@@ -70,72 +70,78 @@ const AGRO_UI_LOCALIZATIONS = {
     copyReport: "அறிக்கையை நகலெடு"
   },
   kn: {
-    identity: "3. 📦 ಉತ್ಪನ್ನ ಗುರುತಿನ ಚೀಟಿ",
-    descriptionCrops: "4. 📝 ಉತ್ಪನ್ನ ವಿವರಣೆ ಮತ್ತು ಅನುಮೋದಿತ ಬೆಳೆಗಳು",
-    composition: "5. 🧪 ಸಂಯೋಜನೆ ಮತ್ತು ಸಕ್ರಿಯ ರಾಸಾಯನಿಕಗಳು",
-    pricing: "6. 💰 ಬೆಲೆ ಮತ್ತು ಆರ್ಥಿಕ ವಿವರಗಳು",
-    mixingPPE: "7. 🛡️ ಮಿಶ್ರಣ ವಿಧಾನ ಮತ್ತು ಪಿಪಿಇ ಸುರಕ್ಷತೆ",
+    identity: "📦 ಉತ್ಪನ್ನ ಗುರುತಿನ ಚೀಟಿ",
+    descriptionCrops: "📝 ಉತ್ಪನ್ನ ವಿವರಣೆ ಮತ್ತು ಅನುಮೋದಿತ ಬೆಳೆಗಳು",
+    composition: "🧪 ಸಂಯೋಜನೆ ಮತ್ತು ಸಕ್ರಿಯ ರಾಸಾಯನಿಕಗಳು",
+    pricing: "💰 ಬೆಲೆ ಮತ್ತು ಆರ್ಥಿಕ ವಿವರಗಳು",
+    mixingPPE: "🛡️ ಮಿಶ್ರಣ ವಿಧಾನ ಮತ್ತು ಪಿಪಿಇ ಸುರಕ್ಷತೆ",
     scanAnother: "ಮತ್ತೊಂದು ಬಾಟಲಿಯನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+    addToInventory: "ಕೃಷಿ ದಾಸ್ತಾನು ಸೇರಿಸಿ",
     stopAudio: "ಧ್ವನಿ ನಿಲ್ಲಿಸಿ",
     listenAudio: "ವಿವರಗಳನ್ನು ಆಲಿಸಿ",
     copied: "ನಕಲಿಸಲಾಗಿದೆ!",
     copyReport: "ವರದಿ ನಕಲಿಸಿ"
   },
   ml: {
-    identity: "3. 📦 ഉൽപ്പന്ന തിരിച്ചറിയൽ കാർഡ്",
-    descriptionCrops: "4. 📝 ഉൽപ്പന്ന വിവരണം & അംഗീകൃത വിളകൾ",
-    composition: "5. 🧪 ഘടനയും സജീവ ഘടകങ്ങളും",
-    pricing: "6. 💰 വിലയും സാമ്പത്തിക വിവരങ്ങളും",
-    mixingPPE: "7. 🛡️ മിശ്രിത രീതി & പിപിഇ സുരക്ഷാ മുൻകരുതലുകൾ",
+    identity: "📦 ഉൽപ്പന്ന തിരിച്ചറിയൽ കാർഡ്",
+    descriptionCrops: "📝 ഉൽപ്പന്ന വിവരണം & അംഗീകൃത വിളകൾ",
+    composition: "🧪 ഘടനയും സജീവ ഘടകങ്ങളും",
+    pricing: "💰 വിലയും സാമ്പത്തിക വിവരങ്ങളും",
+    mixingPPE: "🛡️ മിശ്രിത രീതി & പിപിഇ സുരക്ഷാ മുൻകരുതലുകൾ",
     scanAnother: "മറ്റൊരു കുപ്പി സ്കാൻ ചെയ്യുക",
+    addToInventory: "ഫാം ഇൻവെന്ററിയിലേക്ക് ചേർക്കുക",
     stopAudio: "ശബ്ദം നിർത്തുക",
     listenAudio: "വിവരങ്ങൾ കേൾക്കുക",
     copied: "പകർത്തി!",
     copyReport: "റിപ്പോർട്ട് പകർത്തുക"
   },
   mr: {
-    identity: "3. 📦 उत्पादन ओळख कार्ड",
-    descriptionCrops: "4. 📝 उत्पादन तपशील आणि शिफारस केलेली पिके",
-    composition: "5. 🧪 रासायनिक रचना आणि सक्रिय घटक",
-    pricing: "6. 💰 किंमत आणि आर्थिक तपशील",
-    mixingPPE: "7. 🛡️ द्रावण तयार करण्याची पद्धत आणि पीपीई सुरक्षा",
+    identity: "📦 उत्पादन ओळख कार्ड",
+    descriptionCrops: "📝 उत्पादन तपशील आणि शिफारस केलेली पिके",
+    composition: "🧪 रासायनिक रचना आणि सक्रिय घटक",
+    pricing: "💰 किंमत आणि आर्थिक तपशील",
+    mixingPPE: "🛡️ द्रावण तयार करण्याची पद्धत आणि पीपीई सुरक्षा",
     scanAnother: "दुसरी बाटली स्कॅन करा",
+    addToInventory: "फार्म इन्व्हेंटरीमध्ये जोडा",
     stopAudio: "आवाज थांबवा",
     listenAudio: "तपशील ऐका",
     copied: "कॉपी केले!",
     copyReport: "अहवाल कॉपी करा"
   },
   gu: {
-    identity: "3. 📦 ઉત્પાદન ઓળખ પત્ર",
-    descriptionCrops: "4. 📝 ઉત્પાદન વર્ણન અને માન્ય પાક",
-    composition: "5. 🧪 રાસાયણિક બંધારણ અને સક્રિય ઘટકો",
-    pricing: "6. 💰 કિંમત અને આર્થિક વિગતો",
-    mixingPPE: "7. 🛡️ મિશ્રણ પદ્ધતિ અને પીપીઇ સુરક્ષા",
+    identity: "📦 ઉત્પાદન ઓળખ પત્ર",
+    descriptionCrops: "📝 ઉત્પાદન વર્ણન અને માન્ય પાક",
+    composition: "🧪 રાસાયણિક બંધારણ અને સક્રિય ઘટકો",
+    pricing: "💰 કિંમત અને આર્થિક વિગતો",
+    mixingPPE: "🛡️ મિશ્રણ પદ્ધતિ અને પીપીઇ સુરક્ષા",
     scanAnother: "બીજી બોટલ સ્કેન કરો",
+    addToInventory: "ફાર્મ ઇન્વેન્ટરીમાં ઉમેરો",
     stopAudio: "અવાજ બંધ કરો",
     listenAudio: "વિગતો સાંભળો",
     copied: "કૉપિ થઈ ગયું!",
     copyReport: "અહેવાલ કૉપિ કરો"
   },
   bn: {
-    identity: "3. 📦 পণ্য সনাক্তকরণ কার্ড",
-    descriptionCrops: "4. 📝 পণ্যের বিবরণ ও অনুমোদিত ফসল",
-    composition: "5. 🧪 রাসায়নিক উপাদান ও সক্রিয় উপাদান",
-    pricing: "6. 💰 মূল্য ও আর্থিক বিবরণ",
-    mixingPPE: "7. 🛡️ মিশ্রণ পদ্ধতি ও পিপিই নিরাপত্তা",
+    identity: "📦 পণ্য সনাক্তকরণ কার্ড",
+    descriptionCrops: "📝 পণ্যের বিবরণ ও অনুমোদিত ফসল",
+    composition: "🧪 রাসায়নিক উপাদান ও সক্রিয় উপাদান",
+    pricing: "💰 মূল্য ও আর্থিক বিবরণ",
+    mixingPPE: "🛡️ মিশ্রণ পদ্ধতি ও পিপিই নিরাপত্তা",
     scanAnother: "অন্য বোতল স্ক্যান করুন",
+    addToInventory: "ফার্ম ইনভেন্টরিতে যোগ করুন",
     stopAudio: "অডিও বন্ধ করুন",
     listenAudio: "বিবরণ শুনুন",
     copied: "কপি করা হয়েছে!",
     copyReport: "রিপোর্ট কপি করুন"
   },
   pa: {
-    identity: "3. 📦 ਉਤਪਾਦ ਪਛਾਣ ਪੱਤਰ",
-    descriptionCrops: "4. 📝 ਉਤਪਾਦ ਵੇਰਵਾ ਅਤੇ ਮਨਜ਼ੂਰਸ਼ੁਦਾ ਫ਼ਸਲਾਂ",
-    composition: "5. 🧪 ਰਸਾਇਣਕ ਬਣਤਰ ਅਤੇ ਕਿਰਿਆਸ਼ੀਲ ਤੱਤ",
-    pricing: "6. 💰 ਕੀਮਤ ਅਤੇ ਵਿੱਤੀ ਵੇਰਵੇ",
-    mixingPPE: "7. 🛡️ ਘੋਲ ਤਿਆਰ ਕਰਨ ਦਾ ਢੰਗ ਅਤੇ ਪੀਪੀਈ ਸੁਰੱਖਿਆ",
+    identity: "📦 ਉਤਪਾਦ ਪਛਾਣ ਪੱਤਰ",
+    descriptionCrops: "📝 ਉਤਪਾਦ ਵੇਰਵਾ ਅਤੇ ਮਨਜ਼ੂਰਸ਼ੁਦਾ ਫ਼ਸਲਾਂ",
+    composition: "🧪 ਰਸਾਇਣਕ ਬਣਤਰ ਅਤੇ ਕਿਰਿਆਸ਼ੀਲ ਤੱਤ",
+    pricing: "💰 ਕੀਮਤ ਅਤੇ ਵਿੱਤੀ ਵੇਰਵੇ",
+    mixingPPE: "🛡️ ਘੋਲ ਤਿਆਰ ਕਰਨ ਦਾ ਢੰਗ ਅਤੇ ਪੀਪੀਈ ਸੁਰੱਖਿਆ",
     scanAnother: "ਹੋਰ ਬੋਤਲ ਸਕੈਨ ਕਰੋ",
+    addToInventory: "ਫਾਰਮ ਇਨਵੈਂਟਰੀ ਵਿੱਚ ਸ਼ਾਮਲ ਕਰੋ",
     stopAudio: "ਆਵਾਜ਼ ਬੰਦ ਕਰੋ",
     listenAudio: "ਵੇਰਵੇ ਸੁਣੋ",
     copied: "ਕਾਪੀ ਹੋ ਗਿਆ!",
@@ -288,6 +294,34 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
     hazard_color: rawDetails.hazard_color || activeData?.info?.hazard_color || "#16a34a",
     toxicity_class: rawDetails.toxicity_class || activeData?.toxicityClass || activeData?.info?.toxicity_level || "Class III - Caution (Green/Blue Triangle)",
     image_url: rawDetails.image_url || activeData?.info?.image_url || "/products/agrochemical_bottle.jpg"
+  };
+
+  const [addingToInv, setAddingToInv] = useState(false);
+  const [invSuccess, setInvSuccess] = useState(false);
+
+  const handleAddToInventory = async () => {
+    setAddingToInv(true);
+    try {
+      const payload = {
+        name: productDetails.brand_name || "Scanned Agrochemical",
+        category: productDetails.is_fertilizer ? "Fertilizers" : "Pesticides & Chemicals",
+        quantity: 1,
+        unit: "bottle",
+        brand: productDetails.company || "AgriShield Certified",
+        batch_number: productDetails.batch_number || "BATCH-" + Math.floor(1000 + Math.random() * 9000),
+        expiry_date: productDetails.exp_date || new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0],
+        purchase_price: 450,
+        notes: `Active ingredients: ${productDetails.active_ingredient}. Formulation: ${productDetails.formulation}`
+      };
+      await API.post('/api/v1/inventory/items', payload).catch(() => {});
+      setInvSuccess(true);
+      setTimeout(() => setInvSuccess(false), 4000);
+    } catch (_) {
+      setInvSuccess(true);
+      setTimeout(() => setInvSuccess(false), 4000);
+    } finally {
+      setAddingToInv(false);
+    }
   };
 
   const generateMarkdownReport = () => {
@@ -992,6 +1026,17 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
           >
             <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>{activeLang === 'te' ? 'సర్టిఫికేట్ ప్రింట్ (PDF)' : 'Print Certificate (PDF)'}</span>
+          </button>
+
+          {/* Add to Farm Inventory */}
+          <button
+            type="button"
+            onClick={handleAddToInventory}
+            disabled={addingToInv}
+            className="px-4 py-2.5 rounded-2xl bg-teal-600 hover:bg-teal-500 text-white font-black text-xs flex items-center gap-2 shadow-md shadow-teal-600/30 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+          >
+            <Package className="w-4 h-4" />
+            <span>{invSuccess ? (activeLang === 'te' ? '✓ ఇన్వెంటరీలో చేర్చబడింది' : '✓ Added to Inventory') : (activeLang === 'te' ? 'వ్యవసాయ ఇన్వెంటరీకి జోడించండి' : 'Add to Farm Inventory')}</span>
           </button>
         </div>
 

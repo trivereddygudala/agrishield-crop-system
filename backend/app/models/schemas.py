@@ -247,6 +247,8 @@ class PredictRequest(BaseModel):
     wilt_condition: Optional[str] = Field(default=None, description="Wilt symptom: 'none', 'midday', or 'permanent'")
     soil_condition: Optional[str] = Field(default=None, description="Soil moisture: 'normal', 'waterlogged', or 'dry'")
     crop_stage: Optional[str] = Field(default=None, description="Crop stage: 'nursery', 'vegetative', 'flowering', 'mature'")
+    farm_id: Optional[str] = Field(default=None, description="Optional registered farm sector ID to tag this scan")
+    farm_name: Optional[str] = Field(default=None, description="Optional registered farm sector name")
     image_data_url: Optional[str] = Field(default=None, description="Optional lightweight Plantix-style WebP thumbnail base64 data URL (<30KB) for permanent history retention")
 
 class TranslatePlantRequest(BaseModel):
