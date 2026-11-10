@@ -314,6 +314,49 @@ async def get_audit_logs(
             log["timestamp"] = log["timestamp"].isoformat()
     return logs
 
+@router.get("/audit-logs/export", dependencies=[Depends(require_role("admin"))])
+async def export_audit_logs(
+    format: str = Query("json", pattern="^(json|csv)$"),
+    limit: int = Query(2000, ge=1, le=5000),
+    db = Depends(get_database)
+):
+    """Admin Endpoint: Export security audit logs in JSON or CSV format."""
+    cursor = db.audit_logs.find({}).sort("timestamp", -1).limit(limit)
+    logs = await cursor.to_list(length=limit)
+    
+    if format == "csv":
+        import io
+        import csv
+        from fastapi.responses import Response
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Timestamp", "Action", "Actor", "Severity", "Client IP", "Details"])
+        for l in logs:
+            ts = l.get("timestamp")
+            if hasattr(ts, "isoformat"):
+                ts = ts.isoformat()
+            writer.writerow([
+                ts,
+                l.get("action", ""),
+                l.get("actor", ""),
+                l.get("level", l.get("severity", "INFO")),
+                l.get("client_ip", ""),
+                json.dumps(l.get("details", {}))
+            ])
+        csv_content = output.getvalue()
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="agrishield_audit_logs_{datetime.now(timezone.utc).strftime("%Y%m%d")}.csv"'}
+        )
+        
+    for log in logs:
+        if "_id" in log:
+            log["_id"] = str(log["_id"])
+        if "timestamp" in log and hasattr(log["timestamp"], "isoformat"):
+            log["timestamp"] = log["timestamp"].isoformat()
+    return {"status": "success", "count": len(logs), "logs": logs}
+
 @router.post("/users/{user_id}/reset-password", dependencies=[Depends(require_role("admin"))])
 async def reset_user_password(user_id: str, payload: AdminPasswordResetRequest, db = Depends(get_database)):
     """Admin Endpoint: Force reset password for any user account."""
@@ -1497,10 +1540,25 @@ class GeoBroadcastRequest(BaseModel):
     priority: str = "High"
     audience: Optional[str] = "all"
     target_districts: List[str] = []
+    target_crop: Optional[str] = None
+    target_district: Optional[str] = None
     channels: List[str] = ["push", "sms"]
     action_url: Optional[str] = "/dashboard"
     idempotency_key: Optional[str] = None
     translations: Optional[Dict[str, Any]] = None
+
+class MaintenanceToggleRequest(BaseModel):
+    enabled: bool
+    message: Optional[str] = "AgriShield AI is undergoing scheduled cloud maintenance. AI inference will resume shortly."
+    estimated_minutes: Optional[int] = 15
+
+_maintenance_state = {
+    "enabled": False,
+    "message": "AgriShield AI is undergoing scheduled cloud maintenance. AI inference will resume shortly.",
+    "estimated_minutes": 15,
+    "updated_at": datetime.now(timezone.utc).isoformat(),
+    "updated_by": "System"
+}
 
 class IotDownlinkRequest(BaseModel):
     device_id: str = Field(..., max_length=64, pattern=r"^[a-zA-Z0-9_\-\.:]+$")
@@ -1677,6 +1735,10 @@ async def list_admin_crop_scans(
         ]
     elif st == "overridden":
         query["is_overridden"] = True
+    elif st == "retraining":
+        query["$or"] = [{"is_overridden": True}, {"flagged_for_retraining": True}]
+    elif st == "low_confidence":
+        query["confidence"] = {"$lt": 0.70}
 
     if search:
         search_rgx = {"$regex": search.strip(), "$options": "i"}
@@ -1766,6 +1828,9 @@ async def list_admin_crop_scans(
             "agronomist_notes": d.get("agronomist_notes", "")
         })
 
+    total_retraining = await db.predictions.count_documents({"$or": [{"is_overridden": True}, {"flagged_for_retraining": True}]})
+    total_low_confidence = await db.predictions.count_documents({"confidence": {"$lt": 0.70}})
+
     pages = (total + limit - 1) // limit if total > 0 else 1
 
     return {
@@ -1777,6 +1842,8 @@ async def list_admin_crop_scans(
         "healthy_count": total_healthy,
         "diseased_count": total_diseased,
         "overridden_count": total_overridden,
+        "retraining_count": total_retraining,
+        "low_confidence_count": total_low_confidence,
         "predictions": formatted
     }
 
@@ -1974,6 +2041,81 @@ async def override_scan_diagnosis(req: ScanOverrideRequest, db = Depends(get_dat
         "active_learning_enqueued": req.flag_for_retraining
     }
 
+@router.get("/scans/export-retraining-dataset", dependencies=[Depends(require_role("admin"))])
+async def export_retraining_dataset(db = Depends(get_database)):
+    """Admin Endpoint: Export human-corrected and flagged crop scans for PyTorch / YOLO model retraining."""
+    query = {"$or": [{"is_overridden": True}, {"flagged_for_retraining": True}, {"confidence": {"$lt": 0.70}}]}
+    cursor = db.predictions.find(query).sort("created_at", -1)
+    docs = await cursor.to_list(length=500)
+    
+    export_items = []
+    for d in docs:
+        export_items.append({
+            "scan_id": str(d.get("_id", "")),
+            "crop_name": d.get("crop_name", ""),
+            "original_disease": d.get("disease_name", ""),
+            "corrected_disease": d.get("human_corrected_disease") or d.get("disease_name", ""),
+            "confidence": float(d.get("confidence", 0.0)),
+            "is_overridden": bool(d.get("is_overridden", False)),
+            "flagged_for_retraining": bool(d.get("flagged_for_retraining", False)),
+            "agronomist_notes": d.get("agronomist_notes", ""),
+            "image_path": d.get("image_path", ""),
+            "prediction_date": d.get("prediction_date", ""),
+            "created_at": d.get("created_at").isoformat() if isinstance(d.get("created_at"), datetime) else str(d.get("created_at", ""))
+        })
+        
+    return {
+        "status": "success",
+        "dataset_name": f"agrishield_retraining_dataset_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
+        "total_samples": len(export_items),
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "samples": export_items
+    }
+
+@router.get("/maintenance", dependencies=[Depends(require_role("admin"))])
+async def get_maintenance_status():
+    """Admin Endpoint: Get current platform maintenance mode status."""
+    return {"status": "success", "maintenance": _maintenance_state}
+
+@router.post("/maintenance/toggle", dependencies=[Depends(require_role("admin"))])
+async def toggle_maintenance_mode(
+    req: MaintenanceToggleRequest,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Admin Endpoint: 1-Click Platform Emergency Killswitch & Maintenance Mode."""
+    global _maintenance_state
+    actor = str(current_user.get("email") or current_user.get("sub") or "Admin")
+    _maintenance_state["enabled"] = req.enabled
+    if req.message:
+        _maintenance_state["message"] = req.message
+    if req.estimated_minutes is not None:
+        _maintenance_state["estimated_minutes"] = req.estimated_minutes
+    _maintenance_state["updated_at"] = datetime.now(timezone.utc).isoformat()
+    _maintenance_state["updated_by"] = actor
+
+    log_security_event("PLATFORM_MAINTENANCE_TOGGLED", {
+        "enabled": req.enabled,
+        "actor": actor,
+        "message": _maintenance_state["message"]
+    }, level="WARNING")
+
+    try:
+        await db.audit_logs.insert_one({
+            "action": "MAINTENANCE_MODE_TOGGLED",
+            "actor": actor,
+            "timestamp": datetime.now(timezone.utc),
+            "details": _maintenance_state
+        })
+    except Exception:
+        pass
+
+    return {
+        "status": "success",
+        "message": f"Platform maintenance mode {'ENGAGED' if req.enabled else 'DISENGAGED'}.",
+        "maintenance": _maintenance_state
+    }
+
 @router.post("/broadcast/translate", dependencies=[Depends(require_role("admin"))])
 async def translate_broadcast_message(req: BroadcastTranslateRequest, db = Depends(get_database)):
     """Admin Endpoint: Real AI Vernacular Translation Engine across Telugu, Hindi, and all Indian regional languages."""
@@ -2063,6 +2205,26 @@ async def dispatch_geo_broadcast(
         user_query = {"role": "equipment_provider"}
     else:
         user_query = {"role": {"$ne": "admin"}}
+
+    # Precision Crop + District Multi-Filter Fanout
+    if req.target_district and req.target_district not in ("all", "All Agricultural Zones", ""):
+        districts = [req.target_district]
+        user_query["farm_location"] = {"$regex": req.target_district, "$options": "i"}
+
+    if req.target_crop and req.target_crop.lower() not in ("all", "all crops", ""):
+        crop_rgx = {"$regex": req.target_crop, "$options": "i"}
+        try:
+            matching_farm_uids = await db.farms.distinct("user_id", {"crop_name": crop_rgx})
+            if matching_farm_uids:
+                user_query["$or"] = [
+                    {"preferred_crops": crop_rgx},
+                    {"_id": {"$in": [ObjectId(uid) for uid in matching_farm_uids if ObjectId.is_valid(uid)]}},
+                    {"id": {"$in": matching_farm_uids}}
+                ]
+            else:
+                user_query["preferred_crops"] = crop_rgx
+        except Exception:
+            user_query["preferred_crops"] = crop_rgx
 
     # Compute recipient count
     recipient_count = 0

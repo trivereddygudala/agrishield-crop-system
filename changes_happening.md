@@ -10047,3 +10047,34 @@ pm.cmd run build passed in 21.71s with 0 errors.
 - **Verification**:
   - Production build: `vite build` completed in 15.94s with 3,167 modules and 0 errors.
   - Python compilation: `py_compile` confirmed 0 errors across backend schemas and prediction routers.
+
+
+## [2026-11-10 21:01:00] - Admin Portal Dedicated Audit & Operational Capabilities Synthesis
+- **Scope**: Strictly Admin-Portal-exclusive capabilities, security findings, error remediations, upgrades, and high-utility operational controls.
+- **Modules Covered**: All 14 administrative modules (Overview, Users, Scan Audits, Global Broadcasts, Geography GIS, IoT Fleet, Firmware OTA, Security Logs, Helpdesk Support, 5-Layer Firewall, AI Sentinel RCA, System Health, Cloud Storage Retention, Live API Radar).
+- **Core Security Hardening**:
+  - All 41 admin routes protected by `dependencies=[Depends(require_role("admin"))]` with JWT bearer token verification.
+  - Admin self-lockout & demotion guard in `/api/admin/users/bulk-action`.
+  - Executive emergency action audit logging in `/api/admin/overview/emergency-action`.
+  - ESP32 downlink command regex sanitization in `/api/admin/iot/node/command`.
+  - Cryptographic SHA-256 firmware binary verification in `/api/v1/firmware`.
+  - Supabase storage telemetry speed optimized from 12–20s down to 0.007s via non-blocking probe.
+- **Status**: Committed & Documented Locally ✅ (No Remote Git Push).
+
+### [2026-11-10 21:35:00] - Admin Portal High-Utility Upgrades & Operational Hardening
+1. **Production Maintenance Mode & Emergency Killswitch**:
+   - Backend (ackend/app/routers/admin/admin.py): Global _maintenance_state with GET /api/admin/maintenance and POST /api/admin/maintenance/toggle endpoints logging audit events (MAINTENANCE_MODE_ENGAGED / DISENGAGED).
+   - Frontend (rontend/src/pages/admin/AdminPage.jsx): Executive Emergency Action Dock 1-click toggle button with pulse badge, plus persistent sticky maintenance banner at the top of the Overview tab.
+2. **AI Misclassification Retraining Queue & Dataset Export**:
+   - Backend (ackend/app/routers/admin/admin.py): Implemented GET /api/admin/scans/export-retraining-dataset querying agronomist overrides, retraining flags, and borderline low-confidence scans (<0.70). Returns clean dataset ready for PyTorch/YOLO fine-tuning.
+   - Frontend (rontend/src/components/admin/AdminScanAuditTable.jsx): Added quick filter tabs (Retraining Queue ({count}) and Low Conf <70%) plus an Export Retraining Dataset button.
+3. **Precision Crop & District Broadcast Fanout Targeting**:
+   - Backend (ackend/app/routers/admin/admin.py): Added 	arget_crop and 	arget_district fields to GeoBroadcastRequest with DB queries matching registered farm crops.
+   - Frontend (rontend/src/pages/admin/AdminPage.jsx): Added Precision Crop Cohort selector pills (All Crops, Chilli, Paddy/Rice, Cotton, Tomato, Groundnut, Maize) alongside district geo-fencing.
+4. **Security Audit Logs Direct Export**:
+   - Backend (ackend/app/routers/admin/admin.py): Added GET /api/admin/audit-logs/export supporting streaming CSV and JSON exports.
+   - Frontend (rontend/src/pages/admin/AdminPage.jsx): Added CSV export handler in Security Audit Logs module.
+5. **Verification**:
+   - Frontend: 
+pm run build bundled 3,167 modules in 22.27s with 0 errors.
+   - Backend: python -m py_compile validated all admin routers and translation services with 0 errors.

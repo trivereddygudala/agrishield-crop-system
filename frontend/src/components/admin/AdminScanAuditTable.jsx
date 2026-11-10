@@ -44,8 +44,35 @@ export default function AdminScanAuditTable() {
   const [serverHealthyCount, setServerHealthyCount] = useState(null);
   const [serverDiseasedCount, setServerDiseasedCount] = useState(null);
   const [serverOverriddenCount, setServerOverriddenCount] = useState(null);
+  const [serverRetrainingCount, setServerRetrainingCount] = useState(null);
+  const [serverLowConfidenceCount, setServerLowConfidenceCount] = useState(null);
+  const [isExportingDataset, setIsExportingDataset] = useState(false);
   const [selectedScan, setSelectedScan] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
+
+  const handleExportRetrainingDataset = async () => {
+    setIsExportingDataset(true);
+    try {
+      const res = await API.get('/api/admin/scans/export-retraining-dataset');
+      if (res.data) {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `${res.data.dataset_name || 'agrishield_retraining_dataset'}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        setToastMsg(`Retraining dataset exported (${res.data.total_samples || 0} samples)!`);
+        setTimeout(() => setToastMsg(''), 4000);
+      }
+    } catch (err) {
+      console.warn("Failed to export retraining dataset:", err);
+      setToastMsg('Failed to export dataset.');
+      setTimeout(() => setToastMsg(''), 3000);
+    } finally {
+      setIsExportingDataset(false);
+    }
+  };
 
   // Human Agronomist Override State
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
@@ -142,6 +169,8 @@ export default function AdminScanAuditTable() {
         setServerHealthyCount(res.data.healthy_count);
         setServerDiseasedCount(res.data.diseased_count);
         setServerOverriddenCount(res.data.overridden_count);
+        if (res.data?.retraining_count !== undefined) setServerRetrainingCount(res.data.retraining_count);
+        if (res.data?.low_confidence_count !== undefined) setServerLowConfidenceCount(res.data.low_confidence_count);
       }
 
       if (isManual) {
@@ -364,7 +393,40 @@ export default function AdminScanAuditTable() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             Healthy Only
           </button>
+          <button
+            onClick={() => handleStatusFilter('retraining')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              statusFilter === 'retraining'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            Retraining Queue ({serverRetrainingCount !== null ? serverRetrainingCount : 0})
+          </button>
+          <button
+            onClick={() => handleStatusFilter('low_confidence')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              statusFilter === 'low_confidence'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+            Low Conf &lt;70%
+          </button>
         </div>
+
+        {/* Dataset Export Button */}
+        <button
+          onClick={handleExportRetrainingDataset}
+          disabled={isExportingDataset}
+          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50 self-start md:self-auto"
+          title="Export all agronomist-corrected and flagged crop scans formatted for PyTorch / YOLO retraining"
+        >
+          <Download className={`w-3.5 h-3.5 ${isExportingDataset ? 'animate-bounce' : ''}`} />
+          <span>{isExportingDataset ? 'Exporting...' : 'Export Retraining Dataset'}</span>
+        </button>
       </div>
 
       {/* Scan Audit Table */}

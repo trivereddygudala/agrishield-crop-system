@@ -65,7 +65,8 @@ import {
   Cloud,
   ExternalLink,
   Folder,
-  Image
+  Image,
+  Power
 } from 'lucide-react';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -377,10 +378,46 @@ export default function AdminPage() {
 
   // 3. Broadcast Geo-Targeting & AI Vernacular Translation
   const [broadcastDistricts, setBroadcastDistricts] = useState(['All Zones']);
+  const [broadcastTargetCrop, setBroadcastTargetCrop] = useState('all');
   const [broadcastChannels, setBroadcastChannels] = useState(['push', 'sms']);
   const [isTranslatingBroadcast, setIsTranslatingBroadcast] = useState(false);
   const [translatedData, setTranslatedData] = useState(null);
   const [activeTranslationLang, setActiveTranslationLang] = useState('te');
+
+  // 4. Platform Maintenance Mode & Disaster Containment
+  const [maintenanceMode, setMaintenanceMode] = useState({ enabled: false, message: '', estimated_minutes: 15 });
+  const [isTogglingMaintenance, setIsTogglingMaintenance] = useState(false);
+
+  const fetchMaintenanceStatus = async () => {
+    try {
+      const res = await API.get('/api/admin/maintenance');
+      if (res.data?.maintenance) {
+        setMaintenanceMode(res.data.maintenance);
+      }
+    } catch (e) {
+      console.warn("Could not fetch maintenance status:", e);
+    }
+  };
+
+  const handleToggleMaintenanceMode = async () => {
+    setIsTogglingMaintenance(true);
+    try {
+      const nextState = !maintenanceMode?.enabled;
+      const res = await API.post('/api/admin/maintenance/toggle', {
+        enabled: nextState,
+        message: nextState ? "AgriShield AI is undergoing scheduled cloud maintenance. AI inference will resume shortly." : "",
+        estimated_minutes: 15
+      });
+      if (res.data?.maintenance) {
+        setMaintenanceMode(res.data.maintenance);
+        setSuccessMsg(res.data.message || `Maintenance mode ${nextState ? 'ENGAGED' : 'DISENGAGED'}`);
+      }
+    } catch (e) {
+      setError("Failed to update maintenance mode.");
+    } finally {
+      setIsTogglingMaintenance(false);
+    }
+  };
 
   const getAgroVernacularTranslation = (text, langCode) => {
     if (!text) return '';
@@ -579,6 +616,7 @@ export default function AdminPage() {
         priority: broadcastPriority,
         audience: broadcastAudience,
         target_districts: broadcastDistricts,
+        target_crop: broadcastTargetCrop,
         channels: broadcastChannels,
         idempotency_key: idempotencyKey,
         translations: translatedData?.translations || {}
@@ -1305,6 +1343,7 @@ export default function AdminPage() {
     fetchFirewallStatus();
     fetchBroadcastHistory();
     fetchStorageStats();
+    fetchMaintenanceStatus();
   }, []);
 
   // Gated polling: only the currently active Admin tab subsystem polls periodically
@@ -1679,6 +1718,37 @@ export default function AdminPage() {
             </button>
           </div>
 
+          {/* Sticky Emergency Maintenance Mode Banner (Visible if engaged) */}
+          {maintenanceMode?.enabled && (
+            <div className="p-4 rounded-3xl bg-rose-500/10 border-2 border-rose-500/50 text-rose-900 dark:text-rose-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-sm animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-rose-600 text-white shadow-md shadow-rose-600/30 shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
+                      Emergency Platform Maintenance Mode Active
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-600 text-white">
+                      Killswitch Engaged
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 mt-0.5">
+                    {maintenanceMode.message || "Public write mutations and farmer crop scans are paused. Visitors receive an orderly maintenance status screen."}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleMaintenanceMode}
+                disabled={isTogglingMaintenance}
+                className="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition-all shrink-0 cursor-pointer shadow-md hover:shadow-rose-600/30 disabled:opacity-50"
+              >
+                {isTogglingMaintenance ? 'Disengaging...' : 'Disable Maintenance Mode'}
+              </button>
+            </div>
+          )}
+
           {/* ── NEW PHASE 1 ADDON: Executive Emergency Action Dock ── */}
           <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
@@ -1695,13 +1765,27 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               <button
                 onClick={() => setTab('broadcast')}
                 className="px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/80 transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Radio className="w-3.5 h-3.5 text-rose-500" />
                 <span>Alert Farmers</span>
+              </button>
+
+              <button
+                onClick={handleToggleMaintenanceMode}
+                disabled={isTogglingMaintenance}
+                className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                  maintenanceMode?.enabled
+                    ? 'border-rose-500 bg-rose-600 text-white shadow-md shadow-rose-500/30'
+                    : 'border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80'
+                }`}
+                title={maintenanceMode?.enabled ? 'Maintenance mode active. Click to resume normal operations.' : 'Pause mutations & put platform in Maintenance Mode'}
+              >
+                <Power className={`w-3.5 h-3.5 ${maintenanceMode?.enabled ? 'text-white animate-spin' : 'text-amber-500'}`} />
+                <span>{isTogglingMaintenance ? 'Saving...' : (maintenanceMode?.enabled ? 'Resume App' : 'Maintenance')}</span>
               </button>
 
               <button
@@ -1737,7 +1821,7 @@ export default function AdminPage() {
                 title={`Cloud storage used: ${storageStats?.total_cloud_used_mb || 65.1} MB (Supabase: ${storageStats?.supabase?.used_mb || 37.8} MB, MongoDB Atlas: ${storageStats?.database?.storage_size_mb || 27.4} MB)`}
               >
                 <Cloud className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Cloud Storage ({storageStats?.total_cloud_used_mb || 65} MB)</span>
+                <span>Storage ({storageStats?.total_cloud_used_mb || 65}M)</span>
               </button>
             </div>
           </div>
@@ -2645,6 +2729,43 @@ export default function AdminPage() {
                     rows={4} 
                     className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all text-xs"
                   ></textarea>
+                </div>
+
+                {/* Precision Crop Cohort Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2 flex items-center justify-between">
+                    <span>Precision Crop Cohort Filter</span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {broadcastTargetCrop === 'all' ? 'Targeting All Registered Farmers' : `Restricted to ${broadcastTargetCrop.toUpperCase()} Growers`}
+                    </span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: 'all', label: 'All Crops' },
+                      { id: 'chilli', label: 'Chilli (మిర్చి)' },
+                      { id: 'rice', label: 'Paddy / Rice (వరి)' },
+                      { id: 'cotton', label: 'Cotton (ప్రత్తి)' },
+                      { id: 'tomato', label: 'Tomato (టమోటా)' },
+                      { id: 'groundnut', label: 'Groundnut (వేరుశనగ)' },
+                      { id: 'maize', label: 'Maize (మొక్కజొన్న)' }
+                    ].map((crop) => {
+                      const isSelected = broadcastTargetCrop === crop.id;
+                      return (
+                        <button
+                          key={crop.id}
+                          type="button"
+                          onClick={() => setBroadcastTargetCrop(crop.id)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700 shadow-xs ring-1 ring-emerald-400/40'
+                              : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                          }`}
+                        >
+                          {crop.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* District Geo-Targeting Selector */}
