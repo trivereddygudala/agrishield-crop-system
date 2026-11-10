@@ -66,9 +66,21 @@ async def list_all_users(
             else:
                 query = {"$or": search_clause}
 
-    total_users = await db.users.count_documents(query)
-    cursor = db.users.find(query).sort("created_at", -1).skip(effective_skip).limit(limit)
-    users_list = await cursor.to_list(length=limit)
+    try:
+        total_users = await db.users.count_documents(query)
+        cursor = db.users.find(query).sort("created_at", -1).skip(effective_skip).limit(limit)
+        users_list = await cursor.to_list(length=limit)
+    except Exception as query_err:
+        logger.warning(f"Transient error fetching users list: {query_err}. Attempting auto-reconnect retry...")
+        try:
+            db = get_database()
+            await asyncio.sleep(0.3)
+            total_users = await db.users.count_documents(query)
+            cursor = db.users.find(query).sort("created_at", -1).skip(effective_skip).limit(limit)
+            users_list = await cursor.to_list(length=limit)
+        except Exception as retry_err:
+            logger.error(f"Permanent failure querying users list: {retry_err}")
+            raise DatabaseUnavailableException("Database service is temporarily unavailable. Please retry in a few moments.")
 
     sanitized_users = []
     for user in users_list:

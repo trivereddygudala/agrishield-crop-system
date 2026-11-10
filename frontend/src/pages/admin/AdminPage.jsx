@@ -1196,9 +1196,9 @@ export default function AdminPage() {
     try {
       let res;
       try {
-        res = await API.get('/api/v1/admin/users', { params });
-      } catch {
         res = await API.get('/api/admin/users', { params });
+      } catch {
+        res = await API.get('/api/v1/admin/users', { params });
       }
 
       const returnedUsers = res.data?.users || [];
@@ -1223,6 +1223,13 @@ export default function AdminPage() {
         }));
       }
     } catch (err) {
+      if (err.response?.status === 503 && pageOverride === null) {
+        // Automatic single recovery retry if backend is still establishing initial Atlas pool
+        setTimeout(() => {
+          fetchUsers(pageOverride, pageSizeOverride, searchOverride, roleOverride);
+        }, 1200);
+        return;
+      }
       setError(err.response?.data?.detail || 'Failed to fetch registered users.');
     } finally {
       setLoading(false);

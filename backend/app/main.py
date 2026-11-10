@@ -82,7 +82,8 @@ def is_ai_worker_node() -> bool:
 async def init_background_services():
     """Asynchronous background worker to initialize MongoDB and Scheduler without delaying port binding."""
     try:
-        await connect_to_mongo()
+        if db_instance.db is None:
+            await connect_to_mongo()
         if db_instance.db is not None:
             is_prediction_worker = is_ai_worker_node()
             if not is_prediction_worker:
@@ -110,7 +111,13 @@ async def lifespan(app: FastAPI):
     """Lifecycle events manager for FastAPI startup and shutdown."""
     import asyncio
     
-    # 1. Spawn DB connection & scheduler in background task
+    # 1. Connect to MongoDB directly so first request finds db initialized
+    try:
+        await connect_to_mongo()
+    except Exception as startup_db_err:
+        logger.warning(f"Initial MongoDB startup connection notice: {startup_db_err}")
+
+    # 2. Spawn background services (scheduler, caches, security sync)
     bg_task = asyncio.create_task(init_background_services())
     
     # 2. Start mDNS Auto-Discovery ONLY if explicitly enabled via environment

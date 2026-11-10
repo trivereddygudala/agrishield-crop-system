@@ -289,18 +289,29 @@ from backend.app.core.exceptions import DatabaseUnavailableException
 
 def get_database():
     """Retrieve database instance, reconnecting if uninitialized, raising DatabaseUnavailableException if unavailable."""
-    if db_instance.db is None:
-        if db_instance.client is None:
-            try:
-                logger.info("db_instance is None in get_database, initializing client...")
-                db_instance.client = AsyncIOMotorClient(
-                    settings.mongo_connection_url,
-                    **get_client_kwargs()
-                )
-                db_instance.db = db_instance.client[settings.DATABASE_NAME]
-            except Exception as e:
-                logger.error(f"Failed on-demand MongoDB connection: {e}")
-                db_instance.db = None
+    if db_instance.db is not None:
+        return db_instance.db
+
+    # 1. If client is already alive, immediately bind db handle
+    if db_instance.client is not None:
+        try:
+            db_instance.db = db_instance.client[settings.DATABASE_NAME]
+            return db_instance.db
+        except Exception as e:
+            logger.warning(f"Could not bind database handle to existing client: {e}")
+
+    # 2. Fallback: on-demand reconnect client and db
+    try:
+        logger.info("Initializing on-demand MongoDB connection in get_database...")
+        db_instance.client = AsyncIOMotorClient(
+            settings.mongo_connection_url,
+            **get_client_kwargs()
+        )
+        db_instance.db = db_instance.client[settings.DATABASE_NAME]
+        return db_instance.db
+    except Exception as e:
+        logger.error(f"Failed on-demand MongoDB connection: {e}")
+        db_instance.db = None
 
     if db_instance.db is None:
         raise DatabaseUnavailableException("Database service is temporarily unavailable. Please retry in a few moments.")

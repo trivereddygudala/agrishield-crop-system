@@ -10078,3 +10078,18 @@ pm.cmd run build passed in 21.71s with 0 errors.
    - Frontend: 
 pm run build bundled 3,167 modules in 22.27s with 0 errors.
    - Backend: python -m py_compile validated all admin routers and translation services with 0 errors.
+
+### [2026-11-10 21:52:00] - Database Unavailable Error Resolution & Connection Auto-Recovery
+1. **Root Cause Analysis**:
+   - In ackend/app/db/mongodb.py, get_database() was skipping db initialization if db_instance.client was created but db_instance.db was still None during background startup.
+   - In ackend/app/main.py, FastAPI lifespan was yielding to accept HTTP requests before initial MongoDB connection completed, resulting in a race condition where the initial request to /admin?tab=users received 503 DatabaseUnavailableException.
+   - In rontend/src/pages/admin/AdminPage.jsx, etchUsers called /api/v1/admin/users (which threw 404) before falling back to /api/admin/users, and did not auto-retry transient 503s.
+2. **Technical Fixes**:
+   - ackend/app/db/mongodb.py: Rewrote get_database() to immediately bind existing client or re-initialize on-demand client and database handle without throwing unhandled exceptions.
+   - ackend/app/main.py: Connected to MongoDB synchronously at startup before accepting port traffic, ensuring client and database instances are fully primed.
+   - ackend/app/routers/admin/admin.py: Added automatic reconnect retry with exponential delay for list_all_users query operations against MongoDB Atlas.
+   - rontend/src/pages/admin/AdminPage.jsx: Direct canonical request to /api/admin/users with automatic single-recovery retry on transient 503 codes.
+3. **Verification**:
+   - python -m py_compile validated mongodb.py, main.py, and dmin.py with 0 errors.
+   - Vite frontend build (
+pm run build) succeeded in 20.67s with 0 errors.
