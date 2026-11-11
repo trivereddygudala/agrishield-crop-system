@@ -66,7 +66,9 @@ import {
   ExternalLink,
   Folder,
   Image,
-  Power
+  Power,
+  Wrench,
+  ChevronDown
 } from 'lucide-react';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -385,14 +387,24 @@ export default function AdminPage() {
   const [activeTranslationLang, setActiveTranslationLang] = useState('te');
 
   // 4. Platform Maintenance Mode & Disaster Containment
-  const [maintenanceMode, setMaintenanceMode] = useState({ enabled: false, message: '', estimated_minutes: 15 });
+  const [maintenanceMode, setMaintenanceMode] = useState({ enabled: false, message: '', estimated_minutes: 30 });
   const [isTogglingMaintenance, setIsTogglingMaintenance] = useState(false);
+  const [maintenanceDraft, setMaintenanceDraft] = useState({ message: '', estimated_minutes: 30 });
+  const [showMaintenancePanel, setShowMaintenancePanel] = useState(false);
+  const [isExtendingMaintenance, setIsExtendingMaintenance] = useState(false);
+
+  const DURATION_PRESETS = [15, 30, 45, 60, 90, 120, 180, 240];
 
   const fetchMaintenanceStatus = async () => {
     try {
       const res = await API.get('/api/admin/maintenance');
       if (res.data?.maintenance) {
         setMaintenanceMode(res.data.maintenance);
+        // Sync draft with live state only when not actively editing
+        setMaintenanceDraft(prev => ({
+          message: prev.message || res.data.maintenance.message || '',
+          estimated_minutes: prev.estimated_minutes || res.data.maintenance.estimated_minutes || 30
+        }));
       }
     } catch (e) {
       console.warn("Could not fetch maintenance status:", e);
@@ -405,19 +417,45 @@ export default function AdminPage() {
       const nextState = !maintenanceMode?.enabled;
       const res = await API.post('/api/admin/maintenance/toggle', {
         enabled: nextState,
-        message: nextState ? "AgriShield AI is undergoing scheduled cloud maintenance. AI inference will resume shortly." : "",
-        estimated_minutes: 15
+        message: nextState
+          ? (maintenanceDraft.message || "AgriShield AI is undergoing scheduled maintenance. All services will resume shortly.")
+          : "",
+        estimated_minutes: nextState ? (maintenanceDraft.estimated_minutes || 30) : 0
       });
       if (res.data?.maintenance) {
         setMaintenanceMode(res.data.maintenance);
         setSuccessMsg(res.data.message || `Maintenance mode ${nextState ? 'ENGAGED' : 'DISENGAGED'}`);
         window.dispatchEvent(new CustomEvent('maintenance-updated', { detail: res.data.maintenance }));
         window.dispatchEvent(new CustomEvent('agrishield-maintenance-updated', { detail: res.data.maintenance }));
+        if (nextState) setShowMaintenancePanel(false);
       }
     } catch (e) {
       setError("Failed to update maintenance mode.");
     } finally {
       setIsTogglingMaintenance(false);
+    }
+  };
+
+  const handleExtendMaintenance = async (additionalMinutes) => {
+    if (!maintenanceMode?.enabled) return;
+    setIsExtendingMaintenance(true);
+    try {
+      const newDuration = (maintenanceMode.estimated_minutes || 0) + additionalMinutes;
+      const res = await API.post('/api/admin/maintenance/toggle', {
+        enabled: true,
+        message: maintenanceMode.message || maintenanceDraft.message || "AgriShield AI is undergoing scheduled maintenance.",
+        estimated_minutes: newDuration
+      });
+      if (res.data?.maintenance) {
+        setMaintenanceMode(res.data.maintenance);
+        setSuccessMsg(`Maintenance extended by ${additionalMinutes} minutes (now ${newDuration} min total).`);
+        window.dispatchEvent(new CustomEvent('maintenance-updated', { detail: res.data.maintenance }));
+        window.dispatchEvent(new CustomEvent('agrishield-maintenance-updated', { detail: res.data.maintenance }));
+      }
+    } catch (e) {
+      setError("Failed to extend maintenance duration.");
+    } finally {
+      setIsExtendingMaintenance(false);
     }
   };
 
@@ -1727,34 +1765,179 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {/* Sticky Emergency Maintenance Mode Banner (Visible if engaged) */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+          {/* MAINTENANCE MODE CONTROL PANEL                                 */}
+          {/* ═══════════════════════════════════════════════════════════════ */}
+
+          {/* Active maintenance banner — shown only when maintenance is ON */}
           {maintenanceMode?.enabled && (
-            <div className="p-4 rounded-3xl bg-rose-500/10 border-2 border-rose-500/50 text-rose-900 dark:text-rose-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-sm animate-pulse">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-rose-600 text-white shadow-md shadow-rose-600/30 shrink-0">
-                  <AlertTriangle className="w-5 h-5" />
+            <div className="rounded-2xl border-2 border-amber-500/60 bg-amber-50 dark:bg-amber-950/40 overflow-hidden shadow-lg">
+              {/* Header strip */}
+              <div className="flex items-center justify-between gap-3 px-5 py-3 bg-amber-500/20 dark:bg-amber-900/40">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                  <span className="text-sm font-black text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                    🔧 Maintenance Mode — ACTIVE
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-600 text-white">
+                    LIVE
+                  </span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-rose-700 dark:text-rose-400">
-                      Emergency Platform Maintenance Mode Active
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-600 text-white">
-                      Killswitch Engaged
-                    </span>
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  Duration set: {maintenanceMode.estimated_minutes} min
+                </span>
+              </div>
+
+              {/* Body */}
+              <div className="px-5 py-4 space-y-4">
+                {/* Current message */}
+                {maintenanceMode.message && (
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 text-xs text-slate-700 dark:text-slate-300">
+                    <span className="font-semibold text-amber-700 dark:text-amber-400 block mb-0.5">Message shown to farmers & providers:</span>
+                    {maintenanceMode.message}
                   </div>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 mt-0.5">
-                    {maintenanceMode.message || "Public write mutations and farmer crop scans are paused. Visitors receive an orderly maintenance status screen."}
+                )}
+
+                {/* Extend duration controls */}
+                <div>
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Extend Duration — Add more time if needed:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[15, 30, 45, 60, 90, 120].map(mins => (
+                      <button
+                        key={mins}
+                        onClick={() => handleExtendMaintenance(mins)}
+                        disabled={isExtendingMaintenance}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+                      >
+                        +{mins} min
+                      </button>
+                    ))}
+                    {isExtendingMaintenance && (
+                      <span className="text-xs text-amber-600 dark:text-amber-400 self-center italic">Extending…</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">
+                    Current total: <strong>{maintenanceMode.estimated_minutes} min</strong>. Farmers see the updated time instantly.
                   </p>
                 </div>
+
+                {/* Disable button */}
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    onClick={handleToggleMaintenanceMode}
+                    disabled={isTogglingMaintenance}
+                    className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black transition-all cursor-pointer shadow-md hover:shadow-emerald-600/30 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Power className="w-4 h-4" />
+                    {isTogglingMaintenance ? 'Ending maintenance…' : '✅ End Maintenance & Restore Service'}
+                  </button>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                    All farmers and providers will see services restored immediately.
+                  </span>
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* Pre-maintenance setup panel — shown when maintenance is OFF */}
+          {!maintenanceMode?.enabled && (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
               <button
-                onClick={handleToggleMaintenanceMode}
-                disabled={isTogglingMaintenance}
-                className="px-4 py-2 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition-all shrink-0 cursor-pointer shadow-md hover:shadow-rose-600/30 disabled:opacity-50"
+                onClick={() => setShowMaintenancePanel(v => !v)}
+                className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer text-left"
               >
-                {isTogglingMaintenance ? 'Disengaging...' : 'Disable Maintenance Mode'}
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600">
+                    <Wrench className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                      Schedule Platform Maintenance
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Set duration & custom message → then engage. Farmers see a friendly notice in their language.
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${showMaintenancePanel ? 'bg-slate-100 dark:bg-slate-700 rotate-180' : 'bg-slate-50 dark:bg-slate-800'}`}>
+                  <ChevronDown className="w-4 h-4 text-slate-500" />
+                </div>
               </button>
+
+              {showMaintenancePanel && (
+                <div className="px-5 pb-5 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                  {/* Duration picker */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      Estimated Maintenance Duration
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {DURATION_PRESETS.map(mins => (
+                        <button
+                          key={mins}
+                          onClick={() => setMaintenanceDraft(d => ({ ...d, estimated_minutes: mins }))}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            maintenanceDraft.estimated_minutes === mins
+                              ? 'bg-amber-500 text-white border-amber-500 shadow-md'
+                              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
+                          }`}
+                        >
+                          {mins >= 60 ? `${mins / 60}h${mins % 60 ? ` ${mins % 60}m` : ''}` : `${mins} min`}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Custom input */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Or enter custom:</span>
+                      <input
+                        type="number"
+                        min={5}
+                        max={1440}
+                        value={maintenanceDraft.estimated_minutes}
+                        onChange={e => setMaintenanceDraft(d => ({ ...d, estimated_minutes: Math.max(5, parseInt(e.target.value) || 5) }))}
+                        className="w-20 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white text-center font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      <span className="text-xs text-slate-500">minutes</span>
+                    </div>
+                  </div>
+
+                  {/* Message input */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Custom Message for Farmers & Providers
+                      <span className="font-normal text-slate-400 ml-1">(optional — a default message is used if left blank)</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="e.g. We are upgrading AgriShield AI servers to give you faster crop scanning. Please check back in 30 minutes."
+                      value={maintenanceDraft.message}
+                      onChange={e => setMaintenanceDraft(d => ({ ...d, message: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      This message is displayed to farmers and equipment providers in their own language. Keep it simple and reassuring.
+                    </p>
+                  </div>
+
+                  {/* Engage button */}
+                  <button
+                    onClick={handleToggleMaintenanceMode}
+                    disabled={isTogglingMaintenance}
+                    className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-black transition-all cursor-pointer shadow-md hover:shadow-rose-600/30 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Power className="w-4 h-4" />
+                    {isTogglingMaintenance ? 'Engaging maintenance…' : '🔧 Engage Maintenance Mode'}
+                  </button>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    A warm, friendly notice will appear at the top of every farmer and equipment provider screen in their language. No panicking — just clear information.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1784,17 +1967,16 @@ export default function AdminPage() {
               </button>
 
               <button
-                onClick={handleToggleMaintenanceMode}
-                disabled={isTogglingMaintenance}
+                onClick={() => setShowMaintenancePanel(v => !v)}
                 className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 ${
                   maintenanceMode?.enabled
                     ? 'border-rose-500 bg-rose-600 text-white shadow-md shadow-rose-500/30'
                     : 'border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/80'
                 }`}
-                title={maintenanceMode?.enabled ? 'Maintenance mode active. Click to resume normal operations.' : 'Pause mutations & put platform in Maintenance Mode'}
+                title={maintenanceMode?.enabled ? 'Maintenance active — click for controls' : 'Set up & engage Maintenance Mode'}
               >
-                <Power className={`w-3.5 h-3.5 ${maintenanceMode?.enabled ? 'text-white animate-spin' : 'text-amber-500'}`} />
-                <span>{isTogglingMaintenance ? 'Saving...' : (maintenanceMode?.enabled ? 'Resume App' : 'Maintenance')}</span>
+                <Wrench className={`w-3.5 h-3.5 ${maintenanceMode?.enabled ? 'text-white' : 'text-amber-500'}`} />
+                <span>{maintenanceMode?.enabled ? '🔴 Maintenance ON' : 'Maintenance'}</span>
               </button>
 
               <button
