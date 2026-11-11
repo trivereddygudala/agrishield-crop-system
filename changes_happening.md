@@ -10111,3 +10111,77 @@ pm run build) succeeded in 20.67s with 0 errors.
 4. **Verification**:
    - Backend syntax check: 0 errors across main.py and dmin.py.
    - Frontend production build: 3,168 modules transformed in 22.52s with 0 errors.
+
+---
+## [2026-11-11 21:01:53] Maintenance Mode Improvements — COMPLETED ?
+
+### Changes Made:
+
+#### 1. rontend/src/components/common/MaintenanceModeBanner.jsx — FULL REDESIGN
+- Completely rewritten: warm amber/brown tone (not AI-generated red/panic look)
+- Now uses useTranslation() — all text shows in farmer's language (Telugu, Hindi, Tamil, Kannada, Malayalam, Odia, English)
+- Shows friendly expandable panel with:
+  - What is paused (AI scan, edits, booking, uploads)
+  - What still works (view data, market prices, weather, WhatsApp support)
+  - Estimated duration pill with formatted time
+  - 'Back soon' badge
+  - Dismiss (X) button — collapses to nothing, resets when maintenance re-activates
+  - Sorry note + ?? at the bottom of expanded view
+
+#### 2. rontend/src/pages/admin/AdminPage.jsx — MAINTENANCE PANEL UPGRADED
+- Added maintenanceDraft state for custom message + duration
+- Added showMaintenancePanel toggle state  
+- Added isExtendingMaintenance state
+- Added DURATION_PRESETS array: [15, 30, 45, 60, 90, 120, 180, 240]
+- Added handleExtendMaintenance(additionalMinutes) function
+- **When maintenance is OFF**: collapsible setup panel with:
+  - Duration preset buttons (15m, 30m, 45m, 1h, 1.5h, 2h, 3h, 4h)
+  - Custom minute input field
+  - Custom message textarea with guidance
+  - Engage button
+- **When maintenance is ON**: live status panel with:
+  - Pulsing LIVE indicator + current duration shown
+  - Current message displayed
+  - Extend duration quick buttons (+15, +30, +45, +60, +90, +120 min)
+  - End Maintenance button (green, not red)
+- Action dock button changed to use Wrench icon and open the panel
+
+#### 3. rontend/src/i18n/comprehensiveTranslations.js — MAINTENANCE TRANSLATIONS
+- Added maintenance_banner namespace to: en, te, hi, ta, kn, ml, or
+- Full translations for all 20 keys in each language
+- Native script: Telugu (??????), Hindi (??????), Tamil (?????), Kannada (?????), Malayalam (??????), Odia (?????)
+
+**Files Modified:**
+- frontend/src/components/common/MaintenanceModeBanner.jsx
+- frontend/src/pages/admin/AdminPage.jsx
+- frontend/src/i18n/comprehensiveTranslations.js
+
+---
+## [2026-11-11 21:24:17] Banner Beauty + Mini-Pill — COMPLETED ?
+
+### Changes:
+
+#### rontend/src/components/common/MaintenanceModeBanner.jsx
+- **Deep brown gradient** (not flat red): #451a03 ? #78350f ? #92400e with dot-grid overlay and top/bottom golden glow lines
+- **X button now collapses to MiniPill** — farmer is never left in the dark:
+  - Fixed position bottom-right floating pill
+  - Pulsing amber dot + Wrench icon + duration + "Back soon"
+  - nimate-bounce-slow gentle float
+  - Click the pill ? banner expands again
+- **Expanded panel** redesigned with clean 2-column grid (paused / still working) and proper dividers
+- Dismiss properly resets when maintenance is re-enabled by admin
+
+#### rontend/src/index.css
+- Added @keyframes bounce-slow + .animate-bounce-slow utility class for the floating pill
+
+**Files Modified:**
+- frontend/src/components/common/MaintenanceModeBanner.jsx
+- frontend/src/index.css
+
+---
+## [2026-11-11 21:26:41] Admin Banner Fix - COMPLETED
+- Added useAuth import to MaintenanceModeBanner.jsx
+- Added user role check: if user.role === 'admin' return null
+- Admin portal no longer shows the farmer-facing maintenance banner
+- Admin already has their own full control panel inside AdminPage.jsx
+
