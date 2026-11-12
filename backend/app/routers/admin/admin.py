@@ -1562,12 +1562,13 @@ class GeoBroadcastRequest(BaseModel):
 class MaintenanceToggleRequest(BaseModel):
     enabled: bool
     message: Optional[str] = "AgriShield AI is undergoing scheduled cloud maintenance. AI inference will resume shortly."
-    estimated_minutes: Optional[int] = 15
+    estimated_minutes: Optional[int] = 30
 
 _maintenance_state = {
     "enabled": False,
     "message": "AgriShield AI is undergoing scheduled cloud maintenance. AI inference will resume shortly.",
-    "estimated_minutes": 15,
+    "estimated_minutes": 30,
+    "ends_at": None,          # ISO timestamp — when None or past, maintenance auto-stops
     "updated_at": datetime.now(timezone.utc).isoformat(),
     "updated_by": "System"
 }
@@ -2087,12 +2088,39 @@ async def export_retraining_dataset(db = Depends(get_database)):
 @router.get("/maintenance/public")
 @router.get("/maintenance/status")
 async def get_public_maintenance_status():
-    """Public Endpoint: Get current platform maintenance mode status without auth requirement."""
+    """Public Endpoint: Get current platform maintenance mode status.
+    Auto-disables maintenance if ends_at has passed."""
+    global _maintenance_state
+    if _maintenance_state.get("enabled") and _maintenance_state.get("ends_at"):
+        try:
+            ends_at_dt = datetime.fromisoformat(_maintenance_state["ends_at"].replace("Z", "+00:00"))
+            if datetime.now(timezone.utc) >= ends_at_dt:
+                # Auto-expire: duration ran out
+                _maintenance_state["enabled"] = False
+                _maintenance_state["ends_at"] = None
+                _maintenance_state["updated_at"] = datetime.now(timezone.utc).isoformat()
+                _maintenance_state["updated_by"] = "System (auto-expired)"
+                log_security_event("PLATFORM_MAINTENANCE_AUTO_EXPIRED", {
+                    "reason": "Duration elapsed"
+                }, level="INFO")
+        except Exception:
+            pass
     return {"status": "success", "maintenance": _maintenance_state}
 
 @router.get("/maintenance", dependencies=[Depends(require_role("admin"))])
 async def get_maintenance_status():
     """Admin Endpoint: Get current platform maintenance mode status."""
+    global _maintenance_state
+    if _maintenance_state.get("enabled") and _maintenance_state.get("ends_at"):
+        try:
+            ends_at_dt = datetime.fromisoformat(_maintenance_state["ends_at"].replace("Z", "+00:00"))
+            if datetime.now(timezone.utc) >= ends_at_dt:
+                _maintenance_state["enabled"] = False
+                _maintenance_state["ends_at"] = None
+                _maintenance_state["updated_at"] = datetime.now(timezone.utc).isoformat()
+                _maintenance_state["updated_by"] = "System (auto-expired)"
+        except Exception:
+            pass
     return {"status": "success", "maintenance": _maintenance_state}
 
 @router.post("/maintenance/toggle", dependencies=[Depends(require_role("admin"))])
@@ -2111,6 +2139,14 @@ async def toggle_maintenance_mode(
         _maintenance_state["estimated_minutes"] = req.estimated_minutes
     _maintenance_state["updated_at"] = datetime.now(timezone.utc).isoformat()
     _maintenance_state["updated_by"] = actor
+
+    # Set ends_at so the backend can auto-expire when duration elapses
+    if req.enabled and req.estimated_minutes and req.estimated_minutes > 0:
+        from datetime import timedelta
+        ends_at_dt = datetime.now(timezone.utc) + timedelta(minutes=req.estimated_minutes)
+        _maintenance_state["ends_at"] = ends_at_dt.isoformat()
+    else:
+        _maintenance_state["ends_at"] = None
 
     log_security_event("PLATFORM_MAINTENANCE_TOGGLED", {
         "enabled": req.enabled,
