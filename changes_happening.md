@@ -10734,3 +10734,19 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Vite build: 0 errors in 25.59s.
   - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app/notifications
   - Committed & pushed to GitHub origin/main: commit c0ffed1 (Vercel).
+
+## [2026-11-12 19:08:00] Fixed Random Badge Number Flicker, Set Speech Speed to 1.0x & Zero-Latency Audio Streaming
+- **Fixed Random Number Appearing & Disappearing Every 10-15s:**
+  - Root cause: AppLayout's 12-second background timer was triggering fetchUnreadCount() against the server, which returned unsynced unread count, briefly flashing an unread number badge on the Alerts icon/header before client reconciliation pulled it back to 0.
+  - Solution: Bypassed background polling while the user is actively viewing /notifications (letting NotificationsPage maintain exclusive ownership of unread count). Reconciled fetchRecentAlerts() with local namespaced read IDs (getUserReadNotificationIds) so read alerts never get treated as unread. Guarded WebSocketContext.fetchUnreadCount() against overwriting state while on /notifications.
+- **Reading Speed Updated to Standard 1.0x:**
+  - backend/app/routers/common/speech.py: Changed default synthesis rate from +10% to +0% (standard 1.0x natural human reading pace).
+  - frontend/src/hooks/useSpeechReader.js: Set default rate to 1.0 (rateStr: '+0%') across browser speech and server Edge TTS.
+  - frontend/src/pages/common/NotificationsPage.jsx: Updated all speak() calls to 1.0 rate and updated UI chip to '1.0x'.
+- **Zero-Latency Speech Playback:**
+  - backend/app/routers/common/speech.py: Converted /api/speech/synthesize from blocking response to real-time StreamingResponse, streaming audio chunks as soon as edge-tts produces them (~80ms first-chunk response time instead of waiting for full generation).
+  - frontend/src/hooks/useSpeechReader.js: Instantly set setSpeakingId(targetId) on the exact millisecond the user presses the button so UI activates immediately with zero lag. Enabled audio.preload = 'auto'.
+- **Production Deploy:**
+  - Vite build: 0 errors in 24.45s.
+  - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app/notifications
+  - Pushed to GitHub origin/main: commit cf9c8f6 (Vercel).
