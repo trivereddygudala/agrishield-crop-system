@@ -10711,3 +10711,26 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Vite build: 0 errors in 22.63s.
   - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app
   - Pushed to GitHub origin/main: commit d9259b2.
+
+## [2026-11-12 17:55:00] Authentic Mobile Messages UI: Chat Bubbles, Compact List, Leaf Images & Day-by-Day Feed
+- **Authentic Mobile Messages Header (Phone 1 in Approved Mockup):**
+  - Emerald green WhatsApp-style top banner: 'Messages & Advisories / సందేశాలు & హెచ్చరికలు' with Rythu Stream subtext.
+  - Controls: counter badge, 1-tap male voice audio briefing button, mark all as read, settings, and clear inbox.
+  - Interactive View Switcher: farmers can switch between '💬 Chat Bubbles' (Phone 2 style) and '📋 Messages List' (Phone 1 style).
+- **Incoming Chat Bubble Model (Phone 2 in Approved Mockup):**
+  - Avatar on the left: squircle gradient with verified green checkmark badge.
+  - Speech bubble styling (rounded-3xl rounded-tl-sm) with verified sender title, category badge, and priority pill.
+  - Integrated Leaf Scan Photo Attachment: for crop pathology alerts, embeds high-resolution leaf scan image directly inside the bubble.
+  - WhatsApp Voice Note Bar: circular 1-tap play button, live animated soundwave equalizer bars, 0.94x male voice readout.
+  - Action CTA: full-width primary button ('View Prescription ->', 'Book Machinery ->').
+  - Bubble footer: WhatsApp share, resolve button, timestamp, and emerald double checkmarks ('✓✓').
+- **Compact Messages List View (Phone 1 in Approved Mockup):**
+  - Sleek WhatsApp inbox list row with squircle avatar, sender title, message snippet, inline voice button, timestamp, and unread badge / '✓✓'.
+- **Day-by-Day Centered Badges:**
+  - Centered date badges ('⚡ TODAY • ఈ రోజు', '📅 YESTERDAY • నిన్న', '🗓️ EARLIER THIS WEEK', '📁 OLDER MESSAGES').
+- **Zero Bottom Whitespace:**
+  - Clean responsive fluid padding extending smoothly to the bottom dock.
+- **Production Build & Deploy:**
+  - Vite build: 0 errors in 25.59s.
+  - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app/notifications
+  - Committed & pushed to GitHub origin/main: commit c0ffed1 (Vercel).
