@@ -10579,3 +10579,27 @@ Files Modified:
 - Frontend components: AppLayout.jsx, NotificationsPage.jsx, WebSocketContext.jsx updated to reconcile unread count with backend and loaded list.
 - APK diagnosis: AgriShield AI-unsigned.apk downloaded from Google Play option cannot be sideloaded without signing.
 
+
+## [2026-11-12 15:10:00] Upgrades 1 to 5 Deployment & Mobile APK/TWA Resolution
+- **Upgrade 1 (Navbar Bell Notification Dropdown):**
+  - Updated AppLayout.jsx to query /api/notifications?limit=8, fetching both unread and recent read alerts.
+  - Eliminated false 'All caught up!' empty states when notification history exists.
+  - Preserved recent history in the dropdown panel with unread badges, pulse indicators, and instant mark-read actions.
+- **Upgrade 2 (Instant Post-Diagnosis Floating Alerts & Popups):**
+  - Updated UploadImagePage.jsx: Dispatches grishield_new_notification upon scan completion, triggering immediate floating toast banners and audio chime even during WebSocket reconnections or mobile idling.
+- **Upgrade 3 (Automatic Maintenance Mode Expiry):**
+  - Added public maintenance status endpoints (/api/maintenance, /api/v1/maintenance, /api/admin/maintenance/public).
+  - Added server-side auto-expiry helper check_and_expire_maintenance() in ackend/app/routers/admin/admin.py and ackend/app/main.py middleware.
+  - Added client-side auto-dismiss in MaintenanceModeBanner.jsx when countdown hits 0 seconds.
+- **Upgrade 4 (Admin Portal Role Isolation):**
+  - Updated brand logo <Link> in AppLayout.jsx to route dynamically (/admin for Admins, /provider/dashboard for Providers, /dashboard for Farmers).
+  - Updated admin bottom dock Settings tab to /admin?tab=settings.
+  - Removed artificial client-side synthesis of farmer onboarding, field cards, and provider fleet from NotificationsPage.jsx.
+- **Upgrade 5 (Universal Message & Notification Deletion):**
+  - Updated NotificationService._build_id_query to allow Admins (
+ole == 'admin') to delete any system alert across all users.
+  - Handled prefixed IDs (
+otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
+  - Updated clear_all_notifications to accept preserve_booking=false for thorough inbox clearing.
+- **Android APK & Top Address Bar Diagnosis:**
+  - Provided diagnosis of AgriShield AI-unsigned.apk rejection and Digital Asset Links (ssetlinks.json) CCT fallback bar.
