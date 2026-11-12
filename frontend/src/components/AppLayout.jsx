@@ -867,76 +867,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 )}
               </button>
 
-              {/* Global 1-Tap Language Selector in Top Navbar */}
-              {(() => {
-                const currentLangCode = (i18n.language ? i18n.language.split('-')[0].toLowerCase() : 'en');
-                const currentLangObj = SUPPORTED_LANGUAGES.find(l => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0];
-                return (
-                  <div className="relative" ref={langRef}>
-                    <button
-                      type="button"
-                      onClick={() => setLangMenuOpen(!langMenuOpen)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 min-h-[38px] rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-500/40 transition-all text-xs font-bold text-slate-700 dark:text-slate-200 shadow-xs cursor-pointer select-none"
-                      title={t('nav.change_language', 'Change Website Language')}
-                      aria-label="Language Selector"
-                    >
-                      <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span className="font-extrabold text-[12px]">{currentLangObj.flag} {currentLangObj.nativeName || currentLangObj.name}</span>
-                      <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${langMenuOpen ? 'rotate-180 text-emerald-600' : ''}`} />
-                    </button>
-
-                    {langMenuOpen && (
-                      <div className="absolute right-0 mt-2 z-50 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 overflow-hidden">
-                        <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            {t('languages_modal.select_language', 'Select Language')}
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-extrabold">
-                            7 Vernaculars
-                          </span>
-                        </div>
-                        <div className="py-1 space-y-0.5 max-h-72 overflow-y-auto">
-                          {SUPPORTED_LANGUAGES.map((lang) => {
-                            const isSelected = currentLangCode === lang.code;
-                            return (
-                              <button
-                                key={lang.code}
-                                type="button"
-                                onClick={() => {
-                                  handleSiteLanguageChange(lang.code);
-                                  setLangMenuOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-black border border-emerald-500/30'
-                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm">{lang.flag || '🌾'}</span>
-                                  <span className="font-extrabold">{lang.nativeName || lang.name}</span>
-                                  <span className="text-[10px] text-slate-400 font-normal">({lang.name})</span>
-                                </div>
-                                {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[3]" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="pt-1 mt-1 border-t border-slate-100 dark:border-slate-800">
-                          <Link
-                            to="/languages"
-                            onClick={() => setLangMenuOpen(false)}
-                            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
-                          >
-                            <span>{t('languages_modal.manage_preferences', 'Language Preferences')}</span>
-                            <ChevronRight className="w-3 h-3" />
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {/* Language selector removed from navbar — users change language via Profile → Settings → Languages page */}
 
               {/* Theme Dark / Light Toggle */}
               <button
