@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import NavbarSceneRenderer from './animations/NavbarSceneRenderer';
+import { getUserReadNotificationIds } from '../utils/notificationStorage';
 import { useNavbarTheme } from '../hooks/useNavbarTheme';
 import { 
   Leaf, 
@@ -358,6 +359,21 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         alertData = [mockAlarm, ...alertData.slice(0, 7)];
       }
 
+      // Filter out alerts that the user has marked as read locally
+      const localReadIds = getUserReadNotificationIds(user);
+      try {
+        const legacy = JSON.parse(localStorage.getItem('agrishield_read_notifications') || '[]');
+        if (Array.isArray(legacy)) legacy.forEach(id => localReadIds.add(String(id)));
+      } catch (_) {}
+
+      alertData = alertData.map(a => {
+        const aId = String(a.notification_id || a.id || a._id || '');
+        if (aId && localReadIds.has(aId)) {
+          return { ...a, read: true, is_read: true };
+        }
+        return a;
+      });
+
       // Check for incoming new unread alerts in real-time
       const unreadAlerts = alertData.filter(a => !a.read && !a.is_read);
       if (hasInitializedAlertsRef.current && unreadAlerts.length > 0) {
@@ -470,13 +486,16 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     window.addEventListener('focus', handleRevalidateNotifs);
     document.addEventListener('visibilitychange', handleRevalidateNotifs);
 
-    // Responsive 12s real-time alert synchronizer ensuring cross-portal broadcasts & support popups appear reliably
+    // Responsive real-time alert synchronizer (bypassed on /notifications to prevent badge flickering)
     const notifPollTimer = setInterval(() => {
       if (document.visibilityState === 'visible') {
+        if (typeof window !== 'undefined' && window.location.pathname.startsWith('/notifications')) {
+          return;
+        }
         fetchUnreadCount();
         fetchRecentAlerts();
       }
-    }, 12000);
+    }, 15000);
 
     return () => {
       clearInterval(notifPollTimer);

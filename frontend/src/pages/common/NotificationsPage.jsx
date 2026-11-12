@@ -689,7 +689,7 @@ export default function NotificationsPage() {
       const msg = isTe
         ? 'నమస్కారం! మీ ఇన్‌బాక్స్‌లో ప్రస్తుతం చదవని అత్యవసర హెచ్చరికలు ఏవీ లేవు. మీ పంటల మరియు పరికరాల స్థితి సాధారణంగా ఉంది.'
         : 'Hello! You have no unread urgent alerts in your inbox right now. Your crops and machinery are in normal status.';
-      speak(msg, 'today_briefing', currentLang, 0.85);
+      speak(msg, 'today_briefing', currentLang, 1.0);
       return;
     }
 
@@ -709,7 +709,7 @@ export default function NotificationsPage() {
       });
       summary += 'Please take necessary field management actions.';
     }
-    speak(summary, 'today_briefing', currentLang, 0.85);
+    speak(summary, 'today_briefing', currentLang, 1.0);
   };
 
   // Phase 1: Machinery Booking Quick Decision for Equipment Providers
@@ -1607,7 +1607,7 @@ export default function NotificationsPage() {
       stopSpeech();
     } else {
       const textToRead = `${msg.title_te || msg.title}. ${msg.message_te || msg.message}`;
-      speak(textToRead, msgId, currentLang, 0.88);
+      speak(textToRead, msgId, currentLang, 1.0);
     }
   };
 
@@ -2447,7 +2447,7 @@ export default function NotificationsPage() {
                               </div>
 
                               <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 shrink-0">
-                                0.94x
+                                1.0x
                               </span>
                             </div>
 

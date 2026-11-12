@@ -117,7 +117,7 @@ export const useSpeechReader = () => {
     return voices.find(v => v.default) || voices[0] || null;
   }, []);
 
-  const playBrowserSpeech = useCallback((cleanText, id, lang, rate = 1.18) => {
+  const playBrowserSpeech = useCallback((cleanText, id, lang, rate = 1.0) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
     const synth = window.speechSynthesis;
     const primaryCode = (lang || 'en').split('-')[0].toLowerCase();
@@ -127,7 +127,7 @@ export const useSpeechReader = () => {
     if (primaryCode === 'or' && !matchedVoice) {
       window.dispatchEvent(new CustomEvent('agrishield-toast', {
         detail: {
-          message: 'ଓଡ଼ିଆ ଭଏସ୍ ରିଡର୍ ଡିଭାଇସରେ ଉପଲବ୍ଧ ନାହିଁ। ଅନ-ସ୍କ୍ରିନ୍ ଟେକ୍ସଟ୍ ପ୍ରଦର୍ଶିତ ହେଉଛି।',
+          message: 'ଓଡ଼ିଆ ଭଏସ ରିଡର ଡିଭାଇସରେ ଉପଲବ୍ଧ ନାହିଁ। ଅନ-ସ୍କ୍ରିନ ଟେକ୍ସଟ ପ୍ରଦର୍ଶିତ ହେଉଛି।',
           type: 'info'
         }
       }));
@@ -139,7 +139,7 @@ export const useSpeechReader = () => {
     const targetLocale = getSpeechLocale(lang);
     utterance.lang = targetLocale;
     utterance.rate = rate || 1.0;
-    utterance.pitch = 0.94; // Warm, natural masculine pitch for authoritative farmer advisory
+    utterance.pitch = 0.94;
 
     if (matchedVoice) {
       utterance.voice = matchedVoice;
@@ -162,7 +162,7 @@ export const useSpeechReader = () => {
         try {
           const fallbackUtterance = new SpeechSynthesisUtterance(cleanText);
           fallbackUtterance.lang = 'en-IN';
-          fallbackUtterance.rate = rate || 1.18;
+          fallbackUtterance.rate = rate || 1.0;
           fallbackUtterance.onend = () => { setSpeakingId(null); setIsPaused(false); };
           fallbackUtterance.onerror = () => { setSpeakingId(null); setIsPaused(false); };
           synth.speak(fallbackUtterance);
@@ -176,27 +176,25 @@ export const useSpeechReader = () => {
     setSpeakingId(id);
     setIsPaused(false);
 
-    setTimeout(() => {
-      try {
-        if (synth.paused) synth.resume();
-        synth.speak(utterance);
-      } catch (err) {
-        console.error('synth.speak failed:', err);
-        setSpeakingId(null);
-      }
-    }, 40);
+    try {
+      if (synth.paused) synth.resume();
+      synth.speak(utterance);
+    } catch (err) {
+      console.error('synth.speak failed:', err);
+      setSpeakingId(null);
+    }
   }, [findBestVoice]);
 
-  const speak = useCallback((text, id = 'default', lang = 'en', rate = 1.18) => {
+  const speak = useCallback((text, id = 'default', lang = 'en', rate = 1.0) => {
     // 0. Intelligent Parameter Order Guard: Auto-detect if caller passed (id, text, ...) instead of (text, id, ...)
     let targetText = text;
     let targetId = id;
     let targetLang = lang;
-    let targetRate = rate;
+    let targetRate = rate || 1.0;
 
     if (typeof text === 'string' && typeof id === 'string') {
-      const isTextAnId = (text.length < 40 && !text.includes(' ') && !/[\u0C00-\u0C7F\u0900-\u097F]/.test(text));
-      const isIdActualSentence = (id.includes(' ') || /[\u0C00-\u0C7F\u0900-\u097F]/.test(id) || id.length > 50);
+      const isTextAnId = (text.length < 40 && !text.includes(' ') && !/[ఀ-౿ऀ-ॿ]/.test(text));
+      const isIdActualSentence = (id.includes(' ') || /[ఀ-౿ऀ-ॿ]/.test(id) || id.length > 50);
       if (isTextAnId && isIdActualSentence) {
         targetText = id;
         targetId = text;
@@ -230,10 +228,14 @@ export const useSpeechReader = () => {
     const cleanText = sanitizeTextForSpeech(targetText, targetLang);
     if (!cleanText) return;
 
+    // IMMEDIATE active state: activate UI button instantly on first tick
+    setSpeakingId(targetId);
+    setIsPaused(false);
+
     const primaryCode = (targetLang || 'en').split('-')[0].toLowerCase();
 
-    // Calculate natural speed percentage for edge-tts (default +10% for crisp, clear male articulation)
-    let rateStr = '+10%';
+    // Default 1.0x reading speed (+0% delta) per farmer requirement
+    let rateStr = '+0%';
     if (typeof targetRate === 'number' && !isNaN(targetRate)) {
       const diff = Math.round((targetRate - 1.0) * 100);
       rateStr = diff >= 0 ? `+${diff}%` : `${diff}%`;
@@ -241,10 +243,11 @@ export const useSpeechReader = () => {
       rateStr = targetRate;
     }
 
-    // 2. High-Fidelity Studio Neural Male Voice via Server-Side Streaming (Zero-download for farmer)
+    // 2. High-Fidelity Studio Neural Male Voice via Streaming (Instant playback)
     try {
       const audioUrl = `/api/speech/synthesize?lang=${encodeURIComponent(primaryCode)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(rateStr)}&gender=male`;
       const audio = new Audio(audioUrl);
+      audio.preload = 'auto';
       audioRef.current = audio;
 
       audio.onplay = () => {
@@ -261,16 +264,19 @@ export const useSpeechReader = () => {
       audio.onerror = (err) => {
         console.warn('Server neural voice stream unavailable, falling back to local speech:', err);
         audioRef.current = null;
-        playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.18);
+        playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.0);
       };
 
-      audio.play().catch((playErr) => {
-        console.warn('Audio play interrupted or blocked by browser autoplay policy, attempting browser fallback:', playErr);
-        audioRef.current = null;
-        playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.18);
-      });
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((playErr) => {
+          console.warn('Audio play interrupted or blocked by browser autoplay policy, attempting browser fallback:', playErr);
+          audioRef.current = null;
+          playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.0);
+        });
+      }
     } catch (err) {
-      playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.18);
+      playBrowserSpeech(cleanText, targetId, targetLang, targetRate || 1.0);
     }
   }, [speakingId, playBrowserSpeech]);
 

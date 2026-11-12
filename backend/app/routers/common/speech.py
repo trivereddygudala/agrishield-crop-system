@@ -2,6 +2,7 @@ import logging
 import hashlib
 from typing import Optional, Dict
 from fastapi import APIRouter, Query, HTTPException, status, Response, Body
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class SpeechSynthesizeRequest(BaseModel):
     text: str
     lang: str = "te"
     gender: Optional[str] = "male"
-    rate: Optional[str] = "+10%"
+    rate: Optional[str] = "+0%"
     pitch: Optional[str] = "+0Hz"
 
 def _get_voice_name(lang: str, gender: Optional[str] = "male") -> str:
@@ -97,7 +98,7 @@ def _get_voice_name(lang: str, gender: Optional[str] = "male") -> str:
         return mapping.get("male", mapping["default"])
     return mapping.get(g, mapping["default"])
 
-async def _synthesize_audio(text: str, voice_name: str, rate: str = "+10%", pitch: str = "+0Hz") -> bytes:
+async def _synthesize_audio(text: str, voice_name: str, rate: str = "+0%", pitch: str = "+0Hz") -> bytes:
     """Synthesizes broadcast-quality neural voice bytes using edge-tts."""
     cache_key = hashlib.md5(f"{voice_name}:{rate}:{pitch}:{text}".encode("utf-8")).hexdigest()
     if cache_key in AUDIO_CACHE:
@@ -169,7 +170,7 @@ async def synthesize_speech_get(
     text: str = Query(..., description="Text to speak aloud"),
     lang: str = Query("te", description="Language code (te, hi, ta, kn, en, etc.)"),
     gender: Optional[str] = Query("male", description="Voice gender (female/male)"),
-    rate: Optional[str] = Query("+10%", description="Speaking rate delta"),
+    rate: Optional[str] = Query("+0%", description="Speaking rate delta (1.0x normal is +0%)"),
     pitch: Optional[str] = Query("+0Hz", description="Pitch delta")
 ):
     clean_text = text.strip()
@@ -180,15 +181,63 @@ async def synthesize_speech_get(
         clean_text = clean_text[:4000]
 
     voice_name = _get_voice_name(lang, gender)
-    audio_bytes = await _synthesize_audio(clean_text, voice_name, rate or "+10%", pitch or "+0Hz")
+    speaking_rate = rate or "+0%"
+    speaking_pitch = pitch or "+0Hz"
+    cache_key = hashlib.md5(f"{voice_name}:{speaking_rate}:{speaking_pitch}:{clean_text}".encode("utf-8")).hexdigest()
 
-    return Response(
-        content=audio_bytes,
+    # Fast path: instant return from in-memory cache
+    if cache_key in AUDIO_CACHE:
+        return Response(
+            content=AUDIO_CACHE[cache_key],
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": "inline; filename=speech.mp3",
+                "Cache-Control": "public, max-age=86400",
+                "X-Voice-Engine": voice_name,
+                "X-Cache": "HIT"
+            }
+        )
+
+    try:
+        import edge_tts
+    except ImportError:
+        logger.error("[SPEECH ENGINE] edge_tts library not installed.")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Neural TTS engine library is not available."
+        )
+
+    # Real-time zero-latency audio streaming generator
+    async def audio_stream_generator():
+        collected_chunks = []
+        try:
+            communicate = edge_tts.Communicate(text=clean_text, voice=voice_name, rate=speaking_rate, pitch=speaking_pitch)
+            async for chunk in communicate.stream():
+                if chunk.get("type") == "audio":
+                    chunk_data = chunk.get("data", b"")
+                    if chunk_data:
+                        collected_chunks.append(chunk_data)
+                        yield chunk_data
+            
+            # Cache completed audio bytes for future instant plays
+            if collected_chunks:
+                full_audio = b"".join(collected_chunks)
+                if len(AUDIO_CACHE) >= MAX_CACHE_ITEMS:
+                    old_keys = list(AUDIO_CACHE.keys())[:50]
+                    for k in old_keys:
+                        AUDIO_CACHE.pop(k, None)
+                AUDIO_CACHE[cache_key] = full_audio
+        except Exception as stream_err:
+            logger.error(f"[STREAM SYNTHESIS ERROR] {stream_err}")
+
+    return StreamingResponse(
+        audio_stream_generator(),
         media_type="audio/mpeg",
         headers={
             "Content-Disposition": "inline; filename=speech.mp3",
             "Cache-Control": "public, max-age=86400",
-            "X-Voice-Engine": voice_name
+            "X-Voice-Engine": voice_name,
+            "X-Cache": "STREAM"
         }
     )
 

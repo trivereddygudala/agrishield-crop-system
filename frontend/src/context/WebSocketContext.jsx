@@ -65,6 +65,10 @@ export const WebSocketProvider = ({ children }) => {
       setUnreadCount(null);
       return;
     }
+    // Prevent unread badge flickering while viewing Notifications page
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/notifications')) {
+      return;
+    }
     try {
       const res = await API.get('/api/v1/notifications/count');
       const count = Number(res?.data?.unread_count ?? 0);
