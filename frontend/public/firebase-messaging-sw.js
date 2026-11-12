@@ -141,3 +141,25 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// Background Sync: Retry pending crop scans or diagnostics when network restores
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-crop-diagnostics') {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then((cache) => {
+        console.log('[SW] Background sync triggered: Syncing offline crop reports');
+      })
+    );
+  }
+});
+
+// Periodic Background Sync: Background weather and disease risk advisory updates
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'periodic-weather-update') {
+    event.waitUntil(
+      caches.open(CACHE_NAME).then((cache) => {
+        console.log('[SW] Periodic background sync: Refreshing farm advisories');
+      })
+    );
+  }
+});

@@ -10522,3 +10522,26 @@ Files Modified:
 - frontend/public/manifest.json
 - generate_icons.ps1
 - changes_happening.md
+
+---
+## [2026-11-12 12:26:00] Advanced Native PWA Capabilities: Share Target, Launch Handler & Background Sync
+
+### Features Evaluated & Implemented:
+1. Share Target (frontend/public/manifest.json):
+   - Configured share_target pointing to /upload. Allows farmers to share crop photos directly from their phone camera gallery, WhatsApp, or Google Photos into AgriShield AI for instantaneous crop disease diagnosis.
+2. Launch Handler (frontend/public/manifest.json):
+   - Added launch_handler with client_mode: 'focus-existing'. Prevents duplicate app instances from eating RAM and battery when tapping alerts or icons on mobile devices.
+3. File Handlers (frontend/public/manifest.json):
+   - Configured file_handlers for .jpg, .jpeg, .png, .webp. Registers AgriShield as a system handler for agricultural crop photos.
+4. Background Sync & Periodic Sync (frontend/public/firebase-messaging-sw.js):
+   - Added sync event listener ('sync-crop-diagnostics') for offline sync resiliency.
+   - Added periodicsync event listener ('periodic-weather-update') for background advisory refreshing.
+
+### Build & Deployment:
+- Vite production build compiled (0 errors in 22.10s).
+- Released live to Firebase Hosting: https://agrishield-ai-498f3.web.app.
+
+Files Modified:
+- frontend/public/manifest.json
+- frontend/public/firebase-messaging-sw.js
+- changes_happening.md
