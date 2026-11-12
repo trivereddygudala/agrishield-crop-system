@@ -10629,3 +10629,45 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Vite production build verified (0 errors, 17.92s).
   - Deployed live to Firebase Hosting (https://agrishield-ai-498f3.web.app).
   - Staged, committed (aa2d861), and pushed to GitHub origin/main for automatic Vercel deployment (https://shield-crop-system-rust.vercel.app).
+
+## [2026-11-12 17:10:00] Male Voice Synthesis Engine & Notification Scroller + Full Message Feed Resolution
+- **Male Voice Synthesis Across All Regional Languages (Issue 1):**
+  - Updated backend/app/routers/common/speech.py:
+    - Set default neural voice in all 12 Indian languages to Microsoft Edge male neural voices:
+      - Telugu: te-IN-MohanNeural (deep authoritative announcer diction)
+      - Hindi: hi-IN-MadhurNeural (warm articulate male voice)
+      - Tamil: ta-IN-ValluvarNeural (classical resonant male voice)
+      - Kannada: kn-IN-GaganNeural (clear resonant male voice)
+      - Malayalam: ml-IN-MidhunNeural (fluent male voice)
+      - Marathi: mr-IN-ManoharNeural (crisp male voice)
+      - Gujarati: gu-IN-NiranjanNeural (articulate male voice)
+      - Bengali: bn-IN-BashkarNeural (rich male voice)
+      - Urdu: ur-IN-SalmanNeural (expressive male voice)
+      - English: en-IN-PrabhatNeural (authentic Indian English male voice)
+      - Punjabi, Odia, Assamese: male voice fallbacks
+    - Tuned default speech rate to +10% and pitch to +0Hz for calm, natural cadence.
+    - Updated _get_voice_name to strictly default to male voice unless female is explicitly requested.
+  - Updated frontend/src/hooks/useSpeechReader.js:
+    - Added comprehensive male voice engine prioritization in findBestVoice.
+    - Added &gender=male and rateStr default +10% in /api/speech/synthesize queries.
+    - Configured fallback pitch to 0.94 and rate to 1.0 for warm masculine resonance.
+  - Updated frontend/src/components/intelligence/VoiceCropDoctorModal.jsx:
+    - Prioritized male voice engines (Mohan, Madhur, Valluvar, Gagan, Prabhat, etc.) with 0.94 pitch.
+  - Updated frontend/src/pages/common/AIAssistantPage.jsx:
+    - Integrated high-definition male neural streaming with male fallback synthesis.
+  - Updated frontend/src/pages/farmer/HistoryPage.jsx & SmartFarmerActionCenter.jsx:
+    - Configured male speech synthesis with 0.94 pitch.
+
+- **Notification Scroller & Full Message Retrieval Resolution (Issue 2):**
+  - Backend API limit expansion:
+    - In backend/app/routers/common/notifications.py: Increased limit query constraint from le=100 to le=500.
+    - In frontend/src/pages/common/NotificationsPage.jsx: Changed fetch limit from 50 to 500, enabling retrieval of all 134+ stored notifications from MongoDB Atlas.
+  - Added 'All Messages' (All / Unified Feed) Channel:
+    - Created id: 'all' as Channel #0 at top of channels list.
+    - Set default activeChannelId to 'all' so users immediately see all notifications across all categories upon opening.
+    - Unpacked all individual messages from consolidated threadItems into channel feeds.
+  - Internal & External Scroller Architecture:
+    - Replaced rigid min-h-[640px] with responsive h-[calc(100dvh-130px)] min-h-[520px] max-h-[860px] lg:h-[750px].
+    - Added min-h-0 flexbox constraints on all intermediate flex containers.
+    - Added custom emerald-themed scrollbars (scrollbar-thin scrollbar-thumb-emerald-500/40) with touch momentum (-webkit-overflow-scrolling: touch) on both left Inbox list and right Chat stream.
+    - Added chatScrollRef auto-scroll to bottom on channel switch or incoming message arrival.

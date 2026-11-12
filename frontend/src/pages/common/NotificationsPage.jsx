@@ -457,10 +457,24 @@ export default function NotificationsPage() {
   const [activeChannelId, setActiveChannelId] = useState(null);
   const [channelFilter, setChannelFilter] = useState('all'); // 'all' | 'unread' | 'doctor' | 'equipment' | 'weather' | 'iot'
 
-  // Desktop auto-selection: default to doctor channel on larger screens
+  const chatScrollRef = useRef(null);
+
+  // Auto-scroll chat conversation to bottom when channel or messages update
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      const timer = setTimeout(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+        }
+      }, 70);
+      return () => clearTimeout(timer);
+    }
+  }, [activeChannelId, notifications]);
+
+  // Desktop auto-selection: default to 'all' messages channel on larger screens so farmers immediately see all messages
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth >= 1024 && !activeChannelId) {
-      setActiveChannelId('doctor');
+      setActiveChannelId('all');
     }
   }, [activeChannelId]);
 
@@ -751,7 +765,7 @@ export default function NotificationsPage() {
       setLoading(true);
     }
     try {
-      const params = new URLSearchParams({ limit: 50 });
+      const params = new URLSearchParams({ limit: 500 });
       if (priority !== 'All') params.set('priority', priority);
 
       const readIds = getReadIds();
@@ -1441,9 +1455,21 @@ export default function NotificationsPage() {
   };
 
   
-  // ─── Phase 1: Dynamic Channel Aggregation Engine ───
+  // ─── Phase 1: Dynamic Channel Aggregation Engine (Unified 'All' + Specific Channels) ───
   const channels = useMemo(() => {
     const channelDefinitions = [
+      {
+        id: 'all',
+        title: isTe ? '📬 అన్ని సందేశాలు (పూర్తి ఫీడ్)' : '📬 All Messages (Unified Feed)',
+        subtitle: isTe ? 'రైతు సలహాలు, బుకింగ్‌లు & హెచ్చరికల పూర్తి జాబితా' : 'Complete stream of all crop advice, bookings & farm alerts',
+        shortName: isTe ? 'అన్నీ' : 'All Messages',
+        icon: '📬',
+        avatarBg: 'from-emerald-600 via-teal-600 to-emerald-700',
+        badgeBg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+        actionUrl: '/dashboard',
+        actionLabel: isTe ? 'డ్యాష్‌బోర్డ్ 🌾' : 'Dashboard 🌾',
+        emptyTip: isTe ? 'మీ ఇన్‌బాక్స్‌లో ప్రస్తుతానికి సందేశాలు ఏవీ లేవు.' : 'You have no notifications or messages in your inbox yet.'
+      },
       {
         id: 'doctor',
         title: isTe ? '🌱 అగ్రిషీల్డ్ పంట డాక్టర్' : '🌱 AgriShield AI Doctor',
@@ -1519,9 +1545,24 @@ export default function NotificationsPage() {
     notifications.forEach(item => {
       const chId = getNotificationChannel(item);
       const target = map[chId] || map['broadcast'];
-      target.messages.push(item);
-      if (!item.read) {
-        target.unreadCount += 1;
+
+      // Unpack all individual thread items if this was a consolidated thread so no history is hidden
+      if (item.threadItems && Array.isArray(item.threadItems) && item.threadItems.length > 0) {
+        item.threadItems.forEach(tItem => {
+          target.messages.push(tItem);
+          map['all'].messages.push(tItem);
+          if (!tItem.read) {
+            target.unreadCount += 1;
+            map['all'].unreadCount += 1;
+          }
+        });
+      } else {
+        target.messages.push(item);
+        map['all'].messages.push(item);
+        if (!item.read) {
+          target.unreadCount += 1;
+          map['all'].unreadCount += 1;
+        }
       }
     });
 
@@ -1534,7 +1575,7 @@ export default function NotificationsPage() {
     });
 
     if (isEquipmentProvider) {
-      return [map['equipment'], map['broadcast']];
+      return [map['all'], map['equipment'], map['broadcast']];
     }
 
     return channelDefinitions.map(c => map[c.id]);
@@ -1928,26 +1969,26 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* ─── FARMER MESSAGES APPLICATION (Phase 1, 2, 3) ─── */}
+      {/* ─── FARMER MESSAGES APPLICATION (Phase 1, 2, 3 + Perfect Scrollers) ─── */}
       <div className="w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xl overflow-hidden backdrop-blur-xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px] max-h-[840px] lg:h-[750px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 h-[calc(100dvh-130px)] min-h-[540px] max-h-[860px] lg:h-[750px]">
 
           {/* ═════════════════════════════════════════════════════════════════ */}
           {/* LEFT PANE: INBOX & CONVERSATION CHANNELS LIST                   */}
           {/* ═════════════════════════════════════════════════════════════════ */}
-          <div className={`lg:col-span-5 xl:col-span-5 border-r border-slate-200/80 dark:border-slate-800 flex flex-col h-full ${
+          <div className={`lg:col-span-5 xl:col-span-5 border-r border-slate-200/80 dark:border-slate-800 flex flex-col h-full min-h-0 overflow-hidden ${
             activeChannelId ? 'hidden lg:flex' : 'flex'
           }`}>
             
             {/* Inbox App Bar Header */}
-            <div className="p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 shrink-0">
-              <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="p-3.5 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 shrink-0">
+              <div className="flex items-center justify-between gap-2 mb-2.5">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-emerald-600/30">
                     💬
                   </div>
                   <div>
-                    <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight flex items-center gap-2">
+                    <h1 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight flex items-center gap-2">
                       <span>{isTe ? 'సందేశాలు' : 'Messages'}</span>
                       {unreadCount > 0 && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-xs">
@@ -2018,7 +2059,7 @@ export default function NotificationsPage() {
               </div>
 
               {/* Search Bar */}
-              <div className="relative w-full rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center gap-2 mb-2.5 shadow-2xs focus-within:ring-2 focus-within:ring-emerald-500/30">
+              <div className="relative w-full rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center gap-2 mb-2 shadow-2xs focus-within:ring-2 focus-within:ring-emerald-500/30">
                 <Search className="w-4 h-4 text-slate-400 shrink-0" />
                 <input
                   type="text"
@@ -2060,7 +2101,7 @@ export default function NotificationsPage() {
                   {isTe ? 'చదవనివి' : 'Unread'} ({unreadCount})
                 </button>
 
-                {channels.map(ch => (
+                {channels.filter(ch => ch.id !== 'all').map(ch => (
                   <button
                     key={ch.id}
                     type="button"
@@ -2078,8 +2119,15 @@ export default function NotificationsPage() {
               </div>
             </div>
 
-            {/* Channels List Body */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900/50">
+            {/* Channels List Body (Internal Scroller with visible scrollbar) */}
+            <div 
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900/50 scrollbar-thin scrollbar-thumb-emerald-500/40 scrollbar-track-slate-100 dark:scrollbar-track-slate-800/30 hover:scrollbar-thumb-emerald-500"
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(16, 185, 129, 0.45) transparent',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
               {filteredChannels.length === 0 ? (
                 <div className="py-16 px-4 text-center text-slate-400 space-y-2">
                   <MessageSquare className="w-10 h-10 mx-auto opacity-30 text-emerald-500" />
@@ -2103,7 +2151,7 @@ export default function NotificationsPage() {
                     <div
                       key={ch.id}
                       onClick={() => setActiveChannelId(ch.id)}
-                      className={`p-3.5 sm:p-4 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer flex items-start gap-3 relative border-l-4 ${
+                      className={`p-3 sm:p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer flex items-start gap-3 relative border-l-4 ${
                         isSelected
                           ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20'
                           : hasUnread
@@ -2113,7 +2161,7 @@ export default function NotificationsPage() {
                     >
                       {/* Avatar with Emoji & Verified check */}
                       <div className="relative shrink-0">
-                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${ch.avatarBg} text-white flex items-center justify-center text-xl shadow-md font-bold`}>
+                        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${ch.avatarBg} text-white flex items-center justify-center text-lg shadow-md font-bold`}>
                           {ch.icon}
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full flex items-center justify-center text-[9px] text-white font-black">
@@ -2151,12 +2199,18 @@ export default function NotificationsPage() {
                             {latestSnippet}
                           </p>
 
-                          {/* Unread Pill Counter */}
-                          {hasUnread && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-xs shrink-0 animate-pulse">
-                              {ch.unreadCount}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {/* Total messages count pill */}
+                            <span className="px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-bold">
+                              {ch.messages.length}
                             </span>
-                          )}
+                            {/* Unread Pill Counter */}
+                            {hasUnread && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-xs animate-pulse">
+                                {ch.unreadCount}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2169,7 +2223,7 @@ export default function NotificationsPage() {
           {/* ═════════════════════════════════════════════════════════════════ */}
           {/* RIGHT PANE: ACTIVE CONVERSATION THREAD                          */}
           {/* ═════════════════════════════════════════════════════════════════ */}
-          <div className={`lg:col-span-7 xl:col-span-7 flex flex-col h-full bg-[#f8fafc] dark:bg-[#070d17] ${
+          <div className={`lg:col-span-7 xl:col-span-7 flex flex-col h-full min-h-0 bg-[#f8fafc] dark:bg-[#070d17] relative overflow-hidden ${
             !activeChannelId ? 'hidden lg:flex' : 'flex'
           }`}>
             {!activeChannel ? (
@@ -2189,7 +2243,7 @@ export default function NotificationsPage() {
             ) : (
               <>
                 {/* Conversation Top Header */}
-                <div className="px-3.5 py-3 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 shadow-xs">
+                <div className="px-3.5 py-2.5 sm:py-3 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0 shadow-xs">
                   <div className="flex items-center gap-2.5 min-w-0">
                     {/* Mobile Back to Inbox Button */}
                     <button
@@ -2201,7 +2255,7 @@ export default function NotificationsPage() {
                       <ArrowLeft className="w-5 h-5" />
                     </button>
 
-                    <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${activeChannel.avatarBg} text-white flex items-center justify-center text-lg font-bold shadow-md shrink-0`}>
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br ${activeChannel.avatarBg} text-white flex items-center justify-center text-base sm:text-lg font-bold shadow-md shrink-0`}>
                       {activeChannel.icon}
                     </div>
 
@@ -2209,6 +2263,9 @@ export default function NotificationsPage() {
                       <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate flex items-center gap-1.5">
                         <span>{activeChannel.title}</span>
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          ({activeChannel.messages.length})
+                        </span>
                       </h2>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">
                         {activeChannel.subtitle}
@@ -2221,7 +2278,7 @@ export default function NotificationsPage() {
                     {/* Quick CTA */}
                     <Link
                       to={activeChannel.actionUrl}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       <span>{activeChannel.actionLabel}</span>
                     </Link>
@@ -2252,8 +2309,16 @@ export default function NotificationsPage() {
                   </div>
                 </div>
 
-                {/* Conversation Chat Bubbles Stream */}
-                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5">
+                {/* Conversation Chat Bubbles Stream (Internal Scroller with visible scrollbar) */}
+                <div 
+                  ref={chatScrollRef}
+                  className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-3 sm:p-4 space-y-3.5 scrollbar-thin scrollbar-thumb-emerald-500/40 scrollbar-track-slate-100 dark:scrollbar-track-slate-800/30 hover:scrollbar-thumb-emerald-500"
+                  style={{
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgba(16, 185, 129, 0.45) transparent',
+                    WebkitOverflowScrolling: 'touch'
+                  }}
+                >
                   {activeChannel.messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center p-6 text-center space-y-3 my-auto">
                       <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl shadow-inner">
@@ -2348,69 +2413,63 @@ export default function NotificationsPage() {
                                 className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
                                   isSpeaking
                                     ? 'bg-rose-600 text-white shadow-rose-600/30'
-                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                                 }`}
                               >
                                 {isSpeaking ? (
                                   <>
-                                    <Square className="w-3.5 h-3.5 fill-current animate-pulse" />
+                                    <Square className="w-3.5 h-3.5 fill-current animate-pulse text-white" />
                                     <span>{isTe ? 'ఆపండి' : 'Stop'}</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Volume2 className="w-3.5 h-3.5" />
+                                    <Volume2 className="w-3.5 h-3.5 text-white" />
                                     <span>{isTe ? 'వినండి' : 'Listen'}</span>
                                   </>
                                 )}
                               </button>
 
-                              {/* Animated Soundwave */}
-                              <div className="flex-1 flex items-center gap-1 px-1">
-                                <span className={`h-2.5 w-1 rounded-full ${isSpeaking ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                                <span className={`h-4 w-1 rounded-full ${isSpeaking ? 'bg-emerald-500 animate-pulse delay-75' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                                <span className={`h-3 w-1 rounded-full ${isSpeaking ? 'bg-emerald-500 animate-pulse delay-150' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                                <span className={`h-5 w-1 rounded-full ${isSpeaking ? 'bg-emerald-500 animate-pulse delay-100' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                                <span className={`h-2.5 w-1 rounded-full ${isSpeaking ? 'bg-emerald-500 animate-pulse delay-200' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                              </div>
+                              {/* Soundwave equalizer indicator */}
+                              {isSpeaking && (
+                                <div className="flex items-center gap-1 px-2">
+                                  <span className="w-1 h-3.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                  <span className="w-1 h-5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                  <span className="w-1 h-3 bg-emerald-500 rounded-full animate-bounce" />
+                                </div>
+                              )}
 
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                {isSpeaking ? 'Playing' : (isTe ? 'తెలుగు వాయిస్' : 'Audio')}
+                              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                {isSpeaking ? (isTe ? 'ఆడియో ప్లే అవుతోంది...' : 'Speaking...') : (isTe ? 'వాయిస్ సారాంశం' : 'Voice Reader')}
                               </span>
                             </div>
 
-                            {/* Contextual Action Button */}
-                            {item.action_url && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isUnread) handleMarkRead(msgId);
-                                  navigate(item.action_url);
-                                }}
-                                className="w-full mb-2.5 py-2 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-sm shadow-emerald-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                              >
-                                <span>
-                                  {activeChannel.id === 'doctor'
-                                    ? (isTe ? '📄 పూర్తి ప్రిస్క్రిప్షన్ చూడండి' : '📄 View Full Prescription')
-                                    : activeChannel.id === 'equipment'
-                                      ? (isTe ? '🚜 బుకింగ్ వివరాలు చూడండి' : '🚜 View Booking Details')
-                                      : (isTe ? 'వివరాలు చూడండి →' : 'View Action Details →')}
-                                </span>
-                                <span>&rarr;</span>
-                              </button>
+                            {/* Contextual Action Link / Button if applicable */}
+                            {getActionCTA(item, isTe) && (
+                              <div className="mb-2.5">
+                                <Link
+                                  to={getActionCTA(item, isTe).url}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs transition-colors"
+                                >
+                                  <span>{getActionCTA(item, isTe).label}</span>
+                                  <span>&rarr;</span>
+                                </Link>
+                              </div>
                             )}
 
-                            {/* Bubble Footer: Timestamp & Read Receipts */}
-                            <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60 text-[10px] text-slate-400 font-semibold">
-                              <span>{formatDateTime(item.created_at || item.timestamp, isTe)}</span>
-                              
+                            {/* Card Footer: Timestamp & Read Status Tick marks */}
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-400">
+                              <span className="font-semibold">
+                                {formatGoogleMessagesTime(item.created_at || item.timestamp)}
+                              </span>
+
                               <div className="flex items-center gap-2">
                                 {isUnread && (
                                   <button
                                     type="button"
                                     onClick={() => handleMarkRead(msgId)}
-                                    className="text-emerald-600 dark:text-emerald-400 hover:underline font-bold"
+                                    className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
                                   >
-                                    {isTe ? 'చదివినట్లు మార్చండి' : 'Mark Read'}
+                                    {isTe ? 'చదివినట్లు గుర్తించు' : 'Mark as read'}
                                   </button>
                                 )}
                                 <span className={!isUnread ? 'text-emerald-500 font-black' : 'text-slate-400'} title={!isUnread ? 'Delivered & Read' : 'Delivered'}>
@@ -2426,7 +2485,7 @@ export default function NotificationsPage() {
                 </div>
 
                 {/* Bottom Quick Suggestion Bar */}
-                <div className="p-2.5 border-t border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 flex items-center gap-2 shrink-0 overflow-x-auto no-scrollbar">
+                <div className="p-2 sm:p-2.5 border-t border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 flex items-center gap-2 shrink-0 overflow-x-auto no-scrollbar">
                   <Link
                     to="/upload"
                     className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5"
@@ -2466,7 +2525,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ─── 7. NOTIFICATION SETTINGS MODAL (WITH PHASE 3 QUIET HOURS) ─── */}
+{/* ─── 7. NOTIFICATION SETTINGS MODAL (WITH PHASE 3 QUIET HOURS) ─── */}
       <Dialog
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}

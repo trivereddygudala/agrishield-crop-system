@@ -908,10 +908,16 @@ const HistoryPage = () => {
                               <span className="truncate">🩺 {translateDisease(item.disease_name, i18n.language)}</span>
                               <button
                                 onClick={() => {
-                                  if ('speechSynthesis' in window) {
+                                  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
                                     const textToSpeak = translateDisease(item.disease_name, i18n.language);
                                     const utterance = new SpeechSynthesisUtterance(textToSpeak);
                                     utterance.lang = getSpeechLocale(i18n.language);
+                                    utterance.pitch = 0.94;
+                                    utterance.rate = 1.0;
+                                    const voices = window.speechSynthesis.getVoices() || [];
+                                    const maleKws = ['male', 'mohan', 'madhur', 'valluvar', 'gagan', 'prabhat', 'david', 'ravi'];
+                                    const matched = voices.find(v => (v.lang || '').toLowerCase().startsWith((i18n.language || 'en').split('-')[0]) && maleKws.some(mk => (v.name || '').toLowerCase().includes(mk)));
+                                    if (matched) utterance.voice = matched;
                                     window.speechSynthesis.speak(utterance);
                                   }
                                 }}
@@ -1242,9 +1248,15 @@ const HistoryPage = () => {
                     </h4>
                     <button
                       onClick={() => {
-                        if ('speechSynthesis' in window) {
+                        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
                           const utterance = new SpeechSynthesisUtterance(localizedDisease);
                           utterance.lang = getSpeechLocale(i18n.language);
+                          utterance.pitch = 0.94;
+                          utterance.rate = 1.0;
+                          const voices = window.speechSynthesis.getVoices() || [];
+                          const maleKws = ['male', 'mohan', 'madhur', 'valluvar', 'gagan', 'prabhat', 'david', 'ravi'];
+                          const matched = voices.find(v => (v.lang || '').toLowerCase().startsWith((i18n.language || 'en').split('-')[0]) && maleKws.some(mk => (v.name || '').toLowerCase().includes(mk)));
+                          if (matched) utterance.voice = matched;
                           window.speechSynthesis.speak(utterance);
                         }
                       }}

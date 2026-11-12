@@ -8,57 +8,72 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/speech", tags=["Neural Speech Engine"])
 
-# High-fidelity Indian Neural Voice Mappings
+# High-fidelity Indian Neural Voice Mappings (Male voices prioritized for all languages)
 VOICE_MAP: Dict[str, Dict[str, str]] = {
     "te": {
         "female": "te-IN-ShrutiNeural",
         "male": "te-IN-MohanNeural",
-        "default": "te-IN-MohanNeural"  # MohanNeural has much sharper Telugu diction, retroflex clarity & radio announcer presence
+        "default": "te-IN-MohanNeural"  # MohanNeural has deep, authoritative Telugu broadcast clarity
     },
     "hi": {
         "female": "hi-IN-SwaraNeural",
         "male": "hi-IN-MadhurNeural",
-        "default": "hi-IN-SwaraNeural"
+        "default": "hi-IN-MadhurNeural"  # MadhurNeural is a warm, articulate, professional Hindi male voice
     },
     "ta": {
         "female": "ta-IN-PallaviNeural",
         "male": "ta-IN-ValluvarNeural",
-        "default": "ta-IN-PallaviNeural"
+        "default": "ta-IN-ValluvarNeural"  # ValluvarNeural is an authoritative, classical Tamil male voice
     },
     "kn": {
         "female": "kn-IN-SapnaNeural",
         "male": "kn-IN-GaganNeural",
-        "default": "kn-IN-SapnaNeural"
+        "default": "kn-IN-GaganNeural"  # GaganNeural is a clear, resonant Kannada male voice
     },
     "ml": {
         "female": "ml-IN-SobhanaNeural",
         "male": "ml-IN-MidhunNeural",
-        "default": "ml-IN-SobhanaNeural"
+        "default": "ml-IN-MidhunNeural"  # MidhunNeural is a fluent, natural Malayalam male voice
     },
     "mr": {
         "female": "mr-IN-AarohiNeural",
         "male": "mr-IN-ManoharNeural",
-        "default": "mr-IN-AarohiNeural"
+        "default": "mr-IN-ManoharNeural"  # ManoharNeural is a crisp Marathi male voice
     },
     "gu": {
         "female": "gu-IN-DhwaniNeural",
         "male": "gu-IN-NiranjanNeural",
-        "default": "gu-IN-DhwaniNeural"
+        "default": "gu-IN-NiranjanNeural"  # NiranjanNeural is an articulate Gujarati male voice
     },
     "bn": {
         "female": "bn-IN-TanishaaNeural",
         "male": "bn-IN-BashkarNeural",
-        "default": "bn-IN-TanishaaNeural"
+        "default": "bn-IN-BashkarNeural"  # BashkarNeural is a rich, natural Bengali male voice
     },
     "ur": {
         "female": "ur-IN-GulNeural",
         "male": "ur-IN-SalmanNeural",
-        "default": "ur-IN-GulNeural"
+        "default": "ur-IN-SalmanNeural"  # SalmanNeural is an expressive, elegant Urdu male voice
+    },
+    "pa": {
+        "female": "hi-IN-SwaraNeural",
+        "male": "hi-IN-MadhurNeural",
+        "default": "hi-IN-MadhurNeural"  # MadhurNeural male voice for northern regional fluency
+    },
+    "or": {
+        "female": "hi-IN-SwaraNeural",
+        "male": "hi-IN-MadhurNeural",
+        "default": "hi-IN-MadhurNeural"  # MadhurNeural male voice
+    },
+    "as": {
+        "female": "hi-IN-SwaraNeural",
+        "male": "hi-IN-MadhurNeural",
+        "default": "hi-IN-MadhurNeural"  # MadhurNeural male voice
     },
     "en": {
         "female": "en-IN-NeerjaNeural",
         "male": "en-IN-PrabhatNeural",
-        "default": "en-IN-NeerjaNeural"
+        "default": "en-IN-PrabhatNeural"  # PrabhatNeural is an authentic, clear Indian English male voice
     }
 }
 
@@ -70,16 +85,19 @@ class SpeechSynthesizeRequest(BaseModel):
     text: str
     lang: str = "te"
     gender: Optional[str] = "male"
-    rate: Optional[str] = "+18%"
+    rate: Optional[str] = "+10%"
     pitch: Optional[str] = "+0Hz"
 
 def _get_voice_name(lang: str, gender: Optional[str] = "male") -> str:
     primary = (lang or "te").split("-")[0].lower()
     mapping = VOICE_MAP.get(primary, VOICE_MAP["te"])
+    # Default to male voice across all languages per farmer accessibility requirements
     g = (gender or "male").lower()
+    if g != "female":
+        return mapping.get("male", mapping["default"])
     return mapping.get(g, mapping["default"])
 
-async def _synthesize_audio(text: str, voice_name: str, rate: str = "+18%", pitch: str = "+0Hz") -> bytes:
+async def _synthesize_audio(text: str, voice_name: str, rate: str = "+10%", pitch: str = "+0Hz") -> bytes:
     """Synthesizes broadcast-quality neural voice bytes using edge-tts."""
     cache_key = hashlib.md5(f"{voice_name}:{rate}:{pitch}:{text}".encode("utf-8")).hexdigest()
     if cache_key in AUDIO_CACHE:
@@ -151,7 +169,7 @@ async def synthesize_speech_get(
     text: str = Query(..., description="Text to speak aloud"),
     lang: str = Query("te", description="Language code (te, hi, ta, kn, en, etc.)"),
     gender: Optional[str] = Query("male", description="Voice gender (female/male)"),
-    rate: Optional[str] = Query("+18%", description="Speaking rate delta"),
+    rate: Optional[str] = Query("+10%", description="Speaking rate delta"),
     pitch: Optional[str] = Query("+0Hz", description="Pitch delta")
 ):
     clean_text = text.strip()
@@ -162,7 +180,7 @@ async def synthesize_speech_get(
         clean_text = clean_text[:4000]
 
     voice_name = _get_voice_name(lang, gender)
-    audio_bytes = await _synthesize_audio(clean_text, voice_name, rate or "+18%", pitch or "+0Hz")
+    audio_bytes = await _synthesize_audio(clean_text, voice_name, rate or "+10%", pitch or "+0Hz")
 
     return Response(
         content=audio_bytes,

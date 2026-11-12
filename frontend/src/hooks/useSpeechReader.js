@@ -52,24 +52,41 @@ export const useSpeechReader = () => {
     const targetLocale = getSpeechLocale(langCode).toLowerCase();
     const primaryCode = (langCode || 'en').split('-')[0].toLowerCase();
 
-    // 1. Natural / Neural / Online voices preferred (e.g. Edge Natural Telugu/Hindi)
+    // Male voice indicators across Microsoft, Google, Apple and Android TTS engines
+    const maleKeywords = ['male', 'mohan', 'madhur', 'valluvar', 'gagan', 'midhun', 'manohar', 'niranjan', 'bashkar', 'salman', 'prabhat', 'david', 'mark', 'george', 'ravi', 'guy', 'kumar', 'deep', 'hemant', 'asad', 'pradeep'];
+    const femaleKeywords = ['female', 'shruti', 'swara', 'pallavi', 'sapna', 'sobhana', 'aarohi', 'dhwani', 'tanishaa', 'gul', 'neerja', 'zira', 'heera', 'saranya', 'kani', 'venba', 'uzma', 'nabanita'];
+
+    const isMaleVoice = (v) => {
+      const name = (v.name || '').toLowerCase();
+      if (femaleKeywords.some(fk => name.includes(fk))) return false;
+      return maleKeywords.some(mk => name.includes(mk)) || !femaleKeywords.some(fk => name.includes(fk));
+    };
+
+    // 1. Natural / Neural / Online MALE voices preferred (e.g. Edge Natural Telugu Mohan / Hindi Madhur)
     let match = voices.find(v => (v.lang && v.lang.toLowerCase() === targetLocale) && 
-      (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online')));
+      (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online')) && isMaleVoice(v));
     if (match) return match;
 
-    // 2. Exact locale match (e.g. "te-IN", "hi-IN", "ta-IN")
+    // 2. Exact locale match with male voice (e.g. "te-IN", "hi-IN", "ta-IN")
+    match = voices.find(v => v.lang && v.lang.toLowerCase() === targetLocale && isMaleVoice(v));
+    if (match) return match;
+
+    // 3. Exact locale match general
     match = voices.find(v => v.lang && v.lang.toLowerCase() === targetLocale);
     if (match) return match;
 
-    // 3. Exact match replacing _ with -
-    match = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-') === targetLocale);
+    // 4. Exact match replacing _ with -
+    match = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-') === targetLocale && isMaleVoice(v));
     if (match) return match;
 
-    // 4. Primary language code prefix (e.g. starts with "te", "hi", "ta")
+    // 5. Primary language code prefix with male voice (e.g. starts with "te", "hi", "ta")
+    match = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(primaryCode) && isMaleVoice(v));
+    if (match) return match;
+
     match = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(primaryCode));
     if (match) return match;
 
-    // 5. Voice name containing the language name (e.g. "Telugu", "Hindi", "Tamil")
+    // 6. Voice name containing the language name and male indicator
     const langNames = {
       te: 'telugu', hi: 'hindi', ta: 'tamil', kn: 'kannada',
       ml: 'malayalam', mr: 'marathi', gu: 'gujarati', pa: 'punjabi',
@@ -77,6 +94,8 @@ export const useSpeechReader = () => {
     };
     const targetName = langNames[primaryCode];
     if (targetName) {
+      match = voices.find(v => v.name && v.name.toLowerCase().includes(targetName) && isMaleVoice(v));
+      if (match) return match;
       match = voices.find(v => v.name && v.name.toLowerCase().includes(targetName));
       if (match) return match;
     }
@@ -86,11 +105,15 @@ export const useSpeechReader = () => {
       return null;
     }
 
-    // 6. Fallback to an Indian English or local English voice if no regional voice exists
-    match = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || v.name.toLowerCase().includes('india')));
+    // 7. Fallback to an Indian English or local English male voice
+    match = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || v.name.toLowerCase().includes('india')) && isMaleVoice(v));
     if (match) return match;
 
-    // 7. System default
+    // 8. Any male voice
+    match = voices.find(v => isMaleVoice(v));
+    if (match) return match;
+
+    // 9. System default
     return voices.find(v => v.default) || voices[0] || null;
   }, []);
 
@@ -115,8 +138,8 @@ export const useSpeechReader = () => {
     utteranceRef.current = utterance;
     const targetLocale = getSpeechLocale(lang);
     utterance.lang = targetLocale;
-    utterance.rate = rate || 1.18;
-    utterance.pitch = 1.0;
+    utterance.rate = rate || 1.0;
+    utterance.pitch = 0.94; // Warm, natural masculine pitch for authoritative farmer advisory
 
     if (matchedVoice) {
       utterance.voice = matchedVoice;
@@ -209,8 +232,8 @@ export const useSpeechReader = () => {
 
     const primaryCode = (targetLang || 'en').split('-')[0].toLowerCase();
 
-    // Calculate natural speed percentage for edge-tts (default +18% to +20% for crisp Telugu articulation)
-    let rateStr = '+18%';
+    // Calculate natural speed percentage for edge-tts (default +10% for crisp, clear male articulation)
+    let rateStr = '+10%';
     if (typeof targetRate === 'number' && !isNaN(targetRate)) {
       const diff = Math.round((targetRate - 1.0) * 100);
       rateStr = diff >= 0 ? `+${diff}%` : `${diff}%`;
@@ -218,9 +241,9 @@ export const useSpeechReader = () => {
       rateStr = targetRate;
     }
 
-    // 2. High-Fidelity Studio Neural Voice via Server-Side Streaming (Zero-download for farmer)
+    // 2. High-Fidelity Studio Neural Male Voice via Server-Side Streaming (Zero-download for farmer)
     try {
-      const audioUrl = `/api/speech/synthesize?lang=${encodeURIComponent(primaryCode)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(rateStr)}`;
+      const audioUrl = `/api/speech/synthesize?lang=${encodeURIComponent(primaryCode)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(rateStr)}&gender=male`;
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
 

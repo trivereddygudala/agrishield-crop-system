@@ -230,7 +230,10 @@ export const VoiceCropDoctorModal = ({
     const langConfig = SUPPORTED_LANGUAGES.find(l => l.code === lang) || { bcp: 'en-IN' };
     utterance.lang = langConfig.bcp;
 
-    // Pick best native voice matching the language
+    utterance.pitch = 0.94; // Warm, natural masculine pitch for authoritative farmer advisory
+    utterance.rate = 1.0;
+
+    // Pick best native male voice matching the language
     const synth = synthRef.current || window.speechSynthesis;
     const voices = availableVoices.length > 0 ? availableVoices : (synth ? synth.getVoices() : []);
     
@@ -238,23 +241,37 @@ export const VoiceCropDoctorModal = ({
     const targetBcp = langConfig.bcp.toLowerCase();
     const targetCode = lang.toLowerCase();
 
-    // 1. Exact BCP-47 match (e.g. "te-IN", "hi-IN", "ta-IN")
-    matchingVoice = voices.find(v => v.lang && v.lang.toLowerCase() === targetBcp);
+    // Male voice indicators across engines
+    const maleKws = ['male', 'mohan', 'madhur', 'valluvar', 'gagan', 'midhun', 'manohar', 'niranjan', 'bashkar', 'salman', 'prabhat', 'david', 'mark', 'george', 'ravi', 'guy', 'kumar', 'deep', 'hemant', 'asad', 'pradeep'];
 
-    // 2. Starts with primary code (e.g. "te", "hi", "ta", "kn")
+    // 1. Exact BCP-47 match with male voice preference
+    matchingVoice = voices.find(v => v.lang && v.lang.toLowerCase() === targetBcp && maleKws.some(mk => (v.name || '').toLowerCase().includes(mk)));
+    if (!matchingVoice) {
+      matchingVoice = voices.find(v => v.lang && v.lang.toLowerCase() === targetBcp);
+    }
+
+    // 2. Starts with primary code with male preference
+    if (!matchingVoice) {
+      matchingVoice = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith(targetCode) && maleKws.some(mk => (v.name || '').toLowerCase().includes(mk)));
+    }
     if (!matchingVoice) {
       matchingVoice = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith(targetCode));
     }
 
-    // 3. Match native Microsoft / Google Cloud regional voice names
+    // 3. Match native Microsoft / Google Cloud regional male voice names
     if (!matchingVoice) {
       const nameKeywords = {
-        te: ['telugu', 'mohan', 'shruti'],
-        hi: ['hindi', 'swara', 'madhur', 'kalpana', 'hemant'],
-        ta: ['tamil', 'pallavi', 'valluvar'],
-        kn: ['kannada', 'gagan', 'sapna'],
+        te: ['mohan', 'telugu'],
+        hi: ['madhur', 'hemant', 'hindi'],
+        ta: ['valluvar', 'kumar', 'tamil'],
+        kn: ['gagan', 'kannada'],
+        ml: ['midhun', 'malayalam'],
+        mr: ['manohar', 'marathi'],
+        gu: ['niranjan', 'gujarati'],
+        bn: ['bashkar', 'pradeep', 'bengali'],
+        ur: ['salman', 'asad', 'urdu'],
         or: ['odia', 'oriya'],
-        en: ['india', 'ravi', 'heera', 'neerja', 'english']
+        en: ['prabhat', 'ravi', 'david', 'mark', 'george', 'male', 'english']
       };
       const kws = nameKeywords[targetCode] || [];
       matchingVoice = voices.find(v => {
@@ -263,9 +280,12 @@ export const VoiceCropDoctorModal = ({
       });
     }
 
-    // 4. Fallback to an Indian English or local Indian voice if no regional voice is installed
+    // 4. Fallback to an Indian English or local Indian male voice if no regional voice is installed
     if (!matchingVoice && targetCode !== 'en') {
-      matchingVoice = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || (v.name || '').toLowerCase().includes('india')));
+      matchingVoice = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || (v.name || '').toLowerCase().includes('india')) && maleKws.some(mk => (v.name || '').toLowerCase().includes(mk)));
+      if (!matchingVoice) {
+        matchingVoice = voices.find(v => v.lang && (v.lang.toLowerCase().includes('in') || (v.name || '').toLowerCase().includes('india')));
+      }
     }
 
     if (matchingVoice) utterance.voice = matchingVoice;

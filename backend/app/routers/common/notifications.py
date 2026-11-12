@@ -116,7 +116,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 @router.get("/api/v1/notifications", response_model=NotificationHistoryResponse)
 async def get_notifications(
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
     category: Optional[str] = None,
     priority: Optional[str] = None,
     unread_only: bool = Query(False),
