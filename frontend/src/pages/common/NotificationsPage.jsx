@@ -1969,28 +1969,53 @@ export default function NotificationsPage() {
         </div>
       )}
 
-            {/* ─── 1. TOP APP BAR / UTILITY CONTROLS ─── */}
+                  {/* ─── 1. TOP APP BAR / UTILITY CONTROLS (NEW MESSAGES MODEL) ─── */}
       <div className="flex items-center justify-between px-1 pt-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <span>🌾</span>
-            <span>{isTe ? 'పొలం హెచ్చరికలు & సలహాలు' : 'Field Alerts & Advisories'}</span>
-          </h1>
-          {unreadCount > 0 && (
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-600 text-white shadow-xs">
-              {unreadCount} {isTe ? 'కొత్తవి' : 'new'}
-            </span>
-          )}
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-emerald-600/30">
+            💬
+          </div>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight flex items-center gap-2">
+              <span>{isTe ? 'సందేశాలు & హెచ్చరికలు' : 'Messages & Field Alerts'}</span>
+              {unreadCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-xs">
+                  {unreadCount} {isTe ? 'కొత్తవి' : 'new'}
+                </span>
+              )}
+            </h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              {isTe ? 'అధికారిక వ్యవసాయ సలహాలు & నోటిఫికేషన్‌లు' : 'Official Agricultural Alerts & Advisories'}
+            </p>
+          </div>
         </div>
 
         {/* Header Action Icons */}
         <div className="flex items-center gap-1.5">
+          {/* Daily Voice Briefing */}
+          <button
+            type="button"
+            onClick={handlePlayBriefing}
+            className={`p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+              speakingId === 'today_briefing'
+                ? 'bg-rose-600 text-white shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title={isTe ? 'ఈ రోజు వాయిస్ సారాంశం వినండి' : 'Listen to daily voice briefing'}
+          >
+            {speakingId === 'today_briefing' ? (
+              <Square className="w-4 h-4 fill-current animate-pulse text-white" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            )}
+          </button>
+
           {/* Mark All Read */}
           {unreadCount > 0 && (
             <button
               onClick={handleReadAll}
-              className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-xs cursor-pointer"
-              title="Mark All Read"
+              className="p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-xs cursor-pointer"
+              title={isTe ? 'అన్నీ చదివినట్లు గుర్తించండి' : 'Mark all as read'}
             >
               <CheckCheck className="w-4 h-4" />
             </button>
@@ -1999,8 +2024,8 @@ export default function NotificationsPage() {
           {/* Notification Settings */}
           <button
             onClick={() => setSettingsOpen(true)}
-            className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
-            title="Alert Channel Settings"
+            className="p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
+            title="Settings"
           >
             <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300" />
           </button>
@@ -2009,8 +2034,8 @@ export default function NotificationsPage() {
           {notifications.length > 0 && (
             <button
               onClick={handleClear}
-              className="p-2 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 transition-all shadow-xs cursor-pointer"
-              title="Clear All Messages"
+              className="p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 transition-all shadow-xs cursor-pointer"
+              title={isTe ? 'అన్నీ తొలగించండి' : 'Clear all messages'}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -2018,7 +2043,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* ─── PHASE 1: STICKY EMERGENCY OUTBREAK & SEVERE WEATHER BANNER ─── */}
+      {/* ─── STICKY EMERGENCY OUTBREAK & SEVERE WEATHER BANNER ─── */}
       {emergencyAlert && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -2033,7 +2058,7 @@ export default function NotificationsPage() {
               </span>
               <span className="text-[11px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300 flex items-center gap-1.5 truncate">
                 <span>🚨</span>
-                <span>{isTe ? 'అత్యవసర పొలం హెచ్చరిక' : 'Critical Field Threat Alert'}</span>
+                <span>{isTe ? 'అత్యవసర పొలం హెచ్చరిక' : 'Critical Threat Alert'}</span>
               </span>
               <span className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-black uppercase shadow-2xs shrink-0">
                 {emergencyAlert.priority || 'Critical'}
@@ -2058,14 +2083,12 @@ export default function NotificationsPage() {
             </p>
           </div>
 
-          {/* Quick Action Buttons on Emergency Banner */}
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
-            {/* Voice Readout */}
             <button
               type="button"
               onClick={() => {
                 const text = `${emergencyAlert.title_te || emergencyAlert.title}. ${emergencyAlert.message_te || emergencyAlert.message}`;
-                speak(text, `emerg_${emergencyAlert.id}`, currentLang, 0.85);
+                speak(text, `emerg_${emergencyAlert.id}`, currentLang, 0.88);
               }}
               className="py-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-800 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 shadow-2xs hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-all cursor-pointer"
             >
@@ -2073,7 +2096,6 @@ export default function NotificationsPage() {
               <span>{speakingId === `emerg_${emergencyAlert.id}` ? (isTe ? 'ఆపండి' : 'Stop') : (isTe ? 'వినండి' : 'Listen')}</span>
             </button>
 
-            {/* Direct Action CTA */}
             {(() => {
               const cta = getActionCTA(emergencyAlert, isTe);
               if (!cta) return null;
@@ -2092,7 +2114,6 @@ export default function NotificationsPage() {
               );
             })()}
 
-            {/* WhatsApp Share */}
             <button
               type="button"
               onClick={() => shareAlertToWhatsApp(emergencyAlert, isTe)}
@@ -2100,23 +2121,21 @@ export default function NotificationsPage() {
               title="Share to Rythu WhatsApp Group"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>{isTe ? 'రైతు గ్రూప్‌కు షేర్' : 'Share to Village Group'}</span>
+              <span>{isTe ? 'వాట్సాప్' : 'WhatsApp'}</span>
             </button>
           </div>
         </motion.div>
       )}
 
-      {/* ─── 2. GOOGLE MESSAGES ROUNDED PILL SEARCH BAR WITH LEAF EMBLEM & AVATAR ─── */}
-      <div className="relative w-full rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm px-3.5 py-2.5 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500/60">
-        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300/60 dark:border-emerald-700/60 flex items-center justify-center shrink-0 shadow-xs">
-          <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-        </div>
+      {/* ─── 2. GOOGLE MESSAGES ROUNDED PILL SEARCH BAR WITH LEAF EMBLEM ─── */}
+      <div className="relative w-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm px-3.5 py-2.5 flex items-center gap-3 transition-all focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500/60">
+        <Search className="w-4 h-4 text-slate-400 shrink-0" />
 
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={isTe ? "పంట తెగుళ్లు, వాతావరణం, సలహాలు శోధించండి..." : "Search field alerts, weather warnings, spray advice..."}
+          placeholder={isTe ? "సందేశాలు, పంటలు లేదా మందులు శోధించండి..." : "Search messages, crops, remedies..."}
           className="flex-1 bg-transparent text-xs sm:text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
         />
 
@@ -2134,405 +2153,343 @@ export default function NotificationsPage() {
           className="relative shrink-0 cursor-pointer group"
           title={user?.name || "User Profile"}
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-xs ring-2 ring-emerald-400/30 group-hover:scale-105 transition-transform">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-xs ring-2 ring-emerald-400/30 group-hover:scale-105 transition-transform">
             {userInitial}
           </div>
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
+          <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
         </div>
       </div>
 
-      {/* ─── PHASE 2: ONE-TAP "DAILY AUDIO BRIEFING" BAR ─── */}
-      <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-sky-500/10 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-500/30 dark:border-emerald-700/40 shadow-xs flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-600/30">
-            {speakingId === 'today_briefing' ? (
-              <Volume2 className="w-5 h-5 animate-bounce" />
-            ) : (
-              <Headphones className="w-5 h-5" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
-              <span>{isTe ? 'ఈ రోజు హెచ్చరికల ఆడియో సారాంశం' : "Today's Voice Audio Briefing"}</span>
-              {speakingId === 'today_briefing' && (
-                <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
-                  <span className="w-1 h-3 bg-emerald-500 animate-pulse rounded-full" />
-                  <span className="w-1 h-4 bg-emerald-500 animate-pulse delay-75 rounded-full" />
-                  <span className="w-1 h-2 bg-emerald-500 animate-pulse delay-150 rounded-full" />
-                </span>
-              )}
-            </h4>
-            <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate mt-0.5">
-              {speakingId === 'today_briefing'
-                ? (isTe ? 'వాయిస్ సారాంశం చదువుతోంది...' : 'Speaking daily field advisory summary...')
-                : (isTe ? 'పొలం పనులు చేసుకుంటూనే హెచ్చరికలు తెలుగులో వినండి' : 'Listen to all urgent advisories in clear local voice')}
-            </p>
-          </div>
+      {/* ─── 3. CATEGORY & SEVERITY FILTER PILLS ─── */}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          {FILTER_PILLS.map((pill) => {
+            const isActive = pill.isUnreadPill ? unreadOnly : (!unreadOnly && category === pill.id);
+            return (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => {
+                  if (pill.isUnreadPill) {
+                    setUnreadOnly(!unreadOnly);
+                  } else {
+                    setUnreadOnly(false);
+                    setCategory(pill.id);
+                  }
+                }}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer border ${
+                  isActive
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>{pill.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        <button
-          type="button"
-          onClick={handlePlayBriefing}
-          className={`py-2 px-3.5 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer ${
-            speakingId === 'today_briefing'
-              ? 'bg-rose-600 hover:bg-rose-500 text-white'
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-          }`}
-        >
-          {speakingId === 'today_briefing' ? (
-            <>
-              <Square className="w-3.5 h-3.5 fill-current" />
-              <span>{isTe ? 'ఆపండి' : 'Stop'}</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>{isTe ? 'వినండి' : 'Listen'}</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 pl-1 pr-0.5">
+            {isTe ? 'తీవ్రత:' : 'Severity:'}
+          </span>
+          {[
+            { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
+            { id: 'Critical', label: isTe ? '🔴 అత్యవసరం' : '🔴 Critical' },
+            { id: 'High', label: isTe ? '🟠 హెచ్చరిక' : '🟠 High' },
+            { id: 'Normal', label: isTe ? '🔵 సాధారణం' : '🔵 Normal' }
+          ].map(chip => {
+            const isAct = selectedSeverity === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => setSelectedSeverity(chip.id)}
+                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer border ${
+                  isAct
+                    ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-transparent hover:border-slate-300'
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ─── 3. MATERIAL YOU HORIZONTAL CATEGORY FILTER CHIPS ─── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 hide-scrollbar">
-        {FILTER_PILLS.map((pill) => {
-          const isActive = pill.isUnreadPill ? unreadOnly : (!unreadOnly && category === pill.id);
-          return (
-            <button
-              key={pill.id}
-              onClick={() => {
-                if (pill.isUnreadPill) {
-                  setUnreadOnly(!unreadOnly);
-                } else {
-                  setUnreadOnly(false);
-                  setCategory(pill.id);
-                }
-              }}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shadow-xs border ${
-                isActive
-                  ? 'bg-emerald-600 text-white border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 shadow-sm shadow-emerald-600/20 scale-102'
-                  : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800'
-              }`}
-            >
-              <span>{pill.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ─── PHASE 3: THREAT SEVERITY FILTER CHIPS ─── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 pl-1 pr-0.5">
-          {isTe ? 'తీవ్రత:' : 'Severity:'}
-        </span>
-        {[
-          { id: 'All', label: isTe ? 'అన్నీ' : 'All' },
-          { id: 'Critical', label: isTe ? '🔴 అత్యవసరం' : '🔴 Critical' },
-          { id: 'High', label: isTe ? '🟠 హెచ్చరిక' : '🟠 High' },
-          { id: 'Normal', label: isTe ? '🔵 సాధారణం' : '🔵 Normal' }
-        ].map(chip => {
-          const isAct = selectedSeverity === chip.id;
-          return (
-            <button
-              key={chip.id}
-              type="button"
-              onClick={() => setSelectedSeverity(chip.id)}
-              className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
-                isAct
-                  ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200 shadow-2xs'
-                  : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-transparent hover:border-slate-300'
-              }`}
-            >
-              {chip.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ─── 4. PHASE 2: SMART DATE GROUPED NOTIFICATION THREADS ─── */}
+      {/* ─── 4. DAY-BY-DAY NOTIFICATIONS FEED (ONE BY ONE IN NEW MOBILE MODEL) ─── */}
       {filteredNotifications.length === 0 ? (
         <EmptyState
           icon={BellOff}
-          title={isEquipmentProvider ? (isTe ? 'బుకింగ్ సందేశాలు లేవు' : 'No Booking Messages') : t('notifications_page.empty_title', 'No Messages')}
+          title={isEquipmentProvider ? (isTe ? 'సందేశాలు లేవు' : 'No Booking Messages') : t('notifications_page.empty_title', 'No Messages')}
           description={isEquipmentProvider
-            ? (isTe ? 'మీ ఇన్‌బాక్స్ స్పష్టంగా ఉంది! రైతులు మీ ట్రాక్టర్లు లేదా డ్రోన్లు బుక్ చేసుకున్నప్పుడు తక్షణ అలర్ట్‌లు ఇక్కడ కనిపిస్తాయి.' : 'Your inbox is clear. Whenever farmers book your tractors or spray drones, instant alerts and booking details will stream here.')
-            : (isTe ? 'మీ ఇన్‌బాక్స్ స్పష్టంగా ఉంది! అన్ని పొలం తెగులు హెచ్చరికలు మరియు సమాచారం ఇక్కడ స్ట్రీమ్ అవుతాయి.' : "Your inbox is completely clear! All field disease warnings and machinery updates will stream here.")}
+            ? (isTe ? 'రైతులు మీ పరికరాలు బుక్ చేసుకున్నప్పుడు తక్షణ సందేశాలు ఇక్కడ కనిపిస్తాయి.' : 'Whenever farmers book your machinery, booking notifications will stream here.')
+            : (isTe ? 'మీ ఇన్‌బాక్స్ స్పష్టంగా ఉంది! పొలం తెగులు హెచ్చరికలు మరియు సమాచారం ఇక్కడ స్ట్రీమ్ అవుతాయి.' : "Your inbox is clear! All crop disease warnings and machinery updates will stream here.")}
         />
       ) : (
         <div className="space-y-4">
           {groupedNotifications.map((group) => (
-            <div key={group.id} className="space-y-2">
-              {/* Sticky Date Group Header */}
+            <div key={group.id} className="space-y-2.5">
+              {/* Day-by-Day Separator */}
               <div className="flex items-center justify-between px-2 pt-1">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                   <span>{group.icon}</span>
                   <span>{group.title}</span>
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   {group.items.length}
                 </span>
               </div>
 
-              {/* Group Items Card Container */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800/80">
+              {/* Individual Message Cards in this Day (One by One) */}
+              <div className="space-y-2.5">
                 <AnimatePresence>
                   {group.items.map((item) => {
+                    const msgId = item.notification_id || item.id;
                     const meta = getThreadMeta(item);
                     const AvatarIcon = meta.Icon;
                     const isUnread = !item.read;
-                    const isResolved = resolvedIds.has(String(item.notification_id || item.id));
+                    const isResolved = resolvedIds.has(String(msgId));
+                    const isSpeaking = speakingId === `card_${msgId}`;
                     const { title: displayTitle, message: displayMessage } = translateNotification(
-                      item.title,
-                      item.message,
+                      item.title_te || item.title,
+                      item.message_te || item.message,
                       currentLang
                     );
-                    const timeString = formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp);
                     const priorityInfo = PRIORITY_BADGES[item.priority] || PRIORITY_BADGES.Low;
                     const thumbUrl = getNotificationThumbnail(item);
-                    const isSpeakingThisCard = speakingId === `card_${item.id}`;
+                    const cta = getActionCTA(item, isTe);
 
                     return (
                       <motion.div
-                        key={item.notification_id || item.id}
+                        key={msgId}
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -15 }}
-                        onClick={() => {
-                          setSelectedMessage(item);
-                          if (isUnread) handleMarkRead(item.notification_id || item.id, null, item.threadItemIds);
-                        }}
-                        className={`flex flex-col gap-2.5 p-3.5 sm:p-4 cursor-pointer transition-colors relative group select-none ${
+                        className={`rounded-3xl p-3.5 sm:p-4 transition-all border shadow-sm relative ${
                           isUnread
-                            ? 'bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/35 border-l-4 border-l-emerald-500'
+                            ? 'bg-white dark:bg-slate-900 border-emerald-500/60 shadow-md ring-1 ring-emerald-500/20'
                             : isResolved
-                            ? 'bg-emerald-50/20 dark:bg-emerald-950/10 hover:bg-emerald-50/40'
-                            : 'hover:bg-slate-50/90 dark:hover:bg-white/[0.02]'
+                            ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-slate-200/80 dark:border-slate-800'
+                            : 'bg-white/95 dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                         }`}
                       >
-                        {/* Upper Row: Left Avatar/Thumbnail + Center Content + Right Time/Unread */}
-                        <div className="flex items-start gap-3.5">
-                          {/* Phase 2: Visual Thumbnail Preview or High-Contrast Avatar */}
-                          <div className="relative shrink-0 mt-0.5">
-                            {thumbUrl ? (
-                              <div className="relative w-12 h-12 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-xs">
-                                <img
-                                  src={thumbUrl}
-                                  alt={meta.senderTitle}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                  onError={(e) => {
-                                    e.currentTarget.onerror = null;
-                                    e.currentTarget.src = '/samples/corn_leaf_blight.jpg';
-                                  }}
-                                />
-                                <div className={`absolute bottom-0 right-0 p-0.5 rounded-tl-md ${meta.avatarBg}`}>
-                                  <AvatarIcon className="w-2.5 h-2.5 text-white" />
+                        {/* Upper Header: Left Avatar + Verified Sender + Priority + Delete */}
+                        <div className="flex items-start justify-between gap-3 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {/* Avatar / Crop Thumbnail */}
+                            <div className="relative shrink-0">
+                              {thumbUrl ? (
+                                <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-xs">
+                                  <img
+                                    src={thumbUrl}
+                                    alt={meta.senderTitle}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/samples/corn_leaf_blight.jpg'; }}
+                                  />
+                                  <div className={`absolute bottom-0 right-0 p-0.5 rounded-tl-md ${meta.avatarBg}`}>
+                                    <AvatarIcon className="w-2.5 h-2.5 text-white" />
+                                  </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${meta.avatarBg}`}>
-                                <AvatarIcon className="w-6 h-6 text-white drop-shadow-xs" />
-                              </div>
-                            )}
-
-                            {/* Pulsing Dot on unread avatar */}
-                            {isUnread && (
-                              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
-                            )}
-                          </div>
-
-                          {/* Message Content / Snippet */}
-                          <div className="flex-1 min-w-0 space-y-1">
-                            {/* Top Row: Sender Title + Verified Badge + Status Tag */}
-                            <div className="flex items-center min-w-0 gap-1">
-                              <h3 className={`text-sm sm:text-base font-bold truncate tracking-tight ${
-                                isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'
-                              }`}>
-                                {meta.senderTitle}
-                              </h3>
-                              {/* Verified Green Checkmark */}
-                              <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 shrink-0" title="Verified AgriShield Entity">
-                                <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white dark:text-slate-900" />
-                              </span>
-                              {isResolved && (
-                                <span className="ml-1 px-1.5 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 text-[9px] font-black shrink-0 border border-emerald-300/60 dark:border-emerald-800 flex items-center gap-0.5">
-                                  <Check className="w-2.5 h-2.5" />
-                                  <span>{isTe ? 'పరిష్కరించబడింది' : 'Resolved'}</span>
-                                </span>
+                              ) : (
+                                <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${meta.avatarBg} text-white flex items-center justify-center text-lg font-bold shadow-sm`}>
+                                  <AvatarIcon className="w-5 h-5 text-white" />
+                                </div>
+                              )}
+                              {isUnread && (
+                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
                               )}
                             </div>
 
-                            {/* Truncated Message Preview Snippet with Read Receipts (✓✓) */}
-                            <p className={`text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 leading-relaxed flex items-center gap-1.5 ${
-                              isUnread
-                                ? 'text-slate-900 dark:text-slate-100 font-semibold'
-                                : 'text-slate-600 dark:text-slate-400 font-normal'
-                            }`}>
-                              {(item.category === 'booking' || item.type === 'booking' || item.type === 'booking_chat' || item.isThread) && (
-                                <span className={`shrink-0 text-xs font-bold ${isUnread ? 'text-slate-400 dark:text-slate-500' : 'text-blue-500 dark:text-blue-400'}`} title={isUnread ? 'Sent' : 'Delivered & Read'}>
-                                  {isUnread ? '✓' : '✓✓'}
+                            {/* Sender Info & Verified Badge */}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <h3 className={`text-xs sm:text-sm font-black truncate tracking-tight ${
+                                  isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'
+                                }`}>
+                                  {meta.senderTitle}
+                                </h3>
+                                <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 shrink-0" title="Verified">
+                                  <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500 text-white dark:text-slate-900" />
                                 </span>
-                              )}
-                              <span className="truncate">{displayMessage || displayTitle}</span>
-                            </p>
-
-                            {/* Category & Status Chips */}
-                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                              <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${priorityInfo.bg}`}>
-                                {item.priority || 'Normal'}
-                              </span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${meta.badgeBg}`}>
+                                {isResolved && (
+                                  <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 text-[9px] font-black shrink-0 border border-emerald-300/60 dark:border-emerald-800">
+                                    {isTe ? 'పరిష్కరించబడింది' : 'Resolved'}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                                 {meta.categoryLabel}
                               </span>
                             </div>
                           </div>
 
-                          {/* Right Column: Time, WhatsApp Green Unread Badge */}
-                          <div className="flex flex-col items-end gap-1.5 shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
-                            <span className={`text-xs ${
-                              isUnread ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400 font-medium'
-                            }`}>
-                              {timeString}
+                          {/* Priority Tag & Delete */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${priorityInfo.bg}`}>
+                              {item.priority || 'Normal'}
                             </span>
-
-                            {isUnread && (item.threadUnreadCount > 0 || !item.isThread) && (
-                              <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-black shadow-xs flex items-center justify-center ring-2 ring-emerald-200 dark:ring-emerald-900/60 animate-pulse">
-                                {item.threadUnreadCount > 0 ? item.threadUnreadCount : 1}
-                              </span>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(msgId, null, item.threadItemIds)}
+                              className="p-1 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Delete message"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
 
-                        {/* ─── PHASE 1 & 3: QUICK IN-CARD ACTION BUTTONS ROW ─── */}
+                        {/* Message Title & Body (Tap to Open Reader) */}
                         <div
-                          className="flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/80"
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={() => {
+                            setSelectedMessage(item);
+                            if (isUnread) handleMarkRead(msgId, null, item.threadItemIds);
+                          }}
+                          className="space-y-1 mb-3 cursor-pointer group/msg"
                         >
-                          {/* Left: Actionable Shortcuts */}
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {/* Standard CTA */}
-                            {(() => {
-                              const actionCTA = getActionCTA(item, isTe);
-                              if (!actionCTA) return null;
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isUnread) handleMarkRead(item.notification_id || item.id, null, item.threadItemIds);
-                                    navigate(actionCTA.url);
-                                  }}
-                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 rounded-lg shadow-2xs transition-all cursor-pointer hover:border-emerald-500"
-                                >
-                                  <span>{actionCTA.label}</span>
-                                  <ArrowRight className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                </button>
-                              );
-                            })()}
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug group-hover/msg:text-emerald-600 transition-colors">
+                            {displayTitle}
+                          </h4>
+                          <p className="text-xs sm:text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                            {displayMessage}
+                          </p>
+                        </div>
 
-                            {/* Phase 1: Provider Accept / Decline buttons directly on booking cards */}
-                            {isEquipmentProvider && item.booking_id && (
-                              <div className="flex items-center gap-1">
+                        {/* 🔊 1-Tap Audio Playback Bar with Male Voice */}
+                        <div className="mb-2.5 p-2 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const textToRead = `${displayTitle}. ${displayMessage}`;
+                              speak(textToRead, `card_${msgId}`, currentLang, 0.88);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                              isSpeaking
+                                ? 'bg-rose-600 text-white shadow-rose-600/30'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+                            }`}
+                          >
+                            {isSpeaking ? (
+                              <>
+                                <Square className="w-3.5 h-3.5 fill-current animate-pulse text-white" />
+                                <span>{isTe ? 'ఆపండి' : 'Stop'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Volume2 className="w-3.5 h-3.5 text-white" />
+                                <span>{isTe ? 'వినండి' : 'Listen'}</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Soundwave equalizer animation */}
+                          {isSpeaking && (
+                            <div className="flex items-center gap-1 px-2">
+                              <span className="w-1 h-3.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                              <span className="w-1 h-5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                              <span className="w-1 h-3 bg-emerald-500 rounded-full animate-bounce" />
+                            </div>
+                          )}
+
+                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            {isSpeaking ? (isTe ? 'ఆడియో ప్లే అవుతోంది...' : 'Speaking...') : (isTe ? 'వాయిస్ సారాంశం' : 'Voice Reader')}
+                          </span>
+                        </div>
+
+                        {/* Action Buttons Row */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex-wrap">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {cta && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleMarkRead(msgId, null, item.threadItemIds);
+                                  navigate(cta.url);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                <span>{cta.label}</span>
+                                <span>&rarr;</span>
+                              </button>
+                            )}
+
+                            {/* Equipment Provider Quick Accept/Decline */}
+                            {isEquipmentProvider && item.booking_id && !isResolved && (
+                              <div className="flex items-center gap-1.5">
                                 <button
                                   type="button"
                                   onClick={(e) => handleProviderQuickDecision(item.booking_id, 'accept', e)}
-                                  className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                                  className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                                 >
-                                  <Check className="w-3 h-3 stroke-[3]" />
-                                  <span>{isTe ? 'ఆమోదించు' : 'Accept'}</span>
+                                  {isTe ? 'ఆమోదించు ✅' : 'Accept ✅'}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={(e) => handleProviderQuickDecision(item.booking_id, 'decline', e)}
-                                  className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-[11px] font-bold hover:bg-rose-100 cursor-pointer"
+                                  className="px-2.5 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                                 >
-                                  <X className="w-3 h-3" />
-                                  <span>{isTe ? 'తిరస్కరించు' : 'Decline'}</span>
+                                  {isTe ? 'తిరస్కరించు ❌' : 'Decline ❌'}
                                 </button>
                               </div>
                             )}
 
-                            {/* Phase 1: Direct Phone Call for Bookings */}
-                            {(item.farmerPhone || item.phone || item.providerPhone) && (
+                            {/* Direct Farmer Call */}
+                            {item.farmerPhone && (
                               <a
-                                href={`tel:${item.farmerPhone || item.phone || item.providerPhone}`}
+                                href={`tel:${item.farmerPhone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800 text-teal-700 dark:text-teal-300 text-[11px] font-bold flex items-center gap-1 shadow-2xs hover:bg-teal-100 transition-all cursor-pointer"
-                                title="Call directly"
+                                className="px-2.5 py-1.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center gap-1 transition-all"
                               >
                                 <Phone className="w-3 h-3 text-teal-600 dark:text-teal-400" />
                                 <span>{isTe ? 'కాల్' : 'Call'}</span>
                               </a>
                             )}
 
-                            {/* Phase 1: 1-Tap WhatsApp Share */}
+                            {/* WhatsApp Share */}
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                shareAlertToWhatsApp(item, isTe);
-                              }}
-                              className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                              onClick={() => shareAlertToWhatsApp(item, isTe)}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
                               title="Share to Rythu WhatsApp Group"
                             >
                               <Share2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                               <span>{isTe ? 'వాట్సాప్' : 'WhatsApp'}</span>
                             </button>
 
-                            {/* Phase 3: Mark as Resolved */}
-                            {!isResolved ? (
+                            {/* Resolve Button */}
+                            {!isResolved && (
                               <button
                                 type="button"
-                                onClick={(e) => handleMarkResolved(item.notification_id || item.id, e, item.threadItemIds)}
-                                className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                                title="Mark alert as resolved"
+                                onClick={(e) => handleMarkResolved(msgId, e, item.threadItemIds)}
+                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
                               >
                                 <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                                 <span>{isTe ? 'పరిష్కరించబడింది' : 'Resolve'}</span>
                               </button>
-                            ) : null}
+                            )}
                           </div>
 
-                          {/* Right: Audio Listen & Delete */}
-                          <div className="flex items-center gap-1">
-                            {/* Card Voice Readout */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const textToRead = `${displayTitle}. ${displayMessage}`;
-                                speak(textToRead, `card_${item.id}`, currentLang, 0.85);
-                              }}
-                              className="p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
-                              title="Listen to this message"
-                            >
-                              <Volume2 className={`w-3.5 h-3.5 ${isSpeakingThisCard ? 'text-emerald-600 animate-bounce' : ''}`} />
-                            </button>
+                          {/* Footer Right: Timestamp & Read Receipts */}
+                          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                            <span className="font-semibold">
+                              {formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp)}
+                            </span>
 
-                            {/* Mark Read */}
                             {isUnread && (
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMarkRead(item.notification_id || item.id, e, item.threadItemIds);
-                                }}
-                                className="p-1.5 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-950 text-emerald-600 transition-colors cursor-pointer"
-                                title="Mark Read"
+                                type="button"
+                                onClick={() => handleMarkRead(msgId, null, item.threadItemIds)}
+                                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
                               >
-                                <Check className="w-3.5 h-3.5" />
+                                {isTe ? 'చదివినట్లు గుర్తించు' : 'Mark read'}
                               </button>
                             )}
 
-                            {/* Delete */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(item.notification_id || item.id, e, item.threadItemIds);
-                              }}
-                              className="p-1.5 rounded-full hover:bg-rose-100 dark:hover:bg-rose-950 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                              title="Delete Message"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <span className={!isUnread ? 'text-emerald-500 font-black text-xs' : 'text-slate-400 text-xs'} title={!isUnread ? 'Delivered & Read' : 'Delivered'}>
+                              {!isUnread ? '✓✓' : '✓'}
+                            </span>
                           </div>
                         </div>
                       </motion.div>
