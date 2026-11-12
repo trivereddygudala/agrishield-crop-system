@@ -33,10 +33,9 @@ const DashboardPage = () => {
   // Instant load: If cache exists from this session, do NOT show skeleton
   const [loading, setLoading] = useState(!cachedDashboardStats);
 
-  // Full Suite: 1-Tap Audio Reader & Emergency District Banner State
+  // Full Suite: 1-Tap Audio Reader State
   const { speak, stop, speakingId } = useSpeechReader();
   const isAudioPlaying = speakingId === 'dashboard_daily_brief';
-  const [dismissEmergencyBanner, setDismissEmergencyBanner] = useState(false);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState(() => cachedDashboardStats || {
@@ -477,59 +476,6 @@ const DashboardPage = () => {
           </div>
         </div>
       </motion.div>
-
-      {/* ─── Full Suite: District Emergency Pest & Weather Warning Ticker (Dismissible) ─── */}
-      {!dismissEmergencyBanner && (
-        <motion.div variants={itemVariants} className="col-span-12">
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-amber-500/15 dark:from-amber-950/60 dark:via-rose-950/40 dark:to-amber-950/60 border-2 border-amber-500/50 dark:border-amber-500/40 text-amber-950 dark:text-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-base shadow-sm animate-pulse">
-                ⚠️
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
-                    {i18n.language === 'te' ? 'జిల్లా అత్యవసర హెచ్చరిక' : 'District Alert'}
-                  </span>
-                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
-                    {i18n.language === 'te'
-                      ? 'మీ ప్రాంతంలో కత్తెర పురుగు & తేమ తెగులు ముప్పు నమోదైంది'
-                      : 'Fall Armyworm & Foliar Rust Vigilance Active in Your Region'}
-                  </span>
-                </div>
-                <p className="text-[11px] sm:text-xs text-slate-700 dark:text-slate-300 font-semibold truncate mt-0.5">
-                  {i18n.language === 'te'
-                    ? 'పంట ఆకుల అడుగు భాగాన్ని పరిశీలించి వెంటనే ఫోటో స్కాన్ చేయండి.'
-                    : 'Inspect underside of crop leaves and scan any suspicious spots immediately.'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              <Link
-                to="/upload"
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <Camera className="w-3.5 h-3.5" />
-                <span>{i18n.language === 'te' ? 'ఆకు స్కాన్ చేయండి' : 'Scan Leaf'}</span>
-              </Link>
-              <Link
-                to="/notifications"
-                className="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-              >
-                {i18n.language === 'te' ? 'హెచ్చరికలు' : 'Alerts'}
-              </Link>
-              <button
-                type="button"
-                onClick={() => setDismissEmergencyBanner(true)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                title="Dismiss warning"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* ─── Daily Farm Status Banner (Professional, Boundaries, Light Blur, Highlighted Words) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
