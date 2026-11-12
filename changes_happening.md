@@ -10603,3 +10603,7 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Updated clear_all_notifications to accept preserve_booking=false for thorough inbox clearing.
 - **Android APK & Top Address Bar Diagnosis:**
   - Provided diagnosis of AgriShield AI-unsigned.apk rejection and Digital Asset Links (ssetlinks.json) CCT fallback bar.
+
+## [2026-11-12 15:29:45] Removed District Alert Card
+- **Dashboard Cleanup:** Removed the 'District Alert' emergency warning card and its state from rontend/src/pages/farmer/DashboardPage.jsx to clean up the farmer dashboard UI.
+- **Production Build & Deploy:** Built production frontend and deployed live to Firebase Hosting and GitHub main (Vercel).
