@@ -10385,3 +10385,49 @@ Files Modified:
 - frontend/src/components/admin/DailyActivityDashboard.jsx
 - frontend/src/components/common/PWAInstallPrompt.jsx
 - frontend/src/utils/deviceNotification.js
+
+---
+## [2026-11-12 11:18:00] Global Broadcast, Maintenance Mode & Cross-Portal Notifications - COMPLETED
+
+### Root Cause Diagnosed:
+1. Global & Geo-Fenced Broadcasts:
+   - In backend/app/routers/admin/admin.py, dispatch_geo_broadcast omitted read: False, status: 'active', and lifecycle from fanout docs in db.notifications.
+   - Because NotificationService.get_unread_notifications required read: False, missing read caused 0 unread alerts to be returned to farmers.
+   - dispatch_geo_broadcast did not invoke WebSocket or FCM multi-channel push dispatch.
+2. Maintenance Mode Alert & Popups:
+   - toggle_maintenance_mode only broadcasted MAINTENANCE_MODE_UPDATED without generating db.notifications records for users or calling setLatestAlert.
+   - WebSocketContext.jsx did not construct and dispatch notification popups for MAINTENANCE_MODE_UPDATED.
+3. Farmer Support & Helpdesk:
+   - In backend/app/routers/common/support.py, admin ticket resolution/updates did not notify the submitting farmer.
+   - Emergency callback requests did not dispatch admin notifications.
+4. On-Screen Popups & Cross-Portal Sync:
+   - AppLayout.jsx had a 60-second polling fallback that was suppressed when connected to WebSocket, causing delayed popup drops when connections were idle.
+
+### Machine Solutions & Technical Actions Taken:
+1. Multi-Channel Broadcast Fanout (admin.py):
+   - Enriched all broadcast notification documents with read: False, is_read: False, status: 'active', lifecycle, and precision audience fallbacks.
+   - Added real-time WebSocket dispatch (new_notification) and multi-channel FCM push notifications to all targeted farmer and provider devices.
+2. Real-Time Maintenance Mode Notification Fanout (admin.py):
+   - Wired toggle_maintenance_mode to fan out system notifications to all non-admin users in db.notifications.
+   - Dispatched real-time WebSocket alert and FCM mobile push notification with high priority.
+3. Bi-Directional Support Notifications (support.py):
+   - Added farmer notification on admin ticket resolution or note updates with resolution preview.
+   - Added admin notification on emergency callback requests.
+4. Resilient Notification Querying (notification_service.py):
+   - Upgraded get_unread_notifications, get_notifications, and get_unread_count to query read: False or None.
+   - Enabled multi-level sorting [(lifecycle.created_at, -1), (created_at, -1)].
+5. Real-Time Popup Delivery (WebSocketContext.jsx & AppLayout.jsx):
+   - Configured WebSocketContext.jsx to handle MAINTENANCE_MODE_UPDATED by triggering setLatestAlert popup and chime.
+   - Reduced AppLayout.jsx background alert sync interval to 12s so popups always appear reliably.
+6. MongoDB Database Migration:
+   - Backfilled missing read: False and lifecycle.created_at across all existing broadcast and support notification documents in MongoDB.
+7. Live Deployment:
+   - Compiled frontend bundle and redeployed to Firebase Hosting: https://agrishield-ai-498f3.web.app.
+
+Files Modified:
+- backend/app/routers/admin/admin.py
+- backend/app/routers/common/support.py
+- backend/app/services/notification_service.py
+- frontend/src/components/AppLayout.jsx
+- frontend/src/context/WebSocketContext.jsx
+- changes_happening.md

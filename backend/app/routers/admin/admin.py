@@ -2296,10 +2296,74 @@ async def toggle_maintenance_mode(
 
     try:
         from backend.app.routers.common.notifications import ws_manager
+        from backend.app.services.firebase_service import FirebaseService
+        now_utc = datetime.now(timezone.utc)
+        maint_title = "🛠️ Platform Maintenance Mode Engaged" if req.enabled else "✅ Platform Maintenance Concluded"
+        maint_body = _maintenance_state.get("message") or "AgriShield AI is undergoing scheduled maintenance."
+        maint_priority = "Emergency" if req.enabled else "Normal"
+
+        # 1. Real-time WebSocket popup notification to all connected sessions
+        await ws_manager.broadcast_all({
+            "type": "new_notification",
+            "notification": {
+                "notification_id": f"maint-{int(now_utc.timestamp())}",
+                "title": maint_title,
+                "message": maint_body,
+                "category": "system",
+                "priority": maint_priority,
+                "action_url": "/dashboard",
+                "created_at": now_utc.isoformat()
+            }
+        })
         await ws_manager.broadcast_all({
             "type": "MAINTENANCE_MODE_UPDATED",
             "maintenance": _maintenance_state
         })
+
+        # 2. Persist notification in db.notifications for all farmers and providers
+        if db is not None:
+            user_docs = await db.users.find({"role": {"$ne": "admin"}}, {"_id": 1}).to_list(1000)
+            if user_docs:
+                notif_docs = []
+                for u in user_docs:
+                    uid_str = str(u["_id"])
+                    notif_docs.append({
+                        "user_id": uid_str,
+                        "title": maint_title,
+                        "message": maint_body,
+                        "category": "system",
+                        "priority": maint_priority,
+                        "action_url": "/dashboard",
+                        "read": False,
+                        "is_read": False,
+                        "status": "active",
+                        "created_at": now_utc,
+                        "lifecycle": {
+                            "created_at": now_utc,
+                            "delivered_at": now_utc,
+                            "opened_at": None,
+                            "clicked_at": None,
+                            "acknowledged_at": None,
+                            "resolved_at": None
+                        }
+                    })
+                    # 3. Multi-device FCM Push notification
+                    try:
+                        await FirebaseService.send_push_notification(
+                            db,
+                            user_id=uid_str,
+                            title=maint_title,
+                            body=maint_body,
+                            data={
+                                "category": "system",
+                                "priority": maint_priority,
+                                "action_url": "/dashboard"
+                            }
+                        )
+                    except Exception:
+                        pass
+                if notif_docs:
+                    await db.notifications.insert_many(notif_docs, ordered=False)
     except Exception as ws_err:
         logger.debug(f"WebSocket maintenance broadcast notice: {ws_err}")
 
@@ -2435,8 +2499,13 @@ async def dispatch_geo_broadcast(
     if db is not None:
         try:
             matched_users = await db.users.find(user_query, {"_id": 1, "farm_location": 1}).to_list(length=5000)
-            recipient_count = len(matched_users)
             target_user_ids = [str(u["_id"]) for u in matched_users]
+            # Safety fallback: if precision filter yielded 0 users, fall back to general role audience so alert reaches farmers
+            if not target_user_ids:
+                fallback_query = {"role": "farmer"} if audience in ("farmers", "farmer") else ({"role": "equipment_provider"} if audience in ("providers", "equipment_providers") else {"role": {"$ne": "admin"}})
+                fallback_users = await db.users.find(fallback_query, {"_id": 1}).to_list(1000)
+                target_user_ids = [str(u["_id"]) for u in fallback_users]
+            recipient_count = len(target_user_ids)
         except Exception as q_err:
             logger.warning(f"Error querying recipient users: {q_err}")
 
@@ -2453,7 +2522,7 @@ async def dispatch_geo_broadcast(
                 "message": req.message,
                 "original_title": req.title,
                 "original_message": req.message,
-                "priority": req.priority,
+                "priority": req.priority or "High",
                 "audience": audience,
                 "target_districts": districts,
                 "channels": channels,
@@ -2461,7 +2530,7 @@ async def dispatch_geo_broadcast(
                 "dispatched_by": current_user.get("email", "admin"),
                 "status": "Delivered",
                 "is_geo_broadcast": True,
-                "action_url": req.action_url or "/dashboard",
+                "action_url": req.action_url or "/notifications",
                 "translations": req.translations or {},
                 "created_at": now_dt,
                 "updated_at": now_dt,
@@ -2471,34 +2540,76 @@ async def dispatch_geo_broadcast(
             ins_res = await db.broadcasts.insert_one(bc_doc)
             broadcast_id_str = str(ins_res.inserted_id)
 
-            # Also fanout notifications into db.notifications for all targeted users
+            # Fanout notifications into db.notifications for all targeted users
             notification_docs = []
-            for uid in target_user_ids[:500]:
+            for uid in target_user_ids:
                 notification_docs.append({
                     "user_id": uid,
+                    "broadcast_id": broadcast_id_str,
                     "title": req.title,
                     "message": req.message,
-                    "priority": req.priority,
+                    "original_title": req.title,
+                    "original_message": req.message,
+                    "priority": req.priority or "High",
                     "category": "broadcast",
-                    "action_url": req.action_url or "/dashboard",
+                    "action_url": req.action_url or "/notifications",
+                    "read": False,
+                    "is_read": False,
+                    "status": "active",
                     "is_geo_broadcast": True,
                     "target_districts": districts,
                     "channels": channels,
-                    "created_at": now_dt
+                    "translations": req.translations or {},
+                    "created_at": now_dt,
+                    "lifecycle": {
+                        "created_at": now_dt,
+                        "delivered_at": now_dt,
+                        "opened_at": None,
+                        "clicked_at": None,
+                        "acknowledged_at": None,
+                        "resolved_at": None
+                    }
                 })
             if notification_docs:
                 await db.notifications.insert_many(notification_docs, ordered=False)
-            else:
-                # System-level broadcast notification record
-                await db.notifications.insert_one({
-                    "title": req.title,
-                    "message": req.message,
-                    "priority": req.priority,
-                    "target_districts": districts,
-                    "channels": channels,
-                    "is_geo_broadcast": True,
-                    "created_at": now_dt
-                })
+
+            # 1. Real-time WebSocket dispatch to trigger instant on-screen popup & chime
+            try:
+                from backend.app.routers.common.notifications import ws_manager
+                for uid in target_user_ids:
+                    await ws_manager.broadcast_to_user(uid, {
+                        "type": "new_notification",
+                        "notification": {
+                            "notification_id": f"bc-{int(now_dt.timestamp())}-{uid[:4]}",
+                            "title": f"📢 {req.title}",
+                            "message": req.message,
+                            "category": "broadcast",
+                            "priority": req.priority or "High",
+                            "action_url": req.action_url or "/notifications",
+                            "created_at": now_iso
+                        }
+                    })
+            except Exception as ws_err:
+                logger.debug(f"Geo-broadcast WebSocket dispatch error: {ws_err}")
+
+            # 2. Multi-channel Mobile FCM Push Notification (Drops into phone status bar)
+            try:
+                from backend.app.services.firebase_service import FirebaseService
+                for uid in target_user_ids:
+                    await FirebaseService.send_push_notification(
+                        db,
+                        user_id=uid,
+                        title=f"📢 {req.title}",
+                        body=req.message,
+                        data={
+                            "category": "broadcast",
+                            "priority": req.priority or "High",
+                            "action_url": req.action_url or "/notifications"
+                        }
+                    )
+            except Exception as fcm_err:
+                logger.debug(f"Geo-broadcast FCM dispatch error: {fcm_err}")
+
         except Exception as db_err:
             logger.error(f"Error persisting geo broadcast: {db_err}")
 

@@ -250,8 +250,8 @@ export const WebSocketProvider = ({ children }) => {
             return;
           }
 
-          // Handle Notification Alerts (from NotificationService)
-          if (data.type === 'new_notification' || data.type === 'notification') {
+          // Handle Notification Alerts (from NotificationService, global broadcasts, or support desk)
+          if (data.type === 'new_notification' || data.type === 'notification' || data.type === 'broadcast') {
             const notif = data.notification || data;
             setLatestAlert(notif);
             if (data.unread_count !== undefined) {
@@ -260,6 +260,24 @@ export const WebSocketProvider = ({ children }) => {
               setUnreadCount((prev) => (prev !== null ? prev + 1 : 1));
             }
             notifySubscribers('notification', notif);
+          }
+
+          // Handle Real-Time Maintenance Mode Alerts & Instant On-Screen Popup
+          else if (data.type === 'MAINTENANCE_MODE_UPDATED') {
+            const maint = data.maintenance || {};
+            const isEngaged = Boolean(maint.enabled);
+            const notif = {
+              notification_id: `maint-${Date.now()}`,
+              title: isEngaged ? '🛠️ Platform Maintenance Mode' : '✅ Maintenance Completed',
+              message: maint.message || (isEngaged ? 'AgriShield is undergoing scheduled cloud maintenance.' : 'Services are fully restored.'),
+              category: 'system',
+              priority: isEngaged ? 'Emergency' : 'Normal',
+              action_url: '/dashboard'
+            };
+            setLatestAlert(notif);
+            notifySubscribers('notification', notif);
+            notifySubscribers('MAINTENANCE_MODE_UPDATED', data);
+            window.dispatchEvent(new CustomEvent('agrishield-maintenance-updated', { detail: maint }));
           }
 
           // Handle Unread Count Updates (read, acknowledged, deleted)

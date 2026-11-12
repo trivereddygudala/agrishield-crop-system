@@ -462,18 +462,16 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     window.addEventListener('focus', handleRevalidateNotifs);
     document.addEventListener('visibilitychange', handleRevalidateNotifs);
 
-    let notifPollTimer = null;
-    if (connectionStatus !== 'connected') {
-      notifPollTimer = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-          fetchUnreadCount();
-          fetchRecentAlerts();
-        }
-      }, 60000);
-    }
+    // Responsive 12s real-time alert synchronizer ensuring cross-portal broadcasts & support popups appear reliably
+    const notifPollTimer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCount();
+        fetchRecentAlerts();
+      }
+    }, 12000);
 
     return () => {
-      if (notifPollTimer) clearInterval(notifPollTimer);
+      clearInterval(notifPollTimer);
       window.removeEventListener('focus', handleRevalidateNotifs);
       document.removeEventListener('visibilitychange', handleRevalidateNotifs);
     };

@@ -563,20 +563,20 @@ class NotificationService:
         query = {"user_id": user_id}
         
         if role == "equipment_provider":
-            # Equipment providers should never receive agronomic soil moisture, crop disease, or field telemetry alerts
-            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast"]}
+            # Equipment providers receive booking, machinery, fleet, system, broadcast, and support alerts
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast", "support"]}
         elif category:
             query["category"] = category
             
         if priority:
             query["priority"] = priority
         if unread_only:
-            query["read"] = False
+            query["$or"] = [{"read": False}, {"read": None}, {"read": {"$exists": False}}, {"is_read": False}]
             
         total = await db.notifications.count_documents(query)
         skip = (page - 1) * limit
         
-        cursor = db.notifications.find(query).sort("lifecycle.created_at", -1).skip(skip).limit(limit)
+        cursor = db.notifications.find(query).sort([("lifecycle.created_at", -1), ("created_at", -1)]).skip(skip).limit(limit)
         records = await cursor.to_list(length=limit)
         
         for r in records:
@@ -588,6 +588,8 @@ class NotificationService:
             r["original_title"] = orig_t
             r["original_message"] = orig_m
             r["source_language"] = r.get("source_language", "en")
+            raw_c = r.get("lifecycle", {}).get("created_at") or r.get("created_at") or datetime.now(timezone.utc)
+            r["created_at"] = raw_c.isoformat() if isinstance(raw_c, datetime) else str(raw_c)
             translations = r.get("translations") or {}
             r["translations"] = translations
 
@@ -611,13 +613,16 @@ class NotificationService:
         active_language: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Fetch unread alerts list with role-based category filtering and active language localization."""
-        query: Dict[str, Any] = {"user_id": user_id, "read": False}
+        query: Dict[str, Any] = {
+            "user_id": user_id,
+            "$or": [{"read": False}, {"read": None}, {"read": {"$exists": False}}, {"is_read": False}]
+        }
         if role == "equipment_provider":
-            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast"]}
-        cursor = db.notifications.find(query).sort("lifecycle.created_at", -1).limit(limit)
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast", "support"]}
+        cursor = db.notifications.find(query).sort([("lifecycle.created_at", -1), ("created_at", -1)]).limit(limit)
         records = await cursor.to_list(length=limit)
         for r in records:
-            r["notification_id"] = str(r.get("_id") or r.get("id") or "")
+            r["notification_id"] = str(r.get("_id") or r.get("id") or r.get("notification_id", ""))
             if "_id" in r:
                 del r["_id"]
             orig_t = r.get("original_title") or r.get("title", "")
@@ -625,6 +630,8 @@ class NotificationService:
             r["original_title"] = orig_t
             r["original_message"] = orig_m
             r["source_language"] = r.get("source_language", "en")
+            raw_c = r.get("lifecycle", {}).get("created_at") or r.get("created_at") or datetime.now(timezone.utc)
+            r["created_at"] = raw_c.isoformat() if isinstance(raw_c, datetime) else str(raw_c)
             r["title"] = orig_t
             r["message"] = orig_m
             translations = r.get("translations") or {}
@@ -793,9 +800,12 @@ class NotificationService:
     @staticmethod
     async def get_unread_count(db, user_id: str, role: Optional[str] = None) -> int:
         """Return count of unread notifications filtered by role (mirrors get_notifications filter)."""
-        query: Dict[str, Any] = {"user_id": user_id, "read": False}
+        query: Dict[str, Any] = {
+            "user_id": user_id,
+            "$or": [{"read": False}, {"read": None}, {"read": {"$exists": False}}, {"is_read": False}]
+        }
         if role == "equipment_provider":
-            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast"]}
+            query["category"] = {"$in": ["booking", "equipment", "fleet", "system", "provider", "message", "chat", "broadcast", "support"]}
         return await db.notifications.count_documents(query)
 
     @staticmethod

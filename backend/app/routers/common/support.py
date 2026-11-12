@@ -280,6 +280,29 @@ async def request_callback(
     result = await db.support_tickets.insert_one(ticket_doc)
     ticket_doc["_id"] = result.inserted_id
 
+    # Notify all admin users about the urgent callback request
+    try:
+        from backend.app.services.notification_service import NotificationService
+        from backend.app.models.notification import NotificationCreate
+        from backend.app.db.mongodb import db_instance
+        active_db = db_instance.db if db_instance.db is not None else db
+        admin_cursor = active_db.users.find({"role": "admin"}, {"_id": 1})
+        admin_users = await admin_cursor.to_list(length=None)
+        for admin_u in admin_users:
+            await NotificationService.create_notification(
+                active_db,
+                NotificationCreate(
+                    user_id=str(admin_u["_id"]),
+                    title=f"📞 Urgent Phone Callback #{ticket_num}",
+                    message=f"Farmer {name} requested an emergency callback to {payload.phone}. Preferred: {payload.preferred_time or '15 Mins'}.",
+                    category="support",
+                    priority="Emergency",
+                    action_url="/admin/dashboard?tab=support"
+                )
+            )
+    except Exception as notif_err:
+        print(f"⚠️ [SupportTickets] Admin callback notification error: {notif_err}")
+
     return {
         "success": True,
         "message": f"Callback request #{ticket_num} received! A representative will call {payload.phone} shortly.",
@@ -411,6 +434,34 @@ async def update_ticket_status(
     )
     if not res:
         raise HTTPException(status_code=404, detail=f"Support ticket '{ticket_id}' not found")
+
+    # Notify the user (farmer or provider) who submitted this ticket in real-time
+    try:
+        from backend.app.services.notification_service import NotificationService
+        from backend.app.models.notification import NotificationCreate
+        target_uid = str(res.get("user_id") or "")
+        tkt_num = res.get("ticket_number", ticket_id)
+        new_status = res.get("status", "updated")
+        notes = res.get("translated_resolution_notes") or res.get("resolution_notes") or ""
+
+        if target_uid:
+            status_label = "Resolved ✅" if new_status == "resolved" else new_status.title()
+            msg = f"Your support ticket #{tkt_num} has been marked as {status_label}."
+            if notes:
+                msg += f" Note: \"{notes[:120]}\""
+            await NotificationService.create_notification(
+                db,
+                NotificationCreate(
+                    user_id=target_uid,
+                    title=f"🎧 Support Ticket #{tkt_num} {status_label}",
+                    message=msg,
+                    category="support",
+                    priority="High",
+                    action_url="/help-support"
+                )
+            )
+    except Exception as notify_err:
+        print(f"⚠️ [SupportTickets] User resolution notification notice: {notify_err}")
 
     return {
         "success": True,
