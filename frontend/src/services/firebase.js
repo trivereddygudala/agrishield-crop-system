@@ -161,7 +161,10 @@ export const onForegroundMessage = (callback) => {
   }
 };
 
-// Automatic foreground push notification presenter
+// Automatic foreground push notification presenter with deduplication
+let lastForegroundKey = '';
+let lastForegroundTime = 0;
+
 if (typeof window !== 'undefined') {
   initMessaging().then((msg) => {
     if (msg) {
@@ -170,6 +173,16 @@ if (typeof window !== 'undefined') {
           console.log('[firebase.js] Foreground Push Received:', payload);
           const title = payload.notification?.title || payload.data?.title || '🌾 AgriShield Farm Alert';
           const body = payload.notification?.body || payload.data?.body || 'New crop health or weather update.';
+          const dedupeKey = (payload.fcmMessageId || '') + '::' + title + '::' + body;
+          const now = Date.now();
+
+          // Deduplicate if fired within 3.5 seconds
+          if (dedupeKey === lastForegroundKey && (now - lastForegroundTime < 3500)) {
+            console.log('[firebase.js] Dropped duplicate foreground push:', dedupeKey);
+            return;
+          }
+          lastForegroundKey = dedupeKey;
+          lastForegroundTime = now;
 
           if ('Notification' in window && Notification.permission === 'granted') {
             // 1. Try ServiceWorker showNotification first (mandatory for Android mobile Chrome & PWAs)
@@ -182,8 +195,8 @@ if (typeof window !== 'undefined') {
                     icon: '/icon-192.png',
                     badge: '/icon-192.png',
                     vibrate: [200, 100, 200],
-                    tag: 'agrishield-foreground',
-                    renotify: true
+                    tag: 'agrishield-alert',
+                    renotify: false
                   });
                   return;
                 }
@@ -197,7 +210,8 @@ if (typeof window !== 'undefined') {
               new Notification(title, {
                 body,
                 icon: '/icon-192.png',
-                badge: '/icon-192.png'
+                badge: '/icon-192.png',
+                tag: 'agrishield-alert'
               });
             } catch (_) {}
           }

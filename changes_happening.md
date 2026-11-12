@@ -10295,3 +10295,18 @@ Files Modified:
 - frontend/public/firebase-messaging-sw.js
 - frontend/src/services/firebase.js
 - frontend/src/pages/common/NotificationsPage.jsx
+
+---
+## [2026-11-12 09:50:00] Fixed Duplicate Notifications (2 Notifications -> 1 Single Alert) - COMPLETED
+
+### Changes:
+- Removed redundant native self.addEventListener('push') listener in irebase-messaging-sw.js that was firing concurrently alongside messaging.onBackgroundMessage().
+- Implemented strict 3.5s deduplication cache (lastMessageKey and lastMessageTime) in both irebase-messaging-sw.js and rontend/src/services/firebase.js to ensure rapid consecutive triggers or dual delivery are collapsed into exactly 1 clean alert.
+- Changed notification options 
+enotify: false and set uniform 	ag: 'agrishield-alert' across background, foreground, and manual test triggers so repeated alerts update in place without making the phone ring or vibrate twice.
+- Rebuilt and deployed to Firebase Hosting: https://agrishield-ai-498f3.web.app
+
+Files Modified:
+- frontend/public/firebase-messaging-sw.js
+- frontend/src/services/firebase.js
+- frontend/src/pages/common/NotificationsPage.jsx

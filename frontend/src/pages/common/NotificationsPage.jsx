@@ -487,8 +487,8 @@ export default function NotificationsPage() {
             icon: '/icon-192.png',
             badge: '/icon-192.png',
             vibrate: [200, 100, 200],
-            tag: 'agrishield-instant-alert',
-            renotify: true
+            tag: 'agrishield-alert',
+            renotify: false
           });
           shown = true;
         }

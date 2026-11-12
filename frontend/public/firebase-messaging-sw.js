@@ -25,9 +25,23 @@ self.addEventListener('activate', (event) => {
 
 const messaging = firebase.messaging();
 
+// Strict Deduplication Cache — Prevents duplicate notification fires within 3.5 seconds
+let lastMessageKey = '';
+let lastMessageTime = 0;
+
 function displayPushNotification(payload) {
   const title = payload.notification?.title || payload.data?.title || payload.title || '🌾 AgriShield Farm Alert';
   const body = payload.notification?.body || payload.data?.body || payload.body || 'Important crop diagnostics or weather advisory update.';
+  const messageKey = (payload.fcmMessageId || '') + '::' + title + '::' + body;
+  const now = Date.now();
+
+  if (messageKey === lastMessageKey && (now - lastMessageTime < 3500)) {
+    console.log('[firebase-messaging-sw.js] Dropped duplicate push event:', messageKey);
+    return Promise.resolve();
+  }
+  lastMessageKey = messageKey;
+  lastMessageTime = now;
+
   const options = {
     body,
     icon: '/icon-192.png',
@@ -35,7 +49,7 @@ function displayPushNotification(payload) {
     vibrate: [200, 100, 200],
     requireInteraction: true,
     tag: payload.data?.tag || payload.notification?.tag || 'agrishield-alert',
-    renotify: true,
+    renotify: false,
     data: {
       url: payload.data?.url || '/notifications'
     }
@@ -43,27 +57,13 @@ function displayPushNotification(payload) {
   return self.registration.showNotification(title, options);
 }
 
-// 1. Firebase background listener
+// Single Unified Firebase background listener (Eliminates parallel duplicate notifications)
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] onBackgroundMessage:', payload);
   return displayPushNotification(payload);
 });
 
-// 2. Direct Web Push Event listener (Fallback & Guarantees delivery)
-self.addEventListener('push', (event) => {
-  console.log('[firebase-messaging-sw.js] Native push event received');
-  let payload = {};
-  if (event.data) {
-    try {
-      payload = event.data.json();
-    } catch (e) {
-      payload = { title: '🌾 AgriShield Alert', body: event.data.text() };
-    }
-  }
-  event.waitUntil(displayPushNotification(payload));
-});
-
-// 3. Notification click handler — Focus existing window or open /notifications
+// Notification click handler — Focus existing window or open /notifications
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/notifications';
