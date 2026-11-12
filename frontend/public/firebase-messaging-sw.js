@@ -42,14 +42,16 @@ function displayPushNotification(payload) {
   lastMessageKey = messageKey;
   lastMessageTime = now;
 
+  const alertTag = payload.data?.notification_id || payload.notification?.tag || ('agrishield-' + now);
+
   const options = {
     body,
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    vibrate: [200, 100, 200],
+    vibrate: [250, 100, 250],
     requireInteraction: true,
-    tag: payload.data?.tag || payload.notification?.tag || 'agrishield-alert',
-    renotify: false,
+    tag: alertTag,
+    renotify: true,
     data: {
       url: payload.data?.url || '/notifications'
     }

@@ -10431,3 +10431,28 @@ Files Modified:
 - frontend/src/components/AppLayout.jsx
 - frontend/src/context/WebSocketContext.jsx
 - changes_happening.md
+
+---
+## [2026-11-12 11:43:00] Mobile Status Bar Notification & Auto FCM Sync Fix
+
+### Core Problem & Root Cause:
+1. Android OS Notification Suppression:
+   - When users were inside the app, Chrome on Android silently suppressed repeat alerts because notifications shared a static tag with renotify: false.
+2. Missing FCM Registration in MongoDB:
+   - Device tokens were not automatically registered in MongoDB for incoming users unless they explicitly visited the notification settings page. As a result, the backend could not deliver push notifications to physical mobile status bars.
+
+### Technical Solutions Applied:
+1. Automatic Background FCM Sync (frontend/src/components/AppLayout.jsx):
+   - Added automatic background registration hook that detects granted notification permissions, generates the FCM device token via requestFCMToken(), and registers it in POST /api/notifications/register-fcm with device_type ('mobile' or 'web').
+2. Status Bar Dropdown & Vibration Guarantee (frontend/public/firebase-messaging-sw.js & frontend/src/utils/deviceNotification.js):
+   - Changed alert tag generation to unique timestamps (agrishield-{timestamp}).
+   - Enabled renotify: true so every incoming alert drops a fresh notification dropdown and vibrates the device.
+   - Set requireInteraction: true and vibration pattern [250, 100, 250].
+3. Live Deployment:
+   - Recompiled Vite production build (0 errors) and deployed to Firebase Hosting: https://agrishield-ai-498f3.web.app.
+
+Files Modified:
+- frontend/public/firebase-messaging-sw.js
+- frontend/src/components/AppLayout.jsx
+- frontend/src/utils/deviceNotification.js
+- changes_happening.md

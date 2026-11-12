@@ -36,8 +36,9 @@ export const popDeviceNotification = async (title, body, tag = 'agrishield-alert
           icon: '/icon-192.png',
           badge: '/icon-192.png',
           vibrate: [250, 100, 250],
-          tag: tag || 'agrishield-alert',
-          renotify: false,
+          tag: tag ? `${tag}-${Date.now()}` : `agrishield-${Date.now()}`,
+          renotify: true,
+          requireInteraction: true,
           data: { url: url || '/notifications' }
         });
         return true;

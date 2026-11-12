@@ -518,6 +518,23 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     };
   }, [user, playNotificationChime]);
 
+  // Automatic Background FCM Device Token Registration & Sync with MongoDB
+  useEffect(() => {
+    if (user && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      import('../services/firebase').then(({ requestFCMToken }) => {
+        requestFCMToken().then(res => {
+          if (res?.token) {
+            const deviceType = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'web';
+            API.post('/api/notifications/register-fcm', {
+              token: res.token,
+              device_type: deviceType
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      });
+    }
+  }, [user]);
+
 
 
   // Sync recent alerts and trigger banner on new live alert over WebSocket
