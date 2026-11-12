@@ -105,7 +105,10 @@ class FirebaseService:
                 data=message_data
             )
             
-            response = messaging.send_multicast(multicast_message)
+            if hasattr(messaging, "send_each_for_multicast"):
+                response = messaging.send_each_for_multicast(multicast_message)
+            else:
+                response = messaging.send_multicast(multicast_message)
             logger.info(f"FCM multicast sent: {response.success_count} success, {response.failure_count} failures.")
             
             # If there are failures (e.g. invalid tokens), clean them up

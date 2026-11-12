@@ -10328,3 +10328,17 @@ Files Modified:
 - backend/app/services/firebase_service.py
 - frontend/src/context/AuthContext.jsx
 - frontend/src/pages/common/NotificationsPage.jsx
+
+---
+## [2026-11-12 10:09:20] Activated Firebase Admin SDK & Secured Service Account Key - COMPLETED
+
+### Changes:
+- Secured ackend/agrishield-ai-498f3-firebase-adminsdk-fbsvc-949fcbfc7c.json in .gitignore to prevent secret credentials leakage.
+- Created standard ackend/firebase-service-account.json certificate linking project grishield-ai-498f3.
+- Updated ackend/app/services/firebase_service.py with modern messaging.send_each_for_multicast() method (replacing deprecated send_multicast()).
+- Successfully verified FIREBASE_INITIALIZED: True in backend virtual environment.
+- Live server push pipeline from Python FastAPI to Google FCM is now 100% active and operational.
+
+Files Modified:
+- .gitignore
+- backend/app/services/firebase_service.py
