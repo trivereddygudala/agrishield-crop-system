@@ -10490,3 +10490,35 @@ Files Modified:
 - frontend/public/screenshots/desktop-1.jpg
 - frontend/public/screenshots/mobile-1.jpg
 - changes_happening.md
+
+---
+## [2026-11-12 12:18:00] True PNG Icon Generation & Manifest Icon Type/Size Resolution
+
+### Problem Diagnosed:
+- In PWABuilder, Service Worker passed +4 with green checkmarks, but Manifest scored 30/46 with 2 red blockers:
+  1. 'Add a 192x192 PNG icon to your manifest.'
+  2. 'Fix the icon types in your web manifest.'
+  3. 'Ensure that shortcut icon type declarations match the actual file types.'
+- Root Cause:
+  * icon-192.png and icon-512.png were raw 1024x1024 JPEG files named with a .png extension. PWABuilder verified the binary headers and dimensions, failing the MIME type check (image/jpeg != image/png) and dimension check (1024x1024 != 192x192).
+
+### Technical Actions Taken:
+1. Native Bicubic PNG Generation (generate_icons.ps1):
+   - Used .NET System.Drawing with HighQualityBicubic interpolation to re-encode genuine PNG binaries:
+     * frontend/public/icon-192.png (192x192, true PNG header \x89PNG\r\n\x1a\n)
+     * frontend/public/icon-512.png (512x512, true PNG header \x89PNG\r\n\x1a\n)
+     * frontend/public/icon-96.png (96x96, true PNG header for shortcuts & medium-DPI Android)
+2. Manifest Alignment (frontend/public/manifest.json):
+   - Aligned shortcut icons to /icon-96.png with 96x96 dimensions.
+   - Added 96x96 icon entry to main icons list.
+3. Build & Production Deployment:
+   - Compiled frontend production build in 19.25s (0 errors).
+   - Released to Firebase Hosting: https://agrishield-ai-498f3.web.app.
+
+Files Modified:
+- frontend/public/icon-192.png
+- frontend/public/icon-512.png
+- frontend/public/icon-96.png
+- frontend/public/manifest.json
+- generate_icons.ps1
+- changes_happening.md
