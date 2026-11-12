@@ -10687,3 +10687,27 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
 - **Production Build & Deploy:**
   - Vite build verified: 0 errors in 22.36s.
   - Deployed live to Firebase Hosting (https://agrishield-ai-498f3.web.app).
+
+## [2026-11-12 17:42:00] New Mobile Messages Model: One-by-One, Day-by-Day Feed & Zero Bottom Whitespace
+- **Restored the New Notification Model (Mobile Messages Design):**
+  - Restored full modern Messages App header: 'Messages & Field Alerts / సందేశాలు & హెచ్చరికలు' with counter badge, daily voice briefing shortcut, and mark all read button.
+  - Implemented Material You rounded search bar with user profile avatar and live search filtering.
+  - Category chips ('All', 'Unread', 'AI Doctor', 'Machinery', 'Weather') and severity pills ('All', 'Critical', 'High', 'Normal').
+- **One-by-One Day-by-Day Message Cards (Picture 1):**
+  - No channel folder clustering: every notification is shown as an individual card directly in the feed.
+  - Grouped cleanly day-by-day under intuitive section headers: 'Today / ఈ రోజు', 'Yesterday / నిన్న', 'Earlier This Week', 'Older Messages'.
+  - Each message card features:
+    - High-contrast sender avatar or crop leaf thumbnail with verified green checkmark badge.
+    - Sender name, category badge, and priority indicator.
+    - Full readable message title and body (tap anywhere to open reader).
+    - 1-tap male voice audio player with animated soundwave equalizer bars (0.94 pitch, te-IN-MohanNeural / hi-IN-MadhurNeural / en-IN-PrabhatNeural).
+    - Quick CTA button ('View Prescription ->', 'Book Machinery ->', Accept / Decline for providers).
+    - Rythu WhatsApp share button.
+    - Timestamp and delivery status checkmarks ('✓✓' for read, '✓' for sent).
+- **Eliminated Bottom External Whitespace (Picture 2):**
+  - Removed fixed-height container that created blank gaps above the bottom navigation dock.
+  - Applied fluid responsive layout (max-w-3xl mx-auto space-y-3.5 pb-24 pt-2 px-3 sm:px-6) extending smoothly down to the bottom dock.
+- **Production Build & Deployment:**
+  - Vite build: 0 errors in 22.63s.
+  - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app
+  - Pushed to GitHub origin/main: commit d9259b2.
