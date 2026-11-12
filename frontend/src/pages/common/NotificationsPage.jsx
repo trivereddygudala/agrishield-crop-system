@@ -452,6 +452,7 @@ export default function NotificationsPage() {
   const [selectedSeverity, setSelectedSeverity] = useState('All'); // Phase 3: Severity filter ('All' | 'Critical' | 'High' | 'Normal')
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [feedViewMode, setFeedViewMode] = useState('bubbles'); // 'bubbles' | 'compact'
   
   // ─── FARMER MESSAGES APPLICATION (Phase 1, 2, 3) ───
   const [activeChannelId, setActiveChannelId] = useState(null);
@@ -1969,77 +1970,119 @@ export default function NotificationsPage() {
         </div>
       )}
 
-                  {/* ─── 1. TOP APP BAR / UTILITY CONTROLS (NEW MESSAGES MODEL) ─── */}
-      <div className="flex items-center justify-between px-1 pt-1">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shadow-emerald-600/30">
-            💬
+                        {/* ─── 1. TOP APP BAR / MESSAGES BANNER (AUTHENTIC MOBILE MESSAGES HEADER) ─── */}
+      <div className="rounded-3xl bg-gradient-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white p-3.5 sm:p-4 shadow-lg shadow-emerald-950/20 relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="flex items-center justify-between gap-2.5 relative z-10">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-lg shadow-xs shrink-0">
+              💬
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2 truncate">
+                <span>{isTe ? 'సందేశాలు & హెచ్చరికలు' : 'Messages & Advisories'}</span>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-emerald-950 shadow-xs">
+                    {unreadCount} {isTe ? 'కొత్తవి' : 'new'}
+                  </span>
+                )}
+              </h1>
+              <p className="text-[11px] text-emerald-100/90 font-medium truncate">
+                {isTe ? 'అధికారిక వ్యవసాయ నోటిఫికేషన్‌లు (Rythu Stream)' : 'Official Agricultural Alerts (Rythu Stream)'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight flex items-center gap-2">
-              <span>{isTe ? 'సందేశాలు & హెచ్చరికలు' : 'Messages & Field Alerts'}</span>
-              {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-600 text-white shadow-xs">
-                  {unreadCount} {isTe ? 'కొత్తవి' : 'new'}
-                </span>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Daily Voice Briefing */}
+            <button
+              type="button"
+              onClick={handlePlayBriefing}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                speakingId === 'today_briefing'
+                  ? 'bg-rose-500 text-white animate-pulse'
+                  : 'bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20'
+              }`}
+              title={isTe ? 'ఈ రోజు వాయిస్ సారాంశం వినండి' : "Listen to today's daily audio briefing"}
+            >
+              {speakingId === 'today_briefing' ? (
+                <>
+                  <Square className="w-3.5 h-3.5 fill-current text-white" />
+                  <span className="hidden sm:inline">{isTe ? 'ఆపండి' : 'Stop'}</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-300" />
+                  <span className="hidden sm:inline">{isTe ? 'రోజువారీ వాయిస్' : 'Daily Voice'}</span>
+                </>
               )}
-            </h1>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              {isTe ? 'అధికారిక వ్యవసాయ సలహాలు & నోటిఫికేషన్‌లు' : 'Official Agricultural Alerts & Advisories'}
-            </p>
+            </button>
+
+            {/* Mark All Read */}
+            {unreadCount > 0 && (
+              <button
+                onClick={handleReadAll}
+                className="p-1.5 sm:p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-xs"
+                title={isTe ? 'అన్నీ చదివినట్లు గుర్తించు' : 'Mark all as read'}
+              >
+                <CheckCheck className="w-4 h-4 text-emerald-300" />
+              </button>
+            )}
+
+            {/* Settings */}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="p-1.5 sm:p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-xs"
+              title="Settings"
+            >
+              <Settings className="w-4 h-4 text-emerald-100" />
+            </button>
+
+            {/* Clear Inbox */}
+            {notifications.length > 0 && (
+              <button
+                onClick={handleClear}
+                className="p-1.5 sm:p-2 rounded-xl bg-white/15 hover:bg-white/25 text-rose-200 backdrop-blur-md border border-white/20 transition-all cursor-pointer shadow-xs"
+                title={isTe ? 'అన్నీ తొలగించండి' : 'Clear all'}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Header Action Icons */}
-        <div className="flex items-center gap-1.5">
-          {/* Daily Voice Briefing */}
-          <button
-            type="button"
-            onClick={handlePlayBriefing}
-            className={`p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
-              speakingId === 'today_briefing'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title={isTe ? 'ఈ రోజు వాయిస్ సారాంశం వినండి' : 'Listen to daily voice briefing'}
-          >
-            {speakingId === 'today_briefing' ? (
-              <Square className="w-4 h-4 fill-current animate-pulse text-white" />
-            ) : (
-              <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            )}
-          </button>
-
-          {/* Mark All Read */}
-          {unreadCount > 0 && (
+        {/* View Switcher: Chat Bubbles vs Compact List */}
+        <div className="flex items-center justify-between gap-2 pt-2.5 mt-2.5 border-t border-white/15 relative z-10">
+          <span className="text-[11px] font-bold text-emerald-100">
+            {isTe ? 'నోటిఫికేషన్ శైలి:' : 'Notification Style:'}
+          </span>
+          <div className="flex items-center bg-black/25 backdrop-blur-md rounded-xl p-0.5 border border-white/15 text-[11px] font-bold">
             <button
-              onClick={handleReadAll}
-              className="p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-xs cursor-pointer"
-              title={isTe ? 'అన్నీ చదివినట్లు గుర్తించండి' : 'Mark all as read'}
+              type="button"
+              onClick={() => setFeedViewMode('bubbles')}
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                feedViewMode === 'bubbles'
+                  ? 'bg-white text-emerald-950 shadow-xs font-black'
+                  : 'text-white/80 hover:text-white'
+              }`}
             >
-              <CheckCheck className="w-4 h-4" />
+              <span>💬</span>
+              <span>{isTe ? 'చాట్ బుడగలు' : 'Chat Bubbles'}</span>
             </button>
-          )}
-
-          {/* Notification Settings */}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
-            title="Settings"
-          >
-            <Settings className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-          </button>
-
-          {/* Clear Inbox */}
-          {notifications.length > 0 && (
             <button
-              onClick={handleClear}
-              className="p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 hover:text-rose-500 transition-all shadow-xs cursor-pointer"
-              title={isTe ? 'అన్నీ తొలగించండి' : 'Clear all messages'}
+              type="button"
+              onClick={() => setFeedViewMode('compact')}
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                feedViewMode === 'compact'
+                  ? 'bg-white text-emerald-950 shadow-xs font-black'
+                  : 'text-white/80 hover:text-white'
+              }`}
             >
-              <Trash2 className="w-4 h-4" />
+              <span>📋</span>
+              <span>{isTe ? 'జాబితా' : 'Messages List'}</span>
             </button>
-          )}
+          </div>
         </div>
       </div>
 
@@ -2231,87 +2274,77 @@ export default function NotificationsPage() {
         <div className="space-y-4">
           {groupedNotifications.map((group) => (
             <div key={group.id} className="space-y-2.5">
-              {/* Day-by-Day Separator */}
-              <div className="flex items-center justify-between px-2 pt-1">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              {/* Day-by-Day Centered Date Badge (Mockup Phone 2 Feature) */}
+              <div className="flex justify-center my-2.5">
+                <span className="px-3.5 py-1 rounded-full bg-slate-200/90 dark:bg-slate-800 text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 shadow-2xs flex items-center gap-1.5 border border-slate-300/60 dark:border-slate-700">
                   <span>{group.icon}</span>
                   <span>{group.title}</span>
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                  {group.items.length}
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1" />
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">{group.items.length}</span>
                 </span>
               </div>
 
-              {/* Individual Message Cards in this Day (One by One) */}
-              <div className="space-y-2.5">
-                <AnimatePresence>
-                  {group.items.map((item) => {
-                    const msgId = item.notification_id || item.id;
-                    const meta = getThreadMeta(item);
-                    const AvatarIcon = meta.Icon;
-                    const isUnread = !item.read;
-                    const isResolved = resolvedIds.has(String(msgId));
-                    const isSpeaking = speakingId === `card_${msgId}`;
-                    const { title: displayTitle, message: displayMessage } = translateNotification(
-                      item.title_te || item.title,
-                      item.message_te || item.message,
-                      currentLang
-                    );
-                    const priorityInfo = PRIORITY_BADGES[item.priority] || PRIORITY_BADGES.Low;
-                    const thumbUrl = getNotificationThumbnail(item);
-                    const cta = getActionCTA(item, isTe);
+              {/* Feed Items: Either Chat Bubbles or Compact List */}
+              {feedViewMode === 'bubbles' ? (
+                /* ─── CHAT BUBBLES VIEW (PHONE 2 IN MOCKUP) ─── */
+                <div className="space-y-3.5">
+                  <AnimatePresence>
+                    {group.items.map((item) => {
+                      const msgId = item.notification_id || item.id;
+                      const meta = getThreadMeta(item);
+                      const AvatarIcon = meta.Icon;
+                      const isUnread = !item.read;
+                      const isResolved = resolvedIds.has(String(msgId));
+                      const isSpeaking = speakingId === `card_${msgId}`;
+                      const { title: displayTitle, message: displayMessage } = translateNotification(
+                        item.title_te || item.title,
+                        item.message_te || item.message,
+                        currentLang
+                      );
+                      const priorityInfo = PRIORITY_BADGES[item.priority] || PRIORITY_BADGES.Low;
+                      const thumbUrl = getNotificationThumbnail(item);
+                      const cta = getActionCTA(item, isTe);
 
-                    return (
-                      <motion.div
-                        key={msgId}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: -15 }}
-                        className={`rounded-3xl p-3.5 sm:p-4 transition-all border shadow-sm relative ${
-                          isUnread
-                            ? 'bg-white dark:bg-slate-900 border-emerald-500/60 shadow-md ring-1 ring-emerald-500/20'
-                            : isResolved
-                            ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-slate-200/80 dark:border-slate-800'
-                            : 'bg-white/95 dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
-                      >
-                        {/* Upper Header: Left Avatar + Verified Sender + Priority + Delete */}
-                        <div className="flex items-start justify-between gap-3 mb-2.5 pb-2 border-b border-slate-100 dark:border-slate-800/80">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Avatar / Crop Thumbnail */}
-                            <div className="relative shrink-0">
-                              {thumbUrl ? (
-                                <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-xs">
-                                  <img
-                                    src={thumbUrl}
-                                    alt={meta.senderTitle}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/samples/corn_leaf_blight.jpg'; }}
-                                  />
-                                  <div className={`absolute bottom-0 right-0 p-0.5 rounded-tl-md ${meta.avatarBg}`}>
-                                    <AvatarIcon className="w-2.5 h-2.5 text-white" />
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${meta.avatarBg} text-white flex items-center justify-center text-lg font-bold shadow-sm`}>
-                                  <AvatarIcon className="w-5 h-5 text-white" />
-                                </div>
-                              )}
-                              {isUnread && (
-                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
-                              )}
+                      return (
+                        <motion.div
+                          key={msgId}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -15 }}
+                          className="flex items-start gap-2.5 sm:gap-3.5 group"
+                        >
+                          {/* Left Avatar: Gradient Squircle with Verified Badge */}
+                          <div className="relative shrink-0 mt-1">
+                            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br ${meta.avatarBg} text-white flex items-center justify-center text-lg font-bold shadow-sm`}>
+                              <AvatarIcon className="w-5 h-5 text-white" />
                             </div>
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full flex items-center justify-center text-[9px] text-white font-black shadow-2xs">
+                              ✓
+                            </span>
+                            {isUnread && (
+                              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                            )}
+                          </div>
 
-                            {/* Sender Info & Verified Badge */}
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <h3 className={`text-xs sm:text-sm font-black truncate tracking-tight ${
-                                  isUnread ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'
-                                }`}>
+                          {/* Incoming Chat Bubble */}
+                          <div className={`flex-1 rounded-3xl rounded-tl-sm p-3.5 sm:p-4 transition-all border shadow-sm relative space-y-2.5 ${
+                            isUnread
+                              ? 'bg-white dark:bg-[#121c27] border-emerald-500/50 shadow-md ring-1 ring-emerald-500/20'
+                              : isResolved
+                              ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-slate-200/80 dark:border-slate-800'
+                              : 'bg-white/95 dark:bg-[#111923] border-slate-200/90 dark:border-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700'
+                          }`}>
+                            {/* Bubble Header */}
+                            <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
                                   {meta.senderTitle}
-                                </h3>
-                                <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 shrink-0" title="Verified">
+                                </span>
+                                <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 shrink-0">
                                   <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500 text-white dark:text-slate-900" />
+                                </span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${meta.badgeBg} truncate`}>
+                                  {meta.categoryLabel}
                                 </span>
                                 {isResolved && (
                                   <span className="px-1.5 py-0.2 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 text-[9px] font-black shrink-0 border border-emerald-300/60 dark:border-emerald-800">
@@ -2319,88 +2352,106 @@ export default function NotificationsPage() {
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                {meta.categoryLabel}
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${priorityInfo.bg}`}>
+                                  {item.priority || 'Normal'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(msgId, null, item.threadItemIds)}
+                                  className="p-1 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title="Delete message"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Crop / Leaf Scan Photo Attachment (Phone 2 in Mockup) */}
+                            {thumbUrl && (
+                              <div
+                                onClick={() => { setSelectedMessage(item); if (isUnread) handleMarkRead(msgId, null, item.threadItemIds); }}
+                                className="relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80 shadow-xs max-h-52 group/img cursor-pointer"
+                              >
+                                <img
+                                  src={thumbUrl}
+                                  alt={displayTitle}
+                                  className="w-full h-44 object-cover group-hover/img:scale-102 transition-transform duration-300"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                                <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1">
+                                  <span>🌿 {isTe ? 'పంట స్కాన్ చిత్రం' : 'Field Crop Scan'}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Message Title & Text Body */}
+                            <div
+                              onClick={() => {
+                                setSelectedMessage(item);
+                                if (isUnread) handleMarkRead(msgId, null, item.threadItemIds);
+                              }}
+                              className="space-y-1 cursor-pointer group/msg"
+                            >
+                              <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug group-hover/msg:text-emerald-600 transition-colors">
+                                {displayTitle}
+                              </h4>
+                              <p className="text-xs sm:text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                                {displayMessage}
+                              </p>
+                            </div>
+
+                            {/* WhatsApp Style Voice Note Bar (Phone 2 Feature) */}
+                            <div className="p-2 sm:p-2.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/70 flex items-center justify-between gap-2.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const textToRead = `${displayTitle}. ${displayMessage}`;
+                                  speak(textToRead, `card_${msgId}`, currentLang, 0.88);
+                                }}
+                                className={`w-9 h-9 rounded-full font-bold flex items-center justify-center shrink-0 transition-all shadow-xs cursor-pointer ${
+                                  isSpeaking
+                                    ? 'bg-rose-600 text-white shadow-rose-600/30'
+                                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 active:scale-95'
+                                }`}
+                                title={isSpeaking ? 'Stop voice readout' : 'Listen with male neural voice'}
+                              >
+                                {isSpeaking ? (
+                                  <Square className="w-3.5 h-3.5 fill-current animate-pulse text-white" />
+                                ) : (
+                                  <Volume2 className="w-4 h-4 text-white" />
+                                )}
+                              </button>
+
+                              {/* Live Soundwave Bars */}
+                              <div className="flex-1 flex items-center gap-1 h-5 px-1">
+                                {[
+                                  'h-2 animate-pulse',
+                                  'h-4 animate-pulse [animation-delay:150ms]',
+                                  'h-3 animate-pulse [animation-delay:300ms]',
+                                  'h-5 animate-pulse [animation-delay:75ms]',
+                                  'h-2 animate-pulse [animation-delay:200ms]',
+                                  'h-4 animate-pulse [animation-delay:400ms]'
+                                ].map((cls, i) => (
+                                  <span
+                                    key={i}
+                                    className={`w-1 rounded-full ${isSpeaking ? 'bg-emerald-600 dark:bg-emerald-400 ' + cls : 'bg-emerald-300 dark:bg-emerald-800 h-2'}`}
+                                  />
+                                ))}
+                                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 ml-1.5 truncate">
+                                  {isSpeaking
+                                    ? (isTe ? 'వాయిస్ చదువుతోంది...' : 'Speaking (Male Voice)...')
+                                    : (isTe ? 'వాయిస్ సారాంశం (వినండి)' : 'Voice Note (Listen)')}
+                                </span>
+                              </div>
+
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 shrink-0">
+                                0.94x
                               </span>
                             </div>
-                          </div>
 
-                          {/* Priority Tag & Delete */}
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${priorityInfo.bg}`}>
-                              {item.priority || 'Normal'}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(msgId, null, item.threadItemIds)}
-                              className="p-1 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                              title="Delete message"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Message Title & Body (Tap to Open Reader) */}
-                        <div
-                          onClick={() => {
-                            setSelectedMessage(item);
-                            if (isUnread) handleMarkRead(msgId, null, item.threadItemIds);
-                          }}
-                          className="space-y-1 mb-3 cursor-pointer group/msg"
-                        >
-                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-snug group-hover/msg:text-emerald-600 transition-colors">
-                            {displayTitle}
-                          </h4>
-                          <p className="text-xs sm:text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                            {displayMessage}
-                          </p>
-                        </div>
-
-                        {/* 🔊 1-Tap Audio Playback Bar with Male Voice */}
-                        <div className="mb-2.5 p-2 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const textToRead = `${displayTitle}. ${displayMessage}`;
-                              speak(textToRead, `card_${msgId}`, currentLang, 0.88);
-                            }}
-                            className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-                              isSpeaking
-                                ? 'bg-rose-600 text-white shadow-rose-600/30'
-                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-                            }`}
-                          >
-                            {isSpeaking ? (
-                              <>
-                                <Square className="w-3.5 h-3.5 fill-current animate-pulse text-white" />
-                                <span>{isTe ? 'ఆపండి' : 'Stop'}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Volume2 className="w-3.5 h-3.5 text-white" />
-                                <span>{isTe ? 'వినండి' : 'Listen'}</span>
-                              </>
-                            )}
-                          </button>
-
-                          {/* Soundwave equalizer animation */}
-                          {isSpeaking && (
-                            <div className="flex items-center gap-1 px-2">
-                              <span className="w-1 h-3.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                              <span className="w-1 h-5 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                              <span className="w-1 h-3 bg-emerald-500 rounded-full animate-bounce" />
-                            </div>
-                          )}
-
-                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                            {isSpeaking ? (isTe ? 'ఆడియో ప్లే అవుతోంది...' : 'Speaking...') : (isTe ? 'వాయిస్ సారాంశం' : 'Voice Reader')}
-                          </span>
-                        </div>
-
-                        {/* Action Buttons Row */}
-                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex-wrap">
-                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Primary Action Button (Phone 2 in Mockup) */}
                             {cta && (
                               <button
                                 type="button"
@@ -2408,27 +2459,27 @@ export default function NotificationsPage() {
                                   handleMarkRead(msgId, null, item.threadItemIds);
                                   navigate(cta.url);
                                 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-colors cursor-pointer shadow-xs"
+                                className="w-full py-2.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-sm shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                               >
                                 <span>{cta.label}</span>
-                                <span>&rarr;</span>
+                                <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
                               </button>
                             )}
 
                             {/* Equipment Provider Quick Accept/Decline */}
                             {isEquipmentProvider && item.booking_id && !isResolved && (
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-2">
                                 <button
                                   type="button"
                                   onClick={(e) => handleProviderQuickDecision(item.booking_id, 'accept', e)}
-                                  className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                                  className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer text-center"
                                 >
                                   {isTe ? 'ఆమోదించు ✅' : 'Accept ✅'}
                                 </button>
                                 <button
                                   type="button"
                                   onClick={(e) => handleProviderQuickDecision(item.booking_id, 'decline', e)}
-                                  className="px-2.5 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                                  className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer text-center"
                                 >
                                   {isTe ? 'తిరస్కరించు ❌' : 'Decline ❌'}
                                 </button>
@@ -2440,63 +2491,146 @@ export default function NotificationsPage() {
                               <a
                                 href={`tel:${item.farmerPhone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="px-2.5 py-1.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center gap-1 transition-all"
+                                className="px-3 py-1.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
                               >
-                                <Phone className="w-3 h-3 text-teal-600 dark:text-teal-400" />
-                                <span>{isTe ? 'కాల్' : 'Call'}</span>
+                                <Phone className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                <span>{isTe ? 'రైతుకు కాల్ చేయండి' : 'Call Farmer'}</span>
                               </a>
                             )}
 
-                            {/* WhatsApp Share */}
-                            <button
-                              type="button"
-                              onClick={() => shareAlertToWhatsApp(item, isTe)}
-                              className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                              title="Share to Rythu WhatsApp Group"
-                            >
-                              <Share2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                              <span>{isTe ? 'వాట్సాప్' : 'WhatsApp'}</span>
-                            </button>
+                            {/* Bubble Footer: Secondary Actions + Timestamp & Delivery Receipts */}
+                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => shareAlertToWhatsApp(item, isTe)}
+                                  className="hover:text-emerald-600 font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Share to WhatsApp"
+                                >
+                                  <Share2 className="w-3 h-3 text-emerald-600" />
+                                  <span>{isTe ? 'వాట్సాప్' : 'WhatsApp'}</span>
+                                </button>
 
-                            {/* Resolve Button */}
-                            {!isResolved && (
-                              <button
-                                type="button"
-                                onClick={(e) => handleMarkResolved(msgId, e, item.threadItemIds)}
-                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                              >
-                                <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                <span>{isTe ? 'పరిష్కరించబడింది' : 'Resolve'}</span>
-                              </button>
-                            )}
+                                {!isResolved && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleMarkResolved(msgId, e, item.threadItemIds)}
+                                    className="hover:text-emerald-600 font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                  >
+                                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                    <span>{isTe ? 'పరిష్కరించు' : 'Resolve'}</span>
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 font-semibold shrink-0">
+                                <span>{formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp)}</span>
+                                <span className={!isUnread ? 'text-emerald-500 font-black text-xs' : 'text-slate-400 text-xs'} title={!isUnread ? 'Delivered & Read' : 'Delivered'}>
+                                  {!isUnread ? '✓✓' : '✓'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                /* ─── COMPACT MESSAGES LIST VIEW (PHONE 1 IN MOCKUP) ─── */
+                <div className="space-y-2">
+                  <AnimatePresence>
+                    {group.items.map((item) => {
+                      const msgId = item.notification_id || item.id;
+                      const meta = getThreadMeta(item);
+                      const AvatarIcon = meta.Icon;
+                      const isUnread = !item.read;
+                      const isSpeaking = speakingId === `compact_${msgId}`;
+                      const { title: displayTitle, message: displayMessage } = translateNotification(
+                        item.title_te || item.title,
+                        item.message_te || item.message,
+                        currentLang
+                      );
+
+                      return (
+                        <motion.div
+                          key={msgId}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          onClick={() => {
+                            setSelectedMessage(item);
+                            if (isUnread) handleMarkRead(msgId, null, item.threadItemIds);
+                          }}
+                          className={`p-3 sm:p-3.5 rounded-2xl flex items-start gap-3 transition-all cursor-pointer border ${
+                            isUnread
+                              ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-500/40 shadow-xs ring-1 ring-emerald-500/20'
+                              : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 shadow-xs'
+                          }`}
+                        >
+                          {/* Avatar */}
+                          <div className="relative shrink-0 mt-0.5">
+                            <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${meta.avatarBg} text-white flex items-center justify-center text-lg font-bold shadow-xs`}>
+                              <AvatarIcon className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border border-white dark:border-slate-900 rounded-full flex items-center justify-center text-[8px] text-white font-black">
+                              ✓
+                            </span>
                           </div>
 
-                          {/* Footer Right: Timestamp & Read Receipts */}
-                          <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                            <span className="font-semibold">
-                              {formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp)}
-                            </span>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                                  {meta.senderTitle}
+                                </h4>
+                                <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500 text-white shrink-0" />
+                              </div>
+                              <span className="text-[11px] font-semibold text-slate-400 shrink-0">
+                                {formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp)}
+                              </span>
+                            </div>
 
-                            {isUnread && (
-                              <button
-                                type="button"
-                                onClick={() => handleMarkRead(msgId, null, item.threadItemIds)}
-                                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                              >
-                                {isTe ? 'చదివినట్లు గుర్తించు' : 'Mark read'}
-                              </button>
-                            )}
+                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium truncate mb-1.5">
+                              <strong className="text-slate-900 dark:text-white">{displayTitle}:</strong> {displayMessage}
+                            </p>
 
-                            <span className={!isUnread ? 'text-emerald-500 font-black text-xs' : 'text-slate-400 text-xs'} title={!isUnread ? 'Delivered & Read' : 'Delivered'}>
-                              {!isUnread ? '✓✓' : '✓'}
-                            </span>
+                            <div className="flex items-center justify-between gap-2 pt-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const textToRead = `${displayTitle}. ${displayMessage}`;
+                                    speak(textToRead, `compact_${msgId}`, currentLang, 0.88);
+                                  }}
+                                  className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1 hover:bg-emerald-100 cursor-pointer border border-emerald-200 dark:border-emerald-800"
+                                >
+                                  <Volume2 className="w-3 h-3" />
+                                  <span>{isSpeaking ? (isTe ? 'ఆపు' : 'Stop') : (isTe ? 'వాయిస్' : 'Voice')}</span>
+                                </button>
+                                <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-md ${meta.badgeBg}`}>
+                                  {meta.categoryLabel}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                {isUnread && (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                )}
+                                <span className={!isUnread ? 'text-emerald-500 font-black text-xs' : 'text-slate-400 text-xs'}>
+                                  {!isUnread ? '✓✓' : '✓'}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
           ))}
         </div>
