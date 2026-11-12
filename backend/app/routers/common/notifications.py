@@ -323,15 +323,16 @@ async def register_fcm_token(
     db = Depends(get_database)
 ):
     """Register user browser device push token."""
+    uid = str(current_user.get("id") or current_user.get("_id") or current_user.get("user_id") or "")
     success = await FirebaseService.register_fcm_token(
         db,
-        user_id=str(current_user["id"]),
+        user_id=uid,
         token=payload.token,
         device_type=payload.device_type
     )
     if not success:
         raise HTTPException(status_code=500, detail="Failed to register FCM token")
-    return {"status": "success", "message": "FCM Token registered"}
+    return {"status": "success", "message": "FCM Token registered", "user_id": uid}
 
 @router.post("/api/notifications/test")
 @router.post("/api/v1/notifications/test")
@@ -340,12 +341,13 @@ async def trigger_test_alert(
     db = Depends(get_database)
 ):
     """Send localized dummy notification test to verified websocket and push clients."""
+    uid = str(current_user.get("id") or current_user.get("_id") or current_user.get("user_id") or "")
     user_role = current_user.get("role", "farmer")
     if user_role == "equipment_provider":
         doc = await NotificationService.create_notification(
             db,
             NotificationCreate(
-                user_id=str(current_user["id"]),
+                user_id=uid,
                 title="🚜 New Machinery Booking Inquiry",
                 message="Farmer inquired about tractor availability for field cultivation.",
                 category="booking",
@@ -361,7 +363,7 @@ async def trigger_test_alert(
         doc = await NotificationService.create_notification(
             db,
             NotificationCreate(
-                user_id=str(current_user["id"]),
+                user_id=uid,
                 title="Soil Moisture Low",
                 message="Soil moisture level is critically low. Recommended irrigation: 5 L/m².",
                 category="soil",
@@ -372,5 +374,5 @@ async def trigger_test_alert(
             template_key="soil_moisture_low",
             template_context=telemetry_mock
         )
-    return {"status": "success", "message": "Test notification dispatched", "notification": doc}
+    return {"status": "success", "message": "Test notification dispatched", "notification": doc, "user_id": uid}
 

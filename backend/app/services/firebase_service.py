@@ -11,19 +11,33 @@ logger = logging.getLogger(__name__)
 FIREBASE_INITIALIZED = False
 
 try:
-    # Look for service account credentials file
-    cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "backend/firebase-service-account.json")
-    if not os.path.exists(cred_path):
-        # Alternative search in core folder
-        cred_path = "backend/app/core/firebase-service-account.json"
-        
-    if os.path.exists(cred_path):
-        cred = credentials.Certificate(cred_path)
+    # 1. Check for inline JSON string in environment variable (Render / Cloud deployment)
+    raw_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON") or os.getenv("FIREBASE_CREDENTIALS_JSON")
+    if raw_json and raw_json.strip().startswith("{"):
+        import json
+        cert_dict = json.loads(raw_json)
+        cred = credentials.Certificate(cert_dict)
         firebase_admin.initialize_app(cred)
         FIREBASE_INITIALIZED = True
-        logger.info("Firebase Admin SDK initialized successfully.")
+        logger.info("Firebase Admin SDK initialized successfully via FIREBASE_SERVICE_ACCOUNT_JSON env var.")
     else:
-        logger.warning("Firebase service account credentials file not found. Running Firebase Service in Simulation/Development mode.")
+        # 2. Check for service account credentials file in common locations
+        search_paths = [
+            os.getenv("FIREBASE_CREDENTIALS_PATH", ""),
+            "backend/firebase-service-account.json",
+            "firebase-service-account.json",
+            "backend/app/core/firebase-service-account.json",
+            "../backend/firebase-service-account.json"
+        ]
+        cred_path = next((p for p in search_paths if p and os.path.exists(p)), None)
+        
+        if cred_path:
+            cred = credentials.Certificate(cred_path)
+            firebase_admin.initialize_app(cred)
+            FIREBASE_INITIALIZED = True
+            logger.info(f"Firebase Admin SDK initialized successfully from file: {cred_path}")
+        else:
+            logger.warning("Firebase service account credentials file not found. Running Firebase Service in Simulation/Development mode.")
 except Exception as e:
     logger.error(f"Failed to initialize Firebase Admin SDK: {e}. Running in Simulation mode.")
 

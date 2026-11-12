@@ -6,6 +6,22 @@ import { signInWithGoogle } from '../services/firebase';
 
 const AuthContext = createContext(null);
 
+// Sync FCM Device Registration Token with Backend Database
+export const syncFCMTokenWithBackend = async () => {
+  try {
+    const fcmToken = typeof window !== 'undefined' ? localStorage.getItem('agrishield_fcm_token') : null;
+    if (!fcmToken) return;
+    const deviceType = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'web';
+    await API.post('/api/notifications/register-fcm', {
+      token: fcmToken,
+      device_type: deviceType
+    });
+    console.debug('[AuthContext] Synced FCM device token to backend for user.');
+  } catch (err) {
+    console.debug('[AuthContext] FCM sync notice:', err?.response?.status || err.message);
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
@@ -181,6 +197,9 @@ export const AuthProvider = ({ children }) => {
       if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(userData));
 
+      // Asynchronously sync device FCM push token with backend database
+      syncFCMTokenWithBackend();
+
       return userData;
     } catch (error) {
       throw error;
@@ -231,6 +250,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', access_token);
       if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(userData));
+
+      // Asynchronously sync device FCM push token with backend database
+      syncFCMTokenWithBackend();
 
       return userData;
     } catch (error) {

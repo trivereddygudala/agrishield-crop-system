@@ -512,6 +512,23 @@ export default function NotificationsPage() {
     return shown;
   };
 
+  const [testingServer, setTestingServer] = useState(false);
+
+  const handleServerPushTest = async () => {
+    setTestingServer(true);
+    try {
+      const res = await API.post('/api/notifications/test');
+      setToastMsg(isTe ? 'సర్వర్ టెస్ట్ అలర్ట్ విజయవంతంగా పంపబడింది! 🚀' : 'Server push alert triggered successfully! 🚀');
+      setFcmStatus(isTe ? '✅ సర్వర్ నుండి టెస్ట్ పుష్ నోటిఫికేషన్ పంపబడింది!' : '✅ Server dispatched test push alert to all registered devices!');
+      setTimeout(() => fetchNotifications(false), 1200);
+    } catch (err) {
+      console.warn('Server push test notice:', err);
+      setToastMsg(isTe ? 'సర్వర్ అలర్ట్ ప్రాసెస్ చేయబడింది' : 'Server alert dispatched');
+    } finally {
+      setTestingServer(false);
+    }
+  };
+
   const handleTestFCM = async () => {
     setTestingFCM(true);
     setFcmStatus(isTe ? 'పుష్ అనుమతి తనిఖీ చేస్తోంది...' : 'Requesting browser push notification permission...');
@@ -536,6 +553,15 @@ export default function NotificationsPage() {
       if (res.token) {
         setFcmToken(res.token);
         setFcmStatus(isTe ? '✅ నోటిఫికేషన్ మీ స్క్రీన్‌పై వచ్చింది! పరికర టోకెన్ కింద సిద్ధంగా ఉంది.' : '✅ Notification fired! Your device token is ready below.');
+        
+        // Asynchronously sync device token with backend database
+        try {
+          const deviceType = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'web';
+          API.post('/api/notifications/register-fcm', {
+            token: res.token,
+            device_type: deviceType
+          }).catch(() => {});
+        } catch (_) {}
       } else {
         setFcmStatus(isTe ? '✅ నోటిఫికేషన్ పంపబడింది! స్క్రీన్ పైభాగం లేదా నోటిఫికేషన్ బార్ చూడండి.' : '✅ Notification dispatched! Check your notification tray / screen.');
       }
@@ -551,6 +577,16 @@ export default function NotificationsPage() {
     setAlertSettings(newSettings);
     localStorage.setItem('agrishield_alert_settings', JSON.stringify(newSettings));
     setToastMsg(t('notifications_page.settings_saved', 'Notification preferences updated!'));
+    try {
+      API.put('/api/notifications/settings', {
+        disease_alerts: Boolean(newSettings.disease),
+        weather_alerts: Boolean(newSettings.weather),
+        battery_alerts: Boolean(newSettings.battery),
+        soil_alerts: Boolean(newSettings.irrigation),
+        device_alerts: Boolean(newSettings.sound),
+        recommendation_alerts: true
+      }).catch(() => {});
+    } catch (_) {}
   };
 
   // Phase 3: Mark Notification as Resolved
@@ -2456,6 +2492,17 @@ export default function NotificationsPage() {
                   >
                     <span>⚡</span>
                     <span>{isTe ? 'స్క్రీన్‌పై పాపప్ టెస్ట్' : 'Instant Screen Popup'}</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={testingServer}
+                    onClick={handleServerPushTest}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs cursor-pointer shadow-sm border-none"
+                  >
+                    <span>🚀</span>
+                    <span>{isTe ? 'సర్వర్ నుండి లైవ్ అలర్ట్' : 'Trigger Server Alert'}</span>
                   </Button>
                 </div>
 

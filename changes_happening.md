@@ -10310,3 +10310,21 @@ Files Modified:
 - frontend/public/firebase-messaging-sw.js
 - frontend/src/services/firebase.js
 - frontend/src/pages/common/NotificationsPage.jsx
+
+---
+## [2026-11-12 10:03:00] End-to-End Notification Setup & Device Sync Completed - COMPLETED
+
+### Changes:
+- Connected frontend device FCM registration tokens to backend database endpoint POST /api/notifications/register-fcm.
+- Added automatic background FCM token synchronization upon user login (Email & Google 1-Tap) in AuthContext.jsx.
+- Enhanced ackend/app/services/firebase_service.py to auto-detect FIREBASE_SERVICE_ACCOUNT_JSON environment variables as well as credential files across standard paths.
+- Fixed safe user_id extraction in ackend/app/routers/common/notifications.py (current_user.get('id') or current_user.get('_id')).
+- Added 1-Click 'Trigger Server Alert' button in NotificationsPage.jsx calling POST /api/notifications/test to verify full server-to-client notification delivery.
+- Added live cloud synchronization for notification settings preferences to PUT /api/notifications/settings.
+- Deployed latest build to Firebase Hosting: https://agrishield-ai-498f3.web.app
+
+Files Modified:
+- backend/app/routers/common/notifications.py
+- backend/app/services/firebase_service.py
+- frontend/src/context/AuthContext.jsx
+- frontend/src/pages/common/NotificationsPage.jsx
