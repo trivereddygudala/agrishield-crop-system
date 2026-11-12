@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.agrishield.app",
+      "sha256_cert_fingerprints": [
+        "D3:E5:1B:65:74:3C:55:BC:FA:B4:C4:0C:C3:08:7F:B1:4C:A4:E0:E3:03:9D:CA:0F:2B:A2:2A:2F:DB:0D:3A:7E"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.agrishield_crop_system_rust.twa",
+      "sha256_cert_fingerprints": [
+        "D3:E5:1B:65:74:3C:55:BC:FA:B4:C4:0C:C3:08:7F:B1:4C:A4:E0:E3:03:9D:CA:0F:2B:A2:2A:2F:DB:0D:3A:7E"
+      ]
+    }
+  }
+]

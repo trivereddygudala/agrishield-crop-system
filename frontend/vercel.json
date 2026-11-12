@@ -65,6 +65,10 @@
       "destination": "https://agrishield-crop-system.onrender.com/api/:path*"
     },
     {
+      "source": "/.well-known/:path*",
+      "destination": "/.well-known/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

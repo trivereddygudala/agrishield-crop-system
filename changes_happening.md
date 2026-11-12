@@ -10545,3 +10545,29 @@ Files Modified:
 - frontend/public/manifest.json
 - frontend/public/firebase-messaging-sw.js
 - changes_happening.md
+
+---
+## [2026-11-12 13:45:00] Digital Asset Links Verification & Full-Screen TWA Address Bar Removal
+
+### Problem Diagnosed:
+- When running the installed Google Play TWA APK on mobile, a green top address bar ('shield-crop-system-rust.vercel.app') was visible.
+- Root Cause:
+  * Android Trusted Web Activity (TWA) architecture mandates digital domain verification via Digital Asset Links (/.well-known/assetlinks.json).
+  * If assetlinks.json is absent on the server, Android defaults to showing the URL bar in a Custom Tabs fallback mode for user security.
+
+### Technical Actions Taken:
+1. Created Digital Asset Links (frontend/public/.well-known/assetlinks.json):
+   - Configured delegate_permission/common.handle_all_urls for package_name 'com.agrishield.app' and 'app.vercel.agrishield_crop_system_rust.twa'.
+   - Embedded the exact SHA-256 certificate fingerprint (D3:E5:1B:65:74:3C:55:BC:FA:B4:C4:0C:C3:08:7F:B1:4C:A4:E0:E3:03:9D:CA:0F:2B:A2:2A:2F:DB:0D:3A:7E).
+2. Routing & Header Alignment (vercel.json & frontend/vercel.json):
+   - Added rewrite for /.well-known/:path* prior to SPA wildcard fallback.
+   - Set Content-Type: application/json header for /.well-known/assetlinks.json.
+3. Production Build & Deployment:
+   - Compiled Vite production bundle with assetlinks.json in dist/.well-known/.
+   - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app.
+
+Files Modified:
+- frontend/public/.well-known/assetlinks.json
+- vercel.json
+- frontend/vercel.json
+- changes_happening.md

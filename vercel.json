@@ -11,6 +11,19 @@
       "destination": "https://agrishield-ai-worker-3.onrender.com/uploads/:path*"
     },
     {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/firebase-messaging-sw.js",
       "destination": "/firebase-messaging-sw.js"
     },
@@ -19,11 +32,28 @@
       "destination": "/manifest.json"
     },
     {
+      "source": "/.well-known/:path*",
+      "destination": "/.well-known/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
     {
       "source": "/firebase-messaging-sw.js",
       "headers": [
