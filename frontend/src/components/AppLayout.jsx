@@ -386,9 +386,15 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         hasInitializedAlertsRef.current = true;
       }
 
+      // If server returned 0 unread alerts and hardware simulation is not adding unread alerts,
+      // reconcile in-memory unreadCount so it does not linger > 0 when inbox is empty
+      if (alertData.length === 0 && setUnreadCount) {
+        setUnreadCount(0);
+      }
+
       setRecentAlerts(alertData);
     } catch { /* silently ignore */ }
-  }, [user, playNotificationChime]);
+  }, [user, playNotificationChime, setUnreadCount]);
 
   // ESP32 Live Hardware Status
   const [nodeStatus, setNodeStatus] = useState({ online: false, rssi: null, bluetoothConnected: false, batteryPercent: null, batteryCharging: false });
@@ -485,8 +491,17 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       if (notifId && seenNotificationIdsRef.current.has(notifId)) return;
       if (notifId) seenNotificationIdsRef.current.add(notifId);
 
-      const userRole = user?.role?.toLowerCase() || 'farmer';
-      if (notif.target_role && notif.target_role !== userRole && notif.role && notif.role !== userRole) {
+      const currentUid = String(user?.id || user?._id || '');
+      const notifUid = notif.user_id ? String(notif.user_id) : null;
+      // Drop notifications directed to a specific different user account
+      if (notifUid && currentUid && notifUid !== currentUid) {
+        return;
+      }
+
+      const userRole = (user?.role || 'farmer').toLowerCase();
+      const targetRole = (notif.target_role || notif.role || '').toLowerCase();
+      // Drop notifications explicitly targeted to a different role
+      if (targetRole && targetRole !== 'all' && targetRole !== userRole) {
         return;
       }
 
@@ -600,7 +615,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   }, []);
 
   const handleBellClick = async () => {
-    if (!bellOpen) await fetchRecentAlerts();
+    if (!bellOpen) {
+      await fetchRecentAlerts();
+      if (refreshUnreadCount) await refreshUnreadCount();
+    }
     setBellOpen(prev => !prev);
   };
 

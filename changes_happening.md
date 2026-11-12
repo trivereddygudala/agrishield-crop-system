@@ -10571,3 +10571,11 @@ Files Modified:
 - vercel.json
 - frontend/vercel.json
 - changes_happening.md
+
+## [2026-11-12 14:30:00] Farmer1 Notification Count & Zero-Message Discrepancy Fix + Android APK Diagnosis
+- Evaluated MongoDB Atlas notifications collection for farmer1 (user_id: 6a6725de7c0ce1751b2d0c7d).
+- Confirmed all 134 existing notifications in database have read: true. Total unread count in database was 0.
+- Frontend root cause: Cross-tab / cross-account events received over BroadcastChannel lacked user ID verification, triggering setUnreadCount in open farmer1 tabs.
+- Frontend components: AppLayout.jsx, NotificationsPage.jsx, WebSocketContext.jsx updated to reconcile unread count with backend and loaded list.
+- APK diagnosis: AgriShield AI-unsigned.apk downloaded from Google Play option cannot be sideloaded without signing.
+

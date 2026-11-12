@@ -1169,13 +1169,19 @@ export default function NotificationsPage() {
 
       setNotifications(finalMerged);
       setTotal(finalMerged.length);
+
+      // Reconcile and synchronize unreadCount directly with the loaded notifications list
+      const actualUnreadCount = finalMerged.filter(n => !n.read).length;
+      if (typeof setUnreadCount === 'function') {
+        setUnreadCount(actualUnreadCount);
+      }
     } catch {
       setToastMsg(t('notifications_page.toast.load_failed', 'Failed to load notifications.'));
     } finally {
       setLoading(false);
       hasLoadedOnceRef.current = true;
     }
-  }, [t, isEquipmentProvider, isTe, getReadIds, priority]);
+  }, [t, isEquipmentProvider, isTe, getReadIds, priority, setUnreadCount]);
 
   useEffect(() => {
     // Initial fetch

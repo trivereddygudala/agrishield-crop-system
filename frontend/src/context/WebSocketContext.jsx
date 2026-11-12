@@ -257,7 +257,7 @@ export const WebSocketProvider = ({ children }) => {
             if (data.unread_count !== undefined) {
               setUnreadCount(data.unread_count);
             } else {
-              setUnreadCount((prev) => (prev !== null ? prev + 1 : 1));
+              fetchUnreadCount();
             }
             notifySubscribers('notification', notif);
           }
