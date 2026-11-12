@@ -243,8 +243,9 @@ app.add_middleware(SecurityHeadersMiddleware)
 @app.middleware("http")
 async def platform_maintenance_middleware(request: Request, call_next):
     """Production Maintenance Mode & Killswitch Barrier: Intercepts non-admin mutations when maintenance is active."""
-    from backend.app.routers.admin.admin import _maintenance_state
-    if _maintenance_state.get("enabled", False):
+    from backend.app.routers.admin.admin import check_and_expire_maintenance
+    current_maint = check_and_expire_maintenance()
+    if current_maint.get("enabled", False):
         path = request.url.path
         method = request.method
         # Exempt admin portal, authentication, health checks, websockets, and read-only GET/HEAD/OPTIONS
@@ -266,8 +267,8 @@ async def platform_maintenance_middleware(request: Request, call_next):
                 content={
                     "status": "maintenance",
                     "code": "MAINTENANCE_MODE_ACTIVE",
-                    "detail": _maintenance_state.get("message", "AgriShield AI is undergoing scheduled maintenance."),
-                    "maintenance": _maintenance_state
+                    "detail": current_maint.get("message", "AgriShield AI is undergoing scheduled maintenance."),
+                    "maintenance": current_maint
                 }
             )
     return await call_next(request)
@@ -432,8 +433,8 @@ async def warmup_endpoint():
 @app.get("/api/v1/maintenance", tags=["System Status"])
 async def public_maintenance_status():
     """Public Endpoint: Returns current platform maintenance mode status without requiring authentication."""
-    from backend.app.routers.admin.admin import _maintenance_state
-    return {"status": "success", "maintenance": _maintenance_state}
+    from backend.app.routers.admin.admin import check_and_expire_maintenance
+    return {"status": "success", "maintenance": check_and_expire_maintenance()}
 
 @app.get("/weather/current")
 @app.get("/api/weather/current")

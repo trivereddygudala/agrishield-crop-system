@@ -214,14 +214,15 @@ from backend.app.services.sync_service import SyncService
 @router.delete("/api/notifications/clear")
 @router.delete("/api/v1/notifications/clear")
 async def clear_notifications(
+    preserve_booking: bool = Query(False),
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Delete all notification records of current user with cross-device tombstone sync (preserves booking history)."""
+    """Delete all notification records of current user with cross-device tombstone sync."""
     deleted = await NotificationService.clear_all_notifications(
         db, 
         user_id=str(current_user["id"]),
-        preserve_booking=True,
+        preserve_booking=preserve_booking,
         role=current_user.get("role")
     )
     await SyncService.record_deletion("notification", f"all_user_{current_user['id']}")

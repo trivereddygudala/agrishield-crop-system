@@ -27,10 +27,22 @@ export const useMaintenanceMode = () => {
   const fetchStatus = useCallback(async () => {
     try {
       let res;
-      try { res = await API.get('/api/maintenance'); }
-      catch { try { res = await API.get('/api/v1/maintenance'); }
-      catch { res = await API.get('/api/admin/maintenance'); } }
-      if (res.data?.maintenance) setMaintenance(res.data.maintenance);
+      try { res = await API.get('/api/admin/maintenance/public'); }
+      catch {
+        try { res = await API.get('/api/maintenance'); }
+        catch {
+          try { res = await API.get('/api/v1/maintenance'); }
+          catch { res = await API.get('/api/admin/maintenance'); }
+        }
+      }
+      if (res.data?.maintenance) {
+        const m = res.data.maintenance;
+        if (m.ends_at && new Date(m.ends_at).getTime() <= Date.now()) {
+          setMaintenance({ ...m, enabled: false });
+        } else {
+          setMaintenance(m);
+        }
+      }
     } catch (_) { /* graceful silence */ }
     finally { setLoading(false); }
   }, []);
@@ -62,14 +74,18 @@ export const useMaintenanceMode = () => {
   const remainingSeconds = React.useMemo(() => {
     if (!maintenance?.enabled || !maintenance?.ends_at) return null;
     try {
-      const endsAt = new Date(maintenance.ends_at);
+      const endsAt = new Date(maintenance.ends_at).getTime();
       const diff = Math.floor((endsAt - Date.now()) / 1000);
       return diff > 0 ? diff : 0;
     } catch { return null; }
   }, [maintenance]);
 
+  const isActuallyActive = Boolean(
+    maintenance?.enabled && (!maintenance.ends_at || new Date(maintenance.ends_at).getTime() > Date.now())
+  );
+
   return {
-    isMaintenanceMode: Boolean(maintenance?.enabled),
+    isMaintenanceMode: isActuallyActive,
     maintenanceMessage: maintenance?.message || '',
     estimatedMinutes: maintenance?.estimated_minutes || 30,
     endsAt: maintenance?.ends_at || null,
@@ -93,12 +109,18 @@ function useCountdown(initialSeconds, onExpire) {
   }, [initialSeconds]);
 
   useEffect(() => {
-    if (!initialSeconds || initialSeconds <= 0) return;
+    if (!initialSeconds || initialSeconds <= 0) {
+      if (initialSeconds === 0) {
+        onExpire?.();
+      }
+      return;
+    }
     const tick = setInterval(() => {
       ref.current = Math.max(0, ref.current - 1);
       setSecs(ref.current);
       if (ref.current === 0) {
         clearInterval(tick);
+        window.dispatchEvent(new CustomEvent(MAINTENANCE_EVENT, { detail: { enabled: false } }));
         onExpire?.();
       }
     }, 1000);

@@ -643,21 +643,35 @@ class NotificationService:
         return records
 
     @staticmethod
-    def _build_id_query(notification_id: str, user_id: str) -> dict:
-        """Builds a flexible query supporting both MongoDB ObjectId and string IDs (e.g. GEN-*, SIM-*)."""
-        base = {"user_id": user_id}
+    def _build_id_query(notification_id: str, user_id: str, role: Optional[str] = None) -> dict:
+        """Builds a flexible query supporting both MongoDB ObjectId and string IDs (e.g. GEN-*, SIM-*), role-aware."""
+        base = {} if role == "admin" else {"user_id": user_id}
+
+        clean_id = str(notification_id)
+        for prefix in ["notif-", "thread-", "admin-notif-", "farmer-notif-", "provider-notif-", "booking-notif-"]:
+            if clean_id.startswith(prefix):
+                clean_id = clean_id[len(prefix):]
+                break
+
+        or_clauses = [
+            {"notification_id": notification_id},
+            {"id": notification_id},
+            {"_id": notification_id}
+        ]
+        if clean_id != notification_id:
+            or_clauses.extend([
+                {"notification_id": clean_id},
+                {"id": clean_id},
+                {"booking_id": clean_id},
+                {"booking_id": f"BK-{clean_id}"},
+                {"booking_id": clean_id.replace("BK-", "")}
+            ])
+        if ObjectId.is_valid(clean_id):
+            or_clauses.append({"_id": ObjectId(clean_id)})
         if ObjectId.is_valid(notification_id):
-            base["$or"] = [
-                {"_id": ObjectId(notification_id)},
-                {"notification_id": notification_id},
-                {"id": notification_id}
-            ]
-        else:
-            base["$or"] = [
-                {"notification_id": notification_id},
-                {"id": notification_id},
-                {"_id": notification_id}
-            ]
+            or_clauses.append({"_id": ObjectId(notification_id)})
+
+        base["$or"] = or_clauses
         return base
 
     @staticmethod
@@ -665,7 +679,7 @@ class NotificationService:
         """Mark notification as read and register action opened."""
         try:
             now_utc = datetime.now(timezone.utc)
-            query = NotificationService._build_id_query(notification_id, user_id)
+            query = NotificationService._build_id_query(notification_id, user_id, role=role)
             result = await db.notifications.update_one(
                 query,
                 {
@@ -732,7 +746,7 @@ class NotificationService:
         """Acknowledge an active notification alert."""
         try:
             now_utc = datetime.now(timezone.utc)
-            query = NotificationService._build_id_query(notification_id, user_id)
+            query = NotificationService._build_id_query(notification_id, user_id, role=role)
             result = await db.notifications.update_one(
                 query,
                 {
@@ -769,7 +783,7 @@ class NotificationService:
     async def delete_notification(db, notification_id: str, user_id: str, role: Optional[str] = None) -> bool:
         """Delete notification log."""
         try:
-            query = NotificationService._build_id_query(notification_id, user_id)
+            query = NotificationService._build_id_query(notification_id, user_id, role=role)
             result = await db.notifications.delete_one(query)
             if result.deleted_count > 0 and active_websocket_manager:
                 count = await NotificationService.get_unread_count(db, user_id, role=role)
@@ -783,8 +797,8 @@ class NotificationService:
             return False
 
     @staticmethod
-    async def clear_all_notifications(db, user_id: str, preserve_booking: bool = True, role: Optional[str] = None) -> int:
-        """Delete alert notifications of user, preserving transactional booking notifications by default."""
+    async def clear_all_notifications(db, user_id: str, preserve_booking: bool = False, role: Optional[str] = None) -> int:
+        """Delete alert notifications of user, allowing full clearing when preserve_booking=False."""
         query: Dict[str, Any] = {"user_id": user_id}
         if preserve_booking:
             query["category"] = {"$nin": ["booking"]}

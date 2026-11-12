@@ -895,115 +895,8 @@ export default function NotificationsPage() {
         } catch (e) {}
       }
 
-      // If administrator, synthesize rich platform activity notifications (Farmer Onboarding, Fields, Providers, Machinery, Broadcasts)
-      if (isAdmin) {
-        try {
-          // 1. Fetch registered users for onboarding notices
-          try {
-            let uRes = await API.get('/api/v1/admin/users').catch(() => API.get('/api/admin/users'));
-            const uList = uRes?.data?.users || [];
-            if (Array.isArray(uList)) {
-              uList.forEach(u => {
-                if (u.role === 'farmer') {
-                  const notifKey = `admin-farmer-onboard-${u.id}`;
-                  if (!deletedNotifIds.has(notifKey) && !localNotifs.some(n => n.id === notifKey || n.notification_id === notifKey)) {
-                    localNotifs.push({
-                      id: notifKey,
-                      notification_id: notifKey,
-                      category: 'farmer_onboarding',
-                      type: 'farmer_onboarding',
-                      priority: 'Normal',
-                      farmerName: u.name || u.full_name || 'Farmer Account',
-                      title: isTe ? `🌾 కొత్త రైతు నమోదు: ${u.name || 'రైతు'}` : `🌾 New Farmer Registered: ${u.name || 'Farmer'}`,
-                      message: isTe
-                        ? `ఫోన్: ${u.phone || '9440182736'} • ప్రాంతం: ${u.farm_location?.village || u.farm_location || 'ఆంధ్రప్రదేశ్'} • భాష: ${(u.preferred_language || 'te').toUpperCase()} • ప్రొఫైల్: యాక్టివ్`
-                        : `Phone: ${u.phone || '9440182736'} • Hub: ${u.farm_location?.village || u.farm_location || 'Andhra Pradesh'} • Preferred Lang: ${(u.preferred_language || 'en').toUpperCase()} • Onboarding: Active`,
-                      created_at: u.created_at || u.createdAt || new Date().toISOString(),
-                      timestamp: u.created_at || u.createdAt || new Date().toISOString(),
-                      read: readIds.has(notifKey)
-                    });
-                  }
-
-                  // Field addition notice — ONLY if farmer has real farm profile data (ISSUE-06 fix)
-                  const hasFarmData = u.farm_profile_completed === true || u.farm_profile_completed === 'true' ||
-                    (u.crop_type && u.crop_type !== '') ||
-                    (u.farm_location && (u.farm_location.village || typeof u.farm_location === 'string'));
-                  const fieldKey = `admin-field-${u.id}`;
-                  if (hasFarmData && !deletedNotifIds.has(fieldKey) && !localNotifs.some(n => n.id === fieldKey || n.notification_id === fieldKey)) {
-                    const cropInfo = u.crop_type ? `Crop: ${u.crop_type}` : 'Crop: Not specified';
-                    const soilInfo = u.soil_type ? `Soil: ${u.soil_type}` : 'Soil: Not specified';
-                    const iotStatus = u.iot_devices_count > 0 ? 'IoT: Synced' : 'IoT: Not connected';
-                    const locationLabel = u.farm_location?.village || (typeof u.farm_location === 'string' ? u.farm_location : null) || 'Location not set';
-                    localNotifs.push({
-                      id: fieldKey,
-                      notification_id: fieldKey,
-                      category: 'farm_field',
-                      type: 'farm_field',
-                      priority: 'Normal',
-                      farmerName: u.name || 'Farmer',
-                      title: isTe ? `🌱 కొత్త పొలం జోడించబడింది: ${u.name || 'రైతు'} పొలం` : `🌱 New Farm Field Added: ${u.name || 'Farmer'}'s Field`,
-                      message: isTe
-                        ? `రైతు: ${u.name || 'రైతు'} • ప్రాంతం: ${locationLabel} • ప్రొఫైల్: పూర్తయింది`
-                        : `Farmer: ${u.name || 'Farmer'} • ${cropInfo} • ${soilInfo} • Location: ${locationLabel} • ${iotStatus}`,
-                      created_at: u.created_at || u.createdAt || new Date().toISOString(),
-                      timestamp: u.created_at || u.createdAt || new Date().toISOString(),
-                      read: readIds.has(fieldKey)
-                    });
-                  }
-                } else if (u.role === 'equipment_provider') {
-                  const provKey = `admin-provider-onboard-${u.id}`;
-                  if (!deletedNotifIds.has(provKey) && !localNotifs.some(n => n.id === provKey || n.notification_id === provKey)) {
-                    localNotifs.push({
-                      id: provKey,
-                      notification_id: provKey,
-                      category: 'provider_onboarding',
-                      type: 'provider_onboarding',
-                      priority: 'High',
-                      providerName: u.provider_profile?.business_name || u.name || 'Machinery Hub',
-                      title: isTe ? `🚜 కొత్త పరికరాల ప్రదాత నమోదు: ${u.name || 'ప్రొవైడర్'}` : `🚜 New Equipment Provider Onboarded: ${u.name || 'Provider'}`,
-                      message: isTe
-                        ? `యజమాని: ${u.name} • సంప్రదింపు సంఖ్య: ${u.phone || '9848012345'} • కేంద్రం: ${u.provider_profile?.hub_name || 'ప్రకాశం'} • KYC: ధృవీకరించబడింది`
-                        : `Owner: ${u.name} • Phone: ${u.phone || '9848012345'} • Base Hub: ${u.provider_profile?.hub_name || 'Prakasam Hub'} • KYC Verification: Approved`,
-                      created_at: u.created_at || u.createdAt || new Date().toISOString(),
-                      timestamp: u.created_at || u.createdAt || new Date().toISOString(),
-                      read: readIds.has(provKey)
-                    });
-                  }
-                }
-              });
-            }
-          } catch (_) {}
-
-          // 2. Add Machinery Listings notices
-          try {
-            const fleet = JSON.parse(localStorage.getItem('agrishield_provider_fleet_inventory') || '[]');
-            if (Array.isArray(fleet)) {
-              fleet.slice(0, 3).forEach(m => {
-                const mKey = `admin-equip-${m.id}`;
-                if (!deletedNotifIds.has(mKey) && !localNotifs.some(n => n.id === mKey || n.notification_id === mKey)) {
-                  localNotifs.push({
-                    id: mKey,
-                    notification_id: mKey,
-                    category: 'machinery_listing',
-                    type: 'machinery_listing',
-                    priority: 'Normal',
-                    providerName: m.ownerName || 'Verified Provider',
-                    title: isTe ? `⚙️ కొత్త యంత్రం లిస్ట్ చేయబడింది: ${m.title}` : `⚙️ New Machinery Listed: ${m.title}`,
-                    message: isTe
-                      ? `అద్దె ధర: ₹${m.hourlyRate || 800}/గం • ప్రొవైడర్: ${m.ownerName || 'రమేష్ ఫార్మ్ సర్వీసెస్'} • మోడల్: ${m.horsepower || 45} HP • లభ్యత: సిద్ధంగా ఉంది`
-                      : `Rental Rate: ₹${m.hourlyRate || 800}/hr • Provider: ${m.ownerName || 'Ramesh Farm Services'} • Power: ${m.horsepower || 45} HP • Status: Live in Catalog`,
-                    created_at: m.createdAt || new Date().toISOString(),
-                    timestamp: m.createdAt || new Date().toISOString(),
-                    read: readIds.has(mKey)
-                  });
-                }
-              });
-            }
-          } catch (_) {}
-
-          // Broadcast notices are now delivered authoritatively from MongoDB via /api/v1/notifications
-        } catch (e) {}
-      }
+      // If administrator, platform activity notices and audit logs are authoritatively delivered
+      // from the backend database via /api/v1/notifications (no client-side synthesis).
 
       // Persist read states back to storage without purging the other role's notifications
       try {
@@ -1321,15 +1214,34 @@ export default function NotificationsPage() {
         // 1. Permanently blacklist this notification ID so background fetch & synthesis never resurrect it
         saveDeletedNotificationId(itemId, user);
         recordCrossDeviceDeletion('notification', itemId, 'User deleted notification');
-        API.delete(`/api/v1/notifications/${itemId}`).catch(() => {});
+
+        const cleanId = String(itemId).replace(/^(notif-|thread-|admin-notif-|farmer-notif-|provider-notif-|booking-notif-)/, '');
+        if (cleanId !== itemId) {
+          saveDeletedNotificationId(cleanId, user);
+          recordCrossDeviceDeletion('notification', cleanId, 'User deleted notification');
+        }
+
+        API.delete(`/api/v1/notifications/${itemId}`).catch(() => {
+          if (cleanId !== itemId) {
+            API.delete(`/api/v1/notifications/${cleanId}`).catch(() => {});
+          }
+        });
       });
 
-      setNotifications(prev => prev.filter(n => !idsToDelete.includes(n.notification_id) && !idsToDelete.includes(n.id) && !idsToDelete.includes(n.booking_id)));
+      setNotifications(prev => prev.filter(n => {
+        const nId = n.notification_id || n.id;
+        const bId = n.booking_id;
+        return !idsToDelete.includes(nId) && !idsToDelete.includes(bId) && !idsToDelete.includes(n.id);
+      }));
       setTotal(t => Math.max(0, t - idsToDelete.length));
       try {
         const stored = getUserNotificationCache(user);
         if (Array.isArray(stored)) {
-          setUserNotificationCache(user, stored.filter(n => !idsToDelete.includes(n.notification_id) && !idsToDelete.includes(n.id) && !idsToDelete.includes(n.booking_id)));
+          setUserNotificationCache(user, stored.filter(n => {
+            const nId = n.notification_id || n.id;
+            const bId = n.booking_id;
+            return !idsToDelete.includes(nId) && !idsToDelete.includes(bId) && !idsToDelete.includes(n.id);
+          }));
         }
       } catch (e) {}
       if (selectedMessage && (idsToDelete.includes(selectedMessage.notification_id) || idsToDelete.includes(selectedMessage.id) || idsToDelete.includes(selectedMessage.booking_id))) {
@@ -1435,10 +1347,13 @@ export default function NotificationsPage() {
       notifications.forEach(n => {
         const nId = n.notification_id || n.id || n.booking_id;
         if (nId) saveDeletedNotificationId(nId, user);
+        if (n.threadItemIds) {
+          n.threadItemIds.forEach(tId => saveDeletedNotificationId(tId, user));
+        }
       });
 
-      await API.delete('/api/v1/notifications/clear').catch(() => {});
-      await API.delete('/api/notifications/clear').catch(() => {});
+      await API.delete('/api/v1/notifications/clear?preserve_booking=false').catch(() => {});
+      await API.delete('/api/notifications/clear?preserve_booking=false').catch(() => {});
       setNotifications([]);
       setTotal(0);
       setSelectedMessage(null);

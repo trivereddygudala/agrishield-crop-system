@@ -2225,43 +2225,42 @@ async def export_retraining_dataset(db = Depends(get_database)):
         "samples": export_items
     }
 
-@router.get("/maintenance/public")
-@router.get("/maintenance/status")
-async def get_public_maintenance_status():
-    """Public Endpoint: Get current platform maintenance mode status.
-    Auto-disables maintenance if ends_at has passed."""
+def check_and_expire_maintenance() -> dict:
+    """Helper to verify and auto-expire maintenance mode if ends_at duration has elapsed."""
     global _maintenance_state
     if _maintenance_state.get("enabled") and _maintenance_state.get("ends_at"):
         try:
             ends_at_dt = datetime.fromisoformat(_maintenance_state["ends_at"].replace("Z", "+00:00"))
             if datetime.now(timezone.utc) >= ends_at_dt:
-                # Auto-expire: duration ran out
                 _maintenance_state["enabled"] = False
                 _maintenance_state["ends_at"] = None
                 _maintenance_state["updated_at"] = datetime.now(timezone.utc).isoformat()
                 _maintenance_state["updated_by"] = "System (auto-expired)"
-                log_security_event("PLATFORM_MAINTENANCE_AUTO_EXPIRED", {
-                    "reason": "Duration elapsed"
-                }, level="INFO")
+                try:
+                    log_security_event("PLATFORM_MAINTENANCE_AUTO_EXPIRED", {
+                        "reason": "Duration elapsed"
+                    }, level="INFO")
+                except Exception:
+                    pass
         except Exception:
             pass
-    return {"status": "success", "maintenance": _maintenance_state}
+    return _maintenance_state
+
+@router.get("/maintenance/public")
+@router.get("/maintenance/status")
+@router.get("/api/maintenance")
+@router.get("/api/v1/maintenance")
+async def get_public_maintenance_status():
+    """Public Endpoint: Get current platform maintenance mode status.
+    Auto-disables maintenance if ends_at has passed."""
+    state = check_and_expire_maintenance()
+    return {"status": "success", "maintenance": state}
 
 @router.get("/maintenance", dependencies=[Depends(require_role("admin"))])
 async def get_maintenance_status():
     """Admin Endpoint: Get current platform maintenance mode status."""
-    global _maintenance_state
-    if _maintenance_state.get("enabled") and _maintenance_state.get("ends_at"):
-        try:
-            ends_at_dt = datetime.fromisoformat(_maintenance_state["ends_at"].replace("Z", "+00:00"))
-            if datetime.now(timezone.utc) >= ends_at_dt:
-                _maintenance_state["enabled"] = False
-                _maintenance_state["ends_at"] = None
-                _maintenance_state["updated_at"] = datetime.now(timezone.utc).isoformat()
-                _maintenance_state["updated_by"] = "System (auto-expired)"
-        except Exception:
-            pass
-    return {"status": "success", "maintenance": _maintenance_state}
+    state = check_and_expire_maintenance()
+    return {"status": "success", "maintenance": state}
 
 @router.post("/maintenance/toggle", dependencies=[Depends(require_role("admin"))])
 async def toggle_maintenance_mode(

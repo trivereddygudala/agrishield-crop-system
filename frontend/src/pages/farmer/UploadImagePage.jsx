@@ -593,9 +593,29 @@ const UploadImagePage = () => {
         window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: predictRes.data }));
       } catch (_) {}
 
-      // B9.5A (B9.5-F01): Authoritative notification for completed crop prediction
-      // is persisted by backend NotificationService and delivered via WebSocket broadcast.
-      // Client-side synthesis removed to prevent duplicate cards, banners, and chimes.
+      // Dispatch real-time in-app notification popup and sound chime for diagnosis result
+      try {
+        const diagData = predictRes.data || {};
+        const diseaseName = diagData.disease_name || diagData.class_name || diagData.common_name || 'Diagnosis Complete';
+        const isHealthy = (diseaseName || '').toLowerCase().includes('healthy');
+        const confPercent = diagData.confidence ? Math.round(diagData.confidence * 100) : null;
+        
+        const scanNotif = {
+          notification_id: `scan-${Date.now()}`,
+          title: isHealthy ? '🌿 Crop Scan: Healthy Crop' : `⚠️ Crop Pathology: ${diseaseName}`,
+          message: confPercent !== null 
+            ? `AI Confidence: ${confPercent}%. Tap to view full agronomic treatment prescription.`
+            : 'Diagnosis completed successfully. Tap to view detailed remedies.',
+          category: 'disease',
+          priority: isHealthy ? 'Low' : 'High',
+          action_url: '/history',
+          user_id: user?.id || user?._id,
+          created_at: new Date().toISOString()
+        };
+        window.dispatchEvent(new CustomEvent('agrishield_new_notification', { detail: scanNotif }));
+      } catch (notifErr) {
+        console.warn("Failed to dispatch scan notification event:", notifErr);
+      }
     } catch (err) {
       console.warn("Backend error during scan:", err);
 

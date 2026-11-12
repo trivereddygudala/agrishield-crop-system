@@ -341,8 +341,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const fetchRecentAlerts = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await API.get('/api/notifications/unread?limit=5');
-      let alertData = res.data || [];
+      const res = await API.get('/api/notifications?limit=8');
+      let alertData = Array.isArray(res.data) ? res.data : (res.data?.notifications || []);
 
       const userRole = user?.role?.toLowerCase() || 'farmer';
       const isHardwareSimEnabled = localStorage.getItem('sim_hardware_alarms') !== 'false';
@@ -352,14 +352,16 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           title: '🚨 ESP32 Battery Critical',
           message: 'ESP32 field node battery dropped to 14%. Recharge solar/LiPo battery now to prevent telemetry dropout.',
           created_at: new Date().toISOString(),
+          read: false,
           is_read: false
         };
-        alertData = [mockAlarm, ...alertData.slice(0, 4)];
+        alertData = [mockAlarm, ...alertData.slice(0, 7)];
       }
 
       // Check for incoming new unread alerts in real-time
-      if (hasInitializedAlertsRef.current && alertData.length > 0) {
-        const freshAlerts = alertData.filter(a => {
+      const unreadAlerts = alertData.filter(a => !a.read && !a.is_read);
+      if (hasInitializedAlertsRef.current && unreadAlerts.length > 0) {
+        const freshAlerts = unreadAlerts.filter(a => {
           const aId = a.notification_id || a.id || a._id;
           return aId && !seenNotificationIdsRef.current.has(aId);
         });
@@ -388,7 +390,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
       // If server returned 0 unread alerts and hardware simulation is not adding unread alerts,
       // reconcile in-memory unreadCount so it does not linger > 0 when inbox is empty
-      if (alertData.length === 0 && setUnreadCount) {
+      if (unreadAlerts.length === 0 && setUnreadCount) {
         setUnreadCount(0);
       }
 
@@ -625,9 +627,20 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const handleMarkRead = async (id) => {
     try {
       await API.post(`/api/notifications/${id}/read`);
-      setRecentAlerts(prev => prev.filter(n => n.notification_id !== id));
+      setRecentAlerts(prev => prev.map(n => {
+        const nId = n.notification_id || n.id || n._id;
+        return nId === id ? { ...n, read: true, is_read: true } : n;
+      }));
       if (setUnreadCount) setUnreadCount(prev => Math.max(0, (prev || 0) - 1));
     } catch { /* ignore */ }
+  };
+
+  const getHomeRoute = () => {
+    if (!user) return '/';
+    const role = (user?.role || '').toLowerCase();
+    if (role === 'admin') return '/admin';
+    if (role === 'equipment_provider') return '/provider/dashboard';
+    return '/dashboard';
   };
 
   const handleLogout = async () => {
@@ -658,7 +671,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             <Menu className="h-5 w-5" />
           </button>
           
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2 group min-w-0">
+          <Link to={getHomeRoute()} className="flex items-center gap-2 group min-w-0">
             <div className="bg-emerald-600 text-white p-2 rounded-xl shadow-sm shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
               <Leaf className="h-5 w-5" />
             </div>
@@ -951,26 +964,62 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       {recentAlerts.length === 0 ? (
                         <div className="py-8 text-center text-slate-400 text-xs">
                           <Bell className="mx-auto mb-2 opacity-30" size={24} />
-                          {t('nav.all_caught_up', 'All caught up!')}
+                          {t('nav.no_notifications', 'No notifications yet')}
                         </div>
                       ) : (
                         recentAlerts.map((alert) => {
+                          const alertId = alert.notification_id || alert.id || alert._id;
+                          const isRead = alert.read === true || alert.is_read === true;
                           const pc = PRIORITY_COLORS[alert.priority] || PRIORITY_COLORS.Low;
                           const CatIcon = CATEGORY_ICONS[alert.category] || Activity;
                           return (
-                            <div key={alert.notification_id} className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${!alert.read ? 'border-l-2 border-emerald-500' : ''}`}>
+                            <div
+                              key={alertId}
+                              onClick={() => {
+                                if (alert.action_url) {
+                                  navigate(alert.action_url);
+                                  setBellOpen(false);
+                                }
+                              }}
+                              className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${
+                                !isRead
+                                  ? 'border-l-4 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20'
+                                  : 'opacity-85 border-l-4 border-transparent'
+                              }`}
+                            >
                               <div className="flex items-start gap-2.5">
                                 <span className={`mt-0.5 flex-shrink-0 p-1.5 rounded-lg ${pc.bg}`}>
                                   <CatIcon size={13} className={pc.text} />
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{alert.title}</p>
-                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5 line-clamp-2">{alert.message}</p>
-                                  <p className="text-[10px] text-slate-400 mt-1">{timeAgo(alert.created_at)}</p>
+                                  <div className="flex items-center gap-1.5">
+                                    {!isRead && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />}
+                                    <p className={`text-xs ${!isRead ? 'font-bold text-slate-900 dark:text-slate-100' : 'font-medium text-slate-700 dark:text-slate-300'} truncate`}>
+                                      {alert.title}
+                                    </p>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5 line-clamp-2">
+                                    {alert.message}
+                                  </p>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-[10px] text-slate-400">{timeAgo(alert.created_at || alert.timestamp)}</span>
+                                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${pc.bg} ${pc.text}`}>
+                                      {alert.priority || 'Normal'}
+                                    </span>
+                                  </div>
                                 </div>
-                                <button onClick={() => handleMarkRead(alert.notification_id)} className="flex-shrink-0 text-slate-300 hover:text-emerald-600 p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg" title="Mark read">
-                                  <CheckCheck size={14} />
-                                </button>
+                                {!isRead && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMarkRead(alertId);
+                                    }}
+                                    className="flex-shrink-0 text-slate-400 hover:text-emerald-600 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                    title="Mark read"
+                                  >
+                                    <CheckCheck size={14} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
@@ -1418,9 +1467,9 @@ export const BottomNav = () => {
     {
       key: 'settings',
       label: t('nav.settings', 'Settings'),
-      path: '/settings',
+      path: '/admin?tab=settings',
       Icon: SettingsIcon,
-      matchPaths: ['/settings', '/more', '/profile'],
+      matchPaths: ['/admin?tab=settings', '/settings', '/profile'],
     },
   ];
 
