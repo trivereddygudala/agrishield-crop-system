@@ -10342,3 +10342,46 @@ Files Modified:
 Files Modified:
 - .gitignore
 - backend/app/services/firebase_service.py
+
+---
+## [2026-11-12 10:44:00] FCM Service Worker & Push Notification Fix - COMPLETED
+
+### Problem Diagnosed:
+1. In Screenshot 2, the user encountered: Failed to execute 'subscribe' on 'PushManager': Subscription failed - no active Service Worker.
+   - Cause A: index.html contained a script that called 
+egistrations[i].unregister() on page load if 
+egistrations[i].active was null/evaluating, which killed irebase-messaging-sw.js during initial installation.
+   - Cause B: getToken() was called immediately without waiting for the service worker to transition to state === 'activated'.
+2. In Screenshot 1, the user was on the Firebase Console Cloud Messaging test dialog (Add a Firebase Installation ID or FCM registration token) and needed their device token to send test push alerts directly from Google Firebase Console.
+
+### Machine Solutions & Technical Actions Taken:
+1. **Protected Service Worker Lifecycle in rontend/index.html:**
+   - Modified the worker cleaner script to NEVER unregister irebase-messaging-sw.js.
+2. **Created ensureActiveServiceWorker() in rontend/src/services/firebase.js:**
+   - Explicitly registers /firebase-messaging-sw.js with root { scope: '/' }.
+   - Actively monitors the state change event until state === 'activated' before proceeding.
+   - Added automatic 3-attempt retry with 900ms backoff in 
+equestFCMToken() to guard against cold-start race conditions.
+3. **Enhanced Notification Modal in rontend/src/pages/common/NotificationsPage.jsx:**
+   - Wired 	riggerNativeSystemAlert() to popDeviceNotification() with vibration [250, 100, 250] and /icon-192.png.
+   - Added auto-display of the device's FCM Registration Token with a 1-click **📋 Copy Full Token** button.
+   - Added interactive **Web Push Certificate / VAPID Key (Optional)** configuration section.
+4. **Vercel CLI Status Diagnosis:**
+   - Ran 
+px vercel whoami and identified that the local CLI is currently logged out, which is why Vercel was not receiving automated deploys. Firebase Hosting is fully authenticated and running live.
+5. **Live Production Deployment:**
+   - Successfully compiled production bundle (ite build in 17.56s).
+   - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app.
+6. **Git Version Control:**
+   - Committed changes across 9042df8 and 3698763. Working tree is 100% clean.
+
+Files Modified:
+- frontend/index.html
+- frontend/src/services/firebase.js
+- frontend/src/pages/common/NotificationsPage.jsx
+- firebase.json
+- .gitignore
+- deploy_to_vercel.bat
+- frontend/src/components/admin/DailyActivityDashboard.jsx
+- frontend/src/components/common/PWAInstallPrompt.jsx
+- frontend/src/utils/deviceNotification.js
