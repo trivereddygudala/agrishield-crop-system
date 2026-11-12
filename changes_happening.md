@@ -10671,3 +10671,19 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
     - Added min-h-0 flexbox constraints on all intermediate flex containers.
     - Added custom emerald-themed scrollbars (scrollbar-thin scrollbar-thumb-emerald-500/40) with touch momentum (-webkit-overflow-scrolling: touch) on both left Inbox list and right Chat stream.
     - Added chatScrollRef auto-scroll to bottom on channel switch or incoming message arrival.
+
+## [2026-11-12 17:25:00] Restored 1-by-1 Individual Notifications Feed & Eliminated Bottom External Space
+- **Restored One-by-One Notification Cards (Picture 1):**
+  - Removed channel/folder aggregation blocks that grouped notifications into category folders.
+  - Restored full individual card rendering (groupedNotifications.map) where every alert is presented as its own distinct card in the feed.
+  - Included crop leaf thumbnail / verified entity avatar, verified green checkmark, disease/machinery/weather title, truncated message preview with delivery ticks (✓✓), priority and category badges.
+  - Maintained 1-tap audio speech synthesis with male voice engine (te-IN-MohanNeural, hi-IN-MadhurNeural, en-IN-PrabhatNeural).
+  - Maintained direct action CTAs (View Prescription, Book Machinery, View Weather), WhatsApp share, and inline deletion.
+  - Full-screen GoogleMessageReader modal opens upon tapping any individual card.
+- **Eliminated Bottom Blank Space (Picture 2):**
+  - Replaced fixed-height floating card container (h-[calc(100dvh-130px)]) with natural mobile layout: max-w-3xl mx-auto pb-24 pt-2 px-3 sm:px-6.
+  - Eliminated awkward blank gray/white gap between notifications and the bottom navigation bar.
+  - Enabled smooth natural page scrolling down to the bottom dock.
+- **Production Build & Deploy:**
+  - Vite build verified: 0 errors in 22.36s.
+  - Deployed live to Firebase Hosting (https://agrishield-ai-498f3.web.app).
