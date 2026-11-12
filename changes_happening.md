@@ -10456,3 +10456,37 @@ Files Modified:
 - frontend/src/components/AppLayout.jsx
 - frontend/src/utils/deviceNotification.js
 - changes_happening.md
+
+---
+## [2026-11-12 12:07:00] PWA Store Readiness & PWABuilder Packaging Optimization
+
+### Problem Diagnosed:
+- In PWABuilder, 'Package For Stores' was disabled/greyed out with manifest score 16/46 and 'Action Items: 2 (Red alerts)'.
+- Root causes:
+  1. manifest.json lacked required 'screenshots' (wide and narrow), 'id', 'scope', 'lang', 'dir', and discrete any/maskable icon declarations.
+  2. Service Worker was not registered on page load, causing PWABuilder crawler to report 'did not find a Service Worker'.
+  3. Service Worker lacked a fetch handler and offline caching strategy.
+
+### Technical Actions Taken:
+1. Manifest Store Compliance (frontend/public/manifest.json):
+   - Added unique id ('/?source=pwa'), scope ('/'), lang ('en'), dir ('ltr').
+   - Created frontend/public/screenshots/ with desktop-1.jpg (1200x896 wide) and mobile-1.jpg (910x1024 narrow).
+   - Added screenshots array with form_factor: wide and form_factor: narrow.
+   - Expanded icons to explicit 192x192 and 512x512 entries with purpose: 'any' and purpose: 'maskable'.
+   - Added display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'].
+2. Universal Service Worker Boot Registration (frontend/index.html):
+   - Added window load event listener registering /firebase-messaging-sw.js on initial visit.
+3. Offline Caching & Fetch Handling (frontend/public/firebase-messaging-sw.js):
+   - Implemented static asset caching for offline portal, index, and icons.
+   - Added fetch event listener with cache fallback and offline.html navigation handler while bypassing API/ws calls.
+4. Build & Production Deployment:
+   - Compiled production bundle (vite build -> 0 errors in 20.96s).
+   - Released to Firebase Hosting: https://agrishield-ai-498f3.web.app.
+
+Files Modified:
+- frontend/public/manifest.json
+- frontend/public/firebase-messaging-sw.js
+- frontend/index.html
+- frontend/public/screenshots/desktop-1.jpg
+- frontend/public/screenshots/mobile-1.jpg
+- changes_happening.md

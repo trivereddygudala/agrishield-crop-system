@@ -1,5 +1,5 @@
-// Firebase Cloud Messaging Service Worker for AgriShield AI
-// Handles background push notifications when website is closed or in background
+// Firebase Cloud Messaging & PWA Offline Service Worker for AgriShield AI
+// Handles background push notifications, offline caching, and store packaging compliance
 
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
@@ -14,13 +14,72 @@ firebase.initializeApp({
   measurementId: "G-50LZ1MEJLM"
 });
 
-// Immediately claim clients and skip waiting on update
+const CACHE_NAME = 'agrishield-static-v2';
+const OFFLINE_URLS = [
+  '/',
+  '/index.html',
+  '/offline.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png'
+];
+
+// Install: Cache critical static assets and skip waiting
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(OFFLINE_URLS);
+    }).catch((err) => {
+      console.warn('[SW] Offline cache prefetch note:', err);
+    })
+  );
 });
 
+// Activate: Clean up old caches and claim clients immediately
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Fetch event listener: Offline support & network fallback (PWABuilder & PWA compliance)
+self.addEventListener('fetch', (event) => {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return;
+  // Ignore backend API and WebSocket endpoints
+  if (event.request.url.includes('/api/') || event.request.url.includes('/ws')) return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache).catch(() => {});
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          if (event.request.mode === 'navigate') {
+            return caches.match('/offline.html');
+          }
+        });
+      })
+  );
 });
 
 const messaging = firebase.messaging();

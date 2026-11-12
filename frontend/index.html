@@ -29,6 +29,17 @@
             }
           }
         }).catch(function() {});
+
+        // Explicit PWA Service Worker Registration on Page Boot (PWABuilder & Google Play Store Compliance)
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+            .then(function(reg) {
+              console.log('[AgriShield PWA] Service Worker registered with scope:', reg.scope);
+            })
+            .catch(function(err) {
+              console.warn('[AgriShield PWA] Service Worker registration note:', err);
+            });
+        });
       }
 
       // 2. Global Runtime Error Catcher - Never leave the screen completely blank
