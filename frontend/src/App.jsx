@@ -10,6 +10,7 @@ import PageSkeleton from './components/PageSkeleton';
 import { Sidebar, Navbar, BottomNav, Footer, Skeleton, ToastProvider } from './components/AppLayout';
 import OfflineStatusBar from './components/common/OfflineStatusBar';
 import MaintenanceModeBanner from './components/common/MaintenanceModeBanner';
+import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 import { useColorTheme } from './hooks/useColorTheme';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { getApiBaseUrl } from './services/api';
@@ -121,6 +122,9 @@ const DashboardLayout = () => {
 
       {/* Mobile Bottom Navigation */}
       <BottomNav />
+
+      {/* 1-Click PWA Install Prompt (Android & iOS Home Screen) */}
+      <PWAInstallPrompt />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from bson import ObjectId
 from backend.app.db.mongodb import get_database
@@ -368,6 +368,146 @@ async def export_audit_logs(
         if "timestamp" in log and hasattr(log["timestamp"], "isoformat"):
             log["timestamp"] = log["timestamp"].isoformat()
     return {"status": "success", "count": len(logs), "logs": logs}
+
+@router.get("/daily-activity-stats", dependencies=[Depends(require_role("admin"))])
+@router.get("/v1/daily-activity-stats", dependencies=[Depends(require_role("admin"))])
+async def get_daily_activity_stats(
+    db = Depends(get_database)
+):
+    """
+    Daily Login / Logout Activity Dashboard:
+    Computes daily login and logout counts, broken down by:
+    - Role: Farmer vs Equipment Provider vs Admin
+    - Device: Mobile vs Desktop
+    - Active sessions in last 24h
+    - 7-Day activity trend
+    - Recent activity timeline
+    """
+    now = datetime.now(timezone.utc)
+    today_start = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+
+    # 1. Total Logins Today
+    today_logins = await db.user_activity_logs.count_documents({
+        "action": "login",
+        "timestamp": {"$gte": today_start}
+    })
+
+    farmer_logins = await db.user_activity_logs.count_documents({
+        "action": "login",
+        "role": {"$in": ["farmer", "Farmer"]},
+        "timestamp": {"$gte": today_start}
+    })
+    provider_logins = await db.user_activity_logs.count_documents({
+        "action": "login",
+        "role": {"$in": ["equipment_provider", "provider", "EquipmentProvider"]},
+        "timestamp": {"$gte": today_start}
+    })
+    admin_logins = await db.user_activity_logs.count_documents({
+        "action": "login",
+        "role": "admin",
+        "timestamp": {"$gte": today_start}
+    })
+
+    today_logouts = await db.user_activity_logs.count_documents({
+        "action": "logout",
+        "timestamp": {"$gte": today_start}
+    })
+
+    mobile_logins = await db.user_activity_logs.count_documents({
+        "action": "login",
+        "device_type": "mobile",
+        "timestamp": {"$gte": today_start}
+    })
+    desktop_logins = await db.user_activity_logs.count_documents({
+        "action": "login",
+        "device_type": "desktop",
+        "timestamp": {"$gte": today_start}
+    })
+
+    distinct_users = await db.user_activity_logs.distinct("user_id", {
+        "action": "login",
+        "timestamp": {"$gte": now - timedelta(hours=24)}
+    })
+    active_sessions = len(distinct_users)
+
+    # If database is fresh or no logs yet today, fallback to inspecting users collection
+    if today_logins == 0:
+        recent_user_count = await db.users.count_documents({
+            "last_login": {"$gte": today_start}
+        })
+        if recent_user_count > 0:
+            today_logins = recent_user_count
+            farmer_logins = await db.users.count_documents({"last_login": {"$gte": today_start}, "role": "farmer"})
+            provider_logins = await db.users.count_documents({"last_login": {"$gte": today_start}, "role": "equipment_provider"})
+            admin_logins = await db.users.count_documents({"last_login": {"$gte": today_start}, "role": "admin"})
+
+    # 2. 7-Day Activity Trend
+    daily_trend = []
+    for i in range(7):
+        day_date = today_start - timedelta(days=(6 - i))
+        next_day = day_date + timedelta(days=1)
+        day_str = day_date.strftime("%Y-%m-%d")
+        
+        d_logins = await db.user_activity_logs.count_documents({
+            "action": "login",
+            "timestamp": {"$gte": day_date, "$lt": next_day}
+        })
+        d_logouts = await db.user_activity_logs.count_documents({
+            "action": "logout",
+            "timestamp": {"$gte": day_date, "$lt": next_day}
+        })
+        d_farmers = await db.user_activity_logs.count_documents({
+            "action": "login",
+            "role": {"$in": ["farmer", "Farmer"]},
+            "timestamp": {"$gte": day_date, "$lt": next_day}
+        })
+        d_providers = await db.user_activity_logs.count_documents({
+            "action": "login",
+            "role": {"$in": ["equipment_provider", "provider"]},
+            "timestamp": {"$gte": day_date, "$lt": next_day}
+        })
+
+        daily_trend.append({
+            "date": day_str,
+            "label": day_date.strftime("%a (%b %d)"),
+            "logins": d_logins,
+            "logouts": d_logouts,
+            "farmers": d_farmers,
+            "providers": d_providers
+        })
+
+    # 3. Recent 20 Login/Logout Events
+    recent_cursor = db.user_activity_logs.find({}).sort("timestamp", -1).limit(20)
+    recent_events_raw = await recent_cursor.to_list(length=20)
+    recent_events = []
+    for ev in recent_events_raw:
+        recent_events.append({
+            "id": str(ev.get("_id")),
+            "user_id": ev.get("user_id"),
+            "email": ev.get("email", "Farmer"),
+            "role": ev.get("role", "farmer"),
+            "action": ev.get("action", "login"),
+            "method": ev.get("method", "password"),
+            "device_type": ev.get("device_type", "mobile"),
+            "client_ip": ev.get("client_ip", "127.0.0.1"),
+            "timestamp": ev.get("timestamp").isoformat() if hasattr(ev.get("timestamp"), "isoformat") else str(ev.get("timestamp"))
+        })
+
+    return {
+        "status": "success",
+        "summary": {
+            "today_logins": today_logins,
+            "farmer_logins": farmer_logins,
+            "provider_logins": provider_logins,
+            "admin_logins": admin_logins,
+            "today_logouts": today_logouts,
+            "active_sessions": active_sessions,
+            "mobile_logins": mobile_logins,
+            "desktop_logins": desktop_logins
+        },
+        "daily_trend": daily_trend,
+        "recent_events": recent_events
+    }
 
 @router.post("/users/{user_id}/reset-password", dependencies=[Depends(require_role("admin"))])
 async def reset_user_password(user_id: str, payload: AdminPasswordResetRequest, db = Depends(get_database)):

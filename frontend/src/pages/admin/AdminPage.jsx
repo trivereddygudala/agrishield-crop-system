@@ -78,6 +78,7 @@ import SystemDiagnosticsTab from '../../components/admin/SystemDiagnosticsTab';
 import AdminAIChatbot from '../../components/admin/AdminAIChatbot';
 import ApiTrafficRadar from '../../components/admin/ApiTrafficRadar';
 import AdminScanAuditTable from '../../components/admin/AdminScanAuditTable';
+import DailyActivityDashboard from '../../components/admin/DailyActivityDashboard';
 import { parseServerDate, formatDateTime, timeAgo } from '../../utils/dateUtils';
 
 export default function AdminPage() {
@@ -1553,6 +1554,14 @@ export default function AdminPage() {
       badge: `${totalUsers} Users`, 
       badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
+    { 
+      id: 'activity', 
+      label: 'Daily Activity & Sessions', 
+      description: 'Daily logins, logouts, active sessions, and mobile vs desktop device breakdown.',
+      icon: Activity, 
+      badge: 'Daily Tracker', 
+      badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
+    },
     {
       id: 'scans',
       label: t('admin.module_scans_title', 'Crop Scan Audits'),
@@ -2215,6 +2224,7 @@ export default function AdminPage() {
             <div className="space-y-2 relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
                 {activeTab === 'users' && <Users className="w-3.5 h-3.5" />}
+                {activeTab === 'activity' && <Activity className="w-3.5 h-3.5 text-emerald-400" />}
                 {activeTab === 'scans' && <History className="w-3.5 h-3.5 text-teal-400" />}
                 {activeTab === 'broadcast' && <Radio className="w-3.5 h-3.5" />}
                 {activeTab === 'geography' && <Globe className="w-3.5 h-3.5" />}
@@ -2228,6 +2238,7 @@ export default function AdminPage() {
                 {activeTab === 'radar' && <Activity className="w-3.5 h-3.5 text-emerald-400" />}
                 <span>
                   {activeTab === 'users' && 'Farmer Directory & Roles'}
+                  {activeTab === 'activity' && 'Daily Tenant Activity & Sessions'}
                   {activeTab === 'scans' && 'Tenant Crop Scan Audits & Pathology Diagnoses'}
                   {activeTab === 'broadcast' && 'Emergency Broadcasting Service'}
                   {activeTab === 'geography' && 'State & District Choropleth'}
@@ -2248,6 +2259,7 @@ export default function AdminPage() {
               
               <p className="text-sm text-slate-300 max-w-2xl mt-1">
                 {activeTab === 'users' && <span>Manage farmer accounts, roles, credentials, and locations in <code className="bg-emerald-950/80 px-1.5 py-0.5 rounded text-emerald-300">crop_disease_db.users</code></span>}
+                {activeTab === 'activity' && 'Monitor daily logins, logouts, active sessions, and mobile vs desktop device ratios across all roles.'}
                 {activeTab === 'scans' && 'Inspect leaf scans submitted by farmers across all fields, verify PyTorch AI confidence, and audit prescription safety.'}
                 {activeTab === 'broadcast' && 'Dispatch real-time emergency disease outbreak alerts and system announcements to all farmers.'}
                 {activeTab === 'geography' && 'Visualize where your registered farmers and farm fields are located across Indian states.'}
@@ -2267,6 +2279,13 @@ export default function AdminPage() {
             </span>
           </div>
         </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 0B: DAILY ACTIVITY & SESSION ANALYTICS              */}
+      {/* ======================================================== */}
+      {activeTab === 'activity' && (
+        <DailyActivityDashboard />
       )}
 
       {/* ======================================================== */}

@@ -17,20 +17,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script>
-      // 1. Evict any stuck legacy Service Worker caches (causes white screen on Chrome/PWA)
+      // Clean up legacy non-firebase workers only if obsolete sw.js is detected; never touch firebase-messaging-sw.js
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
           for (var i = 0; i < registrations.length; i++) {
-            registrations[i].unregister();
+            var r = registrations[i];
+            var sw = r.active || r.waiting || r.installing;
+            var script = sw ? (sw.scriptURL || '') : '';
+            if (script && script.indexOf('firebase-messaging-sw.js') === -1 && script.indexOf('sw.js') !== -1) {
+              r.unregister();
+            }
           }
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then(function(names) {
-          for (var i = 0; i < names.length; i++) {
-            caches.delete(names[i]);
-          }
-        });
+        }).catch(function() {});
       }
 
       // 2. Global Runtime Error Catcher - Never leave the screen completely blank

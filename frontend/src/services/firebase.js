@@ -97,51 +97,119 @@ export const initMessaging = async () => {
 };
 
 /**
- * Request notification permission and retrieve FCM device token
+ * Ensure the Firebase Cloud Messaging Service Worker is registered and fully active
+ */
+export const ensureActiveServiceWorker = async () => {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return null;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+
+    // If active worker already running in activated state
+    if (reg.active && reg.active.state === 'activated') {
+      return reg;
+    }
+
+    // If worker is still installing or waiting, wait for transition to activated
+    const targetWorker = reg.installing || reg.waiting || reg.active;
+    if (targetWorker && targetWorker.state !== 'activated') {
+      await new Promise((resolve) => {
+        const stateHandler = () => {
+          if (targetWorker.state === 'activated' || (reg.active && reg.active.state === 'activated')) {
+            targetWorker.removeEventListener('statechange', stateHandler);
+            resolve();
+          }
+        };
+        targetWorker.addEventListener('statechange', stateHandler);
+        setTimeout(resolve, 2000); // 2s fallback so execution never blocks
+      });
+    }
+
+    return await navigator.serviceWorker.ready;
+  } catch (err) {
+    console.warn('[FCM] Service worker registration error:', err);
+    return null;
+  }
+};
+
+/**
+ * Request notification permission and retrieve FCM device token with auto-retry
  */
 export const requestFCMToken = async (vapidKey = '') => {
   try {
     if (typeof window === 'undefined' || !('Notification' in window)) {
-      return { success: false, reason: 'Notifications not supported on this browser' };
+      return { success: false, reason: 'Notifications are not supported on this browser.' };
     }
 
-    const permission = await Notification.requestPermission();
+    let permission = Notification.permission;
     if (permission !== 'granted') {
-      return { success: false, reason: 'Permission denied by user. Please allow notifications in your browser address bar.' };
+      permission = await Notification.requestPermission();
+    }
+    if (permission !== 'granted') {
+      return { success: false, reason: 'Permission denied. Please allow notifications in your browser address bar.' };
     }
 
-    // Register and wait for active service worker
-    let swReg = null;
-    if ('serviceWorker' in navigator) {
-      try {
-        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        swReg = await navigator.serviceWorker.ready;
-      } catch (swErr) {
-        console.warn('Service worker registration error:', swErr);
-      }
+    // Step 1: Ensure active, non-null Service Worker
+    let swReg = await ensureActiveServiceWorker();
+    if (!swReg && 'serviceWorker' in navigator) {
+      swReg = await navigator.serviceWorker.ready;
     }
 
+    // Step 2: Ensure Firebase Messaging instance is initialized
     const msgInstance = messaging || (await initMessaging());
     if (!msgInstance) {
-      return { success: true, token: null, swReg };
+      return { success: false, reason: 'Firebase Messaging is not supported in this browser context.' };
     }
+
+    // Determine VAPID Web Push Key
+    const key = vapidKey || 
+      (typeof window !== 'undefined' ? localStorage.getItem('agrishield_vapid_key') : '') || 
+      import.meta.env.VITE_FIREBASE_VAPID_KEY || 
+      '';
 
     const options = {};
     if (swReg) options.serviceWorkerRegistration = swReg;
-    if (vapidKey) options.vapidKey = vapidKey;
+    if (key) options.vapidKey = key;
 
-    try {
-      const token = await getToken(msgInstance, options);
-      if (token) {
-        localStorage.setItem('agrishield_fcm_token', token);
-        return { success: true, token, swReg };
+    // Step 3: Resilient Token Retrieval with Automatic Retry on Worker Activation Race
+    let token = null;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        token = await getToken(msgInstance, options);
+        if (token) break;
+      } catch (tokenErr) {
+        lastError = tokenErr;
+        const msg = String(tokenErr?.message || tokenErr);
+        console.warn(`[FCM] Token generation attempt ${attempt} notice:`, msg);
+
+        // If worker is still activating or transitioning, wait 900ms and re-fetch active registration
+        if (attempt < 3) {
+          await new Promise((r) => setTimeout(r, 900));
+          try {
+            const refreshedReg = await navigator.serviceWorker.ready;
+            if (refreshedReg) options.serviceWorkerRegistration = refreshedReg;
+          } catch (_) {}
+        }
       }
-    } catch (tokenErr) {
-      console.warn('FCM token generation notice:', tokenErr);
-      return { success: true, token: null, swReg, notice: tokenErr.message };
     }
 
-    return { success: true, token: null, swReg };
+    if (token) {
+      try {
+        localStorage.setItem('agrishield_fcm_token', token);
+      } catch (_) {}
+      return { success: true, token, swReg };
+    }
+
+    return {
+      success: false,
+      token: null,
+      swReg,
+      error: lastError ? (lastError.message || String(lastError)) : 'Could not generate FCM device token'
+    };
   } catch (error) {
     console.error('Error in requestFCMToken:', error);
     return { success: false, error: error.message };

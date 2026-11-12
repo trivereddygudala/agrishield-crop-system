@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "agrishield-ai-498f3",
     "public": "frontend/dist",
     "ignore": [
       "firebase.json",

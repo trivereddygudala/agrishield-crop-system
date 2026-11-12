@@ -68,6 +68,7 @@ import API from '../services/api';
 import Breadcrumbs from './Breadcrumbs';
 import LogoutOverlay from './animations/LogoutOverlay';
 import { SUPPORTED_LANGUAGES } from '../data/languages';
+import { popDeviceNotification } from '../utils/deviceNotification';
 
 // Import primitive UI helpers for backwards compatibility
 import { 
@@ -371,6 +372,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           const newest = freshAlerts[0];
           setLiveAlert(newest);
           playNotificationChime();
+          // Dispatch native OS alert to mobile notification bar
+          popDeviceNotification(newest.title, newest.message || newest.body, newest.notification_id || newest.id, newest.action_url);
           if (setUnreadCount) setUnreadCount(prev => (prev || 0) + freshAlerts.length);
           setTimeout(() => setLiveAlert(null), 6000);
         }
@@ -493,6 +496,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       setRecentAlerts(prev => [notif, ...prev.filter(n => (n.notification_id || n.id) !== notifId)].slice(0, 5));
       if (setUnreadCount) setUnreadCount(prev => (prev || 0) + 1);
       playNotificationChime();
+      // Dispatch native OS alert to mobile notification bar
+      popDeviceNotification(notif.title, notif.message || notif.body, notifId, notif.action_url);
       setTimeout(() => setLiveAlert(null), 6000);
     };
 
@@ -525,6 +530,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       setRecentAlerts(prev => [latestAlert, ...prev.filter(n => (n.notification_id || n.id || n._id) !== aId)].slice(0, 5));
       setLiveAlert(latestAlert);
       playNotificationChime();
+      // Dispatch native OS alert to mobile notification bar
+      popDeviceNotification(latestAlert.title, latestAlert.message || latestAlert.body, aId, latestAlert.action_url);
       const t = setTimeout(() => { setLiveAlert(null); }, 6000);
       return () => clearTimeout(t);
     }

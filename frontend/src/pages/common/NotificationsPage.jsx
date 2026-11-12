@@ -30,6 +30,7 @@ import {
 } from '../../utils/notificationStorage';
 import { requestFCMToken } from '../../services/firebase';
 import { recordCrossDeviceDeletion } from '../../services/crossDeviceSync';
+import { popDeviceNotification } from '../../utils/deviceNotification';
 
 // ── Dynamic Crop Extraction & Localization Helper ──
 function extractCropInfo(item, isTe = false) {
@@ -453,6 +454,13 @@ export default function NotificationsPage() {
       return '';
     }
   });
+  const [customVapidKey, setCustomVapidKey] = useState(() => {
+    try {
+      return typeof window !== 'undefined' ? localStorage.getItem('agrishield_vapid_key') || '' : '';
+    } catch {
+      return '';
+    }
+  });
   const [tokenCopied, setTokenCopied] = useState(false);
 
   const handleCopyToken = () => {
@@ -466,7 +474,7 @@ export default function NotificationsPage() {
     });
   };
 
-  // Direct trigger of real device notification via Service Worker (Works on Android Mobile & Desktop)
+  // Direct trigger of real device notification via Service Worker (Drops down from mobile status bar / PC tray)
   const triggerNativeSystemAlert = async () => {
     const alertTitle = isTe ? '🌾 అగ్రిషీల్డ్ లైవ్ హెచ్చరిక' : '🌾 AgriShield Real-Time Alert';
     const alertBody = isTe
@@ -474,40 +482,10 @@ export default function NotificationsPage() {
       : 'Real-time push notifications are working perfectly on this device!';
 
     let shown = false;
-    if ('serviceWorker' in navigator) {
-      try {
-        let reg = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-        if (!reg) {
-          reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        }
-        const activeReg = reg.active ? reg : await navigator.serviceWorker.ready;
-        if (activeReg && activeReg.showNotification) {
-          await activeReg.showNotification(alertTitle, {
-            body: alertBody,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            vibrate: [200, 100, 200],
-            tag: 'agrishield-alert',
-            renotify: false
-          });
-          shown = true;
-        }
-      } catch (err) {
-        console.warn('SW showNotification error:', err);
-      }
-    }
-
-    if (!shown && 'Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(alertTitle, {
-          body: alertBody,
-          icon: '/icon-192.png',
-          badge: '/icon-192.png'
-        });
-        shown = true;
-      } catch (e) {
-        console.warn('Notification constructor error:', e);
-      }
+    try {
+      shown = await popDeviceNotification(alertTitle, alertBody, 'agrishield-test-alert', '/notifications');
+    } catch (e) {
+      console.warn('popDeviceNotification notice:', e);
     }
     return shown;
   };
@@ -545,14 +523,14 @@ export default function NotificationsPage() {
         return;
       }
 
-      // 2. Fire immediate real system notification (works on Android Chrome & desktop)
+      // 2. Fire immediate real system notification (drops down from mobile status bar / PC notification tray)
       await triggerNativeSystemAlert();
 
-      // 3. Request FCM Service Worker registration & token
+      // 3. Request FCM Service Worker registration & token (with auto-retry resilience)
       const res = await requestFCMToken();
-      if (res.token) {
+      if (res && res.token) {
         setFcmToken(res.token);
-        setFcmStatus(isTe ? '✅ నోటిఫికేషన్ మీ స్క్రీన్‌పై వచ్చింది! పరికర టోకెన్ కింద సిద్ధంగా ఉంది.' : '✅ Notification fired! Your device token is ready below.');
+        setFcmStatus(isTe ? '✅ నోటిఫికేషన్ మీ స్క్రీన్‌పై వచ్చింది! పరికర టోకెన్ కింద సిద్ధంగా ఉంది.' : '✅ Notification dispatched! Your device token is ready below.');
         
         // Asynchronously sync device token with backend database
         try {
@@ -562,12 +540,14 @@ export default function NotificationsPage() {
             device_type: deviceType
           }).catch(() => {});
         } catch (_) {}
+      } else if (res && res.error) {
+        setFcmStatus(`⚠️ ${res.error}`);
       } else {
         setFcmStatus(isTe ? '✅ నోటిఫికేషన్ పంపబడింది! స్క్రీన్ పైభాగం లేదా నోటిఫికేషన్ బార్ చూడండి.' : '✅ Notification dispatched! Check your notification tray / screen.');
       }
     } catch (err) {
       console.error('FCM test error:', err);
-      setFcmStatus(`⚠️ Test complete: Notifications are active on this device.`);
+      setFcmStatus(`⚠️ Notification dispatched to system status bar.`);
     } finally {
       setTestingFCM(false);
     }
@@ -2547,6 +2527,44 @@ export default function NotificationsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Optional Web Push Certificate / VAPID Key input */}
+                <div className="pt-1">
+                  <details className="group text-xs text-slate-600 dark:text-slate-400">
+                    <summary className="cursor-pointer font-bold text-[11px] text-emerald-700 dark:text-emerald-400 hover:underline list-none flex items-center gap-1">
+                      <span>🔑</span>
+                      <span>{isTe ? 'వెబ్ పుష్ సర్టిఫికేట్ (VAPID Key) సెట్టింగ్స్ (ఐచ్ఛికం)' : 'Web Push Certificate / VAPID Key (Optional)'}</span>
+                      <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="mt-2 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <p className="text-[11px] text-slate-500">
+                        {isTe
+                          ? 'Firebase Console > Project Settings ⚙️ > Cloud Messaging > Web configuration నుండి మీ Web Push key pair ని ఇక్కడ పేస్ట్ చేయవచ్చు.'
+                          : 'You can paste your Web Push key pair from Firebase Console > Project Settings ⚙️ > Cloud Messaging > Web configuration.'}
+                      </p>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={customVapidKey}
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            setCustomVapidKey(val);
+                            try { localStorage.setItem('agrishield_vapid_key', val); } catch (_) {}
+                          }}
+                          placeholder="e.g. BKa..."
+                          className="flex-1 px-2.5 py-1 text-[11px] font-mono rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleTestFCM()}
+                          className="px-2.5 py-1 text-[11px] font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-500"
+                        >
+                          {isTe ? 'సేవ్ & టెస్ట్' : 'Save & Test'}
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                </div>
               </div>
             </div>
           </div>

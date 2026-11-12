@@ -38,6 +38,25 @@ from backend.app.models.schemas import UserRegister, UserLogin, UserResponse, To
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
+async def record_user_activity(db, user_id: str, email: str, role: str, action: str, req: Request, method: str = "password"):
+    """Audit daily login and logout activity for the Admin Daily Activity Dashboard."""
+    try:
+        user_agent = (req.headers.get("user-agent") or "").lower()
+        device_type = "mobile" if any(x in user_agent for x in ["mobi", "android", "iphone", "ipad"]) else "desktop"
+        client_ip = req.client.host if req.client else "127.0.0.1"
+        await db.user_activity_logs.insert_one({
+            "user_id": str(user_id),
+            "email": email or "user@agrishield.com",
+            "role": role or "farmer",
+            "action": action, # "login" | "logout"
+            "method": method, # "password" | "google"
+            "device_type": device_type,
+            "client_ip": client_ip,
+            "timestamp": datetime.now(timezone.utc)
+        })
+    except Exception as e:
+        pass
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db = Depends(get_database)):
     """Dependency to retrieve the currently authenticated user using JWT token."""
     credentials_exception = HTTPException(
@@ -275,6 +294,7 @@ async def login(request: Request, credentials: UserLogin, db = Depends(get_datab
         user["created_at"] = datetime.now(timezone.utc)
 
     log_security_event("LOGIN_SUCCESS", {"user_id": user_id_str, "role": user_role}, client_ip=client_ip)
+    await record_user_activity(db, user_id_str, user.get("email") or login_as_email, user_role, "login", request, "password")
 
     return {
         "access_token": access_token,
@@ -311,7 +331,7 @@ async def refresh_access_token(refresh_token: str, db = Depends(get_database)):
     }
 
 @router.post("/logout")
-async def logout(request: Request, token: str = Depends(oauth2_scheme)):
+async def logout(request: Request, token: str = Depends(oauth2_scheme), db = Depends(get_database)):
     """Revoke active JWT session token."""
     client_ip = request.client.host if request.client else "127.0.0.1"
     if token:
@@ -322,7 +342,9 @@ async def logout(request: Request, token: str = Depends(oauth2_scheme)):
             from backend.app.core.security import settings
             payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM], options={"verify_exp": False, "verify_aud": False, "verify_iss": False})
             user_id = payload.get("sub", "unknown")
+            role = payload.get("role", "farmer")
             log_security_event("LOGOUT_SUCCESS", {"user_id": user_id}, client_ip=client_ip)
+            await record_user_activity(db, user_id, f"user-{user_id[:6]}", role, "logout", request)
         except Exception:
             log_security_event("LOGOUT_SUCCESS", {"user_id": "unknown"}, client_ip=client_ip)
     return {"message": "Successfully logged out and session revoked."}
@@ -915,6 +937,7 @@ async def google_login(
     user["active_farm_id"] = str(active_fid) if active_fid else None
 
     log_security_event("GOOGLE_LOGIN_SUCCESS", {"user_id": user_id_str, "email": user_email}, client_ip=client_ip)
+    await record_user_activity(db, user_id_str, user_email, user_role, "login", req, "google")
 
     return TokenResponse(
         access_token=access_token,
