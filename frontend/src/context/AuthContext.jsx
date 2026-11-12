@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import API from '../services/api';
 import { clearUserNotificationsStorage } from '../utils/notificationStorage';
 import i18n from '../i18n/config';
+import { signInWithGoogle } from '../services/firebase';
 
 const AuthContext = createContext(null);
 
@@ -188,6 +189,57 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (role = 'farmer') => {
+    setLoading(true);
+    try {
+      const fbResult = await signInWithGoogle();
+      if (!fbResult.success) {
+        throw new Error(fbResult.error || 'Google Sign-In failed or was cancelled');
+      }
+
+      const { user: gUser } = fbResult;
+      const res = await API.post('/api/auth/google', {
+        email: gUser.email,
+        name: gUser.displayName || 'Farmer',
+        photo_url: gUser.photoURL || '',
+        google_id: gUser.uid,
+        role: role || 'farmer'
+      });
+
+      const { access_token, refresh_token, user: userData } = res.data;
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user');
+
+      setToken(access_token);
+      setUser(userData);
+
+      if (userData.preferred_language) {
+        i18n.changeLanguage(userData.preferred_language);
+      }
+
+      if (userData.farmer_mode) {
+        document.body.classList.add('farmer-mode');
+      } else {
+        document.body.classList.remove('farmer-mode');
+      }
+
+      localStorage.setItem('token', access_token);
+      if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      return userData;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const register = async (name, email, password, preferred_language = 'en', botTrap = '', role = 'farmer', extraData = {}) => {
     setLoading(true);
     try {
@@ -296,7 +348,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, biometricLogin, register, logout, updateProfile, updateProfileLocal }}>
+    <AuthContext.Provider value={{ user, token, loading, login, biometricLogin, googleLogin, register, logout, updateProfile, updateProfileLocal }}>
       {children}
     </AuthContext.Provider>
   );

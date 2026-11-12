@@ -800,3 +800,127 @@ async def biometric_login(
         user=user
     )
 
+
+class GoogleLoginRequest(BaseModel):
+    email: str
+    name: Optional[str] = "Farmer"
+    photo_url: Optional[str] = None
+    google_id: Optional[str] = None
+    role: Optional[str] = "farmer"
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_login(
+    payload: GoogleLoginRequest,
+    req: Request,
+    db = Depends(get_database)
+):
+    """Authenticate or register user via Firebase Google OAuth Sign-In."""
+    client_ip = req.client.host if req.client else "unknown"
+    user_email = (payload.email or "").strip().lower()
+
+    if not user_email or "@" not in user_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Valid email address is required for Google Sign-In"
+        )
+
+    # Check if user already exists
+    user = await db.users.find_one({
+        "$or": [
+            {"email": user_email},
+            {"google_id": payload.google_id} if payload.google_id else {"email": user_email}
+        ]
+    })
+
+    now_utc = datetime.now(timezone.utc)
+
+    if not user:
+        # Create brand-new user with Google credentials
+        chosen_role = payload.role if payload.role in ["farmer", "equipment_provider"] else "farmer"
+        base_username = user_email.split("@")[0]
+        # Ensure unique username
+        existing_username = await db.users.find_one({"username": base_username})
+        final_username = base_username if not existing_username else f"{base_username}_{int(now_utc.timestamp()) % 10000}"
+
+        user_doc = {
+            "email": user_email,
+            "username": final_username,
+            "name": payload.name or "Farmer",
+            "full_name": payload.name or "Farmer",
+            "role": chosen_role,
+            "auth_provider": "google",
+            "google_id": payload.google_id,
+            "photo_url": payload.photo_url or "",
+            "verified": True,
+            "farmer_mode": False,
+            "preferred_language": "en",
+            "preferred_languages": ["en"],
+            "color_theme": "agrishield-default",
+            "navbar_theme": "farmer-dynamic",
+            "created_at": now_utc,
+            "last_login": now_utc,
+            "last_login_method": "google",
+            "crop_history": [],
+            "farming_practices": "Conventional",
+            "farm_profile_completed": False,
+            "notification_settings": {},
+            "password_hash": ""
+        }
+        res = await db.users.insert_one(user_doc)
+        user_doc["_id"] = res.inserted_id
+        user = user_doc
+        log_security_event("GOOGLE_USER_REGISTERED", {"email": user_email, "role": chosen_role}, client_ip=client_ip)
+    else:
+        # Update existing user
+        update_fields = {
+            "last_login": now_utc,
+            "last_login_method": "google"
+        }
+        if payload.google_id and not user.get("google_id"):
+            update_fields["google_id"] = payload.google_id
+        if payload.photo_url and not user.get("photo_url"):
+            update_fields["photo_url"] = payload.photo_url
+        if not user.get("auth_provider"):
+            update_fields["auth_provider"] = "google"
+        
+        await db.users.update_one({"_id": user["_id"]}, {"$set": update_fields})
+        user.update(update_fields)
+
+    user_role = user.get("role", "farmer")
+    user_id_str = str(user["_id"])
+
+    # Issue JWT tokens
+    access_token = create_access_token(subject=user_id_str, role=user_role)
+    refresh_token = create_refresh_token(subject=user_id_str)
+
+    user["id"] = user_id_str
+    user["_id"] = user_id_str
+    user["name"] = str(user.get("name") or user.get("full_name") or "Farmer")
+    user.setdefault("role", user_role)
+    user.setdefault("farm_location", None)
+    user.setdefault("preferred_language", "en")
+    if not user.get("preferred_languages"):
+        uplang = user.get("preferred_language") or "en"
+        user["preferred_languages"] = ["en"] if uplang == "en" else ["en", uplang]
+    user.setdefault("farmer_mode", False)
+    user.setdefault("color_theme", "agrishield-default")
+    user.setdefault("navbar_theme", "farmer-dynamic")
+    user.setdefault("crop_history", [])
+    user.setdefault("farming_practices", "Conventional")
+    user.setdefault("farm_profile_completed", False)
+    user.setdefault("notification_settings", {})
+
+    active_fid = user.get("active_farm_id")
+    user["active_farm_id"] = str(active_fid) if active_fid else None
+
+    log_security_event("GOOGLE_LOGIN_SUCCESS", {"user_id": user_id_str, "email": user_email}, client_ip=client_ip)
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        user=user
+    )
+
+

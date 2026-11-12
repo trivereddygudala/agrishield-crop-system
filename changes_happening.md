@@ -10185,3 +10185,113 @@ pm run build) succeeded in 20.67s with 0 errors.
 - Admin portal no longer shows the farmer-facing maintenance banner
 - Admin already has their own full control panel inside AdminPage.jsx
 
+
+---
+## [2026-11-12 08:00:15] Firebase Integration — COMPLETED
+
+### Changes Made:
+1. Installed Firebase Client SDK: Added firebase (^13.3.0) to frontend/package.json.
+2. Environment Variables Configured:
+   - frontend/.env & .env configured with project agrishield-ai-498f3 credentials:
+     - VITE_FIREBASE_API_KEY
+     - VITE_FIREBASE_AUTH_DOMAIN
+     - VITE_FIREBASE_PROJECT_ID
+     - VITE_FIREBASE_STORAGE_BUCKET
+     - VITE_FIREBASE_MESSAGING_SENDER_ID
+     - VITE_FIREBASE_APP_ID
+     - VITE_FIREBASE_MEASUREMENT_ID
+3. Created Firebase Client Service (frontend/src/services/firebase.js):
+   - Safe singleton App initialization via getApps() / initializeApp().
+   - Browser Analytics initialization with isSupported() guard.
+   - Firebase Authentication export with GoogleAuthProvider and signInWithGoogle() helper.
+4. Bootstrapped in Frontend (frontend/src/main.jsx):
+   - Added import './services/firebase.js' for automatic boot-time initialization.
+5. Verified Build: Production build passed with zero bundling or syntax errors.
+
+**Files Modified / Created:**
+- frontend/package.json
+- frontend/package-lock.json
+- frontend/.env
+- .env
+- frontend/src/services/firebase.js
+- frontend/src/main.jsx
+
+---
+## [2026-11-12 08:16:15] Firebase Suite (Option 1, 2, and 3) Implementation - COMPLETED
+
+### 1. Option 1: 1-Tap Google Sign-In & Sign-Up
+- Backend: Added @router.post('/api/auth/google') in backend/app/routers/common/auth.py to seamlessly authenticate or auto-register users via Google OAuth, issuing secure AgriShield JWT access & refresh tokens.
+- AuthContext: Added googleLogin(role) helper in frontend/src/context/AuthContext.jsx.
+- LoginPage: Added official "Continue with Google" button with Google SVG logo on frontend/src/pages/common/LoginPage.jsx.
+- RegisterPage: Added "Sign up instantly with Google" button on frontend/src/pages/common/RegisterPage.jsx.
+
+### 2. Option 3: Real-Time Web Push Notifications (FCM)
+- Service Worker: Created frontend/public/firebase-messaging-sw.js for background web push notifications with automatic notification click handling.
+- Client Services: Added initMessaging(), requestFCMToken(), and onForegroundMessage() in frontend/src/services/firebase.js.
+
+### 3. Option 2: Free Firebase Web Hosting
+- Created firebase.json configured for Single Page App rewrites to /index.html and high-performance caching for static assets.
+- Created .firebaserc linked to project agrishield-ai-498f3.
+- Created deploy_to_firebase.bat 1-click deployment script.
+- Verified full production build (built in 21.13s).
+
+Files Modified / Created:
+- backend/app/routers/common/auth.py
+- frontend/src/context/AuthContext.jsx
+- frontend/src/services/firebase.js
+- frontend/src/pages/common/LoginPage.jsx
+- frontend/src/pages/common/RegisterPage.jsx
+- frontend/public/firebase-messaging-sw.js
+- firebase.json
+- .firebaserc
+- deploy_to_firebase.bat
+
+---
+## [2026-11-12 08:29:55] 1-Click Deployment Automation Scripts Created
+
+### Changes:
+- Created 1_login_firebase.bat: Interactive 1-click helper that opens Google authentication in browser for Firebase CLI.
+- Created 2_deploy_website.bat: 1-click deployment script that builds the frontend, deploys to Firebase Hosting, and automatically launches https://agrishield-ai-498f3.web.app in the user browser upon completion.
+
+Files Created:
+- 1_login_firebase.bat
+- 2_deploy_website.bat
+
+---
+## [2026-11-12 08:51:17] FCM Test & Live Deployment Update - COMPLETED
+
+### Changes:
+- Added 1-Click FCM Push Notification Tester in Notification Settings Modal (NotificationsPage.jsx).
+- Generates live device registration token, copies to clipboard, and triggers real browser push alert.
+- Deployed latest build to Firebase Hosting: https://agrishield-ai-498f3.web.app
+
+Files Modified:
+- frontend/src/pages/common/NotificationsPage.jsx
+
+---
+## [2026-11-12 08:57:33] Service Worker Activation Fix & Live Deployment - COMPLETED
+
+### Changes:
+- Resolved 'no active Service Worker' PushManager race condition in requestFCMToken by actively awaiting navigator.serviceWorker.ready.
+- Added direct fallback push alert delivery in NotificationsPage.jsx ensuring immediate device notification popups.
+- Successfully redeployed to Firebase Hosting: https://agrishield-ai-498f3.web.app
+
+Files Modified:
+- frontend/src/services/firebase.js
+- frontend/src/pages/common/NotificationsPage.jsx
+
+---
+## [2026-11-12 09:22:00] Mobile Service Worker Push Fix, Device Token Management & Instant Alerts - COMPLETED
+
+### Changes:
+- Fixed Android Chrome Illegal constructor crash when creating 
+ew Notification(...) by implementing ServiceWorkerRegistration.showNotification() with vibration, custom tag, and renotify options.
+- Added self.skipWaiting() and self.clients.claim() to irebase-messaging-sw.js to ensure immediate service worker activation on all devices without requiring browser restarts.
+- Enhanced FCM testing modal in NotificationsPage.jsx with automatic device detection (📱 Mobile Device vs 💻 Desktop / PC), dedicated 'Copy Full Token' button with visual copy feedback, and instant 'Instant Screen Popup' test button.
+- Added clear, step-by-step Firebase Console instructions highlighting the required + (Plus) button click before sending test messages.
+- Successfully built and redeployed production app to Firebase Hosting: https://agrishield-ai-498f3.web.app
+
+Files Modified:
+- frontend/public/firebase-messaging-sw.js
+- frontend/src/services/firebase.js
+- frontend/src/pages/common/NotificationsPage.jsx
