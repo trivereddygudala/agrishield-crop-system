@@ -727,7 +727,7 @@ const DashboardPage = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                {isTe ? 'పంట దశ, ఆకుల పరీక్షలు, నేల తేమ & మార్కెట్ ధర' : 'Live metrics for crop stage, leaf tests, soil water & mandi rate'}
+                {isTe ? 'పంట దశ, పరీక్షలు, నేల & మార్కెట్ ధర' : 'Crop stage, scans, soil & market price'}
               </p>
             </div>
           </div>
@@ -869,7 +869,7 @@ const DashboardPage = () => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                  {isTe ? 'ఈ రోజు మీ పొలంలో పూర్తి చేయవలసిన 3 ముఖ్యమైన పనులు' : 'Daily 3-task agronomic action checklist for your farm'}
+                  {isTe ? 'ఈ రోజు 3 ముఖ్యమైన పనులు' : '3 priority farm tasks for today'}
                 </p>
               </div>
             </div>
@@ -946,7 +946,7 @@ const DashboardPage = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                {isTe ? 'ఆకు స్కానర్, వ్యవసాయ సలహా, ట్రాక్టర్ల బుకింగ్ & కిసాన్ కాల్ సెంటర్' : 'Instant AI leaf doctor, voice agronomist, equipment booking & toll-free helpline'}
+                {isTe ? 'ఆకు డాక్టర్, సలహా, ట్రాక్టర్లు & కాల్ సెంటర్' : 'Leaf doctor, farm chat, equipment & helpline'}
               </p>
             </div>
           </div>
@@ -1127,9 +1127,7 @@ const DashboardPage = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                {isNightTime
-                  ? (isTe ? 'రాత్రి ఉష్ణోగ్రత, తేమ, రేపటి వర్ష సూచన మరియు ఉదయపు స్ప్రే సమయం' : 'Nocturnal temperature, dew moisture, tomorrow rain radar & morning spray window')
-                  : (isTe ? 'వర్ష సూచన, గాలి వేగం, తేమ మరియు సురక్షిత పిచికారీ గంటల విశ్లేషణ' : 'Real-time temperature, rain probability, wind speed & optimal spray window')}
+                {isTe ? 'పొలం వాతావరణం మరియు సురక్షిత స్ప్రే సమయం' : 'Live weather and safe spray hours'}
               </p>
             </div>
           </div>
@@ -1157,7 +1155,7 @@ const DashboardPage = () => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                  {isTe ? 'మీ పొలంలో ఆకుల తాజా ఆరోగ్య చరిత్ర & నివారణ సూచనలు' : 'Recent diagnostic history, health percentage & treatment recommendations'}
+                  {isTe ? 'ఆకుల పరీక్షలు & నివారణ రికార్డులు' : 'Recent leaf scans & remedy records'}
                 </p>
               </div>
             </div>

@@ -10830,3 +10830,19 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Condensed Bottom Tip: Converted redundant paragraph into a clean 1-line farmer tip: '💡 Farmer Tip: Morning spraying clears dew and gives maximum crop protection with less chemical.'
 - **User Experience Benefit:**
   - 75% reduction in text density; zero overwhelming scientific jargon; mobile card height reduced by ~50%, allowing farmers to understand spray safety in 2 seconds at a single glance.
+
+## [2026-11-15 00:38:05] Comprehensive Text Simplification Across Dashboard & Weather Radar
+- **Purged Academic & Complex English Jargon:**
+  - Section 4 Subtitle: Replaced *"Nocturnal temperature, dew moisture, tomorrow rain radar & morning spray window"* with clean, plain: *"Live weather and safe spray hours"* (పొలం వాతావరణం మరియు సురక్షిత స్ప్రే సమయం).
+  - Weather Hero Banner: Replaced *"Cool night temperatures • Calm nocturnal atmosphere"* with crisp *"Cool & calm night"* (చల్లని మరియు ప్రశాంతమైన రాత్రి). Removed repetitive *"Optimal natural sunlight for crop photosynthesis"* in favor of *"Good sunlight for crop growth"*.
+  - Section 2 Subtitle: Replaced *"Daily 3-task agronomic action checklist for your farm"* with *"3 priority farm tasks for today"* (ఈ రోజు 3 ముఖ్యమైన పనులు).
+  - Section 1 Subtitle: Replaced *"Live metrics for crop stage, leaf tests, soil water & mandi rate"* with *"Crop stage, scans, soil & market price"*.
+  - Section 3 Subtitle: Replaced *"Instant AI leaf doctor, voice agronomist, equipment booking & toll-free helpline"* with *"Leaf doctor, farm chat, equipment & helpline"*.
+  - Section 5 Subtitle: Replaced *"Recent diagnostic history, health percentage & treatment recommendations"* with *"Recent leaf scans & remedy records"*.
+- **Removed Redundant Duplicate Elements in Weather Box (Box 1):**
+  - Removed duplicate `(Feels like 24°C)` and redundant badge `⏱️ Night Air: Cool` from the hero card since temperature and conditions already display clearly.
+  - Simplified Box 1 title from *"Farm Weather & Rain Forecast"* to *"Farm Weather"* (పొలం వాతావరణం).
+  - Replaced duplicate Card 4 (*"Night Sky: Clear Starlit"*, which repeated the banner above) with useful *"Night Air: Cool"* (రాత్రి చల్లదనం).
+  - Shortened 3-day forecast title from *"Next 3 Days Rain Forecast for Field:"* to *"3-Day Rain Forecast:"*.
+- **Box 2 Subtitle Removed:**
+  - Completely dropped the redundant *"Safe pesticide & spray timings"* subtitle under *"Crop Spraying Window"*.

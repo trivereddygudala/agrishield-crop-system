@@ -139,7 +139,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
     title: isCloudy 
       ? (isTe ? 'మేఘావృత రాత్రి' : 'Cloudy Night') 
       : (isTe ? 'శాంతమైన రాత్రి' : 'Clear Night Sky'),
-    desc: isTe ? 'చల్లని ఉష్ణోగ్రత • నిశ్శబ్ద రాత్రి వాతావరణం' : 'Cool night temperatures • Calm nocturnal atmosphere',
+    desc: isTe ? 'చల్లని మరియు ప్రశాంతమైన రాత్రి' : 'Cool & calm night',
     cardBorder: 'border-emerald-500/40 dark:border-emerald-500/50',
     ambientGlow: 'bg-emerald-600/15',
     bannerBg: 'bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 border-emerald-500/40 text-emerald-100',
@@ -149,7 +149,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
     period: 'dawn',
     iconText: '🌅',
     title: isTe ? 'ఉదయపు వాతావరణం' : 'Fresh Morning Dawn',
-    desc: isTe ? 'చల్లని గాలి • అనుకూలమైన ఉదయపు వాతావరణం' : 'Crisp morning air • Dew evaporating',
+    desc: isTe ? 'చల్లని ఉదయపు గాలి' : 'Crisp morning air',
     cardBorder: 'border-amber-500/40 dark:border-amber-500/50',
     ambientGlow: 'bg-amber-500/15',
     bannerBg: 'bg-gradient-to-r from-amber-950 via-orange-950 to-slate-900 border-amber-400/50 text-amber-100',
@@ -159,7 +159,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
     period: 'dusk',
     iconText: '🌇',
     title: isTe ? 'సాయంత్రపు వాతావరణం' : 'Pleasant Evening Twilight',
-    desc: isTe ? 'చల్లబడుతున్న ఉష్ణోగ్రత • సాయంత్రపు సమయం' : 'Cooling twilight breeze • Sunset hours',
+    desc: isTe ? 'సాయంత్రపు చల్లని గాలి' : 'Cool evening breeze',
     cardBorder: 'border-orange-500/40 dark:border-orange-500/50',
     ambientGlow: 'bg-orange-500/15',
     bannerBg: 'bg-gradient-to-r from-orange-950 via-rose-950 to-slate-900 border-orange-400/50 text-orange-100',
@@ -169,7 +169,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
     period: 'day',
     iconText: isCloudy ? '⛅' : '☀️',
     title: isCloudy ? (isTe ? 'తేలికపాటి మేఘాలు' : 'Partly Cloudy') : (isTe ? 'తేట ఎండ' : 'Bright Sunshine'),
-    desc: isTe ? 'పంటల కిరణజన్య సంయోగక్రియకు ఉత్తమ ఎండ' : 'Optimal natural sunlight for crop photosynthesis',
+    desc: isTe ? 'పంటల ఎదుగుదలకు మంచి ఎండ' : 'Good sunlight for crop growth',
     cardBorder: 'border-amber-400/40 dark:border-amber-500/40',
     ambientGlow: 'bg-amber-400/15',
     bannerBg: 'bg-gradient-to-r from-amber-50 via-yellow-50 to-emerald-50/50 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-850 border-amber-300 dark:border-slate-800 text-slate-900 dark:text-white',
@@ -222,7 +222,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  {isTe ? 'పొలం వాతావరణం & వర్ష సూచన' : 'Farm Weather & Rain Forecast'}
+                  {isTe ? 'పొలం వాతావరణం' : 'Farm Weather'}
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-300/80 dark:border-indigo-700">
                   {weatherTheme.badgeText}
@@ -306,28 +306,14 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
                 <span className="text-3xl sm:text-4xl font-black tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
                   {Math.round(current.temperature)}°C
                 </span>
-                <span className="text-xs font-bold opacity-80">
-                  ({isTe ? 'అనిపించే ఉష్ణోగ్రత' : 'Feels like'} {Math.round(current.feels_like || current.temperature + 1)}°C)
-                </span>
               </div>
-              <span className="text-xs sm:text-sm font-black block mt-0.5 tracking-wide">
+              <span className="text-sm font-black block mt-0.5 tracking-wide">
                 {weatherTheme.title}
               </span>
-              <p className="text-[11px] font-semibold opacity-75 mt-0.5">
+              <p className="text-xs font-semibold opacity-85 mt-0.5">
                 {weatherTheme.desc}
               </p>
             </div>
-          </div>
-
-          {/* Quick Diurnal Highlight Pill */}
-          <div className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white/15 dark:bg-white/10 border border-white/20 text-xs font-black shrink-0 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 opacity-80" />
-            <span>
-              {isNight ? (isTe ? 'రాత్రి ఉష్ణోగ్రత: 24°C' : 'Night Air: Cool') :
-               isDawn ? (isTe ? 'ఉదయపు గాలి: ఆహ్లాదం' : 'Morning: Crisp') :
-               isDusk ? (isTe ? 'సాయంత్రపు గాలి: చల్లదనం' : 'Evening: Calm') :
-               (isTe ? 'పగటి ఉష్ణోగ్రత: సాధారణం' : 'Daylight: Active')}
-            </span>
           </div>
         </div>
 
@@ -371,13 +357,13 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
 
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-center">
             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-              {isNight ? (isTe ? 'రాత్రి ఆకాశం' : 'Night Sky') : (isTe ? 'ఎండ తీవ్రత (UV)' : 'Sun / UV Index')}
+              {isNight ? (isTe ? 'రాత్రి చల్లదనం' : 'Night Air') : (isTe ? 'ఎండ తీవ్రత' : 'Sun / UV')}
             </span>
             <span className="text-sm font-black text-slate-900 dark:text-white mt-0.5 block">
-              {isNight ? '🌙 Clear' : '☀️ 6 / 10'}
+              {isNight ? '🌙 Cool' : '☀️ 6 / 10'}
             </span>
             <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 block mt-0.5">
-              {isNight ? (isTe ? 'నిర్మల రాత్రి' : 'Starlit') : (isTe ? 'సాధారణ ఎండ' : 'Moderate Sun')}
+              {isNight ? (isTe ? 'చల్లని రాత్రి' : 'Pleasant') : (isTe ? 'సాధారణ ఎండ' : 'Normal')}
             </span>
           </div>
         </div>
@@ -385,7 +371,7 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
         {/* 3-Day Farmer Rain Forecast */}
         <div className="relative z-10">
           <span className="text-xs font-black text-slate-700 dark:text-slate-300 block mb-2">
-            📅 {isTe ? 'రాబోయే 3 రోజుల వాతావరణం & వర్ష సూచన:' : 'Next 3 Days Rain Forecast for Field:'}
+            📅 {isTe ? '3 రోజుల వర్ష సూచన:' : '3-Day Rain Forecast:'}
           </span>
           <div className="grid grid-cols-3 gap-2">
             {forecast.map((f, idx) => (
@@ -418,9 +404,6 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                 {isTe ? 'మందుల పిచికారీ సమయం' : 'Crop Spraying Window'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                {isTe ? 'తెగుళ్ల నివారణ మందుల సమయం' : 'Safe pesticide & spray timings'}
-              </p>
             </div>
           </div>
 
