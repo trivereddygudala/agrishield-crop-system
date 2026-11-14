@@ -404,9 +404,9 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
       {/* ══════════════════════════════════════════════════════════════════
           BOX 2: Dedicated Spray Safety Window & Crop Protection Box (Time-Aware)
       ══════════════════════════════════════════════════════════════════ */}
-      <Card hover className="p-5 sm:p-6 border-2 border-emerald-500/40 dark:border-emerald-500/30 bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-5 relative overflow-hidden">
+      <Card hover className="p-5 sm:p-6 border-2 border-emerald-500/40 dark:border-emerald-500/30 bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl rounded-3xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 relative overflow-hidden">
         {/* Ambient spray safety glow */}
-        <div className={`absolute top-0 right-0 w-72 h-72 ${isNight ? 'bg-indigo-600/10' : 'bg-emerald-500/10'} rounded-full blur-3xl pointer-events-none transition-all duration-700`} />
+        <div className={`absolute top-0 right-0 w-72 h-72 ${isNight ? 'bg-emerald-900/15' : 'bg-emerald-500/10'} rounded-full blur-3xl pointer-events-none transition-all duration-700`} />
 
         {/* Box 2 Header */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 flex-wrap gap-2 relative z-10">
@@ -415,13 +415,11 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  {isTe ? 'మందుల పిచికారీ భద్రతా విండో' : 'Crop Spraying Safety Window'}
-                </h3>
-              </div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                {isTe ? 'మందుల పిచికారీ సమయం' : 'Crop Spraying Window'}
+              </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                {isTe ? 'తెగుళ్ల నివారణ & పోషకాల స్ప్రే సమయ విశ్లేషణ' : 'Real-time foliar spray & pesticide timing'}
+                {isTe ? 'తెగుళ్ల నివారణ మందుల సమయం' : 'Safe pesticide & spray timings'}
               </p>
             </div>
           </div>
@@ -435,15 +433,15 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
           }`}>
             <span className={`w-2 h-2 rounded-full ${isNight ? 'bg-emerald-400 animate-pulse' : isSprayActive ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`} />
             <span>
-              {isNight ? (isTe ? '⏱️ తదుపరి సమయం: రేపు ఉదయం 7:30 AM' : '⏱️ Next Safe Spray: Tomorrow 7:30 AM') :
+              {isNight ? (isTe ? '⏱️ రేపు ఉదయం 7:30 AM' : '⏱️ Tomorrow 7:30 AM') :
                currentHour < 12 ? (isTe ? '⏱️ ఉదయం 8:00 – 11:30 AM' : '⏱️ 8:00 AM – 11:30 AM') :
                currentHour < 17 ? (isTe ? '⏱️ సాయంత్రం 4:00 – 6:30 PM' : '⏱️ 4:00 PM – 6:30 PM') :
-               (isTe ? '⏱️ తదుపరి సమయం: రేపు ఉదయం' : '⏱️ Next Safe Spray: Tomorrow Morning')}
+               (isTe ? '⏱️ రేపు ఉదయం' : '⏱️ Tomorrow Morning')}
             </span>
           </div>
         </div>
 
-        {/* Big Farmer Status Banner (Clean Emerald & Dark Slate — Zero Purple) */}
+        {/* Big Farmer Status Banner (Clean Emerald & Dark Slate — Zero Clutter) */}
         <div className={`p-4 sm:p-5 rounded-2xl border-2 relative z-10 transition-all duration-500 ${
           isNight
             ? 'bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-emerald-500/50 text-white shadow-xl shadow-emerald-950/30'
@@ -468,102 +466,159 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
             <div>
               <h4 className="text-base sm:text-lg font-black tracking-tight leading-snug">
                 {isNight
-                  ? (isTe ? '🌙 రాత్రి వేళ స్ప్రే చేయవద్దు • రేపు ఉదయం 7:30 AM కి స్ప్రే చేయండి' : '🌙 Do Not Spray at Night • Next Safe Spray: Tomorrow 7:30 AM')
+                  ? (isTe ? '🌙 రాత్రి వేళ స్ప్రే చేయవద్దు' : '🌙 Do Not Spray at Night')
                   : isSprayActive
-                  ? (isTe ? '✅ ఇప్పుడు మందు పిచికారీ చేయడానికి అనుకూలమైన సమయం' : '✅ Safe to Spray Right Now (Ideal Conditions)')
-                  : (isTe ? '⚠️ ఎండ తీవ్రత ఎక్కువ — సాయంత్రం 4:00 PM వరకు వేచి ఉండండి' : '⚠️ Midday Heat — Pause Spraying Until 4:00 PM')}
+                  ? (isTe ? '✅ ఇప్పుడు స్ప్రే చేయడానికి అనుకూలం' : '✅ Safe to Spray Right Now')
+                  : (isTe ? '⚠️ ఎండ తీవ్రత ఎక్కువ — ఆగండి' : '⚠️ Pause Spraying (Midday Heat)')}
               </h4>
               <p className="text-xs font-semibold text-emerald-200 dark:text-emerald-300 mt-1 leading-relaxed">
                 {isNight
-                  ? (isTe ? 'రాత్రి వేళ పడే మంచు చుక్కల వల్ల మందు కారిపోతుంది. రేపు ఉదయం ఎండలో స్ప్రే చేస్తే 100% ప్రభావం ఉంటుంది.' : 'Heavy night dew washes spray away. Spraying in gentle morning sunlight gives full absorption and disease protection.')
+                  ? (isTe ? 'రాత్రి పడే మంచు వల్ల మందు కారిపోతుంది. రేపు ఉదయం 7:30 AM కి స్ప్రే చేయండి.' : 'Heavy night dew washes spray away. Safe window reopens tomorrow at 7:30 AM.')
                   : isSprayActive
-                  ? (isTe ? 'గాలి వేగం తక్కువగా ఉంది మరియు ఎండ అనుకూలంగా ఉంది. మందు సమానంగా వ్యాపిస్తుంది.' : 'Gentle breeze and cool temperatures prevent chemical evaporation and wind drift.')
-                  : (isTe ? 'తీవ్రమైన ఎండలో స్ప్రే చేస్తే మందు ఆవిరైపోతుంది మరియు ఆకులు మాడిపోయే ప్రమాదం ఉంది.' : 'Hot midday sun evaporates foliar spray and causes leaf burn. Waiting saves your input costs.')}
+                  ? (isTe ? 'గాలి వేగం తక్కువగా ఉంది. మందు చక్కగా ఆకులపై నిలుస్తుంది.' : 'Gentle breeze and cool temperature ensure maximum chemical absorption.')
+                  : (isTe ? 'తీవ్రమైన ఎండ వల్ల మందు ఆవిరైపోతుంది. సాయంత్రం 4:00 PM కి స్ప్రే చేయండి.' : 'Midday heat evaporates spray and burns leaves. Resume at 4:00 PM.')}
               </p>
             </div>
           </div>
         </div>
 
-        {/* 3 Clear Practical Reasons for Farmers (Simple, Non-Technical Farmer Words) */}
-        <div className="space-y-2.5 relative z-10">
-          <span className="text-xs font-black text-slate-800 dark:text-slate-200 block uppercase tracking-wider">
-            📋 {isNight ? (isTe ? 'రేపు ఉదయం వరకు ఎందుకు వేచి ఉండాలి? (ముఖ్య కారణాలు):' : 'Why You Should Wait for Tomorrow Morning:') : (isTe ? 'రైతులకు స్పష్టమైన కారణాలు (ఎందుకు సురక్షితం):' : 'Clear Reasons for Farmers (Why It Is Safe):')}
-          </span>
-
-          {/* Reason 1 */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-start gap-3 hover:border-emerald-500/40 transition-colors">
-            <span className="text-xl shrink-0">{isNight ? '🌿' : '💨'}</span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                  {isNight 
-                    ? (isTe ? 'మొక్కల ఆకులు రాత్రి నిద్రిస్తాయి:' : 'Leaves Rest at Night:') 
-                    : (isTe ? `నెమ్మదైన గాలి (${current.wind_speed} km/h):` : `Gentle Breeze (${current.wind_speed} km/h):`)}
-                </span>
-                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  {isNight ? (isTe ? 'మందు లోపలికి ఇంకదు' : 'No Absorption') : (isTe ? 'మందు పక్కకు కొట్టుకుపోదు' : "Won't Drift")}
-                </span>
+        {/* 3 Simple Farmer Points (Direct, 1-Line, Zero Complex Text) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative z-10">
+          {isNight ? (
+            <>
+              {/* Point 1: Leaves Closed */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-center gap-3">
+                <span className="text-xl shrink-0">🌿</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                    {isTe ? 'ఆకులు మూసుకుంటాయి' : 'Leaves Closed'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                    {isTe ? 'మందు లోపలికి ఇంకదు' : "Medicine won't absorb"}
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                {isNight
-                  ? (isTe ? 'రాత్రి వేళల్లో మొక్కల ఆకుల రంధ్రాలు మూసుకుంటాయి, కాబట్టి ఇప్పుడు మందు పిచికారీ చేసినా అది లోపలికి ఇంకకుండా వృథా అవుతుంది.' : 'Plant leaves close their breathing pores after dark. Any pesticide applied tonight cannot penetrate the plant and will be wasted.')
-                  : (isTe ? 'గాలి చాలా నెమ్మదిగా వీస్తుంది. మందు పక్క చేలలోకి కొట్టుకుపోకుండా నేరుగా మీ పంట ఆకులపైనే నిలుస్తుంది.' : 'Wind is gentle. Medicine stays on your target crop without drifting to neighboring fields.')}
-              </p>
-            </div>
-          </div>
 
-          {/* Reason 2 */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-start gap-3 hover:border-emerald-500/40 transition-colors">
-            <span className="text-xl shrink-0">{isNight ? '💧' : '🌧️'}</span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                  {isNight
-                    ? (isTe ? 'రాత్రి పడే దట్టమైన మంచు:' : 'Heavy Night Dew:')
-                    : (isTe ? `వర్షపు ముప్పు లేదు (${current.rain_probability}%):` : `Zero Rain Risk (${current.rain_probability}%):`)}
-                </span>
-                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                  {isNight ? (isTe ? 'మందు కారిపోతుంది' : 'Washes Off') : (isTe ? 'కరిగిపోదు' : "Won't Wash Off")}
-                </span>
+              {/* Point 2: Night Dew */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-center gap-3">
+                <span className="text-xl shrink-0">💧</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                    {isTe ? 'రాత్రి మంచు' : 'Heavy Night Dew'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                    {isTe ? 'మందు కారిపోతుంది' : 'Washes spray off'}
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                {isNight
-                  ? (isTe ? 'రాత్రి పడే మంచు చుక్కల వల్ల మందు పలుచబడి ఆకుల నుంచి నేలమీద కారిపోతుంది. ఉదయం మంచు ఆరిన తర్వాతే పిచికారీ చేయాలి.' : 'Night moisture and dew drops dilute the spray and wash it straight off the leaves onto the ground.')
-                  : (isTe ? 'నేడు వర్షం పడే అవకాశం లేదు. పిచికారీ చేసిన మందు ఆకులపై చక్కగా అతుక్కుంటుంది.' : 'No rainfall is expected today. The medicine will dry and adhere properly to plant leaves.')}
-              </p>
-            </div>
-          </div>
 
-          {/* Reason 3 */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-start gap-3 hover:border-emerald-500/40 transition-colors">
-            <span className="text-xl shrink-0">{isNight ? '🌅' : '🌿'}</span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                  {isNight
-                    ? (isTe ? 'ఉదయం ఉత్తమ స్ప్రే సమయం:' : 'Best Time: Tomorrow Morning:')
-                    : (isTe ? 'ఆకులు ఆరి ఉన్నాయి:' : 'Dry Crop Foliage:')}
-                </span>
-                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  {isNight ? (isTe ? 'ఉదయం 7:30 AM – 10:30 AM' : '7:30 AM – 10:30 AM') : (isTe ? 'వేగంగా గ్రహిస్తాయి' : 'Absorbs Effectively')}
-                </span>
+              {/* Point 3: Best Time */}
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/80 flex items-center gap-3">
+                <span className="text-xl shrink-0">⏰</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-emerald-950 dark:text-emerald-200 block">
+                    {isTe ? 'ఉత్తమ సమయం' : 'Best Time'}
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 block truncate">
+                    {isTe ? 'రేపు ఉదయం 7:30 AM' : 'Tomorrow 7:30 AM'}
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                {isNight
-                  ? (isTe ? 'ఉదయం సూర్యుని ఎండ తగలగానే ఆకుల రంధ్రాలు తెరుచుకుంటాయి మరియు మంచు ఆరిపోతుంది, అప్పుడు స్ప్రే చేస్తే పూర్తి రక్షణ లభిస్తుంది.' : 'Morning sunlight clears the dew and reopens leaf pores, giving your crop maximum disease protection with minimum medicine.')
-                  : (isTe ? 'ఉదయపు మంచు ఆరిపోయింది. ఆకులు పోషకాలను మరియు తెగులు మందులను వేగంగా గ్రహించడానికి సిద్ధంగా ఉన్నాయి.' : 'Morning dew has cleared. Leaves are ready to absorb foliar nutrition and protective sprays.')}
-              </p>
-            </div>
-          </div>
+            </>
+          ) : isSprayActive ? (
+            <>
+              {/* Daytime Safe Point 1: Wind */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-center gap-3">
+                <span className="text-xl shrink-0">💨</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                    {isTe ? `నెమ్మదైన గాలి (${current.wind_speed} km/h)` : `Gentle Wind (${current.wind_speed} km/h)`}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                    {isTe ? 'మందు పక్కకు కొట్టుకుపోదు' : "Won't drift away"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Daytime Safe Point 2: Rain */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-center gap-3">
+                <span className="text-xl shrink-0">🌧️</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                    {isTe ? `వర్షం లేదు (${current.rain_probability}%)` : `Zero Rain (${current.rain_probability}%)`}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                    {isTe ? 'మందు కరిగిపోదు' : "Won't wash off"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Daytime Safe Point 3: Leaves Ready */}
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/80 flex items-center gap-3">
+                <span className="text-xl shrink-0">🌿</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-emerald-950 dark:text-emerald-200 block">
+                    {isTe ? 'ఆకులు ఆరి ఉన్నాయి' : 'Dry Crop Foliage'}
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 block truncate">
+                    {isTe ? '100% మందు గ్రహిస్తాయి' : '100% absorption'}
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Midday Heat Point 1 */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-center gap-3">
+                <span className="text-xl shrink-0">☀️</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                    {isTe ? 'ఎండ తీవ్రత' : 'Midday Sun'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                    {isTe ? 'మందు ఆవిరైపోతుంది' : 'Chemical evaporates'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Midday Heat Point 2 */}
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800 flex items-center gap-3">
+                <span className="text-xl shrink-0">🍂</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-slate-900 dark:text-white block">
+                    {isTe ? 'ఆకుల రక్షణ' : 'Crop Safety'}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                    {isTe ? 'ఆకులు మాడిపోకుండా' : 'Prevents leaf burn'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Midday Heat Point 3 */}
+              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/80 flex items-center gap-3">
+                <span className="text-xl shrink-0">⏰</span>
+                <div className="min-w-0">
+                  <span className="text-xs font-black text-amber-950 dark:text-amber-200 block">
+                    {isTe ? 'తదుపరి సమయం' : 'Next Window'}
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-800 dark:text-amber-400 block truncate">
+                    {isTe ? 'సాయంత్రం 4:00 PM' : 'Today 4:00 PM'}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Farmer Tip Footer (High-Contrast Emerald Leaf Card — Zero Washed Out Purple) */}
-        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-300 dark:border-emerald-700/80 text-xs font-semibold text-emerald-950 dark:text-emerald-200 flex items-center gap-3 relative z-10 shadow-xs">
-          <span className="text-xl shrink-0">💡</span>
-          <span className="leading-relaxed">
+        {/* 1-Line Farmer Tip (Clean, Compact, Zero Paragraph Overload) */}
+        <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/80 text-xs font-semibold text-emerald-950 dark:text-emerald-200 flex items-center gap-2.5 relative z-10 shadow-xs">
+          <span className="text-lg shrink-0">💡</span>
+          <span className="truncate">
             {isNight
-              ? (isTe ? 'రైతు సలహా: రాత్రి వేళ ప్రశాంతంగా విశ్రాంతి తీసుకోండి. రేపు ఉదయం 7:30 AM నుండి 10:30 AM లోపు స్ప్రే చేస్తే మందు ఆదా అవుతుంది మరియు పంటకు పూర్తి రక్షణ లభిస్తుంది.' : 'Farmer Advice: Rest well tonight. Morning spraying between 7:30 AM and 10:30 AM saves your medicine cost and keeps your crop 100% healthy.')
-              : (isTe ? 'రైతు సలహా: మధ్యాహ్నం 11:30 AM లోపే పిచికారీ పూర్తి చేయండి. ఎండ తీవ్రత వల్ల మందు ఆవిరి కాకుండా ఉంటుంది.' : 'Farmer Tip: Complete your spraying before 11:30 AM to prevent evaporation from midday sun.')}
+              ? (isTe ? 'రైతు సలహా: రేపు ఉదయం 7:30 AM కి స్ప్రే చేస్తే మందు ఆదా అవుతుంది మరియు పంటకు పూర్తి రక్షణ లభిస్తుంది.' : 'Farmer Tip: Morning spraying clears dew and gives maximum crop protection with less chemical.')
+              : isSprayActive
+              ? (isTe ? 'రైతు సలహా: ఎండ ముదరక ముందే (11:30 AM లోపు) పిచికారీ పూర్తి చేయండి.' : 'Farmer Tip: Complete your spraying before 11:30 AM to avoid midday heat evaporation.')
+              : (isTe ? 'రైతు సలహా: సాయంత్రం 4:00 PM తర్వాత చల్లబడిన వేళ పిచికారీ చేయడం ఉత్తమం.' : 'Farmer Tip: Evening spray after 4:00 PM prevents leaf burn and chemical loss.')}
           </span>
         </div>
       </Card>
