@@ -205,7 +205,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
               <span className="text-[10px] text-slate-500 dark:text-white/50 hidden sm:inline font-semibold">ICAR Certified Fertigation</span>
             </div>
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
-              {isTe ? 'స్మార్ట్ నేల NPK ఎరువుల కాలిక్యులేటర్' : 'Smart Soil NPK Fertilizer & Fertigation Schedule'}
+              {isTe ? 'స్మార్ట్ నేల NPK ఎరువుల కాలిక్యులేటర్' : 'Smart Soil NPK Fertilizer & Dose Schedule'}
             </h2>
           </div>
         </div>
@@ -231,7 +231,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
           {/* Soil Type */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-              {isTe ? 'పొలం నేల రకం:' : 'Soil Classification:'}
+              {isTe ? 'పొలం నేల రకం:' : 'Soil Type:'}
             </label>
             <select
               value={selectedSoilKey}
@@ -249,7 +249,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
           {/* Target Crop */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-              {isTe ? 'సాగు పంట:' : 'Target Crop:'}
+              {isTe ? 'సాగు పంట:' : 'Crop Name:'}
             </label>
             <select
               value={selectedCropKey}
@@ -267,7 +267,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
           {/* Acreage */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-              {isTe ? 'విస్తీర్ణం (ఎకరాలు):' : 'Acreage (Acres):'}
+              {isTe ? 'విస్తీర్ణం (ఎకరాలు):' : 'Field Size (Acres):'}
             </label>
             <input
               type="number"

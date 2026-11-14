@@ -343,10 +343,10 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="text-xs font-black uppercase text-sky-800 dark:text-sky-300 tracking-wider flex items-center gap-1.5">
             <span>❄️</span>
-            <span>{isTe ? 'కోత అనంతర నిల్వ & కోల్డ్ స్టోరేజ్ మార్గదర్శకాలు' : 'Post-Harvest Loss Mitigation & Cold Storage Radar'}</span>
+            <span>{isTe ? 'కోల్డ్ స్టోరేజ్ & నిల్వ సలహాలు' : 'Cold Storage & Crop Preservation'}</span>
           </span>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 dark:text-sky-300 w-fit">
-            {isTe ? 'రైతు మార్కెట్ భద్రత' : 'Distress Sale Prevention'}
+            {isTe ? 'మార్కెట్ భద్రత' : 'Safe Market Advice'}
           </span>
         </div>
 
@@ -393,7 +393,7 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          📊 {isTe ? 'సీజన్ స్కోర్‌కార్డ్' : 'Season Scorecard'}
+          📊 {isTe ? 'సీజన్ సారాంశం' : 'Season Summary'}
         </button>
         <button
           type="button"
@@ -404,7 +404,7 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          🌾 {isTe ? 'దిగుబడులు' : 'Harvest Pickings'} ({harvests.length})
+          🌾 {isTe ? 'కోత రికార్డులు' : 'Harvest Pickings'} ({harvests.length})
         </button>
         <button
           type="button"
@@ -415,7 +415,7 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          💰 {isTe ? 'అమ్మకాలు' : 'Crop Sales'} ({sales.length})
+          💰 {isTe ? 'అమ్మకాల లెక్క' : 'Crop Sales'} ({sales.length})
         </button>
         <button
           type="button"
@@ -426,7 +426,7 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          🏪 {isTe ? 'మార్కెట్ & అమ్మకాలు' : 'Market Intelligence'}
+          🏪 {isTe ? 'మార్కెట్ ధరలు & అమ్మకాలు' : 'Mandi Prices & Sales'}
         </button>
         <button
           type="button"
@@ -437,7 +437,7 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          📜 {isTe ? 'గత సీజన్ల చరిత్ర' : 'Season History'} ({seasonHistory.length})
+          📜 {isTe ? 'గత సీజన్ల రికార్డు' : 'Past Seasons'} ({seasonHistory.length})
         </button>
       </div>
 

@@ -10846,3 +10846,66 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Shortened 3-day forecast title from *"Next 3 Days Rain Forecast for Field:"* to *"3-Day Rain Forecast:"*.
 - **Box 2 Subtitle Removed:**
   - Completely dropped the redundant *"Safe pesticide & spray timings"* subtitle under *"Crop Spraying Window"*.
+
+## [2026-11-15 00:59:16] Implemented Unified Hybrid Model for Field Tab (FarmPage.jsx)
+- **Top Bar & Active Field Switcher:**
+  - Added clean active field sector carousel with quick farm switching.
+  - Added 1-tap direct 'GPS Map' (జీపీఎస్ మ్యాప్) button linking to Leaflet boundary editor and '+ Add Field' (+ కొత్త పొలం).
+- **Enhanced Crop Hero Card:**
+  - Added live Days-to-Harvest countdown counter ('To Harvest: 78d' / 'కోతకు రోజులు').
+  - Enhanced visual growth journey progress bar and crop details.
+  - Added 1-tap quick action pills ('GPS Boundary', 'Crop Timeline', 'AI Scan').
+- **Three-Pillar Live Field Health HUD:**
+  - Integrated 3 real-time visual telemetry cards:
+    1. 💧 Soil Water: 68% • Optimal (నేల తేమ: తగినంత)
+    2. 💊 Soil Nutrition: Balanced NPK Profile (ఎరువుల పోషణ: సమతుల్యం)
+    3. 🛡️ Crop Defense: Low Risk / Safe (తెగుళ్ల రక్షణ: సురక్షితం)
+- **Today's 3 Critical Field Tasks (Interactive Checklist):**
+  - Added an interactive 3-task daily field action widget right on the main overview with direct checkbox toggles and a 1-click link to the full schedule.
+- **Four Instant Quick Action Buttons (Thumb Dock):**
+  - 📷 Scan Leaf ('ఆకు పరీక్ష') ➔ Instant camera diagnosis
+  - 💊 NPK Calculator ('ఎరువుల లెక్క') ➔ Opens fertilizer dosage popup
+  - 💰 Add Expense ('ఖర్చు నమోదు') ➔ 1-Tap expense entry into Khata
+  - 📞 Kisan Call 1800 ('కిసాన్ కాల్ 1800') ➔ Direct free call
+- **Thematic 11-Tool Grid:**
+  - Integrated all 11 sub-tools into two neat, categorized decks:
+    - *Field Operations & Agronomy:* Smart Actions, Crop Lifecycle, Soil NPK, Harvest Season, Irrigation & Weather.
+    - *Farm Business, Stock & Subsidies:* Digital Farm Khata, Stock Inventory, Govt Schemes, WhatsApp Bot, Field Setup, My Fields.
+- **Strictly No Commit / No Push:** Preserved as modified working tree per user directive.
+
+## [2026-11-15 01:20:00] Tab-by-Tab Simplification, Translation Polish & Hybrid Streamlining in Field Tab
+- **Tab Bar Navigation Streamlined (FARM_NAV_TABS & SUBTAB_METAS):**
+  - Standardized the 5 core hubs: '🌿 పొలం డ్యాష్‌బోర్డ్' ('Field Dashboard'), '⚡ పనుల జాబితా' ('Field Tasks'), '🌱 పంట దశలు' ('Crop Journey'), '💊 ఎరువుల లెక్క' ('Fertilizer NPK'), and '💰 ఫార్మ్ ఖాతా' ('Farm Khata').
+  - Simplified subtab labels: 'పొలం వివరాలు' ('Field Setup'), 'దిగుబడి & సీజన్' ('Harvest & Yield'), 'నీటి పారుదల' ('Smart Irrigation'), 'స్టాక్ ఇన్వెంటరీ' ('Stock & Inventory').
+- **Removed Unwanted Weather Duplication in Smart Irrigation:**
+  - Removed duplicate <LiveWeatherWidget /> and <SprayAdvisorWidget /> from 'farm-intelligence'.
+  - Weather radar and spray safety are already prominently featured on the Home dashboard (/dashboard), so removing the duplicates eliminates redundant API network requests and clutter.
+  - Positioned <SmartIrrigationScheduler /> and <FarmRoutineWidget /> as the dedicated Smart Irrigation & Motor Routine centerpiece.
+- **Rewrote Autonomous Farm Routine (FarmRoutineWidget.jsx):**
+  - Added full bilingual Telugu & English translation support.
+  - Replaced robotic jargon ('High-freq telemetry', 'Deep Sleep', 'Autonomous Farm Schedule') with farmer-friendly routine advice:
+    - Morning (06:00 - 09:00): 'ఉదయం తనిఖీ & మోటార్' (Check soil moisture & start early drip irrigation before peak heat).
+    - Daytime (09:00 - 17:00): 'మధ్యాహ్నం పంట రక్షణ' (Monitor crop hydration; avoid foliar spraying under intense sun).
+    - Evening (17:00 - 20:00): 'సాయంత్రం స్ప్రే సమయం' (Optimal safe foliar spray window & review of daily farm tasks).
+    - Night (20:00 - 06:00): 'రాత్రి విశ్రాంతి సమయం' (Plants rest with condensing dew; scheduled nocturnal motor running).
+  - Replaced synthetic purple/indigo colors with agricultural emerald, amber, sky, and teal palette.
+- **Crop Growth & Harvest Prediction Polish (CropGrowthTimeline.jsx):**
+  - Replaced academic 'సంచిత వేడి యూనిట్లు (GDD)' / 'Accumulated GDD Heat Units' with simple farmer term 'పంట వయస్సు & ఎదుగుదల' ('Crop Growth Progress').
+  - Replaced 'Open-Meteo Synced' with 'లైవ్ వాతావరణం' ('Live Weather Synced').
+  - Replaced 'Stage Disease Vulnerability' with 'కీలక నిఘా తెగుళ్లు' ('Key Diseases to Watch').
+  - Replaced 'కోత కిటికీ' with 'అంచనా కోత తేదీ' ('Estimated Harvest Date').
+- **Harvest & Mandi Season Simplification (HarvestSeasonManager.jsx):**
+  - Replaced academic 'Post-Harvest Loss Mitigation & Cold Storage Radar' with 'కోల్డ్ స్టోరేజ్ & నిల్వ సలహాలు' ('Cold Storage & Crop Preservation').
+  - Replaced 'Distress Sale Prevention' with 'మార్కెట్ భద్రత' ('Safe Market Advice').
+  - Cleaned up subtabs: '📊 సీజన్ సారాంశం' ('Season Summary'), '🌾 కోత రికార్డులు' ('Harvest Pickings'), '💰 అమ్మకాల లెక్క' ('Crop Sales'), '🏪 మార్కెట్ ధరలు & అమ్మకాలు' ('Mandi Prices & Sales'), '📜 గత సీజన్ల రికార్డు' ('Past Seasons').
+- **Fertilizer Calculator Simplification (SoilNPKCalculatorModal.jsx):**
+  - Simplified title to 'స్మార్ట్ నేల NPK ఎరువుల కాలిక్యులేటర్' ('Smart Soil NPK Fertilizer & Dose Schedule').
+  - Replaced academic labels 'Soil Classification:', 'Target Crop:', 'Acreage:' with farmer terms 'Soil Type:' ('పొలం నేల రకం'), 'Crop Name:' ('సాగు పంట'), 'Field Size (Acres):' ('విస్తీర్ణం').
+- **Farm Passbook Simplification (DigitalFarmKhata.jsx):**
+  - Simplified banner to 'పొలం పాస్‌బుక్' ('Farm Passbook') and 'డిజిటల్ పొలం ఖాతా & లాభనష్టాలు' ('Digital Farm Khata & Profit').
+  - Clarified button label 'ఎక్సెల్ డౌన్‌లోడ్' ('Download Excel (CSV)').
+- **Field Details & Sectors Simplification (FarmPage.jsx):**
+  - Changed 'Sectors' to 'పొలాలు' / 'Fields'.
+  - Replaced 'Farm Sector & Agronomic Setup' with 'పొలం వివరాలు & జీపీఎస్ మ్యాప్' ('Farm Details & GPS Setup').
+  - Replaced 'Farm Sector Name' with 'పొలం పేరు' ('Farm / Field Name').
+- **Strictly No Commit & No Push:** Preserved locally in working tree per user directive.

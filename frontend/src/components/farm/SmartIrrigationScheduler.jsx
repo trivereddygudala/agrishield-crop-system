@@ -158,17 +158,19 @@ export default function SmartIrrigationScheduler({
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${isSmartIoT ? 'bg-cyan-500 animate-pulse' : isSensorOffline ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                 {isSmartIoT
-                  ? '📡 Smart IoT Hardware Mode'
+                  ? (isTe ? '📡 లైవ్ సెన్సార్లు' : '📡 Live Sensors (IoT)')
                   : isSensorOffline
-                  ? '⚠️ Sensor Offline · Software Mode'
-                  : '🌱 Software AI Mode'}
+                  ? (isTe ? '⚠️ సెన్సార్ ఆఫ్‌లైన్' : '⚠️ Sensor Offline')
+                  : (isTe ? '🌱 స్మార్ట్ షెడ్యూల్' : '🌱 Smart AI Schedule')}
               </span>
               <span className="text-[10px] text-slate-500 dark:text-white/50 font-mono">
-                {isSmartIoT ? 'Live Field Sensor Telemetry' : 'Regional Weather & Crop Stage'}
+                {isTe
+                  ? (isSmartIoT ? 'నేల సెన్సార్ సమాచారం' : 'వాతావరణం & పంట దశ ఆధారంగా')
+                  : (isSmartIoT ? 'Live Field Sensor Telemetry' : 'Regional Weather & Crop Stage')}
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">
-              {isTe ? 'స్మార్ట్ నీటి పారుదల & మోటార్ సలహాదారు' : 'Smart Irrigation Advisor & Water Scheduler'}
+              {isTe ? 'స్మార్ట్ నీటి పారుదల & మోటార్ షెడ్యూల్' : 'Smart Irrigation & Water Schedule'}
             </h2>
             <p className="text-xs text-slate-600 dark:text-white/60">
               {localizedCrop} ({localizedStage} {isTe ? 'దశ' : 'Stage'}) · {acreage} {isTe ? 'ఎకరాలు' : 'Acres'}

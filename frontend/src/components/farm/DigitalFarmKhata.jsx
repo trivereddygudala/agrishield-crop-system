@@ -390,14 +390,14 @@ export default function DigitalFarmKhata({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                {isTe ? 'పొలం పాస్‌బుక్ & పెట్టుబడి మేనేజర్' : 'Farm Finance & Profit Manager'}
+                {isTe ? 'పొలం పాస్‌బుక్' : 'Farm Passbook'}
               </span>
               <span className="text-[10px] text-slate-500 dark:text-white/50 font-mono">
                 {farmName} · {cropName} ({acreage > 0 ? `${acreage} Acres` : 'General'})
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">
-              {isTe ? 'డిజిటల్ పొలం ఖాతా & నికర లాభం లెక్కలు' : 'Farm Expense, Income & Profit Manager'}
+              {isTe ? 'డిజిటల్ పొలం ఖాతా & లాభనష్టాలు' : 'Digital Farm Khata & Profit'}
             </h2>
           </div>
         </div>
@@ -411,7 +411,7 @@ export default function DigitalFarmKhata({
             title="Download CSV Ledger Spreadsheet"
           >
             <Download className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-            <span>{isTe ? 'CSV డౌన్‌లోడ్' : 'Export CSV'}</span>
+            <span>{isTe ? 'ఎక్సెల్ డౌన్‌లోడ్' : 'Download Excel (CSV)'}</span>
           </button>
 
           <button

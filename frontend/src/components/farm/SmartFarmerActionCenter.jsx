@@ -240,7 +240,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
               )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-              {t('dashboard.smart_actions.subtitle', 'Daily, overdue, and upcoming field work synthesized in one place')}
+              {isTe ? 'నేటి పనులు, నీటి పారుదల మరియు స్ప్రే సమయాలు' : 'Daily tasks, irrigation & safe spray timings'}
             </p>
           </div>
         </div>
@@ -250,12 +250,12 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
           {isIoT ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{t('dashboard.smart_actions.smart_iot_mode', 'Smart IoT Mode')}</span>
+              <span>{isTe ? 'లైవ్ సెన్సార్లు' : 'Live IoT Mode'}</span>
             </div>
           ) : (
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-700 dark:text-sky-300 text-xs font-bold">
               <span>☁️</span>
-              <span>{t('dashboard.smart_actions.software_ai_mode', 'Software AI Mode')}</span>
+              <span>{isTe ? 'స్మార్ట్ షెడ్యూల్' : 'Smart Schedule'}</span>
             </div>
           )}
 
@@ -289,7 +289,7 @@ export default function SmartFarmerActionCenter({ farmId, onActionComplete }) {
         <div className="flex items-center justify-between">
           <span className="text-xs font-black uppercase text-emerald-800 dark:text-emerald-300 tracking-wider flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>{isTe ? 'వారపు వ్యవసాయ ప్రాధాన్యతలు & కార్యాచరణ రాడార్' : 'Weekly Agronomic Priority Radar'}</span>
+            <span>{isTe ? 'ఈ వారపు ముఖ్యమైన పనులు & సూచనలు' : 'Weekly Field Priorities & Action Guide'}</span>
           </span>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
             Smart Operations

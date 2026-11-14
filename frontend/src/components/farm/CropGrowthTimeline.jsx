@@ -182,7 +182,7 @@ export default function CropGrowthTimeline({
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">
-              {isTe ? 'స్మార్ట్ పంట క్యాలెండర్ & వ్యవసాయ పనుల ప్రణాళిక' : 'Smart Crop Calendar & Farm Activity Planner'}
+              {isTe ? 'పంట క్యాలెండర్ & పనుల ప్రణాళిక' : 'Crop Calendar & Farm Planner'}
             </h2>
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function CropGrowthTimeline({
         <div className="flex items-center gap-2.5">
           <Sparkles className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span className="font-medium">
-            {calendarState?.mode_description || (isTe ? 'పంట దశ మరియు వాతావరణ సమాచారం ఆధారంగా' : 'Based on crop phenology, field records and regional weather')}
+            {calendarState?.mode_description || (isTe ? 'పంట దశ మరియు వాతావరణ సమాచారం ఆధారంగా' : 'Based on crop stage, field records and live weather')}
           </span>
         </div>
         {weatherCtx?.note && (
@@ -256,25 +256,25 @@ export default function CropGrowthTimeline({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span className="text-xs font-black uppercase text-amber-800 dark:text-amber-300 tracking-wider flex items-center gap-1.5">
               <Sun className="w-4 h-4 text-amber-500" />
-              <span>{isTe ? 'థర్మల్ సమయం & అంచనా కోత కిటికీ (GDD మోడల్)' : 'Growing Degree Days (GDD) & Harvest Window'}</span>
+              <span>{isTe ? 'అంచనా కోత సమయం & తెగుళ్ల ముప్పు' : 'Estimated Harvest Time & Disease Risks'}</span>
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 w-fit">
-              {isTe ? 'వాతావరణ సమన్వయం' : 'Open-Meteo Synced'}
+              {isTe ? 'లైవ్ వాతావరణం' : 'Live Weather Synced'}
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
             <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-500/20">
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
-                {isTe ? 'సంచిత వేడి యూనిట్లు (GDD)' : 'Accumulated GDD Heat Units'}
+                {isTe ? 'పంట వయస్సు & ఎదుగుదల' : 'Crop Growth Progress'}
               </span>
               <strong className="text-slate-900 dark:text-slate-100 font-black text-sm">
-                {Math.round((calendarState?.days_since_sowing || 45) * 16.5)} / 1,850 °C-d
+                {(calendarState?.days_since_sowing || 45)} / {(calendarState?.total_lifecycle_days || 120)} {isTe ? 'రోజులు' : 'Days'}
               </strong>
             </div>
             <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-500/20">
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
-                {isTe ? 'అంచనా కోత తేదీ' : 'Estimated Harvest Window'}
+                {isTe ? 'అంచనా కోత తేదీ' : 'Estimated Harvest Date'}
               </span>
               <strong className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
                 {(() => {
@@ -287,7 +287,7 @@ export default function CropGrowthTimeline({
             </div>
             <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-500/20">
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
-                {isTe ? 'కీలక నిఘా తెగుళ్లు' : 'Stage Disease Vulnerability'}
+                {isTe ? 'కీలక నిఘా తెగుళ్లు' : 'Key Diseases to Watch'}
               </span>
               <strong className="text-rose-600 dark:text-rose-400 font-black text-xs truncate block">
                 {cropName === 'Tomato' ? 'Early Blight & Fruit Borer' : cropName === 'Red Chilli' ? 'Thrips & Anthracnose' : 'Leaf Blast & Stem Borer'}

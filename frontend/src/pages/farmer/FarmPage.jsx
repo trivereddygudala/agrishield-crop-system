@@ -17,8 +17,6 @@ import { getSoilOptions, getLocalizedSoilName, SOIL_TYPES_DATABASE } from '../..
 import { useTranslation } from 'react-i18next';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
 import FarmRoutineWidget from '../../components/intelligence/FarmRoutineWidget';
-import LiveWeatherWidget from '../../components/intelligence/LiveWeatherWidget';
-import SprayAdvisorWidget from '../../components/intelligence/SprayAdvisorWidget';
 import SoilNPKCalculatorModal from '../../components/farm/SoilNPKCalculatorModal';
 import DigitalFarmKhata from '../../components/farm/DigitalFarmKhata';
 import GovernmentSchemeNavigator from '../../components/farm/GovernmentSchemeNavigator';
@@ -86,6 +84,17 @@ const FarmPage = () => {
   const [geoLoading, setGeoLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [toastMsg, setToastMsg] = useState('');
+  const isTe = currentLang.startsWith('te');
+
+  const [quickTasks, setQuickTasks] = useState([
+    { id: 1, titleEn: 'Morning Drip: 45 mins canal water', titleTe: 'ఉదయపు నీటి పారుదల: 45 నిమిషాలు', completed: true, icon: '💧' },
+    { id: 2, titleEn: 'Foliar Zinc Spray: 7:30 AM – 10:30 AM', titleTe: 'జింక్ పోషకాల స్ప్రే: ఉదయం వేళ', completed: false, icon: '🌿' },
+    { id: 3, titleEn: 'Leaf & stem borer inspection', titleTe: 'కాండం తొలిచే పురుగు పరిశీలన', completed: false, icon: '🔍' },
+  ]);
+
+  const toggleQuickTask = (id) => {
+    setQuickTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  };
 
   const VALID_FARM_TABS = [
     'modules',
@@ -102,21 +111,21 @@ const FarmPage = () => {
     'whatsapp-diagnosis'];
 
   const FARM_NAV_TABS = [
-    { id: 'modules', labelEn: 'Overview', labelTe: 'అవలోకనం', icon: '📋' },
-    { id: 'smart-actions', labelEn: 'Field Actions', labelTe: 'పనుల జాబితా', icon: '⚡' },
-    { id: 'crop-lifecycle', labelEn: 'Crop Timeline', labelTe: 'పంట దశలు', icon: '🌱' },
-    { id: 'soil-npk', labelEn: 'Fertilizer & Soil', labelTe: 'NPK ఎరువులు', icon: '💊' },
-    { id: 'farm-khata', labelEn: 'Farm Khata', labelTe: 'డిజిటల్ ఖాతా', icon: '💰' },
+    { id: 'modules', labelEn: 'Field Dashboard', labelTe: 'పొలం డ్యాష్‌బోర్డ్', icon: '🌿' },
+    { id: 'smart-actions', labelEn: 'Field Tasks', labelTe: 'పనుల జాబితా', icon: '⚡' },
+    { id: 'crop-lifecycle', labelEn: 'Crop Journey', labelTe: 'పంట దశలు', icon: '🌱' },
+    { id: 'soil-npk', labelEn: 'Fertilizer NPK', labelTe: 'ఎరువుల లెక్క', icon: '💊' },
+    { id: 'farm-khata', labelEn: 'Farm Khata', labelTe: 'ఫార్మ్ ఖాతా', icon: '💰' },
   ];
 
   const SUBTAB_METAS = {
     'my-fields': { labelEn: 'My Fields', labelTe: 'నా పొలాలు', icon: '🌾' },
-    'field-setup': { labelEn: 'Field Setup', labelTe: 'క్షేత్ర వివరాలు', icon: '📍' },
+    'field-setup': { labelEn: 'Field Setup', labelTe: 'పొలం వివరాలు', icon: '📍' },
     'harvest-season': { labelEn: 'Harvest & Yield', labelTe: 'దిగుబడి & సీజన్', icon: '🧺' },
     'farm-inventory': { labelEn: 'Stock & Inventory', labelTe: 'స్టాక్ ఇన్వెంటరీ', icon: '📦' },
     'government-schemes': { labelEn: 'Govt Schemes', labelTe: 'ప్రభుత్వ పథకాలు', icon: '🏛️' },
     'whatsapp-diagnosis': { labelEn: 'WhatsApp Bot', labelTe: 'వాట్సాప్ బాట్', icon: '💬' },
-    'farm-intelligence': { labelEn: 'Irrigation & Weather', labelTe: 'నీటి పారుదల & వాతావరణం', icon: '💧' },
+    'farm-intelligence': { labelEn: 'Smart Irrigation', labelTe: 'నీటి పారుదల', icon: '💧' },
   };
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -408,89 +417,119 @@ const FarmPage = () => {
     }
   };
 
-    const AGRONOMIC_MODULES = [
+      const AGRONOMIC_MODULES = [
     {
       id: 'smart-actions',
-      title: t('farm_tools.nav_actions', 'Field Operations & Tasks'),
-      subtitle: t('farm_tools.desc_actions', 'Daily action items, urgent crop checks, irrigation & weather tasks'),
+      title: isTe ? 'పొలం పనులు & షెడ్యూల్' : 'Field Operations & Tasks',
+      subtitle: isTe ? 'రోజువారీ పనులు, నీటి పారుదల & స్ప్రే సమయం' : 'Daily action checklist, irrigation & safe spray hours',
       icon: '⚡',
-      badge: t('farm_tools.badge_actions', 'Active Schedule'),
+      badge: isTe ? 'యాక్టివ్ పనులు' : 'Active Tasks',
       badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/40',
       borderHover: 'hover:border-emerald-500',
       bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     },
     {
       id: 'crop-lifecycle',
-      title: t('farm_tools.nav_timeline', 'Crop Timeline & Milestones'),
-      subtitle: t('farm_tools.desc_timeline', 'Days after sowing (DAS), stage milestones & weekly actionable tasks'),
+      title: isTe ? 'పంట దశలు & ప్రయాణం' : 'Crop Timeline & Milestones',
+      subtitle: isTe ? 'విత్తనం నుండి కోత వరకు 5 ముఖ్య దశల మార్గదర్శకత్వం' : '5-stage crop growth journey from seed to harvest',
       icon: '🌱',
-      badge: activeFarm?.growth_stage ? `${activeFarm.growth_stage}` : t('farm_tools.badge_timeline', 'Growth Stage'),
+      badge: activeFarm?.growth_stage ? `${activeFarm.growth_stage}` : (isTe ? 'వృద్ధి దశ' : 'Growth Stage'),
       badgeCls: 'bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-300 border-lime-300/40',
       borderHover: 'hover:border-lime-500',
       bg: 'bg-lime-500/10 text-lime-600 dark:text-lime-400'
     },
     {
       id: 'soil-npk',
-      title: t('farm_tools.nav_npk', 'Fertilizer & NPK Calculator'),
-      subtitle: t('farm_tools.desc_npk', 'Exact Urea, DAP & Potash bag recommendations tailored for your acres'),
+      title: isTe ? 'NPK ఎరువుల లెక్క' : 'Fertilizer & NPK Calculator',
+      subtitle: isTe ? 'ఎకరాకు సరిపడా యూరియా, డీఏపీ & పొటాష్ బస్తాల లెక్క' : 'Exact Urea, DAP & Potash bag recommendations tailored for your acres',
       icon: '💊',
-      badge: t('farm_tools.badge_npk', 'Custom Bags'),
-      badgeCls: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-300/40',
-      borderHover: 'hover:border-purple-500',
-      bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+      badge: isTe ? 'బస్తాల లెక్క' : 'Custom Bags',
+      badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/40',
+      borderHover: 'hover:border-emerald-500',
+      bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     },
     {
-      id: 'my-fields',
-      title: t('farm_tools.nav_fields', 'My Fields & Sectors'),
-      subtitle: t('farm_tools.desc_fields', { count: farms.length, defaultValue: `Switch between & manage all ${farms.length} registered field sectors or add a new field` }),
-      icon: '🌾',
-      badge: `${farms.length} ${farms.length === 1 ? t('farm_tools.badge_field', 'Field') : t('farm_tools.badge_fields', 'Fields')}`,
-      badgeCls: 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300/40',
-      borderHover: 'hover:border-teal-500',
-      bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+      id: 'harvest-season',
+      title: isTe ? 'కోత & దిగుబడి అంచనా' : 'Harvest & Yield Forecaster',
+      subtitle: isTe ? 'అంచనా కోత తేదీ, ఎకరాకు దిగుబడి & మార్కెట్ విలువ' : 'Target harvest date, yield estimation & estimated mandi revenue',
+      icon: '🧺',
+      badge: isTe ? 'దిగుబడి' : 'Yield Forecast',
+      badgeCls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300/40',
+      borderHover: 'hover:border-amber-500',
+      bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+    },
+    {
+      id: 'farm-intelligence',
+      title: isTe ? 'స్మార్ట్ నీటి పారుదల & మోటార్' : 'Smart Irrigation & Pump',
+      subtitle: isTe ? 'పంట దశను బట్టి నీటి షెడ్యూల్ & మోటార్ రన్నింగ్ సమయాలు' : 'Crop water schedule, drip timer & motor running hours',
+      icon: '💧',
+      badge: isTe ? 'నీటి షెడ్యూల్' : 'Water Schedule',
+      badgeCls: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-300/40',
+      borderHover: 'hover:border-sky-500',
+      bg: 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
     }
   ];
 
   const COMMERCE_MODULES = [
     {
       id: 'farm-khata',
-      title: t('farm_tools.nav_khata', 'Digital Farm Khata'),
-      subtitle: t('farm_tools.desc_khata', 'Track cultivation expenses, harvest sales & net profit per acre with WhatsApp ledger'),
+      title: isTe ? 'డిజిటల్ ఫార్మ్ ఖాతా' : 'Digital Farm Khata',
+      subtitle: isTe ? 'సాగు ఖర్చులు, పంట అమ్మకాలు & లాభనష్టాల లెక్క' : 'Track cultivation expenses, harvest sales & net profit per acre',
       icon: '💰',
-      badge: t('farm_tools.badge_khata', '₹ Profit & Loss'),
+      badge: isTe ? 'లాభనష్టాలు' : '₹ Profit & Loss',
       badgeCls: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300/40',
       borderHover: 'hover:border-blue-500',
       bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
     },
     {
       id: 'farm-inventory',
-      title: t('farm_tools.nav_inventory', 'Farm Stock & Inventory'),
-      subtitle: t('farm_tools.desc_inventory', 'Track seed bags, fertilizers, sprays, tools, low-stock & expiry alerts'),
+      title: isTe ? 'స్టాక్ & విత్తనాల ఇన్వెంటరీ' : 'Farm Stock & Inventory',
+      subtitle: isTe ? 'ఎరువుల బస్తాలు, పురుగు మందులు & విత్తనాల నిల్వ' : 'Track seed bags, fertilizers, sprays & low-stock alerts',
       icon: '📦',
-      badge: t('farm_tools.badge_inventory', 'Stock Tracker'),
+      badge: isTe ? 'నిల్వ' : 'Stock Tracker',
       badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/40',
       borderHover: 'hover:border-emerald-500',
       bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     },
     {
+      id: 'government-schemes',
+      title: isTe ? 'ప్రభుత్వ పథకాలు & సబ్సిడీలు' : 'Govt Schemes & Subsidies',
+      subtitle: isTe ? 'పీఎం కిసాన్, 90% డ్రిప్ సబ్సిడీ & పంట బీమా వివరాలు' : 'PM-Kisan status, 90% drip subsidy eligibility & crop insurance',
+      icon: '🏛️',
+      badge: isTe ? 'సబ్సిడీలు' : 'PM-Kisan & Drip',
+      badgeCls: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border-orange-300/40',
+      borderHover: 'hover:border-orange-500',
+      bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+    },
+    {
+      id: 'whatsapp-diagnosis',
+      title: isTe ? 'వాట్సాప్ అసిస్టెంట్ బాట్' : 'WhatsApp Diagnosis Bot',
+      subtitle: isTe ? 'వాట్సాప్‌లో ఆకు ఫోటో పంపి తక్షణ మందుల సలహా పొందండి' : 'Send leaf photo on WhatsApp for instant AI medicine advisory',
+      icon: '💬',
+      badge: isTe ? 'వాట్సాప్' : 'WhatsApp AI',
+      badgeCls: 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300/40',
+      borderHover: 'hover:border-teal-500',
+      bg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+    },
+    {
       id: 'field-setup',
-      title: t('farm_tools.nav_setup', 'Field Setup & Crops'),
-      subtitle: t('farm_tools.desc_setup', 'Crop variety, planting date, acreage, soil classification & irrigation source'),
-      icon: '⚙️',
-      badge: activeFarm?.village ? activeFarm.village : t('farm_tools.badge_setup', 'Settings'),
+      title: isTe ? 'పొలం వివరాలు & జీపీఎస్ మ్యాప్' : 'Field Setup & GPS Map',
+      subtitle: isTe ? 'పొలం సరిహద్దులు, నేల రకం, విత్తిన తేదీ & నీటి వనరు' : 'Field boundary polygon, soil type, sowing date & irrigation source',
+      icon: '📍',
+      badge: activeFarm?.village ? activeFarm.village : (isTe ? 'సెటప్' : 'Settings'),
       badgeCls: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300/40',
       borderHover: 'hover:border-amber-500',
       bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
     },
     {
-      id: 'government-schemes',
-      title: t('farm_tools.nav_schemes', 'Govt Schemes & Subsidies'),
-      subtitle: t('farm_tools.desc_schemes', 'Direct links, PM-Kisan status, 90% drip subsidy eligibility & crop insurance'),
-      icon: '🏛️',
-      badge: t('farm_tools.badge_schemes', 'PM-Kisan & Drip'),
-      badgeCls: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border-orange-300/40',
-      borderHover: 'hover:border-orange-500',
-      bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+      id: 'my-fields',
+      title: isTe ? 'నా పొలాలు & క్షేత్రాలు' : 'My Fields & Sectors',
+      subtitle: isTe ? `${farms.length} పొలాల మధ్య మారండి లేదా కొత్త పొలం చేర్చండి` : `Switch between & manage all ${farms.length} registered field sectors`,
+      icon: '🌾',
+      badge: `${farms.length} ${farms.length === 1 ? (isTe ? 'పొలం' : 'Field') : (isTe ? 'పొలాలు' : 'Fields')}`,
+      badgeCls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300/40',
+      borderHover: 'hover:border-emerald-500',
+      bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
     }
   ];
 
@@ -600,12 +639,12 @@ const FarmPage = () => {
         </div>
       )}
 
-      {/* ═══════ QUICK FIELD SECTOR SWITCHER ═══════ */}
+      {/* ═══════ QUICK FIELD SECTOR SWITCHER & 1-TAP GPS MAP ═══════ */}
       {activeTab === 'modules' && farms.length > 0 && (
-        <div className="flex items-center justify-between gap-2 p-2.5 px-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
+        <div className="flex items-center justify-between gap-2 p-3 px-4 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              {t('farm_tools.active_field_colon', 'Active Field:')}
+            <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {isTe ? '🌾 నా పొలం:' : '🌾 Active Field:'}
             </span>
             {farms.map((f) => {
               const isSelected = f.id === activeFarm?.id;
@@ -616,30 +655,40 @@ const FarmPage = () => {
                   onClick={async () => {
                     if (selectActiveFarm && !isSelected) {
                       await selectActiveFarm(f.id);
-                      setToastMsg(t('farm_tools.switched_active_field', { name: f.farm_name, defaultValue: `Switched to ${f.farm_name}!` }));
+                      setToastMsg(isTe ? `${f.farm_name} కి మారారు!` : `Switched to ${f.farm_name}!`);
                       setTimeout(() => setToastMsg(''), 3000);
                     }
                   }}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     isSelected
-                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm shadow-emerald-600/30 font-black'
                       : 'bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400'
                   }`}
                 >
                   <span>{f.farm_name || 'Field'}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5" />}
+                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </button>
               );
             })}
           </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab('my-fields')}
-            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 ml-2 cursor-pointer flex items-center gap-1"
-          >
-            <span>{t('farm_tools.view_all', 'View All')}</span>
-            <span>→</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('field-setup')}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+              title={isTe ? 'పొలం సరిహద్దు జీపీఎస్ మ్యాప్ చూడండి' : 'View GPS Boundary Map'}
+            >
+              <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{isTe ? 'జీపీఎస్ మ్యాప్' : 'GPS Map'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('my-fields')}
+              className="text-xs font-black text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 cursor-pointer flex items-center gap-1"
+            >
+              <span>{isTe ? '+ కొత్త పొలం' : '+ Add Field'}</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -697,6 +746,7 @@ const FarmPage = () => {
         const soilLabel = displayFarm.soil_type ? getLocalizedSoilName(displayFarm.soil_type, i18n.language) : t('farm_tools.soil_red_loamy', 'Red Loamy');
 
         return (
+          <div className="space-y-4">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -724,11 +774,19 @@ const FarmPage = () => {
                     </div>
                   </div>
                   {plantDate && (
-                    <div className="bg-white/15 backdrop-blur-sm rounded-xl px-3 py-2 text-center shadow-lg">
-                      <span className="text-xl font-black text-white leading-none block">{daysSincePlanting}</span>
-                      <span className="text-[9px] font-bold text-white/80 uppercase tracking-wide">
-                        {t('farm_tools.days_old', 'Days Old')}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-white/15 backdrop-blur-sm rounded-xl px-3 py-2 text-center shadow-lg">
+                        <span className="text-xl font-black text-white leading-none block">{daysSincePlanting}</span>
+                        <span className="text-[9px] font-bold text-white/80 uppercase tracking-wide">
+                          {isTe ? 'రోజుల వయస్సు' : 'Days Old'}
+                        </span>
+                      </div>
+                      <div className="bg-white/15 backdrop-blur-sm rounded-xl px-3 py-2 text-center shadow-lg">
+                        <span className="text-xl font-black text-amber-200 leading-none block">{Math.max(0, 120 - daysSincePlanting)}</span>
+                        <span className="text-[9px] font-bold text-amber-100/90 uppercase tracking-wide">
+                          {isTe ? 'కోతకు రోజులు' : 'To Harvest'}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -830,30 +888,165 @@ const FarmPage = () => {
             <div className="flex gap-2.5 p-3.5 pt-0">
               <button
                 type="button"
+                onClick={() => setActiveTab('field-setup')}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all active:scale-[0.98] cursor-pointer shadow-xs"
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{isTe ? 'జీపీఎస్ మ్యాప్' : 'GPS Boundary'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveTab('crop-lifecycle')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all active:scale-[0.98] cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-lime-50 dark:bg-lime-950/40 border border-lime-200/60 dark:border-lime-800/40 text-lime-700 dark:text-lime-300 text-xs font-bold hover:bg-lime-100 dark:hover:bg-lime-900/60 transition-all active:scale-[0.98] cursor-pointer shadow-xs"
               >
                 <Leaf className="w-3.5 h-3.5" />
-                <span>{t('farm_tools.crop_details', 'Crop Details')}</span>
+                <span>{isTe ? 'పంట దశలు' : 'Crop Timeline'}</span>
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/upload')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 text-sky-700 dark:text-sky-300 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-all active:scale-[0.98] cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/60 dark:border-sky-800/40 text-sky-700 dark:text-sky-300 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-all active:scale-[0.98] cursor-pointer shadow-xs"
               >
                 <ScanLine className="w-3.5 h-3.5" />
-                <span>{t('farm_tools.ai_scan', 'AI Scan')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/history')}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200/60 dark:border-violet-800/40 text-violet-700 dark:text-violet-300 text-xs font-bold hover:bg-violet-100 dark:hover:bg-violet-900/60 transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>{t('farm_tools.history', 'History')}</span>
+                <span>{isTe ? 'ఆకు పరీక్ష' : 'AI Scan'}</span>
               </button>
             </div>
           </motion.div>
+
+          {/* ═══════ THREE-PILLAR LIVE FIELD HEALTH HUD ═══════ */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Pillar 1: Soil Water */}
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-xl shrink-0 text-sky-600 dark:text-sky-400">
+                💧
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  {isTe ? 'నేల తేమ' : 'Soil Water'}
+                </span>
+                <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">
+                  68% • {isTe ? 'తగినంత' : 'Optimal'}
+                </span>
+              </div>
+            </div>
+
+            {/* Pillar 2: Soil Nutrition */}
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0 text-emerald-600 dark:text-emerald-400">
+                💊
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  {isTe ? 'ఎరువుల పోషణ' : 'Soil Nutrition'}
+                </span>
+                <span className="text-sm font-black text-slate-900 dark:text-white block mt-0.5">
+                  {isTe ? 'సమతుల్యం (NPK Profile)' : 'Balanced NPK'}
+                </span>
+              </div>
+            </div>
+
+            {/* Pillar 3: Crop Defense */}
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0 text-emerald-600 dark:text-emerald-400">
+                🛡️
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  {isTe ? 'తెగుళ్ల రక్షణ' : 'Crop Defense'}
+                </span>
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                  {isTe ? 'సురక్షితం (Low Risk)' : 'Low Risk (Safe)'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══════ TODAY'S 3 CRITICAL FIELD ACTIONS (1-Tap Checklist) ═══════ */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-base">⚡</span>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  {isTe ? 'నేటి 3 ముఖ్యమైన పొలం పనులు' : "Today's 3 Critical Field Tasks"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('smart-actions')}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <span>{isTe ? 'పూర్తి షెడ్యూల్ →' : 'Full Schedule →'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+              {quickTasks.map((task) => (
+                <button
+                  key={task.id}
+                  type="button"
+                  onClick={() => toggleQuickTask(task.id)}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                    task.completed
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-400/60 text-emerald-900 dark:text-emerald-200'
+                      : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:border-emerald-400/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-base shrink-0">{task.icon}</span>
+                    <span className={`text-xs font-bold leading-tight ${task.completed ? 'line-through opacity-75' : ''}`}>
+                      {isTe ? task.titleTe : task.titleEn}
+                    </span>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all ${
+                    task.completed
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
+                  }`}>
+                    {task.completed && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ═══════ FOUR INSTANT ACTION BUTTONS (Thumb Dock) ═══════ */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate('/upload')}
+              className="p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+            >
+              <Camera className="w-4 h-4 shrink-0" />
+              <span>{isTe ? 'ఆకు పరీక్ష' : 'Scan Leaf'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('soil-npk')}
+              className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-emerald-400 font-bold text-xs shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>💊</span>
+              <span>{isTe ? 'ఎరువుల లెక్క' : 'NPK Calculator'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('farm-khata')}
+              className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:border-emerald-400 font-bold text-xs shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>💰</span>
+              <span>{isTe ? 'ఖర్చు నమోదు' : 'Add Expense'}</span>
+            </button>
+
+            <a
+              href="tel:18001801551"
+              className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 font-black text-xs shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition-all"
+            >
+              <span>📞</span>
+              <span>{isTe ? 'కిసాన్ కాల్ 1800' : 'Kisan Call 1800'}</span>
+            </a>
+          </div>
+          </div>
         );
       })()}
 
@@ -978,7 +1171,7 @@ const FarmPage = () => {
                 {t('farm_tools.total_fields', 'Total Fields')}
               </span>
               <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-0.5">
-                {farms.length} <span className="text-xs font-bold text-slate-400">Sectors</span>
+                {farms.length} <span className="text-xs font-bold text-slate-400">{isTe ? 'పొలాలు' : 'Fields'}</span>
               </p>
             </div>
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
@@ -987,7 +1180,7 @@ const FarmPage = () => {
               </span>
               <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                 {farms.reduce((sum, f) => sum + (parseFloat(f.farm_size) || 0), 0).toFixed(1)}{' '}
-                <span className="text-xs font-bold text-slate-400">Acres</span>
+                <span className="text-xs font-bold text-slate-400">{isTe ? 'ఎకరాలు' : 'Acres'}</span>
               </p>
             </div>
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
@@ -1000,11 +1193,11 @@ const FarmPage = () => {
             </div>
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs">
               <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">
-                {t('farm_tools.monitoring_mode', 'AI Telemetry')}
+                {isTe ? 'పర్యవేక్షణ' : 'Monitoring'}
               </span>
               <p className="text-sm sm:text-base font-black text-slate-900 dark:text-white mt-1 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Live Monitored
+                {isTe ? 'యాక్టివ్ మానిటరింగ్' : 'Live Monitored'}
               </p>
             </div>
           </div>
@@ -1013,7 +1206,7 @@ const FarmPage = () => {
             <div>
               <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Sprout className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                {t('farm_tools.registered_fields', 'My Registered Fields & Sectors')}
+                {isTe ? 'నా రిజిస్టర్డ్ పొలాలు' : 'My Registered Fields'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {t('farm_tools.registered_fields_desc', { count: farms.length, defaultValue: `You have ${farms.length} registered field sectors. Tap any field to switch active profile.` })}
@@ -1306,16 +1499,16 @@ const FarmPage = () => {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                    {t('farm_tools.sector_gps_title', 'Farm Sector & Agronomic Setup')}
+                    {isTe ? 'పొలం వివరాలు & జీపీఎస్ మ్యాప్' : 'Farm Details & GPS Setup'}
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {t('farm_tools.sector_gps_desc', 'Set registered farm sector details, cultivated crop, stage, and precise coordinates.')}
+                    {isTe ? 'పొలం పేరు, విస్తీర్ణం, పంట రకం, నేల మరియు జీపీఎస్ సరిహద్దు వివరాలు నమోదు చేయండి.' : 'Set farm details, cultivated crop, stage, soil type, and precise GPS boundary.'}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label={t('farm_page.info.sector_name', 'Farm Sector Name')} placeholder={t('farm_page.info.sector_placeholder', 'e.g. Green Acre Sector 1')} value={farmName} onChange={(e) => setFarmName(e.target.value)} required />
+                <Input label={isTe ? 'పొలం పేరు' : 'Farm / Field Name'} placeholder={isTe ? 'ఉదా. రాముడి పొలం - 1' : 'e.g. My North Field'} value={farmName} onChange={(e) => setFarmName(e.target.value)} required />
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <Input label={t('farm_page.info.total_area', 'Total Farm Area')} type="number" placeholder="e.g. 2.5" value={farmSize} onChange={(e) => setFarmSize(e.target.value)} />
@@ -1920,12 +2113,8 @@ const FarmPage = () => {
             onClose={() => setActiveTab('modules')}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-            <div className="lg:col-span-2">
-              <FarmRoutineWidget />
-            </div>
-            <LiveWeatherWidget />
-            <SprayAdvisorWidget />
+          <div className="pt-2">
+            <FarmRoutineWidget />
           </div>
         </motion.div>
       )}
