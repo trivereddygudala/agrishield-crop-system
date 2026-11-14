@@ -10773,3 +10773,14 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - **Section 5 (Recent Leaf Scan Results / ఇటీవల స్కాన్ చేసిన ఆకుల ఫలితాలు):** Gradient squircle icon box (teal-to-emerald), bold h2 title, and 'Total Records' (మొత్తం రికార్డులు) count badge with history navigation shortcut.
 - **Production Build:**
   - Vite production build: 0 errors in 20.76s.
+
+## [2026-11-14 22:40:00] Real-Time Dynamic Time-of-Day Weather System with Micro-Animations
+- **Time-of-Day Weather Intelligence (DashboardPage.jsx):**
+  - **4 Diurnal Weather States:** Night (20:00-05:00), Dawn (05:00-08:00), Day (08:00-17:00), Dusk (17:00-20:00), plus active rain override.
+  - **Night Mode Palette & Animation:** Replaced daytime amber styling with deep nocturnal indigo/slate gradient ('bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 border-indigo-400/70 text-indigo-100'), rocking crescent moon ('🌙') with framer-motion rotate [-12, 12] degrees, and shimmery twinkling star ('✨').
+  - **Diurnal Text & Voice Sync:** Displays '🌙 24°C • శాంతమైన రాత్రి (Clear Night)' during nighttime instead of daytime sunny labels; voice briefing and WhatsApp dispatch reflect real-time time conditions ('చల్లని మరియు శాంతమైన రాత్రిగా ఉంది').
+  - **Daytime Animation:** Continuous 360° solar rotation for golden sun ('☀️') with breathing scale pulse.
+  - **Dawn / Dusk Palettes:** Warm morning rose/amber ('🌅') and sunset twilight ('🌇') with time-aware ambient sky glow.
+  - **Time-Aware Spray Window Badge:** Night mode adopts deep dark-emerald styling ('bg-emerald-950/80 text-emerald-300') with pulsing timer icon.
+- **Production Build:**
+  - Vite build: 0 errors in 21.00s.

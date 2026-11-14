@@ -24,6 +24,97 @@ let cachedDashboardStats = null;
 let cachedDashboardDevices = null;
 let cachedActiveDevice = null;
 
+
+// Dynamic Real-Time Time-of-Day Weather Intelligence with Custom Color Schemes & Micro-Animations
+const getTimeOfDayWeather = (hour, liveWeather, language) => {
+  const isTe = language === 'te';
+  const isHi = language === 'hi';
+  const rainProb = liveWeather?.current?.rain_probability ?? 0;
+  const isRain = rainProb > 50;
+  const isCloudy = !isRain && rainProb > 25;
+
+  const isNight = hour >= 20 || hour < 5;
+  const isDawn = hour >= 5 && hour < 8;
+  const isDay = hour >= 8 && hour < 17;
+  const isDusk = hour >= 17 && hour < 20;
+
+  const tempVal = liveWeather?.current?.temperature != null
+    ? Math.round(liveWeather.current.temperature)
+    : (isNight ? 24 : isDawn ? 26 : isDusk ? 29 : 34);
+
+  if (isRain) {
+    return {
+      period: 'rain',
+      icon: '🌧️',
+      hasTwinkle: false,
+      hasPulseGlow: true,
+      text: isTe ? 'వర్షం' : isHi ? 'बारिश' : 'Rainy Weather',
+      voiceText: isTe ? 'వర్షంగా ఉంది' : isHi ? 'बारिश हो रही है' : 'it is rainy',
+      bgClasses: 'bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 text-white border-2 border-sky-300 shadow-lg shadow-blue-500/30',
+      tempVal
+    };
+  }
+
+  if (isNight) {
+    return {
+      period: 'night',
+      icon: isCloudy ? '☁️' : '🌙',
+      hasTwinkle: !isCloudy,
+      hasPulseGlow: true,
+      text: isCloudy 
+        ? (isTe ? 'మేఘావృత రాత్రి' : isHi ? 'बादल वाली रात' : 'Cloudy Night')
+        : (isTe ? 'శాంతమైన రాత్రి' : isHi ? 'शांत रात' : 'Clear Night'),
+      voiceText: isCloudy
+        ? (isTe ? 'మేఘావృత రాత్రిగా ఉంది' : isHi ? 'बादल वाली रात है' : 'cloudy night')
+        : (isTe ? 'చల్లని మరియు శాంతమైన రాత్రిగా ఉంది' : isHi ? 'शांत और सुहावनी रात है' : 'pleasant clear night'),
+      bgClasses: 'bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 text-indigo-100 border-2 border-indigo-400/70 shadow-lg shadow-indigo-950/70',
+      tempVal
+    };
+  }
+
+  if (isDawn) {
+    return {
+      period: 'dawn',
+      icon: isCloudy ? '⛅' : '🌅',
+      hasTwinkle: false,
+      hasPulseGlow: true,
+      text: isTe ? 'చల్లని ఉదయం' : isHi ? 'सुहावनी सुबह' : 'Fresh Morning',
+      voiceText: isTe ? 'చల్లని ఆహ్లాదకరమైన ఉదయం' : isHi ? 'ताज़ा और सुहावनी सुबह' : 'crisp fresh morning',
+      bgClasses: 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white border-2 border-amber-300 shadow-lg shadow-orange-500/30',
+      tempVal
+    };
+  }
+
+  if (isDusk) {
+    return {
+      period: 'dusk',
+      icon: isCloudy ? '⛅' : '🌇',
+      hasTwinkle: true,
+      hasPulseGlow: true,
+      text: isTe ? 'చల్లని సాయంత్రం' : isHi ? 'सुहावनी शाम' : 'Cool Evening',
+      voiceText: isTe ? 'ఆహ్లాదకరమైన సాయంత్రం' : isHi ? 'सुहावनी शाम' : 'pleasant cool evening',
+      bgClasses: 'bg-gradient-to-r from-orange-600 via-rose-600 to-purple-800 text-white border-2 border-orange-300 shadow-lg shadow-rose-500/30',
+      tempVal
+    };
+  }
+
+  // Daytime (8 AM - 5 PM)
+  return {
+    period: 'day',
+    icon: isCloudy ? '⛅' : '☀️',
+    hasTwinkle: false,
+    hasPulseGlow: true,
+    text: isCloudy 
+      ? (isTe ? 'తేలికపాటి మేఘాలు' : isHi ? 'हल्के बादल' : 'Partly Cloudy')
+      : (isTe ? 'ఎండ' : isHi ? 'धूप' : 'Sunny'),
+    voiceText: isCloudy
+      ? (isTe ? 'తేలికపాటి మేఘాలు ఉన్నాయి' : isHi ? 'हल्के बादल हैं' : 'partly cloudy')
+      : (isTe ? 'ఎండగా ఉంది' : isHi ? 'धूप खिली है' : 'bright and sunny'),
+    bgClasses: 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 border-2 border-amber-300 shadow-lg shadow-amber-400/40',
+    tempVal
+  };
+};
+
 const DashboardPage = () => {
   const { user } = useAuth();
   const { activeFarm } = useFarm();
@@ -263,8 +354,11 @@ const DashboardPage = () => {
     ? `${activeFarm.village}${activeFarm.district ? `, ${activeFarm.district}` : ''}` 
     : (activeFarm?.district || activeFarm?.farm_name || t('dashboard.my_farm_field', 'My Farm Field'));
 
-  // ─── Dynamic Time-of-Day & Safe Spray Window ───
+  // ─── Dynamic Real-Time Time-of-Day Weather & Colors ───
   const currentHour = new Date().getHours();
+  const timeWeatherInfo = getTimeOfDayWeather(currentHour, liveWeather, i18n.language);
+  const isNightTime = currentHour >= 20 || currentHour < 5;
+
   const dynamicSprayWindow = currentHour < 12
     ? (i18n.language === 'te' ? '8:00 AM – 11:30 AM (అనుకూల సమయం)' : '8:00 AM – 11:30 AM (Optimal Window)')
     : currentHour < 17
@@ -272,11 +366,13 @@ const DashboardPage = () => {
     : (i18n.language === 'te' ? 'రేపు ఉదయం 7:30 AM (తదుపరి విండో)' : 'Tomorrow 7:30 AM (Next Window)');
 
   // Ambient Sky Glow depending on actual time of day
-  const ambientSkyGlow = currentHour >= 5 && currentHour < 12
-    ? 'from-amber-500/20 via-emerald-600/15 to-transparent'
-    : currentHour >= 12 && currentHour < 17
-    ? 'from-sky-500/15 via-emerald-500/15 to-transparent'
-    : 'from-indigo-900/35 via-emerald-950/25 to-transparent';
+  const ambientSkyGlow = currentHour >= 5 && currentHour < 8
+    ? 'from-amber-500/25 via-rose-500/20 to-transparent'
+    : currentHour >= 8 && currentHour < 17
+    ? 'from-sky-500/20 via-emerald-500/15 to-transparent'
+    : currentHour >= 17 && currentHour < 20
+    ? 'from-orange-600/30 via-rose-600/20 to-indigo-950/30'
+    : 'from-indigo-950/80 via-purple-950/50 to-slate-950/85';
 
   // ─── Today's 3-Task Quick Field Routine Checklist ───
   const todayDateKey = new Date().toISOString().slice(0, 10);
@@ -321,19 +417,14 @@ const DashboardPage = () => {
       const localizedStage = translateStage(growthStage, i18n.language) || growthStage;
       const soilVal = activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : (isTe ? 'సరైన స్థాయిలో' : 'optimal');
 
-      const currentTemp = liveWeather?.current?.temperature != null 
-        ? Math.round(liveWeather.current.temperature) 
-        : 34;
-      const rainProb = liveWeather?.current?.rain_probability ?? 0;
-      const weatherCond = rainProb > 50 
-        ? (isTe ? 'వర్షం' : isHi ? 'बारिश' : 'Rainy') 
-        : (isTe ? 'ఎండ' : isHi ? 'धूप' : 'Sunny');
+      const currentTemp = timeWeatherInfo.tempVal;
+      const weatherCond = timeWeatherInfo.voiceText;
 
       let text = '';
       if (isTe) {
-        text = `నమస్తే ${farmerName} గారు! నేటి మీ పొలం సమాచారం: వాతావరణం ${currentTemp} డిగ్రీలు మరియు ${weatherCond}గా ఉంది. సురక్షితమైన మందుల పిచికారీ సమయం ${dynamicSprayWindow}. మీ ${localizedCropName} పంట ${localizedStage} దశలో ఉంది. నేలలో తేమ ${soilVal} ఉంది. మార్కెట్లో ప్రస్తుత క్వింటాల్ ధర ₹2,150. తెగుళ్ల ముప్పు ప్రస్తుతం తక్కువగా ఉంది. శుభదినం!`;
+        text = `నమస్తే ${farmerName} గారు! నేటి మీ పొలం సమాచారం: వాతావరణం ${currentTemp} డిగ్రీలు మరియు ${weatherCond}. సురక్షితమైన మందుల పిచికారీ సమయం ${dynamicSprayWindow}. మీ ${localizedCropName} పంట ${localizedStage} దశలో ఉంది. నేలలో తేమ ${soilVal} ఉంది. మార్కెట్లో ప్రస్తుత క్వింటాల్ ధర ₹2,150. తెగుళ్ల ముప్పు ప్రస్తుతం తక్కువగా ఉంది. శుభదినం!`;
       } else if (isHi) {
-        text = `नमस्ते ${farmerName} जी! आज का खेत का विवरण: मौसम ${currentTemp} डिग्री और ${weatherCond} है। सुरक्षित छिड़काव का समय ${dynamicSprayWindow} है। आपकी ${localizedCropName} फसल ${localizedStage} अवस्था में है। मिट्टी की नमी ${soilVal} है। मंडी में आज का भाव ₹2,150 प्रति क्विंटल है। फसल रोग का जोखिम कम है। आपका दिन शुभ हो!`;
+        text = `नमस्ते ${farmerName} जी! आज का खेत का विवरण: मौसम ${currentTemp} डिग्री और ${weatherCond}। सुरक्षित छिड़काव का समय ${dynamicSprayWindow} है। आपकी ${localizedCropName} फसल ${localizedStage} अवस्था में है। मिट्टी की नमी ${soilVal} है। मंडी में आज का भाव ₹2,150 प्रति क्विंटल है। फसल रोग का जोखिम कम है। आपका दिन शुभ हो!`;
       } else {
         text = `Namaste ${farmerName}! Here is today's farm report: The weather is ${currentTemp} degrees and ${weatherCond}. The safe spray window is ${dynamicSprayWindow}. Your ${localizedCropName} is in ${localizedStage} stage. Soil moisture is ${soilVal}. Current mandi market rate is ₹2,150 per quintal. Foliar disease risk is low. Have a productive farming day!`;
       }
@@ -523,20 +614,57 @@ const DashboardPage = () => {
               </button>
             </div>
 
-            {/* Middle Row: Weather Glance + Safe Spray Window */}
+            {/* Middle Row: Real-Time Weather Glance with Micro-Animation & Dynamic Time Colors */}
             <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm font-semibold">
-              <div className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black shadow-md border border-amber-300 flex items-center gap-1.5">
-                <span>{liveWeather?.current?.rain_probability > 50 ? '🌧️' : (liveWeather?.current?.rain_probability > 25 ? '⛅' : '☀️')}</span>
-                <span>
-                  {liveWeather?.current?.temperature != null ? Math.round(liveWeather.current.temperature) : 34}°C •{' '}
-                  {liveWeather?.current?.rain_probability > 50 
-                    ? (isTe ? 'వర్షం' : 'Rainy') 
-                    : (isTe ? 'ఎండ' : 'Sunny')}
+              <div className={`px-4 py-2 rounded-2xl font-black shadow-lg flex items-center gap-2 transition-all duration-500 ${timeWeatherInfo.bgClasses}`}>
+                <motion.div
+                  animate={
+                    timeWeatherInfo.period === 'night'
+                      ? { rotate: [0, -12, 12, 0], scale: [1, 1.12, 1] }
+                      : timeWeatherInfo.period === 'day'
+                      ? { rotate: [0, 180, 360], scale: [1, 1.08, 1] }
+                      : timeWeatherInfo.period === 'rain'
+                      ? { y: [0, -2, 0], scale: [1, 1.06, 1] }
+                      : { scale: [1, 1.1, 1] }
+                  }
+                  transition={{ 
+                    duration: timeWeatherInfo.period === 'day' ? 14 : timeWeatherInfo.period === 'night' ? 4 : 2, 
+                    repeat: Infinity, 
+                    ease: "easeInOut" 
+                  }}
+                  className="inline-flex items-center justify-center text-lg shrink-0 select-none"
+                >
+                  {timeWeatherInfo.icon}
+                </motion.div>
+
+                {timeWeatherInfo.hasTwinkle && (
+                  <motion.span
+                    animate={{ opacity: [0.2, 1, 0.2], scale: [0.6, 1.25, 0.6] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                    className="text-xs text-amber-200 select-none"
+                  >
+                    ✨
+                  </motion.span>
+                )}
+
+                <span className="tracking-wide">
+                  {timeWeatherInfo.tempVal}°C • {timeWeatherInfo.text}
                 </span>
               </div>
 
-              <div className="px-3.5 py-1.5 rounded-xl bg-emerald-400 text-slate-950 font-black shadow-md border border-emerald-300 flex items-center gap-1.5">
-                <span>⏱️</span>
+              {/* Safe Spray Window Badge with Time-Aware Night/Day Palette */}
+              <div className={`px-4 py-2 rounded-2xl font-black shadow-lg flex items-center gap-2 border transition-all duration-500 ${
+                isNightTime
+                  ? 'bg-emerald-950/80 border-emerald-400/60 text-emerald-300 shadow-emerald-950/50'
+                  : 'bg-emerald-400 text-slate-950 border-emerald-300 shadow-emerald-500/30'
+              }`}>
+                <motion.span 
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-block"
+                >
+                  ⏱️
+                </motion.span>
                 <span>{isTe ? 'మందుల స్ప్రే సమయం:' : 'Safe Spray:'} {dynamicSprayWindow}</span>
               </div>
             </div>
